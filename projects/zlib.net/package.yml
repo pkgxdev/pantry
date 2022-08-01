@@ -1,0 +1,26 @@
+distributable:
+  url: https://zlib.net/zlib-{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: madler/zlib/tags
+  ignore: v1.0-pre
+
+build:
+  dependencies:
+    tea.xyz/gx/make: '*'
+    tea.xyz/gx/cc: c99
+  script: |
+    ./configure --prefix={{ prefix }}
+    make --jobs {{ hw.concurrency }}
+    make install
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script: |
+    cc {{ pkg.pantry-prefix }}/test.c -lz
+    OUT=$(echo "$INPUT" | ./a.out | ./a.out -d)
+    test "$OUT" = "$INPUT"
+  env:
+    INPUT: tea.xyz
