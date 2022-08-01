@@ -1,0 +1,112 @@
+name: ci
+on: pull_request
+
+concurrency:
+  #TODO group: ${{ github.ref }}
+  group: only-one-due-to-versions.txt-generation-requiring-serial-ness
+  cancel-in-progress: true
+
+jobs:
+  get-diff:
+    # separate step since our image has no `git`
+    runs-on: ubuntu-latest
+    outputs:
+      diff: ${{ steps.diff.outputs.diff }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: technote-space/get-diff-action@v6
+        id: diff
+        with:
+          PATTERNS: projects/**/package.yml
+
+  build:
+    needs: [get-diff]
+    runs-on: ${{ matrix.os}}
+    strategy:
+      matrix:
+        include:
+          - os: macos-11
+            container: ~
+          - os: ubuntu-latest
+            container: ghcr.io/teaxyz/infuser:main
+    container: ${{ matrix.container }}
+    defaults:
+      run:
+        working-directory: pantry
+    steps:
+      - name: co pantry
+        uses: actions/checkout@v3
+        with:
+          path: pantry
+
+      - name: co cli
+        uses: actions/checkout@v3
+        with:
+          path: cli
+          repository: teaxyz/cli
+          token: ${{ secrets.TEMP_JACOBS_GITHUB_PAT }}
+
+      - name: HACKS
+        run: |
+          case ${{ matrix.os }} in
+          ubuntu-latest)
+            rm -rf /opt/tea.xyz/var/pantry
+            ln -s $GITHUB_WORKSPACE/pantry /opt/tea.xyz/var/pantry
+            mkdir .git  # no git in our image
+            ;;
+          macos-11)
+            sudo mkdir -p /opt/tea.xyz/var
+            sudo chown -R $(whoami):staff /opt
+            ln -s $GITHUB_WORKSPACE/pantry /opt/tea.xyz/var/pantry
+            mkdir -p /opt/deno.land/v1.23.3/.tricksy
+
+            # HACKs for teaxyz/setup since it currently requires the working dir to be a srcroot
+            cp README.md ..
+            mkdir ../.git
+            ;;
+          *)
+            exit 1
+          esac
+
+          mkdir -p projects/deno.land
+          echo 'versions: [1.23.3]' > projects/deno.land/package.yml
+
+      - name: HACKS
+        uses: denoland/setup-deno@v1
+        if: ${{ matrix.os == 'macos-11' }}
+
+      - uses: teaxyz/setup@v0
+        env:
+          TEA_SECRET: ${{ secrets.TEA_SECRET }}
+        if: ${{ matrix.os == 'macos-11' }}
+
+      - name: Build
+        run: |
+          ./scripts/build.ts ${{ needs.get-diff.outputs.diff }}
+        id: build
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Test
+        run: ./scripts/test.ts ${{ steps.build.outputs.pkgs }}
+
+      - name: Bottle
+        run: ./scripts/bottle.ts ${{ steps.build.outputs.pkgs }}
+        id: bottle
+
+      - name: Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.os }}
+          path: ${{ steps.bottle.outputs.filenames }}
+          if-no-files-found: error
+
+      # TODO only upload if all jobs succeed
+      # TODO only upload when we merge
+      # TODO upload to a staging location until we release new pantry versions
+      - name: Upload
+        run: ./scripts/upload.ts ${{ steps.build.outputs.pkgs }}
+        env:
+          AWS_S3: ${{ secrets.AWS_S3 }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
