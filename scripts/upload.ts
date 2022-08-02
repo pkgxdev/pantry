@@ -55,9 +55,12 @@ async function get_versions(pkg: Package): Promise<SemVer[]> {
 
   //FIXME? API isn’t clear if these nulls indicate failure or not
   //NOTE if this is a new package then some empty results is expected
-  return rsp
+  const got = rsp
     ?.contents
     ?.compactMap(x => x.key?.split("/").pop())
     .compactMap(semver.coerce) //FIXME coerce is too loose
-    .sort() ?? []
+    ?? []
+
+  // have to add pkg.version as put and get are not atomic
+  return [...new Set([...got, pkg.version])].sort()
 }
