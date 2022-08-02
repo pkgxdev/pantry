@@ -1,0 +1,31 @@
+distributable:
+  url: https://ftp.gnu.org/gnu/gettext/gettext-0.21.tar.gz
+  strip-components: 1
+
+dependencies:
+  gnome.org/libxml2: 2
+  #TODO ncurses
+
+versions:
+  github: autotools-mirror/gettext/tags
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    ./configure \
+      --prefix={{ prefix }} \
+      --disable-debug \
+      --with-included-debug \
+      --with-included-libcroco \
+      --with-included-libunistring \
+      --without-included-libxml \
+      --disable-java \
+      --disable-csharp
+    make --jobs {{ hw.concurrency }}
+    make install
+
+test:
+  script:
+    gettext test
