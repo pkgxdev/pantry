@@ -1,0 +1,22 @@
+distributable:
+  url: https://download.gnome.org/sources/libxml2/{{ version.major }}.{{ version.minor }}/libxml2-{{ version }}.tar.xz
+  strip-components: 1
+
+versions:
+  github: GNOME/libxml2/tags
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    ./configure --prefix={{prefix}}
+    make --jobs {{ hw.concurrency }}
+    make install
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script: |
+    cc `xml2-config --cflags --libs` -o test {{ pkg.pantry-prefix }}/test.c
+    ./test
