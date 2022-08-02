@@ -1,0 +1,23 @@
+distributable:
+  url: https://mirrors.edge.kernel.org/pub/software/scm/git/git-{{ version }}.tar.xz
+  strip-components: 1
+
+versions:
+  github: git/git/tags
+
+dependencies:
+  zlib.net: 1
+  gnu.org/gettext: ^0.21
+  curl.se: '>=5'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    ./configure --prefix={{prefix}}
+    make --jobs {{hw.concurrency}} install
+
+test:
+  script:
+    git --version
