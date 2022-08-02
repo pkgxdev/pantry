@@ -1,0 +1,24 @@
+distributable:
+  url: https://curl.se/download/curl-{{ version }}.tar.bz2
+  strip-components: 1
+
+versions:
+  github: curl/curl
+  strip: /^curl /
+
+dependencies:
+  openssl.org: ^1.1
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    ./configure --prefix={{prefix}} --with-openssl
+    make --jobs {{ hw.concurrency }} install
+  test:
+    make test
+
+test:
+  script: |
+    curl -i tea.xyz
