@@ -44,7 +44,7 @@ const build_deps = await (async () => {
   return rv
 })()
 
-const wet = [...await hydrate(dry), ...build_deps]
+const wet = await hydrate([...dry, ...build_deps])
 const gas = await resolve(await (async () => {
   const rv: PackageRequirement[] = []
   for (const pkg of wet) {
