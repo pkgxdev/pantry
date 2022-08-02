@@ -1,0 +1,68 @@
+distributable:
+  url: https://github.com/llvm/llvm-project/releases/download/llvmorg-{{ version }}/llvm-project-{{ version }}.src.tar.xz
+  strip-components: 1
+
+versions:
+  github: llvm/llvm-project
+  strip: /^LLVM /
+
+provides:
+  - bin/lld
+  - bin/clang
+  - bin/clang++
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    cmake.org: 3
+    ninja-build.org: 1
+    python.org: 3
+  working-directory: build
+  script: |-
+    cmake \
+      ../llvm \
+      -G Ninja \
+      $ARGS
+    ninja
+    ninja install
+
+    #TMP these are required for many build-scripts to function
+    # however we want to provide a “generic” system for this
+    # but it's too early
+
+    cd {{ prefix }}/bin
+    ln -sf clang cc
+    ln -sf clang++ c++
+    ln -sf lld ld
+    for x in ar as strip objcopy nm objdump ranlib readelf; do
+      ln -sf llvm-$x $x
+    done
+
+    # need this or if `gcc` is in the PATH then configure often will use `gcc`
+    # coupled with one of the above as a sub-task (eg. `as`) and gcc feeds it
+    # the wrong args
+    #FIXME longer term we should not have any hacks outside of `build.ts`
+    ln -sf clang gcc
+    ln -sf clang++ g++
+
+    #TODO the above hacks should be a separate directory that can be added
+    # to the PATH when tea.xyz/gx/cc is used
+    #NOTE they must be symlinks as clang/llvm behave differently based on their arg0 name
+  receipt:
+    - LLVMConfig.cmake
+  env:
+    ARGS:
+      - -DCMAKE_INSTALL_PREFIX="{{ prefix }}"
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DLLVM_ENABLE_PROJECTS='lld;clang'
+
+      # required to build something that works on linux/x86-64
+      - -DCLANG_DEFAULT_LINKER=ld
+      - -DCLANG_DEFAULT_CXX_STDLIB=libstdc++
+      - -DCLANG_DEFAULT_RTLIB=libgcc
+      - -DCOMPILER_RT_INCLUDE_TESTS=OFF
+      - -DCOMPILER_RT_USE_LIBCXX=OFF
+
+test:
+  script:
+    clang --version
