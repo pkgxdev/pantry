@@ -1,0 +1,46 @@
+distributable:
+  url: https://www.python.org/ftp/python/{{ version }}/Python-{{ version }}.tar.xz
+  strip-components: 1
+
+versions:
+  github: python/cpython/tags
+
+dependencies:
+  #TODO lots! openssl at least! libffi!
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }}
+    make install
+    cd {{ prefix }}/bin
+    ln -s python{{ version.major }} python
+
+  env:
+    SHARE: /opt/python.org/share
+    ARGS:
+      - --prefix="{{ prefix }}"
+      # it’s 202x
+      - --enable-ipv6
+      # prevent auto updates -> we control that
+      - --without-ensurepip
+      - --disable-loadable-sqlite-extensions
+      # use our libraries not the bundled ones
+      - --with-system-expat
+      - --with-system-ffi
+      - --with-system-libmpdec
+      # these two make our binary not portable
+      #- --enable-optimizations
+      #- --with-lto
+      # on macOS we probably will actually want to --enable-framework
+      - --enable-shared
+      # put data that doesn’t vary between pythons in a consistent place
+      - --datarootdir="$SHARE"
+      - --datadir="$SHARE"
+
+test:
+  script:
+    python --version
