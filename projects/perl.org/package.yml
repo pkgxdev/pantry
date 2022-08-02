@@ -1,0 +1,66 @@
+distributable:
+  url: https://www.cpan.org/src/{{ version.major }}.0/perl-{{ version }}.tar.xz
+  strip-components: 1
+
+versions:
+  github: perl/perl5/tags
+  ignore: /^v\d+\.\d*[13579]\.\d+$/
+  # ^^ perl considers odd minor versions “dev” releases
+
+build:
+  dependencies:
+    tea.xyz/gx/make: '*'
+    tea.xyz/gx/cc: c99
+  script: |
+    ./Configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - -d  # use defaults
+      - -e  # non interactive
+      - -Dprefix={{prefix}}
+      - -Duseshrplib
+      - -Duselargefiles
+      - -Dusethreads
+      # we don’t want versioned, platformed prefixes
+      #NOTE maybe this will break something though…
+      - -Dprivlib={{prefix}}/lib
+      - -Darchlib={{prefix}}/lib
+
+test:
+  script: |
+    perl $FIXTURE
+  fixture: |
+    print 'Perl is not an acronym, but JAPH is a Perl acronym!'
+
+provides:
+  - bin/corelist
+  - bin/cpan
+  - bin/enc2xs
+  - bin/encguess
+  - bin/h2ph
+  - bin/h2xs
+  - bin/instmodsh
+  - bin/json_pp
+  - bin/libnetcfg
+  - bin/perl
+  - bin/perlbug
+  - bin/perldoc
+  - bin/perlivp
+  - bin/perlthanks
+  - bin/piconv
+  - bin/pl2pm
+  - bin/pod2html
+  - bin/pod2man
+  - bin/pod2text
+  - bin/pod2usage
+  - bin/podchecker
+  - bin/prove
+  - bin/ptar
+  - bin/ptardiff
+  - bin/ptargrep
+  - bin/shasum
+  - bin/splain
+  - bin/streamzip
+  - bin/xsubpp
+  - bin/zipdetails

@@ -1,0 +1,28 @@
+distributable:
+  url: https://ftp.gnu.org/gnu/bash/bash-{{ version.raw }}.tar.gz
+  strip-components: 1
+
+versions:
+  #TODO possibly, `github: bminor/bash/tags` though doesn’t know patch releases
+  #TODO HTML listing: https://ftp.gnu.org/gnu/bash/
+  - 5.1.16
+
+provides:
+  - bin/bash
+  - bin/bashbug
+
+build:
+  dependencies:
+    tea.xyz/gx/make: '*'
+    tea.xyz/gx/cc: c99
+  script: |
+    ./configure --prefix={{ prefix }}
+    make --jobs {{ hw.concurrency }} install
+  env:
+    # causes bash to source ~/.bashrc when instantiated
+    # non-interactively from sshd. macOS’s bash does this so users expect it.
+    CFLAGS: -DSSH_SOURCE_BASHRC
+
+test:
+  script: |
+    bash -c "set -o pipefail"

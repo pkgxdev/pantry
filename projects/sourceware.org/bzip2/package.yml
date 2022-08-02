@@ -1,0 +1,40 @@
+distributable:
+  url: https://sourceware.org/pub/bzip2/bzip2-{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: libarchive/bzip2/tags
+  strip: /^bzip2-/
+
+provides:
+  - bin/bunzip2
+  - bin/bzcat
+  - bin/bzcmp
+  - bin/bzdiff
+  - bin/bzegrep
+  - bin/bzfgrep
+  - bin/bzgrep
+  - bin/bzip2
+  - bin/bzip2recover
+  - bin/bzless
+  - bin/bzmore
+
+build:
+  dependencies:
+    tea.xyz/gx/make: '*'
+    tea.xyz/gx/cc: c99
+  script: |
+    make \
+      --environment-overrides \
+      --jobs {{ hw.concurrency }} \
+      install
+  env:
+    CC: clang
+    PREFIX: ${{ prefix }}
+
+test:
+  script: |
+    OUT=$(echo "$INPUT" | bzip2 | bunzip2)
+    test "$OUT" = "$INPUT"
+  env:
+    INPUT: tea.xyz
