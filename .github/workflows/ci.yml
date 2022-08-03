@@ -88,7 +88,10 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
 
       - name: Test
-        run: ./scripts/test.ts ${{ steps.build.outputs.pkgs }}
+        run: |
+          for x in ${{ steps.build.outputs.pkgs }}; do
+            ./scripts/test.ts $x
+          done
 
       - name: Bottle
         run: ./scripts/bottle.ts ${{ steps.build.outputs.pkgs }}
