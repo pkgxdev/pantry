@@ -6,13 +6,16 @@ versions:
   github: python/cpython/tags
 
 dependencies:
-  #TODO lots! openssl at least! libffi!
+  zlib.net: 1
 
 build:
   dependencies:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
   script: |
+    sed -i.bak -e 's|system_lib_dirs = .*|system_lib_dirs = os.getenv("LIBRARY_PATH").split(":")|' ./setup.py
+    sed -i.bak -e 's|system_include_dirs = .*|system_include_dirs = os.getenv("CPATH").split(":")|' ./setup.py
+
     ./configure $ARGS
     make --jobs {{ hw.concurrency }}
     make install
@@ -42,5 +45,6 @@ build:
       - --datadir="$SHARE"
 
 test:
+  #TODO test all modules eg zlib module
   script:
     python --version
