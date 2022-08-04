@@ -49,15 +49,18 @@ for (const rq of Deno.args.map(parsePackageRequirement)) {
   console.log({ uploaded: key })
 }
 
+import { dirname, basename } from "deno/path/mod.ts"
+
 async function get_versions(pkg: Package): Promise<SemVer[]> {
-  const prefix = useCache().s3Key(pkg)
+  const prefix = dirname(useCache().s3Key(pkg))
   const rsp = await bucket.listObjects({ prefix })
 
   //FIXME? API isn’t clear if these nulls indicate failure or not
   //NOTE if this is a new package then some empty results is expected
   const got = rsp
     ?.contents
-    ?.compactMap(x => x.key?.split("/").pop())
+    ?.compactMap(x => x.key)
+    .map(x => basename(x))
     .compactMap(semver.coerce) //FIXME coerce is too loose
     ?? []
 
