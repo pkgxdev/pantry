@@ -54,12 +54,12 @@ jobs:
             ln -s $GITHUB_WORKSPACE/pantry /opt/tea.xyz/var/pantry
             mkdir .git  # no git in our image
             echo "--insecure" >> ~/.curlrc  # our curl is broke somehow for rust bootstrap
+            apt-get --yes install ca-certificates
             ;;
           macos-11)
             sudo mkdir -p /opt/tea.xyz/var
             sudo chown -R $(whoami):staff /opt
             ln -s $GITHUB_WORKSPACE/pantry /opt/tea.xyz/var/pantry
-            mkdir -p /opt/deno.land/v1.23.3/.tricksy
 
             # HACKs for teaxyz/setup since it currently requires the working dir to be a srcroot
             cp README.md ..
@@ -68,9 +68,6 @@ jobs:
           *)
             exit 1
           esac
-
-          mkdir -p projects/deno.land
-          echo 'versions: [1.23.3]' > projects/deno.land/package.yml
 
       - name: HACKS
         uses: denoland/setup-deno@v1

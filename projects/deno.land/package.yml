@@ -1,0 +1,33 @@
+distributable:
+  url: https://github.com/denoland/deno/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+relocatable: true
+
+versions:
+  github: denoland/deno
+  ignore:
+    - v1.24.z  #FIXME compile issues
+    - v1.23.4  #FIXME ^^
+
+provides:
+  - bin/deno
+
+interprets:
+  - .ts
+  - .js
+
+build:
+  script: |
+    cargo build --release
+    mkdir -p "{{ prefix }}"/bin
+    mv target/release/deno "{{ prefix }}"/bin
+  dependencies:
+    rust-lang.org: 1
+  # llvm.org: 13         #FIXME macOS/aarch64 requires this AND fails to build with v14
+    curl.se: '*'         # required to download v8 (python is another option)
+    tea.xyz/gx/make: '*' # required to build the libffi parts
+    tea.xyz/gx/cc: c99
+
+test:
+  script: deno --version
