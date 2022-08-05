@@ -18,6 +18,9 @@ dependencies:
   gnu.org/readline: 8
   invisible-island.net/ncurses: 6
 
+#TODO pip should be python.org/pip and installed by default (as a recommended dependent) with python
+#RATIONALE it is independently versioned
+
 build:
   dependencies:
     tea.xyz/gx/cc: c99
@@ -32,8 +35,11 @@ build:
     ./configure $ARGS
     make --jobs {{ hw.concurrency }}
     make install
+
     cd {{ prefix }}/bin
-    ln -sf python{{ version.major }} python
+    ln -sf python{{ version.marketing }} python
+    ln -sf python{{ version.marketing }}-config python-config
+    ln -sf pip{{ version.marketing }} pip
 
   env:
     SHARE: /opt/python.org/share
@@ -42,7 +48,7 @@ build:
       # it’s 202x
       - --enable-ipv6
       # prevent auto updates -> we control that
-      - --without-ensurepip
+      # - --without-ensurepip
       - --disable-loadable-sqlite-extensions
       # use our libraries not the bundled ones
       - --with-system-expat
@@ -75,5 +81,6 @@ build:
 
 test:
   #TODO test all modules eg zlib module
-  script:
+  script: |
     python --version
+    pip --version
