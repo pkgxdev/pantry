@@ -39,6 +39,10 @@ If you have a website you can host your own `package.yml` there and we will
 build binaries for you. This feature is coming soon and will require
 signed, versioned tags and signed source tarballs.
 
+# Packaging Knowledgebase
+
+Our [wiki](/wiki) is our knowledgebase. Fill it with the fruits of your
+knowledge. Please keep it tidy.
 
 # Dependencies
 
