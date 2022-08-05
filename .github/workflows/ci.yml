@@ -69,10 +69,6 @@ jobs:
             exit 1
           esac
 
-      - name: HACKS
-        uses: denoland/setup-deno@v1
-        if: ${{ matrix.os == 'macos-11' }}
-
       - uses: teaxyz/setup@v0
         env:
           TEA_SECRET: ${{ secrets.TEA_SECRET }}
@@ -88,6 +84,7 @@ jobs:
         id: build
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          FORCE_UNSAFE_CONFIGURE: 1  # some configure scripts refuse to run as root
 
       - name: Test
         run: |
