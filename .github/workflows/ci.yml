@@ -78,9 +78,13 @@ jobs:
           TEA_SECRET: ${{ secrets.TEA_SECRET }}
         if: ${{ matrix.os == 'macos-11' }}
 
+      - name: topological sort
+        id: sorted
+        run: ./scripts/sort.ts ${{ needs.get-diff.outputs.diff }}
+
       - name: Build
         run: |
-          ./scripts/build.ts ${{ needs.get-diff.outputs.diff }}
+          ./scripts/build.ts ${{ steps.sorted.outputs.pkgs }}
         id: build
         env:
           GITHUB_TOKEN: ${{ github.token }}

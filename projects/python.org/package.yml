@@ -6,12 +6,25 @@ versions:
   github: python/cpython/tags
 
 dependencies:
+# recommended but none are actually required
   zlib.net: 1
+  sourceware.org/bzip2: 1
+  openssl.org: ^1.1
+  sourceware.org/libffi: 3
+  libexpat.github.io: 2
+  bytereef.org/mpdecimal: 2
+  tukaani.org/xz: 5
+  sqlite.org: 3
+  gnu.org/readline: 8
+  invisible-island.net/ncurses: 6
 
 build:
   dependencies:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
+    freedesktop.org/pkg-config: ^0.29
+
+  #TODO use the diff
   script: |
     sed -i.bak -e 's|system_lib_dirs = .*|system_lib_dirs = os.getenv("LIBRARY_PATH").split(":")|' ./setup.py
     sed -i.bak -e 's|system_include_dirs = .*|system_include_dirs = os.getenv("CPATH").split(":")|' ./setup.py
@@ -20,7 +33,7 @@ build:
     make --jobs {{ hw.concurrency }}
     make install
     cd {{ prefix }}/bin
-    ln -s python{{ version.major }} python
+    ln -sf python{{ version.major }} python
 
   env:
     SHARE: /opt/python.org/share
@@ -43,6 +56,22 @@ build:
       # put data that doesn’t vary between pythons in a consistent place
       - --datarootdir="$SHARE"
       - --datadir="$SHARE"
+  diff: |
+    diff --git a/setup.py b/setup.py
+    index 85a2b26..4f2f742 100644
+    --- a/setup.py
+    +++ b/setup.py
+    @@ -847,8 +847,8 @@ class PyBuildExt(build_ext):
+                add_dir_to_list(self.compiler.include_dirs,
+                                sysconfig.get_config_var("INCLUDEDIR"))
+
+    -        system_lib_dirs = ['/lib64', '/usr/lib64', '/lib', '/usr/lib']
+    -        system_include_dirs = ['/usr/include']
+    +        system_lib_dirs = os.getenv("LIBRARY_PATH").split(":")
+    +        system_include_dirs = os.getenv("CPATH").split(":")
+            # lib_dirs and inc_dirs are used to search for files;
+            # if a file is found in one of those directories, it can
+            # be assumed that no additional -I,-L directives are needed.
 
 test:
   #TODO test all modules eg zlib module

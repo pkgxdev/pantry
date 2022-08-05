@@ -1,0 +1,31 @@
+distributable:
+  url: https://ftp.gnu.org/gnu/ncurses/ncurses-{{ version.raw }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: mirror/ncurses/tags
+
+build:
+  dependencies:
+    freedesktop.org/pkg-config: ^0.29
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    mkdir -p $PCDIR
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    PCDIR: ${{prefix}}/lib/pkgconfig
+    ARGS:
+      - --prefix={{ prefix }}
+      - --enable-pc-files
+      - --enable-sigwinch
+      - --enable-widec
+      - --with-shared
+      - --with-cxx-shared
+      - --with-gpm=no
+      - --without-ada
+      - --with-pkg-config-libdir=$PCDIR
+
+test:
+  script: true  #FIXME
