@@ -8,7 +8,6 @@ concurrency:
 
 jobs:
   get-diff:
-    # separate step since our image has no `git`
     runs-on: ubuntu-latest
     outputs:
       diff: ${{ steps.diff.outputs.diff }}
@@ -18,97 +17,10 @@ jobs:
         id: diff
         with:
           PATTERNS: projects/**/package.yml
-
   build:
     needs: [get-diff]
-    runs-on: ${{ matrix.os}}
-    strategy:
-      matrix:
-        include:
-          - os: macos-11
-            container: ~
-          - os: ubuntu-latest
-            container: ghcr.io/teaxyz/infuser:main
-    container: ${{ matrix.container }}
-    defaults:
-      run:
-        working-directory: pantry
-    steps:
-      - name: co pantry
-        uses: actions/checkout@v3
-        with:
-          path: pantry
-
-      - name: co cli
-        uses: actions/checkout@v3
-        with:
-          path: cli
-          repository: teaxyz/cli
-          token: ${{ secrets.TEMP_JACOBS_GITHUB_PAT }}
-
-      - name: HACKS
-        run: |
-          case ${{ matrix.os }} in
-          ubuntu-latest)
-            rm -rf /opt/tea.xyz/var/pantry
-            ln -s $GITHUB_WORKSPACE/pantry /opt/tea.xyz/var/pantry
-            mkdir .git  # no git in our image
-            echo "--insecure" >> ~/.curlrc  # our curl is broke somehow for rust bootstrap
-            apt-get --yes install ca-certificates
-            ;;
-          macos-11)
-            sudo mkdir -p /opt/tea.xyz/var
-            sudo chown -R $(whoami):staff /opt
-            ln -s $GITHUB_WORKSPACE/pantry /opt/tea.xyz/var/pantry
-
-            # HACKs for teaxyz/setup since it currently requires the working dir to be a srcroot
-            cp README.md ..
-            mkdir ../.git
-            ;;
-          *)
-            exit 1
-          esac
-
-      - uses: teaxyz/setup@v0
-        env:
-          TEA_SECRET: ${{ secrets.TEA_SECRET }}
-        if: ${{ matrix.os == 'macos-11' }}
-
-      - name: topological sort
-        id: sorted
-        run: ./scripts/sort.ts ${{ needs.get-diff.outputs.diff }}
-
-      - name: Build
-        run: |
-          ./scripts/build.ts ${{ steps.sorted.outputs.pkgs }}
-        id: build
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          FORCE_UNSAFE_CONFIGURE: 1  # some configure scripts refuse to run as root
-
-      - name: Test
-        run: |
-          for x in ${{ steps.build.outputs.pkgs }}; do
-            ./scripts/test.ts $x
-          done
-
-      - name: Bottle
-        run: ./scripts/bottle.ts ${{ steps.build.outputs.pkgs }}
-        id: bottle
-
-      - name: Artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ matrix.os }}
-          path: ${{ steps.bottle.outputs.filenames }}
-          if-no-files-found: error
-
-      # TODO only upload if all jobs succeed
-      # TODO only upload when we merge
-      # TODO upload to a staging location until we release new pantry versions
-      - name: Upload
-        run: ./scripts/upload.ts ${{ steps.build.outputs.pkgs }}
-        env:
-          AWS_S3: ${{ secrets.AWS_S3 }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    uses: ./.github/workflows/build.yml
+    with:
+      projects: ${{ needs.get-diff.outputs.diff }}
+    secrets: inherit
+    if: ${{ needs.get-diff.outputs.diff != '' }}
