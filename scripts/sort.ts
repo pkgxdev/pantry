@@ -13,37 +13,22 @@ args:
 ---*/
 
 import { parsePackageRequirement } from "types"
-import usePantry from "hooks/usePantry.ts"
 import hydrate from "prefab/hydrate.ts"
+import { get_build_deps } from "./_lib.ts"
+
+//<FIXME>
+import { print } from "utils"
+print("this because otherwise console.verbose is not defined lol")
+//</FIXME>
 
 const dry = Deno.args.map(project => {
   const match = project.match(/projects\/(.*)\/package.yml/)
   return match ? match[1] : project
 }).map(parsePackageRequirement)
 
-const cum: string[] = []
 const set = new Set(dry.map(x => x.project))
+const wet = await hydrate(dry, get_build_deps(set))
+const gas = wet.map(x => x.project)
+  .filter(x => set.has(x)) // we're only sorting `dry` so reject the rest
 
-const pantry = usePantry()
-
-for (const pkg of dry) {
-  const deps = await pantry.getDeps(pkg)
-  const wet = await hydrate([...deps.runtime, ...deps.build])
-  for (const {project: dep} of wet) {
-    if (set.has(dep)) {
-      cum.push(dep)
-    }
-  }
-  cum.push(pkg.project)
-}
-
-const rv = new Array<string>()
-const newset = new Set()
-for (const pkg of cum) {
-  if (!newset.has(pkg)) {
-    rv.push(pkg)
-    newset.add(pkg)
-  }
-}
-
-console.log(`::set-output name=pkgs::${rv.join(" ")}`)
+console.log(`::set-output name=pkgs::${gas.join(" ")}`)

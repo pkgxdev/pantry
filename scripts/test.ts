@@ -15,7 +15,7 @@ args:
 import { parsePackage, semver, Path, PackageRequirement, PlainObject } from "types"
 import usePantry from "hooks/usePantry.ts"
 import useShellEnv, { expand } from "hooks/useShellEnv.ts"
-import { run, undent, isPlainObject, isString } from "utils"
+import { run, undent, isPlainObject } from "utils"
 import { validatePackageRequirement } from "utils/lvl2.ts"
 
 //TODO install any other deps

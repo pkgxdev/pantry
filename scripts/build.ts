@@ -23,6 +23,12 @@ import { semver, PackageRequirement, Package } from "types"
 import { parsePackageRequirement } from "types"
 import hydrate from "prefab/hydrate.ts"
 import resolve from "prefab/resolve.ts"
+import { get_build_deps } from "./_lib.ts"
+
+//<FIXME>
+import { print } from "utils"
+print("this because otherwise console.verbose is not defined lol")
+//</FIXME>
 
 const pantry = usePantry()
 const cellar = useCellar()
@@ -32,20 +38,10 @@ const dry = Deno.args.map(project => {
   return match ? match[1] : project
 }).map(parsePackageRequirement)
 
-//FIXME this isn’t as specific as we are above
 const explicit_deps = new Set(dry.map(({ project }) => project))
 
-const build_deps = await (async () => {
-  const rv: PackageRequirement[] = []
-  for (const pkg of dry) {
-    const foo = await pantry.getDeps(pkg)
-    rv.push(...foo.build)
-  }
-  return rv
-})()
-
-const wet = await hydrate([...dry, ...build_deps])
-const gas = await resolve(await (async () => {
+const wet = await hydrate(dry, get_build_deps(explicit_deps))
+const gas = async () => {
   const rv: PackageRequirement[] = []
   for (const pkg of wet) {
     if (await cellar.isInstalled(pkg)) continue
@@ -53,9 +49,10 @@ const gas = await resolve(await (async () => {
     rv.push(pkg)
   }
   return rv
-})())
+}
+const plasma = await resolve(await gas())
 
-for await (const pkg of gas) {
+for await (const pkg of plasma) {
   console.log({ installing: pkg.project })
   const installation = install(pkg)
   await link(installation)

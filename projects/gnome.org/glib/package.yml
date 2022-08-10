@@ -1,0 +1,56 @@
+distributable:
+  url: https://download.gnome.org/sources/glib/{{ version.major }}.{{ version.minor }}/glib-{{ version }}.tar.xz
+  strip-components: 1
+
+versions:
+  github: GNOME/glib/tags
+  ignore: 2.73.x
+
+#FIXME 2.73.2 onwards depends on PCRE2 (10.x)
+# lol at bumping a dep in a *PATCH* release, semver is for the weak apparently
+
+dependencies:
+  gnu.org/gettext: ^0.21
+  sourceware.org/libffi: 3
+  pcre.org: 8
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    mesonbuild.com: ^0.63
+    ninja-build.org: 1
+    freedesktop.org/pkg-config: ^0.29
+    python.org: 3 #TODO ^3.5
+  script: |
+    meson out $ARGS
+
+    cd out
+    ninja -v
+    ninja install
+
+    cd {{prefix}}/lib/pkgconfig
+    sed -i.bak -e 's|Libs: -L${libdir} -lglib-2.0 -lintl|Libs: -L${libdir} -lglib-2.0 -L/opt/gnu.org/gettext/v*/lib -lintl -L/opt/pcre.org/v1/include -lpcre|' ./glib-2.0.pc
+    sed -i.bak -e 's|Cflags: -I${includedir}/glib-2.0 -I${libdir}/glib-2.0/include|Cflags: -I${includedir}/glib-2.0 -I${libdir}/glib-2.0/include -I/opt/gnu.org/gettext/v*/include -I/opt/pcre.org/v1/include|' ./glib-2.0.pc
+    rm *.bak
+
+  #REF https://github.com/Homebrew/homebrew-core/blob/d0e65698ccd502335bea68ce879ae02e1735db0d/Formula/glib.rb#L66-L67
+  #FIXME hardcoded paths ^^
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --wrap-mode=nofallback
+      - --buildtype=release
+      # tests fail to build with `error: target emulation unknown: -m or at least one .o file required`
+      - -Dtests=false
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    freedesktop.org/pkg-config: ^0.29
+  script: |
+    cc $CFLAGS $LDFLAGS {{ pkg.pantry-prefix }}/test.c
+    ./a.out
+  env:
+    # using pkg-config as pixman puts its headers in `include/pixman-1`
+    LDFLAGS: $(pkg-config --libs glib-2.0)
+    CFLAGS: $(pkg-config --cflags glib-2.0)
