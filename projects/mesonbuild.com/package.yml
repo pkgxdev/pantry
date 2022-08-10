@@ -1,0 +1,33 @@
+distributable:
+  url: https://github.com/mesonbuild/meson/releases/download/{{ version }}/meson-{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: mesonbuild/meson/tags
+
+#FIXME
+# we need to fix the virtual-env of this thing
+
+dependencies:
+  python.org: 3
+
+build:
+  script: |
+    python3 -m venv {{prefix}}/libexec
+    {{prefix}}/libexec/bin/pip install -v --no-deps --no-binary :all: --ignore-installed meson
+    mkdir {{prefix}}/bin
+    ln -s {{prefix}}/libexec/bin/meson {{prefix}}/bin/meson
+
+    # tidy up
+    find \
+      {{prefix}}/libexec/bin \
+      -name pip\* -o -name easy_install\* -o -name activate\* -o -name Activate.ps1 \
+      | xargs rm
+
+test:
+  dependencies:
+    ninja-build.org: 1
+    tea.xyz/gx/cc: c99
+  script: |
+    meson {{ pkg.pantry-prefix }}
+    test -f build.ninja

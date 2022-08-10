@@ -1,0 +1,26 @@
+distributable:
+  url: https://github.com/westes/flex/releases/download/v2.6.4/flex-2.6.4.tar.gz
+  strip-components: 1
+
+versions:
+  github: westes/flex
+  strip: /^flex /
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/m4: 1
+  script: |
+    ./configure --prefix={{ prefix }}
+    make --jobs {{ hw.concurrency }} install
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script: |
+    flex {{ pkg.pantry-prefix }}/test.flex
+    cc lex.yy.c -lfl
+    OUT=$(echo "Hello World" | ./a.out)
+    test "$OUT" = "Hello
+    World"
