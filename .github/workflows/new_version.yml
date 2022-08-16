@@ -8,20 +8,8 @@ on:
         type: string
 
 jobs:
-  find-projects:
-    runs-on: ubuntu-latest
-    outputs:
-      diff: ${{ steps.find.outputs.projects }}
-    steps:
-      - uses: actions/checkout@v3
-      - name: find
-        run: |
-          echo ${{ inputs.projects }}
-          false
   build:
-    needs: [find-projects]
     uses: ./.github/workflows/build.yml
     with:
-      projects: ${{ needs.find-projects.outputs.projects }}
+      projects: ${{ inputs.projects }}
     secrets: inherit
-    if: ${{ needs.find-projects.outputs.projects != '' }}
