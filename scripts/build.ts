@@ -24,11 +24,9 @@ import { parsePackageRequirement } from "types"
 import hydrate from "prefab/hydrate.ts"
 import resolve from "prefab/resolve.ts"
 import { get_build_deps } from "./_lib.ts"
+import useFlags from "hooks/useFlags.ts"
 
-//<FIXME>
-import { print } from "utils"
-print("this because otherwise console.verbose is not defined lol")
-//</FIXME>
+useFlags()
 
 const pantry = usePantry()
 const cellar = useCellar()

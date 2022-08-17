@@ -6,6 +6,7 @@ args:
   - run
   - --allow-net
   - --allow-run
+  - --allow-env
   - --allow-read=/opt/
   - --allow-write=/opt/
   - --import-map={{ srcroot }}/import-map.json
@@ -16,6 +17,9 @@ import { Path } from "types"
 import useCellar from "hooks/useCellar.ts"
 import { run } from "utils"
 import useCache from "hooks/useCache.ts"
+import useFlags from "hooks/useFlags.ts"
+
+useFlags()
 
 const cellar = useCellar()
 const filesListName = 'files.txt'

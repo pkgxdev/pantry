@@ -1,5 +1,7 @@
 #!/usr/bin/env -S tea -E
 
+/// deps to build the provided including building all its deps too
+
 /*---
 args:
   - deno
@@ -14,20 +16,20 @@ args:
 
 import { parsePackageRequirement } from "types"
 import hydrate from "prefab/hydrate.ts"
-import { get_build_deps } from "./_lib.ts"
 import useFlags from "hooks/useFlags.ts"
+import { PackageRequirement } from "types"
+import usePantry from "hooks/usePantry.ts"
 
 const flags = useFlags()
+const pantry = usePantry()
 
 const dry = Deno.args.map(project => {
   const match = project.match(/projects\/(.*)\/package.yml/)
   return match ? match[1] : project
 }).map(parsePackageRequirement)
 
-const set = new Set(dry.map(x => x.project))
-const wet = await hydrate(dry, get_build_deps(set))
+const wet = await hydrate(dry, get)
 const gas = wet.map(x => x.project)
-  .filter(x => set.has(x)) // we're only sorting `dry` so reject the rest
 
 if (Deno.env.get("GITHUB_ACTIONS")) {
   console.log(`::set-output name=pkgs::${gas.join(" ")}`)
@@ -35,4 +37,10 @@ if (Deno.env.get("GITHUB_ACTIONS")) {
   console.log(gas)
 } else {
   console.log(gas.join("\n"))
+}
+
+
+async function get(pkg: PackageRequirement) {
+  const { build, runtime } = await pantry.getDeps(pkg)
+  return [...build, ...runtime]
 }

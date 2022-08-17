@@ -28,8 +28,22 @@ build:
       --environment-overrides \
       --jobs {{ hw.concurrency }} \
       install
+
+    if test {{ hw.platform }} = linux; then
+      #TODO we want this on all platforms, but the makefile is ELF specific
+      make \
+        --file Makefile-libbz2_so \
+        --environment-overrides \
+        --jobs {{ hw.concurrency }}
+
+      mv libbz2.*.1.* {{ prefix }}/lib
+      cd {{ prefix }}/lib
+      ln -s libbz2.so.{{ version }} libbz2.so
+      ln -s libbz2.so.{{ version }} libbz2.so.{{ version.major }}
+    fi
+
   env:
-    CC: clang
+    CFLAGS: -fPIC  # so deps link without relocation issues on linux/aarch64
     PREFIX: ${{ prefix }}
 
 test:
