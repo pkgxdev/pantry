@@ -1,0 +1,32 @@
+distributable:
+  url: http://ftp.gnu.org/gnu/autoconf/autoconf-{{ version.raw }}.tar.xz
+  strip-components: 1
+
+versions:
+  - 2.71
+
+provides:
+  - bin/autoconf
+  - bin/autoheader
+  - bin/autom4te
+  - bin/autoreconf
+  - bin/autoscan
+  - bin/autoupdate
+  - bin/ifnames
+
+dependencies:
+  gnu.org/m4: 1
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    perl.org: '*'
+  script: |-
+    ./configure \
+      --build={{ hw.target }} \
+      --prefix="{{ prefix }}"
+    make --jobs {{ hw.concurrency }} install
+
+
+test: true  #FIXME

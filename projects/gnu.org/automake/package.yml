@@ -1,0 +1,39 @@
+distributable:
+  url: http://ftp.gnu.org/gnu/automake/automake-{{ version }}.tar.xz
+  strip-components: 1
+
+#FIXME: need versions
+versions:
+  - 1.16.5
+
+provides:
+  - bin/aclocal
+  - bin/automake
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/autoconf: ^2.65.0
+    perl.org: '*'  #TODO `inherit`
+  script: |-
+    ./configure \
+      --build={{ hw.target }} \
+      --prefix="{{ prefix }}"
+    make --jobs {{ hw.concurrency }} install
+
+# TODO to prove automake doesn't require autoconf we should
+# use “depend” on the autoconf test to generate our `configure` separately
+test:
+  dependencies:
+    gnu.org/autoconf: ^2.65.0
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    cp ${{ pkg.pantry-prefix }}/* .
+    aclocal
+    automake --add-missing --foreign
+    autoconf
+    ./configure
+    make
+    ./test
