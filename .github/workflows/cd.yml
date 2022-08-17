@@ -1,0 +1,17 @@
+name: cd
+on:
+  push:
+   branches:
+   - main
+
+jobs:
+  cd:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: >
+          grep -E '  github: [^\w]+/[^\w]+' projects/**/package.yml |
+          sed -e 's|^projects/\(.*\)/package.yml: *github: \([^/]*/[^/]*\).*|{ "project": "\1", "github": "\2" }|' |
+          jq -sc . |
+          curl https://app.tea.xyz/api/receiveWatcherProjects --fail -X PUT \
+            -H "content-type: application/json" -H "authorization: bearer ${{ secrets.TEA_API_TOKEN }}" -d @-
