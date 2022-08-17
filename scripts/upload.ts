@@ -6,7 +6,7 @@ args:
   - run
   - --allow-net
   - --allow-read=/opt
-  - --allow-env=AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_S3
+  - --allow-env
   - --import-map={{ srcroot }}/import-map.json
 ---*/
 
@@ -16,6 +16,9 @@ import useCache from "hooks/useCache.ts"
 import useCellar from "hooks/useCellar.ts"
 import { encodeToString } from "encodeToString"
 import { Package, parsePackageRequirement, SemVer, semver } from "types"
+import useFlags from "hooks/useFlags.ts"
+
+useFlags()
 
 if (Deno.args.length === 0) throw new Error("no args supplied")
 

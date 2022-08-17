@@ -50,3 +50,9 @@ knowledge. Please keep it tidy.
 |-------------|---------|
 | deno.land   | ^1.18   |
 | tea.xyz     | ^0      |
+
+## Build All
+
+```sh
+scripts/ls.ts | xargs scripts/sort.ts | xargs scripts/build.ts
+```

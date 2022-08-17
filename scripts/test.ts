@@ -17,6 +17,9 @@ import usePantry from "hooks/usePantry.ts"
 import useShellEnv, { expand } from "hooks/useShellEnv.ts"
 import { run, undent, isPlainObject } from "utils"
 import { validatePackageRequirement } from "utils/lvl2.ts"
+import useFlags from "hooks/useFlags.ts"
+
+useFlags()
 
 //TODO install any other deps
 
@@ -69,10 +72,11 @@ function get_deps() {
   return rv
 
   function attempt(obj: PlainObject) {
-    if (isPlainObject(obj))
-    for (const [project, constraint] of Object.entries(obj)) {
-      const pkg = validatePackageRequirement({ project, constraint })
-      if (pkg) rv.push(pkg)
+    if (isPlainObject(obj)) {
+      for (const [project, constraint] of Object.entries(obj)) {
+        const pkg = validatePackageRequirement({ project, constraint })
+        if (pkg) rv.push(pkg)
+      }
     }
   }
 }
