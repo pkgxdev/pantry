@@ -4,15 +4,21 @@ distributable:
 
 versions:
   github: GNOME/libxml2/tags
+  ignore:
+    - v2.10.z  # broken configure (only accepts *specifically* Python 3.1 lol)
 
 build:
   dependencies:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
   script: |
-    ./configure --prefix={{prefix}}
+    ./configure $ARGS
     make --jobs {{ hw.concurrency }}
     make install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --without-python  # mysterious build failure in GHA macOS-11
 
 test:
   dependencies:
