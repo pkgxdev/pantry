@@ -72,11 +72,10 @@ function get_deps() {
   return rv
 
   function attempt(obj: PlainObject) {
-    if (isPlainObject(obj)) {
-      for (const [project, constraint] of Object.entries(obj)) {
-        const pkg = validatePackageRequirement({ project, constraint })
-        if (pkg) rv.push(pkg)
-      }
+    if (isPlainObject(obj))
+    for (const [project, constraint] of Object.entries(obj)) {
+      const pkg = validatePackageRequirement({ project, constraint })
+      if (pkg) rv.push(pkg)
     }
   }
 }
