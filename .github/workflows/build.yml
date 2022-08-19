@@ -43,10 +43,12 @@ jobs:
             rm -rf /opt/tea.xyz/var/pantry
             ln -s $GITHUB_WORKSPACE/pantry /opt/tea.xyz/var/pantry
             mkdir .git  # no git in our image
-            echo "--insecure" >> ~/.curlrc  # our curl is broke somehow for rust bootstrap
-            apt-get --yes install ca-certificates
             ;;
           macos-11)
+            # screws up a lot of build scripts
+            # TODO stop using GHA images or chroot or something
+            sudo rm -rf /usr/local/*
+
             sudo mkdir -p /opt/tea.xyz/var
             sudo chown -R $(whoami):staff /opt
             ln -s $GITHUB_WORKSPACE/pantry /opt/tea.xyz/var/pantry
