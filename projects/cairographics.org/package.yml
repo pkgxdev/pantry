@@ -25,4 +25,9 @@ build:
     make --jobs {{ hw.concurrency }}
     make install
 
+    if test {{ hw.platform }} == darwin; then
+      #FIXME wtf is going on here
+      sed -i.bak 's|/opt/libpng.org/v.*/lib/libintl.la||' {{prefix}}/lib/libcairo-gobject.la
+    fi
+
 test: true  #FIXME
