@@ -1,0 +1,40 @@
+distributable:
+  url: https://github.com/harfbuzz/harfbuzz/archive/{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: harfbuzz/harfbuzz/tags
+
+dependencies:
+  cairographics.org: 1
+  freetype.org: 2
+  gnome.org/glib: 2
+  unicode.org: '>=71'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    cmake.org: 3
+    mesonbuild.com: ^0.63
+    ninja-build.org: 1
+    freedesktop.org/pkg-config: ^0.29
+    gnome.org/gobject-introspection: 1
+    python.org: 3  #FIXME rq’d by gnome.org/gobject-introspection but should be added by tea-env
+  working-directory: build
+  script: |
+    meson .. $ARGS
+    ninja --verbose
+    ninja install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --buildtype=release
+      - -Dcairo=enabled
+      - -Dcoretext=enabled
+      - -Dfreetype=enabled
+      - -Dglib=enabled
+      - -Dtests=disabled
+    #FIXME or gir scanner fails
+    CC: clang
+
+test: true  #FIXME
