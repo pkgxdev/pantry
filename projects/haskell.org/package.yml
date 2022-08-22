@@ -1,0 +1,76 @@
+distributable:
+  url: https://downloads.haskell.org/~ghc/{{ version}}/ghc-{{ version}}-src.tar.xz
+  strip-components: 1
+
+versions:
+  - 9.2.4
+  #TODO
+  # github: ghc/ghc/tags
+  # strip:
+  #   - /^ghc-/
+  #   - /-release$/
+
+
+#NOTE relocatable if we edit the shell scripts
+
+provides:
+  - bin/ghc
+  - bin/ghc-pkg
+  - bin/ghci
+  - bin/haddock
+  - bin/hp2ps
+  - bin/hpc
+  - bin/hsc2hs
+  - bin/runghc
+  - bin/runhaskell
+
+dependencies:
+  gnu.org/gmp: 6
+  invisible-island.net/ncurses: 6
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    gnu.org/autoconf: ^2
+    gnu.org/automake: ^1  # `aclocal` is used during the build for some reason
+    tea.xyz/gx/make: '*'  #FIXME specifically, gnu make is *required*
+    curl.se: '*'
+  script: |-
+    # `ghc` needs `ghc` to bootstrap `ghc`
+    # The canonical way to achieve this is with `ghcup`
+    # To that end, we capture $HOME so as to no pollute the user's life with unwanted
+    # stage0 tooling. Instead, everything is localized to {{ prefix }}/src, and can be
+    # cleaned up at will, and won't capture any of the user's workflow
+
+    export HOME={{ prefix }}/src
+    export BOOTSTRAP_HASKELL_NONINTERACTIVE=1
+    export BOOTSTRAP_HASKELL_ADJUST_BASHRC=0
+    export BOOTSTRAP_HASKELL_GHC_VERSION={{ version }}
+
+    if test -d .ghcup; then
+      echo "ghcup already installed"
+    else
+      curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | sh
+    fi
+
+    PATH="{{ prefix }}/src/.ghcup/bin:$PATH"
+
+    if test -e {{ prefix }}/src/.cabal/bin; then
+      rm -r {{ prefix }}/src/.cabal/bin
+    fi
+
+    cabal update && cabal install alex happy
+
+    export PATH="{{ prefix }}/src/.cabal/bin:$PATH"
+    GHC="{{ prefix }}/src/.ghcup/bin/ghc"
+
+    export CPATH=/opt/invisible-island.net/ncurses/v6/include/ncursesw:$CPATH
+
+    #FIXME oddly, they don’t provide `./configure`; we have to generate it
+    autoconf
+    ./configure --prefix={{ prefix }}
+
+    hadrian/build -j install --prefix={{ prefix }} --docs=none
+
+
+test: true  # FIXME
