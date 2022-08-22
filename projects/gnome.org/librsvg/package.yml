@@ -1,0 +1,39 @@
+distributable:
+  url: https://download.gnome.org/sources/librsvg/{{ version.major }}.{{ version.minor }}/librsvg-{{ version }}.tar.xz
+  strip-components: 1
+
+versions:
+  github: GNOME/librsvg/tags
+
+dependencies:
+  cairographics.org: 1
+  gnome.org/pango: 1
+  gnome.org/gdk-pixbuf: 2
+  gnome.org/glib: 2
+  gnu.org/gettext: ^0.21
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    rust-lang.org: 1
+    freedesktop.org/pkg-config: ^0.29
+    gnome.org/gobject-introspection: 1
+    python.org: 3
+  script: |
+    if test {{ hw.platform }} = linux; then
+      #FIXME so linux configure finds shared-mime-info
+      export PKG_CONFIG_PATH="$PKG_CONFIG_PATH:/usr/share/pkgconfig"
+      #FIXME so linux build finds the shared-mime-info cache
+      export XDG_DATA_DIRS="$XDG_DATA_DIRS:/usr/share"
+    fi
+
+    ./configure \
+      --prefix={{ prefix }} \
+      --enable-pixbuf-loader=yes \
+      --enable-introspection=yes \
+      --disable-Bsymbolic
+    make V=1
+    make install
+
+test: true  #FIXME
