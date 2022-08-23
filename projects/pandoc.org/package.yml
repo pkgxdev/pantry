@@ -1,0 +1,40 @@
+distributable:
+  #FIXME
+  url: https://hackage.haskell.org/package/pandoc-2.18/pandoc-2.18.tar.gz
+  strip-components: 1
+
+#FIXME pandoc has 4 digit versions : /
+# so we miss a whole bunch
+versions:
+  github: jgm/pandoc
+  strip: /^pandoc /
+
+provides:
+  - bin/pandoc
+
+relocatable: true
+
+dependencies:
+  gnu.org/gmp: 6
+  zlib.net: 1
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    haskell.org: ^9
+    haskell.org/cabal: ^3
+  script: |-
+    cabal update
+    cabal install $ARGS
+  env:
+    ARGS:
+      - --install-method=copy
+      - --installdir={{prefix}}/bin
+
+test:
+  fixture: |
+    # tea
+    brew2 for you
+  script:
+    pandoc -f markdown -t html5 $FIXTURE
+  #TODO check output is HTML!
