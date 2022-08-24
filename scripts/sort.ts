@@ -13,7 +13,7 @@ args:
 ---*/
 
 import { parsePackageRequirement } from "types"
-import hydrate from "prefab/hydrate.ts"
+import hydrate from "prefab/hydrate-topological.ts"
 import { get_build_deps } from "./_lib.ts"
 import useFlags from "hooks/useFlags.ts"
 
