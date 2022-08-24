@@ -15,7 +15,7 @@ args:
 ---*/
 
 import { parsePackageRequirement } from "types"
-import hydrate from "prefab/hydrate.ts"
+import hydrate from "prefab/hydrate-topological.ts"
 import useFlags from "hooks/useFlags.ts"
 import { PackageRequirement } from "types"
 import usePantry from "hooks/usePantry.ts"
