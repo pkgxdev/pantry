@@ -88,19 +88,19 @@ jobs:
         run: ./scripts/bottle.ts ${{ steps.build.outputs.pkgs }}
         id: bottle
 
+      # TODO only upload if all jobs succeed
+      # TODO only upload when we merge
+      # TODO upload to a staging location until we release new pantry versions
+      - name: Upload
+        run: ./scripts/upload.ts ${{ steps.bottle.outputs.bottles }}
+        env:
+          AWS_S3: ${{ secrets.AWS_S3 }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
       - name: Artifact
         uses: actions/upload-artifact@v3
         with:
           name: ${{ matrix.os }}
           path: ${{ steps.bottle.outputs.filenames }}
           if-no-files-found: error
-
-      # TODO only upload if all jobs succeed
-      # TODO only upload when we merge
-      # TODO upload to a staging location until we release new pantry versions
-      - name: Upload
-        run: ./scripts/upload.ts ${{ steps.build.outputs.pkgs }}
-        env:
-          AWS_S3: ${{ secrets.AWS_S3 }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
