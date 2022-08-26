@@ -104,3 +104,12 @@ jobs:
           name: ${{ matrix.os }}
           path: ${{ steps.bottle.outputs.filenames }}
           if-no-files-found: error
+
+      - name: Slack Notification
+        uses: rtCamp/action-slack-notify@v2
+        if: always()
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
+          SLACK_MESSAGE: build job for ${{ inputs.projects }} ${{ job.status == 'success' && 'succeeded' || 'failed' }}
+          SLACK_COLOR: ${{ job.status }}
