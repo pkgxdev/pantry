@@ -25,6 +25,7 @@ import hydrate from "prefab/hydrate.ts"
 import resolve from "prefab/resolve.ts"
 import { get_build_deps } from "./_lib.ts"
 import useFlags from "hooks/useFlags.ts"
+import usePlatform from "hooks/usePlatform.ts"
 
 useFlags()
 
@@ -93,7 +94,11 @@ async function b(pkg: Package) {
 
   const deps = await pantry.getDeps(pkg)
 
+  const env = usePlatform().platform == 'darwin'
+    ? {MACOSX_DEPLOYMENT_TARGET: ['11.0']}
+    : undefined
+
   // Build and link
-  const path = await build({ pkg, deps, prebuild })
+  const path = await build({ pkg, deps, prebuild, env })
   await link({ path, pkg })
 }
