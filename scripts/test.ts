@@ -12,19 +12,28 @@ args:
   - --import-map={{ srcroot }}/import-map.json
 ---*/
 
-import { parsePackage, semver, Path, PackageRequirement, PlainObject } from "types"
+import { parsePackage, semver, Path, PackageRequirement, PlainObject, parsePackageRequirement } from "types"
 import usePantry from "hooks/usePantry.ts"
 import useShellEnv, { expand } from "hooks/useShellEnv.ts"
 import { run, undent, isPlainObject } from "utils"
 import { validatePackageRequirement } from "utils/lvl2.ts"
 import useFlags from "hooks/useFlags.ts"
+import useCellar from "hooks/useCellar.ts"
 
-useFlags()
+const { debug } = useFlags()
 
 //TODO install any other deps
 
 const pantry = usePantry()
-const pkg = parsePackage(Deno.args[0])
+const pkg = await (async () => {
+  if (Deno.args[1] == "--magic") {
+    const i = await useCellar().resolve(parsePackageRequirement(Deno.args[0]))
+    return i.pkg
+  } else {
+    return parsePackage(Deno.args[0])
+  }
+})()
+
 const self = {
   project: pkg.project,
   constraint: new semver.Range(pkg.version.toString())
@@ -45,7 +54,7 @@ let text = undent`
 
   `
 
-const tmp = Path.mktemp()
+const tmp = Path.mktmp({ prefix: `${pkg.project}-${pkg.version}+` })
 
 try {
   if (yml.test.fixture) {
@@ -53,16 +62,25 @@ try {
     text += `export FIXTURE="${fixture}"\n\n`
   }
 
+
+  const cwd = tmp.join("wd").mkdir()
+
+  text += `cd "${cwd}"\n\n`
+
   text += await pantry.getScript(pkg, 'test')
   text += "\n"
+
+  for await (const [path, {name, isFile}] of pantry.prefix(pkg).ls()) {
+    if (isFile && name != 'package.yml') path.cp({ into: cwd })
+  }
 
   const cmd = tmp
     .join("test.sh")
     .write({ text, force: true })
     .chmod(0o500)
-  await run({ cmd })
+  await run({ cmd, cwd })
 } finally {
-  tmp.rm({ recursive: true })
+  if (!debug) tmp.rm({ recursive: true })
 }
 
 function get_deps() {
