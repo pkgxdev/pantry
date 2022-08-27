@@ -45,6 +45,7 @@ build:
     ./configure $ARGS
     make install
     mv ./build/{{ hw.target }}/stage0/bin/cargo {{ prefix }}/bin/cargo
+    rm -rf {{prefix}}/share/doc
   #TODO ^^ build cargo properly
   env:
     ARGS:
@@ -52,6 +53,7 @@ build:
       - --prefix={{ prefix }}
       - --enable-ninja
       - --enable-optimize
+      - --disable-docs  # docs are online
 test:
   script: |
     rustc $FIXTURE -o hello

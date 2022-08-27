@@ -19,20 +19,6 @@ build:
     python.org: 3
   working-directory: build
   script: |-
-    if test {{ hw.target }} = x86_64-unknown-linux-gnu; then
-      # required to build something that works on linux/x86-64
-      ARGS="$ARGS
-        -DCLANG_DEFAULT_CXX_STDLIB=libstdc++
-        -DCLANG_DEFAULT_RTLIB=libgcc
-        -DCOMPILER_RT_INCLUDE_TESTS=OFF
-        -DCOMPILER_RT_USE_LIBCXX=OFF"
-    fi
-
-    # without this macOS programs typically won’t link to core symbols
-    if test {{ hw.platform }} = darwin; then
-      ARGS="$ARGS -DDEFAULT_SYSROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk"
-    fi
-
     cmake \
       ../llvm \
       -G Ninja \
@@ -59,9 +45,9 @@ build:
     ln -sf clang gcc
     ln -sf clang++ g++
 
-    #TODO the above hacks should be a separate directory that can be added
-    # to the PATH when tea.xyz/gx/cc is used
-    #NOTE they must be symlinks as clang/llvm behave differently based on their arg0 name
+  #TODO the above hacks should be a separate directory that can be added
+  # to the PATH when tea.xyz/gx/cc is used
+  #NOTE they must be symlinks as clang/llvm behave differently based on their arg0 name
   receipt:
     - LLVMConfig.cmake
   env:
@@ -71,9 +57,17 @@ build:
       - -DLLVM_ENABLE_PROJECTS='lld;clang'
       - -DLLVM_INCLUDE_DOCS=OFF
       - -DLLVM_INCLUDE_TESTS=OFF
-      # without this deno won’t build on darwin/aarch64
-      # with it nothing seems to break
+      # the default is `ld` however clang when handling linking itself
+      # internally passes flags that, in fact, expect `lld`
+      #NOTE yes this is an issue even if `ld` is in fact a symlink to `lld`
       - -DCLANG_DEFAULT_LINKER=lld
+    linux/x86-64:
+      ARGS:
+      # required to build something that works on linux/x86-64
+      - -DCLANG_DEFAULT_CXX_STDLIB=libstdc++
+      - -DCLANG_DEFAULT_RTLIB=libgcc
+      - -DCOMPILER_RT_INCLUDE_TESTS=OFF
+      - -DCOMPILER_RT_USE_LIBCXX=OFF"
 test:
   fixture: |
     #include <stdio.h>
