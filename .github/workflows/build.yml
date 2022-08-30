@@ -20,8 +20,6 @@ jobs:
     defaults:
       run:
         working-directory: pantry
-    outputs:
-      status: ${{ job.status }}
     steps:
       - name: co pantry
         uses: actions/checkout@v3
@@ -115,5 +113,6 @@ jobs:
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
           SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
-          SLACK_MESSAGE: build job for ${{ inputs.projects }} ${{ needs.build.outputs.status == 'success' && 'succeeded' || 'failed' }}
-          SLACK_COLOR: ${{ needs.build.outputs.status }}
+          SLACK_MESSAGE: build job for ${{ inputs.projects }} ${{ needs.build.result == 'success' && 'succeeded' || 'failed' }}
+          #FIXME SO UGLY: if one of the matrix fails, it cancels the others and returns `cancelled`
+          SLACK_COLOR: ${{ needs.build.result == 'cancelled' && 'failed' || needs.build.result }}
