@@ -19,6 +19,7 @@ import { run, undent, isPlainObject } from "utils"
 import { validatePackageRequirement } from "utils/lvl2.ts"
 import useFlags from "hooks/useFlags.ts"
 import useCellar from "hooks/useCellar.ts"
+import hydrate from "prefab/hydrate.ts"
 
 const { debug } = useFlags()
 
@@ -39,7 +40,7 @@ const self = {
   constraint: new semver.Range(pkg.version.toString())
 }
 const [yml] = await pantry.getYAML(pkg)
-const deps: PackageRequirement[] = [self, ...get_deps()]
+const deps: PackageRequirement[] = [self, ...await get_deps()]
 
 const env = await useShellEnv(deps)
 
@@ -83,11 +84,11 @@ try {
   if (!debug) tmp.rm({ recursive: true })
 }
 
-function get_deps() {
+async function get_deps() {
   const rv: PackageRequirement[] = []
   attempt(yml.dependencies)
   attempt(yml.test.dependencies)
-  return rv
+  return await hydrate(rv)
 
   function attempt(obj: PlainObject) {
     if (isPlainObject(obj))

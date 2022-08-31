@@ -14,7 +14,6 @@ args:
 import { S3 } from "s3"
 import { PackageRequirement, Path } from "types"
 import useCache from "hooks/useCache.ts"
-import useCellar from "hooks/useCellar.ts"
 import { Package, parsePackageRequirement, SemVer, semver } from "types"
 import useFlags from "hooks/useFlags.ts"
 
@@ -29,7 +28,6 @@ const s3 = new S3({
 })
 
 const bucket = s3.getBucket(Deno.env.get("AWS_S3")!)
-const cellar = useCellar()
 
 const encode = (() => { const e = new TextEncoder(); return e.encode.bind(e) })()
 
@@ -59,7 +57,10 @@ if (bottles.size !== checksums.size || ![...bottles].every(b => checksums.has(`$
 }
 
 for (const rq of bottles) {
-  const {pkg} = await cellar.resolve(rq)
+  // Packages should be a fixed version, so this should be fine:
+  const version = semver.parse(rq.constraint.raw)
+  if (!version) { throw new Error(`Incomplete package version: ${rq.constraint.raw}`)}
+  const pkg = { project: rq.project, version }
   const key = useCache().s3Key(pkg)
   const bottle = useCache().bottle(pkg)
   const checksum = new Path(`${bottle.string}.sha256sum`)
