@@ -7,7 +7,7 @@ args:
   - --allow-net
   - --allow-run
   - --allow-read
-  - --allow-write=/opt/tea.xyz/tmp
+  - --allow-write
   - --allow-env
   - --import-map={{ srcroot }}/import-map.json
 ---*/
@@ -19,16 +19,20 @@ import { run, undent, isPlainObject } from "utils"
 import { validatePackageRequirement } from "utils/lvl2.ts"
 import useFlags from "hooks/useFlags.ts"
 import useCellar from "hooks/useCellar.ts"
+import resolve from "prefab/resolve.ts"
+import install from "prefab/install.ts"
 import hydrate from "prefab/hydrate.ts"
+import { lvl1 as link } from "prefab/link.ts"
 
 const { debug } = useFlags()
+const cellar = useCellar()
 
 //TODO install any other deps
 
 const pantry = usePantry()
 const pkg = await (async () => {
   if (Deno.args[1] == "--magic") {
-    const i = await useCellar().resolve(parsePackageRequirement(Deno.args[0]))
+    const i = await cellar.resolve(parsePackageRequirement(Deno.args[0]))
     return i.pkg
   } else {
     return parsePackage(Deno.args[0])
@@ -41,6 +45,8 @@ const self = {
 }
 const [yml] = await pantry.getYAML(pkg)
 const deps: PackageRequirement[] = [self, ...await get_deps()]
+
+await install_if_needed(deps)
 
 const env = await useShellEnv(deps)
 
@@ -96,5 +102,18 @@ async function get_deps() {
       const pkg = validatePackageRequirement({ project, constraint })
       if (pkg) rv.push(pkg)
     }
+  }
+}
+
+async function install_if_needed(deps: PackageRequirement[]) {
+  const needed: PackageRequirement[] = []
+  for await (const rq of deps) {
+    if (await cellar.isInstalled(rq)) continue
+    needed.push(rq)
+  }
+  const wet = await resolve(needed)
+  for (const pkg of wet) {
+    const installation = install(pkg)
+    await link(installation)
   }
 }

@@ -5,6 +5,13 @@ distributable:
 provides:
   - bin/pkg-config
 
+#NOTE that macOS provides some `.pc` files in /usr/lib/pkgconfig
+# we don’t explicitly include them. This should be safe since we set
+# PKG_CONFIG_PATH and that is checked first. But it could lead to issues
+# for users in some circumstances.
+#FIXME probably we should exclude this in the pursuit of reliable, cross
+# platform environments.
+
 versions:
   github: freedesktop/pkg-config/tags
   strip: /^pkg-config-/
@@ -14,14 +21,16 @@ build:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
   script: |-
-    ./configure \
-      --prefix="{{ prefix }}" \
-      --disable-debug \
-      --disable-host-tool \
-      --with-internal-glib \
-      --with-pc-path=/usr/lib/pkgconfig  #FIXME
-    make --jobs {{ hw.concurrency }}
-    make install
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix="{{ prefix }}"
+      - --disable-debug
+      - --disable-host-tool
+      - --with-internal-glib
+      # otherwise the defaults are based on our {{prefix}}
+      - --with-pc-path=/usr/lib/pkgconfig:/usr/share/pkgconfig
 
 test:
   script: pkg-config --version

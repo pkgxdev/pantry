@@ -20,4 +20,11 @@ build:
       --prefix="{{ prefix }}"
     make --jobs {{ hw.concurrency }} install
 
-test: true  #FIXME
+test:
+  dependencies:
+    curl.se: '*'
+  env:
+    FIXTURE: https://samplelib.com/lib/preview/jpeg/sample-clouds-400x300.jpg
+  script: |
+    curl $FIXTURE > test.jpeg
+    djpeg test.jpeg
