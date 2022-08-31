@@ -48,7 +48,7 @@ knowledge. Please keep it tidy.
 
 |   Project   | Version |
 |-------------|---------|
-| deno.land   | ^1.18   |
+| deno.land   | ^1.23   |
 | tea.xyz     | ^0      |
 
 ## Build All

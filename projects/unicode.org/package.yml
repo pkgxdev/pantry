@@ -22,5 +22,18 @@ build:
       - --disable-tests
       - --enable-static
       - --with-library-bits=64
+    darwin:
+      LDFLAGS:
+      # changing install names or rpaths can't be redone for
+      - -headerpad_max_install_names
 
-test: true  #FIXME
+test:
+  script: |
+    if test -f /usr/share/dict/words; then
+      gendict --uchars /usr/share/dict/words dict
+    else
+      gendict --uchars $FIXTURE dict
+    fi
+  fixture: |
+    hello
+    world
