@@ -42,7 +42,6 @@ build:
     ln -sf pip{{ version.marketing }} pip
 
   env:
-    SHARE: /opt/python.org/share
     ARGS:
       - --prefix="{{ prefix }}"
       # it’s 202x
@@ -57,11 +56,8 @@ build:
       # these two make our binary not portable
       #- --enable-optimizations
       #- --with-lto
-      # on macOS we probably will actually want to --enable-framework
+      # on macOS we want an option that is instead --enable-framework
       - --enable-shared
-      # put data that doesn’t vary between pythons in a consistent place
-      - --datarootdir="$SHARE"
-      - --datadir="$SHARE"
 
     #FIXME get rid of these v*
     OPENSSL_INCLUDES: /opt/openssl.org/v*/include

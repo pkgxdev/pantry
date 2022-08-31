@@ -12,10 +12,11 @@ build:
   script: |
     ./configure --prefix={{ prefix }}
     make --jobs {{ hw.concurrency }} install
+    rm -rf {{prefix}}/share  # docs are online
 
 test:
   dependencies:
     tea.xyz/gx/cc: c99
   script: |
-    cc {{ pkg.pantry-prefix }}/test.c -o test -lmpdec
+    cc test.c -o test -lmpdec
     ./test

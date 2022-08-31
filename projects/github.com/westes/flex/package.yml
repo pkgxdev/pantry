@@ -14,12 +14,15 @@ build:
   script: |
     ./configure --prefix={{ prefix }}
     make --jobs {{ hw.concurrency }} install
+  env:
+    darwin:
+      MACOSX_DEPLOYMENT_TARGET: 10.6  #FIXME our default (11) breaks the build
 
 test:
   dependencies:
     tea.xyz/gx/cc: c99
   script: |
-    flex {{ pkg.pantry-prefix }}/test.flex
+    flex test.flex
     cc lex.yy.c -lfl
     OUT=$(echo "Hello World" | ./a.out)
     test "$OUT" = "Hello
