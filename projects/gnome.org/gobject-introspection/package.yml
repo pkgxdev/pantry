@@ -30,4 +30,17 @@ build:
     #FIXME of fails during build for a gir-scanner step
     # LD_LIBRARY_PATH: /opt/gnome.org/glib/v2.72.2/lib
 
-test: true   #FIXME
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    gnome.org/glib: 2
+    pcre.org: 8   #NOTE possibly should be automatic
+    git-scm.org: 2
+    tea.xyz/gx/make: '*'
+    freedesktop.org/pkg-config: ^0.29
+  script: |
+    git clone $FIXTURE .
+    make
+    test -f Tut-0.1.typelib
+  env:
+    FIXTURE: https://gist.github.com/7a0023656ccfe309337a.git
