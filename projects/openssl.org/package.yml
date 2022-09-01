@@ -17,17 +17,21 @@ build:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
     perl.org: 5
+    curl.se: '*'
   script: |
-    case "X{{ hw.target }}" in
-      "Xaarch64-apple-darwin")      ARCH="darwin64-arm64-cc";;
-      "Xx86_64-apple-darwin")       ARCH="darwin64-x86_64-cc";;
-      "Xx86_64-unknown-linux-gnu")  ARCH="linux-x86_64";;
-      "Xaarch64-unknown-linux-gnu") ARCH="linux-aarch64";;
-    esac
-
     ./Configure --prefix={{ prefix }} $ARCH no-tests
     make --jobs {{ hw.concurrency }}
-    make install
+    make install_sw  # `_sw` avoids installing docs
+
+    #TODO needs to be a curl.se/pkg that gets updates
+    mkdir -p "$CERTDIR"
+    curl https://curl.se/ca/cacert-2022-07-19.pem -o "$CERTDIR"/cert.pem
+  env:
+    CERTDIR: ${{prefix}}/ssl
+    darwin/aarch64: {ARCH: 'darwin64-arm64-cc'}
+    darwin/x86-64:  {ARCH: 'darwin64-x86_64-cc'}
+    linux/aarch64:  {ARCH: 'linux-aarch64'}
+    linux/x86-64:   {ARCH: 'linux-x86_64'}
 
 test:
   script: |

@@ -12,25 +12,33 @@ args:
   - --import-map={{ srcroot }}/import-map.json
 ---*/
 
+// sorts input for building
+// does a full hydration, but only returns ordered, dry packages
+
+
 import { parsePackageRequirement } from "types"
-import hydrate from "prefab/hydrate-topological.ts"
-import { get_build_deps } from "./_lib.ts"
+import hydrate from "prefab/hydrate.ts"
 import useFlags from "hooks/useFlags.ts"
+import usePantry from "../src/hooks/usePantry.ts"
 
 const flags = useFlags()
+const pantry = usePantry()
 
 const dry = Deno.args.map(project => {
   const match = project.match(/projects\/(.*)\/package.yml/)
   return match ? match[1] : project
 }).map(parsePackageRequirement)
 
-const set = new Set(dry.map(x => x.project))
-const wet = await hydrate(dry, get_build_deps(set))
-const gas = wet.map(x => x.project)
-  .filter(x => set.has(x)) // we're only sorting `dry` so reject the rest
+const wet = await hydrate(dry, async (pkg, dry) => {
+  const deps = await pantry.getDeps(pkg)
+  return dry ? [...deps.build, ...deps.runtime] : deps.runtime
+})
+const gas = wet.dry.map(x => x.project)
 
 if (Deno.env.get("GITHUB_ACTIONS")) {
+  const pre = wet.wet.map(x=>x.project)
   console.log(`::set-output name=pkgs::${gas.join(" ")}`)
+  console.log(`::set-output name=pre-install::${pre.join(" ")}`)
 } else if (flags.json) {
   console.log(gas)
 } else {

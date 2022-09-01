@@ -17,13 +17,8 @@ import useCellar from "hooks/useCellar.ts"
 import usePantry from "hooks/usePantry.ts"
 import useCache from "hooks/useCache.ts"
 import { lvl1 as link } from "prefab/link.ts"
-import install from "prefab/install.ts"
 import build from "prefab/build.ts"
-import { semver, PackageRequirement, Package } from "types"
-import { parsePackageRequirement } from "types"
-import hydrate from "prefab/hydrate.ts"
-import resolve from "prefab/resolve.ts"
-import { get_build_deps } from "./_lib.ts"
+import { Package, parsePackageRequirement, semver } from "types"
 import useFlags from "hooks/useFlags.ts"
 import usePlatform from "hooks/usePlatform.ts"
 
@@ -37,51 +32,23 @@ const dry = Deno.args.map(project => {
   return match ? match[1] : project
 }).map(parsePackageRequirement)
 
-const explicit_deps = new Set(dry.map(({ project }) => project))
-
-const wet = await hydrate(dry, get_build_deps(explicit_deps))
-const gas = async () => {
-  const rv: PackageRequirement[] = []
-  for (const pkg of wet) {
-    if (await cellar.isInstalled(pkg)) continue
-    if (explicit_deps.has(pkg.project)) continue
-    rv.push(pkg)
-  }
-  return rv
-}
-const plasma = await resolve(await gas())
-
-for await (const pkg of plasma) {
-  console.log({ installing: pkg.project })
-  const installation = install(pkg)
-  await link(installation)
-}
-
 const rv: Package[] = []
-for await (const pkg of dry) {
-  console.log({ building: pkg.project })
-
-  const versions = await pantry.getVersions(pkg)
-  const version = semver.maxSatisfying(versions, pkg.constraint)
+for (const pkgrq of dry) {
+  const versions = await pantry.getVersions(pkgrq)
+  const version = semver.maxSatisfying(versions, pkgrq.constraint)
   if (!version) throw "no-version-found"
-  await b({ project: pkg.project, version })
+  const pkg = { project: pkgrq.project, version }
 
-  rv.push({ project: pkg.project, version })
-}
+  if (Deno.env.get("SKIP") && await cellar.isInstalled(pkg)) {
+    console.log({ skipping: pkg.project })
+    continue
+  }
 
-const built_pkgs = rv.map(({ project, version }) => `${project}@${version}`).join(" ")
-const txt = `::set-output name=pkgs::${built_pkgs}\n`
-await Deno.stdout.write(new TextEncoder().encode(txt))
-
-//end
-
-
-
-async function b(pkg: Package) {
+  console.log({ building: pkgrq.project })
 
   // Get the source
   const prebuild = async () => {
-    const dstdir = useCellar().mkpath(pkg).join("src")
+    const dstdir = cellar.mkpath(pkg).join("src")
     const { url, stripComponents } = await pantry.getDistributable(pkg)
     const { download } = useCache()
     const zip = await download({ pkg, url, type: 'src' })
@@ -101,4 +68,10 @@ async function b(pkg: Package) {
   // Build and link
   const path = await build({ pkg, deps, prebuild, env })
   await link({ path, pkg })
+
+  rv.push(pkg)
 }
+
+const built_pkgs = rv.map(({ project, version }) => `${project}@${version}`).join(" ")
+const txt = `::set-output name=pkgs::${built_pkgs}\n`
+await Deno.stdout.write(new TextEncoder().encode(txt))

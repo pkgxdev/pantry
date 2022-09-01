@@ -94,7 +94,8 @@ async function get_deps() {
   const rv: PackageRequirement[] = []
   attempt(yml.dependencies)
   attempt(yml.test.dependencies)
-  return await hydrate(rv)
+  const { pkgs } = await hydrate(rv, pkg => pantry.getDeps(pkg).then(x=>x.runtime))
+  return pkgs
 
   function attempt(obj: PlainObject) {
     if (isPlainObject(obj))

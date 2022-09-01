@@ -70,8 +70,9 @@ jobs:
         id: sorted
         run: ./scripts/sort.ts ${{ inputs.projects }}
 
-      - name: Build
-        run: |
+      - run: ./scripts/install.ts ${{ steps.sorted.outputs.pre-install }}
+
+      - run: |
           ./scripts/build.ts ${{ steps.sorted.outputs.pkgs }}
         id: build
         env:
