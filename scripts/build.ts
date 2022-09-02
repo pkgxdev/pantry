@@ -21,16 +21,14 @@ import build from "prefab/build.ts"
 import { Package, parsePackageRequirement, semver } from "types"
 import useFlags from "hooks/useFlags.ts"
 import usePlatform from "hooks/usePlatform.ts"
+import hydrate from "prefab/hydrate.ts"
 
 useFlags()
 
 const pantry = usePantry()
 const cellar = useCellar()
 
-const dry = Deno.args.map(project => {
-  const match = project.match(/projects\/(.*)\/package.yml/)
-  return match ? match[1] : project
-}).map(parsePackageRequirement)
+const dry = Deno.args.map(parsePackageRequirement)
 
 const rv: Package[] = []
 for (const pkgrq of dry) {
@@ -38,11 +36,6 @@ for (const pkgrq of dry) {
   const version = semver.maxSatisfying(versions, pkgrq.constraint)
   if (!version) throw "no-version-found"
   const pkg = { project: pkgrq.project, version }
-
-  if (Deno.env.get("SKIP") && await cellar.isInstalled(pkg)) {
-    console.log({ skipping: pkg.project })
-    continue
-  }
 
   console.log({ building: pkgrq.project })
 
@@ -59,7 +52,10 @@ for (const pkgrq of dry) {
     })
   }
 
+  //TODO this was already calculated in `sort` and should not be recalculated
   const deps = await pantry.getDeps(pkg)
+  const wet = await hydrate(deps.runtime, pkg => pantry.getDeps(pkg).then(x => x.runtime))
+  deps.runtime.push(...wet.pkgs)
 
   const env = usePlatform().platform == 'darwin'
     ? {MACOSX_DEPLOYMENT_TARGET: ['11.0']}

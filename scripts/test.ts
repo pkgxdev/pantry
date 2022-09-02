@@ -12,11 +12,10 @@ args:
   - --import-map={{ srcroot }}/import-map.json
 ---*/
 
-import { parsePackage, semver, Path, PackageRequirement, PlainObject, parsePackageRequirement } from "types"
+import { parsePackage, semver, Path, PackageRequirement, parsePackageRequirement } from "types"
 import usePantry from "hooks/usePantry.ts"
 import useShellEnv, { expand } from "hooks/useShellEnv.ts"
-import { run, undent, isPlainObject } from "utils"
-import { validatePackageRequirement } from "utils/lvl2.ts"
+import { run, undent } from "utils"
 import useFlags from "hooks/useFlags.ts"
 import useCellar from "hooks/useCellar.ts"
 import resolve from "prefab/resolve.ts"
@@ -24,14 +23,12 @@ import install from "prefab/install.ts"
 import hydrate from "prefab/hydrate.ts"
 import { lvl1 as link } from "prefab/link.ts"
 
-const { debug } = useFlags()
+const { debug, magic } = useFlags()
 const cellar = useCellar()
-
-//TODO install any other deps
-
 const pantry = usePantry()
+
 const pkg = await (async () => {
-  if (Deno.args[1] == "--magic") {
+  if (magic) {
     const i = await cellar.resolve(parsePackageRequirement(Deno.args[0]))
     return i.pkg
   } else {
@@ -44,11 +41,14 @@ const self = {
   constraint: new semver.Range(pkg.version.toString())
 }
 const [yml] = await pantry.getYAML(pkg)
-const deps: PackageRequirement[] = [self, ...await get_deps()]
+const deps = (await hydrate(self, async (pkg, dry) => {
+  const { runtime, test } = await pantry.getDeps(pkg)
+  return dry ? [...runtime, ...test] : runtime
+})).pkgs
 
 await install_if_needed(deps)
 
-const env = await useShellEnv(deps)
+const env = await useShellEnv([self, ...deps])
 
 let text = undent`
   #!/bin/bash
@@ -68,7 +68,6 @@ try {
     const fixture = tmp.join("fixture.tea").write({ text: yml.test.fixture.toString() })
     text += `export FIXTURE="${fixture}"\n\n`
   }
-
 
   const cwd = tmp.join("wd").mkdir()
 
@@ -90,22 +89,7 @@ try {
   if (!debug) tmp.rm({ recursive: true })
 }
 
-async function get_deps() {
-  const rv: PackageRequirement[] = []
-  attempt(yml.dependencies)
-  attempt(yml.test.dependencies)
-  const { pkgs } = await hydrate(rv, pkg => pantry.getDeps(pkg).then(x=>x.runtime))
-  return pkgs
-
-  function attempt(obj: PlainObject) {
-    if (isPlainObject(obj))
-    for (const [project, constraint] of Object.entries(obj)) {
-      const pkg = validatePackageRequirement({ project, constraint })
-      if (pkg) rv.push(pkg)
-    }
-  }
-}
-
+//TODO install step should do this for test requirements also
 async function install_if_needed(deps: PackageRequirement[]) {
   const needed: PackageRequirement[] = []
   for await (const rq of deps) {

@@ -66,39 +66,38 @@ jobs:
           TEA_SECRET: ${{ secrets.TEA_SECRET }}
         if: ${{ matrix.os == 'macos-11' }}
 
-      - name: topological sort
+      - name: sort topologically
+        run: scripts/sort.ts ${{ inputs.projects }}
         id: sorted
-        run: ./scripts/sort.ts ${{ inputs.projects }}
 
-      - run: ./scripts/install.ts ${{ steps.sorted.outputs.pre-install }}
+      - name: install deps
+        run: ./scripts/install.ts ${{ steps.sorted.outputs.pre-install }}
 
-      - run: ./scripts/build.ts ${{ steps.sorted.outputs.pkgs }}
+      - name: build
+        run: ./scripts/build.ts ${{ steps.sorted.outputs.pkgs }}
         id: build
         env:
           GITHUB_TOKEN: ${{ github.token }}
           FORCE_UNSAFE_CONFIGURE: 1  # some configure scripts refuse to run as root
 
-      - name: Test
-        run: |
-          for x in ${{ steps.build.outputs.pkgs }}; do
-            ./scripts/test.ts $x
-          done
+      - name: test
+        run: echo ${{ steps.build.outputs.pkgs }} | xargs -tn1 scripts/test.ts
 
-      - name: Bottle
-        run: ./scripts/bottle.ts ${{ steps.build.outputs.pkgs }}
+      - name: bottle
+        run: scripts/bottle.ts ${{ steps.build.outputs.pkgs }}
         id: bottle
 
       # TODO only upload if all jobs succeed
       # TODO only upload when we merge
       # TODO upload to a staging location until we release new pantry versions
-      - name: Upload
+      - name: upload bottles
         run: ./scripts/upload.ts ${{ steps.bottle.outputs.bottles }}
         env:
           AWS_S3: ${{ secrets.AWS_S3 }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-      - name: Artifact
+      - name: upload artifacts
         uses: actions/upload-artifact@v3
         with:
           name: ${{ matrix.os }}
