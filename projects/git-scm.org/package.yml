@@ -16,8 +16,10 @@ build:
     tea.xyz/gx/make: '*'
   script: |
     ./configure --prefix={{prefix}}
-    make --jobs {{hw.concurrency}} install
+    make --jobs {{hw.concurrency}} install $ARGS
+  env:
+    V: 1
+    ARGS:
+    - NO_TCLTK=1
 
-test:
-  script:
-    git --version
+test: git --version  #FIXME better

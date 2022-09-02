@@ -20,12 +20,10 @@ build:
     tea.xyz/gx/make: '*'
     tea.xyz/gx/cc: c99
     curl.se: '*'
+    nixos.org/patchelf: ^0.15
   script: |-
     export GOROOT_BOOTSTRAP="$(cd ../.. && echo $PWD)/bootstrap"
-    if test -d $GOROOT_BOOTSTRAP
-    then
-      true
-    else
+    if test ! -d $GOROOT_BOOTSTRAP; then
       # TODO something better than this...
       case "X{{ hw.target }}" in
       "Xaarch64-apple-darwin") GOARCH="darwin-arm64";;
@@ -41,7 +39,6 @@ build:
       mv ../../go ../../bootstrap
     fi
 
-    export GOROOT_BOOTSTRAP="$(cd ../.. && echo $PWD)/bootstrap"
     export GOROOT_FINAL="{{ prefix }}"
     cd src
     ./make.bash
@@ -64,5 +61,5 @@ test:
     package main
     import "fmt"
     func main() {
-        fmt.Println("Hello World")
+      fmt.Println("Hello World")
     }
