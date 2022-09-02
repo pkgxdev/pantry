@@ -32,4 +32,12 @@ build:
       sed -i.bak 's|/opt/.*/v.*/lib/libpcre.la||' {{prefix}}/lib/libcairo-gobject.la
     fi
 
-test: true  #FIXME
+    rm -rf {{prefix}}/share  # docs are online
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script: |
+    cc test.c -I{{prefix}}/include/cairo -lcairo
+    ./a.out
+  #FIXME env should add that include path via pkg-config look up
