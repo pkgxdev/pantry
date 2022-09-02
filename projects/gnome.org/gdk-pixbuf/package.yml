@@ -37,4 +37,14 @@ build:
     ninja install
   # ^^ man pages break the build due to needing some other dep
 
-test: true  #FIXME
+#TODO we should read pkg config and add to the env ffs
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    freedesktop.org/pkg-config: ^0.29
+  script: |
+    cc test.c $CFLAGS $LDFLAGS
+    ./a.out
+  env:
+    CFLAGS: $(pkg-config --cflags gdk-pixbuf-2.0)
+    LDFLAGS: $(pkg-config --libs gdk-pixbuf-2.0)
