@@ -27,10 +27,10 @@ provides:
 dependencies:
   gnu.org/gmp: 6
   invisible-island.net/ncurses: 6
+  tea.xyz/gx/cc: c99  # ghc uses `gcc` as part of its build process
 
 build:
   dependencies:
-    tea.xyz/gx/cc: c99
     gnu.org/autoconf: ^2
     gnu.org/automake: ^1  # `aclocal` is used during the build for some reason
     tea.xyz/gx/make: '*'  #FIXME specifically, gnu make is *required*
@@ -72,5 +72,9 @@ build:
 
     hadrian/build -j install --prefix={{ prefix }} --docs=none
 
-
-test: true  # FIXME
+test:
+  script: |
+    out=$(runghc $FIXTURE)
+    test "$out" = "Hello World"
+  fixture:
+    main = putStrLn "Hello World"
