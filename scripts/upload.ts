@@ -68,9 +68,9 @@ for (const rq of bottles) {
   console.log({ key });
 
   //FIXME stream it to S3
+  const [basename, dirname] = (split => [split.pop(), split.join("/")])(key.split("/"))
   const bottle_contents = await Deno.readFile(bottle.string)
-  const checksum_contents = await Deno.readFile(checksum.string)
-  const dirname = key.split("/").slice(0, -1).join("/")
+  const checksum_contents = fixup_checksum(await Deno.readFile(checksum.string), basename!)
   const versions = await get_versions(pkg)
 
   await bucket.putObject(key, bottle_contents)
@@ -99,4 +99,10 @@ async function get_versions(pkg: Package): Promise<SemVer[]> {
 
   // have to add pkg.version as put and get are not atomic
   return [...new Set([...got, pkg.version])].sort()
+}
+
+// Somewhat hacky. We call the bottle on thing locally, and another on the server.
+function fixup_checksum(data: Uint8Array, new_file_name: string) {
+  const checksum = new TextDecoder().decode(data).split("  ")[0]
+  return new TextEncoder().encode(`${checksum}  ${new_file_name}`)
 }
