@@ -14,8 +14,13 @@ build:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
   script: |
-    ./configure --prefix={{prefix}} --with-openssl
+    ./configure $ARGS
     make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+    - --prefix={{prefix}}
+    - --with-openssl
+    - --with-ca-fallback  # uses openssl’s certs (which we control)
   test:
     make test
 

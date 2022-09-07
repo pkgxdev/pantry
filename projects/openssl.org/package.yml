@@ -17,15 +17,21 @@ build:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
     perl.org: 5
-    curl.se: '*'
+    curl.se: '*'  # to download ca-certs on linux
   script: |
     ./Configure --prefix={{ prefix }} $ARCH no-tests
     make --jobs {{ hw.concurrency }}
     make install_sw  # `_sw` avoids installing docs
 
-    #TODO needs to be a curl.se/pkg that gets updates
-    mkdir -p "$CERTDIR"
-    curl https://curl.se/ca/cacert-2022-07-19.pem -o "$CERTDIR"/cert.pem
+    if test {{hw.platform}} = darwin; then
+      # use Apple’s certs ∵ they are very incentivized to get this right
+      rm -f "$CERTDIR"  # for building over the top FIXME DESTDIR for all
+      ln -sf /etc/ssl "$CERTDIR"
+    else
+      #FIXME needs to be a curl.se/ca-certs that gets updates
+      mkdir -p "$CERTDIR"
+      curl https://curl.se/ca/cacert-2022-07-19.pem -o "$CERTDIR"/cert.pem
+    fi
   env:
     CERTDIR: ${{prefix}}/ssl
     darwin/aarch64: {ARCH: 'darwin64-arm64-cc'}
