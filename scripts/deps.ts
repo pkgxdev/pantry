@@ -35,8 +35,8 @@ const wet = await hydrate(dry, get_deps)
 const gas = wet.pkgs.compactMap(({project}) => {
   if (Deno.args.includes('-i')) {
     return project
-  } else {
-    return explicit.has(project) || project
+  } else if (!explicit.has(project)){
+    return project
   }
 })
 

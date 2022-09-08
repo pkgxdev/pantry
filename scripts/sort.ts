@@ -6,8 +6,8 @@ args:
   - run
   - --allow-net
   - --allow-run
-  - --allow-read=/opt,/Library/Developer/CommandLineTools
-  - --allow-write=/opt
+  - --allow-read
+  - --allow-write={{ tea.prefix }}
   - --allow-env
   - --import-map={{ srcroot }}/import-map.json
 ---*/

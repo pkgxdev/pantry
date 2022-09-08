@@ -6,7 +6,7 @@ args:
   - run
   - --allow-net
   - --allow-run
-  - --allow-read=/opt,/Library/Developer/CommandLineTools
+  - --allow-read
   - --allow-write=/opt
   - --allow-env
   - --import-map={{ srcroot }}/import-map.json
@@ -29,6 +29,7 @@ const pantry = usePantry()
 const cellar = useCellar()
 
 const dry = Deno.args.map(parsePackageRequirement)
+const gha = !!Deno.env.get("GITHUB_ACTIONS")
 
 const rv: Package[] = []
 for (const pkgrq of dry) {
@@ -37,7 +38,20 @@ for (const pkgrq of dry) {
   if (!version) throw "no-version-found"
   const pkg = { project: pkgrq.project, version }
 
-  console.log({ building: pkgrq.project })
+  const installation = await cellar.isInstalled(pkg)
+  if (installation) {
+    console.log({ cleaning: installation.path })
+    for await (const [path, {name}] of installation.path.ls()) {
+      if (name == 'src') continue
+      path.rm({ recursive: true })
+    }
+  }
+
+  if (gha) {
+    console.log("::group::", `${pkg.project}@${pkg.version}`)
+  } else {
+    console.log({ building: pkgrq.project })
+  }
 
   // Get the source
   const prebuild = async () => {
@@ -66,6 +80,10 @@ for (const pkgrq of dry) {
   await link({ path, pkg })
 
   rv.push(pkg)
+
+  if (gha) {
+    console.log("::endgroup::")
+  }
 }
 
 const built_pkgs = rv.map(({ project, version }) => `${project}@${version}`).join(" ")

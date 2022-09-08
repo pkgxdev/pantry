@@ -5,8 +5,7 @@ args:
   - deno
   - run
   - --allow-net
-  - --allow-read=/opt
-  - --allow-write=/opt/tea.xyz/var/www
+  - --allow-read
   - --allow-env
   - --import-map={{ srcroot }}/import-map.json
 ---*/
@@ -47,8 +46,11 @@ for (const filename of Deno.args) {
 
   const req = parsePackageRequirement(`${match[1]}@${match[2]}`)
 
-  if (path.basename().match(/\.sha256sum$/)) { checksums.add(`${req.project}@${req.constraint.raw}`) }
-  else { bottles.add(req) }
+  if (path.basename().match(/\.sha256sum$/)) {
+    checksums.add(`${req.project}@${req.constraint.raw}`)
+  } else {
+    bottles.add(req)
+  }
 }
 
 // Ensure our sets are the same:
