@@ -7,6 +7,14 @@ on:
         type: string
 
 jobs:
+  queue-builder:
+    runs-on: ubuntu-latest
+    steps:
+      - name: queue
+        run: |
+          curl https://app.tea.xyz/api/builder/enqueue \
+            -H "authorization: bearer ${{ secrets.TEA_API_TOKEN }}" \
+            -d "${{ inputs.projects }}"
   build:
     runs-on: ${{ matrix.os }}
     strategy:
