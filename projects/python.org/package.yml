@@ -5,6 +5,12 @@ distributable:
 versions:
   github: python/cpython/tags
 
+provides:
+  - bin/python
+  - bin/python3
+  - bin/pip
+  - bin/pip3
+
 dependencies:
 # recommended but none are actually required
   zlib.net: 1
@@ -28,6 +34,7 @@ build:
     freedesktop.org/pkg-config: ^0.29
 
   #TODO use the diff
+  #TODO $libdir/_sysconfigdata__darwin_darwin.py contains non-relocatable paths
   script: |
     sed -i.bak -e 's|system_lib_dirs = .*|system_lib_dirs = os.getenv("LIBRARY_PATH").split(":")|' ./setup.py
     sed -i.bak -e 's|system_include_dirs = .*|system_include_dirs = os.getenv("CPATH").split(":")|' ./setup.py
@@ -36,10 +43,28 @@ build:
     make --jobs {{ hw.concurrency }}
     make install
 
-    cd {{ prefix }}/bin
-    ln -sf python{{ version.marketing }} python
+    # provide unversioned symlinks
+    cd {{prefix}}/bin
+    for x in python pip idle pydoc; do
+      ln -sf ${x}{{ version.marketing }} $x
+    done
     ln -sf python{{ version.marketing }}-config python-config
-    ln -sf pip{{ version.marketing }} pip
+
+    # strangely pip3 is a copy of pip3.10
+    if test ! -L pip{{version.major}}; then
+      rm pip{{version.major}}
+      ln -s pip{{version.marketing}} pip{{version.major}}
+    fi
+
+    # make relocatable
+    cd {{prefix}}
+    for binfile in $shebangs $confdir/python-config.py; do
+      sed -i.bak -e 's|#!{{ prefix }}/bin/|#!/usr/bin/env |g' $binfile
+      rm $binfile.bak
+    done
+
+    sed -i.bak -e 's|{{ prefix }}|\\$(shell tea --prefix)|g' $confdir/Makefile
+    rm $confdir/Makefile.bak
 
   env:
     ARGS:
@@ -58,6 +83,21 @@ build:
       #- --with-lto
       # on macOS we want an option that is instead --enable-framework
       - --enable-shared
+    libdir:
+      lib/python{{version.marketing}}
+    darwin:
+      confdir:
+        $libdir/config-{{version.marketing}}-darwin
+    linux:
+      ARCH: ${{hw.arch}}
+      confdir:
+        $libdir/config-{{version.marketing}}-${ARCH/-/_}-linux-gnu
+    shebangs:
+      - bin/2to3-{{version.marketing}}
+      - bin/idle{{version.marketing}}
+      - bin/pip{{version.marketing}}
+      - bin/pydoc{{version.marketing}}
+      - bin/python{{version.marketing}}-config
 
     #FIXME get rid of these v*
     OPENSSL_INCLUDES: /opt/openssl.org/v*/include

@@ -23,7 +23,7 @@ import useFlags from "hooks/useFlags.ts"
 useFlags()
 
 const pkgs = Deno.args.map(project => {
-  const match = project.match(/projects\/(.*)\/package.yml/)
+  const match = project.match(/projects\/(.+)\/package.yml/)
   return match ? match[1] : project
 }).map(parsePackageRequirement)
 

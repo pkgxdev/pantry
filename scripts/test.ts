@@ -29,7 +29,10 @@ const pantry = usePantry()
 
 const pkg = await (async () => {
   if (magic) {
-    const i = await cellar.resolve(parsePackageRequirement(Deno.args[0]))
+    const project = Deno.args[0]
+    const match = project.match(/projects\/(.+)\/package.yml/)
+    const parsable = match ? match[1] : project
+    const i = await cellar.resolve(parsePackageRequirement(parsable))
     return i.pkg
   } else {
     return parsePackage(Deno.args[0])

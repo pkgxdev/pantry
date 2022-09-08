@@ -7,24 +7,28 @@ args:
   - deno
   - run
   - --allow-env
-  - --allow-read=/opt/tea.xyz/var/pantry
+  - --allow-read
   - --import-map={{ srcroot }}/import-map.json
 ---*/
 
 import { Path } from "types"
 import useFlags from "hooks/useFlags.ts"
+import useCellar from "hooks/useCellar.ts"
 
-const flags = useFlags()
+const prefix = new Path(`${useCellar().prefix}/tea.xyz/var/pantry/projects`)
+
+interface Entry {
+  project: string
+  path: Path
+}
 
 
-const prefix = new Path('/opt/tea.xyz/var/pantry/projects')
-
-//FIXME unfortunately importing executes the script below
+//------------------------------------------------------------------------- funcs
 export async function* ls(): AsyncGenerator<Entry> {
   for await (const path of _ls_pantry(prefix)) {
     yield {
-      name: path.parent().relative({ to: prefix }),
-      path: path.string
+      project: path.parent().relative({ to: prefix }),
+      path
     }
   }
 }
@@ -43,22 +47,23 @@ async function* _ls_pantry(dir: Path): AsyncGenerator<Path> {
   }
 }
 
-interface Entry {
-  name: string
-  path: string
-}
+//-------------------------------------------------------------------------- main
+if (import.meta.main) {
+  const flags = useFlags()
 
-const rv: Entry[] = []
-for await (const item of ls()) {
-  rv.push(item)
-}
+  const rv: Entry[] = []
+  for await (const item of ls()) {
+    rv.push(item)
+  }
 
-if (Deno.env.get("GITHUB_ACTIONS")) {
-  const projects = rv.map(x => x.name).join(":")
-  console.log(`::set-output name=projects::${projects}`)
-} else if (flags.json) {
-  const output = JSON.stringify(rv, null, 2)
-  console.log(output)
-} else {
-  console.log(rv.map(x => x.name).join("\n"))
+  if (Deno.env.get("GITHUB_ACTIONS")) {
+    const projects = rv.map(x => x.project).join(":")
+    console.log(`::set-output name=projects::${projects}`)
+  } else if (flags.json) {
+    const obj = rv.map(({ path, project }) => ({ path: path.string, project }))
+    const out = JSON.stringify(obj, null, 2)
+    console.log(out)
+  } else {
+    console.log(rv.map(x => x.project).join("\n"))
+  }
 }

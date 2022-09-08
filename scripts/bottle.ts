@@ -7,8 +7,8 @@ args:
   - --allow-net
   - --allow-run
   - --allow-env
-  - --allow-read=/opt/
-  - --allow-write=/opt/
+  - --allow-read
+  - --allow-write
   - --import-map={{ srcroot }}/import-map.json
 --- */
 
@@ -21,43 +21,48 @@ import useFlags from "hooks/useFlags.ts"
 import { crypto } from "deno/crypto/mod.ts"
 import { encodeToString } from "encodeToString"
 
-useFlags()
-
 const cellar = useCellar()
 const filesListName = 'files.txt'
 
-const bottles: Path[] = []
-const fileLists: Path[] = []
-for (const pkg of Deno.args.map(parsePackageRequirement)) {
-  console.log({ bottling: { pkg } })
 
-  const installation = await cellar.resolve(pkg)
-  const path = await bottle(installation)
-  const checksum = await sha256(path)
+//-------------------------------------------------------------------------- main
 
-  if (!path) throw new Error("wtf: bottle already exists")
-  if (!checksum) throw new Error("failed to compute checksum")
+if (import.meta.main) {
+  useFlags()
 
-  console.log({ bottled: { path } })
+  const bottles: Path[] = []
+  const fileLists: Path[] = []
+  for (const pkg of Deno.args.map(parsePackageRequirement)) {
+    console.log({ bottling: { pkg } })
 
-  bottles.push(path)
-  bottles.push(checksum)
-  fileLists.push(installation.path.join(filesListName))
+    const installation = await cellar.resolve(pkg)
+    const path = await bottle(installation)
+    const checksum = await sha256(path)
+
+    if (!path) throw new Error("wtf: bottle already exists")
+    if (!checksum) throw new Error("failed to compute checksum")
+
+    console.log({ bottled: { path } })
+
+    bottles.push(path)
+    bottles.push(checksum)
+    fileLists.push(installation.path.join(filesListName))
+  }
+
+  if (bottles.length === 0) throw new Error("no input provided")
+
+  const encode = (() => { const e = new TextEncoder(); return e.encode.bind(e) })()
+
+  const bottleList = bottles.map(x => x.string).join(" ")
+  await Deno.stdout.write(encode(`::set-output name=bottles::${bottleList}\n`))
+
+  const paths = [...bottles, ...fileLists].map(x => x.string).join('%0A')
+  await Deno.stdout.write(encode(`::set-output name=filenames::${paths}\n`))
 }
-
-if (bottles.length === 0) throw new Error("no input provided")
-
-const encode = (() => { const e = new TextEncoder(); return e.encode.bind(e) })()
-
-const bottleList = bottles.map(x => x.string).join(" ")
-await Deno.stdout.write(encode(`::set-output name=bottles::${bottleList}\n`))
-
-const paths = [...bottles, ...fileLists].map(x => x.string).join('%0A')
-await Deno.stdout.write(encode(`::set-output name=filenames::${paths}\n`))
 
 
 //------------------------------------------------------------------------- funcs
-async function bottle({ path: kegdir, pkg }: Installation): Promise<Path> {
+export async function bottle({ path: kegdir, pkg }: Installation): Promise<Path> {
 
   const files = await walk(kegdir, path => {
     /// HACK: `go` requires including the `src` dir

@@ -6,8 +6,8 @@ args:
   - deno
   - run
   - --allow-net
-  - --allow-read=/opt
-  - --allow-write=/opt
+  - --allow-read={{ tea.prefix }}
+  - --allow-write={{ tea.prefix }}
   - --allow-run  # uses `/bin/ln`
   - --import-map={{ srcroot }}/import-map.json
 ---

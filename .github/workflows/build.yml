@@ -22,6 +22,8 @@ jobs:
     defaults:
       run:
         working-directory: pantry
+    outputs:
+      pkgs: ${{ steps.sorted.outputs.pkgs }} ${{ steps.sorted.outputs.pre-install }}
     steps:
       - name: co pantry
         uses: actions/checkout@v3
@@ -66,17 +68,17 @@ jobs:
       - uses: teaxyz/setup@v0
         env:
           TEA_SECRET: ${{ secrets.TEA_SECRET }}
+        with:
+          prefix: /opt
         if: ${{ matrix.os == 'macos-11' }}
 
       - name: sort topologically
         run: scripts/sort.ts ${{ inputs.projects }}
         id: sorted
 
-      - name: install deps
-        run: ./scripts/install.ts ${{ steps.sorted.outputs.pre-install }}
+      - run: scripts/install.ts ${{ steps.sorted.outputs.pre-install }}
 
-      - name: build
-        run: ./scripts/build.ts ${{ steps.sorted.outputs.pkgs }}
+      - run: scripts/build.ts ${{ steps.sorted.outputs.pkgs }}
         id: build
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -106,9 +108,61 @@ jobs:
           path: ${{ steps.bottle.outputs.filenames }}
           if-no-files-found: error
 
+  verify-relocatable:
+    needs: [build]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: pantry
+    strategy:
+      matrix:
+        os:
+          - macos-11
+          - ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          path: pantry
+
+      - name: co cli
+        uses: actions/checkout@v3
+        with:
+          path: cli
+          repository: teaxyz/cli
+          token: ${{ secrets.TEMP_JACOBS_GITHUB_PAT }}
+
+      - name: HACKS
+        run: |
+          mkdir -p ~/opt/tea.xyz/var
+          ln -s $GITHUB_WORKSPACE/pantry ~/opt/tea.xyz/var/pantry
+          mkdir ../.git
+          cp README.md ..
+
+      - uses: teaxyz/setup@v0
+        id: tea
+        env:
+          TEA_SECRET: ${{ secrets.TEA_SECRET }}
+
+      - name: download bottles
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ matrix.os }}
+          path: ${{ steps.tea.outputs.prefix }}
+
+      - run: find ${{ steps.tea.outputs.prefix }}/tea.xyz/var/www
+
+      - run: scripts/deps.ts -i ${{ needs.build.outputs.pkgs }}
+        id: deps
+
+      - run: scripts/install.ts ${{ steps.deps.outputs.pkgs }}
+
+      - run:
+          echo ${{ inputs.projects }} | xargs -tn1
+          scripts/test.ts
+
   notify:
     if: always()
-    needs: [build]
+    needs: [verify-relocatable]
     runs-on: ubuntu-latest
     steps:
       - uses: rtCamp/action-slack-notify@v2
