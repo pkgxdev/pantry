@@ -7,7 +7,7 @@ args:
   - --allow-net
   - --allow-run
   - --allow-read
-  - --allow-write=/opt
+  - --allow-write={{tea.prefix}}
   - --allow-env
   - --import-map={{ srcroot }}/import-map.json
 ---*/
