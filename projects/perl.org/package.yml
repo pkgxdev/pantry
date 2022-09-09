@@ -14,22 +14,38 @@ build:
   script: |
     ./Configure $ARGS
     make --jobs {{ hw.concurrency }} install
+
+    # TODO not complete some parts are still not relocatable
+    cd "{{prefix}}"/bin
+    for x in *; do
+      case $x in
+      perl|perl{{version}})
+        ;;
+      *)
+        sed -i.bak 's|^#!{{prefix}}/bin/|#!/usr/bin/env |' $x
+        sed -i.bak 's|exec {{prefix}}/bin/|exec |' $x
+      esac
+    done
+
+    rm -f {{prefix}}/bin/*.bak
+
+  # relocatable fixes from: https://github.com/skaji/relocatable-perl
+
   env:
     ARGS:
       - -d  # use defaults
       - -e  # non interactive
       - -Dprefix={{prefix}}
-      - -Duseshrplib
       - -Duselargefiles
       - -Dusethreads
-      # we don’t want versioned, platformed prefixes
-      #NOTE maybe this will break something though…
-      - -Dprivlib={{prefix}}/lib
-      - -Darchlib={{prefix}}/lib
+      - -Duseshrplib=false
+      # makes perl “more” relocatable
+      - -Duserelocatableinc
 
 test:
   script: |
     perl $FIXTURE
+    shasum --version
   fixture: |
     print 'Perl is not an acronym, but JAPH is a Perl acronym!'
 
