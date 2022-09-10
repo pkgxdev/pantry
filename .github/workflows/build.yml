@@ -109,6 +109,17 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
+      - name: upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.os }}
+          path: ${{ steps.bottle.outputs.filenames }}
+          if-no-files-found: error
+
+  invalidate-cloudfront:
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
       #FIXME incredibly inefficient - have upload.ts tell us what to invalidate
       - uses: chetan/invalidate-cloudfront-action@v2
         env:
@@ -118,15 +129,8 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-      - name: upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ matrix.os }}
-          path: ${{ steps.bottle.outputs.filenames }}
-          if-no-files-found: error
-
   verify-relocatable:
-    needs: [build]
+    needs: [invalidate-cloudfront]
     runs-on: ${{ matrix.os }}
     defaults:
       run:
