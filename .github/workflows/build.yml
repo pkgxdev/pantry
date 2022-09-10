@@ -109,6 +109,15 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
+      #FIXME incredibly inefficient - have upload.ts tell us what to invalidate
+      - uses: chetan/invalidate-cloudfront-action@v2
+        env:
+          DISTRIBUTION: ${{ secrets.AWS_CF_DISTRIBUTION_ID }}
+          PATHS: "/*"
+          AWS_REGION: "us-east-1"
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
       - name: upload artifacts
         uses: actions/upload-artifact@v3
         with:
@@ -180,12 +189,3 @@ jobs:
           SLACK_MESSAGE: build job for ${{ inputs.projects }} ${{ needs.build.result == 'success' && 'succeeded' || 'failed' }}
           #FIXME SO UGLY: if one of the matrix fails, it cancels the others and returns `cancelled`
           SLACK_COLOR: ${{ needs.build.result == 'cancelled' && 'failed' || needs.build.result }}
-
-      #FIXME incredibly inefficient
-      - uses: chetan/invalidate-cloudfront-action@v2
-        env:
-          DISTRIBUTION: ${{ secrets.AWS_CF_DISTRIBUTION_ID }}
-          PATHS: "/*"
-          AWS_REGION: "us-east-1"
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
