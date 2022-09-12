@@ -5,7 +5,7 @@ args:
   - deno
   - run
   - --allow-net
-  - --allow-env=AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,S3_BUCKET
+  - --allow-env=AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,S3_BUCKET,AWS_S3
   - --import-map={{ srcroot }}/import-map.json
 ---*/
 
@@ -20,7 +20,7 @@ const s3 = new S3({
   region: "us-east-1",
 });
 
-const bucket = s3.getBucket(Deno.env.get("S3_BUCKET")!);
+const bucket = s3.getBucket(Deno.env.get("AWS_S3") ?? Deno.env.get("S3_BUCKET")!);
 
 const inventory: Inventory = {}
 const flat = []
