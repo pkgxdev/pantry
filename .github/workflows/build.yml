@@ -55,6 +55,9 @@ jobs:
 
             #FIXME needed for gdk-pixbuf
             apt --yes install shared-mime-info
+
+            #FIXME needed for teaxyz/setup
+            apt --yes install curl
             ;;
           macos-11)
             # screws up a lot of build scripts
@@ -76,6 +79,7 @@ jobs:
       - uses: teaxyz/setup@v0
         env:
           TEA_SECRET: ${{ secrets.TEA_SECRET }}
+          VERBOSE: 1
         with:
           prefix: /opt
 
@@ -129,7 +133,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
   verify-relocatable:
-    needs: [invalidate-cloudfront]
+    needs: [invalidate-cloudfront, build]
     runs-on: ${{ matrix.os }}
     defaults:
       run:
