@@ -6,6 +6,7 @@ args:
   - deno
   - run
   - --allow-net
+  - --allow-env=TEA_PREFIX,VERBOSE,DEBUG,MAGIC,GITHUB_ACTIONS,JSON
   - --allow-read={{ tea.prefix }}
   - --allow-write={{ tea.prefix }}
   - --allow-run  # uses `/bin/ln`
@@ -14,9 +15,9 @@ args:
 */
 
 import repairLinks from "prefab/repair-links.ts"
-import { print } from "utils"
+import useFlags from "hooks/useFlags.ts"
 
-print("this because otherwise console.verbose is not defined lol")
+useFlags()
 
 for (const project of Deno.args) {
   await repairLinks(project)
