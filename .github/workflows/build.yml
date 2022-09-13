@@ -51,7 +51,7 @@ jobs:
           ubuntu-latest)
             rm -rf /opt/tea.xyz/var/pantry
             ln -s $GITHUB_WORKSPACE/pantry /opt/tea.xyz/var/pantry
-            mkdir .git  # no git in our image
+            mkdir .git  # no git in our image, needed for tea finding SRCROOT
 
             #FIXME needed for gdk-pixbuf
             apt --yes install shared-mime-info
@@ -106,9 +106,9 @@ jobs:
       # TODO only upload when we merge
       # TODO upload to a staging location until we release new pantry versions
       - name: upload bottles
-        run: ./scripts/upload.ts ${{ steps.bottle.outputs.bottles }}
+        run: scripts/upload.ts ${{ steps.bottle.outputs.bottles }}
         env:
-          AWS_S3: ${{ secrets.AWS_S3 }}
+          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 

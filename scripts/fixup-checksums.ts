@@ -20,7 +20,7 @@ const s3 = new S3({
   region: "us-east-1",
 });
 
-const bucket = s3.getBucket(Deno.env.get("S3_BUCKET")!);
+const bucket = s3.getBucket(Deno.env.get("AWS_S3_BUCKET")!);
 
 for await (const pkg of bucket.listAllObjects({ batchSize: 200 })) {
   if (!pkg.key?.endsWith('.tar.gz')) { continue }

@@ -9,17 +9,28 @@ dependencies:
   zlib.net: 1
   gnu.org/gettext: ^0.21
   curl.se: '>=5'
+  perl.org: '*'
 
 build:
   dependencies:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
   script: |
-    ./configure --prefix={{prefix}}
-    make --jobs {{hw.concurrency}} install $ARGS
+    # installs to eg. libexec rather than libexec/git-core
+    sed -i.bak 's|/git-core||g' config.mak.in
+
+    ./configure $CONF
+    make install $BAKE
+
+    cd "{{prefix}}"
+    DEBUG=1 fix-shebangs.ts bin/* libexec/*
   env:
     V: 1
-    ARGS:
+    BAKE:
+    - --jobs {{hw.concurrency}}
     - NO_TCLTK=1
+    CONF:
+    - --prefix={{prefix}}
+    - --with-perl=/opt/perl.org/v*/bin/perl
 
 test: git --version  #FIXME better
