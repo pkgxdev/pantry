@@ -30,6 +30,7 @@ const cellar = useCellar()
 
 const dry = Deno.args.map(parsePackageRequirement)
 const gha = !!Deno.env.get("GITHUB_ACTIONS")
+const group_it = gha && dry.length > 1
 
 const rv: Package[] = []
 for (const pkgrq of dry) {
@@ -47,7 +48,7 @@ for (const pkgrq of dry) {
     }
   }
 
-  if (gha) {
+  if (group_it) {
     console.log("::group::", `${pkg.project}@${pkg.version}`)
   } else {
     console.log({ building: pkgrq.project })
@@ -81,7 +82,7 @@ for (const pkgrq of dry) {
 
   rv.push(pkg)
 
-  if (gha) {
+  if (group_it) {
     console.log("::endgroup::")
   }
 }
