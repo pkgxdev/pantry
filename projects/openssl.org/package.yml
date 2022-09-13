@@ -1,3 +1,7 @@
+# NOTE
+# on darwin we use Apple’s provided TLS certs at /etc/certs
+# on linux we grab the curl certs (usually these are package as ca-certificates)
+
 distributable:
   url: https://github.com/openssl/openssl/archive/refs/tags/OpenSSL_1_1_1q.tar.gz
   strip-components: 1
@@ -18,26 +22,31 @@ build:
     tea.xyz/gx/make: '*'
     perl.org: 5
     curl.se: '*'  # to download ca-certs on linux
+    git-scm.org: 2
   script: |
-    ./Configure --prefix={{ prefix }} $ARCH no-tests
+    if {{ hw.platform }} = linux; then
+      git apply {{ pkg.pantry-prefix }}/x509_def.c.diff
+    fi
+
+    ./Configure --prefix={{ prefix }} $ARCH no-tests $ARGS
     make --jobs {{ hw.concurrency }}
     make install_sw  # `_sw` avoids installing docs
 
-    if test {{hw.platform}} = darwin; then
-      # use Apple’s certs ∵ they are very incentivized to get this right
-      rm -f "$CERTDIR"  # for building over the top FIXME DESTDIR for all
-      ln -sf /etc/ssl "$CERTDIR"
-    else
+    if test {{hw.platform}} = linux; then
       #FIXME needs to be a curl.se/ca-certs that gets updates
-      mkdir -p "$CERTDIR"
-      curl https://curl.se/ca/cacert-2022-07-19.pem -o "$CERTDIR"/cert.pem
+      mkdir -p "{{prefix}}/ssl"
+      curl -k https://curl.se/ca/cacert-2022-07-19.pem -o "{{prefix}}/ssl"/cert.pem
     fi
   env:
-    CERTDIR: ${{prefix}}/ssl
     darwin/aarch64: {ARCH: 'darwin64-arm64-cc'}
     darwin/x86-64:  {ARCH: 'darwin64-x86_64-cc'}
     linux/aarch64:  {ARCH: 'linux-aarch64'}
     linux/x86-64:   {ARCH: 'linux-x86_64'}
+    darwin:
+      ARGS: --openssldir=/etc/ssl
+
+#TODO need to test the SSL certs work
+# otherwise we are basically relying on wget etc. to test for it
 
 test:
   script: |

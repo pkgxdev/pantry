@@ -8,7 +8,7 @@ args:
   - --allow-run
   - --allow-read
   - --allow-write={{ tea.prefix }}
-  - --allow-env=GITHUB_TOKEN
+  - --allow-env=GITHUB_TOKEN,TEA_PREFIX
   - --import-map={{ srcroot }}/import-map.json
 ---*/
 

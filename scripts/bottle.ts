@@ -81,7 +81,8 @@ export async function bottle({ path: kegdir, pkg }: Installation): Promise<Path>
   const filelist = kegdir
     .join(filesListName)
     .write({
-      text: relativePaths.join("\n")
+      text: relativePaths.join("\n"),
+      force: true
     })
   const tarball = useCache().bottle(pkg)
 
