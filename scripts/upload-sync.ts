@@ -4,9 +4,9 @@
 args:
   - deno
   - run
+  - --allow-read
   - --allow-net
-  - --allow-read={{ tea.prefix }}/tea.xyz/var/www
-  - --allow-env=AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,S3_BUCKET,AWS_S3
+  - --allow-env=AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_S3_BUCKET,TEA_PREFIX
   - --import-map={{ srcroot }}/import-map.json
 ---*/
 
