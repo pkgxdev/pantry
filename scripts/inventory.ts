@@ -5,7 +5,8 @@ args:
   - deno
   - run
   - --allow-net
-  - --allow-env=AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,S3_BUCKET,AWS_S3
+  - --allow-read
+  - --allow-env=AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_S3_BUCKET
   - --import-map={{ srcroot }}/import-map.json
 ---*/
 
