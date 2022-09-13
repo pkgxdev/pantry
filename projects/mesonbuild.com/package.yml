@@ -10,20 +10,37 @@ versions:
 
 dependencies:
   python.org: 3
+  #TODO gnu.org/bash
 
 build:
   script: |
     python3 -m venv {{prefix}}/libexec
-    {{prefix}}/libexec/bin/pip install -v --no-deps --no-binary :all: --ignore-installed meson
-    mkdir {{prefix}}/bin
-    ln -s {{prefix}}/libexec/bin/meson {{prefix}}/bin/meson
 
-    # tidy up
-    find \
-      {{prefix}}/libexec/bin \
-      -name easy_install\* -o -name activate\* -o -name Activate.ps1 \
-      | xargs rm
+    cd "{{prefix}}"
 
+    libexec/bin/pip install -v --no-deps --no-binary :all: --ignore-installed meson
+    mkdir bin
+
+    cat <<EOF> bin/meson
+      #!/bin/bash
+      LIBEXEC="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")"/../libexec/bin && pwd)"
+      source "\$LIBEXEC/activate"
+      "\$LIBEXEC"/meson "\$@"
+    EOF
+    chmod ugo+x bin/meson
+
+    cd libexec/bin
+    fix-shebangs.ts *
+
+    rm Activate.ps1 activate.csh activate.fish
+
+    sed -i.bak 's|VIRTUAL_ENV=".*"|VIRTUAL_ENV="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. \&\& pwd)"|' activate
+    rm activate.bak
+
+    for x in python*; do
+      ln -sf ../../../../python.org/v3/bin/$x $x
+    done
+  #FIXME enable {{ deps.python.org.version.major }}
 test:
   dependencies:
     ninja-build.org: 1
