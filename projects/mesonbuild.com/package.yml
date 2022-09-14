@@ -5,12 +5,9 @@ distributable:
 versions:
   github: mesonbuild/meson/tags
 
-#FIXME
-# we need to fix the virtual-env of this thing
-
 dependencies:
   python.org: 3
-  #TODO gnu.org/bash
+  gnu.org/bash: '>=2'  # for our venv/relocation scripts: feel free to fix that
 
 build:
   script: |
@@ -21,16 +18,15 @@ build:
     libexec/bin/pip install -v --no-deps --no-binary :all: --ignore-installed meson
     mkdir bin
 
-    cat <<EOF> bin/meson
-      #!/bin/bash
-      LIBEXEC="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")"/../libexec/bin && pwd)"
-      source "\$LIBEXEC/activate"
-      "\$LIBEXEC"/meson "\$@"
-    EOF
-    chmod ugo+x bin/meson
+    mv libexec/bin/meson libexec/bin/meson.py
 
-    cd libexec/bin
+    cd bin
+    ln -s ../libexec/bin/meson meson
+
+    cd ../libexec/bin
     fix-shebangs.ts *
+
+    cp {{ pkg.pantry-prefix}}/shim meson
 
     rm Activate.ps1 activate.csh activate.fish
 
@@ -40,7 +36,7 @@ build:
     for x in python*; do
       ln -sf ../../../../python.org/v3/bin/$x $x
     done
-  #FIXME enable {{ deps.python.org.version.major }}
+  #FIXME tea provides: {{ deps.python.org.version.major }}
 test:
   dependencies:
     ninja-build.org: 1
