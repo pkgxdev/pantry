@@ -11,10 +11,11 @@ args:
 ---*/
 
 import { S3 } from "s3"
-import { PackageRequirement, Path } from "types"
+import { parsePackage, Path } from "types"
 import useCache from "hooks/useCache.ts"
-import { Package, parsePackageRequirement, SemVer, semver } from "types"
+import { Package, SemVer, semver } from "types"
 import useFlags from "hooks/useFlags.ts"
+import { dirname, basename } from "deno/path/mod.ts"
 
 useFlags()
 
@@ -30,61 +31,46 @@ const bucket = s3.getBucket(Deno.env.get("AWS_S3_BUCKET")!)
 
 const encode = (() => { const e = new TextEncoder(); return e.encode.bind(e) })()
 
-const bottles = new Set<PackageRequirement>()
-const checksums = new Set<string>()
+const pkgs = args_get("pkgs").map(parsePackage)
+const bottles = args_get("bottles")
+const checksums = args_get("checksums")
 
-for (const filename of Deno.args) {
-  const path = new Path(filename).isFile()
-
-  if (!path) { throw new Error(`${filename} is missing`)}
-
-  if (path.basename() == "files.txt") { continue } // We don't need to upload this
-
-  const match = path.basename().match(/(.*)-([0-9]+\.[0-9]+\.[0-9]+)\+.*\.tar\.gz.*/)
-
-  if (!match)  { throw new Error(`${filename} doesn't appear to be our bottle/checksum`) }
-
-  const req = parsePackageRequirement(`${match[1]}@${match[2]}`)
-
-  if (path.basename().match(/\.sha256sum$/)) {
-    checksums.add(`${req.project}@${req.constraint.raw}`)
-  } else {
-    bottles.add(req)
+function args_get(key: string): string[] {
+  const it = Deno.args[Symbol.iterator]()
+  while (true) {
+    const { value, done } = it.next()
+    if (done) throw new Error()
+    if (value === `--${key}`) break
+  }
+  const rv: string[] = []
+  while (true) {
+    const { value, done } = it.next()
+    if (done) return rv
+    if (value.startsWith('--')) return rv
+    rv.push(value)
   }
 }
 
-// Ensure our sets are the same:
-if (bottles.size !== checksums.size || ![...bottles].every(b => checksums.has(`${b.project}@${b.constraint.raw}`))) {
-  throw new Error("bottles and checksums don't align")
-}
-
-for (const rq of bottles) {
-  // Packages should be a fixed version, so this should be fine:
-  const version = semver.parse(rq.constraint.raw)
-  if (!version) { throw new Error(`Incomplete package version: ${rq.constraint.raw}`)}
-  const pkg = { project: rq.project, version }
+for (const [index, pkg] of pkgs.entries()) {
+  const bottle = bottles[index]
+  const checksum = checksums[index]
   const key = useCache().s3Key(pkg)
-  const bottle = useCache().bottle(pkg)
-  const checksum = new Path(`${bottle.string}.sha256sum`)
-
-  console.log({ key });
 
   //FIXME stream it to S3
-  const [basename, dirname] = (split => [split.pop(), split.join("/")])(key.split("/"))
-  const bottle_contents = await Deno.readFile(bottle.string)
-  const checksum_contents = fixup_checksum(await Deno.readFile(checksum.string), basename!)
+  const bottle_contents = await Deno.readFile(bottle)
+  const checksum_contents = fixup_checksum(await Deno.readFile(checksum), basename(bottle))
   const versions = await get_versions(pkg)
+
+  console.log({ uploading: key })
 
   await bucket.putObject(key, bottle_contents)
   await bucket.putObject(`${key}.sha256sum`, checksum_contents)
-  await bucket.putObject(`${dirname}/versions.txt`, encode(versions.join("\n")))
+  await bucket.putObject(`${dirname(key)}/versions.txt`, encode(versions.join("\n")))
 
   console.log({ uploaded: key })
 }
 
 //end
-
-import { dirname, basename } from "deno/path/mod.ts"
 
 async function get_versions(pkg: Package): Promise<SemVer[]> {
   const prefix = dirname(useCache().s3Key(pkg))

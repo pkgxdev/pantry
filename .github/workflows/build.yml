@@ -106,7 +106,10 @@ jobs:
       # TODO only upload when we merge
       # TODO upload to a staging location until we release new pantry versions
       - name: upload bottles
-        run: scripts/upload.ts ${{ steps.bottle.outputs.bottles }}
+        run: scripts/upload.ts
+          --pkgs ${{ steps.build.outputs.pkgs }}
+          --bottles ${{ steps.bottle.outputs.bottles }}
+          --checksums ${{ steps.bottle.outputs.checksums }}
         env:
           AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -116,7 +119,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: ${{ matrix.os }}
-          path: ${{ steps.bottle.outputs.filenames }}
+          path: ${{ steps.bottle.outputs.artifacts }}
           if-no-files-found: error
 
   invalidate-cloudfront:
