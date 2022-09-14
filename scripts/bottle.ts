@@ -31,13 +31,15 @@ if (import.meta.main) {
   useFlags()
 
   const bottles: Path[] = []
-  const fileLists: Path[] = []
+  const checksums: Path[] = []
+  const artifacts: Path[] = []
   for (const pkg of Deno.args.map(parsePackageRequirement)) {
     console.log({ bottling: { pkg } })
 
     const installation = await cellar.resolve(pkg)
     const path = await bottle(installation)
     const checksum = await sha256(path)
+    artifacts.push(installation.path.join(filesListName))
 
     if (!path) throw new Error("wtf: bottle already exists")
     if (!checksum) throw new Error("failed to compute checksum")
@@ -45,19 +47,22 @@ if (import.meta.main) {
     console.log({ bottled: { path } })
 
     bottles.push(path)
-    bottles.push(checksum)
-    fileLists.push(installation.path.join(filesListName))
+    checksums.push(checksum)
   }
 
   if (bottles.length === 0) throw new Error("no input provided")
 
   const encode = (() => { const e = new TextEncoder(); return e.encode.bind(e) })()
 
-  const bottleList = bottles.map(x => x.string).join(" ")
-  await Deno.stdout.write(encode(`::set-output name=bottles::${bottleList}\n`))
+  const bottles_out = bottles.map(x => x.string).join(' ')
+  await Deno.stdout.write(encode(`::set-output name=bottles::${bottles_out}\n`))
 
-  const paths = [...bottles, ...fileLists].map(x => x.string).join('%0A')
-  await Deno.stdout.write(encode(`::set-output name=filenames::${paths}\n`))
+  const checksums_out = checksums.map(x => x.string).join(' ')
+  await Deno.stdout.write(encode(`::set-output name=checksums::${checksums_out}\n`))
+
+  // newline separated for the upload-artifact action
+  artifacts.push(...bottles, ...checksums)
+  await Deno.stdout.write(encode(`::set-output name=artifacts::${artifacts.join('%0A')}\n`))
 }
 
 
