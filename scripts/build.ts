@@ -63,6 +63,19 @@ for (const pkgrq of dry) {
   const wet = await hydrate(deps.runtime, pkg => pantry.getDeps(pkg).then(x => x.runtime))
   deps.runtime.push(...wet.pkgs)
 
+  // provided this package doesn't transitively depend on itself (yes this happens)
+  // clean out the destination prefix first
+  if (!wet.bootstrap_required.has(pkg.project)) {
+    const installation = await cellar.isInstalled(pkg)
+    if (installation) {
+      console.log({ cleaning: installation.path })
+      for await (const [path, {name}] of installation.path.ls()) {
+        if (name == 'src') continue
+        path.rm({ recursive: true })
+      }
+    }
+  }
+
   const env = usePlatform().platform == 'darwin'
     ? {MACOSX_DEPLOYMENT_TARGET: ['11.0']}
     : undefined
