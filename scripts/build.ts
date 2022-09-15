@@ -17,7 +17,7 @@ import useCellar from "hooks/useCellar.ts"
 import usePantry from "hooks/usePantry.ts"
 import useCache from "hooks/useCache.ts"
 import { lvl1 as link } from "prefab/link.ts"
-import build from "prefab/build.ts"
+import build from "./build.prefab.ts"
 import { Package, parsePackageRequirement, semver } from "types"
 import useFlags from "hooks/useFlags.ts"
 import usePlatform from "hooks/usePlatform.ts"
@@ -38,15 +38,6 @@ for (const pkgrq of dry) {
   const version = semver.maxSatisfying(versions, pkgrq.constraint)
   if (!version) throw "no-version-found"
   const pkg = { project: pkgrq.project, version }
-
-  const installation = await cellar.isInstalled(pkg)
-  if (installation) {
-    console.log({ cleaning: installation.path })
-    for await (const [path, {name}] of installation.path.ls()) {
-      if (name == 'src') continue
-      path.rm({ recursive: true })
-    }
-  }
 
   if (group_it) {
     console.log("::group::", `${pkg.project}@${pkg.version}`)
