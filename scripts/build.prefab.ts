@@ -4,7 +4,7 @@ import useCellar from "hooks/useCellar.ts"
 import useShellEnv, { expand } from "hooks/useShellEnv.ts"
 import { run, undent } from "utils"
 import fix_pkg_config_files from "./fix-pkg-config-files.ts"
-import fix_rpaths from "./fix-rpaths.ts"
+import fix_linux_rpaths from "./fix-linux-rpaths.ts"
 import usePlatform from "hooks/usePlatform.ts"
 
 interface Options {
@@ -83,7 +83,7 @@ export default async function build({ pkg, deps, prebuild, env: add_env }: Optio
     })
   } break
   case 'linux':
-    await fix_rpaths(installation, [...deps.runtime, self])
+    await fix_linux_rpaths(installation, [...deps.runtime, self])
     break
   default:
     throw new Error("unsupported platform")

@@ -18,11 +18,12 @@ import useCellar from "hooks/useCellar.ts"
 
 const cellar = useCellar()
 
-for await (const {path} of ls()) {
-  const pkg = (await cellar.resolve(path)).pkg
-  try {
-    await bottle({ path, pkg })
-  } catch (error) {
-    console.verbose({ 'bottling-failure': pkg, error })
+for await (const {project} of ls()) {
+  for (const { path, pkg } of await cellar.ls(project)) {
+    try {
+      await bottle({ path, pkg })
+    } catch (error) {
+      console.error({ 'bottling-failure': pkg, error })
+    }
   }
 }

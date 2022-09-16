@@ -14,6 +14,10 @@ build:
     make --jobs {{ hw.concurrency }} install
     rm -rf {{prefix}}/share  # docs are online
 
+    if test {{hw.platform}} = darwin; then
+      install_name_tool -change @rpath/libmpdec.3.dylib @loader_path/libmpdec.3.dylib {{prefix}}/lib/libmpdec++.dylib
+    fi
+
 test:
   dependencies:
     tea.xyz/gx/cc: c99
