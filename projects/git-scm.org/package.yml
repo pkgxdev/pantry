@@ -16,14 +16,13 @@ build:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
   script: |
-    # installs to eg. libexec rather than libexec/git-core
-    sed -i.bak 's|/git-core||g' config.mak.in
+    cp {{pkg.pantry-prefix}}/config.mak .
 
     ./configure $CONF
     make install $BAKE
 
     cd "{{prefix}}"
-    DEBUG=1 fix-shebangs.ts bin/* libexec/*
+    DEBUG=1 fix-shebangs.ts bin/* libexec/git-core/*
   env:
     V: 1
     BAKE:
@@ -32,5 +31,7 @@ build:
     CONF:
     - --prefix={{prefix}}
     - --with-perl=/opt/perl.org/v*/bin/perl
+    INSTALL_STRIP: -s
 
-test: git --version  #FIXME better
+test: |
+  git clone https://github.com/teaxyz/white-paper

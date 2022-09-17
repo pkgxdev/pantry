@@ -59,7 +59,6 @@ export default async function build({ pkg, deps, prebuild, env: add_env }: Optio
 
     ${/*FIXME hardcoded paths*/ ''}
     export PATH=/opt/tea.xyz/var/pantry/scripts/brewkit:"$PATH"
-    export PATH=/opt/tea.xyz/v0/bin:"$PATH"
 
     ${sh}
     `
