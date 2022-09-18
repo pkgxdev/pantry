@@ -1,5 +1,5 @@
 distributable:
-  url: https://download.gnome.org/sources/libxml2/{{ version.major }}.{{ version.minor }}/libxml2-{{ version }}.tar.xz
+  url: https://download.gnome.org/sources/libxml2/{{ version.marketing }}/libxml2-{{ version }}.tar.xz
   strip-components: 1
 
 versions:
@@ -15,6 +15,10 @@ build:
     ./configure $ARGS
     make --jobs {{ hw.concurrency }}
     make install
+
+    cd {{prefix}}/bin
+    sed -i.bak 's|{{prefix}}|"$(cd "$(dirname "$0")/.." \&\& pwd)"|' xml2-config
+    rm *.bak
   env:
     ARGS:
       - --prefix={{prefix}}
