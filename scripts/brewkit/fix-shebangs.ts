@@ -47,18 +47,18 @@ for (const path of Deno.args) {
   const [line0, ...lines] = txt.split("\n") //lol
 
   const match = line0.match(/^#!\s*(\/[^\s]+)/)
-  if (match) {
-    switch (match[1]) {
-    case "/usr/bin/env":
-    case "/bin/sh":
-      console.verbose({ line0, path })
-      console.verbose("^^ skipped acceptable shebang")
-      continue
-    }
+  if (!match) throw new Error()
+  const interpreter = match[1]
+
+  switch (interpreter) {
+  case "/usr/bin/env":
+  case "/bin/sh":
+    console.verbose({ line0, path })
+    console.verbose("^^ skipped acceptable shebang")
+    continue
   }
 
-  const interpreter = new Path(line0.slice(2)).basename()
-  const shebang = `#!/usr/bin/env ${interpreter}`
+  const shebang = `#!/usr/bin/env ${new Path(interpreter).basename()}`
 
   const rewrite = undent`
     ${shebang}
