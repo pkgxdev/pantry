@@ -22,17 +22,35 @@ build:
   dependencies:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
+    git-scm.org: 2
   script: |-
     ./configure \
       --build={{ hw.target }} \
       --prefix="{{ prefix }}"
     make --jobs {{ hw.concurrency }} install
 
+    cd "{{prefix}}"/bin
+
+    fix-shebangs.ts *
+
+    perl -pi -e 's|\x27{{prefix}}|"\$PREFIX"\x27|g' ./autoconf
+
+    # fix specific m4 and perl paths
+    perl -pi -e 's|/opt/perl.org/v[^/]+/bin/perl|perl|g' *
+    perl -pi -e 's|/opt/gnu.org/m4/v[^/]+/bin/m4|m4|g' *
+
+    # fix hardcoded paths
+    perl -pi -e "s|'{{prefix}}/|\\\$prefix.'/|" *
+    git -C .. apply {{ pkg.pantry-prefix }}/relocatable.diff
+
+    cd ../share/autoconf
+    perl -pi -e 's|{{prefix}}|\$PREFIX|' autom4te.cfg
+
 test:
   dependencies:
     tea.xyz/gx/cc: c99
   script: |
-    autoconf
+    autoconf --verbose --debug
     ./configure
     test -f config.status
     test -f config.log
