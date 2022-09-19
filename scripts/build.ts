@@ -63,9 +63,12 @@ for (const pkgrq of dry) {
   const wet = await hydrate(deps.runtime, pkg => pantry.getDeps(pkg).then(x => x.runtime))
   deps.runtime.push(...wet.pkgs)
 
+  // only required as we aren't passing everything into hydrate
+  const depends_on_self = () => deps.build.some(x => x.project === pkg.project)
+
   // provided this package doesn't transitively depend on itself (yes this happens)
   // clean out the destination prefix first
-  if (!wet.bootstrap_required.has(pkg.project)) {
+  if (!wet.bootstrap_required.has(pkg.project) && !depends_on_self()) {
     const installation = await cellar.isInstalled(pkg)
     if (installation) {
       console.log({ cleaning: installation.path })
