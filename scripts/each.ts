@@ -10,19 +10,18 @@ args:
   - --import-map={{ srcroot }}/import-map.json
 ---*/
 
-import { Path } from "types"
-import { ls } from "./ls.ts"
+const args = [...Deno.args]
+const via = args.shift()
 
-const cwd = new Path(new URL(import.meta.url).pathname).parent().string
-
-for await (const { project } of ls()) {
+for (const arg of args) {
   const proc = Deno.run({
     stdout: "null", stderr: "null",
-    cmd: ["./test.ts", project],
-    cwd
+    cmd: [via!, arg]
   })
   const status = await proc.status()
   if (status.code !== 0) {
-    console.error(`test failed: ${project}`)
+    console.error(`${arg} ❌`)
+  } else {
+    console.info(`${arg} ✅`)
   }
 }
