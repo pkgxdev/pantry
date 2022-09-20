@@ -51,7 +51,9 @@ jobs:
           ubuntu-latest)
             rm -rf /opt/tea.xyz/var/pantry
             ln -s $GITHUB_WORKSPACE/pantry /opt/tea.xyz/var/pantry
-            mkdir .git  # no git in our image, needed for tea finding SRCROOT
+
+            # no git in our image, needed for tea finding SRCROOT
+            mkdir .git ../cli/.git
 
             #FIXME needed for gdk-pixbuf
             apt --yes install shared-mime-info
@@ -90,7 +92,9 @@ jobs:
         run: scripts/sort.ts ${{ inputs.projects }}
         id: sorted
 
-      - run: scripts/install.ts ${{ steps.sorted.outputs.pre-install }}
+      - run: |
+          cd ../cli
+          ./scripts/install.ts ${{ steps.sorted.outputs.pre-install }}
 
       - run: scripts/build.ts ${{ steps.sorted.outputs.pkgs }}
         id: build
@@ -184,7 +188,9 @@ jobs:
       - run: scripts/deps.ts -i ${{ needs.build.outputs.pkgs }}
         id: deps
 
-      - run: scripts/install.ts ${{ steps.deps.outputs.pkgs }}
+      - run: |
+          cd ../cli
+          ./scripts/install.ts ${{ steps.deps.outputs.pkgs }}
 
       - run:
           echo ${{ inputs.projects }} | xargs -tn1
@@ -199,6 +205,5 @@ jobs:
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
           SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
-          SLACK_MESSAGE: build job for ${{ inputs.projects }} ${{ needs.build.result == 'success' && 'succeeded' || 'failed' }}
-          #FIXME SO UGLY: if one of the matrix fails, it cancels the others and returns `cancelled`
-          SLACK_COLOR: ${{ needs.build.result == 'cancelled' && 'failed' || needs.build.result }}
+          SLACK_MESSAGE: build job for ${{ inputs.projects }} ${{ needs.verify-relocatable.result }}
+          SLACK_COLOR: $ {{ needs.verify-relocatable.result }}
