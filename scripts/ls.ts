@@ -12,9 +12,9 @@ args:
 ---*/
 
 import Path from "path"
-import { useFlags, useCellar } from "hooks"
+import { useFlags, usePrefix } from "hooks"
 
-const prefix = new Path(`${useCellar().prefix}/tea.xyz/var/pantry/projects`)
+const prefix = new Path(`${usePrefix()}/tea.xyz/var/pantry/projects`)
 
 interface Entry {
   project: string
