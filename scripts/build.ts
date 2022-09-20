@@ -12,17 +12,18 @@ args:
   - --import-map={{ srcroot }}/import-map.json
 ---*/
 
-import usePantry from "hooks/usePantry.ts"
+import { usePantry } from "hooks"
 import build from "./build/build.ts"
-import { Package, parsePackageRequirement, semver } from "types"
-import useFlags from "hooks/useFlags.ts"
-import useCellar from "hooks/useCellar.ts"
+import { Package } from "types"
+import { parse_pkg_requirement } from "utils"
+import { useFlags, useCellar } from "hooks"
+import * as semver from "semver"
 
 useFlags()
 
 const pantry = usePantry()
 const cellar = useCellar()
-const dry = Deno.args.map(parsePackageRequirement)
+const dry = Deno.args.map(parse_pkg_requirement)
 const gha = !!Deno.env.get("GITHUB_ACTIONS")
 const group_it = gha && dry.length > 1
 const rv: Package[] = []
@@ -39,7 +40,7 @@ for (const pkgrq of dry) {
   const pkg = { project: pkgrq.project, version }
 
   if (group_it) {
-    console.log("::group::", `${pkg.project}@${pkg.version}`)
+    console.log("::group::", `${pkg.project}=${pkg.version}`)
   } else {
     console.log({ building: pkgrq.project })
   }

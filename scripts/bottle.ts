@@ -12,14 +12,12 @@ args:
   - --import-map={{ srcroot }}/import-map.json
 --- */
 
-import { Installation, parsePackageRequirement } from "types"
-import { Path } from "types"
-import useCellar from "hooks/useCellar.ts"
-import { run } from "utils"
-import useCache from "hooks/useCache.ts"
-import useFlags from "hooks/useFlags.ts"
+import { Installation } from "types"
+import { useCellar, useCache, useFlags } from "hooks"
+import { run, parse_pkg_requirement } from "utils"
 import { crypto } from "deno/crypto/mod.ts"
-import { encodeToString } from "encodeToString"
+import { encode } from "deno/encoding/hex.ts"
+import Path from "path"
 
 const cellar = useCellar()
 const filesListName = 'files.txt'
@@ -33,7 +31,7 @@ if (import.meta.main) {
   const bottles: Path[] = []
   const checksums: Path[] = []
   const artifacts: Path[] = []
-  for (const pkg of Deno.args.map(parsePackageRequirement)) {
+  for (const pkg of Deno.args.map(parse_pkg_requirement)) {
     console.log({ bottling: { pkg } })
 
     const installation = await cellar.resolve(pkg)
@@ -130,11 +128,9 @@ export async function walk(root: Path, body: (entry: Path) => Continuation): Pro
 }
 
 async function sha256(file: Path): Promise<Path> {
-  const file_contents = await Deno.readFile(file.string)
-  const checksum = encodeToString(new Uint8Array(await crypto.subtle.digest("SHA-256", file_contents)))
-  const checksum_contents = new TextEncoder().encode(`${checksum}  ${file.basename()}`)
-  const checksum_file = new Path(`${file.string}.sha256sum`)
-  await Deno.writeFile(checksum_file.string, checksum_contents)
-
-  return checksum_file
+  const sha = await Deno.open(file.string, { read: true })
+    .then(file => crypto.subtle.digest("SHA-256", file.readable))
+    .then(buf => new TextDecoder().decode(encode(new Uint8Array(buf))))
+  const text = `${sha}  ${file.basename()}`
+  return new Path(`${file}.sha256sum`).write({ text })
 }

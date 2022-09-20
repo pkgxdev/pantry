@@ -13,7 +13,7 @@ args:
 import { S3 } from "s3";
 import { stringify as yaml } from "deno/encoding/yaml.ts"
 import { stringify as csv } from "deno/encoding/csv.ts"
-import { Inventory } from "../src/hooks/useInventory.ts";
+import { Inventory } from "hooks/useInventory.ts"
 
 const s3 = new S3({
   accessKeyID: Deno.env.get("AWS_ACCESS_KEY_ID")!,
@@ -61,7 +61,7 @@ bucket.putObject("versions.json", json)
 
 // CSV: project,platform,arch,version
 
-const csvData = te.encode(await csv(flat, ["project", "platform", "arch", "version"]))
+const csvData = te.encode(csv(flat, { columns: ["project", "platform", "arch", "version"]}))
 
 bucket.putObject("versions.csv", csvData)
 

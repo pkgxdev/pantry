@@ -9,9 +9,8 @@ args:
   - --import-map={{ srcroot }}/import-map.json
 ---*/
 
-import { parsePackageRequirement } from "types"
-import useCellar from "hooks/useCellar.ts"
-import useFlags from "hooks/useFlags.ts"
+import { parse_pkg_requirement } from "utils"
+import { useCellar, useFlags } from "hooks"
 
 useFlags()
 
@@ -21,7 +20,7 @@ const cellar = useCellar()
 const desired_filter = !!Deno.env.get("INVERT")
 
 const rv: string[] = []
-for (const pkg of Deno.args.map(parsePackageRequirement)) {
+for (const pkg of Deno.args.map(parse_pkg_requirement)) {
   const isInstalled = !!await cellar.isInstalled(pkg)
   if (isInstalled == desired_filter) {
     rv.push(pkg.project)

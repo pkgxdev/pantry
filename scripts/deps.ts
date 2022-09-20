@@ -9,10 +9,10 @@ args:
   - --import-map={{ srcroot }}/import-map.json
 ---*/
 
-import { PackageRequirement, parsePackageRequirement } from "types"
-import usePantry from "hooks/usePantry.ts"
-import useFlags from "hooks/useFlags.ts"
-import hydrate from "prefab/hydrate.ts"
+import { PackageRequirement } from "types"
+import { usePantry, useFlags } from "hooks"
+import { hydrate } from "prefab"
+import { parse_pkg_requirement } from "utils"
 
 const pantry = usePantry()
 
@@ -29,10 +29,10 @@ const get_deps = async (pkg: PackageRequirement) => {
   }
 }
 
-const dry = Deno.args.compactMap(arg => !arg.startsWith('-') && parsePackageRequirement(arg))
+const dry = Deno.args.compact_map(arg => !arg.startsWith('-') && parse_pkg_requirement(arg))
 const explicit = new Set(dry.map(x=>x.project))
 const wet = await hydrate(dry, get_deps)
-const gas = wet.pkgs.compactMap(({project}) => {
+const gas = wet.pkgs.compact_map(({project}) => {
   if (Deno.args.includes('-i')) {
     return project
   } else if (!explicit.has(project)){

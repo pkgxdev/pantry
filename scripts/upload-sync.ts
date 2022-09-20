@@ -10,43 +10,42 @@ args:
   - --import-map={{ srcroot }}/import-map.json
 ---*/
 
-import { S3 } from "s3";
-import { crypto } from "deno/crypto/mod.ts";
-import useCache from "hooks/useCache.ts";
-import { encodeToString } from "encodeToString";
-import { readAll, readerFromStreamReader } from "deno/streams/mod.ts";
+import { S3 } from "s3"
+import { Sha256 } from "deno/hash/sha256.ts"
+import { useCache } from "hooks"
+import { readAll, readerFromStreamReader } from "deno/streams/mod.ts"
 
 const s3 = new S3({
   accessKeyID: Deno.env.get("AWS_ACCESS_KEY_ID")!,
   secretKey: Deno.env.get("AWS_SECRET_ACCESS_KEY")!,
   region: "us-east-1",
-});
+})
 
-const bucket = s3.getBucket(Deno.env.get("AWS_S3_BUCKET")!);
+const bucket = s3.getBucket(Deno.env.get("AWS_S3_BUCKET")!)
 
 for (const pkg of await useCache().ls()) {
   const key = useCache().s3Key(pkg)
   const bottle = useCache().bottle(pkg)
 
-  console.log({ checking: key });
+  console.log({ checking: key })
 
   const inRepo = await bucket.headObject(key)
   const repoChecksum = inRepo ? await checksum(`https://dist.tea.xyz/${key}.sha256sum`) : undefined
 
   // path.read() returns a string; this is easier to get a UInt8Array
-  const contents = await Deno.readFile(bottle.string);
-  const sha256sum = encodeToString(new Uint8Array(await crypto.subtle.digest("SHA-256", contents)))
+  const contents = await Deno.readFile(bottle.string)
+  const sha256sum = new Sha256().update(contents).toString()
 
   if (!inRepo || repoChecksum !== sha256sum) {
     const basename = key.split("/").pop()
     const body = new TextEncoder().encode(`${sha256sum}  ${basename}`)
 
-    console.log({ uploading: key });
+    console.log({ uploading: key })
 
-    await bucket.putObject(key, contents);
-    await bucket.putObject(`${key}.sha256sum`, body);
+    await bucket.putObject(key, contents)
+    await bucket.putObject(`${key}.sha256sum`, body)
 
-    console.log({ uploaded: key });
+    console.log({ uploaded: key })
   }
 }
 

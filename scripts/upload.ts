@@ -11,10 +11,10 @@ args:
 ---*/
 
 import { S3 } from "s3"
-import { parsePackage, Path } from "types"
-import useCache from "hooks/useCache.ts"
-import { Package, SemVer, semver } from "types"
-import useFlags from "hooks/useFlags.ts"
+import { parse_pkg } from "utils"
+import { useCache, useFlags } from "hooks"
+import { Package } from "types"
+import SemVer, * as semver from "semver"
 import { dirname, basename } from "deno/path/mod.ts"
 
 useFlags()
@@ -31,7 +31,7 @@ const bucket = s3.getBucket(Deno.env.get("AWS_S3_BUCKET")!)
 
 const encode = (() => { const e = new TextEncoder(); return e.encode.bind(e) })()
 
-const pkgs = args_get("pkgs").map(parsePackage)
+const pkgs = args_get("pkgs").map(parse_pkg)
 const bottles = args_get("bottles")
 const checksums = args_get("checksums")
 
@@ -80,9 +80,9 @@ async function get_versions(pkg: Package): Promise<SemVer[]> {
   //NOTE if this is a new package then some empty results is expected
   const got = rsp
     ?.contents
-    ?.compactMap(x => x.key)
+    ?.compact_map(x => x.key)
     .map(x => basename(x))
-    .compactMap(semver.coerce) //FIXME coerce is too loose
+    .compact_map(semver.coerce) //FIXME coerce is too loose
     ?? []
 
   // have to add pkg.version as put and get are not atomic

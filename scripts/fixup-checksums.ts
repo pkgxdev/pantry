@@ -9,10 +9,9 @@ args:
   - --import-map={{ srcroot }}/import-map.json
 ---*/
 
-import { S3 } from "s3";
-import { crypto } from "deno/crypto/mod.ts";
-import { readerFromStreamReader, readAll } from "deno/streams/conversion.ts";
-import { encodeToString } from "encodeToString";
+import { S3 } from "s3"
+import { Sha256 } from "deno/hash/sha256.ts"
+import { readerFromStreamReader, readAll } from "deno/streams/conversion.ts"
 
 const s3 = new S3({
   accessKeyID: Deno.env.get("AWS_ACCESS_KEY_ID")!,
@@ -32,7 +31,7 @@ for await (const pkg of bucket.listAllObjects({ batchSize: 200 })) {
     const contents = await readAll(readerFromStreamReader(reader))
 
     const basename = pkg.key.split("/").pop()
-    const sha256sum = encodeToString(new Uint8Array(await crypto.subtle.digest("SHA-256", contents)))
+    const sha256sum = new Sha256().update(contents).toString()
     const body = new TextEncoder().encode(`${sha256sum}  ${basename}`)
 
     await bucket.putObject(`${pkg.key}.sha256sum`, body);
