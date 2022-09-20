@@ -12,13 +12,10 @@ args:
   - --import-map={{ srcroot }}/import-map.json
 ---*/
 
-import usePantry from "hooks/usePantry.ts"
-import useCache from "hooks/useCache.ts"
-import useCellar from "hooks/useCellar.ts"
-import useSourceUnarchiver from "hooks/useSourceUnarchiver.ts"
-import { parsePackageRequirement, semver } from "types"
+import { usePantry, useCache, useCellar, useSourceUnarchiver } from "hooks"
 import { Command } from "cliffy/command/mod.ts"
-import { print } from "utils"
+import { print, parse_pkg_requirement } from "utils"
+import * as semver from "semver"
 
 const { args } = await new Command()
   .name("tea-fetch-src")
@@ -26,7 +23,7 @@ const { args } = await new Command()
   .parse(Deno.args)
 
 const pantry = usePantry()
-const req = parsePackageRequirement(args[0])
+const req = parse_pkg_requirement(args[0])
 const versions = await pantry.getVersions(req)
 const version = semver.maxSatisfying(versions, req.constraint)
 if (!version) throw "no-version-found"

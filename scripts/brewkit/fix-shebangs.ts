@@ -12,9 +12,9 @@ args:
   - --import-map={{ srcroot }}/import-map.json
 --- */
 
-import { Path } from "types"
+import Path from "path"
 import { undent } from "utils"
-import useFlags from "hooks/useFlags.ts"
+import { useFlags } from "hooks"
 
 useFlags()
 

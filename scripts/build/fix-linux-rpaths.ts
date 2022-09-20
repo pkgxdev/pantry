@@ -1,7 +1,7 @@
-import useCellar from "hooks/useCellar.ts"
-import usePlatform from "hooks/usePlatform.ts"
-import { Path, PackageRequirement, Installation } from "types"
-import { runAndGetOutput,run } from "utils"
+import { useCellar } from "hooks"
+import { PackageRequirement, Installation } from "types"
+import { backticks, run, host } from "utils"
+import Path from "path"
 
 
 if (import.meta.main) {
@@ -21,8 +21,8 @@ export default async function fix_rpaths(installation: Installation, pkgs: Packa
     return
   }
   console.info("doing SLOW rpath fixes…")
-  for await (const [exename, type] of exefiles(installation.path)) {
-    await set_rpaths(exename, type, pkgs, installation)
+  for await (const [exename] of exefiles(installation.path)) {
+    await set_rpaths(exename, pkgs, installation)
   }
 }
 
@@ -31,8 +31,8 @@ export default async function fix_rpaths(installation: Installation, pkgs: Packa
 //NOTE we should have a `safety-inspector` step before bottling to check for this sort of thing
 //  and then have virtual env manager be more specific via (DY)?LD_LIBRARY_PATH
 //FIXME somewhat inefficient for eg. git since git is mostly hardlinks to the same file
-async function set_rpaths(exename: Path, type: 'exe' | 'lib', pkgs: PackageRequirement[], installation: Installation) {
-  if (usePlatform().platform != 'linux') throw new Error()
+async function set_rpaths(exename: Path, pkgs: PackageRequirement[], installation: Installation) {
+  if (host().platform != 'linux') throw new Error()
 
   const cellar = useCellar()
   const our_rpaths = await Promise.all(pkgs.map(pkg => prefix(pkg)))
@@ -40,11 +40,11 @@ async function set_rpaths(exename: Path, type: 'exe' | 'lib', pkgs: PackageRequi
   const cmd = await (async () => {
     //FIXME we need this for perl
     // however really we should just have an escape hatch *just* for stuff that sets its own rpaths
-    const their_rpaths = (await runAndGetOutput({
+    const their_rpaths = (await backticks({
         cmd: ["patchelf", "--print-rpath", exename],
       }))
       .split(":")
-      .compactMap(x => x.chuzzle())
+      .compact_map(x => x.chuzzle())
       //^^ split has ridiculous empty string behavior
 
     const rpaths = [...their_rpaths, ...our_rpaths]
@@ -86,7 +86,7 @@ async function set_rpaths(exename: Path, type: 'exe' | 'lib', pkgs: PackageRequi
 async function get_rpaths(exename: Path): Promise<string[]> {
   //GOOD_1ST_ISSUE better tokenizer for the output
 
-  const lines = (await runAndGetOutput({
+  const lines = (await backticks({
     cmd: ["otool", "-l", exename]
   }))
     .trim()
@@ -128,7 +128,7 @@ export async function exetype(path: Path): Promise<'exe' | 'lib' | false> {
       return false
   }
 
-  const out = await runAndGetOutput({
+  const out = await backticks({
     cmd: ["file", "--mime-type", path.string]
   })
   const lines = out.split("\n")

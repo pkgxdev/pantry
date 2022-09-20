@@ -12,31 +12,25 @@ args:
   - --import-map={{ srcroot }}/import-map.json
 ---*/
 
-import { parsePackage, semver, Path, PackageRequirement, parsePackageRequirement } from "types"
-import usePantry from "hooks/usePantry.ts"
+import { PackageRequirement } from "types"
+import { usePantry, useCellar, useFlags } from "hooks"
 import useShellEnv, { expand } from "hooks/useShellEnv.ts"
-import { run, undent } from "utils"
-import useFlags from "hooks/useFlags.ts"
-import useCellar from "hooks/useCellar.ts"
-import resolve from "prefab/resolve.ts"
-import install from "prefab/install.ts"
-import hydrate from "prefab/hydrate.ts"
-import { lvl1 as link } from "prefab/link.ts"
+import { run, undent, parse_pkg_requirement } from "utils"
+import { resolve, install, hydrate, link } from "prefab"
+import Path from "path"
+import * as semver from "semver"
 
-const { debug, magic } = useFlags()
+const { debug } = useFlags()
 const cellar = useCellar()
 const pantry = usePantry()
 
 const pkg = await (async () => {
-  if (magic) {
-    const project = Deno.args[0]
-    const match = project.match(/projects\/(.+)\/package.yml/)
-    const parsable = match ? match[1] : project
-    const i = await cellar.resolve(parsePackageRequirement(parsable))
-    return i.pkg
-  } else {
-    return parsePackage(Deno.args[0])
-  }
+  const project = Deno.args[0]
+  const match = project.match(/projects\/(.+)\/package.yml/)
+  const parsable = match ? match[1] : project
+  const pkg = parse_pkg_requirement(parsable)
+  const installed = await cellar.resolve(pkg)
+  return installed.pkg
 })()
 
 const self = {
@@ -101,7 +95,7 @@ async function install_if_needed(deps: PackageRequirement[]) {
   }
   const wet = await resolve(needed)
   for (const pkg of wet) {
-    const installation = install(pkg)
+    const installation = await install(pkg)
     await link(installation)
   }
 }

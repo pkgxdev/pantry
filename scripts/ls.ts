@@ -11,9 +11,8 @@ args:
   - --import-map={{ srcroot }}/import-map.json
 ---*/
 
-import { Path } from "types"
-import useFlags from "hooks/useFlags.ts"
-import useCellar from "hooks/useCellar.ts"
+import Path from "path"
+import { useFlags, useCellar } from "hooks"
 
 const prefix = new Path(`${useCellar().prefix}/tea.xyz/var/pantry/projects`)
 

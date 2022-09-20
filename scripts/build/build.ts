@@ -1,19 +1,16 @@
-import useSourceUnarchiver from "hooks/useSourceUnarchiver.ts"
-import useCellar from "hooks/useCellar.ts"
-import usePantry from "hooks/usePantry.ts"
-import useCache from "hooks/useCache.ts"
-import { lvl1 as link } from "prefab/link.ts"
-import { Installation, Package, Path, semver } from "types"
-import usePlatform from "hooks/usePlatform.ts"
-import hydrate from "prefab/hydrate.ts"
+import { useSourceUnarchiver, useCellar, usePantry, useCache } from "hooks"
+import { link, hydrate } from "prefab"
+import { Installation, Package } from "types"
 import useShellEnv, { expand } from "hooks/useShellEnv.ts"
-import { run, undent } from "utils"
+import { run, undent, host } from "utils"
 import fix_pkg_config_files from "./fix-pkg-config-files.ts"
 import fix_linux_rpaths from "./fix-linux-rpaths.ts"
+import Path from "path"
+import * as semver from "semver"
 
 const cellar = useCellar()
 const pantry = usePantry()
-const { platform } = usePlatform()
+const { platform } = host()
 
 export default async function _build(pkg: Package) {
   const [deps, wet] = await calc_deps()
@@ -33,6 +30,7 @@ export default async function _build(pkg: Package) {
     const deps = await pantry.getDeps(pkg)
     const wet = await hydrate([...deps.runtime, ...deps.build], pkg => pantry.getDeps(pkg).then(x => x.runtime))
     deps.runtime.push(...wet.pkgs)
+    // deno-lint-ignore no-explicit-any
     function tuplize<T extends any[]>(...elements: T) { return elements }
     return tuplize(deps, wet)
   }
@@ -49,10 +47,11 @@ export default async function _build(pkg: Package) {
     async function should_clean() {
       // only required as we aren't passing everything into hydrate
       const depends_on_self = () => deps.build.some(x => x.project === pkg.project)
+      const wet_dep = () => wet.pkgs.some(x => x.project === pkg.project)
 
       // provided this package doesn't transitively depend on itself (yes this happens)
       // clean out the destination prefix first
-      if (!wet.bootstrap_required.has(pkg.project) && !depends_on_self()) {
+      if (!wet.bootstrap_required.has(pkg.project) && !depends_on_self() && !wet_dep()) {
         return await cellar.isInstalled(pkg)
       }
     }
@@ -99,7 +98,7 @@ export default async function _build(pkg: Package) {
   }
 
   async function fix_binaries(installation: Installation) {
-    switch (usePlatform().platform) {
+    switch (host().platform) {
     case 'darwin':
       await fix_macho(installation)
       break

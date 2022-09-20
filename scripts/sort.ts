@@ -16,10 +16,9 @@ args:
 // does a full hydration, but only returns ordered, dry packages
 
 
-import { parsePackageRequirement } from "types"
-import hydrate from "prefab/hydrate.ts"
-import useFlags from "hooks/useFlags.ts"
-import usePantry from "../src/hooks/usePantry.ts"
+import { parse_pkg_requirement } from "utils"
+import { usePantry, useFlags } from "hooks"
+import { hydrate } from "prefab"
 
 const flags = useFlags()
 const pantry = usePantry()
@@ -27,7 +26,7 @@ const pantry = usePantry()
 const dry = Deno.args.map(project => {
   const match = project.match(/projects\/(.*)\/package.yml/)
   return match ? match[1] : project
-}).map(parsePackageRequirement)
+}).map(parse_pkg_requirement)
 
 const wet = await hydrate(dry, async (pkg, dry) => {
   const deps = await pantry.getDeps(pkg)
