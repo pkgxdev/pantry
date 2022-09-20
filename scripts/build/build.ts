@@ -1,4 +1,4 @@
-import { useSourceUnarchiver, useCellar, usePantry, useCache } from "hooks"
+import { useSourceUnarchiver, useCellar, usePantry, useCache, usePrefix } from "hooks"
 import { link, hydrate } from "prefab"
 import { Installation, Package } from "types"
 import useShellEnv, { expand } from "hooks/useShellEnv.ts"
@@ -128,7 +128,7 @@ async function fix_macho(installation: Installation) {
   await run({
     cmd: [d.join('fix-machos.rb'), installation.path, ...walk],
     env: {
-      TEA_PREFIX: cellar.prefix.string,
+      TEA_PREFIX: usePrefix().string,
     }
   })
 }

@@ -16,20 +16,19 @@ import { usePantry } from "hooks"
 import build from "./build/build.ts"
 import { Package } from "types"
 import { parse_pkg_requirement } from "utils"
-import { useFlags, useCellar } from "hooks"
+import { useFlags, usePrefix } from "hooks"
 import * as semver from "semver"
 
 useFlags()
 
 const pantry = usePantry()
-const cellar = useCellar()
 const dry = Deno.args.map(parse_pkg_requirement)
 const gha = !!Deno.env.get("GITHUB_ACTIONS")
 const group_it = gha && dry.length > 1
 const rv: Package[] = []
 
-if (cellar.prefix.string != "/opt") {
-  console.error({ TEA_PREFIX: cellar.prefix.string })
+if (usePrefix().string != "/opt") {
+  console.error({ TEA_PREFIX: usePrefix().string })
   throw new Error("builds must be performed in /opt (try TEA_PREFIX=/opt)")
 }
 

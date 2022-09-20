@@ -13,7 +13,7 @@ args:
 --- */
 
 import { Installation } from "types"
-import { useCellar, useCache, useFlags } from "hooks"
+import { useCellar, useCache, usePrefix, useFlags } from "hooks"
 import { run, parse_pkg_requirement } from "utils"
 import { crypto } from "deno/crypto/mod.ts"
 import { encode } from "deno/encoding/hex.ts"
@@ -80,7 +80,7 @@ export async function bottle({ path: kegdir, pkg }: Installation): Promise<Path>
       return 'accumulate'
     }
   })
-  const relativePaths = files.map(x => x.relative({ to: cellar.prefix }))
+  const relativePaths = files.map(x => x.relative({ to: usePrefix() }))
   const filelist = kegdir
     .join(filesListName)
     .write({
@@ -93,7 +93,7 @@ export async function bottle({ path: kegdir, pkg }: Installation): Promise<Path>
     cmd: [
       "tar", "zcf", tarball, "--files-from", filelist
     ],
-    cwd: cellar.prefix
+    cwd: usePrefix()
   })
 
   return tarball
