@@ -2,7 +2,7 @@ import { useSourceUnarchiver, useCellar, usePantry, useCache, usePrefix } from "
 import { link, hydrate } from "prefab"
 import { Installation, Package } from "types"
 import useShellEnv, { expand } from "hooks/useShellEnv.ts"
-import { run, undent, host } from "utils"
+import { run, undent, host, pkg_str } from "utils"
 import fix_pkg_config_files from "./fix-pkg-config-files.ts"
 import fix_linux_rpaths from "./fix-linux-rpaths.ts"
 import Path from "path"
@@ -16,7 +16,7 @@ export default async function _build(pkg: Package) {
   const [deps, wet] = await calc_deps()
   await clean()
   const env = await mkenv()
-  const dst = cellar.mkpath(pkg)
+  const dst = cellar.keg(pkg)
   const src = await fetch_src(pkg)
   const installation = await build()
   await link(installation)
@@ -37,11 +37,9 @@ export default async function _build(pkg: Package) {
 
   async function clean() {
     const installation = await should_clean()
-    if (!installation) return
-    console.log({ cleaning: installation.path })
-    for await (const [path, {name}] of installation.path.ls()) {
-      if (name == 'src') continue
-      path.rm({ recursive: true })
+    if (installation) {
+      console.log({ cleaning: installation.path })
+      installation.path.rm({ recursive: true })
     }
 
     async function should_clean() {
@@ -61,7 +59,7 @@ export default async function _build(pkg: Package) {
     const env = await useShellEnv([...deps.runtime, ...deps.build])
 
     if (env.pending.length) {
-      console.error({uninstalled: env.pending})
+      console.error({uninstalled: env.pending.map(pkg_str)})
       throw new Error("uninstalled")
     }
 
@@ -75,7 +73,7 @@ export default async function _build(pkg: Package) {
   async function build() {
     const sh = await pantry.getScript(pkg, 'build')
 
-    const cmd = dst.join("build.sh").write({ force: true, text: undent`
+    const cmd = src.parent().join("build.sh").write({ force: true, text: undent`
       #!/bin/bash
 
       set -e
@@ -110,15 +108,10 @@ export default async function _build(pkg: Package) {
 }
 
 async function fetch_src(pkg: Package): Promise<Path> {
-  const dstdir = cellar.mkpath(pkg).join("src")
+  const dstdir = usePrefix().join(pkg.project, "src", `v${pkg.version}`)
   const { url, stripComponents } = await pantry.getDistributable(pkg)
-  const { download } = useCache()
-  const zip = await download({ pkg, url, type: 'src' })
-  await useSourceUnarchiver().unarchive({
-    dstdir,
-    zipfile: zip,
-    stripComponents
-  })
+  const zipfile = await useCache().download({ pkg, url, type: 'src' })
+  await useSourceUnarchiver().unarchive({ dstdir, zipfile, stripComponents })
   return dstdir
 }
 
