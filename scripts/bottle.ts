@@ -14,7 +14,7 @@ args:
 
 import { Installation } from "types"
 import { useCellar, useCache, usePrefix, useFlags } from "hooks"
-import { run, parse_pkg_requirement } from "utils"
+import { run, pkg as pkgutils } from "utils"
 import { crypto } from "deno/crypto/mod.ts"
 import { encode } from "deno/encoding/hex.ts"
 import Path from "path"
@@ -30,7 +30,7 @@ if (import.meta.main) {
   const bottles: Path[] = []
   const checksums: Path[] = []
   const artifacts: Path[] = []
-  for (const pkg of Deno.args.map(parse_pkg_requirement)) {
+  for (const pkg of Deno.args.map(pkgutils.parse)) {
     console.log({ bottling: { pkg } })
 
     const installation = await cellar.resolve(pkg)

@@ -1,4 +1,4 @@
-import { SemVer, semver } from "types"
+import SemVer, * as semver from "semver"
 import { panic } from "utils"
 
 export default function parse(input: string): SemVer {

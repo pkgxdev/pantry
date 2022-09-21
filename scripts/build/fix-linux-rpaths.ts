@@ -44,7 +44,7 @@ async function set_rpaths(exename: Path, pkgs: PackageRequirement[], installatio
         cmd: ["patchelf", "--print-rpath", exename],
       }))
       .split(":")
-      .compact_map(x => x.chuzzle())
+      .compact(x => x.chuzzle())
       //^^ split has ridiculous empty string behavior
 
     const rpaths = [...their_rpaths, ...our_rpaths]

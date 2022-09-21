@@ -15,7 +15,7 @@ args:
 import { PackageRequirement } from "types"
 import { usePantry, useCellar, useFlags } from "hooks"
 import useShellEnv, { expand } from "hooks/useShellEnv.ts"
-import { run, undent, parse_pkg_requirement } from "utils"
+import { run, undent, pkg as pkgutils } from "utils"
 import { resolve, install, hydrate, link } from "prefab"
 import Path from "path"
 import * as semver from "semver"
@@ -28,7 +28,7 @@ const pkg = await (async () => {
   const project = Deno.args[0]
   const match = project.match(/projects\/(.+)\/package.yml/)
   const parsable = match ? match[1] : project
-  const pkg = parse_pkg_requirement(parsable)
+  const pkg = pkgutils.parse(parsable)
   const installed = await cellar.resolve(pkg)
   return installed.pkg
 })()
@@ -90,7 +90,7 @@ try {
 async function install_if_needed(deps: PackageRequirement[]) {
   const needed: PackageRequirement[] = []
   for await (const rq of deps) {
-    if (await cellar.isInstalled(rq)) continue
+    if (await cellar.has(rq)) continue
     needed.push(rq)
   }
   const wet = await resolve(needed)

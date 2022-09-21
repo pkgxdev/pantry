@@ -2,7 +2,7 @@ import { useSourceUnarchiver, useCellar, usePantry, useCache, usePrefix } from "
 import { link, hydrate } from "prefab"
 import { Installation, Package } from "types"
 import useShellEnv, { expand } from "hooks/useShellEnv.ts"
-import { run, undent, host, pkg_str } from "utils"
+import { run, undent, host, pkg as pkgutils } from "utils"
 import fix_pkg_config_files from "./fix-pkg-config-files.ts"
 import fix_linux_rpaths from "./fix-linux-rpaths.ts"
 import Path from "path"
@@ -50,7 +50,7 @@ export default async function _build(pkg: Package) {
       // provided this package doesn't transitively depend on itself (yes this happens)
       // clean out the destination prefix first
       if (!wet.bootstrap_required.has(pkg.project) && !depends_on_self() && !wet_dep()) {
-        return await cellar.isInstalled(pkg)
+        return await cellar.has(pkg)
       }
     }
   }
@@ -59,7 +59,7 @@ export default async function _build(pkg: Package) {
     const env = await useShellEnv([...deps.runtime, ...deps.build])
 
     if (env.pending.length) {
-      console.error({uninstalled: env.pending.map(pkg_str)})
+      console.error({uninstalled: env.pending.map(pkgutils.str)})
       throw new Error("uninstalled")
     }
 
