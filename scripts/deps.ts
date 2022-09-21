@@ -12,7 +12,7 @@ args:
 import { PackageRequirement } from "types"
 import { usePantry, useFlags } from "hooks"
 import { hydrate } from "prefab"
-import { parse_pkg_requirement } from "utils"
+import { pkg } from "utils"
 
 const pantry = usePantry()
 
@@ -29,10 +29,10 @@ const get_deps = async (pkg: PackageRequirement) => {
   }
 }
 
-const dry = Deno.args.compact_map(arg => !arg.startsWith('-') && parse_pkg_requirement(arg))
+const dry = Deno.args.compact(arg => !arg.startsWith('-') && pkg.parse(arg))
 const explicit = new Set(dry.map(x=>x.project))
 const wet = await hydrate(dry, get_deps)
-const gas = wet.pkgs.compact_map(({project}) => {
+const gas = wet.pkgs.compact(({project}) => {
   if (Deno.args.includes('-i')) {
     return project
   } else if (!explicit.has(project)){

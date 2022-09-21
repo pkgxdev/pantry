@@ -14,8 +14,7 @@ args:
 
 import { usePantry, useCache, useCellar, useSourceUnarchiver } from "hooks"
 import { Command } from "cliffy/command/mod.ts"
-import { print, parse_pkg_requirement } from "utils"
-import * as semver from "semver"
+import { print, pkg as pkgutils } from "utils"
 
 const { args } = await new Command()
   .name("tea-fetch-src")
@@ -23,20 +22,13 @@ const { args } = await new Command()
   .parse(Deno.args)
 
 const pantry = usePantry()
-const req = parse_pkg_requirement(args[0])
-const versions = await pantry.getVersions(req)
-const version = semver.maxSatisfying(versions, req.constraint)
-if (!version) throw "no-version-found"
-const pkg = { project: req.project, version };     console.debug(pkg)
+const req = pkgutils.parse(args[0])
+const pkg = await pantry.resolve(req);   console.debug(pkg)
 
-const dstdir = useCellar().mkpath(pkg).join("src")
+const dstdir = useCellar().keg(pkg).join("src")
 const { url, stripComponents } = await pantry.getDistributable(pkg)
 const { download } = useCache()
-const zip = await download({ pkg, url, type: 'src' })
-await useSourceUnarchiver().unarchive({
-  dstdir,
-  zipfile: zip,
-  stripComponents
-})
+const zipfile = await download({ pkg, url, type: 'src' })
+await useSourceUnarchiver().unarchive({ dstdir, zipfile, stripComponents })
 
 await print(`${dstdir}\n`)
