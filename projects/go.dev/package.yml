@@ -22,9 +22,8 @@ build:
     curl.se: '*'
     nixos.org/patchelf: ^0.15
   script: |-
-    export GOROOT_BOOTSTRAP="$(cd ../.. && echo $PWD)/bootstrap"
-    if test ! -d $GOROOT_BOOTSTRAP; then
-      # TODO something better than this...
+    export GOROOT_BOOTSTRAP="$(dirname "{{prefix}}")/bootstrap"
+    if test ! -d "$GOROOT_BOOTSTRAP"; then
       case "X{{ hw.target }}" in
       "Xaarch64-apple-darwin") GOARCH="darwin-arm64";;
       "Xx86_64-apple-darwin") GOARCH="darwin-amd64";;
@@ -35,22 +34,20 @@ build:
         exit 1
       esac
 
-      curl -L https://storage.googleapis.com/golang/go1.16.${GOARCH}.tar.gz | tar xzf - -C ../..
-      mv ../../go ../../bootstrap
+      curl -L https://storage.googleapis.com/golang/go1.16.${GOARCH}.tar.gz | tar xzf - -C "$GOROOT_BOOTSTRAP" --strip-components=1
     fi
 
-    export GOROOT_FINAL="{{ prefix }}"
+    export GOROOT_FINAL="{{prefix}}"
     cd src
     ./make.bash
 
     # cleanup
-    cd ../..
-    mv src foo
-    mv foo/* .
-    rmdir foo
+    cd ..
     rm src/*.{bash,bat,rc}
     rm src/Make.dist
-    find . -mindepth 1 -maxdepth 1 -type f -delete -not -name build.sh
+    mkdir "{{prefix}}"
+    mv * "{{prefix}}"
+    find "{{prefix}}" -mindepth 1 -maxdepth 1 -type f -delete -not -name build.sh
 
 test:
   script: |
