@@ -81,7 +81,9 @@ async function get_versions(pkg: Package): Promise<SemVer[]> {
     ?.contents
     ?.compact(x => x.key)
     .map(x => basename(x))
-    .compact(semver.coerce) //FIXME coerce is too loose
+    .filter(x => x.match(/v.*\.tar\.gz$/))
+    .map(x => x.replace(/v(.*)\.tar\.gz/, "$1"))
+    .compact(semver.parse)
     ?? []
 
   // have to add pkg.version as put and get are not atomic
