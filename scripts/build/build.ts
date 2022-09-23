@@ -13,16 +13,24 @@ const pantry = usePantry()
 const { platform } = host()
 
 export default async function _build(pkg: Package) {
+  try {
+    await __build(pkg)
+  } catch (e) {
+    cellar.keg(pkg).isEmpty()?.rm()  // don’t leave empty kegs around
+    throw e
+  }
+}
+
+async function __build(pkg: Package) {
   const [deps, wet] = await calc_deps()
   await clean()
   const env = await mkenv()
-  const dst = cellar.keg(pkg)
+  const dst = cellar.keg(pkg).mkpath()
   const src = await fetch_src(pkg)
   const installation = await build()
   await link(installation)
   await fix_binaries(installation)
   await fix_pkg_config_files(installation)
-
   return installation
 
 //////// utils
@@ -39,7 +47,10 @@ export default async function _build(pkg: Package) {
     const installation = await should_clean()
     if (installation) {
       console.log({ cleaning: installation.path })
-      installation.path.rm({ recursive: true })
+      for await (const [path] of installation.path.ls()) {
+        // we delete contents rather than the directory itself to prevent broken vx.y symlinks
+        path.rm({ recursive: true })
+      }
     }
 
     async function should_clean() {

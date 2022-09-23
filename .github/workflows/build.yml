@@ -57,9 +57,6 @@ jobs:
 
             #FIXME needed for gdk-pixbuf
             apt --yes install shared-mime-info
-
-            #FIXME needed for teaxyz/setup
-            apt --yes install curl
             ;;
           macos-11)
             # screws up a lot of build scripts
@@ -92,8 +89,7 @@ jobs:
         run: scripts/sort.ts ${{ inputs.projects }}
         id: sorted
 
-      - run: |
-          ../cli/scripts/install.ts ${{ steps.sorted.outputs.pre-install }}
+      - run: ../cli/scripts/install.ts ${{ steps.sorted.outputs.pre-install }}
 
       - run: scripts/build.ts ${{ steps.sorted.outputs.pkgs }}
         id: build

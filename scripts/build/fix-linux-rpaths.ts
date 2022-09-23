@@ -100,7 +100,7 @@ async function get_rpaths(exename: Path): Promise<string[]> {
       it.next()
       rv.push(it.next().value.trim().match(/^path\s+(.+)$/)[1])
 
-      console.debug(rv.slice(-1)[0])
+      console.debug(rv.at(-1))
     }
   }
   return rv
