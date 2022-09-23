@@ -14,10 +14,12 @@ if (import.meta.main) {
 
 /// fix rpaths or install names for executables and dynamic libraries
 export default async function fix_rpaths(installation: Installation, pkgs: PackageRequirement[]) {
-  if (installation.pkg.project == "go.dev") {
-    console.info("skipping rpath fixes for go.dev")
-    // skipping because for some reason patchelf breaks the go binary
-    // resulting in the only output being: `Segmentation Fault`
+  const skip_rpaths = [
+    "go.dev", // skipping because for some reason patchelf breaks the go binary resulting in the only output being: `Segmentation Fault`
+    "tea.xyz", // this causes tea to pass -E/--version (and everything else?) directly to deno, making it _too_ much of a wrapper.
+  ]
+  if (skip_rpaths.includes(installation.pkg.project)) {
+    console.info(`skipping rpath fixes for ${installation.pkg.project}`)
     return
   }
   console.info("doing SLOW rpath fixes…")

@@ -1,0 +1,37 @@
+distributable:
+  url: https://github.com/teaxyz/cli/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+relocatable: true
+
+versions:
+  github: teaxyz/cli
+
+provides:
+  - bin/tea
+
+dependencies:
+  # 1.25.0 - 1.25.2 panics on Linux for us
+  deno.land: '>=1.23 <1.25 || ^1.25.3'
+
+build:
+  script: |
+    #FIXME: gotta be a better way
+    sed -i.bak "s/^const version = .*$/const version = \"{{ version }}\"/" src/app.ts
+    rm src/app.ts.bak
+    mkdir -p {{ prefix }}/bin
+    deno compile \
+      --allow-read \
+      --allow-write \
+      --allow-net \
+      --allow-run \
+      --allow-env \
+      --import-map=./import-map.json \
+      --output {{ prefix }}/bin/tea \
+      ./src/app.ts
+
+test:
+  #TODO: build teaxyz/white-paper for better test
+  script: |
+    tea --version
+    test "$(tea --version)" = "tea {{ version }}"

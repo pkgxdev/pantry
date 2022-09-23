@@ -93,13 +93,14 @@ jobs:
         id: sorted
 
       - run: |
-          cd ../cli
-          ./scripts/install.ts ${{ steps.sorted.outputs.pre-install }}
+          ../cli/scripts/install.ts ${{ steps.sorted.outputs.pre-install }}
 
       - run: scripts/build.ts ${{ steps.sorted.outputs.pkgs }}
         id: build
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          # TODO: GITHUB_TOKEN doesn't have private access to teaxyz/cli. This can be restored once that repo is public.
+          # GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ secrets.TEMP_JACOBS_GITHUB_PAT }}
           FORCE_UNSAFE_CONFIGURE: 1  # some configure scripts refuse to run as root
 
       - name: test
@@ -183,14 +184,10 @@ jobs:
           name: ${{ matrix.os }}
           path: ${{ steps.tea.outputs.prefix }}
 
-      - run: find ${{ steps.tea.outputs.prefix }}/tea.xyz/var/www
-
       - run: scripts/deps.ts -i ${{ needs.build.outputs.pkgs }}
         id: deps
 
-      - run: |
-          cd ../cli
-          ./scripts/install.ts ${{ steps.deps.outputs.pkgs }}
+      - run: ../cli/scripts/install.ts ${{ steps.deps.outputs.pkgs }}
 
       - run:
           echo ${{ inputs.projects }} | xargs -tn1
