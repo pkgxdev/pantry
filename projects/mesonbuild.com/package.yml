@@ -11,7 +11,7 @@ dependencies:
 
 build:
   script: |
-    python3 -m venv {{prefix}}/libexec
+    python -m venv {{prefix}}/libexec
 
     cd "{{prefix}}"
 
@@ -26,7 +26,7 @@ build:
     cd ../libexec/bin
     fix-shebangs.ts *
 
-    cp {{ pkg.pantry-prefix}}/shim meson
+    cp "$SRCROOT"/props/shim.bash meson
 
     rm Activate.ps1 activate.csh activate.fish
 
@@ -34,9 +34,8 @@ build:
     rm activate.bak
 
     for x in python*; do
-      ln -sf ../../../../python.org/v3/bin/$x $x
+      ln -sf ../../../../python.org/v{{ deps.python.org.version.major }}/bin/$x $x
     done
-  #FIXME tea provides: {{ deps.python.org.version.major }}
 test:
   dependencies:
     ninja-build.org: 1
