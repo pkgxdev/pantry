@@ -17,35 +17,31 @@ build:
     gnu.org/m4: 1
     tea.xyz/gx/make: '*'
     tea.xyz/gx/cc: c99
-    curl.se: '*'
     nixos.org/patchelf: ^0.15
+    go.dev: '*'
+  working-directory: src
   script: |-
-    export GOROOT_BOOTSTRAP="$(dirname "{{prefix}}")/bootstrap"
-    if test ! -d "$GOROOT_BOOTSTRAP"; then
-      case "X{{ hw.target }}" in
-      "Xaarch64-apple-darwin") GOARCH="darwin-arm64";;
-      "Xx86_64-apple-darwin") GOARCH="darwin-amd64";;
-      "Xx86_64-unknown-linux-gnu") GOARCH="linux-amd64";;
-      "Xaarch64-unknown-linux-gnu") GOARCH="linux-arm64";;
-      *)
-        echo "Unknown arch. Please update the pantry."
-        exit 1
-      esac
-
-      curl -L https://storage.googleapis.com/golang/go1.16.${GOARCH}.tar.gz | tar xzf - -C "$GOROOT_BOOTSTRAP" --strip-components=1
-    fi
-
-    export GOROOT_FINAL="{{prefix}}"
-    cd src
     ./make.bash
 
     # cleanup
     cd ..
     rm src/*.{bash,bat,rc}
     rm src/Make.dist
-    mkdir "{{prefix}}"
+    rm -rf "{{prefix}}"/*
     mv * "{{prefix}}"
     find "{{prefix}}" -mindepth 1 -maxdepth 1 -type f -delete -not -name build.sh
+  env:
+    GOROOT_FINAL: ${{ prefix }}
+    GOROOT_BOOTSTRAP: ${{ deps.go.dev.prefix }}
+
+bootstrap:
+  dependencies:
+    curl.se: '*'
+  env:
+    '*/aarch64': {GOARCH: arm64}
+    '*/x86-64':  {GOARCH: amd64}
+  script: |
+    curl -L "$URL" | tar xzf - -C "{{ prefix }}" --strip-components=1
 
 test:
   script: |
