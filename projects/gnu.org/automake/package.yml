@@ -25,13 +25,13 @@ build:
       --prefix="{{ prefix }}"
     make --jobs {{ hw.concurrency }} install
 
-    cd "{{prefix}}"/bin
+    cd "{{prefix}}"
 
     # fix hardcoded paths
-    perl -pi -e "s|'{{prefix}}/|\\\$prefix.'/|" * ../share/automake-{{version.marketing}}/Automake/Config.pm
-    git -C .. apply {{ pkg.pantry-prefix }}/relocatable.diff
+    perl -pi -e "s|'{{prefix}}/|\\\$prefix.'/|" bin/* share/automake-{{version.marketing}}/Automake/Config.pm
+    git apply "$SRCROOT"/props/relocatable.diff
 
-    fix-shebangs.ts *
+    fix-shebangs.ts bin/*
 
 # TODO to prove automake doesn't require autoconf we should
 # use “depend” on the autoconf test to generate our `configure` separately

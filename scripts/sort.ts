@@ -35,7 +35,7 @@ const wet = await hydrate(dry, async (pkg, dry) => {
 const gas = wet.dry.map(x => x.project)
 
 if (Deno.env.get("GITHUB_ACTIONS")) {
-  const pre = wet.wet.map(pkg.str)
+  const pre = wet.wet.map(x => `"${pkg.str(x)}"`)
   console.log(`::set-output name=pkgs::${gas.join(" ")}`)
   console.log(`::set-output name=pre-install::${pre.join(" ")}`)
 } else if (flags.json) {

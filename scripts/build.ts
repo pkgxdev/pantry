@@ -48,6 +48,6 @@ for (const rq of dry) {
   }
 }
 
-const built_pkgs = rv.map(({ project, version }) => `${project}@${version}`).join(" ")
+const built_pkgs = rv.map(pkgutils.str).join(" ")
 const txt = `::set-output name=pkgs::${built_pkgs}\n`
 await Deno.stdout.write(new TextEncoder().encode(txt))

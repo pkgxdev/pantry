@@ -29,22 +29,21 @@ build:
       --prefix="{{ prefix }}"
     make --jobs {{ hw.concurrency }} install
 
-    cd "{{prefix}}"/bin
+    cd "{{prefix}}"
 
-    fix-shebangs.ts *
+    fix-shebangs.ts bin/*
 
-    perl -pi -e 's|\x27{{prefix}}|"\$PREFIX"\x27|g' ./autoconf
+    perl -pi -e 's|\x27{{prefix}}|"\$PREFIX"\x27|g' bin/autoconf
 
     # fix specific m4 and perl paths
-    perl -pi -e 's|/opt/perl.org/v[^/]+/bin/perl|perl|g' *
-    perl -pi -e 's|/opt/gnu.org/m4/v[^/]+/bin/m4|m4|g' *
+    perl -pi -e 's|{{ deps.perl.org.prefix }}/bin/perl|perl|g' bin/*
+    perl -pi -e 's|{{ deps.gnu.org/m4.prefix }}/bin/m4|m4|g' bin/*
 
     # fix hardcoded paths
-    perl -pi -e "s|'{{prefix}}/|\\\$prefix.'/|" *
-    git -C .. apply {{ pkg.pantry-prefix }}/relocatable.diff
+    perl -pi -e "s|'{{prefix}}/|\\\$prefix.'/|" bin/*
+    git apply $SRCROOT/props/relocatable.diff
 
-    cd ../share/autoconf
-    perl -pi -e 's|{{prefix}}|\$PREFIX|' autom4te.cfg
+    perl -pi -e 's|{{prefix}}|\$PREFIX|' share/autoconf/autom4te.cfg
 
 test:
   dependencies:
