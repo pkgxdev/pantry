@@ -43,9 +43,8 @@ build:
     make --jobs {{ hw.concurrency }} install
     rm -rf {{prefix}}/share/doc  # docs are online
   env:
-    #FIXME tea/cli does this for things that depend on cmake, but not for this
-    #FIXME this should at least be moustache variables per pkg
-    CMAKE_PREFIX_PATH: /opt/curl.se/v*:/opt/sourceware.org/bzip2/v1:/opt/zlib.net/v1
+    # tea/cli does this for things that depend on cmake, but we *are* cmake so…
+    CMAKE_PREFIX_PATH: ${{deps.curl.se.prefix}}:${{deps.sourceware.org/bzip2.prefix}}:${{deps.zlib.net.prefix}}
   error-log:
     Bootstrap.cmk/cmake_bootstrap.log
 
