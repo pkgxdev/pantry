@@ -97,7 +97,7 @@ async function __build(pkg: Package) {
     }).chmod(0o500)
 
     // copy in auxillary files from pantry directory
-    for await (const [path, {isFile}] of pantry.prefix(pkg).ls()) {
+    for await (const [path, {isFile}] of pantry.getYAML(pkg).path.parent().ls()) {
       if (isFile) {
         path.cp({ into: src.join("props").mkdir() })
       }
