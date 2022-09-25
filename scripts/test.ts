@@ -12,40 +12,29 @@ args:
   - --import-map={{ srcroot }}/import-map.json
 ---*/
 
-import { PackageRequirement } from "types"
+import { Installation, Package, PackageRequirement } from "types"
 import { usePantry, useCellar, useFlags } from "hooks"
 import useShellEnv, { expand } from "hooks/useShellEnv.ts"
 import { run, undent, pkg as pkgutils } from "utils"
 import { resolve, install, hydrate, link } from "prefab"
 import Path from "path"
-import * as semver from "semver"
 
 const { debug } = useFlags()
 const cellar = useCellar()
 const pantry = usePantry()
 
-const pkg = await (async () => {
+const self = await (async () => {
   const project = Deno.args[0]
   const match = project.match(/projects\/(.+)\/package.yml/)
   const parsable = match ? match[1] : project
   const pkg = pkgutils.parse(parsable)
-  const installed = await cellar.resolve(pkg)
-  return installed.pkg
+  return await cellar.resolve(pkg)
 })()
 
-const self = {
-  project: pkg.project,
-  constraint: new semver.Range(pkg.version.toString())
-}
-const [yml] = await pantry.getYAML(pkg)
-const deps = (await hydrate(self, async (pkg, dry) => {
-  const { runtime, test } = await pantry.getDeps(pkg)
-  return dry ? [...runtime, ...test] : runtime
-})).pkgs
-
-await install_if_needed(deps)
-
-const env = await useShellEnv([self, ...deps])
+const [yml] = await pantry.getYAML(self.pkg)
+const deps = await deps4(self.pkg)
+const installations = await prepare(deps)
+const env = useShellEnv([self, ...installations])
 
 let text = undent`
   #!/bin/bash
@@ -58,7 +47,7 @@ let text = undent`
 
   `
 
-const tmp = Path.mktmp({ prefix: `${pkg.project}-${pkg.version}+` })
+const tmp = Path.mktmp({ prefix: pkgutils.str(self.pkg) })
 
 try {
   if (yml.test.fixture) {
@@ -70,10 +59,10 @@ try {
 
   text += `cd "${cwd}"\n\n`
 
-  text += await pantry.getScript(pkg, 'test')
+  text += await pantry.getScript(self.pkg, 'test', installations)
   text += "\n"
 
-  for await (const [path, {name, isFile}] of pantry.prefix(pkg).ls()) {
+  for await (const [path, {name, isFile}] of pantry.prefix(self.pkg).ls()) {
     if (isFile && name != 'package.yml') path.cp({ into: cwd })
   }
 
@@ -86,16 +75,20 @@ try {
   if (!debug) tmp.rm({ recursive: true })
 }
 
-//TODO install step should do this for test requirements also
-async function install_if_needed(deps: PackageRequirement[]) {
-  const needed: PackageRequirement[] = []
-  for await (const rq of deps) {
-    if (await cellar.has(rq)) continue
-    needed.push(rq)
-  }
-  const wet = await resolve(needed)
-  for (const pkg of wet) {
+//TODO install step in CI should do this for test requirements also
+async function prepare(reqs: (Package | PackageRequirement)[]) {
+  const { pending, installed } = await resolve(reqs)
+  for await (const pkg of pending) {
     const installation = await install(pkg)
     await link(installation)
+    installed.push(installation)
   }
+  return installed
+}
+
+async function deps4(pkg: Package) {
+  return (await hydrate(pkg, async (pkg, dry) => {
+    const { runtime, test } = await pantry.getDeps(pkg)
+    return dry ? [...runtime, ...test] : runtime
+  })).pkgs
 }

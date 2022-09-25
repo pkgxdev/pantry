@@ -2,7 +2,7 @@ import { useSourceUnarchiver, useCellar, usePantry, useCache, usePrefix } from "
 import { link, hydrate } from "prefab"
 import { Installation, Package } from "types"
 import useShellEnv, { expand } from "hooks/useShellEnv.ts"
-import { run, undent, host, pkg as pkgutils } from "utils"
+import { run, undent, host, tuplize } from "utils"
 import fix_pkg_config_files from "./fix-pkg-config-files.ts"
 import fix_linux_rpaths from "./fix-linux-rpaths.ts"
 import Path from "path"
@@ -16,13 +16,13 @@ export default async function _build(pkg: Package) {
   try {
     await __build(pkg)
   } catch (e) {
-    cellar.keg(pkg).isEmpty()?.rm()  // don’t leave empty kegs around
+    cellar.keg(pkg).isDirectory()?.isEmpty()?.rm()  // don’t leave empty kegs around
     throw e
   }
 }
 
 async function __build(pkg: Package) {
-  const [deps, wet] = await calc_deps()
+  const [deps, wet, resolved] = await calc_deps()
   await clean()
   const env = await mkenv()
   const dst = cellar.keg(pkg).mkpath()
@@ -38,9 +38,8 @@ async function __build(pkg: Package) {
     const deps = await pantry.getDeps(pkg)
     const wet = await hydrate([...deps.runtime, ...deps.build], pkg => pantry.getDeps(pkg).then(x => x.runtime))
     deps.runtime.push(...wet.pkgs)
-    // deno-lint-ignore no-explicit-any
-    function tuplize<T extends any[]>(...elements: T) { return elements }
-    return tuplize(deps, wet)
+    const resolved = await Promise.all(wet.pkgs.map(pkg => cellar.resolve(pkg)))
+    return tuplize(deps, wet, resolved)
   }
 
   async function clean() {
@@ -66,13 +65,8 @@ async function __build(pkg: Package) {
     }
   }
 
-  async function mkenv() {
-    const env = await useShellEnv([...deps.runtime, ...deps.build])
-
-    if (env.pending.length) {
-      console.error({uninstalled: env.pending.map(pkgutils.str)})
-      throw new Error("uninstalled")
-    }
+  function mkenv() {
+    const env = useShellEnv(resolved)
 
     if (platform == 'darwin') {
       env.vars['MACOSX_DEPLOYMENT_TARGET'] = ['11.0']
@@ -82,7 +76,7 @@ async function __build(pkg: Package) {
   }
 
   async function build() {
-    const sh = await pantry.getScript(pkg, 'build')
+    const sh = await pantry.getScript(pkg, 'build', resolved)
 
     const cmd = src.parent().join("build.sh").write({ force: true, text: undent`
       #!/bin/bash
@@ -92,6 +86,7 @@ async function __build(pkg: Package) {
       set -x
       cd "${src}"
 
+      export SRCROOT="${src}"
       ${expand(env.vars)}
 
       ${/*FIXME hardcoded paths*/ ''}
@@ -100,6 +95,13 @@ async function __build(pkg: Package) {
       ${sh}
       `
     }).chmod(0o500)
+
+    // copy in auxillary files from pantry directory
+    for await (const [path, {isFile}] of pantry.prefix(pkg).ls()) {
+      if (isFile) {
+        path.cp({ into: src.join("props").mkdir() })
+      }
+    }
 
     await run({ cmd }) // THE BUILD
 
@@ -112,7 +114,7 @@ async function __build(pkg: Package) {
       await fix_macho(installation)
       break
     case 'linux': {
-      const self = {project: pkg.project, constraint: new semver.Range(`=${pkg.version}`)}
+      const self = {project: pkg.project, constraint: new semver.Range(pkg.version.toString())}
       await fix_linux_rpaths(installation, [...deps.runtime, self])
     }}
   }
