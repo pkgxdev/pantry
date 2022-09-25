@@ -31,7 +31,7 @@ const self = await (async () => {
   return await cellar.resolve(pkg)
 })()
 
-const [yml] = await pantry.getYAML(self.pkg)
+const yml = await pantry.getYAML(self.pkg).parse()
 const deps = await deps4(self.pkg)
 const installations = await prepare(deps)
 const env = useShellEnv([self, ...installations])
@@ -62,7 +62,7 @@ try {
   text += await pantry.getScript(self.pkg, 'test', installations)
   text += "\n"
 
-  for await (const [path, {name, isFile}] of pantry.prefix(self.pkg).ls()) {
+  for await (const [path, {name, isFile}] of pantry.getYAML(self.pkg).path.parent().ls()) {
     if (isFile && name != 'package.yml') path.cp({ into: cwd })
   }
 
