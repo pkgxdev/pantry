@@ -19,6 +19,7 @@ args:
 import { pkg } from "utils"
 import { usePantry, useFlags } from "hooks"
 import { hydrate } from "prefab"
+import { PackageRequirement } from "types"
 
 const flags = useFlags()
 const pantry = usePantry()
@@ -32,14 +33,22 @@ const wet = await hydrate(dry, async (pkg, dry) => {
   const deps = await pantry.getDeps(pkg)
   return dry ? [...deps.build, ...deps.runtime] : deps.runtime
 })
-const gas = wet.dry.map(x => x.project)
 
 if (Deno.env.get("GITHUB_ACTIONS")) {
-  const pre = wet.wet.map(x => `"${pkg.str(x)}"`)
-  console.log(`::set-output name=pkgs::${gas.join(" ")}`)
-  console.log(`::set-output name=pre-install::${pre.join(" ")}`)
-} else if (flags.json) {
-  console.log(gas)
+  const massage = (input: PackageRequirement[]) =>
+    input.map(p => {
+      let out = pkg.str(p)
+      if (/[<>]/.test(out)) out = `"${out}"`
+      return out
+    }).join(" ")
+
+  console.log(`::set-output name=pkgs::${massage(wet.dry)}`)
+  console.log(`::set-output name=pre-install::${massage(wet.wet)}`)
 } else {
-  console.log(gas.join("\n"))
+  const gas = wet.dry.map(x => pkg.str(x))
+  if (flags.json) {
+    console.log(gas)
+  } else {
+    console.log(gas.join("\n"))
+  }
 }
