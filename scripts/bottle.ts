@@ -1,6 +1,10 @@
 #!/usr/bin/env -S tea -E
 
 /* ---
+dependencies:
+  gnu.org/tar: ^1.34
+  tukaani.org/xz: ^5
+  zlib.net: 1
 args:
   - deno
   - run
@@ -27,6 +31,8 @@ const cellar = useCellar()
 if (import.meta.main) {
   useFlags()
 
+  const compression = Deno.env.get("COMPRESSION") == 'xz' ? 'xz' : 'gz'
+
   const bottles: Path[] = []
   const checksums: Path[] = []
   const artifacts: Path[] = []
@@ -34,7 +40,7 @@ if (import.meta.main) {
     console.log({ bottling: { pkg } })
 
     const installation = await cellar.resolve(pkg)
-    const path = await bottle(installation)
+    const path = await bottle(installation, compression)
     const checksum = await sha256(path)
 
     console.log({ bottled: { path } })
@@ -60,10 +66,11 @@ if (import.meta.main) {
 
 
 //------------------------------------------------------------------------- funcs
-export async function bottle({ path: kegdir, pkg }: Installation): Promise<Path> {
-  const tarball = useCache().bottle(pkg)
+export async function bottle({ path: kegdir, pkg }: Installation, compression: 'gz' | 'xz'): Promise<Path> {
+  const tarball = useCache().bottle(pkg, compression)
+  const z = compression == 'gz' ? 'z' : 'J'
   const cwd = usePrefix()
-  const cmd = ["tar", "zcf", tarball, kegdir.relative({ to: cwd })]
+  const cmd = ["tar", `c${z}f`, tarball, kegdir.relative({ to: cwd })]
   await run({ cmd, cwd })
   return tarball
 }

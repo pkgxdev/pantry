@@ -189,6 +189,61 @@ jobs:
           echo ${{ inputs.projects }} | xargs -tn1
           scripts/test.ts
 
+  xz-bottles:
+    needs: [verify-relocatable, build]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform:
+          - macos-11
+          - ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          path: pantry
+
+      - name: co cli
+        uses: actions/checkout@v3
+        with:
+          path: cli
+          repository: teaxyz/cli
+          token: ${{ secrets.TEMP_JACOBS_GITHUB_PAT }}
+
+      - name: HACKS
+        run: |
+          mkdir -p ~/opt/tea.xyz/var
+          ln -s $GITHUB_WORKSPACE/pantry ~/opt/tea.xyz/var/pantry
+          mkdir ../.git
+          cp README.md ..
+
+      - uses: teaxyz/setup@v0
+        id: tea
+        env:
+          TEA_SECRET: ${{ secrets.TEA_SECRET }}
+
+      - name: download bottles
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ matrix.platform }}
+          path: ${{ steps.tea.outputs.prefix }}
+
+      - run: scripts/bottle.ts ${{ needs.build.outputs.pkgs }}
+        id: bottle
+        env:
+          COMPRESSION: xz
+
+      - name: upload bottles
+        run: scripts/upload.ts
+          --pkgs ${{ needs.build.outputs.pkgs }}
+          --bottles ${{ steps.bottle.outputs.bottles }}
+          --checksums ${{ steps.bottle.outputs.checksums }}
+        env:
+          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      #TODO cloudfront invalidation
+
   notify:
     if: always()
     needs: [verify-relocatable]

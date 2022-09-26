@@ -12,7 +12,7 @@ args:
   - --import-map={{ srcroot }}/import-map.json
 ---*/
 
-import { Installation, Package, PackageRequirement } from "types"
+import { Package, PackageRequirement } from "types"
 import { usePantry, useCellar, useFlags } from "hooks"
 import useShellEnv, { expand } from "hooks/useShellEnv.ts"
 import { run, undent, pkg as pkgutils } from "utils"
