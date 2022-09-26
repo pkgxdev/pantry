@@ -35,14 +35,17 @@ const wet = await hydrate(dry, async (pkg, dry) => {
 })
 
 if (Deno.env.get("GITHUB_ACTIONS")) {
-  const massage = (input: PackageRequirement[]) =>
+  const massage = (input: PackageRequirement[], with_raw = false) =>
     input.map(p => {
+      if (with_raw && p.constraint.raw) {
+        return `${p.project}@${p.constraint.raw}`
+      }
       let out = pkg.str(p)
       if (/[<>]/.test(out)) out = `"${out}"`
       return out
     }).join(" ")
 
-  console.log(`::set-output name=pkgs::${massage(wet.dry)}`)
+  console.log(`::set-output name=pkgs::${massage(wet.dry, true)}`)
   console.log(`::set-output name=pre-install::${massage(wet.wet)}`)
 } else {
   const gas = wet.dry.map(x => pkg.str(x))
