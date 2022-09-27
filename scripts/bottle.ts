@@ -17,7 +17,7 @@ args:
 --- */
 
 import { Installation } from "types"
-import { useCellar, useCache, usePrefix, useFlags } from "hooks"
+import { useCellar, usePrefix, useFlags, useCache } from "hooks"
 import { run, pkg as pkgutils } from "utils"
 import { crypto } from "deno/crypto/mod.ts"
 import { encode } from "deno/encoding/hex.ts"
@@ -67,7 +67,7 @@ if (import.meta.main) {
 
 //------------------------------------------------------------------------- funcs
 export async function bottle({ path: kegdir, pkg }: Installation, compression: 'gz' | 'xz'): Promise<Path> {
-  const tarball = useCache().bottle(pkg, compression)
+  const tarball = useCache().path({ pkg, type: 'bottle', compression })
   const z = compression == 'gz' ? 'z' : 'J'
   const cwd = usePrefix()
   const cmd = ["tar", `c${z}f`, tarball, kegdir.relative({ to: cwd })]

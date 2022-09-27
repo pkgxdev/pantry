@@ -11,11 +11,12 @@ args:
 ---*/
 
 import { S3 } from "s3"
-import { panic, pkg as pkgutils } from "utils"
-import { useCache, useFlags } from "hooks"
-import { Package } from "types"
+import { host, pkg as pkgutils } from "utils"
+import { useFlags, useOffLicense } from "hooks"
+import { Package, PackageRequirement } from "types"
 import SemVer, * as semver from "semver"
 import { dirname, basename } from "deno/path/mod.ts"
+import Path from "path"
 
 useFlags()
 
@@ -29,10 +30,12 @@ const s3 = new S3({
 
 const bucket = s3.getBucket(Deno.env.get("AWS_S3_BUCKET")!)
 const encode = (() => { const e = new TextEncoder(); return e.encode.bind(e) })()
+const { arch, platform } = host()
 
-const pkgs = args_get("pkgs").map(pkgutils.parse).map(x => "version" in x ? x : panic<Package>())
+const pkgs = args_get("pkgs").map(pkgutils.parse).map(assert_pkg)
 const bottles = args_get("bottles")
 const checksums = args_get("checksums")
+
 
 function args_get(key: string): string[] {
   const it = Deno.args[Symbol.iterator]()
@@ -51,14 +54,19 @@ function args_get(key: string): string[] {
 }
 
 for (const [index, pkg] of pkgs.entries()) {
-  const bottle = bottles[index]
+  const bottle = new Path(bottles[index])
   const checksum = checksums[index]
-  const key = useCache().s3Key(pkg)
+  const compression = bottle.extname() == '.tar.gz' ? 'gz' : 'xz'
+  const key = useOffLicense('s3').key({
+    pkg,
+    type: 'bottle',
+    compression,
+  })
 
   //FIXME stream it to S3
-  const bottle_contents = await Deno.readFile(bottle)
-  const checksum_contents = fixup_checksum(await Deno.readFile(checksum), basename(bottle))
-  const versions = await get_versions(pkg)
+  const bottle_contents = await Deno.readFile(bottle.string)
+  const checksum_contents = fixup_checksum(await Deno.readFile(checksum), bottle.basename())
+  const versions = await get_versions(key, pkg)
 
   console.log({ uploading: key })
 
@@ -71,8 +79,8 @@ for (const [index, pkg] of pkgs.entries()) {
 
 //end
 
-async function get_versions(pkg: Package): Promise<SemVer[]> {
-  const prefix = dirname(useCache().s3Key(pkg))
+async function get_versions(key: string, pkg: Package): Promise<SemVer[]> {
+  const prefix = dirname(key)
   const rsp = await bucket.listObjects({ prefix })
 
   //FIXME? API isn’t clear if these nulls indicate failure or not
@@ -94,4 +102,15 @@ async function get_versions(pkg: Package): Promise<SemVer[]> {
 function fixup_checksum(data: Uint8Array, new_file_name: string) {
   const checksum = new TextDecoder().decode(data).split("  ")[0]
   return new TextEncoder().encode(`${checksum}  ${new_file_name}`)
+}
+
+function assert_pkg(pkg: Package | PackageRequirement) {
+  if ("version" in pkg) {
+    return pkg
+  } else {
+    return {
+      project: pkg.project,
+      version: new SemVer(pkg.constraint)
+    }
+  }
 }
