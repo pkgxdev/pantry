@@ -10,10 +10,11 @@ args:
   - --import-map={{ srcroot }}/import-map.json
 ---*/
 
-import { S3 } from "s3";
+import { S3 } from "s3"
 import { stringify as yaml } from "deno/encoding/yaml.ts"
 import { stringify as csv } from "deno/encoding/csv.ts"
 import { Inventory } from "hooks/useInventory.ts"
+import * as semver from "semver"
 
 const s3 = new S3({
   accessKeyID: Deno.env.get("AWS_ACCESS_KEY_ID")!,
@@ -21,16 +22,15 @@ const s3 = new S3({
   region: "us-east-1",
 });
 
-const bucket = s3.getBucket(Deno.env.get("AWS_S3_BUCKET")!);
+const bucket = s3.getBucket(Deno.env.get("AWS_S3_BUCKET")!)
 
 const inventory: Inventory = {}
 const flat = []
 
 for await (const pkg of bucket.listAllObjects({ batchSize: 200 })) {
-  if (!pkg.key?.endsWith('.tar.gz')) { continue }
+  if (!/\.tar\.[gx]z$/.test(pkg.key ?? '')) { continue }
 
-  const matches = pkg.key.match(new RegExp("^(.*)/(.*)/(.*)/v([0-9]+\.[0-9]+\.[0-9]+)\.tar\.gz$"))
-
+  const matches = pkg.key!.match(new RegExp(`^(.*)/(.*)/(.*)/v(${semver.regex})\.tar\.[xg]z$`))
   if (!matches) { continue }
 
   const [_, project, platform, arch, version] = matches

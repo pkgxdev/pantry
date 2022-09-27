@@ -9,9 +9,10 @@ args:
   - --import-map={{ srcroot }}/import-map.json
 ---*/
 
-import { S3 } from "s3"
+import { S3, S3Object } from "s3"
 import { Sha256 } from "deno/hash/sha256.ts"
 import { readerFromStreamReader, readAll } from "deno/streams/conversion.ts"
+import Path from "../src/vendor/Path.ts"
 
 const s3 = new S3({
   accessKeyID: Deno.env.get("AWS_ACCESS_KEY_ID")!,
@@ -22,20 +23,29 @@ const s3 = new S3({
 const bucket = s3.getBucket(Deno.env.get("AWS_S3_BUCKET")!);
 
 for await (const pkg of bucket.listAllObjects({ batchSize: 200 })) {
-  if (!pkg.key?.endsWith('.tar.gz')) { continue }
-  console.log({ checking: pkg.key });
+  const keys = get_keys(pkg)
+  if (!keys) continue
 
-  if (!await bucket.headObject(`${pkg.key}.sha256sum`)) {
-    console.log({ missingChecksum: pkg.key })
-    const reader = (await bucket.getObject(pkg.key))!.body.getReader()
+  console.log({ checking: keys.checksum });
+
+  if (!await bucket.headObject(keys.checksum.string)) {
+    console.log({ missing: keys.checksum })
+
+    const reader = (await bucket.getObject(keys.bottle.string))!.body.getReader()
     const contents = await readAll(readerFromStreamReader(reader))
-
-    const basename = pkg.key.split("/").pop()
     const sha256sum = new Sha256().update(contents).toString()
-    const body = new TextEncoder().encode(`${sha256sum}  ${basename}`)
+    const body = new TextEncoder().encode(`${sha256sum}  ${keys.bottle.basename()}`)
+    await bucket.putObject(keys.checksum.string, body)
 
-    await bucket.putObject(`${pkg.key}.sha256sum`, body);
+    console.log({ uploaded: keys.checksum })
+  }
+}
 
-    console.log({ uploaded: `${pkg.key}.sha256sum` });
+function get_keys(pkg: S3Object): { bottle: Path, checksum: Path } | undefined {
+  if (!pkg.key) return
+  if (!/\.tar\.[gx]z$/.test(pkg.key)) return
+  return {
+    bottle: new Path(pkg.key),
+    checksum: new Path(`${pkg.key}.sha256sum`)
   }
 }

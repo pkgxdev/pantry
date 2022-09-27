@@ -10,10 +10,12 @@ args:
   - --import-map={{ srcroot }}/import-map.json
 ---*/
 
-import { S3 } from "s3"
-import { Sha256 } from "deno/hash/sha256.ts"
-import { useCache } from "hooks"
 import { readAll, readerFromStreamReader } from "deno/streams/mod.ts"
+import { useCache, useOffLicense } from "hooks"
+import { Package } from "types"
+import { Sha256 } from "deno/hash/sha256.ts"
+import { S3 } from "s3"
+import Path from "path"
 
 const s3 = new S3({
   accessKeyID: Deno.env.get("AWS_ACCESS_KEY_ID")!,
@@ -23,9 +25,8 @@ const s3 = new S3({
 
 const bucket = s3.getBucket(Deno.env.get("AWS_S3_BUCKET")!)
 
-for (const pkg of await useCache().ls()) {
-  const key = useCache().s3Key(pkg)
-  const bottle = useCache().bottle(pkg)
+for (const stowed of await useCache().ls()) {
+  const key = useOffLicense('s3').key(stowed)
 
   console.log({ checking: key })
 
@@ -33,7 +34,7 @@ for (const pkg of await useCache().ls()) {
   const repoChecksum = inRepo ? await checksum(`https://dist.tea.xyz/${key}.sha256sum`) : undefined
 
   // path.read() returns a string; this is easier to get a UInt8Array
-  const contents = await Deno.readFile(bottle.string)
+  const contents = await Deno.readFile(stowed.path.string)
   const sha256sum = new Sha256().update(contents).toString()
 
   if (!inRepo || repoChecksum !== sha256sum) {
@@ -57,3 +58,5 @@ async function checksum(url: string) {
   const r = await readAll(readerFromStreamReader(rdr))
   return new TextDecoder().decode(r).split(' ')[0]
 }
+
+type RV = Package & {bottle: Path}

@@ -26,7 +26,7 @@ const output: FileInfo[] = []
 
 for await(const obj of bucket.listAllObjects({ batchSize: 200 })) {
   const { key, lastModified } = obj
-  if (!key?.match(/\.tar.gz$/)) { continue }
+  if (!key?.match(/\.tar\.[gx]z$/)) { continue }
   output.push({ key: key!, lastModified: lastModified! })
 }
 

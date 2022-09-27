@@ -31,6 +31,7 @@ jobs:
       run:
         working-directory: pantry
     outputs:
+      built: ${{ steps.build.outputs.pkgs }}
       pkgs: ${{ steps.sorted.outputs.pkgs }} ${{ steps.sorted.outputs.pre-install }}
     steps:
       - name: co pantry
@@ -190,6 +191,9 @@ jobs:
           scripts/test.ts
 
   xz-bottles:
+    defaults:
+      run:
+        working-directory: pantry
     needs: [verify-relocatable, build]
     runs-on: ubuntu-latest
     strategy:
@@ -227,14 +231,14 @@ jobs:
           name: ${{ matrix.platform }}
           path: ${{ steps.tea.outputs.prefix }}
 
-      - run: scripts/bottle.ts ${{ needs.build.outputs.pkgs }}
+      - run: scripts/bottle.ts ${{ needs.build.outputs.built }}
         id: bottle
         env:
           COMPRESSION: xz
 
       - name: upload bottles
         run: scripts/upload.ts
-          --pkgs ${{ needs.build.outputs.pkgs }}
+          --pkgs ${{ needs.build.outputs.built }}
           --bottles ${{ steps.bottle.outputs.bottles }}
           --checksums ${{ steps.bottle.outputs.checksums }}
         env:
