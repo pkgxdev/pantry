@@ -11,7 +11,7 @@ args:
 ---*/
 
 import { S3 } from "s3"
-import { host, pkg as pkgutils } from "utils"
+import { pkg as pkgutils } from "utils"
 import { useFlags, useOffLicense } from "hooks"
 import { Package, PackageRequirement } from "types"
 import SemVer, * as semver from "semver"
@@ -30,7 +30,6 @@ const s3 = new S3({
 
 const bucket = s3.getBucket(Deno.env.get("AWS_S3_BUCKET")!)
 const encode = (() => { const e = new TextEncoder(); return e.encode.bind(e) })()
-const { arch, platform } = host()
 
 const pkgs = args_get("pkgs").map(pkgutils.parse).map(assert_pkg)
 const bottles = args_get("bottles")

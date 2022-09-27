@@ -26,27 +26,27 @@ const s3 = new S3({
 const bucket = s3.getBucket(Deno.env.get("AWS_S3_BUCKET")!)
 
 for (const stowed of await useCache().ls()) {
-  const key = useOffLicense('s3').key(stowed)
+  const url = useOffLicense('s3').url(stowed)
 
-  console.log({ checking: key })
+  console.log({ checking: url })
 
-  const inRepo = await bucket.headObject(key)
-  const repoChecksum = inRepo ? await checksum(`https://dist.tea.xyz/${key}.sha256sum`) : undefined
+  const inRepo = await bucket.headObject(url.pathname)
+  const repoChecksum = inRepo ? await checksum(`${url}.sha256sum`) : undefined
 
   // path.read() returns a string; this is easier to get a UInt8Array
   const contents = await Deno.readFile(stowed.path.string)
   const sha256sum = new Sha256().update(contents).toString()
 
   if (!inRepo || repoChecksum !== sha256sum) {
-    const basename = key.split("/").pop()
+    const basename = url.path().basename()
     const body = new TextEncoder().encode(`${sha256sum}  ${basename}`)
 
-    console.log({ uploading: key })
+    console.log({ uploading: url })
 
-    await bucket.putObject(key, contents)
-    await bucket.putObject(`${key}.sha256sum`, body)
+    await bucket.putObject(url.pathname, contents)
+    await bucket.putObject(`${url.pathname}.sha256sum`, body)
 
-    console.log({ uploaded: key })
+    console.log({ uploaded: url })
   }
 }
 
