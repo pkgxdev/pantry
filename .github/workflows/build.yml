@@ -57,7 +57,10 @@ jobs:
             mkdir .git ../cli/.git
 
             #FIXME needed for gdk-pixbuf
-            apt --yes install shared-mime-info curl
+            apt --yes install shared-mime-info
+
+            #FIXME **we provide curl** but it fails, we must figure out why
+            apt --yes install curl
             ;;
           macos-11)
             # screws up a lot of build scripts
@@ -78,11 +81,13 @@ jobs:
           *)
             exit 1
           esac
+          touch /opt/.hack
 
       - uses: teaxyz/setup@v0
         env:
           TEA_SECRET: ${{ secrets.TEA_SECRET }}
           VERBOSE: 1
+        id: tea
         with:
           prefix: /opt
 
@@ -95,53 +100,23 @@ jobs:
       - run: scripts/build.ts ${{ steps.sorted.outputs.pkgs }}
         id: build
         env:
-          # TODO: GITHUB_TOKEN doesn't have private access to teaxyz/cli. This can be restored once that repo is public.
-          # GITHUB_TOKEN: ${{ github.token }}
+          # GITHUB_TOKEN doesn't have private access to teaxyz/cli.
+          # TODO restore to ${{ github.token }} when public
           GITHUB_TOKEN: ${{ secrets.TEMP_JACOBS_GITHUB_PAT }}
           FORCE_UNSAFE_CONFIGURE: 1  # some configure scripts refuse to run as root
-
-      - name: test
-        run: echo ${{ steps.build.outputs.pkgs }} | xargs -tn1 scripts/test.ts
-
-      - name: bottle
-        run: scripts/bottle.ts ${{ steps.build.outputs.pkgs }}
-        id: bottle
-
-      # TODO only upload if all jobs succeed
-      # TODO only upload when we merge
-      # TODO upload to a staging location until we release new pantry versions
-      - name: upload bottles
-        run: scripts/upload.ts
-          --pkgs ${{ steps.build.outputs.pkgs }}
-          --bottles ${{ steps.bottle.outputs.bottles }}
-          --checksums ${{ steps.bottle.outputs.checksums }}
-        env:
-          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
       - name: upload artifacts
         uses: actions/upload-artifact@v3
         with:
           name: ${{ matrix.os }}
-          path: ${{ steps.bottle.outputs.artifacts }}
+          path: |
+            ${{ steps.build.outputs.paths }}
+            ${{ steps.tea.outputs.prefix }}/.hack
+          # ^^ so the uploaded artifacts keep eg. foo.com/v1.2.3 as prefixes
           if-no-files-found: error
 
-  invalidate-cloudfront:
+  test:
     needs: [build]
-    runs-on: ubuntu-latest
-    steps:
-      #FIXME incredibly inefficient - have upload.ts tell us what to invalidate
-      - uses: chetan/invalidate-cloudfront-action@v2
-        env:
-          DISTRIBUTION: ${{ secrets.AWS_CF_DISTRIBUTION_ID }}
-          PATHS: "/*"
-          AWS_REGION: "us-east-1"
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-
-  verify-relocatable:
-    needs: [invalidate-cloudfront, build]
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -167,7 +142,6 @@ jobs:
         run: |
           mkdir -p ~/opt/tea.xyz/var
           ln -s $GITHUB_WORKSPACE/pantry ~/opt/tea.xyz/var/pantry
-          mkdir ../.git
           cp README.md ..
 
       - uses: teaxyz/setup@v0
@@ -175,32 +149,27 @@ jobs:
         env:
           TEA_SECRET: ${{ secrets.TEA_SECRET }}
 
-      - name: download bottles
-        uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v3
         with:
           name: ${{ matrix.os }}
           path: ${{ steps.tea.outputs.prefix }}
 
-      - run: scripts/deps.ts -i ${{ needs.build.outputs.pkgs }}
-        id: deps
+      - run: echo ${{ inputs.projects }} | xargs -tn1 scripts/test.ts
 
-      - run: ../cli/scripts/install.ts ${{ steps.deps.outputs.pkgs }}
-
-      - run:
-          echo ${{ inputs.projects }} | xargs -tn1
-          scripts/test.ts
-
-  xz-bottles:
+  bottle:
     defaults:
       run:
         working-directory: pantry
-    needs: [verify-relocatable, build]
-    runs-on: ubuntu-latest
+    needs: [test, build]
+    runs-on: ${{ matrix.platform }}
     strategy:
       matrix:
         platform:
           - macos-11
           - ubuntu-latest
+        compression:
+          - xz
+          - gz
     steps:
       - uses: actions/checkout@v3
         with:
@@ -217,7 +186,6 @@ jobs:
         run: |
           mkdir -p ~/opt/tea.xyz/var
           ln -s $GITHUB_WORKSPACE/pantry ~/opt/tea.xyz/var/pantry
-          mkdir ../.git
           cp README.md ..
 
       - uses: teaxyz/setup@v0
@@ -225,8 +193,7 @@ jobs:
         env:
           TEA_SECRET: ${{ secrets.TEA_SECRET }}
 
-      - name: download bottles
-        uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v3
         with:
           name: ${{ matrix.platform }}
           path: ${{ steps.tea.outputs.prefix }}
@@ -234,9 +201,12 @@ jobs:
       - run: scripts/bottle.ts ${{ needs.build.outputs.built }}
         id: bottle
         env:
-          COMPRESSION: xz
+          COMPRESSION: ${{ matrix.compression }}
+
+      - run: ls -la ${{ steps.bottle.outputs.bottles }}
 
       - name: upload bottles
+        id: upload
         run: scripts/upload.ts
           --pkgs ${{ needs.build.outputs.built }}
           --bottles ${{ steps.bottle.outputs.bottles }}
@@ -246,11 +216,19 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-      #TODO cloudfront invalidation
+      #NOTE ideally we’d invalidate all at once so this is atomic
+      # however GHA can’t consolidate outputs from a matrix :/
+      - uses: chetan/invalidate-cloudfront-action@v2
+        env:
+          PATHS: ${{ steps.upload.outputs.cf-invalidation-paths }}
+          DISTRIBUTION: ${{ secrets.AWS_CF_DISTRIBUTION_ID }}
+          AWS_REGION: us-east-1
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
   notify:
     if: always()
-    needs: [verify-relocatable]
+    needs: [bottle]
     runs-on: ubuntu-latest
     steps:
       - uses: rtCamp/action-slack-notify@v2
