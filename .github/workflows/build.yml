@@ -6,6 +6,9 @@ on:
         required: true
         type: string
 
+env:
+  TEA_SECRET: ${{ secrets.TEA_SECRET }}
+
 jobs:
   queue-builder:
     runs-on: ubuntu-latest
@@ -15,6 +18,7 @@ jobs:
           curl https://app.tea.xyz/api/builder/enqueue \
             -H "authorization: bearer ${{ secrets.TEA_API_TOKEN }}" \
             -d "$GITHUB_SHA ${{ inputs.projects }}"
+
   build:
     runs-on: ${{ matrix.os }}
     strategy:
@@ -46,34 +50,29 @@ jobs:
           repository: teaxyz/cli
           token: ${{ secrets.TEMP_JACOBS_GITHUB_PAT }}
 
+      - run: #FIXME **we provide curl** but it fails due to certificate errors
+            apt --yes install curl
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+
+      - uses: teaxyz/setup@v0
+        id: tea
+        with:
+          prefix: /opt
+
       - name: HACKS
         run: |
           case ${{ matrix.os }} in
           ubuntu-latest)
-            rm -rf /opt/tea.xyz/var/pantry
-            ln -s $GITHUB_WORKSPACE/pantry /opt/tea.xyz/var/pantry
-
             # no git in our image, needed for tea finding SRCROOT
             mkdir .git ../cli/.git
 
             #FIXME needed for gdk-pixbuf
             apt --yes install shared-mime-info
-
-            #FIXME **we provide curl** but it fails, we must figure out why
-            apt --yes install curl
             ;;
           macos-11)
             # screws up a lot of build scripts
             # TODO stop using GHA images or chroot or something
             for x in /usr/local/*; do sudo mv $x /tmp; done
-
-            sudo mkdir -p /opt/tea.xyz/var
-            sudo chown -R $(whoami):staff /opt
-            ln -s $GITHUB_WORKSPACE/pantry /opt/tea.xyz/var/pantry
-
-            # HACKs for teaxyz/setup since it currently requires the working dir to be a srcroot
-            cp README.md ..
-            mkdir ../.git
 
             # for scripts/fix-machos.rb
             sudo gem install ruby-macho
@@ -81,18 +80,13 @@ jobs:
           *)
             exit 1
           esac
+
+          rm -rf /opt/tea.xyz/var
+          ln -s $GITHUB_WORKSPACE /opt/tea.xyz/var
+
           touch /opt/.hack
 
-      - uses: teaxyz/setup@v0
-        env:
-          TEA_SECRET: ${{ secrets.TEA_SECRET }}
-          VERBOSE: 1
-        id: tea
-        with:
-          prefix: /opt
-
-      - name: sort topologically
-        run: scripts/sort.ts ${{ inputs.projects }}
+      - run: scripts/sort.ts ${{ inputs.projects }}
         id: sorted
 
       - run: ../cli/scripts/install.ts ${{ steps.sorted.outputs.pre-install }}
@@ -120,7 +114,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     defaults:
       run:
-        working-directory: pantry
+        working-directory: tea.xyz/var/pantry
     strategy:
       matrix:
         os:
@@ -129,25 +123,18 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          path: pantry
+          path: tea.xyz/var/pantry
 
-      - name: co cli
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
         with:
-          path: cli
+          path: tea.xyz/var/cli
           repository: teaxyz/cli
           token: ${{ secrets.TEMP_JACOBS_GITHUB_PAT }}
 
-      - name: HACKS
-        run: |
-          mkdir -p ~/opt/tea.xyz/var
-          ln -s $GITHUB_WORKSPACE/pantry ~/opt/tea.xyz/var/pantry
-          cp README.md ..
-
       - uses: teaxyz/setup@v0
         id: tea
-        env:
-          TEA_SECRET: ${{ secrets.TEA_SECRET }}
+        with:
+          prefix: ${{ github.workspace }}
 
       - uses: actions/download-artifact@v3
         with:
@@ -159,7 +146,7 @@ jobs:
   bottle:
     defaults:
       run:
-        working-directory: pantry
+        working-directory: tea.xyz/var/pantry
     needs: [test, build]
     runs-on: ${{ matrix.platform }}
     strategy:
@@ -173,25 +160,18 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          path: pantry
+          path: tea.xyz/var/pantry
 
-      - name: co cli
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
         with:
-          path: cli
+          path: tea.xyz/var/cli
           repository: teaxyz/cli
           token: ${{ secrets.TEMP_JACOBS_GITHUB_PAT }}
 
-      - name: HACKS
-        run: |
-          mkdir -p ~/opt/tea.xyz/var
-          ln -s $GITHUB_WORKSPACE/pantry ~/opt/tea.xyz/var/pantry
-          cp README.md ..
-
       - uses: teaxyz/setup@v0
         id: tea
-        env:
-          TEA_SECRET: ${{ secrets.TEA_SECRET }}
+        with:
+          prefix: ${{ github.workspace }}
 
       - uses: actions/download-artifact@v3
         with:
@@ -202,8 +182,6 @@ jobs:
         id: bottle
         env:
           COMPRESSION: ${{ matrix.compression }}
-
-      - run: ls -la ${{ steps.bottle.outputs.bottles }}
 
       - name: upload bottles
         id: upload
