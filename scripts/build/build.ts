@@ -14,7 +14,7 @@ const { platform } = host()
 
 export default async function _build(pkg: Package) {
   try {
-    await __build(pkg)
+    return await __build(pkg)
   } catch (e) {
     cellar.keg(pkg).isDirectory()?.isEmpty()?.rm()  // don’t leave empty kegs around
     throw e

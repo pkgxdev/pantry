@@ -12,11 +12,12 @@ args:
 
 import { S3 } from "s3"
 import { pkg as pkgutils } from "utils"
-import { useFlags, useOffLicense } from "hooks"
+import { useFlags, useOffLicense, useCache } from "hooks"
 import { Package, PackageRequirement } from "types"
 import SemVer, * as semver from "semver"
 import { dirname, basename } from "deno/path/mod.ts"
 import Path from "path"
+import { set_output } from "./utils/gha.ts"
 
 useFlags()
 
@@ -30,6 +31,7 @@ const s3 = new S3({
 
 const bucket = s3.getBucket(Deno.env.get("AWS_S3_BUCKET")!)
 const encode = (() => { const e = new TextEncoder(); return e.encode.bind(e) })()
+const cache = useCache()
 
 const pkgs = args_get("pkgs").map(pkgutils.parse).map(assert_pkg)
 const bottles = args_get("bottles")
@@ -52,29 +54,32 @@ function args_get(key: string): string[] {
   }
 }
 
+const rv: string[] = []
+const put = async (key: string, body: string | Path | Uint8Array) => {
+  console.log({ uploading: body, to: key })
+  rv.push(`/${key}`)
+  if (body instanceof Path) {
+    body = await Deno.readFile(body.string)
+  } else if (typeof body === "string") {
+    body = encode(body)
+  }
+  return bucket.putObject(key, body)
+}
+
 for (const [index, pkg] of pkgs.entries()) {
   const bottle = new Path(bottles[index])
   const checksum = checksums[index]
-  const compression = bottle.extname() == '.tar.gz' ? 'gz' : 'xz'
-  const key = useOffLicense('s3').key({
-    pkg,
-    type: 'bottle',
-    compression,
-  })
-
-  //FIXME stream it to S3
-  const bottle_contents = await Deno.readFile(bottle.string)
-  const checksum_contents = fixup_checksum(await Deno.readFile(checksum), bottle.basename())
+  const stowed = cache.decode(bottle)!
+  const key = useOffLicense('s3').key(stowed)
   const versions = await get_versions(key, pkg)
 
-  console.log({ uploading: key })
-
-  await bucket.putObject(key, bottle_contents)
-  await bucket.putObject(`${key}.sha256sum`, checksum_contents)
-  await bucket.putObject(`${dirname(key)}/versions.txt`, encode(versions.join("\n")))
-
-  console.log({ uploaded: key })
+  //FIXME stream the bottle (at least) to S3
+  await put(key, bottle)
+  await put(`${key}.sha256sum`, `${checksum}  ${basename(key)}`)
+  await put(`${dirname(key)}/versions.txt`, versions.join("\n"))
 }
+
+await set_output('cf-invalidation-paths', rv)
 
 //end
 

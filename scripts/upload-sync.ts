@@ -23,14 +23,16 @@ const s3 = new S3({
   region: "us-east-1",
 })
 
+const offy = useOffLicense('s3')
 const bucket = s3.getBucket(Deno.env.get("AWS_S3_BUCKET")!)
 
 for (const stowed of await useCache().ls()) {
-  const url = useOffLicense('s3').url(stowed)
+  const url = offy.url(stowed)
+  const key = offy.key(stowed)
 
   console.log({ checking: url })
 
-  const inRepo = await bucket.headObject(url.pathname)
+  const inRepo = await bucket.headObject(key)
   const repoChecksum = inRepo ? await checksum(`${url}.sha256sum`) : undefined
 
   // path.read() returns a string; this is easier to get a UInt8Array
@@ -43,8 +45,8 @@ for (const stowed of await useCache().ls()) {
 
     console.log({ uploading: url })
 
-    await bucket.putObject(url.pathname, contents)
-    await bucket.putObject(`${url.pathname}.sha256sum`, body)
+    await bucket.putObject(key, contents)
+    await bucket.putObject(`${key}.sha256sum`, body)
 
     console.log({ uploaded: url })
   }
