@@ -231,9 +231,11 @@ jobs:
     needs: [bottle]
     runs-on: ubuntu-latest
     steps:
+      - uses: martialonline/workflow-status@v3
+        id: status
       - uses: rtCamp/action-slack-notify@v2
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
           SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
-          SLACK_MESSAGE: build job for ${{ inputs.projects }} ${{ needs.verify-relocatable.result }}
-          SLACK_COLOR: $ {{ needs.verify-relocatable.result }}
+          SLACK_MESSAGE: build job for ${{ inputs.projects }} ${{ steps.status.outputs.status }}
+          SLACK_COLOR: ${{ steps.status.outputs.status }}
