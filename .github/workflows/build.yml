@@ -31,9 +31,6 @@ jobs:
               image: ghcr.io/teaxyz/infuser:main
               options: --memory=16g
     container: ${{ matrix.container }}
-    defaults:
-      run:
-        working-directory: pantry
     outputs:
       built: ${{ steps.build.outputs.pkgs }}
       pkgs: ${{ steps.sorted.outputs.pkgs }} ${{ steps.sorted.outputs.pre-install }}
@@ -50,22 +47,16 @@ jobs:
           repository: teaxyz/cli
           token: ${{ secrets.TEMP_JACOBS_GITHUB_PAT }}
 
-      - run: #FIXME **we provide curl** but it fails due to certificate errors
-            apt --yes install curl
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-
       - uses: teaxyz/setup@v0
         id: tea
         with:
+          srcroot: pantry
           prefix: /opt
 
       - name: HACKS
         run: |
           case ${{ matrix.os }} in
           ubuntu-latest)
-            # no git in our image, needed for tea finding SRCROOT
-            mkdir .git ../cli/.git
-
             #FIXME needed for gdk-pixbuf
             apt --yes install shared-mime-info
             ;;
@@ -84,14 +75,12 @@ jobs:
           rm -rf /opt/tea.xyz/var
           ln -s $GITHUB_WORKSPACE /opt/tea.xyz/var
 
-          touch /opt/.hack
-
-      - run: scripts/sort.ts ${{ inputs.projects }}
+      - run: pantry/scripts/sort.ts ${{ inputs.projects }}
         id: sorted
 
-      - run: ../cli/scripts/install.ts ${{ steps.sorted.outputs.pre-install }}
+      - run: cli/scripts/install.ts ${{ steps.sorted.outputs.pre-install }}
 
-      - run: scripts/build.ts ${{ steps.sorted.outputs.pkgs }}
+      - run: pantry/scripts/build.ts ${{ steps.sorted.outputs.pkgs }}
         id: build
         env:
           # GITHUB_TOKEN doesn't have private access to teaxyz/cli.
@@ -99,14 +88,16 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.TEMP_JACOBS_GITHUB_PAT }}
           FORCE_UNSAFE_CONFIGURE: 1  # some configure scripts refuse to run as root
 
+      # tarring ourselves ∵ GHA-artifacts (ludicrously) lose permissions
+      # /ref https://github.com/actions/upload-artifact/issues/38
+      - run: tar czf $GITHUB_WORKSPACE/artifacts.tgz ${{ steps.build.outputs.relative-paths }}
+        working-directory: ${{ steps.tea.outputs.prefix }}
+
       - name: upload artifacts
         uses: actions/upload-artifact@v3
         with:
           name: ${{ matrix.os }}
-          path: |
-            ${{ steps.build.outputs.paths }}
-            ${{ steps.tea.outputs.prefix }}/.hack
-          # ^^ so the uploaded artifacts keep eg. foo.com/v1.2.3 as prefixes
+          path: artifacts.tgz
           if-no-files-found: error
 
   test:
@@ -114,12 +105,17 @@ jobs:
     runs-on: ${{ matrix.os }}
     defaults:
       run:
-        working-directory: tea.xyz/var/pantry
+        working-directory: tea.xyz/var/pantry/scripts
     strategy:
       matrix:
-        os:
-          - macos-11
-          - ubuntu-latest
+        include:
+        - os: macos-11
+        - os: ubuntu-latest
+        - os: ubuntu-latest
+          container: ghcr.io/teaxyz/infuser:main
+        - os: ubuntu-latest
+          container: debian:buster-slim
+    container: ${{ matrix.container }}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -135,18 +131,21 @@ jobs:
         id: tea
         with:
           prefix: ${{ github.workspace }}
+          srcroot: tea.xyz/var/pantry
 
       - uses: actions/download-artifact@v3
         with:
           name: ${{ matrix.os }}
-          path: ${{ steps.tea.outputs.prefix }}
 
-      - run: echo ${{ inputs.projects }} | xargs -tn1 scripts/test.ts
+      - run: tar xzf artifacts.tgz
+        working-directory: ${{ steps.tea.outputs.prefix }}
+
+      - run: ./test.ts ${{ inputs.projects }}
 
   bottle:
     defaults:
       run:
-        working-directory: tea.xyz/var/pantry
+        working-directory: tea.xyz/var/pantry/scripts
     needs: [test, build]
     runs-on: ${{ matrix.platform }}
     strategy:
@@ -172,20 +171,24 @@ jobs:
         id: tea
         with:
           prefix: ${{ github.workspace }}
+          srcroot: tea.xyz/var/pantry
 
       - uses: actions/download-artifact@v3
         with:
           name: ${{ matrix.platform }}
           path: ${{ steps.tea.outputs.prefix }}
 
-      - run: scripts/bottle.ts ${{ needs.build.outputs.built }}
+      - run: tar xzf artifacts.tgz
+        working-directory: ${{ steps.tea.outputs.prefix }}
+
+      - run: ./bottle.ts ${{ needs.build.outputs.built }}
         id: bottle
         env:
           COMPRESSION: ${{ matrix.compression }}
 
       - name: upload bottles
         id: upload
-        run: scripts/upload.ts
+        run: ./upload.ts
           --pkgs ${{ needs.build.outputs.built }}
           --bottles ${{ steps.bottle.outputs.bottles }}
           --checksums ${{ steps.bottle.outputs.checksums }}

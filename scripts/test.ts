@@ -12,7 +12,7 @@ args:
   - --import-map={{ srcroot }}/import-map.json
 ---*/
 
-import { Package, PackageRequirement } from "types"
+import { Installation, Package, PackageRequirement } from "types"
 import { usePantry, useCellar, useFlags } from "hooks"
 import useShellEnv, { expand } from "hooks/useShellEnv.ts"
 import { run, undent, pkg as pkgutils } from "utils"
@@ -23,57 +23,63 @@ const { debug } = useFlags()
 const cellar = useCellar()
 const pantry = usePantry()
 
-const self = await (async () => {
-  const project = Deno.args[0]
-  const match = project.match(/projects\/(.+)\/package.yml/)
-  const parsable = match ? match[1] : project
-  const pkg = pkgutils.parse(parsable)
-  return await cellar.resolve(pkg)
-})()
+for (const project of Deno.args) {
+  const pkg = await (async () => {
+    const match = project.match(/projects\/(.+)\/package.yml/)
+    const parsable = match ? match[1] : project
+    const pkg = pkgutils.parse(parsable)
+    return await cellar.resolve(pkg)
+  })()
 
-const yml = await pantry.getYAML(self.pkg).parse()
-const deps = await deps4(self.pkg)
-const installations = await prepare(deps)
-const env = useShellEnv([self, ...installations])
-
-let text = undent`
-  #!/bin/bash
-
-  set -e
-  set -o pipefail
-  set -x
-
-  ${expand(env.vars)}
-
-  `
-
-const tmp = Path.mktmp({ prefix: pkgutils.str(self.pkg) })
-
-try {
-  if (yml.test.fixture) {
-    const fixture = tmp.join("fixture.tea").write({ text: yml.test.fixture.toString() })
-    text += `export FIXTURE="${fixture}"\n\n`
-  }
-
-  const cwd = tmp.join("wd").mkdir()
-
-  text += `cd "${cwd}"\n\n`
-
-  text += await pantry.getScript(self.pkg, 'test', installations)
-  text += "\n"
-
-  for await (const [path, {name, isFile}] of pantry.getYAML(self.pkg).path.parent().ls()) {
-    if (isFile && name != 'package.yml') path.cp({ into: cwd })
-  }
-
-  const cmd = tmp
-    .join("test.sh")
-    .write({ text, force: true })
-    .chmod(0o500)
-  await run({ cmd, cwd })
-} finally {
-  if (!debug) tmp.rm({ recursive: true })
+  await test(pkg)
 }
+
+async function test(self: Installation) {
+  const yml = await pantry.getYAML(self.pkg).parse()
+  const deps = await deps4(self.pkg)
+  const installations = await prepare(deps)
+  const env = useShellEnv([self, ...installations])
+
+  let text = undent`
+    #!/bin/bash
+
+    set -e
+    set -o pipefail
+    set -x
+
+    ${expand(env.vars)}
+
+    `
+
+  const tmp = Path.mktmp({ prefix: pkgutils.str(self.pkg) })
+
+  try {
+    if (yml.test.fixture) {
+      const fixture = tmp.join("fixture.tea").write({ text: yml.test.fixture.toString() })
+      text += `export FIXTURE="${fixture}"\n\n`
+    }
+
+    const cwd = tmp.join("wd").mkdir()
+
+    text += `cd "${cwd}"\n\n`
+
+    text += await pantry.getScript(self.pkg, 'test', installations)
+    text += "\n"
+
+    for await (const [path, {name, isFile}] of pantry.getYAML(self.pkg).path.parent().ls()) {
+      if (isFile && name != 'package.yml') path.cp({ into: cwd })
+    }
+
+    const cmd = tmp
+      .join("test.sh")
+      .write({ text, force: true })
+      .chmod(0o500)
+    await run({ cmd, cwd })
+  } finally {
+    if (!debug) tmp.rm({ recursive: true })
+  }
+}
+
 
 //TODO install step in CI should do this for test requirements also
 async function prepare(reqs: (Package | PackageRequirement)[]) {
