@@ -14,7 +14,7 @@ import { S3 } from "s3"
 import { stringify as yaml } from "deno/encoding/yaml.ts"
 import { stringify as csv } from "deno/encoding/csv.ts"
 import { Inventory } from "hooks/useInventory.ts"
-import * as semver from "semver"
+import SemVer, * as semver from "semver"
 
 const s3 = new S3({
   accessKeyID: Deno.env.get("AWS_ACCESS_KEY_ID")!,
@@ -30,7 +30,7 @@ const flat = []
 for await (const pkg of bucket.listAllObjects({ batchSize: 200 })) {
   if (!/\.tar\.[gx]z$/.test(pkg.key ?? '')) { continue }
 
-  const matches = pkg.key!.match(new RegExp(`^(.*)/(.*)/(.*)/v(${semver.regex})\.tar\.[xg]z$`))
+  const matches = pkg.key!.match(new RegExp(`^(.*)/(.*)/(.*)/v(${semver.regex.source})\.tar\.[xg]z$`))
   if (!matches) { continue }
 
   const [_, project, platform, arch, version] = matches
@@ -70,7 +70,9 @@ bucket.putObject("versions.csv", csvData)
 for(const [project, platforms] of Object.entries(inventory)) {
   for (const [platform, archs] of Object.entries(platforms)) {
     for (const [arch, versions] of Object.entries(archs)) {
-      const txt = te.encode(versions.join("\n"))
+      const v = versions.map(x => new SemVer(x)).sort(semver.compare)
+      const txt = te.encode(v.join("\n"))
+      console.log(project, platform, arch, v)
       bucket.putObject(`${project}/${platform}/${arch}/versions.txt`, txt)
     }
   }

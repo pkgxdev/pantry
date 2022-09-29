@@ -99,13 +99,7 @@ async function get_versions(key: string, pkg: Package): Promise<SemVer[]> {
     ?? []
 
   // have to add pkg.version as put and get are not atomic
-  return [...new Set([...got, pkg.version])].sort()
-}
-
-// Somewhat hacky. We call the bottle on thing locally, and another on the server.
-function fixup_checksum(data: Uint8Array, new_file_name: string) {
-  const checksum = new TextDecoder().decode(data).split("  ")[0]
-  return new TextEncoder().encode(`${checksum}  ${new_file_name}`)
+  return [...new Set([...got, pkg.version])].sort(semver.compare)
 }
 
 function assert_pkg(pkg: Package | PackageRequirement) {
