@@ -20,31 +20,44 @@ provides:
   - bin/cpack
   - bin/ctest
 
-# TODO
-# * --system-libs (provide all deps ourselves)
-#     (Zlib, Bzip2, cURL, nghttp2, Expat and libarchive)
-
 build:
   dependencies:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
   script: |-
-    ./bootstrap \
-      --prefix={{ prefix }} \
-      --parallel={{ hw.concurrency }} \
-      --datadir=/var \
-      --docdir=/share/doc \
-      --mandir=/share/man \
-      --system-zlib \
-      --system-bzip2 \
-      --system-curl \
-      -- \
-      -DCMake_BUILD_LTO=ON
+    ./bootstrap $ARGS
     make --jobs {{ hw.concurrency }} install
     rm -rf {{prefix}}/share/doc  # docs are online
   env:
-    # tea/cli does this for things that depend on cmake, but we *are* cmake so…
-    CMAKE_PREFIX_PATH: ${{deps.curl.se.prefix}}:${{deps.sourceware.org/bzip2.prefix}}:${{deps.zlib.net.prefix}}
+    V: 1
+    ARGS:
+      - --prefix={{ prefix }}
+      - --parallel={{ hw.concurrency }}
+      - --datadir=/var
+      - --docdir=/share/doc
+      - --mandir=/share/man
+      - --system-zlib
+      - --system-bzip2
+      - --system-curl
+      - --
+      - -DCMake_BUILD_LTO=ON
+    darwin:
+      ARGS:
+      - -DZLIB_LIBRARY={{deps.zlib.net.prefix}}/lib/libz.dylib
+      - -DZLIB_INCLUDE_DIR={{deps.zlib.net.prefix}}/include
+      - -DCURL_LIBRARY={{deps.curl.se.prefix}}/lib/libcurl.dylib
+      - -DCURL_INCLUDE_DIR={{deps.curl.se.prefix}}/include
+      - -DBZIP2_LIBRARIES={{deps.sourceware.org/bzip2.prefix}}/lib/libbz2.a
+      - -DBZIP2_INCLUDE_DIR={{deps.sourceware.org/bzip2.prefix}}/include
+    linux:
+      ARGS:
+      - -DZLIB_LIBRARY={{deps.zlib.net.prefix}}/lib/libz.so
+      - -DZLIB_INCLUDE_DIR={{deps.zlib.net.prefix}}/include
+      - -DCURL_LIBRARY={{deps.curl.se.prefix}}/lib/libcurl.so
+      - -DCURL_INCLUDE_DIR={{deps.curl.se.prefix}}/include
+      - -DBZIP2_LIBRARIES={{deps.sourceware.org/bzip2.prefix}}/lib/libbz2.so
+      - -DBZIP2_INCLUDE_DIR={{deps.sourceware.org/bzip2.prefix}}/include
+
   error-log:
     Bootstrap.cmk/cmake_bootstrap.log
 
