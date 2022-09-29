@@ -95,11 +95,12 @@ async function get_versions(key: string, pkg: Package): Promise<SemVer[]> {
     .map(x => basename(x))
     .filter(x => x.match(/v.*\.tar\.gz$/))
     .map(x => x.replace(/v(.*)\.tar\.gz/, "$1"))
-    .compact(semver.parse)
     ?? []
 
   // have to add pkg.version as put and get are not atomic
-  return [...new Set([...got, pkg.version])].sort(semver.compare)
+  return [...new Set([...got, pkg.version.toString()])]
+    .compact(semver.parse)
+    .sort(semver.compare)
 }
 
 function assert_pkg(pkg: Package | PackageRequirement) {
