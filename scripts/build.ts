@@ -51,3 +51,4 @@ for (const rq of dry) {
 
 await set_output("pkgs", rv.map(x => pkgutils.str(x.pkg)))
 await set_output("paths", rv.map(x => x.path), '%0A')
+await set_output("relative-paths", rv.map(x => x.path.relative({ to: usePrefix() })))
