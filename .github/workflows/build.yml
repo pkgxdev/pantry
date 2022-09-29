@@ -28,7 +28,7 @@ jobs:
             container: ~
           - os: ubuntu-latest
             container:
-              image: ghcr.io/teaxyz/infuser:main
+              image: debian:buster-slim
               options: --memory=16g
     container: ${{ matrix.container }}
     outputs:
@@ -57,8 +57,10 @@ jobs:
         run: |
           case ${{ matrix.os }} in
           ubuntu-latest)
+            apt update
             #FIXME needed for gdk-pixbuf
             apt --yes install shared-mime-info
+            apt --yes install libc-dev libstdc++-8-dev libgcc-8-dev bzip2 xz-utils patchelf file
             ;;
           macos-11)
             # screws up a lot of build scripts
@@ -79,6 +81,9 @@ jobs:
         id: sorted
 
       - run: cli/scripts/install.ts ${{ steps.sorted.outputs.pre-install }}
+
+        #FIXME remove later
+      - run: find /opt -name bin -type d -exec find {} -type f \; | xargs chmod 777
 
       - run: pantry/scripts/build.ts ${{ steps.sorted.outputs.pkgs }}
         id: build
