@@ -18,10 +18,11 @@ args:
 
 import { Installation } from "types"
 import { useCellar, usePrefix, useFlags, useCache } from "hooks"
-import { run, pkg as pkgutils } from "utils"
+import { run } from "utils"
 import { crypto } from "deno/crypto/mod.ts"
 import { encode } from "deno/encoding/hex.ts"
 import { set_output } from "./utils/gha.ts"
+import * as ARGV from "./utils/args.ts"
 import Path from "path"
 
 const cellar = useCellar()
@@ -36,7 +37,7 @@ if (import.meta.main) {
   const checksums: string[] = []
   const bottles: Path[] = []
 
-  for (const pkg of Deno.args.map(pkgutils.parse)) {
+  for await (const pkg of ARGV.pkgs()) {
     console.log({ bottling: pkg })
 
     const installation = await cellar.resolve(pkg)

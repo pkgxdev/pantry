@@ -20,14 +20,12 @@ import { pkg } from "utils"
 import { usePantry, useFlags } from "hooks"
 import { hydrate } from "prefab"
 import { PackageRequirement } from "types"
+import * as ARGV from "./utils/args.ts"
 
 const flags = useFlags()
 const pantry = usePantry()
 
-const dry = Deno.args.map(project => {
-  const match = project.match(/projects\/(.*)\/package.yml/)
-  return match ? match[1] : project
-}).map(pkg.parse)
+const dry = await ARGV.toArray(ARGV.pkgs())
 
 const wet = await hydrate(dry, async (pkg, dry) => {
   const deps = await pantry.getDeps(pkg)

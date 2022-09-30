@@ -13,24 +13,18 @@ args:
 ---*/
 
 import { Installation, Package, PackageRequirement } from "types"
-import { usePantry, useCellar, useFlags } from "hooks"
+import { usePantry, useFlags } from "hooks"
 import useShellEnv, { expand } from "hooks/useShellEnv.ts"
 import { run, undent, pkg as pkgutils } from "utils"
 import { resolve, install, hydrate, link } from "prefab"
 import Path from "path"
+import * as ARGV from "./utils/args.ts"
 
 const { debug } = useFlags()
-const cellar = useCellar()
+
 const pantry = usePantry()
 
-for (const project of Deno.args) {
-  const pkg = await (async () => {
-    const match = project.match(/projects\/(.+)\/package.yml/)
-    const parsable = match ? match[1] : project
-    const pkg = pkgutils.parse(parsable)
-    return await cellar.resolve(pkg)
-  })()
-
+for await (const pkg of ARGV.installs()) {
   await test(pkg)
 }
 
