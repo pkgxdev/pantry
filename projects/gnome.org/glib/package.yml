@@ -28,9 +28,15 @@ build:
     ninja -v
     ninja install
 
+    GT='${prefix}/../../../gnu.org/gettext/v{{ deps.gnu.org/gettext.version.major }}'
+
     cd {{prefix}}/lib/pkgconfig
-    sed -i.bak -e 's|Libs: -L${libdir} -lglib-2.0 -lintl|Libs: -L${libdir} -lglib-2.0 -L/opt/gnu.org/gettext/v*/lib -lintl -L/opt/pcre.org/v*/lib -lpcre|' ./glib-2.0.pc
-    sed -i.bak -e 's|Cflags: -I${includedir}/glib-2.0 -I${libdir}/glib-2.0/include|Cflags: -I${includedir}/glib-2.0 -I${libdir}/glib-2.0/include -I/opt/gnu.org/gettext/v*/include -I/opt/pcre.org/v*/include|' ./glib-2.0.pc
+    sed -i.bak -e \
+      's|Libs: -L${libdir} -lglib-2.0 -lintl|Libs: -L${libdir} -lglib-2.0'\ -L$GT/lib\ -lintl\| \
+      ./glib-2.0.pc
+    sed -i.bak -e \
+      's|Cflags: -I${includedir}/glib-2.0 -I${libdir}/glib-2.0/include|Cflags: -I${includedir}/glib-2.0 -I${libdir}/glib-2.0/include'\ -I$GT/include\| \
+      ./glib-2.0.pc
     rm *.bak
 
   #REF https://github.com/Homebrew/homebrew-core/blob/d0e65698ccd502335bea68ce879ae02e1735db0d/Formula/glib.rb#L66-L67
@@ -54,3 +60,9 @@ test:
     # using pkg-config as pixman puts its headers in `include/pixman-1`
     LDFLAGS: $(pkg-config --libs glib-2.0)
     CFLAGS: $(pkg-config --cflags glib-2.0)
+    # unset these since we only want to test via pkg-config
+    LIBRARY_PATH: /
+    CPATH: /
+    LD_LIBRARY_PATH: /
+    darwin:
+      DYLD_LIBRARY_PATH: /
