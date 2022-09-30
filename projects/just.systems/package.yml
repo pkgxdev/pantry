@@ -1,0 +1,27 @@
+distributable:
+  url: https://github.com/casey/just/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: casey/just/tags
+  strip: /v/
+
+build:
+  dependencies:
+    rust-lang.org: ^1.47.0
+    # Remove if this becomes a run-dep of rust
+    # required for cargo to update crates.io
+    openssl.org: 1
+  script:
+    cargo install --path=. --root={{prefix}}
+  test:
+    cargo test
+
+test:
+  script: |
+    cp $FIXTURE justfile
+    just
+  fixture: |
+    # run just -l
+    default:
+      @just -l
