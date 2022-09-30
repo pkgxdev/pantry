@@ -13,16 +13,17 @@ args:
 ---*/
 
 import { usePantry } from "hooks"
-import { Installation, Package } from "types"
+import { Installation } from "types"
 import { pkg as pkgutils } from "utils"
 import { useFlags, usePrefix } from "hooks"
 import { set_output } from "./utils/gha.ts"
 import build from "./build/build.ts"
+import * as ARGV from "./utils/args.ts"
 
 useFlags()
 
 const pantry = usePantry()
-const dry = Deno.args.map(pkgutils.parse)
+const dry = await ARGV.toArray(ARGV.pkgs())
 const gha = !!Deno.env.get("GITHUB_ACTIONS")
 const group_it = gha && dry.length > 1
 const rv: Installation[] = []
