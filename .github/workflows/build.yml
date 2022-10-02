@@ -5,6 +5,9 @@ on:
       projects:
         required: true
         type: string
+      ref:
+        required: true
+        type: string
 
 env:
   TEA_SECRET: ${{ secrets.TEA_SECRET }}
@@ -15,9 +18,10 @@ jobs:
     steps:
       - name: queue
         run: |
+          # Don't use GITHUB_SHA for PRs: https://github.com/orgs/community/discussions/25191
           curl https://app.tea.xyz/api/builder/enqueue \
             -H "authorization: bearer ${{ secrets.TEA_API_TOKEN }}" \
-            -d "$GITHUB_SHA ${{ inputs.projects }}"
+            -d "${{inputs.ref}} ${{ inputs.projects }}"
 
   build:
     runs-on: ${{ matrix.os }}

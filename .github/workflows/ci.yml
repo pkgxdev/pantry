@@ -17,5 +17,7 @@ jobs:
     uses: ./.github/workflows/build.yml
     with:
       projects: ${{ needs.get-diff.outputs.diff }}
+      # Don't use GITHUB_SHA for PRs: https://github.com/orgs/community/discussions/25191
+      ref: ${{ github.event.pull_request.head.sha }}
     secrets: inherit
     if: ${{ needs.get-diff.outputs.diff != '' }}
