@@ -4,7 +4,6 @@
 args:
   - deno
   - run
-  - --allow-net
   - --allow-run
   - --allow-env
   - --allow-read

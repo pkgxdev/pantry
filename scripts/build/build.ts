@@ -3,10 +3,9 @@ import { link, hydrate } from "prefab"
 import { Installation, Package } from "types"
 import useShellEnv, { expand } from "hooks/useShellEnv.ts"
 import { run, undent, host, tuplize } from "utils"
+import { str as pkgstr } from "utils/pkg.ts"
 import fix_pkg_config_files from "./fix-pkg-config-files.ts"
-import fix_linux_rpaths from "./fix-linux-rpaths.ts"
 import Path from "path"
-import * as semver from "semver"
 
 const cellar = useCellar()
 const pantry = usePantry()
@@ -109,14 +108,30 @@ async function __build(pkg: Package) {
   }
 
   async function fix_binaries(installation: Installation) {
+    const prefix = usePrefix().join("tea.xyz/var/pantry/scripts/brewkit")
+    const env = {
+      TEA_PREFIX: usePrefix().string,
+    }
     switch (host().platform) {
     case 'darwin':
-      await fix_macho(installation)
-      break
-    case 'linux': {
-      const self = {project: pkg.project, constraint: new semver.Range(pkg.version.toString())}
-      await fix_linux_rpaths(installation, [...deps.runtime, self])
-    }}
+      return await run({
+        cmd: [
+          prefix.join('fix-machos.rb'),
+          installation.path,
+          ...['bin', 'lib', 'libexec'].map(x => installation.path.join(x)).filter(x => x.isDirectory())
+        ],
+        env
+     })
+    case 'linux':
+      return await run({
+        cmd: [
+          prefix.join('fix-elf.ts'),
+          installation.path,
+          ...[...deps.runtime, pkg].map(pkgstr)
+        ],
+        env
+      })
+    }
   }
 }
 
@@ -126,15 +141,4 @@ async function fetch_src(pkg: Package): Promise<Path> {
   const zipfile = await useCache().download({ pkg, url, type: 'src' })
   await useSourceUnarchiver().unarchive({ dstdir, zipfile, stripComponents })
   return dstdir
-}
-
-async function fix_macho(installation: Installation) {
-  const d = new Path(new URL(import.meta.url).pathname).parent()
-  const walk = ['bin', 'lib', 'libexec'].map(x => installation.path.join(x)).filter(x => x.isDirectory())
-  await run({
-    cmd: [d.join('fix-machos.rb'), installation.path, ...walk],
-    env: {
-      TEA_PREFIX: usePrefix().string,
-    }
-  })
 }

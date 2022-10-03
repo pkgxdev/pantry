@@ -1,5 +1,6 @@
 import { Installation } from "types"
 import Path from "path"
+import "utils"
 
 export default async function fix_pkg_config_files(installation: Installation) {
   for await (const pcfile of find_pkg_config_files(installation)) {
