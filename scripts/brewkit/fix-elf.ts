@@ -1,11 +1,32 @@
+#!/usr/bin/env -S tea -E
+
+/*---
+args:
+  - deno
+  - run
+  - --allow-run
+  - --allow-env
+  - --allow-read
+  - --allow-write={{tea.prefix}}
+  - --import-map={{ srcroot }}/import-map.json
+dependencies:
+  nixos.org/patchelf: '*'
+  darwinsys.com/file: 5
+---*/
+
 import { useCellar } from "hooks"
-import { PackageRequirement, Installation } from "types"
-import { backticks, run, host } from "utils"
+import { PackageRequirement, Installation, Package } from "types"
+import { backticks, run, host, pkg as pkgutils } from "utils"
 import Path from "path"
 
 
 if (import.meta.main) {
-  console.log(await get_rpaths(new Path(Deno.args[0])))
+  const cellar = useCellar()
+  const [installation, ...pkgs] = Deno.args
+  await fix_rpaths(
+    await cellar.resolve(new Path(installation)),
+    pkgs.map(pkgutils.parse)
+  )
 }
 
 
@@ -13,7 +34,7 @@ if (import.meta.main) {
 //NOTE solution is to have the rpath reference major version (or more specific if poss)
 
 /// fix rpaths or install names for executables and dynamic libraries
-export default async function fix_rpaths(installation: Installation, pkgs: PackageRequirement[]) {
+export default async function fix_rpaths(installation: Installation, pkgs: (Package | PackageRequirement)[]) {
   const skip_rpaths = [
     "go.dev", // skipping because for some reason patchelf breaks the go binary resulting in the only output being: `Segmentation Fault`
     "tea.xyz", // this causes tea to pass -E/--version (and everything else?) directly to deno, making it _too_ much of a wrapper.
@@ -33,7 +54,7 @@ export default async function fix_rpaths(installation: Installation, pkgs: Packa
 //NOTE we should have a `safety-inspector` step before bottling to check for this sort of thing
 //  and then have virtual env manager be more specific via (DY)?LD_LIBRARY_PATH
 //FIXME somewhat inefficient for eg. git since git is mostly hardlinks to the same file
-async function set_rpaths(exename: Path, pkgs: PackageRequirement[], installation: Installation) {
+async function set_rpaths(exename: Path, pkgs: (Package | PackageRequirement)[], installation: Installation) {
   if (host().platform != 'linux') throw new Error()
 
   const cellar = useCellar()
@@ -80,30 +101,9 @@ async function set_rpaths(exename: Path, pkgs: PackageRequirement[], installatio
     }
   }
 
-  async function prefix(pkg: PackageRequirement) {
+  async function prefix(pkg: Package | PackageRequirement) {
     return (await cellar.resolve(pkg)).path.join("lib").string
   }
-}
-
-async function get_rpaths(exename: Path): Promise<string[]> {
-  //GOOD_1ST_ISSUE better tokenizer for the output
-
-  const lines = (await backticks({
-    cmd: ["otool", "-l", exename]
-  }))
-    .trim()
-    .split("\n")
-  const it = lines.values()
-  const rv: string[] = []
-  for (const line of it) {
-    if (line.trim().match(/^cmd\s+LC_RPATH$/)) {
-      it.next()
-      rv.push(it.next().value.trim().match(/^path\s+(.+)$/)[1])
-
-      console.debug(rv.at(-1))
-    }
-  }
-  return rv
 }
 
 //FIXME pretty slow since we execute `file` for every file
