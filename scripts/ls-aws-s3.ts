@@ -56,7 +56,9 @@ interface FileInfo {
 function produceMatrix(objects: FileInfo[]): void {
   const matrix = new Map()
   for (const { key, lastModified } of objects) {
-    const [_, project, _platform, _arch, _v] = key.match(new RegExp("(.*)/(darwin|linux)/(aarch64|x86-64)/v(.*)\.tar\.(x|g)z"))!
+    const match = key.match(new RegExp("(.*)/(darwin|linux)/(aarch64|x86-64)/v(.*)\.tar\.(x|g)z"))
+    if (!match) continue
+    const [_, project, _platform, _arch, _v] = match
     const flavor = `${_platform}/${_arch}`
     const version = semver.parse(_v)
     if (!version) continue

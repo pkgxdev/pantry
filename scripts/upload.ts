@@ -12,12 +12,13 @@ args:
 
 import { S3 } from "s3"
 import { pkg as pkgutils } from "utils"
-import { useFlags, useOffLicense, useCache } from "hooks"
+import { useFlags, useOffLicense, useCache, usePrefix } from "hooks"
 import { Package, PackageRequirement } from "types"
 import SemVer, * as semver from "semver"
 import { dirname, basename } from "deno/path/mod.ts"
 import Path from "path"
 import { set_output } from "./utils/gha.ts"
+import { sha256 } from "./bottle.ts"
 
 useFlags()
 
@@ -34,6 +35,7 @@ const encode = (() => { const e = new TextEncoder(); return e.encode.bind(e) })(
 const cache = useCache()
 
 const pkgs = args_get("pkgs").map(pkgutils.parse).map(assert_pkg)
+const srcs = args_get("srcs")
 const bottles = args_get("bottles")
 const checksums = args_get("checksums")
 
@@ -77,6 +79,19 @@ for (const [index, pkg] of pkgs.entries()) {
   await put(key, bottle)
   await put(`${key}.sha256sum`, `${checksum}  ${basename(key)}`)
   await put(`${dirname(key)}/versions.txt`, versions.join("\n"))
+
+  // Store sources
+  const src = usePrefix().join(srcs[index])
+  const srcKey = useOffLicense('s3').key({
+    pkg: stowed.pkg,
+    type: "src",
+    extname: src.extname()
+  })
+  const srcChecksum = await sha256(src)
+  const srcVersions = await get_versions(srcKey, pkg)
+  await put(srcKey, src)
+  await put(`${srcKey}.sha256sum`, `${srcChecksum}  ${basename(srcKey)}`)
+  await put(`${dirname(srcKey)}/versions.txt`, srcVersions.join("\n"))
 }
 
 await set_output('cf-invalidation-paths', rv)
