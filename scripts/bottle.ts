@@ -65,7 +65,7 @@ export async function bottle({ path: kegdir, pkg }: Installation, compression: '
   return tarball
 }
 
-async function sha256(file: Path): Promise<string> {
+export async function sha256(file: Path): Promise<string> {
   return await Deno.open(file.string, { read: true })
     .then(file => crypto.subtle.digest("SHA-256", file.readable))
     .then(buf => new TextDecoder().decode(encode(new Uint8Array(buf))))

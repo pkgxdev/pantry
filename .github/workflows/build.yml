@@ -37,6 +37,7 @@ jobs:
     container: ${{ matrix.container }}
     outputs:
       built: ${{ steps.build.outputs.pkgs }}
+      srcs: ${{ steps.build.outputs.srcs }}
       pkgs: ${{ steps.sorted.outputs.pkgs }} ${{ steps.sorted.outputs.pre-install }}
     steps:
       - name: co pantry
@@ -97,7 +98,7 @@ jobs:
 
       # tarring ourselves ∵ GHA-artifacts (ludicrously) lose permissions
       # /ref https://github.com/actions/upload-artifact/issues/38
-      - run: tar czf $GITHUB_WORKSPACE/artifacts.tgz ${{ steps.build.outputs.relative-paths }}
+      - run: tar czf $GITHUB_WORKSPACE/artifacts.tgz ${{ steps.build.outputs.relative-paths }} ${{ steps.build.outputs.srcs }}
         working-directory: ${{ steps.tea.outputs.prefix }}
 
       - name: upload artifacts
@@ -202,6 +203,7 @@ jobs:
         id: upload
         run: ./upload.ts
           --pkgs ${{ needs.build.outputs.built }}
+          --srcs ${{ needs.build.outputs.srcs }}
           --bottles ${{ steps.bottle.outputs.bottles }}
           --checksums ${{ steps.bottle.outputs.checksums }}
         env:
