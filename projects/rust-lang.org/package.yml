@@ -29,6 +29,7 @@ options:
 dependencies:
   #FIXME strictly rustc only needs a linker
   tea.xyz/gx/cc: c99
+  zlib.net: 1
   #TODO cargo needs git
   # this is a usage dependency, it's not required for cargo to run, just for some usages of cargo to run
   # so would be a little more strict than “recommended“
@@ -42,6 +43,11 @@ build:
     curl.se: '*'
     python.org: 3
   script: |-
+    # --enable-optimize not available as of 1.63.0
+    if test {{version.major}} -eq 1 -a {{version.minor}} -lt 63; then
+      export ARGS="$ARGS --enable-optimize"
+    fi
+
     ./configure $ARGS
     make install
     mv ./build/{{ hw.target }}/stage0/bin/cargo {{ prefix }}/bin/cargo
@@ -52,7 +58,6 @@ build:
       - --enable-vendor
       - --prefix={{ prefix }}
       - --enable-ninja
-      - --enable-optimize
       - --disable-docs  # docs are online
 test:
   script: |
