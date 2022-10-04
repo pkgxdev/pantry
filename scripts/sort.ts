@@ -4,10 +4,7 @@
 args:
   - deno
   - run
-  - --allow-net
-  - --allow-run
   - --allow-read
-  - --allow-write={{ tea.prefix }}
   - --allow-env
   - --import-map={{ srcroot }}/import-map.json
 ---*/

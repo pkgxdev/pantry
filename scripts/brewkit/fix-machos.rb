@@ -1,12 +1,19 @@
 #!/usr/bin/env ruby
+# ^^ we have to specify ruby or ruby refuses to run the script
+# as an aside, what kind of feature *is* that exactly?
 # ---
 # dependencies:
-#   ruby-lang.org: 2
-#   bundler.io:
-#     version: 3
-#     with:
-#       gems: [ruby-macho: 3]
+#   ruby-lang.org: 3
+# args: [ruby]
 # ---
+
+require 'bundler/inline'
+
+gemfile do
+  source 'https://rubygems.org'
+  gem 'ruby-macho', '~> 3'
+end
+
 
 #TODO file.stat.ino where file is Pathname
 

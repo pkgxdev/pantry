@@ -62,16 +62,14 @@ jobs:
         run: |
           case ${{ matrix.os }} in
           ubuntu-latest)
+            #FIXME our LLVM doesn't provide c/c++ headers for some reason
             apt-get update
             apt-get --yes install libc-dev libstdc++-8-dev libgcc-8-dev
             ;;
           macos-11)
-            # screws up a lot of build scripts
-            # TODO stop using GHA images or chroot or something
+            #FIXME we need a clean install of macOS for builds
+            #TODO stop using GHA images or chroot or something
             for x in /usr/local/*; do sudo mv $x /tmp; done
-
-            # for scripts/fix-machos.rb
-            sudo gem install ruby-macho
             ;;
           *)
             exit 1
