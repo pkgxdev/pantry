@@ -16,7 +16,11 @@ import { format }from "deno/datetime/mod.ts"
 const sortByModified = Deno.args.includes("-m")
 const reverse = Deno.args.includes("-r")
 const fullMatrix = Deno.args.includes("-x")
+const source = Deno.args.includes("-s")
 
+if (source && fullMatrix) {
+  throw new Error("incompatible flags (-x -s)")
+}
 
 const s3 = new S3({
   accessKeyID: Deno.env.get("AWS_ACCESS_KEY_ID")!,
@@ -26,7 +30,7 @@ const s3 = new S3({
 
 const bucket = s3.getBucket(Deno.env.get("AWS_S3_BUCKET")!)
 
-const output: FileInfo[] = []
+let output: FileInfo[] = []
 
 for await(const obj of bucket.listAllObjects({ batchSize: 200 })) {
   const { key, lastModified } = obj
@@ -37,6 +41,14 @@ for await(const obj of bucket.listAllObjects({ batchSize: 200 })) {
 if (fullMatrix) {
   produceMatrix(output)
 } else {
+  output = output.filter(x => {
+    const match = x.key.match(new RegExp("/(darwin|linux)/(aarch64|x86-64)/v.*\.tar\.(x|g)z"))
+    switch (source) {
+      case true: return !match
+      case false: return match
+    }
+  })
+
   output.sort((a, b) => {
     switch (sortByModified) {
       case true: return a.lastModified.valueOf() - b.lastModified.valueOf()
