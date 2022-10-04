@@ -1,9 +1,9 @@
 distributable:
-  #FIXME url: https://tukaani.org/xz/xz-{{ version }}.tar.gz
-  url: https://cytranet.dl.sourceforge.net/project/lzmautils/xz-{{ version }}.tar.gz
+  url: https://tukaani.org/xz/xz-{{ version }}.tar.gz
   strip-components: 1
 
 versions:
+  - 5.2.7
   - 5.2.5
 
 build:
@@ -11,8 +11,13 @@ build:
     tea.xyz/gx/cc: 'c99'
     tea.xyz/gx/make: '*'
   script: |
-    ./configure --prefix={{ prefix }} --disable-debug
+    ./configure $ARGS
     make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix={{ prefix }}
+      - --disable-debug
+      - --disable-doc
 
 test:
   script: xz --version
