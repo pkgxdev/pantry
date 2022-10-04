@@ -116,6 +116,7 @@ async function __build(pkg: Package) {
     case 'darwin':
       return await run({
         cmd: [
+          'tea',
           prefix.join('fix-machos.rb'),
           installation.path,
           ...['bin', 'lib', 'libexec'].map(x => installation.path.join(x)).filter(x => x.isDirectory())
