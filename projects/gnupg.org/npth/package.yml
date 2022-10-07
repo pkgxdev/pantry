@@ -1,0 +1,23 @@
+distributable:
+  url: https://gnupg.org/ftp/gcrypt/npth/npth-{{version.raw}}.tar.bz2
+  strip-components: 1
+
+versions:
+  - 1.6
+
+provides:
+  - bin/npth-config
+
+build:
+  script: |
+    ./configure --prefix={{prefix}}
+    make
+    make check
+    make install
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+
+test:
+  #FIXME we test using our version, not theirs
+  script: test "$(npth-config --version).0" = "{{version.raw}}"

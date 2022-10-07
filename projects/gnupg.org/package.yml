@@ -1,0 +1,55 @@
+distributable:
+  url: https://gnupg.org/ftp/gcrypt/gnupg/gnupg-{{version}}.tar.bz2
+  strip-components: 1
+
+versions:
+  - 2.3.7
+
+provides:
+  - bin/gpg
+  - bin/gpg-agent
+  - bin/gpg-card
+  - bin/gpg-connect-agent
+  - bin/gpg-wks-client
+  - bin/gpg-wks-server
+  - bin/gpgconf
+  - bin/gpgparsemail
+  - bin/gpgscm
+  - bin/gpgsm
+  - bin/gpgsplit
+  - bin/gpgtar
+  - bin/gpgv
+  - bin/kbxutil
+  - bin/watchgnupg
+
+dependencies:
+  zlib.net: 1
+  sourceware.org/bzip2: 1
+  gnupg.org/npth: 1
+  gnupg.org/libgpg-error: 1
+  gnupg.org/libksba: 1
+  gnupg.org/libassuan: 2
+  gnupg.org/libgcrypt: 1
+
+build:
+  script: |
+    ./configure --prefix={{prefix}}
+    make
+    make check
+    make install
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+
+test:
+  script: |
+    gpg --version
+    MD5=$(echo foo | gpg --print-md MD5)
+    SHA1=$(echo foo | gpg --print-md SHA1)
+    SHA512=$(echo foo | gpg --print-md SHA512)
+
+    test "$MD5" = "D3 B0 73 84 D1 13 ED EC  49 EA A6 23 8A D5 FF 00"
+    test "$SHA1" = "F1D2 D2F9 24E9 86AC 86FD  F7B3 6C94 BCDF 32BE EC15"
+    # Yes, there's a newline in this string
+    test "$SHA512" = "0CF9180A 764ABA86 3A67B6D7 2F0918BC 131C6772 642CB2DC E5A34F0A 702F9470
+    DDC2BF12 5C12198B 1995C233 C34B4AFD 346C54A2 334C350A 948A51B6 E8B4E6B6"
