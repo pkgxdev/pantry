@@ -32,7 +32,7 @@ async function test(self: Installation) {
   const yml = await pantry.getYAML(self.pkg).parse()
   const deps = await deps4(self.pkg)
   const installations = await prepare(deps)
-  const env = useShellEnv([self, ...installations])
+  const env = useShellEnv({ installations: [self, ...installations] })
 
   let text = undent`
     #!/bin/bash
@@ -41,7 +41,7 @@ async function test(self: Installation) {
     set -o pipefail
     set -x
 
-    ${expand(env.vars)}
+    ${expand(env)}
 
     `
 

@@ -65,10 +65,10 @@ async function __build(pkg: Package) {
   }
 
   function mkenv() {
-    const env = useShellEnv(resolved)
+    const env = useShellEnv({ installations: resolved})
 
     if (platform == 'darwin') {
-      env.vars['MACOSX_DEPLOYMENT_TARGET'] = ['11.0']
+      env['MACOSX_DEPLOYMENT_TARGET'] = ['11.0']
     }
 
     return env
@@ -86,7 +86,7 @@ async function __build(pkg: Package) {
       cd "${src}"
 
       export SRCROOT="${src}"
-      ${expand(env.vars)}
+      ${expand(env)}
 
       ${/*FIXME hardcoded paths*/ ''}
       export PATH=/opt/tea.xyz/var/pantry/scripts/brewkit:"$PATH"
