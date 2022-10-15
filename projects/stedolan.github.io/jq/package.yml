@@ -1,0 +1,22 @@
+distributable:
+  url: https://github.com/stedolan/jq/releases/download/jq-{{version.raw}}/jq-{{version.raw}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: stedolan/jq
+  strip: /jq /
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    github.com/kkos/oniguruma: 6
+    git-scm.org: 2
+  script: |
+    git apply props/darwin.diff
+    git apply props/lgamma_r.diff
+    ./configure --disable-maintainer-mode --prefix={{prefix}}
+    make install
+
+test:
+  script: test $(jq .devs[1].github < test.json) = '"jhheider"'
