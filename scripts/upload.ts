@@ -12,7 +12,7 @@ args:
 
 import { S3 } from "s3"
 import { pkg as pkgutils } from "utils"
-import { useFlags, useOffLicense, useCache } from "hooks"
+import { useFlags, useOffLicense, useCache, usePrefix } from "hooks"
 import { Package, PackageRequirement } from "types"
 import SemVer, * as semver from "semver"
 import { dirname, basename } from "deno/path/mod.ts"
@@ -82,7 +82,7 @@ for (const [index, pkg] of pkgs.entries()) {
 
   // mirror the sources
   if (srcs[index] != "~") {
-    const src = new Path(srcs[index])
+    const src = usePrefix().join(srcs[index])
     const srcKey = useOffLicense('s3').key({
       pkg: stowed.pkg,
       type: "src",

@@ -24,7 +24,7 @@ const pantry = usePantry()
 const { download } = useDownload()
 
 export async function fetch_src(pkg: Package): Promise<[Path, Path] | undefined> {
-  const dstdir = useCellar().shelf(pkg.project).parent().join("src", `v${pkg.version}`)
+  const dstdir = useCellar().shelf(pkg.project).join("src", `v${pkg.version}`)
   const dist = await pantry.getDistributable(pkg)
   if (!dist) return
   const { url, stripComponents } = dist
