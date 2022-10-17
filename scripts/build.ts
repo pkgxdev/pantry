@@ -54,11 +54,12 @@ for (const rq of dry) {
   }
 }
 
+const to = usePrefix()
 await set_output("pkgs", rv.map(x => pkgutils.str(x.installation.pkg)))
 await set_output("paths", rv.map(x => x.installation.path), '%0A')
-await set_output("relative-paths", rv.map(x => x.installation.path.relative({ to: usePrefix() })))
-await set_output("srcs", rv.map(x => x.src?.relative({ to: usePrefix() }) ?? "~"))
-await set_output("srcs-actual", rv.compact(x => x.src?.relative({ to: usePrefix() })))
+await set_output("relative-paths", rv.map(x => x.installation.path.relative({ to })))
+await set_output("srcs", rv.map(x => x.src?.relative({ to }) ?? "~"))
+await set_output("srcs-relative-paths", rv.compact(x => x.src?.relative({ to })))
 
 interface InstallationPlus extends Installation {
   src: Path
