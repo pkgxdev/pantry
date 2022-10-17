@@ -96,7 +96,10 @@ jobs:
 
       # tarring ourselves ∵ GHA-artifacts (ludicrously) lose permissions
       # /ref https://github.com/actions/upload-artifact/issues/38
-      - run: tar czf $GITHUB_WORKSPACE/artifacts.tgz ${{ steps.build.outputs.relative-paths }} ${{ steps.build.outputs.srcs }}
+      - run:
+          tar czf $GITHUB_WORKSPACE/artifacts.tgz
+            ${{ steps.build.outputs.relative-paths }}
+            ${{ steps.build.outputs.srcs-actual }}
         working-directory: ${{ steps.tea.outputs.prefix }}
 
       - name: upload artifacts

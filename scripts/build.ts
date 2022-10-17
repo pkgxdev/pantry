@@ -16,12 +16,12 @@ args:
   - --import-map={{ srcroot }}/import-map.json
 ---*/
 
-import { useCache, usePantry } from "hooks"
+import { usePantry } from "hooks"
 import { Installation } from "types"
 import { pkg as pkgutils } from "utils"
 import { useFlags, usePrefix } from "hooks"
 import { set_output } from "./utils/gha.ts"
-import build from "./build/build.ts"
+import build, { BuildResult } from "./build/build.ts"
 import * as ARGV from "./utils/args.ts"
 import Path from "path"
 
@@ -31,7 +31,7 @@ const pantry = usePantry()
 const dry = await ARGV.toArray(ARGV.pkgs())
 const gha = !!Deno.env.get("GITHUB_ACTIONS")
 const group_it = gha && dry.length > 1
-const rv: InstallationPlus[] = []
+const rv: BuildResult[] = []
 
 if (usePrefix().string != "/opt") {
   console.error({ TEA_PREFIX: usePrefix().string })
@@ -47,21 +47,18 @@ for (const rq of dry) {
     console.log({ building: pkg.project })
   }
 
-  const install = await build(pkg)
-  const { url } = await pantry.getDistributable(pkg)
-  const extname = url.path().extname()
-  const src = useCache().path({ pkg, type: "src", extname })
-  rv.push({...install, src })
+  rv.push(await build(pkg))
 
   if (group_it) {
     console.log("::endgroup::")
   }
 }
 
-await set_output("pkgs", rv.map(x => pkgutils.str(x.pkg)))
-await set_output("paths", rv.map(x => x.path), '%0A')
-await set_output("relative-paths", rv.map(x => x.path.relative({ to: usePrefix() })))
-await set_output("srcs", rv.map(x => x.src.relative({ to: usePrefix() })))
+await set_output("pkgs", rv.map(x => pkgutils.str(x.installation.pkg)))
+await set_output("paths", rv.map(x => x.installation.path), '%0A')
+await set_output("relative-paths", rv.map(x => x.installation.path.relative({ to: usePrefix() })))
+await set_output("srcs", rv.map(x => x.src?.relative({ to: usePrefix() }) ?? "~"))
+await set_output("srcs-actual", rv.compact(x => x.src?.relative({ to: usePrefix() })))
 
 interface InstallationPlus extends Installation {
   src: Path

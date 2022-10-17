@@ -12,7 +12,7 @@ args:
 
 import { S3 } from "s3"
 import { pkg as pkgutils } from "utils"
-import { useFlags, useOffLicense, useCache, usePrefix } from "hooks"
+import { useFlags, useOffLicense, useCache } from "hooks"
 import { Package, PackageRequirement } from "types"
 import SemVer, * as semver from "semver"
 import { dirname, basename } from "deno/path/mod.ts"
@@ -80,18 +80,20 @@ for (const [index, pkg] of pkgs.entries()) {
   await put(`${key}.sha256sum`, `${checksum}  ${basename(key)}`)
   await put(`${dirname(key)}/versions.txt`, versions.join("\n"))
 
-  // Store sources
-  const src = usePrefix().join(srcs[index])
-  const srcKey = useOffLicense('s3').key({
-    pkg: stowed.pkg,
-    type: "src",
-    extname: src.extname()
-  })
-  const srcChecksum = await sha256(src)
-  const srcVersions = await get_versions(srcKey, pkg)
-  await put(srcKey, src)
-  await put(`${srcKey}.sha256sum`, `${srcChecksum}  ${basename(srcKey)}`)
-  await put(`${dirname(srcKey)}/versions.txt`, srcVersions.join("\n"))
+  // mirror the sources
+  if (srcs[index] != "~") {
+    const src = new Path(srcs[index])
+    const srcKey = useOffLicense('s3').key({
+      pkg: stowed.pkg,
+      type: "src",
+      extname: src.extname()
+    })
+    const srcChecksum = await sha256(src)
+    const srcVersions = await get_versions(srcKey, pkg)
+    await put(srcKey, src)
+    await put(`${srcKey}.sha256sum`, `${srcChecksum}  ${basename(srcKey)}`)
+    await put(`${dirname(srcKey)}/versions.txt`, srcVersions.join("\n"))
+  }
 }
 
 await set_output('cf-invalidation-paths', rv)
