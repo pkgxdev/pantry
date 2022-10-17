@@ -1,17 +1,23 @@
-import { useSourceUnarchiver, useCellar, usePantry, useCache, usePrefix } from "hooks"
+import { useCellar, usePantry, usePrefix } from "hooks"
 import { link, hydrate } from "prefab"
 import { Installation, Package } from "types"
 import useShellEnv, { expand } from "hooks/useShellEnv.ts"
-import { run, undent, host, tuplize } from "utils"
+import { run, undent, host, tuplize, panic } from "utils"
 import { str as pkgstr } from "utils/pkg.ts"
 import fix_pkg_config_files from "./fix-pkg-config-files.ts"
 import Path from "path"
+import { fetch_src } from "../fetch.ts";
 
 const cellar = useCellar()
 const pantry = usePantry()
 const { platform } = host()
 
-export default async function _build(pkg: Package) {
+export interface BuildResult {
+  installation: Installation
+  src?: Path
+}
+
+export default async function _build(pkg: Package): Promise<BuildResult> {
   try {
     return await __build(pkg)
   } catch (e) {
@@ -20,17 +26,17 @@ export default async function _build(pkg: Package) {
   }
 }
 
-async function __build(pkg: Package) {
+async function __build(pkg: Package): Promise<BuildResult> {
   const [deps, wet, resolved] = await calc_deps()
   await clean()
-  const env = await mkenv()
+  const env = mkenv()
   const dst = cellar.keg(pkg).mkpath()
-  const src = await fetch_src(pkg)
+  const [src, src_tarball] = await fetch_src(pkg) ?? []
   const installation = await build()
   await link(installation)
   await fix_binaries(installation)
   await fix_pkg_config_files(installation)
-  return installation
+  return { installation, src: src_tarball }
 
 //////// utils
   async function calc_deps() {
@@ -75,17 +81,18 @@ async function __build(pkg: Package) {
   }
 
   async function build() {
+    const bld = src ?? Path.mktmp({ prefix: pkg.project }).join("wd").mkdir()
     const sh = await pantry.getScript(pkg, 'build', resolved)
 
-    const cmd = src.parent().join("build.sh").write({ force: true, text: undent`
+    const cmd = bld.parent().join("build.sh").write({ force: true, text: undent`
       #!/bin/bash
 
       set -e
       set -o pipefail
       set -x
-      cd "${src}"
+      cd "${bld}"
 
-      export SRCROOT="${src}"
+      export SRCROOT="${bld}"
       ${expand(env)}
 
       ${/*FIXME hardcoded paths*/ ''}
@@ -98,7 +105,7 @@ async function __build(pkg: Package) {
     // copy in auxillary files from pantry directory
     for await (const [path, {isFile}] of pantry.getYAML(pkg).path.parent().ls()) {
       if (isFile) {
-        path.cp({ into: src.join("props").mkdir() })
+        path.cp({ into: bld.join("props").mkdir() })
       }
     }
 
@@ -116,7 +123,6 @@ async function __build(pkg: Package) {
     case 'darwin':
       return await run({
         cmd: [
-          'tea',
           prefix.join('fix-machos.rb'),
           installation.path,
           ...['bin', 'lib', 'libexec'].map(x => installation.path.join(x)).filter(x => x.isDirectory())
@@ -134,12 +140,4 @@ async function __build(pkg: Package) {
       })
     }
   }
-}
-
-async function fetch_src(pkg: Package): Promise<Path> {
-  const dstdir = usePrefix().join(pkg.project, "src", `v${pkg.version}`)
-  const { url, stripComponents } = await pantry.getDistributable(pkg)
-  const zipfile = await useCache().download({ pkg, url, type: 'src' })
-  await useSourceUnarchiver().unarchive({ dstdir, zipfile, stripComponents })
-  return dstdir
 }

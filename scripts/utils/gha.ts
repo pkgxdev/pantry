@@ -11,7 +11,7 @@ export function set_output<T>(name: string, arr: T[], separator = " ") {
 //TODO HTML escapes probs
 function escape<T>(input: T): string {
   const out = `${input}`
-  if (/[<>]/.test(out)) {
+  if (/[<>~]/.test(out)) {
     return `"${out}"`
   } else {
     return out

@@ -13,7 +13,7 @@ args:
 ---*/
 
 import { Installation, Package, PackageRequirement } from "types"
-import { usePantry, useFlags } from "hooks"
+import { usePantry, useFlags, usePrefix } from "hooks"
 import useShellEnv, { expand } from "hooks/useShellEnv.ts"
 import { run, undent, pkg as pkgutils } from "utils"
 import { resolve, install, hydrate, link } from "prefab"
@@ -40,6 +40,8 @@ async function test(self: Installation) {
     set -e
     set -o pipefail
     set -x
+
+    export TEA_PREFIX=${usePrefix()}
 
     ${expand(env)}
 
@@ -69,8 +71,10 @@ async function test(self: Installation) {
       .write({ text, force: true })
       .chmod(0o500)
     await run({ cmd, cwd })
-  } finally {
-    if (!debug) tmp.rm({ recursive: true })
+    tmp.rm({ recursive: true })
+  } catch (e) {
+    console.info("due to error, didn’t delete:", tmp)
+    throw e
   }
 }
 
