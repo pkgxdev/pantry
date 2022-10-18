@@ -1,0 +1,20 @@
+distributable:
+  url: https://github.com/ipfs/kubo/releases/download/v{{version}}/kubo-source.tar.gz
+  checksum: https://github.com/ipfs/kubo/releases/download/v{{version}}/kubo-source.tar.gz.sha512
+  cid: https://github.com/ipfs/kubo/releases/download/v{{version}}/kubo-source.tar.gz.cid
+  strip-components: 1
+
+versions:
+  github: ipfs/kubo
+
+build:
+  dependencies:
+    tea.xyz/gx/make: '*'
+    go.dev: 1
+  script: |
+    make build
+    mkdir {{prefix}}/bin
+    mv cmd/ipfs/ipfs {{prefix}}/bin
+
+test:
+  ipfs init
