@@ -5,35 +5,25 @@ on:
       projects:
         required: true
         type: string
-      ref:
-        required: true
-        type: string
 
 env:
   TEA_SECRET: ${{ secrets.TEA_SECRET }}
 
 jobs:
-  queue-builder:
-    runs-on: ubuntu-latest
-    steps:
-      - name: queue
-        run: |
-          # Don't use GITHUB_SHA for PRs: https://github.com/orgs/community/discussions/25191
-          curl https://app.tea.xyz/api/builder/enqueue \
-            -H "authorization: bearer ${{ secrets.TEA_API_TOKEN }}" \
-            -d "${{inputs.ref}} ${{ inputs.projects }}"
-
   build:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         include:
           - os: macos-11
-            container: ~
           - os: ubuntu-latest
             container:
               image: debian:buster-slim
               options: --memory=16g
+          - os: [self-hosted, macOS, ARM64]
+            tag: darwin-aarch64
+          - os: [self-hosted, linux, ARM64]
+            tag: linux-aarch64
     container: ${{ matrix.container }}
     outputs:
       built: ${{ steps.build.outputs.pkgs }}
@@ -51,6 +41,15 @@ jobs:
           path: cli
           repository: teaxyz/cli
           token: ${{ secrets.TEMP_JACOBS_GITHUB_PAT }}
+
+      - run: |
+          if test -d $TEA_PREFIX/tea.xyz; then
+            find $TEA_PREFIX/tea.xyz -mindepth 1 -maxdepth 1 -not \( -path $TEA_PREFIX/tea.xyz/var \) -print0 | \
+            xargs -0 rm -rf
+          fi
+        if: ${{ matrix.tag }}
+        env:
+          TEA_PREFIX: /opt
 
       - uses: teaxyz/setup@v0
         id: tea
@@ -72,7 +71,9 @@ jobs:
             for x in /usr/local/*; do sudo mv $x /tmp; done
             ;;
           *)
-            exit 1
+            # self-hosted runner. noop
+            echo
+            ;;
           esac
 
           rm -rf /opt/tea.xyz/var
@@ -84,7 +85,7 @@ jobs:
       - run: cli/scripts/install.ts ${{ steps.sorted.outputs.pre-install }}
 
         #FIXME remove later
-      - run: find /opt -name bin -type d -exec find {} -type f \; | xargs chmod 777
+      - run: find /opt -name bin -exec find {} -type f \; | xargs chmod 777
 
       - run: pantry/scripts/build.ts ${{ steps.sorted.outputs.pkgs }}
         id: build
@@ -105,7 +106,7 @@ jobs:
       - name: upload artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ matrix.os }}
+          name: ${{ matrix.tag || matrix.os }}
           path: artifacts.tgz
           if-no-files-found: error
 
@@ -124,6 +125,10 @@ jobs:
           container: ghcr.io/teaxyz/infuser:slim-latest
         - os: ubuntu-latest
           container: debian:buster-slim
+        - os: [self-hosted, macOS, ARM64]
+          tag: darwin-aarch64
+        - os: [self-hosted, linux, ARM64]
+          tag: linux-aarch64
     container: ${{ matrix.container }}
     steps:
       - uses: actions/checkout@v3
@@ -141,6 +146,15 @@ jobs:
           apt-get --yes install libc-dev libstdc++-8-dev libgcc-8-dev
         if: ${{ matrix.container != '' }}
 
+      - run: |
+          if test -d $TEA_PREFIX/tea.xyz; then
+            find $TEA_PREFIX/tea.xyz -mindepth 1 -maxdepth 1 -not \( -path $TEA_PREFIX/tea.xyz/var \) -print0 | \
+            xargs -0 rm -rf
+          fi
+        if: ${{ matrix.tag }}
+        env:
+          TEA_PREFIX: ${{ github.workspace }}
+
       - uses: teaxyz/setup@v0
         id: tea
         with:
@@ -149,7 +163,7 @@ jobs:
 
       - uses: actions/download-artifact@v3
         with:
-          name: ${{ matrix.os }}
+          name: ${{ matrix.tag || matrix.os }}
 
       - run: tar xzf artifacts.tgz
         working-directory: ${{ steps.tea.outputs.prefix }}
@@ -161,12 +175,16 @@ jobs:
       run:
         working-directory: tea.xyz/var/pantry/scripts
     needs: [test, build]
-    runs-on: ${{ matrix.platform }}
+    runs-on: ${{ matrix.platform.os }}
     strategy:
       matrix:
         platform:
-          - macos-11
-          - ubuntu-latest
+          - os: macos-11
+          - os: ubuntu-latest
+          - os: [self-hosted, macOS, ARM64]
+            tag: darwin-aarch64
+          - os: [self-hosted, linux, ARM64]
+            tag: linux-aarch64
         compression:
           - xz
           - gz
@@ -181,6 +199,15 @@ jobs:
           repository: teaxyz/cli
           token: ${{ secrets.TEMP_JACOBS_GITHUB_PAT }}
 
+      - run: |
+          if test -d $TEA_PREFIX/tea.xyz; then
+            find $TEA_PREFIX/tea.xyz -mindepth 1 -maxdepth 1 -not \( -path $TEA_PREFIX/tea.xyz/var \) -print0 | \
+            xargs -0 rm -rf
+          fi
+        if: ${{ matrix.platform.tag }}
+        env:
+          TEA_PREFIX: ${{ github.workspace }}
+
       - uses: teaxyz/setup@v0
         id: tea
         with:
@@ -189,7 +216,7 @@ jobs:
 
       - uses: actions/download-artifact@v3
         with:
-          name: ${{ matrix.platform }}
+          name: ${{ matrix.platform.tag || matrix.platform.os }}
           path: ${{ steps.tea.outputs.prefix }}
 
       - run: tar xzf artifacts.tgz
