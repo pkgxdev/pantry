@@ -85,7 +85,7 @@ jobs:
       - run: cli/scripts/install.ts ${{ steps.sorted.outputs.pre-install }}
 
         #FIXME remove later
-      - run: find /opt -name bin -exec find {} -type f \; | xargs chmod 777
+      - run: find /opt -name bin -type d -exec find {} -type f -print0 \; | xargs -0 chmod 777
 
       - run: pantry/scripts/build.ts ${{ steps.sorted.outputs.pkgs }}
         id: build
