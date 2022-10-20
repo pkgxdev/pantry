@@ -185,9 +185,6 @@ jobs:
             tag: darwin-aarch64
           - os: [self-hosted, linux, ARM64]
             tag: linux-aarch64
-        compression:
-          - xz
-          - gz
     steps:
       - uses: actions/checkout@v3
         with:
@@ -223,17 +220,22 @@ jobs:
         working-directory: ${{ steps.tea.outputs.prefix }}
 
       - run: ./bottle.ts ${{ needs.build.outputs.built }}
-        id: bottle
+        id: bottle-xz
         env:
-          COMPRESSION: ${{ matrix.compression }}
+          COMPRESSION: xz
+
+      - run: ./bottle.ts ${{ needs.build.outputs.built }}
+        id: bottle-gz
+        env:
+          COMPRESSION: gz
 
       - name: upload bottles
         id: upload
         run: ./upload.ts
-          --pkgs ${{ needs.build.outputs.built }}
-          --srcs ${{ needs.build.outputs.srcs }}
-          --bottles ${{ steps.bottle.outputs.bottles }}
-          --checksums ${{ steps.bottle.outputs.checksums }}
+          --pkgs ${{ needs.build.outputs.built }} ${{ needs.build.outputs.built }}
+          --srcs ${{ needs.build.outputs.srcs }} ${{ needs.build.outputs.srcs }}
+          --bottles ${{ steps.bottle-gz.outputs.bottles }} ${{ steps.bottle-xz.outputs.bottles }}
+          --checksums ${{ steps.bottle-gz.outputs.checksums }} ${{ steps.bottle-xz.outputs.checksums }}
         env:
           AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
