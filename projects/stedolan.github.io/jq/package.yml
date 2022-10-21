@@ -13,8 +13,10 @@ build:
     github.com/kkos/oniguruma: 6
     git-scm.org: 2
   script: |
-    git apply props/darwin.diff
-    git apply props/lgamma_r.diff
+    if test '{{hw.platform}}' = 'darwin'; then
+      git apply props/darwin.diff
+      git apply props/lgamma_r.diff
+    fi
     ./configure --disable-maintainer-mode --prefix={{prefix}}
     make install
 
