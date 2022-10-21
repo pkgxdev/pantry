@@ -19,6 +19,11 @@ build:
   script: |-
     ./configure --prefix={{ prefix }}
     make --jobs {{ hw.concurrency }} install
+    sed -i.bak \
+      -e 's_prefix="{{prefix}}"_prefix="$(dirname $(dirname $0))"_' \
+      -e 's_{{prefix}}_$prefix_' \
+      {{prefix}}/bin/libtoolize
+    rm {{prefix}}/bin/libtoolize.bak
 
 test:
   dependencies:
