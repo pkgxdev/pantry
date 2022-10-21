@@ -14,16 +14,18 @@ dependencies:
 
 build:
   script: |
-    #FIXME: gotta be a better way
     sed -i.bak "s/^const version = .*$/const version = \"{{ version }}\"/" src/app.ts
     rm src/app.ts.bak
+
     mkdir -p {{ prefix }}/bin
+
     deno compile \
       --allow-read \
       --allow-write \
       --allow-net \
       --allow-run \
       --allow-env \
+      --unstable \
       --import-map=./import-map.json \
       --output {{ prefix }}/bin/tea \
       ./src/app.ts
