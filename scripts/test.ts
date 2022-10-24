@@ -32,6 +32,11 @@ async function test(self: Installation) {
   const yml = await pantry.getYAML(self.pkg).parse()
   const deps = await deps4(self.pkg)
   const installations = await prepare(deps)
+
+  // if we are testing multiple packages, they might not
+  // get linked when they're tested.
+  await link(self)
+
   const env = useShellEnv({ installations: [self, ...installations] })
 
   let text = undent`
