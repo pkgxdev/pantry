@@ -21,7 +21,7 @@ build:
   working-directory:
     build
   script: |
-    meson .. --prefix={{prefix}} --buildtype=release
+    meson .. --prefix={{prefix}} --libdir={{prefix}}/lib --buildtype=release
     ninja -v
     ninja install
   env:
@@ -39,8 +39,12 @@ test:
     tea.xyz/gx/make: '*'
     freedesktop.org/pkg-config: ^0.29
   script: |
-    git clone $FIXTURE .
+    git clone $FIXTURE test
+    cd test
+    git apply ../test_make.diff
     make
     test -f Tut-0.1.typelib
   env:
     FIXTURE: https://gist.github.com/7a0023656ccfe309337a.git
+    PKG_CONFIG_PATH: $PKG_CONFIG_PATH:{{prefix}}/lib/pkgconfig
+
