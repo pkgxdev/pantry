@@ -67,9 +67,12 @@ jobs:
       - name: prepare pantries
         run: |
           tea --sync
-          cp -Rv $GITHUB_WORKSPACE/pantry/ /opt/tea.xyz/var/pantry || true
-        # ^^ || true because I can’t figure out how to stop `cp` erroring
-        # because it doesn’t want to copy symlinks that already exist, eg. `src`
+          find $GITHUB_WORKSPACE/pantry \
+            -not -type l \
+            -mindepth 1 \
+            -maxdepth 1 \
+            -print0 | \
+              xargs -0 -I{} cp -Rv {} /opt/tea.xyz/var/pantry
 
       - run: pantry/scripts/sort.ts ${{ inputs.projects }}
         id: sorted
@@ -139,9 +142,14 @@ jobs:
           prefix: ${{ github.workspace }}
 
       - name: overlay this pantry
-        run: cp -Rv $GITHUB_WORKSPACE/pantry/ /opt/tea.xyz/var/pantry || true
-        # ^^ || true because I can’t figure out how to stop `cp` erroring
-        # because it doesn’t want to copy symlinks that already exist, eg. `src`
+        run: |
+          tea --sync
+          find $GITHUB_WORKSPACE/pantry \
+            -not -type l \
+            -mindepth 1 \
+            -maxdepth 1 \
+            -print0 | \
+              xargs -0 -I{} cp -Rv {} $GITHUB_WORKSPACE/tea.xyz/var/pantry
 
       - uses: actions/download-artifact@v3
         with:
