@@ -41,7 +41,7 @@ async function __build(pkg: Package): Promise<BuildResult> {
 //////// utils
   async function calc_deps() {
     const deps = await pantry.getDeps(pkg)
-    const wet = await hydrate([...deps.runtime, ...deps.build], pkg => pantry.getDeps(pkg).then(x => x.runtime))
+    const wet = await hydrate([...deps.runtime, ...deps.build])
     deps.runtime.push(...wet.pkgs)
     const resolved = await Promise.all(wet.pkgs.map(pkg => cellar.resolve(pkg)))
     return tuplize(deps, wet, resolved)
