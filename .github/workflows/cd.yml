@@ -15,3 +15,21 @@ jobs:
           jq -sc . |
           curl https://app.tea.xyz/api/receiveWatcherProjects --fail -X PUT \
             -H "content-type: application/json" -H "authorization: bearer ${{ secrets.TEA_API_TOKEN }}" -d @-
+  get-diff:
+    runs-on: ubuntu-latest
+    outputs:
+      diff: ${{ steps.diff.outputs.diff }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: technote-space/get-diff-action@v6
+        id: diff
+        with:
+          PATTERNS: projects/**/package.yml
+  build:
+    needs: [get-diff]
+    uses: ./.github/workflows/build.yml
+    with:
+      projects: ${{ needs.get-diff.outputs.diff }}
+      upload: true
+    secrets: inherit
+    if: ${{ needs.get-diff.outputs.diff != '' }}
