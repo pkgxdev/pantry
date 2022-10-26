@@ -66,6 +66,10 @@ jobs:
 
       - name: prepare pantries
         run: |
+          # Ensures the pantry paths within our tea environment exist, and are as synchronized
+          # as might be needed in the future; we then copy the contents of our checkout into
+          # them (excluding symlinks -- `cp`s all handle them differently and they aren't needed
+          # here) to allow access to any new code being merged into PR/CI.
           tea --sync
           find $GITHUB_WORKSPACE/pantry \
             -not -type l \
