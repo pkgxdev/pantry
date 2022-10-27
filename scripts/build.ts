@@ -71,7 +71,7 @@ interface InstallationPlus extends Installation {
 /// overlay ourselves onto the /opt pantry
 async function overlay() {
   const pantry_prefix = usePrefix().join("tea.xyz/var/pantry")
-  const self = new URL(import.meta.url).path().join("../../projects")
+  const self = new URL(import.meta.url).path().parent().parent().join("projects")
   const to = pantry_prefix.join("projects")
   for await (const [path, {isFile}] of self.walk()) {
     if (isFile) {
