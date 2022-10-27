@@ -1,0 +1,41 @@
+distributable:
+  url: https://github.com/pypa/pip/archive/refs/tags/{{version.raw}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: pypa/pip/tags
+
+dependencies:
+  python.org: ^3.7
+
+build:
+  dependencies:
+    curl.se: '*'
+  script: |
+    curl -O https://bootstrap.pypa.io/get-pip.py
+
+    test -d bootstrap || mkdir bootstrap
+
+    python get-pip.py --target="$(pwd)/bootstrap"
+
+    PYTHONPATH=$(pwd)/bootstrap python -m pip install . --target={{prefix}}
+
+    cd {{prefix}}
+    for binfile in $shebangs; do
+      sed -i.bak -e 's|#!{{ deps.python.org.prefix }}/bin/|#!/usr/bin/env |g' $binfile
+      rm $binfile.bak
+    done
+    rm bin/pip{{deps.python.org.version.major}}.{{deps.python.org.version.minor}}
+
+  env:
+    shebangs:
+      - bin/pip
+      - bin/pip{{deps.python.org.version.major}}
+test:
+  script: |
+    pip install findtui --target .
+    test -f findtui/main.py
+
+provides:
+  - bin/pip
+  - bin/pip{{deps.python.org.version.major}}

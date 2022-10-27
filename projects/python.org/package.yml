@@ -22,9 +22,6 @@ dependencies:
   gnu.org/readline: 8
   invisible-island.net/ncurses: 6
 
-#TODO pip should be python.org/pip and installed by default (as a recommended dependent) with python
-#RATIONALE it is independently versioned
-
 build:
   dependencies:
     tea.xyz/gx/cc: c99
@@ -43,16 +40,10 @@ build:
 
     # provide unversioned symlinks
     cd {{prefix}}/bin
-    for x in python pip idle pydoc; do
+    for x in python idle pydoc; do
       ln -sf ${x}{{ version.marketing }} $x
     done
     ln -sf python{{ version.marketing }}-config python-config
-
-    # strangely pip3 is a copy of pip3.10
-    if test ! -L pip{{version.major}}; then
-      rm pip{{version.major}}
-      ln -s pip{{version.marketing}} pip{{version.major}}
-    fi
 
     # make relocatable
     cd {{prefix}}
@@ -70,7 +61,7 @@ build:
       # it’s 202x
       - --enable-ipv6
       # prevent auto updates -> we control that
-      # - --without-ensurepip
+      - --without-ensurepip
       - --disable-loadable-sqlite-extensions
       # use our libraries not the bundled ones
       - --with-system-expat
@@ -93,7 +84,6 @@ build:
     shebangs:
       - bin/2to3-{{version.marketing}}
       - bin/idle{{version.marketing}}
-      - bin/pip{{version.marketing}}
       - bin/pydoc{{version.marketing}}
       - bin/python{{version.marketing}}-config
 
@@ -125,4 +115,3 @@ test:
   #TODO test all modules eg zlib module
   script: |
     python --version
-    pip --version
