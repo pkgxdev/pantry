@@ -1,0 +1,26 @@
+distributable:
+  url: https://github.com/npm/cli/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: npm/cli
+
+provides:
+  - bin/npm
+  - bin/npx
+
+dependencies:
+  nodejs.org: '^14||^16||^18'
+
+build:
+  dependencies:
+    curl.se: '*'
+  script: |
+    ./scripts/install.sh
+  env:
+    npm_config_prefix: ${{prefix}}
+
+test:
+  script: |
+    npm -g bin
+    npx -q tldr ls
