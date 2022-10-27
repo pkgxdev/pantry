@@ -43,6 +43,12 @@ jobs:
           repository: teaxyz/cli
           token: ${{ secrets.TEMP_JACOBS_GITHUB_PAT }}
 
+      - uses: teaxyz/setup@v0
+        id: tea
+        with:
+          srcroot: /opt/tea.xyz/var/pantry
+          prefix: /opt
+
       - name: HACKS
         run: |
           case ${{ matrix.os }} in
@@ -58,32 +64,23 @@ jobs:
             ;;
           esac
 
-      - uses: teaxyz/setup@v0
-        id: tea
-        with:
-          srcroot: pantry
-          prefix: /opt
-
-      - name: prepare pantries
-        run: |
-          # Ensures the pantry paths within our tea environment exist, and are as synchronized
-          # as might be needed in the future; we then copy the contents of our checkout into
-          # them (excluding symlinks -- `cp`s all handle them differently and they aren't needed
-          # here) to allow access to any new code being merged into PR/CI.
-          tea --sync
+      - run: |
           find $GITHUB_WORKSPACE/pantry \
             -not -type l \
             -mindepth 1 \
             -maxdepth 1 \
             -print0 | \
               xargs -0 -I{} cp -Rv {} /opt/tea.xyz/var/pantry
+          cp -a cli /opt/tea.xyz/var/
 
-      - run: pantry/scripts/sort.ts ${{ inputs.projects }}
+      - run: /opt/tea.xyz/var/pantry/scripts/sort.ts ${{ inputs.projects }}
         id: sorted
 
       - run: cli/scripts/install.ts ${{ steps.sorted.outputs.pre-install }}
 
-      - run: pantry/scripts/build.ts ${{ steps.sorted.outputs.pkgs }}
+      - run: cat /opt/tea.xyz/var/pantry/projects/zlib.net/package.yml
+
+      - run: /opt/tea.xyz/var/pantry/scripts/build.ts ${{ steps.sorted.outputs.pkgs }}
         id: build
         env:
           # GITHUB_TOKEN doesn't have private access to teaxyz/cli.
@@ -130,7 +127,7 @@ jobs:
 
       - uses: actions/checkout@v3
         with:
-          path: cli
+          path: tea.xyz/var/cli
           repository: teaxyz/cli
           token: ${{ secrets.TEMP_JACOBS_GITHUB_PAT }}
 
@@ -142,31 +139,33 @@ jobs:
       - uses: teaxyz/setup@v0
         id: tea
         with:
-          srcroot: pantry
+          srcroot: tea.xyz/var/pantry
           prefix: ${{ github.workspace }}
 
-      - name: overlay this pantry
+      - name: overlay our pantry
         run: |
-          tea --sync
-          find $GITHUB_WORKSPACE/pantry \
+          find pantry \
             -not -type l \
             -mindepth 1 \
             -maxdepth 1 \
             -print0 | \
-              xargs -0 -I{} cp -Rv {} $GITHUB_WORKSPACE/tea.xyz/var/pantry
+              xargs -0 -I{} cp -Rv {} tea.xyz/var/pantry
 
       - uses: actions/download-artifact@v3
         with:
           name: ${{ matrix.tag || matrix.os }}
 
       - run: tar xzf artifacts.tgz
-        working-directory: ${{ steps.tea.outputs.prefix }}
 
-      - run: pantry/scripts/test.ts ${{ inputs.projects }}
+      # script comes from pantry.core, which _might_not_be_this_pantry_
+      - run: tea.xyz/var/pantry/scripts/test.ts ${{ inputs.projects }}
 
   bottle:
     needs: [test, build]
     runs-on: ${{ matrix.platform.os }}
+    defaults:
+      run:
+        working-directory: tea.xyz/var/pantry
     strategy:
       matrix:
         platform:
@@ -183,15 +182,24 @@ jobs:
 
       - uses: actions/checkout@v3
         with:
-          path: cli
+          path: tea.xyz/var/cli
           repository: teaxyz/cli
           token: ${{ secrets.TEMP_JACOBS_GITHUB_PAT }}
 
       - uses: teaxyz/setup@v0
         id: tea
         with:
-          srcroot: pantry
+          srcroot: tea.xyz/var/pantry
           prefix: ${{ github.workspace }}
+
+      - name: overlay our pantry
+        run: |
+          find $GITHUB_WORKSPACE/pantry \
+            -not -type l \
+            -mindepth 1 \
+            -maxdepth 1 \
+            -print0 | \
+              xargs -0 -I{} cp -Rv {} .
 
       - uses: actions/download-artifact@v3
         with:
@@ -201,12 +209,12 @@ jobs:
       - run: tar xzf artifacts.tgz
         working-directory: ${{ steps.tea.outputs.prefix }}
 
-      - run: pantry/scripts/bottle.ts ${{ needs.build.outputs.built }}
+      - run: scripts/bottle.ts ${{ needs.build.outputs.built }}
         id: bottle-xz
         env:
           COMPRESSION: xz
 
-      - run: pantry/scripts/bottle.ts ${{ needs.build.outputs.built }}
+      - run: scripts/bottle.ts ${{ needs.build.outputs.built }}
         id: bottle-gz
         env:
           COMPRESSION: gz
@@ -214,7 +222,7 @@ jobs:
       - name: upload bottles
         id: upload
         if: ${{ inputs.upload }}
-        run: pantry/scripts/upload.ts
+        run: scripts/upload.ts
           --pkgs ${{ needs.build.outputs.built }} ${{ needs.build.outputs.built }}
           --srcs ${{ needs.build.outputs.srcs }} ${{ needs.build.outputs.srcs }}
           --bottles ${{ steps.bottle-gz.outputs.bottles }} ${{ steps.bottle-xz.outputs.bottles }}
