@@ -77,6 +77,6 @@ scripts/ls.ts | xargs scripts/sort.ts | xargs scripts/build.ts
 
 ```sh
 for x in scripts/*.ts src/app.ts; do
-  deno check --import-map=$SRCROOT/import-map.json $x
+  deno check --unstable --import-map=$SRCROOT/import-map.json $x
 done
 ```

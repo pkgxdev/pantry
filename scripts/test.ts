@@ -9,6 +9,7 @@ args:
   - --allow-read
   - --allow-write
   - --allow-env
+  - --unstable
   - --import-map={{ srcroot }}/import-map.json
 ---*/
 
@@ -20,7 +21,7 @@ import { resolve, install, hydrate, link } from "prefab"
 import Path from "path"
 import * as ARGV from "./utils/args.ts"
 
-const { debug } = useFlags()
+useFlags()
 
 const pantry = usePantry()
 

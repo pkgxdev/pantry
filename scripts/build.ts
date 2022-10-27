@@ -38,6 +38,8 @@ if (usePrefix().string != "/opt") {
   throw new Error("builds must be performed in /opt (try TEA_PREFIX=/opt)")
 }
 
+await overlay()
+
 for (const rq of dry) {
   const pkg = await pantry.resolve(rq)
 
@@ -63,4 +65,18 @@ await set_output("srcs-relative-paths", rv.compact(x => x.src?.relative({ to }))
 
 interface InstallationPlus extends Installation {
   src: Path
+}
+
+///------------------------------------------------------------
+/// overlay ourselves onto the /opt pantry
+async function overlay() {
+  const pantry_prefix = usePrefix().join("tea.xyz/var/pantry")
+  const self = new URL(import.meta.url).path().join("../../projects")
+  const to = pantry_prefix.join("projects")
+  for await (const [path, {isFile}] of self.walk()) {
+    if (isFile) {
+      const dst = to.join(path.relative({ to: self }))
+      path.cp({ into: dst.parent().mkpath() })
+    }
+  }
 }
