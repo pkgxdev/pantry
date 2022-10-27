@@ -1,11 +1,19 @@
 #!/bin/sh
 
-exe="$(basename $0)"
+exe=$(basename "$0")
 
 if test -z "$TEA_PREFIX"
 then
-  echo '$TEA_PREFIX mysteriously unset' >&2
+  echo 'TEA_PREFIX mysteriously unset' >&2
   exit 1
 else
+  # At a minimum, `ld` will complain if you mix the `-r` and `-rpath` flags,
+  # so if any argument to this script is `-r`, we just pass through without
+  # additions.
+  for word in "$@"; do
+    if test "$word" = "-r"; then
+      exec /usr/bin/"$exe" "$@"
+    fi
+  done
   exec /usr/bin/"$exe" "$@" -rpath "$TEA_PREFIX"
 fi
