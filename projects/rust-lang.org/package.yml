@@ -6,20 +6,23 @@ versions:
   github: rust-lang/rust
   strip: /^Rust /
 
-# TODO cargo should be a separate package (probs)
-# NOTE that it does have independent versioning
 # TODO we should disable rust-up etc. if you want that, install rust with rust-up!
 
 provides:
-  - bin/cargo
-  - bin/rustc
-  - bin/rustdoc
-  - bin/rust-lldb
+  - bin/cargo-clippy
+  - bin/cargo-fmt
+  - bin/clippy-driver
+  - bin/rls
+  - bin/rust-analyzer
   - bin/rust-gdb
   - bin/rust-gdbgui
+  - bin/rust-lldb
+  - bin/rustc
+  - bin/rustdoc
+  - bin/rustfmt
 
+# FIXME: unused?
 options:
-  - cargo  # the rust package manager
   - rls
   - clippy
   - rustfmt
@@ -30,18 +33,15 @@ dependencies:
   #FIXME strictly rustc only needs a linker
   tea.xyz/gx/cc: c99
   zlib.net: 1
-  #TODO cargo needs git
-  # this is a usage dependency, it's not required for cargo to run, just for some usages of cargo to run
-  # so would be a little more strict than “recommended“
-  #git-scm.com: 2
 
 build:
   dependencies:
     tea.xyz/gx/make: '*'  #FIXME surely we don’t need make AND ninja
     cmake.org: ^3.20
     ninja-build.org: ^1.10
-    curl.se: '*'
     python.org: 3
+    openssl.org: '*' # needed to build openssl-sys
+    freedesktop.org/pkg-config: ^0.29
   script: |-
     # --enable-optimize not available as of 1.63.0
     if test {{version.major}} -eq 1 -a {{version.minor}} -lt 63; then
@@ -50,15 +50,25 @@ build:
 
     ./configure $ARGS
     make install
-    mv ./build/{{ hw.target }}/stage0/bin/cargo {{ prefix }}/bin/cargo
+
+    for tool in $tools; do
+      ./x.py install $tool
+    done
+
     rm -rf {{prefix}}/share/doc
-  #TODO ^^ build cargo properly
   env:
     ARGS:
       - --enable-vendor
       - --prefix={{ prefix }}
       - --enable-ninja
       - --disable-docs  # docs are online
+      - --tools=rls,clippy,rustfmt,analysis
+    tools:
+      - rls       # deprecated for rust-analyzer some time ago -- remove eventually
+      - clippy
+      - rustfmt
+      - rust-analyzer
+
 test:
   script: |
     rustc $FIXTURE -o hello

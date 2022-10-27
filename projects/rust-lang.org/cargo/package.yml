@@ -1,0 +1,54 @@
+distributable:
+  url: https://github.com/rust-lang/cargo/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: rust-lang/cargo/tags
+
+provides:
+  - bin/cargo
+
+dependencies:
+  git-scm.org: 2
+  rust-lang.org: '*'
+  openssl.org: ^1 # cargo needs the certs
+
+build:
+  dependencies:
+    gnu.org/tar: '*'
+    tukaani.org/xz: '*'
+    freedesktop.org/pkg-config: ^0.29
+  script: |-
+    case "{{hw.platform}}-{{hw.arch}}" in
+    darwin-aarch64)
+      TRIPLE=aarch64-apple-darwin
+      ;;
+    darwin-x86-64)
+      TRIPLE=x86_64-apple-darwin
+      ;;
+    linux-aarch64)
+      TRIPLE=aarch64-unknown-linux-gnu
+      ;;
+    linux-x86-64)
+      TRIPLE=x86_64-unknown-linux-gnu
+      ;;
+    esac
+
+    # cargo requires cargo to cargo
+    # FIXME: versions?
+    curl https://static.rust-lang.org/dist/2022-08-11/cargo-1.63.0-$TRIPLE.tar.xz | tar Jxf -
+
+    ./cargo-1.63.0-$TRIPLE/cargo/bin/cargo $ARGS
+  env:
+    ARGS:
+      - install
+      - --root={{ prefix }}
+      - --path=.
+
+test:
+  script: |
+    cargo init .
+    echo 'fn main() {println!("Hello World!");}' >src/main.rs
+    cargo clippy
+    cargo run
+    cargo run --release
