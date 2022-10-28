@@ -36,7 +36,7 @@ to namespace.
 
 ## Packaging Knowledgebase
 
-Our [wiki](/wiki) is our knowledgebase. Fill it with the fruits of your
+Our [wiki](../../wiki) is our knowledgebase. Fill it with the fruits of your
 knowledge. Please keep it tidy.
 
 &nbsp;
