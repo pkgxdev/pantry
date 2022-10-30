@@ -64,7 +64,7 @@ signed, versioned tags and signed source tarballs.
 
 |   Project   | Version |
 |-------------|---------|
-| deno.land   | ^1.23   |
+| deno.land   | ^1.27   |
 | tea.xyz     | ^0      |
 
 ## Build All
