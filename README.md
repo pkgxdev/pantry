@@ -1,66 +1,77 @@
 ![tea](https://tea.xyz/banner.png)
 
-tea is a decentralized package manager—this requires a decentralized package
-registry. We’re releasing our testnet later this year. In the meantime the
-pantry is our stop-gap solution.
+This pantry† represents the most essential open source packages in the world.
+We promise to prioritize fixes, updates and robustness for these packages.
+We will not lightly accept additions, and thus suggest submitting your pull
+request against [pantry.extra] first.
 
-# Getting Started
+> † see [pantry.zero] for “what is a pantry”
 
-You’ll need a `GITHUB_TOKEN` in your environment since we use the GitHub
-GraphQL API to fetch versions.
+# Use with tea/cli
+
+tea/cli clones/updates this pantry and [pantry.extra] when installed with the
+installer or when you run `tea --sync`.
+
+At this time pantries are not versioned.
+
+# Contributing
+
+Create new `package.yml` files namespaced as per our current patterns under
+the [`./projects/`] folder.
+
+The `package.yml` format is not documented, but it is not complex, pick an
+existing entry for tips.
+
+You should verify that your package builds before submitting it. At this time
+we require that we build all packages ourselves†. `tea` requires that
+packages are built to `/opt` to minimize potential build problems. You do not
+need to install `tea` to opt first, but you may need to make `/opt` writable
+first (`sudo chmod g+w /opt`).
+
+```sh
+export GITHUB_TOKEN=…   # you need a (zero permissions) [PAT]
+export TEA_PREFIX=/opt
+export TEA_PANTRY_PATH="$PWD"
+./scripts/build.ts pkg.com
+# ^^ you will need to have installed all dependencies *manually* first
+```
+
+Packages require a `test` YAML node. This script should thoroughly verify all
+the functionality of the package is working. You can run the test with:
+
+```sh
+./scripts/test.ts pkg.com
+```
+
+tea requires all packages be relocatable. Our CI will verify this for you.
+You can check locally by moving the installation from `/opt` to `~/.tea` and
+running the test again.
+
+> † we intend to relax this and accept pre-built binaries from third parties
+> however we will require third party verification for security reasons.
+
+Now make a pull request! We’ll test on all platforms we support in the PR. If
+it passes both CI and review we’ll merge.
+
+## Packaging Guide
+
+Our [wiki] is our packaging knowledge base.
+For other assistance, start a [discussion].
+
+## After Your Contribution
+
+We build “bottles” (tar’d binaries) and upload them to both our centralized
+bottle storage and decentralized [IPFS].
+
+tea automatically builds new releases of packages *as soon as they are
+released* (usually starting the builds within seconds). There is no need to
+submit PRs for updates.
 
 &nbsp;
 
 
 # Meta
-
-## Entry Requirements
-
-This pantry only accepts devtools that we feel confident we can maintain.
-Quality and robustness are our goals. If you want other tools you can maintain
-your own pantry and we’ll build the binaries.
-
-## Philosophy
-
-Fundamentally we're coming at this from the perspective that the maintainer
-should decide how their software is distributed and we’re making the tools so
-they can do that in cross platform way.
-
-This repo is a bootstrap and is stubs.
-
-## Naming
-
-We use fully-qualified names. Naming is hard, and the world has spent a while
-trying to get it right. In this kind of domain the *correct choice* is
-to namespace.
-
-## Packaging Knowledgebase
-
-Our [wiki](../../wiki) is our knowledgebase. Fill it with the fruits of your
-knowledge. Please keep it tidy.
-
-&nbsp;
-
-
-# Coming Soon
-
-## Maintaining Your Own Pantry
-
-We will build binaries for forks of this repository and then surface the
-`package.yml`s you maintain to users of tea/cli. This feature is coming
-soon and will require signed commits and that you come to our Discord and say
-hi.
-
-## Hosting and Maintaining Your Own `package.yml`
-
-If you have a website you can host your own `package.yml` there and we will
-build binaries for you. This feature is coming soon and will require
-signed, versioned tags and signed source tarballs.
-
-
-&nbsp;
-
-# Dependencies
+## Dependencies
 
 |   Project   | Version |
 |-------------|---------|
@@ -70,7 +81,7 @@ signed, versioned tags and signed source tarballs.
 ## Build All
 
 ```sh
-scripts/ls.ts | xargs scripts/sort.ts | xargs scripts/build.ts
+scripts/ls.ts | scripts/sort.ts | scripts/build.ts
 ```
 
 ## Typecheck
@@ -80,3 +91,11 @@ for x in scripts/*.ts src/app.ts; do
   deno check --unstable --import-map=$SRCROOT/import-map.json $x
 done
 ```
+
+[pantry.zero]: ../../../pantry.zero
+[pantry.extra]: ../../../pantry.extra
+[`./projects/`]: ./projects
+[IPFS]: https://ipfs.tech
+[PAT]: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token
+[wiki]: ../../../pantry.zero/wiki
+[discussion]: https://github.com/orgs/teaxyz/discussions
