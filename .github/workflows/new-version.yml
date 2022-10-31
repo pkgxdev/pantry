@@ -1,0 +1,17 @@
+name: new-version
+run-name: new-version (${{ inputs.projects }})
+on:
+  workflow_dispatch:
+    inputs:
+      projects:
+        description: eg. `foo.com@1.2.3 bar.com@2.3.4`
+        required: true
+        type: string
+
+jobs:
+  build:
+    uses: teaxyz/pantry.core/.github/workflows/build.yml@main
+    with:
+      projects: ${{ inputs.projects }}
+      upload: true
+    secrets: inherit

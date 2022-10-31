@@ -1,0 +1,20 @@
+name: ci
+on: pull_request
+
+jobs:
+  get-diff:
+    runs-on: ubuntu-latest
+    outputs:
+      diff: ${{ steps.diff.outputs.diff }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: technote-space/get-diff-action@v6
+        id: diff
+        with:
+          PATTERNS: projects/**/package.yml
+  build:
+    needs: [get-diff]
+    uses: teaxyz/pantry.core/.github/workflows/build.yml@main
+    with:
+      projects: ${{ needs.get-diff.outputs.diff || 'zlib.net' }}
+    secrets: inherit
