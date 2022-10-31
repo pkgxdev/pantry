@@ -144,7 +144,7 @@ class Fixer
     def fix_tea_prefix s
       s = Pathname.new(s).relative_path_from(Pathname.new($tea_prefix))
       s = s.sub(%r{/v(\d+)\.\d+\.\d+/}, '/v\1/')
-      s = s.sub(%r{/(.+)\.(\d+)\.\d+\.\d+\.dylib$}, '/\1.dylib')
+      s = s.sub(%r{/(\.\d+)+\.dylib$}, '/.dylib')
       s = "@rpath/#{s}"
       return s
     end
