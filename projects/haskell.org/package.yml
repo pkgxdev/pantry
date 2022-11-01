@@ -36,14 +36,16 @@ build:
     tea.xyz/gx/make: '*'  #FIXME specifically, gnu make is *required*
     curl.se: '*'
     gnu.org/m4: '*'
+    git-scm.org: ^2
+    github.com/numactl/numactl: ^2 # only linux-aarch64's ghcup needs this; always worry about your deps
   script: |-
     # `ghc` needs `ghc` to bootstrap `ghc`
     # The canonical way to achieve this is with `ghcup`
     # To that end, we capture $HOME so as to no pollute the user's life with unwanted
-    # stage0 tooling. Instead, everything is localized to {{ prefix }}/src, and can be
+    # stage0 tooling. Instead, everything is localized to $HOME, and can be
     # cleaned up at will, and won't capture any of the user's workflow
 
-    export HOME={{ prefix }}/src
+    export HOME="$(pwd)"
     export BOOTSTRAP_HASKELL_NONINTERACTIVE=1
     export BOOTSTRAP_HASKELL_ADJUST_BASHRC=0
     export BOOTSTRAP_HASKELL_GHC_VERSION={{ version }}
@@ -54,24 +56,49 @@ build:
       curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | sh
     fi
 
-    PATH="{{ prefix }}/src/.ghcup/bin:$PATH"
+    PATH="$HOME/.ghcup/bin:$PATH"
 
-    if test -e {{ prefix }}/src/.cabal/bin; then
-      rm -r {{ prefix }}/src/.cabal/bin
+    if test -e $HOME/.cabal/bin; then
+      rm -r $HOME/.cabal/bin
     fi
 
     cabal update && cabal install alex happy
 
-    export PATH="{{ prefix }}/src/.cabal/bin:$PATH"
-    GHC="{{ prefix }}/src/.ghcup/bin/ghc"
+    export PATH="$HOME/.cabal/bin:$PATH"
+    GHC="$HOME/.ghcup/bin/ghc"
 
     export CPATH=/opt/invisible-island.net/ncurses/v6/include/ncursesw:$CPATH
 
-    #FIXME oddly, they don’t provide `./configure`; we have to generate it
+    #FIXME oddly, they don't provide `./configure`; we have to generate it
     autoconf
     ./configure --prefix={{ prefix }}
 
-    hadrian/build -j install --prefix={{ prefix }} --docs=none
+    # This is needed so haskell doesn't try to recache its package db before we've
+    # has a chances to fix the rpaths
+    # This is probably FIXME
+    git apply props/tea-buildrules.diff
+
+    hadrian/build $ARGS install
+
+    for shim in $shims; do
+      sed -i.bak -e 's_="{{prefix}}_="$(dirname $(dirname $0))_' {{prefix}}/bin/$shim-{{version}} && \
+        rm {{prefix}}/bin/$shim-{{version}}.bak
+    done
+  env:
+    ARGS:
+      - -j
+      - --prefix={{prefix}}
+      - --docs=none
+    shims:
+      - ghc
+      - ghc-pkg
+      - ghci
+      - haddock
+      - hp2ps
+      - hpc
+      - hsc2h
+      - runghc
+      - runhaskell
 
 test:
   script: |
