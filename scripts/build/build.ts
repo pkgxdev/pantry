@@ -49,7 +49,8 @@ async function __build(pkg: Package): Promise<BuildResult> {
 
   async function clean() {
     const installation = await should_clean()
-    if (installation) {
+    // If we clean deno.land, it breaks the rest of the process.
+    if (installation && installation.pkg.project !== "deno.land") {
       console.log({ cleaning: installation.path })
       for await (const [path] of installation.path.ls()) {
         // we delete contents rather than the directory itself to prevent broken vx.y symlinks
