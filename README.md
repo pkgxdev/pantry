@@ -1,15 +1,15 @@
 ![tea](https://tea.xyz/banner.png)
 
-tea is a decentralized package manager—this requires a decentralized package
-registry. Our pantries are our tentative first step towards that goal.
+This pantry† is the complement to [pantry.core].
 
-# pantry.extra
+Longer term it will be split out into more pantries, some of which we hope
+will be maintained by their own communities.
 
-This pantry is our “at launch” complement to [pantry.core].
-
-For now, new pantry submissions should go here.
+> † see [pantry.zero] for “what is a pantry”
 
 [pantry.core]: ../../../pantry.core
+[pantry.zero]: ../../../pantry.zero
+
 
 # Dependencies
 
@@ -17,17 +17,3 @@ For now, new pantry submissions should go here.
 |-------------|---------|
 | deno.land   | ^1.23   |
 | tea.xyz     | ^0      |
-
-## Build All
-
-```sh
-scripts/ls.ts | xargs scripts/sort.ts | xargs scripts/build.ts
-```
-
-## Typecheck
-
-```sh
-for x in scripts/*.ts src/app.ts; do
-  deno check --unstable --import-map=$SRCROOT/import-map.json $x
-done
-```
