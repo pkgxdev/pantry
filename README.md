@@ -16,6 +16,12 @@ At this time pantries are not versioned.
 
 # Contributing
 
+Firstly, clone this repository, you’ll edit files here.
+
+> Note that packages are split across multiple pantries, so to see the
+> `package.yml` files for all your dependencies you may want to open another
+> editor at `~/.tea/tea.xyz/var/pantry`
+
 Create new `package.yml` files namespaced as per our current patterns under
 the [`./projects/`] folder.
 
