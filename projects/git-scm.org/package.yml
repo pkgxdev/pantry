@@ -23,6 +23,9 @@ build:
 
     cd "{{prefix}}"
     DEBUG=1 fix-shebangs.ts bin/* libexec/git-core/*
+
+    mkdir etc
+    cp "$SRCROOT"/props/git* etc
   env:
     V: 1
     BAKE:
@@ -31,7 +34,15 @@ build:
     CONF:
     - --prefix={{ prefix }}
     - --with-perl={{ deps.perl.org.prefix }}
+    - --with-gitconfig=etc/gitconfig
     INSTALL_STRIP: -s
 
 test: |
   git clone https://github.com/teaxyz/white-paper
+
+  mkdir foo
+  cd foo
+  touch .DS_Store testfile
+  git init
+  git add .
+  test "$(git diff --name-only --cached)" = "testfile"
