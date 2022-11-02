@@ -50,6 +50,7 @@ build:
     export BOOTSTRAP_HASKELL_ADJUST_BASHRC=0
     export BOOTSTRAP_HASKELL_GHC_VERSION={{ version }}
     export CC={{ deps.llvm.org.prefix }}/bin/clang
+    export LD={{ deps.llvm.org.prefix }}/bin/lld
 
     if test -d .ghcup; then
       echo "ghcup already installed"
@@ -71,7 +72,7 @@ build:
     export CPATH=/opt/invisible-island.net/ncurses/v6/include/ncursesw:$CPATH
 
     # Patch out LLVM version checks (they want 12, we have 14) to force detection of `opt` and `llc`
-    sed -i.bak 's/LlvmMaxVersion=13/LlvmMaxVersion=15/'
+    sed -i.bak 's/LlvmMaxVersion=13/LlvmMaxVersion=15/' configure.ac
     #FIXME oddly, they don't provide `./configure`; we have to generate it
     autoconf
     ./configure --prefix={{ prefix }}
