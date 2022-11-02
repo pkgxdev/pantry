@@ -28,6 +28,7 @@ dependencies:
   gnu.org/gmp: 6
   invisible-island.net/ncurses: 6
   llvm.org: '*'
+  tea.xyz/gx/cc: c99  # ghc uses `gcc` as part of its build process
 
 build:
   dependencies:
@@ -50,6 +51,8 @@ build:
     export BOOTSTRAP_HASKELL_ADJUST_BASHRC=0
     export BOOTSTRAP_HASKELL_GHC_VERSION={{ version }}
     export CC={{ deps.llvm.org.prefix }}/bin/clang
+    # force use of our ld instead of llvm's on macOS
+    export LD={{ tea.xyz/gx/cc.prefix }}/bin/ld
 
     if test -d .ghcup; then
       echo "ghcup already installed"
