@@ -14,6 +14,7 @@ args:
 import Path from "path"
 import { useFlags, usePrefix } from "hooks"
 
+//FIXME needs to get actual paths from usePantry
 const prefix = new Path(`${usePrefix()}/tea.xyz/var/pantry/projects`)
 
 interface Entry {

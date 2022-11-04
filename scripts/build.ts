@@ -14,6 +14,8 @@ args:
   - --allow-write={{tea.prefix}}
   - --allow-env
   - --import-map={{ srcroot }}/import-map.json
+env:
+  TEA_PANTRY_PATH: "{{srcroot}}"
 ---*/
 
 import { usePantry } from "hooks"
@@ -21,7 +23,6 @@ import { Installation } from "types"
 import { pkg as pkgutils } from "utils"
 import { useFlags, usePrefix } from "hooks"
 import { set_output } from "./utils/gha.ts"
-import { overlay_this_pantry } from "./utils/misc.ts"
 import build, { BuildResult } from "./build/build.ts"
 import * as ARGV from "./utils/args.ts"
 import Path from "path"
@@ -33,13 +34,6 @@ const dry = await ARGV.toArray(ARGV.pkgs())
 const gha = !!Deno.env.get("GITHUB_ACTIONS")
 const group_it = gha && dry.length > 1
 const rv: BuildResult[] = []
-
-if (usePrefix().string != "/opt") {
-  console.error({ TEA_PREFIX: usePrefix().string })
-  throw new Error("builds must be performed in /opt (try TEA_PREFIX=/opt)")
-}
-
-await overlay_this_pantry()
 
 for (const rq of dry) {
   const pkg = await pantry.resolve(rq)

@@ -16,30 +16,38 @@ At this time pantries are not versioned.
 
 # Contributing
 
-Firstly, clone this repository, you’ll edit files here.
+Firstly, clone this repository, you’ll edit files here. *Don’t work out of
+`~/.tea/tea.xyz/var/pantry`, it’s not a git directory!*
+
+You also must (currently, we know it sucks) clone tea/cli to the same *parent*
+directory. So you’ll have:
+
+```sh
+$ ls
+cli
+pantry.core
+```
+
+Keep tea/cli updated, currently there is unversioned revlock between the two.
+Also you should update your installed tea/cli frequently!)†
+
+> † `sh <(curl tea.xyz)` updates the installed tea/cli
 
 > Note that packages are split across multiple pantries, so to see the
 > `package.yml` files for all your dependencies you may want to open another
 > editor at `~/.tea/tea.xyz/var/pantry`
 
 Create new `package.yml` files namespaced as per our current patterns under
-the [`./projects/`] folder.
+the [`./projects/`] folder. The `package.yml` format is not documented
+(sorry!), but it is not complex, pick an existing entry for tips.
 
-The `package.yml` format is not documented, but it is not complex, pick an
-existing entry for tips.
-
-You should verify that your package builds before submitting it. At this time
-we require that we build all packages ourselves†. `tea` requires that
-packages are built to `/opt` to minimize potential build problems. You do not
-need to install `tea` to opt first, but you may need to make `/opt` writable
-first (`sudo chmod g+w /opt`).
+You should verify that your package builds before submitting it.
 
 ```sh
 export GITHUB_TOKEN=…   # you need a (zero permissions) [PAT]
-export TEA_PREFIX=/opt
-export TEA_PANTRY_PATH="$PWD"
 ./scripts/build.ts pkg.com
 # ^^ you will need to have installed all dependencies *manually* first
+# try `scripts/deps.ts -b pkg.com | xargs ../cli/scripts/install.ts`
 ```
 
 Packages require a `test` YAML node. This script should thoroughly verify all
@@ -50,14 +58,13 @@ the functionality of the package is working. You can run the test with:
 ```
 
 tea requires all packages be relocatable. Our CI will verify this for you.
-You can check locally by moving the installation from `/opt` to `~/.tea` and
-running the test again.
-
-> † we intend to relax this and accept pre-built binaries from third parties
-> however we will require third party verification for security reasons.
+You can check locally by moving the installation from `~/.tea` to another tea
+installation (eg. `~/.tea.build`‡ and running the test again.
 
 Now make a pull request! We’ll test on all platforms we support in the PR. If
-it passes both CI and review we’ll merge.
+it passes both CI and review: we’ll merge!
+
+> ‡ `TEA_PREFIX=~/.tea.build sh <(curl tea.xyz)`
 
 ## Packaging Guide
 

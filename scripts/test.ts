@@ -11,6 +11,8 @@ args:
   - --allow-env
   - --unstable
   - --import-map={{ srcroot }}/import-map.json
+env:
+  TEA_PANTRY_PATH: "{{srcroot}}"
 ---*/
 
 import { Installation, Package, PackageRequirement } from "types"
@@ -18,12 +20,10 @@ import { usePantry, useFlags, usePrefix } from "hooks"
 import useShellEnv, { expand } from "hooks/useShellEnv.ts"
 import { run, undent, pkg as pkgutils } from "utils"
 import { resolve, install, hydrate, link } from "prefab"
-import { overlay_this_pantry } from "./utils/misc.ts"
 import * as ARGV from "./utils/args.ts"
 import Path from "path"
 
 useFlags()
-
 const pantry = usePantry()
 
 for await (const pkg of ARGV.installs()) {
@@ -31,8 +31,6 @@ for await (const pkg of ARGV.installs()) {
 }
 
 async function test(self: Installation) {
-  await overlay_this_pantry()
-
   const yml = await pantry.getYAML(self.pkg).parse()
   const deps = await deps4(self.pkg)
   const installations = await prepare(deps)

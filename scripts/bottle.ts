@@ -14,6 +14,8 @@ args:
   - --allow-read
   - --allow-write
   - --import-map={{ srcroot }}/import-map.json
+env:
+  TEA_PANTRY_PATH: "{{srcroot}}"
 --- */
 
 import { Installation } from "types"

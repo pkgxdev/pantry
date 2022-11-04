@@ -1,4 +1,5 @@
 name: build
+
 on:
   workflow_call:
     inputs:
@@ -9,6 +10,9 @@ on:
         required: false
         type: boolean
         default: false
+
+env:
+  TEA_PANTRY_PATH: ${{ github.workspace }}/pantry
 
 jobs:
   build:
@@ -41,11 +45,11 @@ jobs:
         with:
           path: cli
           repository: teaxyz/cli
-          token: ${{ secrets.TEMP_JACOBS_GITHUB_PAT }}
 
       - uses: teaxyz/setup@v0
         id: tea
         with:
+          # necessary because we currently require a `.git` directory
           srcroot: /opt/tea.xyz/var/pantry
           prefix: /opt
 
@@ -64,22 +68,14 @@ jobs:
             ;;
           esac
 
-      - run: |
-          find $GITHUB_WORKSPACE/pantry \
-            -not -type l \
-            -mindepth 1 \
-            -maxdepth 1 \
-            -print0 | \
-              xargs -0 -I{} cp -Rv {} /opt/tea.xyz/var/pantry
-          cp -a cli /opt/tea.xyz/var/
+          ln -s $GITHUB_WORKSPACE/cli /opt/tea.xyz/var/cli
 
       - run: /opt/tea.xyz/var/pantry/scripts/sort.ts ${{ inputs.projects }}
         id: sorted
 
       - run: cli/scripts/install.ts ${{ steps.sorted.outputs.pre-install }}
 
-      - run: cat /opt/tea.xyz/var/pantry/projects/zlib.net/package.yml
-
+      # running out of /opt because only pantry.core has these scripts
       - run: /opt/tea.xyz/var/pantry/scripts/build.ts ${{ steps.sorted.outputs.pkgs }}
         id: build
         env:
@@ -123,18 +119,12 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          path: pantry
+          path: tea.xyz/var/cli
+          repository: teaxyz/cli
 
       - uses: actions/checkout@v3
         with:
-          path: tea.xyz/var/cli
-          repository: teaxyz/cli
-          token: ${{ secrets.TEMP_JACOBS_GITHUB_PAT }}
-
-      - run: |
-          apt-get update
-          apt-get --yes install libc-dev libstdc++-8-dev libgcc-8-dev
-        if: ${{ matrix.container != '' }}
+          path: pantry
 
       - uses: teaxyz/setup@v0
         id: tea
@@ -142,14 +132,10 @@ jobs:
           srcroot: tea.xyz/var/pantry
           prefix: ${{ github.workspace }}
 
-      - name: overlay our pantry
-        run: |
-          find pantry \
-            -not -type l \
-            -mindepth 1 \
-            -maxdepth 1 \
-            -print0 | \
-              xargs -0 -I{} cp -Rv {} tea.xyz/var/pantry
+      - run: |
+          apt-get update
+          apt-get --yes install libc-dev libstdc++-8-dev libgcc-8-dev
+        if: ${{ matrix.container != '' }}
 
       - uses: actions/download-artifact@v3
         with:
@@ -157,7 +143,6 @@ jobs:
 
       - run: tar xzf artifacts.tgz
 
-      # script comes from pantry.core, which _might_not_be_this_pantry_
       - run: tea.xyz/var/pantry/scripts/test.ts ${{ inputs.projects }}
 
   bottle:
@@ -178,28 +163,18 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          path: pantry
+          path: tea.xyz/var/cli
+          repository: teaxyz/cli
 
       - uses: actions/checkout@v3
         with:
-          path: tea.xyz/var/cli
-          repository: teaxyz/cli
-          token: ${{ secrets.TEMP_JACOBS_GITHUB_PAT }}
+          path: pantry
 
       - uses: teaxyz/setup@v0
         id: tea
         with:
           srcroot: tea.xyz/var/pantry
           prefix: ${{ github.workspace }}
-
-      - name: overlay our pantry
-        run: |
-          find $GITHUB_WORKSPACE/pantry \
-            -not -type l \
-            -mindepth 1 \
-            -maxdepth 1 \
-            -print0 | \
-              xargs -0 -I{} cp -Rv {} .
 
       - uses: actions/download-artifact@v3
         with:

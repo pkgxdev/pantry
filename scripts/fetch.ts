@@ -10,6 +10,8 @@ args:
   - --allow-write={{ tea.prefix }}
   - --allow-env
   - --import-map={{ srcroot }}/import-map.json
+env:
+  TEA_PANTRY_PATH: "{{srcroot}}"
 ---*/
 
 //TODO verify the sha
