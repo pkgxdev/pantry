@@ -1,0 +1,33 @@
+distributable:
+  url: http://ftp.midnight-commander.org/mc-{{ version }}.tar.xz
+  strip-components: 1
+
+versions:
+  github: MidnightCommander/mc/tags
+
+provides:
+  - bin/mc
+  - bin/mcdiff
+  - bin/mcedit
+  - bin/mcview
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: '*'
+    tea.xyz/gx/make: '*'
+    gnu.org/autoconf: '>=2.64'
+    gnu.org/automake: '>=1.12'
+    gnu.org/libtool: '*'
+    gnome.org/glib: '>=2.30'
+    invisible-island.net/ncurses: '*'
+    gnu.org/gettext: '>=0.18.2'
+    freedesktop.org/pkg-config: '^0.29'
+  script: |
+    ./configure --prefix={{prefix}} --with-screen=ncurses
+    make -j {{hw.concurrency}}
+    make install
+
+test:
+  # FIXME: hard to test interactive tools
+  script:
+    mc --configure-options
