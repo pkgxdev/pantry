@@ -15,3 +15,12 @@ See the contributing guide in [pantry.zero][pantry.zero/contributing].
 [pantry.zero]: https://github.com/teaxyz/pantry.zero
 [pantry.zero/contributing]: https://github.com/teaxyz/pantry.zero#contributing
 [pantry.core]: https://github.com/teaxyz/pantry.core
+
+
+# Dependencies
+
+We don’t actually need these, but we do for CI/CD currently.
+
+|   Project   | Version |
+|-------------|---------|
+| deno.land   | ^1.23   |
