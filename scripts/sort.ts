@@ -7,8 +7,6 @@ args:
   - --allow-read
   - --allow-env
   - --import-map={{ srcroot }}/import-map.json
-env:
-  TEA_PANTRY_PATH: "{{srcroot}}"
 ---*/
 
 // sorts input for building
