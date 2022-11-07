@@ -7,13 +7,11 @@ will be maintained by their own communities.
 
 > † see [pantry.zero] for “what is a pantry”
 
-[pantry.core]: ../../../pantry.core
-[pantry.zero]: ../../../pantry.zero
 
+# Contributing
 
-# Dependencies
+See the contributing guide in [pantry.zero][pantry.zero/contributing].
 
-|   Project   | Version |
-|-------------|---------|
-| deno.land   | ^1.23   |
-| tea.xyz     | ^0      |
+[pantry.zero]: https://github.com/teaxyz/pantry.zero
+[pantry.zero/contributing]: https://github.com/teaxyz/pantry.zero#contributing
+[pantry.core]: https://github.com/teaxyz/pantry.core
