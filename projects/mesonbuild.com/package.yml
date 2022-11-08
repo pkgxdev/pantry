@@ -34,6 +34,17 @@ build:
     sed -i.bak 's|VIRTUAL_ENV=".*"|VIRTUAL_ENV="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. \&\& pwd)"|' activate
     rm activate.bak
 
+    # FIXME a lot: this "updates" the `venv` on each run for relocatability
+    cat <<EOF>>activate
+
+    sed -i.bak \\
+      -e "s|$TEA_PREFIX/python.org/v{{deps.python.org.version}}|\$TEA_PREFIX/python.org/v{{deps.python.org.version.major}}|" \\
+      -e 's|bin/python{{deps.python.org.version.major}}.{{deps.python.org.version.minor}}|bin/python|' \\
+      -e "s|{{prefix}}/libexec|\$TEA_PREFIX/mesonbuild.com/v{{version}}/libexec|" \\
+      \$VIRTUAL_ENV/pyvenv.cfg
+    rm \$VIRTUAL_ENV/pyvenv.cfg.bak
+    EOF
+
     for x in python*; do
       ln -sf ../../../../python.org/v{{ deps.python.org.version.major }}/bin/$x $x
     done
