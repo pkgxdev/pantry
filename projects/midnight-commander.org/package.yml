@@ -11,6 +11,11 @@ provides:
   - bin/mcedit
   - bin/mcview
 
+dependencies:
+  invisible-island.net/ncurses: '*'
+  gnome.org/glib: '>=2.30'
+  gnu.org/gettext: '>=0.18.2'
+
 build:
   dependencies:
     tea.xyz/gx/cc: '*'
@@ -18,14 +23,17 @@ build:
     gnu.org/autoconf: '>=2.64'
     gnu.org/automake: '>=1.12'
     gnu.org/libtool: '*'
-    gnome.org/glib: '>=2.30'
-    invisible-island.net/ncurses: '*'
-    gnu.org/gettext: '>=0.18.2'
     freedesktop.org/pkg-config: '^0.29'
   script: |
-    ./configure --prefix={{prefix}} --with-screen=ncurses
+    ./configure $ARGS
     make -j {{hw.concurrency}}
     make install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --with-screen=ncurses
+    # Needed for the compiler to `#include <term.h>`
+    CPATH: $CPATH:{{deps.invisible-island.net/ncurses.prefix}}/include/ncursesw
 
 test:
   # FIXME: hard to test interactive tools
