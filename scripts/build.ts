@@ -15,6 +15,7 @@ args:
 
 import { usePantry, useFlags, useCellar, useInventory } from "hooks"
 import { hydrate, install, link } from "prefab"
+import { str as pkgstr } from "utils/pkg.ts"
 import * as ARGV from "./utils/args.ts"
 import { panic } from "utils/error.ts"
 import build from "./build/build.ts"
@@ -32,8 +33,9 @@ const wet = await hydrate(dry, async (pkg, dry) => {
 
 for (const pkg of wet.wet) {
   if (!await cellar.has(pkg)) {
-    const version = await inventory.select(pkg) ?? panic()
-    await install({ project: pkg.project, version })
+    const version = await inventory.select(pkg) ?? panic(`${pkgstr(pkg)} not found`)
+    const installation = await install({ project: pkg.project, version })
+    await link(installation)
   }
 }
 
