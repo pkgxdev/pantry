@@ -1,9 +1,20 @@
 #!/bin/sh
 
+dir=$(dirname "$0")
 exe=$(basename "$0")
 
-if test ! -f /usr/bin/"$exe"; then
-  exe=ld
+# Remove us from our path
+PATH=$(echo "$PATH" | tr ":" "\n" | grep -v "$dir" | tr "\n" ":")
+
+# If we can find our specific name, e.g. `lld`,
+# passthrough to that
+if which "$exe" 2>&1; then
+  exe=$(which "$exe")
+# Otherwise, fallback to `ld`
+# NB: this might not have the right invocations, sometimes;
+# (invoking `ld` as `lld64.ld`) watch for those potential cases
+elif which ld 2>&1; then
+  exe=$(which ld)
 fi
 
 if test -z "$TEA_PREFIX"
@@ -16,8 +27,8 @@ else
   # additions.
   for word in "$@"; do
     if test "$word" = "-r"; then
-      exec /usr/bin/"$exe" "$@"
+      exec "$exe" "$@"
     fi
   done
-  exec /usr/bin/"$exe" "$@" -rpath "$TEA_PREFIX"
+  exec "$exe" "$@" -rpath "$TEA_PREFIX"
 fi
