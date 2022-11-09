@@ -101,7 +101,7 @@ async function __build(pkg: Package): Promise<BuildResult> {
 
       ${sh}
       `
-    }).chmod(0o500)
+    }).chmod(0o700)
 
     // copy in auxillary files from pantry directory
     for await (const [path, {isFile}] of pantry.getYAML(pkg).path.parent().ls()) {
