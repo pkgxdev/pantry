@@ -16,8 +16,8 @@ args:
 import { pkg } from "utils"
 import { usePantry, useFlags } from "hooks"
 import { hydrate } from "prefab"
-import { PackageRequirement } from "types"
 import * as ARGV from "./utils/args.ts"
+import { set_output } from "./utils/gha.ts";
 
 const flags = useFlags()
 const pantry = usePantry()
@@ -30,18 +30,9 @@ const wet = await hydrate(dry, async (pkg, dry) => {
 })
 
 if (Deno.env.get("GITHUB_ACTIONS")) {
-  const massage = (input: PackageRequirement[]) =>
-    input.map(p => {
-      let out = pkg.str(p)
-      // shell quoting via GHA is weird and we don’t fully understand it
-      if (/[<>]/.test(out)) out = `"${out}"`
-      return out
-    }).join(" ")
-
-  console.log(`::set-output name=pkgs::${massage(wet.dry)}`)
-  console.log(`::set-output name=pre-install::${massage(wet.wet)}`)
+  await set_output('pkgs', wet.dry.map(pkg.str))
 } else {
-  const gas = wet.dry.map(x => pkg.str(x))
+  const gas = wet.dry.map(pkg.str)
   if (flags.json) {
     console.log(gas)
   } else {
