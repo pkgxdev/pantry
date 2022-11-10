@@ -1,0 +1,24 @@
+# cargo install bpb does not work because cargo does not require correct
+# semantic versioning and allows yanking so the dependency graph has begun to
+# fail
+
+distributable:
+  url: https://github.com/withoutboats/bpb/tarball/b1ef5ca1d2dea0e2ec0b1616f087f110ea17adfa
+  # repo has no tags, presumably we can get the tags from crates.io, but not
+  # sure how to do that at this time
+  strip-components: 1
+
+provides:
+  - bin/bpb
+
+versions:
+  - 1.1.0
+
+build:
+  dependencies:
+    rust-lang.org/cargo: '*'
+  script:
+    cargo install --locked --path . --root {{prefix}}
+
+test:
+  bpb --help
