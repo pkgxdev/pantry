@@ -13,6 +13,7 @@ args:
   - --allow-read
   - --allow-write={{tea.prefix}}
   - --allow-env
+  - --unstable
   - --import-map={{ srcroot }}/import-map.json
 ---*/
 
