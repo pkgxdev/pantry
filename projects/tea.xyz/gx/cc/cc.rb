@@ -15,6 +15,18 @@ args = ARGV.map do |arg|
   arg unless arg == "-Wl,-rpath,#$tea_prefix"
 end.compact
 
+# find next example of ourselves
+# this will either pick the Apple provided clang or the tea one
+exe_path = ENV['PATH'].split(":").filter { |path|
+  path != File.dirname(__FILE__)
+}.map { |path|
+  "#{path}/#{exe}"
+}.find { |path|
+  File.exist?(path)
+}
+
+abort "couldn’t find #{exe} in `PATH`" unless exe_path
+
 for arg in args do
   # figuring out what “mode” we are operating in is hard
   # we don’t want to add this linker command always because it causes a warning to be
@@ -23,8 +35,8 @@ for arg in args do
   # we aren't sure what the rules are TBH, possibly it is as simple as if the output (`-o`)
   # is a .o then we don’t add the rpath
   if arg.start_with? '-l' or arg.end_with? '.dylib'
-    exec "/usr/bin/#{exe}", *args, "-Wl,-rpath,#$tea_prefix"
+    exec exe_path, *args, "-Wl,-rpath,#$tea_prefix"
   end
 end
 
-exec "/usr/bin/#{exe}", *args
+exec exe_path, *args
