@@ -19,11 +19,17 @@ build:
   script: |-
     ./configure --prefix={{ prefix }}
     make --jobs {{ hw.concurrency }} install
+
+    cd {{prefix}}/bin
+
     sed -i.bak \
       -e 's_prefix="{{prefix}}"_prefix="$(dirname $(dirname $0))"_' \
       -e 's_{{prefix}}_$prefix_' \
-      {{prefix}}/bin/libtoolize
-    rm {{prefix}}/bin/libtoolize.bak
+      libtoolize
+    rm libtoolize.bak
+
+    # an often expected alias
+    ln -s libtoolize glibtoolize
 
 test:
   dependencies:

@@ -110,7 +110,7 @@ async function __build(pkg: Package): Promise<BuildResult> {
       }
     }
 
-    await run({ cmd }) // THE BUILD
+    await run({ cmd, clearEnv: true }) // THE BUILD
 
     return { path: dst, pkg }
   }
