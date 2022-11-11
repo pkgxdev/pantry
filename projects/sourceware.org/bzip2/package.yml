@@ -29,8 +29,8 @@ build:
       --jobs {{ hw.concurrency }} \
       install
 
-    if test {{ hw.platform }} = linux; then
-      #TODO we want this on all platforms, but the makefile is ELF specific
+    case {{ hw.platform }} in
+    linux)
       make \
         --file Makefile-libbz2_so \
         --environment-overrides \
@@ -40,11 +40,23 @@ build:
       cd {{ prefix }}/lib
       ln -s libbz2.so.{{ version }} libbz2.so
       ln -s libbz2.so.{{ version }} libbz2.so.{{ version.major }}
-    fi
+      ;;
+    darwin)
+      make \
+        --file props/Makefile-libbz2_dylib \
+        --environment-overrides \
+        --jobs {{ hw.concurrency }} \
+
+      cd {{ prefix }}/lib
+      ln -s libbz2.{{ version }}.dylib libbz2.{{ version.major }}.dylib
+      ;;
+    esac
 
   env:
     CFLAGS: -fPIC  # so deps link without relocation issues on linux/aarch64
     PREFIX: ${{ prefix }}
+    darwin:
+      PKG_VERSION: ${{ version }}
 
 test:
   script: |
