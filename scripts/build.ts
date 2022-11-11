@@ -17,13 +17,12 @@ args:
   - --import-map={{ srcroot }}/import-map.json
 ---*/
 
-import { usePantry, useFlags, useCellar, useInventory, usePrefix } from "hooks"
+import { usePantry, useFlags, useCellar, useInventory } from "hooks"
 import { hydrate, install, link } from "prefab"
 import { str as pkgstr } from "utils/pkg.ts"
 import * as ARGV from "./utils/args.ts"
 import { panic } from "utils/error.ts"
-import build, { BuildResult } from "./build/build.ts"
-import { set_output } from "./utils/gha.ts";
+import build from "./build/build.ts"
 
 useFlags()
 
@@ -31,8 +30,6 @@ const pantry = usePantry()
 const cellar = useCellar()
 const inventory = useInventory()
 const raw = await ARGV.toArray(ARGV.pkgs())
-
-const rv: BuildResult[] = []
 
 for (const rq of raw) {
   const dry = await pantry.getDeps(rq)
@@ -47,13 +44,6 @@ for (const rq of raw) {
   }
 
   const pkg = await pantry.resolve(rq)
-  rv.push(await build(pkg))
+  await build(pkg)
   await link(pkg)
 }
-
-const to = usePrefix()
-await set_output("pkgs", rv.map(x => pkgstr(x.installation.pkg)))
-await set_output("paths", rv.map(x => x.installation.path), '%0A')
-await set_output("relative-paths", rv.map(x => x.installation.path.relative({ to })))
-await set_output("srcs", rv.map(x => x.src?.relative({ to }) ?? "~"))
-await set_output("srcs-relative-paths", rv.compact(x => x.src?.relative({ to })))

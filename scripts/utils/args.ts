@@ -6,7 +6,7 @@ import { parse } from "utils/pkg.ts"
 export async function *args(): AsyncGenerator<string> {
   if (Deno.isatty(Deno.stdin.rid)) {
     for (const arg of Deno.args) {
-      yield arg
+      if (arg[0] != '-') yield arg
     }
   } else {
     let yielded_something = false

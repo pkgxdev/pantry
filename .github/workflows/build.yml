@@ -70,16 +70,24 @@ jobs:
 
           ln -s $GITHUB_WORKSPACE/cli /opt/tea.xyz/var/cli
 
+          # in case this PR contains updates to the scripts
+          #TODO only do for PRs
+          if test "$GITHUB_REPOSITORY" = "teaxyz/pantry.core"; then
+            cp -rv pantry/scripts/* /opt/tea.xyz/var/pantry/scripts
+          fi
+
       - run: /opt/tea.xyz/var/pantry/scripts/sort.ts ${{ inputs.projects }}
         id: sorted
 
+      - run: /opt/tea.xyz/var/pantry/scripts/build-deps.ts ${{ steps.sorted.outputs.pkgs }}
+        id: deps
+
+      - run: cli/scripts/install.ts ${{ steps.deps.outputs.pkgs }}
+
       # running out of /opt because only pantry.core has these scripts
-      - run: /opt/tea.xyz/var/pantry/scripts/build.ts ${{ steps.sorted.outputs.pkgs }}
+      - run: /opt/tea.xyz/var/pantry/scripts/build.plumbing.ts ${{ steps.sorted.outputs.pkgs }}
         id: build
         env:
-          # GITHUB_TOKEN doesn't have private access to teaxyz/cli.
-          # TODO restore to ${{ github.token }} when public
-          GITHUB_TOKEN: ${{ secrets.TEMP_JACOBS_GITHUB_PAT }}
           FORCE_UNSAFE_CONFIGURE: 1  # some configure scripts refuse to run as root
 
       # tarring ourselves ∵ GHA-artifacts (ludicrously) lose permissions

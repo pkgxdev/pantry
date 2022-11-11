@@ -42,9 +42,12 @@ build:
       - -DLLVM_ENABLE_PROJECTS='lld;clang'
       - -DLLVM_INCLUDE_DOCS=OFF
       - -DLLVM_INCLUDE_TESTS=OFF
+    linux:
+      ARGS:
       # the default is `ld` however clang when handling linking itself
       # internally passes flags that, in fact, expect `lld`
-      #NOTE yes this is an issue even if `ld` is in fact a symlink to `lld`
+      #NOTE only wanted on linux because on macOS we actually *need* the Apple
+      # provided `ld` or things *also* break 😆
       - -DCLANG_DEFAULT_LINKER=lld
     darwin:
       ARGS:
