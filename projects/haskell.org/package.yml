@@ -3,13 +3,15 @@ distributable:
   strip-components: 1
 
 versions:
-  - 9.2.4
+  - 9.4.3
   #TODO
   # github: ghc/ghc/tags
   # strip:
   #   - /^ghc-/
   #   - /-release$/
-
+  # however ghc breaks every time they release a new version
+  # so you are welcome to embrace trying to build it, we kindly ask they care
+  # more about ensuring their monolithic nonsense has stability in builds
 
 #NOTE relocatable if we edit the shell scripts
 
@@ -27,8 +29,7 @@ provides:
 dependencies:
   gnu.org/gmp: 6
   invisible-island.net/ncurses: 6
-  llvm.org: '*'
-  # tea.xyz/gx/cc: c99  # ghc uses `gcc` as part of its build process
+  tea.xyz/gx/cc: c99
 
 build:
   dependencies:
@@ -38,7 +39,11 @@ build:
     curl.se: '*'
     gnu.org/m4: '*'
     git-scm.org: ^2
-    github.com/numactl/numactl: ^2 # only linux-aarch64's ghcup needs this; always worry about your deps
+    python.org: ^3
+    darwin:
+      llvm.org: ^12 || ^13
+    linux/aarch64:
+      github.com/numactl/numactl: ^2 # ghcup needs this
   script: |-
     # `ghc` needs `ghc` to bootstrap `ghc`
     # The canonical way to achieve this is with `ghcup`
@@ -49,10 +54,7 @@ build:
     export HOME="$(pwd)"
     export BOOTSTRAP_HASKELL_NONINTERACTIVE=1
     export BOOTSTRAP_HASKELL_ADJUST_BASHRC=0
-    export BOOTSTRAP_HASKELL_GHC_VERSION={{ version }}
-    export CC={{ deps.llvm.org.prefix }}/bin/clang
-    # force use of our ld instead of llvm's on macOS
-    # export LD={{ deps.tea.xyz/gx/cc.prefix }}/bin/ld
+    export BOOTSTRAP_HASKELL_GHC_VERSION=9.2.5
 
     if test -d .ghcup; then
       echo "ghcup already installed"
@@ -66,35 +68,33 @@ build:
       rm -r $HOME/.cabal/bin
     fi
 
-    cabal update && cabal install alex happy
+    cabal update
+    cabal install alex happy
 
     export PATH="$HOME/.cabal/bin:$PATH"
     GHC="$HOME/.ghcup/bin/ghc"
 
-    export CPATH=/opt/invisible-island.net/ncurses/v6/include/ncursesw:$CPATH
-
-    # Patch out LLVM version checks (they want 12, we have 14) to force detection of `opt` and `llc`
-    sed -i.bak 's/LlvmMaxVersion=13/LlvmMaxVersion=15/' configure.ac
-    #FIXME oddly, they don't provide `./configure`; we have to generate it
-    autoconf
-    ./configure --prefix={{ prefix }}
-
-    # This is needed so haskell doesn't try to recache its package db before we've
-    # has a chances to fix the rpaths
-    # This is probably FIXME
-    git apply props/tea-buildrules.diff
-
-    hadrian/build $ARGS install
+    ./boot.source
+    ./configure $ARGS
+    hadrian/build -j
 
     for shim in $shims; do
       sed -i.bak -e 's_="{{prefix}}_="$(dirname $(dirname $0))_' {{prefix}}/bin/$shim-{{version}} && \
         rm {{prefix}}/bin/$shim-{{version}}.bak
     done
   env:
+    CC: clang
+    LDFLAGS:
+      - -Wl,-rpath,{{tea.prefix}}
     ARGS:
-      - -j
       - --prefix={{prefix}}
-      - --docs=none
+      - --disable-numa
+      - --with-curses-includes={{deps.invisible-island.net/ncurses.prefix}}/include/ncursesw
+    darwin:
+      ARGS:
+      #- --with-intree-gmp
+      - --with-system-libffi
+      - --with-ffi-includes=$(xcrun --show-sdk-path)/usr/include/ffi
     shims:
       - ghc
       - ghc-pkg
