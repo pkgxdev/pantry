@@ -13,14 +13,12 @@ dependencies:
   nodejs.org: '>=14'
 
 build:
-  dependencies:
-    curl.se: '*'
-  script: |
-    ./scripts/install.sh
-  env:
-    npm_config_prefix: ${{prefix}}
+  script:
+    node . install --global --prefix={{prefix}}
 
 test:
+  dependencies:
+    git-scm.org: '*' # `npm doctor` checks for, but doesn't use, `git`
   script: |
-    npm -g bin
+    npm doctor
     npx -q tldr ls
