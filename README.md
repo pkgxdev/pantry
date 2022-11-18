@@ -44,3 +44,4 @@ done
 ```
 
 [pantry.zero]: https://github.com/teaxyz/pantry.zero#contributing
+[pantry.extra]: https://github.com/teaxyz/pantry.extra
