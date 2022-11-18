@@ -1,0 +1,26 @@
+distributable:
+  url: http://www.lua.org/ftp/lua-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  - 5.4.4
+
+provides:
+  - bin/lua
+  - bin/luac
+ 
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+
+  script: |
+    make all
+    mkdir {{prefix}}/{bin,lib}
+    mv src/{lua,luac} {{prefix}}/bin
+    mv src/liblua.a {{prefix}}/lib
+
+test:
+  script: |
+    make test
+  working-directory: build
