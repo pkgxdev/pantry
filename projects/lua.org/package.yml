@@ -15,12 +15,11 @@ build:
     tea.xyz/gx/make: '*'
 
   script: |
-    make all
-    mkdir {{prefix}}/{bin,lib}
-    mv src/{lua,luac} {{prefix}}/bin
-    mv src/liblua.a {{prefix}}/lib
+    make all INSTALL_TOP={{prefix}}
+    make install INSTALL_TOP={{prefix}}
+    make test
 
 test:
   script: |
-    make test
+    lua -v
   working-directory: build
