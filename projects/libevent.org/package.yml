@@ -1,0 +1,46 @@
+distributable:
+  url: https://github.com/libevent/libevent/releases/download/release-{{version}}-stable/libevent-{{version}}-stable.tar.gz
+  strip-components: 1
+
+versions:
+  github: libevent/libevent/tags
+  strip:
+    - /^release-/
+    - /-stable$/
+
+dependencies:
+  openssl.org: ^1.1
+
+build:
+  dependencies:
+    gnu.org/libtool: 2
+    gnu.org/automake: 1
+    gnu.org/autoconf: 2
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    freedesktop.org/pkg-config: ^0.29
+  script: |
+    ./autogen.sh
+    ./configure $ARGS
+    make V=1 --jobs {{ hw.concurrency }}
+    make install
+  env:
+    ARGS:
+    - --disable-debug-mode
+    - --prefix="{{prefix}}"
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script: |
+    mv $FIXTURE $FIXTURE.c
+    cc $FIXTURE.c "-levent"
+    ./a.out
+  fixture: |
+    #include <event2/event.h>
+    int main() {
+      struct event_base *base;
+      base = event_base_new();
+      event_base_free(base);
+      return 0;
+    }
