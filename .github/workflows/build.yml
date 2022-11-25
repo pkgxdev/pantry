@@ -197,15 +197,25 @@ jobs:
       - run: tar xzf artifacts.tgz
         working-directory: ${{ steps.tea.outputs.prefix }}
 
+      - run: |
+          tea +gnupg.org gpg-agent --daemon || true
+          echo $GPG_PRIVATE_KEY | \
+            base64 -d | \
+            tea +gnupg.org gpg --import --batch --yes
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+
       - run: scripts/bottle.ts ${{ needs.build.outputs.built }}
         id: bottle-xz
         env:
           COMPRESSION: xz
+          GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
 
       - run: scripts/bottle.ts ${{ needs.build.outputs.built }}
         id: bottle-gz
         env:
           COMPRESSION: gz
+          GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
 
       - name: upload bottles
         id: upload
@@ -214,6 +224,7 @@ jobs:
           --srcs ${{ needs.build.outputs.srcs }} ${{ needs.build.outputs.srcs }}
           --bottles ${{ steps.bottle-gz.outputs.bottles }} ${{ steps.bottle-xz.outputs.bottles }}
           --checksums ${{ steps.bottle-gz.outputs.checksums }} ${{ steps.bottle-xz.outputs.checksums }}
+          --signatures ${{ steps.bottle-gz.outputs.signatures }} ${{ steps.bottle-xz.outputs.signatures }}
         env:
           AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}

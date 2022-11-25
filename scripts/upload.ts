@@ -16,6 +16,7 @@ import { useCache, useFlags, useOffLicense, usePrefix } from "hooks"
 import { Package, PackageRequirement } from "types"
 import SemVer, * as semver from "semver"
 import { basename, dirname } from "deno/path/mod.ts"
+import { decode as base64Decode } from "deno/encoding/base64.ts"
 import Path from "path"
 import { set_output } from "./utils/gha.ts"
 import { sha256 } from "./bottle.ts"
@@ -101,12 +102,14 @@ const pkgs = args_get("pkgs").map(pkgutils.parse).map(assert_pkg)
 const srcs = args_get("srcs")
 const bottles = args_get("bottles")
 const checksums = args_get("checksums")
+const signatures = args_get("signatures")
 
 const rv: string[] = []
 
 for (const [index, pkg] of pkgs.entries()) {
   const bottle = new Path(bottles[index])
   const checksum = checksums[index]
+  const signature = base64Decode(signatures[index])
   const stowed = cache.decode(bottle)!
   const key = useOffLicense("s3").key(stowed)
   const versions = await get_versions(key, pkg, bucket)
@@ -114,6 +117,7 @@ for (const [index, pkg] of pkgs.entries()) {
   //FIXME stream the bottle (at least) to S3
   await put(key, bottle, bucket)
   await put(`${key}.sha256sum`, `${checksum}  ${basename(key)}`, bucket)
+  await put(`${key}.asc`, signature, bucket)
   await put(`${dirname(key)}/versions.txt`, versions.join("\n"), bucket)
 
   // mirror the sources

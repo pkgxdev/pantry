@@ -5,6 +5,7 @@ dependencies:
   gnu.org/tar: ^1.34
   tukaani.org/xz: ^5
   zlib.net: 1
+  gnupg.org: ^2
 args:
   - deno
   - run
@@ -18,9 +19,10 @@ args:
 
 import { Installation } from "types"
 import { useCellar, usePrefix, useFlags, useCache } from "hooks"
-import { run } from "utils"
+import { backticks, run } from "utils"
 import { crypto } from "deno/crypto/mod.ts"
 import { encode } from "deno/encoding/hex.ts"
+import { encode as base64Encode } from "deno/encoding/base64.ts"
 import { set_output } from "./utils/gha.ts"
 import * as ARGV from "./utils/args.ts"
 import Path from "path"
@@ -34,7 +36,11 @@ if (import.meta.main) {
   useFlags()
 
   const compression = Deno.env.get("COMPRESSION") == 'xz' ? 'xz' : 'gz'
+  const gpgKey = Deno.env.get("GPG_KEY_ID")
+  const gpgPassphrase = Deno.env.get("GPG_PASSPHRASE")
+  if (!gpgKey || !gpgPassphrase) throw new Error("missing GPG_KEY_ID")
   const checksums: string[] = []
+  const signatures: string[] = []
   const bottles: Path[] = []
 
   for await (const pkg of ARGV.pkgs()) {
@@ -43,15 +49,18 @@ if (import.meta.main) {
     const installation = await cellar.resolve(pkg)
     const path = await bottle(installation, compression)
     const checksum = await sha256(path)
+    const signature = await gpg(path, { gpgKey, gpgPassphrase })
 
     console.log({ bottled: path })
 
     bottles.push(path)
     checksums.push(checksum)
+    signatures.push(signature)
   }
 
   await set_output("bottles", bottles)
   await set_output("checksums", checksums)
+  await set_output("signatures", signatures)
 }
 
 
@@ -69,4 +78,27 @@ export async function sha256(file: Path): Promise<string> {
   return await Deno.open(file.string, { read: true })
     .then(file => crypto.subtle.digest("SHA-256", file.readable))
     .then(buf => new TextDecoder().decode(encode(new Uint8Array(buf))))
+}
+
+interface GPGCredentials {
+  gpgKey: string
+  gpgPassphrase: string
+}
+
+async function gpg(file: Path, { gpgKey, gpgPassphrase }: GPGCredentials): Promise<string> {
+  const rv = await backticks({
+    cmd: [
+      "gpg",
+      "--detach-sign",
+      "--armor",
+      "--output",
+      "-",
+      "--local-user",
+      gpgKey,
+      "--passphrase",
+      gpgPassphrase,
+      file.string
+    ]
+  })
+  return base64Encode(rv)
 }
