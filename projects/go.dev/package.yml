@@ -10,7 +10,8 @@ provides:
   - bin/go
 
 interprets:
-  - .go
+  extensions: go
+  args: [go, run]
 
 dependencies:
   # `cgo` requires a C compiler
@@ -25,6 +26,9 @@ build:
     go.dev: '*'
   working-directory: src
   script: |-
+    # `make.bash` complains about unset GOCACHE and HOME otherwise
+    export GOCACHE="$(pwd)/.gocache"
+
     ./make.bash
 
     # cleanup
