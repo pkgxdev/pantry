@@ -37,7 +37,7 @@ async function test(self: Installation) {
   // get linked when they're tested.
   await link(self)
 
-  const env = useShellEnv({ installations: [self, ...installations] })
+  const env = await useShellEnv({ installations: [self, ...installations] })
 
   let text = undent`
     #!/bin/bash

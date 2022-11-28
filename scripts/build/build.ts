@@ -28,7 +28,7 @@ export default async function _build(pkg: Package): Promise<BuildResult> {
 async function __build(pkg: Package): Promise<BuildResult> {
   const [deps, wet, resolved] = await calc_deps()
   await clean()
-  const env = mkenv()
+  const env = await mkenv()
   const dst = cellar.keg(pkg).mkpath()
   const [src, src_tarball] = await fetch_src(pkg) ?? []
   const installation = await build()
@@ -70,8 +70,8 @@ async function __build(pkg: Package): Promise<BuildResult> {
     }
   }
 
-  function mkenv() {
-    const env = useShellEnv({ installations: resolved})
+  async function mkenv() {
+    const env = await useShellEnv({ installations: resolved})
 
     if (platform == 'darwin') {
       env['MACOSX_DEPLOYMENT_TARGET'] = ['11.0']
