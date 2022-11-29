@@ -1,9 +1,10 @@
 distributable:
-  url: https://downloads.haskell.org/~ghc/{{ version}}/ghc-{{ version}}-src.tar.xz
+  url: https://downloads.haskell.org/~ghc/{{version}}/ghc-{{version}}-src.tar.xz
+  sig: "{{url}}.sig"
   strip-components: 1
 
 versions:
-  - 9.4.3
+  - 9.2.4
   #TODO
   # github: ghc/ghc/tags
   # strip:
@@ -40,21 +41,17 @@ build:
     gnu.org/m4: '*'
     git-scm.org: ^2
     python.org: ^3
-    darwin:
-      llvm.org: ^12 || ^13
+    llvm.org: ^12 || ^13
     linux/aarch64:
       github.com/numactl/numactl: ^2 # ghcup needs this
-  script: |-
-    # `ghc` needs `ghc` to bootstrap `ghc`
-    # The canonical way to achieve this is with `ghcup`
-    # To that end, we capture $HOME so as to no pollute the user's life with unwanted
-    # stage0 tooling. Instead, everything is localized to $HOME, and can be
-    # cleaned up at will, and won't capture any of the user's workflow
 
+  # `ghc` needs `ghc` to bootstrap `ghc`
+  # The canonical way to achieve this is with `ghcup`
+  # To that end, we capture $HOME so as to no pollute the user's life with unwanted
+  # stage0 tooling. Instead, everything is localized to $HOME, and can be
+  # cleaned up at will, and won't capture any of the user's workflow
+  script: |
     export HOME="$(pwd)"
-    export BOOTSTRAP_HASKELL_NONINTERACTIVE=1
-    export BOOTSTRAP_HASKELL_ADJUST_BASHRC=0
-    export BOOTSTRAP_HASKELL_GHC_VERSION=9.2.5
 
     if test -d .ghcup; then
       echo "ghcup already installed"
@@ -74,37 +71,35 @@ build:
     export PATH="$HOME/.cabal/bin:$PATH"
     GHC="$HOME/.ghcup/bin/ghc"
 
-    ./boot.source
     ./configure $ARGS
-    hadrian/build -j
+    make --jobs {{ hw.concurrency }}
+    make install
 
-    for shim in $shims; do
-      sed -i.bak -e 's_="{{prefix}}_="$(dirname $(dirname $0))_' {{prefix}}/bin/$shim-{{version}} && \
-        rm {{prefix}}/bin/$shim-{{version}}.bak
+    for shim in $(find "{{prefix}}/bin" -type f); do
+      sed -i.bak -e 's_="{{prefix}}_="$(dirname $(dirname $0))_' $shim
+      rm $shim.bak
     done
   env:
-    CC: clang
-    LDFLAGS:
-      - -Wl,-rpath,{{tea.prefix}}
+    BOOTSTRAP_HASKELL_NONINTERACTIVE: 1
+    BOOTSTRAP_HASKELL_ADJUST_BASHRC: 0
+    BOOTSTRAP_HASKELL_GHC_VERSION: 9.0.2  # builds fail /w newer versions
+    CONF_CC_OPTS_STAGE0: $LDFLAGS
+    CONF_CC_OPTS_STAGE1: $LDFLAGS
+    CONF_CC_OPTS_STAGE2: $LDFLAGS
+    CONF_GCC_LINKER_OPTS_STAGE0: $LDFLAGS
+    CONF_GCC_LINKER_OPTS_STAGE1: $LDFLAGS
+    CONF_GCC_LINKER_OPTS_STAGE2: $LDFLAGS
     ARGS:
       - --prefix={{prefix}}
       - --disable-numa
       - --with-curses-includes={{deps.invisible-island.net/ncurses.prefix}}/include/ncursesw
+      - --with-intree-gmp
     darwin:
       ARGS:
-      #- --with-intree-gmp
       - --with-system-libffi
       - --with-ffi-includes=$(xcrun --show-sdk-path)/usr/include/ffi
-    shims:
-      - ghc
-      - ghc-pkg
-      - ghci
-      - haddock
-      - hp2ps
-      - hpc
-      - hsc2h
-      - runghc
-      - runhaskell
+    # workaround `fatal error: 'ffitarget_arm64.h' file not found`
+    C_INCLUDE_PATH: $(xcrun --show-sdk-path)/usr/include/ffi
 
 test:
   script: |
