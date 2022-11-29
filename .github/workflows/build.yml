@@ -154,6 +154,7 @@ jobs:
 
   bottle:
     needs: [test, build]
+    if: ${{ inputs.upload }}
     runs-on: ${{ matrix.platform.os }}
     defaults:
       run:
@@ -203,7 +204,6 @@ jobs:
 
       - name: upload bottles
         id: upload
-        if: ${{ inputs.upload }}
         run: scripts/upload.ts
           --pkgs ${{ needs.build.outputs.built }} ${{ needs.build.outputs.built }}
           --srcs ${{ needs.build.outputs.srcs }} ${{ needs.build.outputs.srcs }}
@@ -217,7 +217,6 @@ jobs:
       #NOTE ideally we’d invalidate all at once so this is atomic
       # however GHA can’t consolidate outputs from a matrix :/
       - uses: chetan/invalidate-cloudfront-action@v2
-        if: ${{ inputs.upload }}
         env:
           PATHS: ${{ steps.upload.outputs.cf-invalidation-paths }}
           DISTRIBUTION: ${{ secrets.AWS_CF_DISTRIBUTION_ID }}
@@ -227,7 +226,7 @@ jobs:
 
   notify:
     if: always()
-    needs: [bottle]
+    needs: [test, build, bottle]
     runs-on: ubuntu-latest
     steps:
       - uses: martialonline/workflow-status@v3
