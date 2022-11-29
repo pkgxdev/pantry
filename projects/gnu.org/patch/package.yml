@@ -1,0 +1,28 @@
+distributable:
+  url: https://ftp.gnu.org/gnu/patch/patch-{{version}}.tar.xz
+  strip-components: 1
+
+versions:
+  - 2.7.6
+
+provides:
+  - bin/patch
+
+build:
+  dependencies:
+    tea.xyz/gx/make: '*'
+    tea.xyz/gx/cc: c99
+  script: |
+    ./configure --prefix={{prefix}}
+    make --jobs {{ hw.concurrency }} install
+
+test:
+  script: |
+    echo hello > file
+    cat $FIXTURE | patch ./file
+    test "$(cat file)" = goodbye
+  fixture: |
+    1c1
+    < hello
+    ---
+    > goodbye
