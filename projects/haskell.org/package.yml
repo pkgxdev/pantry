@@ -94,12 +94,15 @@ build:
       - --disable-numa
       - --with-curses-includes={{deps.invisible-island.net/ncurses.prefix}}/include/ncursesw
       - --with-intree-gmp
+      - --with-system-libffi
+    linux:
+      C_INCLUDE_PATH: ${{deps.invisible-island.net/ncurses.prefix}}/include/ncursesw
+      # ^^ yep telling `./configure` about it just aint enough
     darwin:
       ARGS:
-      - --with-system-libffi
       - --with-ffi-includes=$(xcrun --show-sdk-path)/usr/include/ffi
-    # workaround `fatal error: 'ffitarget_arm64.h' file not found`
-    C_INCLUDE_PATH: $(xcrun --show-sdk-path)/usr/include/ffi
+      # workaround `fatal error: 'ffitarget_arm64.h' file not found`
+      C_INCLUDE_PATH: $(xcrun --show-sdk-path)/usr/include/ffi
 
 test:
   script: |
