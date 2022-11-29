@@ -4,7 +4,7 @@ distributable:
   strip-components: 1
 
 versions:
-  - 9.2.4
+  - 9.4.3
   #TODO
   # github: ghc/ghc/tags
   # strip:
@@ -42,6 +42,7 @@ build:
     git-scm.org: ^2
     python.org: ^3
     llvm.org: ^12 || ^13
+    gnu.org/patch: '*'
     linux:
       github.com/numactl/numactl: ^2 # ghcup needs this
 
@@ -72,8 +73,7 @@ build:
     GHC="$HOME/.ghcup/bin/ghc"
 
     ./configure $ARGS
-    make --jobs {{ hw.concurrency }}
-    make install
+    hadrian/build -j --docs=none install --prefix="{{prefix}}"
 
     for shim in $(find "{{prefix}}/bin" -type f); do
       sed -i.bak -e 's_="{{prefix}}_="$(dirname $(dirname $0))_' $shim
@@ -82,7 +82,7 @@ build:
   env:
     BOOTSTRAP_HASKELL_NONINTERACTIVE: 1
     BOOTSTRAP_HASKELL_ADJUST_BASHRC: 0
-    BOOTSTRAP_HASKELL_GHC_VERSION: 9.0.2  # builds fail /w newer versions
+    BOOTSTRAP_HASKELL_GHC_VERSION: 9.2.4  # builds fail /w newer versions
     CONF_CC_OPTS_STAGE0: $LDFLAGS
     CONF_CC_OPTS_STAGE1: $LDFLAGS
     CONF_CC_OPTS_STAGE2: $LDFLAGS
@@ -104,6 +104,7 @@ build:
       # workaround `fatal error: 'ffitarget_arm64.h' file not found`
       C_INCLUDE_PATH: $(xcrun --show-sdk-path)/usr/include/ffi
     CC: clang
+    # ^^ ghc picks gcc from gx/cc, which gives assembly errors
 
 test:
   script: |
