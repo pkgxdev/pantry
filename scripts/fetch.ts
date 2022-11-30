@@ -1,6 +1,10 @@
 #!/usr/bin/env -S tea -E
 
 /*---
+dependencies:
+  gnu.org/tar: 1
+  tukaani.org/xz: 5
+  sourceware.org/bzip2: 1
 args:
   - deno
   - run
@@ -14,11 +18,13 @@ args:
 
 //TODO verify the sha
 
-import { usePantry, useCache, useDownload, useCellar, useSourceUnarchiver, useOffLicense } from "hooks"
+import { usePantry, useCache, useDownload, useCellar, useSourceUnarchiver, useOffLicense, useFlags} from "hooks"
 import { panic, print } from "utils"
 import { Stowage, Package } from "types"
 import * as ARGV from "./utils/args.ts"
 import Path from "path"
+
+useFlags()
 
 const pantry = usePantry()
 const { download } = useDownload()
@@ -47,7 +53,7 @@ export async function fetch_src(pkg: Package): Promise<[Path, Path] | undefined>
 if (import.meta.main) {
   for await (let pkg of ARGV.pkgs()) {
     pkg = await pantry.resolve(pkg)
-    const [dstdir] = await fetch_src(pkg) ?? panic()
-    await print(`${dstdir}\n`)
+    const rv = await fetch_src(pkg) ?? panic()
+    await print(rv.join("\n") + "\n")
   }
 }

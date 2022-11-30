@@ -6,7 +6,6 @@ import { run, undent, host, tuplize } from "utils"
 import { str as pkgstr } from "utils/pkg.ts"
 import fix_pkg_config_files from "./fix-pkg-config-files.ts"
 import Path from "path"
-import { fetch_src } from "../fetch.ts";
 
 const cellar = useCellar()
 const pantry = usePantry()
@@ -141,4 +140,19 @@ async function __build(pkg: Package): Promise<BuildResult> {
       })
     }
   }
+}
+
+async function fetch_src(pkg: Package): Promise<[Path, Path]> {
+  console.log('fetching', pkgstr(pkg))
+
+  // we run this as a script because we don’t want these deps imported into *this* env
+  // since that leads to situations where we depend on things we didn’t expect to
+  const script = new URL(import.meta.url).path().parent().parent().join('fetch.ts')
+  const proc = Deno.run({
+    cmd: [script.string, pkgstr(pkg)],
+    stdout: 'piped'
+  })
+  const out = await proc.output()
+  const [dstdir, tarball] = new TextDecoder().decode(out).split("\n")
+  return [new Path(dstdir), new Path(tarball)]
 }

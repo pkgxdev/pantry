@@ -153,6 +153,7 @@ jobs:
       - run: tea.xyz/var/pantry/scripts/test.ts ${{ inputs.projects }}
 
   bottle:
+    name: ${{ matrix.name }}
     needs: [test, build]
     if: ${{ inputs.upload }}
     runs-on: ${{ matrix.platform.os }}
@@ -163,11 +164,15 @@ jobs:
       matrix:
         platform:
           - os: macos-11
+            name: darwin+x86-64
           - os: ubuntu-latest
+            name: linux+x86-64
           - os: [self-hosted, macOS, ARM64]
             tag: darwin-aarch64
+            name: darwin+aarch64
           - os: [self-hosted, linux, ARM64]
             tag: linux-aarch64
+            name: linux+aarch64
     steps:
       - uses: actions/checkout@v3
         with:

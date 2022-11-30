@@ -1,10 +1,6 @@
 #!/usr/bin/env -S tea -E
 
 /*---
-dependencies:
-  gnu.org/tar: 1
-  tukaani.org/xz: 5
-  sourceware.org/bzip2: 1
 args:
   - deno
   - run
