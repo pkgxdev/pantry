@@ -1,0 +1,30 @@
+distributable:
+  url: https://github.com/yt-dlp/yt-dlp/releases/download/{{version}}/yt-dlp.tar.gz
+  strip-components: 1
+
+#NOTE copy-pasta from mesonbuild.com
+#TODO make a brewkit/ script to do this automatically
+
+versions:
+  github: yt-dlp/yt-dlp
+  strip: /^yt-dlp /
+
+dependencies:
+  python.org: 3
+  gnu.org/bash: '>=2'  # for our venv/relocation scripts: feel free to fix that
+
+build:
+  script: |
+    export VERSION={{version}}
+    export PREFIX={{prefix}}
+    export PYTHON_VERSION={{deps.python.org.version}}
+    export PYTHON_VERSION_MAJ={{deps.python.org.version.major}}
+    export PYTHON_VERSION_MIN={{deps.python.org.version.minor}}
+    "$SRCROOT"/props/python-venv.sh yt-dlp yt-dlp.com
+
+
+test: |
+  yt-dlp --simulate https://youtu.be/pOtd1cbOP7k
+
+provides:
+  - bin/yt-dlp
