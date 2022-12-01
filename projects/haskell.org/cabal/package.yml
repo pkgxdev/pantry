@@ -20,6 +20,9 @@ build:
   dependencies:
     curl.se: '*'
     tea.xyz/gx/cc: c99
+    linux/aarch64:
+      github.com/numactl/numactl: ^2  # downloaded cabal needs this
+    tukaani.org/xz: 5
   script: |-
     case "X{{ hw.target }}" in
     "Xaarch64-apple-darwin")
@@ -68,4 +71,6 @@ build:
       --installdir={{prefix}}/bin \
       $ADDITIONAL_CABAL_FLAGS
 
-test: true  #FIXME
+test: |
+  cabal --config-file=./config user-config init
+  cabal --config-file=./config info Cabal
