@@ -1,0 +1,60 @@
+distributable:
+  url: https://github.com/ytdl-org/youtube-dl/releases/download/{{version}}/youtube-dl-{{version}}.tar.gz
+  strip-components: 1
+
+#NOTE copy-pasta from mesonbuild.com
+#TODO make a brewkit/ script to do this automatically
+
+versions:
+  github: ytdl-org/youtube-dl
+  strip: /^youtube-dl /
+
+dependencies:
+  python.org: 3
+  gnu.org/bash: '>=2'  # for our venv/relocation scripts: feel free to fix that
+
+build:
+  script: |
+    python -m venv {{prefix}}/libexec
+
+    cd "{{prefix}}"
+
+    libexec/bin/pip install -v --no-deps --no-binary :all: --ignore-installed youtube-dl
+    mkdir bin
+
+    mv libexec/bin/youtube-dl libexec/bin/youtube-dl.py
+
+    cd bin
+    ln -s ../libexec/bin/youtube-dl youtube-dl
+
+    cd ../libexec/bin
+    fix-shebangs.ts *
+
+    cp "$SRCROOT"/props/shim.bash youtube-dl
+    chmod +x youtube-dl
+
+    rm Activate.ps1 activate.csh activate.fish
+
+    sed -i.bak 's|VIRTUAL_ENV=".*"|VIRTUAL_ENV="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. \&\& pwd)"|' activate
+    rm activate.bak
+
+    # FIXME a lot: this "updates" the `venv` on each run for relocatability
+    cat <<EOF>>activate
+
+    sed -i.bak \\
+      -e "s|$TEA_PREFIX/python.org/v{{deps.python.org.version}}|\$TEA_PREFIX/python.org/v{{deps.python.org.version.major}}|" \\
+      -e 's|bin/python{{deps.python.org.version.major}}.{{deps.python.org.version.minor}}|bin/python|' \\
+      -e "s|{{prefix}}/libexec|\$TEA_PREFIX/youtube-dlbuild.com/v{{version}}/libexec|" \\
+      \$VIRTUAL_ENV/pyvenv.cfg
+    rm \$VIRTUAL_ENV/pyvenv.cfg.bak
+    EOF
+
+    for x in python*; do
+      ln -sf ../../../../python.org/v{{ deps.python.org.version.major }}/bin/$x $x
+    done
+
+test: |
+  youtube-dl --simulate https://youtu.be/pOtd1cbOP7k
+
+provides:
+  - bin/youtube-dl
