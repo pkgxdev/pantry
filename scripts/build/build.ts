@@ -84,6 +84,8 @@ async function __build(pkg: Package): Promise<BuildResult> {
     const bld = src ?? Path.mktmp({ prefix: pkg.project }).join("wd").mkdir()
     const sh = await pantry.getScript(pkg, 'build', resolved)
 
+    const brewkit = new URL(import.meta.url).path().parent().parent().join("brewkit")
+
     const cmd = bld.parent().join("build.sh").write({ force: true, text: undent`
       #!/bin/bash
 
@@ -95,8 +97,7 @@ async function __build(pkg: Package): Promise<BuildResult> {
       export SRCROOT="${bld}"
       ${expand(env)}
 
-      ${/*FIXME hardcoded paths*/ ''}
-      export PATH=/opt/tea.xyz/var/pantry/scripts/brewkit:"$PATH"
+      export PATH=${brewkit}:"$PATH"
 
       ${sh}
       `
