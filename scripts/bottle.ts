@@ -19,7 +19,7 @@ args:
 
 import { Installation } from "types"
 import { useCellar, usePrefix, useFlags, useCache } from "hooks"
-import { backticks, run } from "utils"
+import { backticks, panic, run } from "utils"
 import { crypto } from "deno/crypto/mod.ts"
 import { encode } from "deno/encoding/hex.ts"
 import { encode as base64Encode } from "deno/encoding/base64.ts"
@@ -36,9 +36,8 @@ if (import.meta.main) {
   useFlags()
 
   const compression = Deno.env.get("COMPRESSION") == 'xz' ? 'xz' : 'gz'
-  const gpgKey = Deno.env.get("GPG_KEY_ID")
-  const gpgPassphrase = Deno.env.get("GPG_PASSPHRASE")
-  if (!gpgKey || !gpgPassphrase) throw new Error("missing GPG_KEY_ID")
+  const gpgKey = Deno.env.get("GPG_KEY_ID") ?? panic("missing GPG_KEY_ID")
+  const gpgPassphrase = Deno.env.get("GPG_PASSPHRASE") ?? panic("missing GPG_PASSPHRASE")
   const checksums: string[] = []
   const signatures: string[] = []
   const bottles: Path[] = []
