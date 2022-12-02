@@ -1,0 +1,31 @@
+distributable:
+  url: https://github.com/koalaman/shellcheck/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: koalaman/shellcheck/tags
+
+provides:
+  - bin/shellcheck
+
+dependencies:
+  sourceware.org/libffi: 3
+
+build:
+  dependencies:
+    haskell.org: ^9
+    haskell.org/cabal: ^3
+  script: |-
+    cabal update
+    cabal install $ARGS
+  env:
+    ARGS:
+      - --install-method=copy
+      - --installdir={{prefix}}/bin
+
+test:
+  fixture: |
+    #!/bin/sh
+    echo "Hello, world!"
+  script:
+    shellcheck $FIXTURE
