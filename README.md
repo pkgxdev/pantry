@@ -26,7 +26,7 @@ will be maintained by their own communities.
 
 See the contributing guide in [pantry.zero][pantry.zero/contributing].
 
-[pantry.zero]: https://github.com/teaxyz/pantry.zero
+[pantry.zero]: https://github.com/teaxyz/pantry.zero#what-is-a-pantry
 [pantry.zero/contributing]: https://github.com/teaxyz/pantry.zero#contributing
 [pantry.core]: https://github.com/teaxyz/pantry.core
 
