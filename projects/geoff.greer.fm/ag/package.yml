@@ -1,0 +1,40 @@
+distributable:
+  url: https://github.com/ggreer/the_silver_searcher/archive/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: ggreer/the_silver_searcher/tags
+
+build:
+  dependencies:
+    freedesktop.org/pkg-config: ^0.29
+    pcre.org: 8
+    tukaani.org/xz: 5
+    gnu.org/automake: 1
+    gnu.org/autoconf: 2
+    tea.xyz/gx/cc: 0
+  script: |
+    autoreconf -fiv
+
+    # It looks like `ag` hasn't been updated since
+    # 2018, and lots of people are having pkg-config
+    # issues with these stanzas; therefore, we skip
+    # them and add the linker flags ourselves (below)
+    sed -i.bak \
+      -e '/PKG_CHECK_MODULES(PCRE, libpcre)/d' \
+      -e '/PKG_CHECK_MODULES(LZMA, liblzma)/d' \
+      configure
+
+    ./configure $ARGS
+    make install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --disable-dependency-tracking
+    LDFLAGS: $LDFLAGS -lpcre -llzma
+
+test:
+  test $(echo hilo | ag hi) = "hilo"
+
+provides:
+  - bin/ag
