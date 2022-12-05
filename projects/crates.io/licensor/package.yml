@@ -1,0 +1,23 @@
+distributable:
+  url: https://github.com/raftario/licensor/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/licensor
+
+versions:
+  github: raftario/licensor/tags
+  strip: /v/
+
+dependencies:
+  zlib.net: ^1
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.31'
+    rust-lang.org/cargo: '*'
+  script:
+    cargo install --locked --path . --root {{prefix}}
+
+test:
+  licensor MIT | grep 'AS IS'
