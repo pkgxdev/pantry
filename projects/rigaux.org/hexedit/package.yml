@@ -1,0 +1,24 @@
+distributable:
+  url: https://github.com/pixel/hexedit/archive/refs/tags/{{version.raw}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: pixel/hexedit/tags
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/autoconf: '*'
+  script: |
+    ./autogen.sh
+    ./configure --prefix={{prefix}}
+    make
+    make install
+
+test:
+  script: |
+    hexedit -h
+
+provides:
+  - bin/hexedit
