@@ -13,6 +13,11 @@ build:
     invisible-island.net/ncurses: 6
   script: |
     ./autogen.sh
+
+    # configure won't find libncursesw for libncurses.
+    sed -i.bak -e 's/-lncurses/-lncursesw/' configure
+    rm configure.bak
+
     ./configure --prefix={{prefix}}
     make
     make install
