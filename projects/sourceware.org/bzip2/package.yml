@@ -38,17 +38,14 @@ build:
 
       mv libbz2.*.1.* {{ prefix }}/lib
       cd {{ prefix }}/lib
-      ln -s libbz2.so.{{ version }} libbz2.so
-      ln -s libbz2.so.{{ version }} libbz2.so.{{ version.major }}
+      test -e libbz2.so || ln -s libbz2.so.{{ version }} libbz2.so
+      test -e libbz2.so.{{ version.major }} || ln -s libbz2.so.{{ version }} libbz2.so.{{ version.major }}
       ;;
     darwin)
-      make \
-        --file props/Makefile-libbz2_dylib \
-        --environment-overrides \
-        --jobs {{ hw.concurrency }} \
-
       cd {{ prefix }}/lib
-      ln -s libbz2.{{ version }}.dylib libbz2.{{ version.major }}.dylib
+      test -e libbz2.dylib
+      test -e libbz2.{{version}}.dylib
+      test -e libbz2.{{version.major}}.dylib
       ;;
     esac
 
