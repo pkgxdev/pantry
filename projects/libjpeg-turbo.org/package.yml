@@ -1,0 +1,36 @@
+distributable:
+  url: https://downloads.sourceforge.net/project/libjpeg-turbo/{{version}}/libjpeg-turbo-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  - 2.1.4
+
+build:
+  dependencies:
+    cmake.org: 3
+  script: |
+    cmake -S . -B build -DWITH_JPEG8=1 \
+      -DCMAKE_INSTALL_PREFIX={{prefix}} \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_VERBOSE_MAKEFILE=ON \
+      -Wno-dev \
+      -DBUILD_TESTING=OFF
+    cmake --build build
+    cmake --build build --target test
+    cmake --install build
+
+test:
+  jpegtran
+    -crop 1x1
+    -transpose
+    -perfect
+    -outfile out.jpg
+    testimages/testimgari.jpg
+
+provides:
+  - bin/cjpeg
+  - bin/djpeg
+  - bin/jpegtran
+  - bin/rdjpgcom
+  - bin/tjbench
+  - bin/wrjpgcom
