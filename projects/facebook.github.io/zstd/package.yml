@@ -1,0 +1,44 @@
+distributable:
+  url: https://github.com/facebook/zstd/archive/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: facebook/zstd/tags
+
+build:
+  dependencies:
+    cmake.org: 3
+    lz4.github.io/lz4: '*'
+    tukaani.org/xz: '*'
+
+  script: |
+    # Legacy support is the default after
+    # https://github.com/facebook/zstd/commit/db104f6e839cbef94df4df8268b5fecb58471274
+    # Set it to `ON` to be explicit about the configuration.
+    cmake -S build/cmake -B builddir \
+      -DZSTD_PROGRAMS_LINK_SHARED=ON \
+      -DZSTD_BUILD_CONTRIB=ON \
+      -DZSTD_LEGACY_SUPPORT=ON \
+      -DZSTD_ZLIB_SUPPORT=ON \
+      -DZSTD_LZMA_SUPPORT=ON \
+      -DZSTD_LZ4_SUPPORT=ON \
+      -DCMAKE_INSTALL_PREFIX={{prefix}} \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_VERBOSE_MAKEFILE=ON \
+      -Wno-dev \
+      -DBUILD_TESTING=OFF
+    cmake --build builddir
+    cmake --install builddir
+
+test:
+  script: |
+    zstd -V
+
+provides:
+  - pzstd
+  - unzstd
+  - zstd
+  - zstdcat
+  - zstdgrep
+  - zstdless
+  - zstdmt
