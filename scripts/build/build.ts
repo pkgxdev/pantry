@@ -143,7 +143,7 @@ async function __build(pkg: Package): Promise<BuildResult> {
   }
 }
 
-async function fetch_src(pkg: Package): Promise<[Path, Path]> {
+async function fetch_src(pkg: Package): Promise<[Path, Path] | undefined> {
   console.log('fetching', pkgstr(pkg))
 
   // we run this as a script because we don’t want these deps imported into *this* env
@@ -155,5 +155,9 @@ async function fetch_src(pkg: Package): Promise<[Path, Path]> {
   })
   const out = await proc.output()
   const [dstdir, tarball] = new TextDecoder().decode(out).split("\n")
+  if (!tarball) {
+    // no tarball, e.g. tea.xyz/gx/cc
+    return undefined
+  }
   return [new Path(dstdir), new Path(tarball)]
 }
