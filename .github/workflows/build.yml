@@ -32,6 +32,7 @@ jobs:
     container: ${{ matrix.container }}
     outputs:
       built: ${{ steps.build.outputs.pkgs }}
+      relative-paths: ${{ steps.build.outputs.relative-paths }}
       srcs: ${{ steps.build.outputs.srcs }}
       pkgs: ${{ steps.sorted.outputs.pkgs }} ${{ steps.sorted.outputs.pre-install }}
     steps:
@@ -90,43 +91,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           FORCE_UNSAFE_CONFIGURE: 1  # some configure scripts refuse to run as root
-
-      # the next three steps bless our code for Apple. It might be the case they should be
-      # encapulated separately.
-      # FIXME: using an explicit commit in a PR isn't great, but the last release was almost 3 years
-      # ago, and we need bugfixes.
-      # FIXME: replace this with a tea script based on https://localazy.com/blog/how-to-automatically-sign-macos-apps-using-github-actions
-      # github has a doc with similar content, but it's not returning to me atm.
-      - uses: apple-actions/import-codesign-certs@d54750db52a4d3eaed0fc107a8bab3958f3f7494
-        if: matrix.tag == 'darwin-aarch64' || matrix.os == 'macos-11'
-        with:
-          p12-file-base64: ${{ secrets.APPLE_CERTIFICATE_P12 }}
-          p12-password: ${{ secrets.APPLE_CERTIFICATE_P12_PASSWORD }}
-
-      # Codesign libs and bins
-      - name: Codesign package
-        if: matrix.tag == 'darwin-aarch64' || matrix.os == 'macos-11'
-        run: |
-          for PKG in ${{ steps.build.outputs.relative-paths }}; do
-            find /opt/$PKG -name '*.so' -or -name '*.dylib' -print0 | \
-              xargs -0 codesign -s "Developer ID Application: Tea Inc. (7WV56FL599)" --force -v --deep --timestamp --preserve-metadata=entitlements -o runtime || true
-            codesign -s "Developer ID Application: Tea Inc. (7WV56FL599)" -v --force --deep --timestamp --preserve-metadata=entitlements -o runtime /opt/$PKG/bin/* || true
-          done
-
-      # This isn't very informative, but even a no-op is safer than none
-      - name: Check codesigning
-        if: matrix.tag == 'darwin-aarch64' || matrix.os == 'macos-11'
-        run: |
-          for PKG in ${{ steps.build.outputs.relative-paths }}; do
-            for SIG in `find /opt/$PKG -name '*.so' -or -name '*.dylib'` `find /opt/$PKG/bin -type f`; do
-              codesign -vvv --deep --strict "$SIG"
-            done
-          done
-
-      # Needed for self-hosted runner, since it doesn't destroy itself automatically.
-      - name: Delete keychain
-        if: always() && matrix.tag == 'darwin-aarch64'
-        run: security delete-keychain signing_temp.keychain
 
       # tarring ourselves ∵ GHA-artifacts (ludicrously) lose permissions
       # /ref https://github.com/actions/upload-artifact/issues/38
@@ -233,6 +197,46 @@ jobs:
 
       - run: tar xzf artifacts.tgz
         working-directory: ${{ steps.tea.outputs.prefix }}
+
+      # the next three steps bless our code for Apple. It might be the case they should be
+      # encapulated separately.
+      # FIXME: using an explicit commit in a PR isn't great, but the last release was almost 3 years
+      # ago, and we need bugfixes.
+      # FIXME: replace this with a tea script based on https://localazy.com/blog/how-to-automatically-sign-macos-apps-using-github-actions
+      # github has a doc with similar content, but it's not returning to me atm.
+      - uses: apple-actions/import-codesign-certs@d54750db52a4d3eaed0fc107a8bab3958f3f7494
+        if: matrix.platform.name == 'darwin+aarch64' || matrix.platform.name == 'darwin+x86-64'
+        with:
+          p12-file-base64: ${{ secrets.APPLE_CERTIFICATE_P12 }}
+          p12-password: ${{ secrets.APPLE_CERTIFICATE_P12_PASSWORD }}
+
+      # Codesign libs and bins
+      - name: Codesign package
+        if: matrix.platform.name == 'darwin+aarch64' || matrix.platform.name == 'darwin+x86-64'
+        run: |
+          for PKG in ${{ needs.build.outputs.relative-paths }}; do
+            find /opt/$PKG -name '*.so' -or -name '*.dylib' -print0 | \
+              xargs -0 codesign -s "Developer ID Application: Tea Inc. (7WV56FL599)" --force -v --deep --timestamp --preserve-metadata=entitlements -o runtime || true
+            codesign -s "Developer ID Application: Tea Inc. (7WV56FL599)" -v --force --deep --timestamp --preserve-metadata=entitlements -o runtime /opt/$PKG/bin/* || true
+          done
+        working-directory: ${{ steps.tea.outputs.prefix }}
+
+      # This isn't very informative, but even a no-op is safer than none
+      - name: Check codesigning
+        if: matrix.platform.name == 'darwin+aarch64' || matrix.platform.name == 'darwin+x86-64'
+        run: |
+          for PKG in ${{ needs.build.outputs.relative-paths }}; do
+            for SIG in `find /opt/$PKG -name '*.so' -or -name '*.dylib'` `find /opt/$PKG/bin -type f`; do
+              codesign -vvv --deep --strict "$SIG"
+            done
+          done
+        working-directory: ${{ steps.tea.outputs.prefix }}
+
+
+      # Needed for self-hosted runner, since it doesn't destroy itself automatically.
+      - name: Delete keychain
+        if: always() && matrix.platform.name == 'darwin+aarch64'
+        run: security delete-keychain signing_temp.keychain
 
       - run: |
           tea +gnupg.org gpg-agent --daemon || true
