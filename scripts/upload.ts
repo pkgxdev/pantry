@@ -107,7 +107,7 @@ const signatures = args_get("signatures")
 const rv: string[] = []
 
 for (const [index, pkg] of pkgs.entries()) {
-  const bottle = new Path(bottles[index])
+  const bottle = usePrefix().join(bottles[index])
   const checksum = checksums[index]
   const signature = base64Decode(signatures[index])
   const stowed = cache.decode(bottle)!

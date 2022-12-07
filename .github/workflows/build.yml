@@ -143,6 +143,12 @@ jobs:
       - run: |
           apt-get update
           apt-get --yes install libc-dev libstdc++-8-dev libgcc-8-dev
+
+          # in case this PR contains updates to the scripts
+          #TODO only do for PRs
+          if test "$GITHUB_REPOSITORY" = "teaxyz/pantry.core"; then
+            cp -rv pantry/scripts/* $(tea --prefix)/tea.xyz/var/pantry/scripts
+          fi
         if: ${{ matrix.container != '' }}
 
       - uses: actions/download-artifact@v3
@@ -154,7 +160,6 @@ jobs:
       - run: tea.xyz/var/pantry/scripts/test.ts ${{ inputs.projects }}
 
   bottle:
-    name: ${{ matrix.name }}
     needs: [test, build]
     if: ${{ inputs.upload }}
     runs-on: ${{ matrix.platform.os }}
@@ -189,6 +194,13 @@ jobs:
         with:
           srcroot: tea.xyz/var/pantry
           prefix: ${{ github.workspace }}
+
+      - run: |
+          # in case this PR contains updates to the scripts
+          #TODO only do for PRs
+          if test "$GITHUB_REPOSITORY" = "teaxyz/pantry.core"; then
+            cp -rv $GITHUB_WORKSPACE/pantry/scripts/* $(tea --prefix)/tea.xyz/var/pantry/scripts
+          fi
 
       - uses: actions/download-artifact@v3
         with:
@@ -260,14 +272,90 @@ jobs:
           GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
+      - run: |
+          echo ${{ steps.bottle-gz.outputs.bottles }} ${{ steps.bottle-xz.outputs.bottles }} >bottles
+          echo ${{ steps.bottle-gz.outputs.checksums }} ${{ steps.bottle-xz.outputs.checksums }} >checksums
+          echo ${{ steps.bottle-gz.outputs.signatures }} ${{ steps.bottle-xz.outputs.signatures }} >signatures
+
+          tar cf $GITHUB_WORKSPACE/artifacts.tar \
+            ${{ needs.build.outputs.srcs }} \
+            ${{ steps.bottle-gz.outputs.bottles }} \
+            ${{ steps.bottle-xz.outputs.bottles }} \
+            bottles checksums signatures
+
+        working-directory: ${{ steps.tea.outputs.prefix }}
+
+      - name: upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.platform.name }}-bottles
+          path: artifacts.tar
+          if-no-files-found: error
+
+  upload:
+    needs: [build, bottle]
+    if: ${{ inputs.upload }}
+    runs-on: ${{ matrix.platform.os }}
+    defaults:
+      run:
+        working-directory: tea.xyz/var/pantry
+    strategy:
+      matrix:
+        platform:
+          - os: macos-11
+            name: darwin+x86-64
+          - os: ubuntu-latest
+            name: linux+x86-64
+          - os: [self-hosted, macOS, ARM64]
+            tag: darwin-aarch64
+            name: darwin+aarch64
+          - os: [self-hosted, linux, ARM64]
+            tag: linux-aarch64
+            name: linux+aarch64
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          path: tea.xyz/var/cli
+          repository: teaxyz/cli
+
+      - uses: actions/checkout@v3
+        with:
+          path: pantry
+
+      - uses: teaxyz/setup@v0
+        id: tea
+        with:
+          srcroot: tea.xyz/var/pantry
+          prefix: ${{ github.workspace }}
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: ${{ matrix.platform.name }}-bottles
+          path: ${{ steps.tea.outputs.prefix }}
+
+      - run: tar xvf artifacts.tar
+        working-directory: ${{ steps.tea.outputs.prefix }}
+
+      - run: |
+          # in case this PR contains updates to the scripts
+          #TODO only do for PRs
+          if test "$GITHUB_REPOSITORY" = "teaxyz/pantry.core"; then
+            cp -rv $GITHUB_WORKSPACE/pantry/scripts/* $(tea --prefix)/tea.xyz/var/pantry/scripts
+          fi
+
+          cd ${{ steps.tea.outputs.prefix }}
+          for file in bottles checksums signatures; do
+            echo "$file=$(cat $file)" >>$GITHUB_ENV
+          done
+
       - name: upload bottles
         id: upload
         run: scripts/upload.ts
           --pkgs ${{ needs.build.outputs.built }} ${{ needs.build.outputs.built }}
           --srcs ${{ needs.build.outputs.srcs }} ${{ needs.build.outputs.srcs }}
-          --bottles ${{ steps.bottle-gz.outputs.bottles }} ${{ steps.bottle-xz.outputs.bottles }}
-          --checksums ${{ steps.bottle-gz.outputs.checksums }} ${{ steps.bottle-xz.outputs.checksums }}
-          --signatures ${{ steps.bottle-gz.outputs.signatures }} ${{ steps.bottle-xz.outputs.signatures }}
+          --bottles ${{ env.bottles }}
+          --checksums ${{ env.checksums }}
+          --signatures ${{ env.signatures }}
         env:
           AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -285,7 +373,7 @@ jobs:
 
   notify:
     if: always()
-    needs: [test, build, bottle]
+    needs: [test, build, upload]
     runs-on: ubuntu-latest
     steps:
       - uses: martialonline/workflow-status@v3

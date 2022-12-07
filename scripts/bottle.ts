@@ -57,7 +57,7 @@ if (import.meta.main) {
     signatures.push(signature)
   }
 
-  await set_output("bottles", bottles)
+  await set_output("bottles", bottles.map(b => b.relative({ to: usePrefix() })))
   await set_output("checksums", checksums)
   await set_output("signatures", signatures)
 }
