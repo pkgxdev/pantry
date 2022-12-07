@@ -1,0 +1,21 @@
+distributable:
+  url: https://github.com/lz4/lz4/archive/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: lz4/lz4/tags
+
+build:
+  script: make install PREFIX={{prefix}}
+
+test:
+  script: |
+    echo "testing compression and decompression" > in
+    cat in | lz4 -c | lz4 -d -c > out
+    diff in out
+
+provides:
+  - bin/lz4
+  - bin/lz4c
+  - bin/lz4cat
+  - bin/unlz4
