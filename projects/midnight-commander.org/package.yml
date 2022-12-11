@@ -16,6 +16,11 @@ dependencies:
   gnome.org/glib: '>=2.30'
   gnu.org/gettext: '>=0.18.2'
 
+runtime:
+  env:
+    #FIXME we prefer to fix this in the binary
+    MC_DATADIR: "{{prefix}}/etc/mc"
+
 build:
   dependencies:
     tea.xyz/gx/cc: '*'
@@ -28,6 +33,18 @@ build:
     ./configure $ARGS
     make -j {{hw.concurrency}}
     make install
+
+    cd "{{prefix}}"
+    fix-shebangs.ts libexec/mc/extfs.d/*
+
+    for x in $(find libexec/mc -name \*sh -type f -depth 1) libexec/mc/ext.d/misc.sh; do
+      sed -i.bak 's|{{tea.prefix}}|$TEA_PREFIX|g' $x
+      rm $x.bak
+    done
+
+    sed -i.bak 's|{{tea.prefix}}|%p/../|g' etc/mc/mc.ext
+    rm etc/mc/mc.ext.bak
+
   env:
     ARGS:
       - --prefix={{prefix}}
@@ -35,7 +52,7 @@ build:
     # Needed for the compiler to `#include <term.h>`
     CPATH: $CPATH:{{deps.invisible-island.net/ncurses.prefix}}/include/ncursesw
 
+# FIXME: hard to test interactive tools
 test:
-  # FIXME: hard to test interactive tools
-  script:
-    mc --configure-options
+  test $(mc --datadir | cut -d' ' -f1) = "{{prefix}}/etc/mc/"
+  # ^^ tests relocatability
