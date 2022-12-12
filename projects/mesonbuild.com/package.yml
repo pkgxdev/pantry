@@ -11,43 +11,8 @@ dependencies:
 
 build:
   script: |
-    python -m venv {{prefix}}/libexec
+    python-venv.sh meson mesonbuild.com {{version}} {{prefix}} {{deps.python.org.version}} {{deps.python.org.version.major}} {{deps.python.org.version.minor}}
 
-    cd "{{prefix}}"
-
-    libexec/bin/pip install -v --no-deps --no-binary :all: --ignore-installed meson
-    mkdir bin
-
-    mv libexec/bin/meson libexec/bin/meson.py
-
-    cd bin
-    ln -s ../libexec/bin/meson meson
-
-    cd ../libexec/bin
-    fix-shebangs.ts *
-
-    cp "$SRCROOT"/props/shim.bash meson
-    chmod +x meson
-
-    rm Activate.ps1 activate.csh activate.fish
-
-    sed -i.bak 's|VIRTUAL_ENV=".*"|VIRTUAL_ENV="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. \&\& pwd)"|' activate
-    rm activate.bak
-
-    # FIXME a lot: this "updates" the `venv` on each run for relocatability
-    cat <<EOF>>activate
-
-    sed -i.bak \\
-      -e "s|$TEA_PREFIX/python.org/v{{deps.python.org.version}}|\$TEA_PREFIX/python.org/v{{deps.python.org.version.major}}|" \\
-      -e 's|bin/python{{deps.python.org.version.major}}.{{deps.python.org.version.minor}}|bin/python|' \\
-      -e "s|{{prefix}}/libexec|\$TEA_PREFIX/mesonbuild.com/v{{version}}/libexec|" \\
-      \$VIRTUAL_ENV/pyvenv.cfg
-    rm \$VIRTUAL_ENV/pyvenv.cfg.bak
-    EOF
-
-    for x in python*; do
-      ln -sf ../../../../python.org/v{{ deps.python.org.version.major }}/bin/$x $x
-    done
 test:
   dependencies:
     ninja-build.org: 1
