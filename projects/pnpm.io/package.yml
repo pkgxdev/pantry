@@ -1,0 +1,27 @@
+distributable:
+  url: https://github.com/pnpm/pnpm/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: pnpm/pnpm
+
+provides:
+  - bin/pnpm
+
+dependencies:
+  nodejs.org: '>=16'
+
+build:
+  dependencies:
+    curl.se: '>=5'
+    nodejs.org: '>=16'
+  script:
+    curl -L https://get.pnpm.io/v6.16.js | node - add --global pnpm@next-7 npm@7
+    pnpm install
+    pnpm compile
+    
+test:
+  dependencies:
+    git-scm.org: '*' # `npm doctor` checks for, but doesn't use, `git`
+  script: |
+    pnpm doctor
