@@ -277,8 +277,11 @@ jobs:
           echo ${{ steps.bottle-gz.outputs.checksums }} ${{ steps.bottle-xz.outputs.checksums }} >checksums
           echo ${{ steps.bottle-gz.outputs.signatures }} ${{ steps.bottle-xz.outputs.signatures }} >signatures
 
+          # Don't try to archive "~"
+          SRCS=$(echo ${{ needs.build.outputs.srcs }} | sed -e 's/~//g')
+
           tar cf $GITHUB_WORKSPACE/artifacts.tar \
-            ${{ needs.build.outputs.srcs }} \
+            $SRCS \
             ${{ steps.bottle-gz.outputs.bottles }} \
             ${{ steps.bottle-xz.outputs.bottles }} \
             bottles checksums signatures
