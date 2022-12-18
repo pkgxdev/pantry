@@ -1,0 +1,37 @@
+distributable:
+  url: https://github.com/nushell/nushell/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: nushell/nushell/tags
+
+dependencies:
+  openssl.org: ^1
+
+build:
+  dependencies:
+    rust-lang.org: ^1.60.0
+    rust-lang.org/cargo: ^0.65
+    freedesktop.org/pkg-config: ^0.29
+  script:
+    cargo install --path=. --root={{prefix}}
+  test:
+    cargo test
+
+test:
+  script: |
+    dd if=/dev/zero count=1 bs=101 of=big
+    dd if=/dev/zero count=1 bs=99 of=little
+    OUT=$(nu -c 'ls | where size < 100b')
+    test "$OUT" = "$FIXTURE"
+    nu -c 'fetch https://tea.xyz'
+  env:
+    FIXTURE: |
+      ╭───┬────────┬──────┬──────┬──────────╮
+      │ # │  name  │ type │ size │ modified │
+      ├───┼────────┼──────┼──────┼──────────┤
+      │ 0 │ little │ file │ 99 B │ now      │
+      ╰───┴────────┴──────┴──────┴──────────╯
+
+provides:
+  - bin/nu
