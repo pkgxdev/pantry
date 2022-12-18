@@ -1,0 +1,36 @@
+distributable:
+  url: https://github.com/aws/aws-cli/archive/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: aws/aws-cli/tags
+
+build:
+  dependencies:
+    python.org: '>=3.7<3.11'
+    pip.pypa.io: '*'
+    info-zip.org/unzip: '*'
+    tea.xyz/gx/cc: '*' # pyinstaller requires `objdump`
+  script: |
+    # There's probably a better way to do this, but it's not
+    # trivial. Using the provided scripts should be reliable
+    # across present and future releases.
+
+    ./scripts/installers/make-exe
+
+    mkdir -p {{prefix}}/libexec
+
+    unzip dist/awscli-exe.zip
+    mv aws/dist/* {{prefix}}/libexec
+
+    cd {{prefix}}
+    mkdir bin
+
+    ln -s ../libexec/aws bin/aws
+
+test:
+  # Pretty much anything else appears to require AWS credentials
+  aws --version
+
+provides:
+  - bin/aws
