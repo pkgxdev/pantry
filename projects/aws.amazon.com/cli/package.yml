@@ -28,7 +28,11 @@ build:
 
     ln -s ../libexec/aws bin/aws
 
-test:
+test: |
+  if test "{{hw.platform}}" == "linux"; then
+    ldd {{prefix}}/libexec/aws
+    command -v strace && strace aws
+  fi
   # Pretty much anything else appears to require AWS credentials
   aws --version
 
