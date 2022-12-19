@@ -1,0 +1,24 @@
+distributable:
+  url: https://beyondgrep.com/ack-v{{version}}
+
+versions:
+  github: beyondgrep/ack3/tags
+
+provides:
+  - bin/ack
+
+dependencies:
+  perl.org: '*'
+
+build: |
+  mkdir -p "{{prefix}}/bin"
+  mv beyondgrep.com-{{version}}* ack
+  install -m755 ./ack "{{prefix}}/bin"
+  #TODO generate man page
+# ^^ above is weird as our cache system adds a `.[0-9]` extension because the
+# download is a text file without extension but the URL itself ends with the
+# version number
+# 3 ways to fix this, 1. magic file detection, 2. mime-types, 3. explicit yaml
+
+test: |
+  ack --version
