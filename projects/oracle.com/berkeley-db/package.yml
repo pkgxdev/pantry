@@ -1,0 +1,55 @@
+distributable:
+  url: https://download.oracle.com/berkeley-db/db-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  - 18.1.40
+
+dependencies:
+  openssl.org: ^1.1.1
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  working-directory: build_unix
+  script: |
+    ../dist/configure $ARGS
+    make install DOCLIST=license
+    rm -rf "{{prefix}}/docs"
+  env:
+    ARGS:
+    - --disable-debug
+    - --disable-static
+    - --prefix={{prefix}}
+    - --enable-cxx
+    - --enable-compat185
+    - --enable-sql
+    - --enable-sql_codegen
+    - --enable-dbm
+    - --enable-stl
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script: |
+    c++ fixture.cpp -ldb_cxx
+    ./a.out
+    test -f test.db
+
+provides:
+  - bin/db_verify
+  - bin/db_upgrade
+  - bin/db_tuner
+  - bin/db_replicate
+  - bin/db_stat
+  - bin/db_recover
+  - bin/db_load
+  - bin/db_log_verify
+  - bin/db_printlog
+  - bin/db_dump
+  - bin/db_hotbackup
+  - bin/db_deadlock
+  - bin/db_checkpoint
+  - bin/db_convert
+  - bin/db_archive
