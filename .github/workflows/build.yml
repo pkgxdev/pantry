@@ -6,35 +6,28 @@ on:
       projects:
         required: true
         type: string
-      upload:
-        required: false
-        type: boolean
-        default: false
 
 env:
   TEA_PANTRY_PATH: ${{ github.workspace }}/pantry
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.platform.os }}
     strategy:
       matrix:
-        include:
+        platform:
           - os: macos-11
+            name: darwin+x86-64
           - os: ubuntu-latest
+            name: linux+x86-64
             container:
               image: debian:buster-slim
               options: --memory=24g
           - os: [self-hosted, macOS, ARM64]
-            tag: darwin-aarch64
+            name: darwin+aarch64
           - os: [self-hosted, linux, ARM64]
-            tag: linux-aarch64
-    container: ${{ matrix.container }}
-    outputs:
-      built: ${{ steps.build.outputs.pkgs }}
-      relative-paths: ${{ steps.build.outputs.relative-paths }}
-      srcs: ${{ steps.build.outputs.srcs }}
-      pkgs: ${{ steps.sorted.outputs.pkgs }} ${{ steps.sorted.outputs.pre-install }}
+            name: linux+aarch64
+    container: ${{ matrix.platform.container }}
     steps:
       - name: co pantry
         uses: actions/checkout@v3
@@ -56,7 +49,7 @@ jobs:
 
       - name: HACKS
         run: |
-          case ${{ matrix.os }} in
+          case ${{ matrix.platform.os }} in
           ubuntu-latest)
             #FIXME our LLVM doesn't provide c/c++ headers for some reason
             apt-get update
@@ -92,38 +85,53 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           FORCE_UNSAFE_CONFIGURE: 1  # some configure scripts refuse to run as root
 
+      - name: delete `.la` files
+        run: find ${{ steps.tea.outputs.prefix }} -name '*.la' -delete
+
+      # cache data we'll need in the bottling job
+      - run: |
+          echo ${{ steps.build.outputs.pkgs }} >built
+          echo ${{ steps.build.outputs.relative-paths }} >relative-paths
+          echo ${{ steps.build.outputs.srcs }} >srcs
+        working-directory: ${{ steps.tea.outputs.prefix }}
+
       # tarring ourselves ∵ GHA-artifacts (ludicrously) lose permissions
       # /ref https://github.com/actions/upload-artifact/issues/38
       - run:
           tar czf $GITHUB_WORKSPACE/artifacts.tgz
             ${{ steps.build.outputs.relative-paths }}
             ${{ steps.build.outputs.srcs-relative-paths }}
+            built relative-paths srcs
         working-directory: ${{ steps.tea.outputs.prefix }}
 
       - name: upload artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ matrix.tag || matrix.os }}
+          name: ${{ matrix.platform.name }}
           path: artifacts.tgz
           if-no-files-found: error
 
   test:
     needs: [build]
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.platform.os }}
     strategy:
       matrix:
-        include:
+        platform:
         - os: macos-11
+          name: darwin+x86-64
         - os: ubuntu-latest
+          name: linux+x86-64
         - os: ubuntu-latest
+          name: linux+x86-64
           container: ghcr.io/teaxyz/infuser:slim-latest
         - os: ubuntu-latest
+          name: linux+x86-64
           container: debian:buster-slim
         - os: [self-hosted, macOS, ARM64]
-          tag: darwin-aarch64
+          name: darwin+aarch64
         - os: [self-hosted, linux, ARM64]
-          tag: linux-aarch64
-    container: ${{ matrix.container }}
+          name: linux+aarch64
+    container: ${{ matrix.platform.container }}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -149,23 +157,20 @@ jobs:
           if test "$GITHUB_REPOSITORY" = "teaxyz/pantry.core"; then
             cp -rv pantry/scripts/* $(tea --prefix)/tea.xyz/var/pantry/scripts
           fi
-        if: ${{ matrix.container != '' }}
+        if: ${{ matrix.platform.container != '' }}
 
       - uses: actions/download-artifact@v3
         with:
-          name: ${{ matrix.tag || matrix.os }}
+          name: ${{ matrix.platform.name }}
 
       - run: tar xzf artifacts.tgz
 
       - run: tea.xyz/var/pantry/scripts/test.ts ${{ inputs.projects }}
 
-  bottle:
-    needs: [test, build]
-    if: ${{ inputs.upload }}
-    runs-on: ${{ matrix.platform.os }}
-    defaults:
-      run:
-        working-directory: tea.xyz/var/pantry
+  stage:
+    needs: [test]
+    if: startsWith(github.ref, 'refs/pull/') && startsWith(github.repository, 'teaxyz/pantry.')
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         platform:
@@ -174,10 +179,8 @@ jobs:
           - os: ubuntu-latest
             name: linux+x86-64
           - os: [self-hosted, macOS, ARM64]
-            tag: darwin-aarch64
             name: darwin+aarch64
           - os: [self-hosted, linux, ARM64]
-            tag: linux-aarch64
             name: linux+aarch64
     steps:
       - uses: actions/checkout@v3
@@ -204,190 +207,15 @@ jobs:
 
       - uses: actions/download-artifact@v3
         with:
-          name: ${{ matrix.platform.tag || matrix.platform.os }}
-          path: ${{ steps.tea.outputs.prefix }}
+          name: ${{ matrix.platform.name }}
 
-      - run: tar xzf artifacts.tgz
-        working-directory: ${{ steps.tea.outputs.prefix }}
-
-      - name: delete `.la` files
-        run: find ${{ steps.tea.outputs.prefix }} -name '*.la' -delete
-
-      # the next three steps bless our code for Apple. It might be the case they should be
-      # encapulated separately.
-      # FIXME: using an explicit commit in a PR isn't great, but the last release was almost 3 years
-      # ago, and we need bugfixes.
-      # FIXME: replace this with a tea script based on https://localazy.com/blog/how-to-automatically-sign-macos-apps-using-github-actions
-      # github has a doc with similar content, but it's not returning to me atm.
-      - uses: apple-actions/import-codesign-certs@d54750db52a4d3eaed0fc107a8bab3958f3f7494
-        if: matrix.platform.name == 'darwin+aarch64' || matrix.platform.name == 'darwin+x86-64'
-        with:
-          p12-file-base64: ${{ secrets.APPLE_CERTIFICATE_P12 }}
-          p12-password: ${{ secrets.APPLE_CERTIFICATE_P12_PASSWORD }}
-
-      # Codesign libs and bins
-      - name: Codesign package
-        if: matrix.platform.name == 'darwin+aarch64' || matrix.platform.name == 'darwin+x86-64'
-        run: |
-          for PKG in ${{ needs.build.outputs.relative-paths }}; do
-            find /opt/$PKG -name '*.so' -or -name '*.dylib' -print0 | \
-              xargs -0 codesign -s "Developer ID Application: Tea Inc. (7WV56FL599)" --force -v --deep --timestamp --preserve-metadata=entitlements -o runtime || true
-            codesign -s "Developer ID Application: Tea Inc. (7WV56FL599)" -v --force --deep --timestamp --preserve-metadata=entitlements -o runtime /opt/$PKG/bin/* || true
-          done
-        working-directory: ${{ steps.tea.outputs.prefix }}
-
-      # This isn't very informative, but even a no-op is safer than none
-      - name: Check codesigning
-        if: matrix.platform.name == 'darwin+aarch64' || matrix.platform.name == 'darwin+x86-64'
-        run: |
-          for PKG in ${{ needs.build.outputs.relative-paths }}; do
-            for SIG in `find /opt/$PKG -name '*.so' -or -name '*.dylib'` `find /opt/$PKG/bin -type f`; do
-              codesign -vvv --deep --strict "$SIG"
-            done
-          done
-        working-directory: ${{ steps.tea.outputs.prefix }}
-
-
-      # Needed for self-hosted runner, since it doesn't destroy itself automatically.
-      - name: Delete keychain
-        if: always() && matrix.platform.name == 'darwin+aarch64'
-        run: security delete-keychain signing_temp.keychain
-
-      - run: |
-          tea +gnupg.org gpg-agent --daemon || true
-          echo $GPG_PRIVATE_KEY | \
-            base64 -d | \
-            tea +gnupg.org gpg --import --batch --yes
+      - run:
+          tea.xyz/var/pantry/scripts/cache-artifacts.ts
+            ${{github.repository}}
+            ${{github.ref}}
+            ${{matrix.platform.name}}
+            artifacts.tgz
         env:
-          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
-
-      - run: scripts/bottle.ts ${{ needs.build.outputs.built }}
-        id: bottle-xz
-        env:
-          COMPRESSION: xz
-          GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
-          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-
-      - run: scripts/bottle.ts ${{ needs.build.outputs.built }}
-        id: bottle-gz
-        env:
-          COMPRESSION: gz
-          GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
-          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-
-      - run: |
-          echo ${{ steps.bottle-gz.outputs.bottles }} ${{ steps.bottle-xz.outputs.bottles }} >bottles
-          echo ${{ steps.bottle-gz.outputs.checksums }} ${{ steps.bottle-xz.outputs.checksums }} >checksums
-          echo ${{ steps.bottle-gz.outputs.signatures }} ${{ steps.bottle-xz.outputs.signatures }} >signatures
-
-          # Don't try to archive "~"
-          SRCS=$(echo ${{ needs.build.outputs.srcs }} | sed -e 's/~//g')
-
-          tar cf $GITHUB_WORKSPACE/artifacts.tar \
-            $SRCS \
-            ${{ steps.bottle-gz.outputs.bottles }} \
-            ${{ steps.bottle-xz.outputs.bottles }} \
-            bottles checksums signatures
-
-        working-directory: ${{ steps.tea.outputs.prefix }}
-
-      - name: upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ matrix.platform.name }}-bottles
-          path: artifacts.tar
-          if-no-files-found: error
-
-  upload:
-    needs: [build, bottle]
-    if: ${{ inputs.upload }}
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: tea.xyz/var/pantry
-    strategy:
-      matrix:
-        platform:
-          - os: macos-11
-            name: darwin+x86-64
-          - os: ubuntu-latest
-            name: linux+x86-64
-          - os: [self-hosted, macOS, ARM64]
-            tag: darwin-aarch64
-            name: darwin+aarch64
-          - os: [self-hosted, linux, ARM64]
-            tag: linux-aarch64
-            name: linux+aarch64
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          path: tea.xyz/var/cli
-          repository: teaxyz/cli
-
-      - uses: actions/checkout@v3
-        with:
-          path: pantry
-
-      - uses: teaxyz/setup@v0
-        id: tea
-        with:
-          srcroot: tea.xyz/var/pantry
-          prefix: ${{ github.workspace }}
-
-      - uses: actions/download-artifact@v3
-        with:
-          name: ${{ matrix.platform.name }}-bottles
-          path: ${{ steps.tea.outputs.prefix }}
-
-      - run: tar xvf artifacts.tar
-        working-directory: ${{ steps.tea.outputs.prefix }}
-
-      - run: |
-          # in case this PR contains updates to the scripts
-          #TODO only do for PRs
-          if test "$GITHUB_REPOSITORY" = "teaxyz/pantry.core"; then
-            cp -rv $GITHUB_WORKSPACE/pantry/scripts/* $(tea --prefix)/tea.xyz/var/pantry/scripts
-          fi
-
-          cd ${{ steps.tea.outputs.prefix }}
-          for file in bottles checksums signatures; do
-            echo "$file=$(cat $file)" >>$GITHUB_ENV
-          done
-
-      - name: upload bottles
-        id: upload
-        run: scripts/upload.ts
-          --pkgs ${{ needs.build.outputs.built }} ${{ needs.build.outputs.built }}
-          --srcs ${{ needs.build.outputs.srcs }} ${{ needs.build.outputs.srcs }}
-          --bottles ${{ env.bottles }}
-          --checksums ${{ env.checksums }}
-          --signatures ${{ env.signatures }}
-        env:
-          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+          AWS_S3_CACHE: ${{ secrets.AWS_S3_CACHE }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-
-      #NOTE ideally we’d invalidate all at once so this is atomic
-      # however GHA can’t consolidate outputs from a matrix :/
-      - uses: chetan/invalidate-cloudfront-action@v2
-        env:
-          PATHS: ${{ steps.upload.outputs.cf-invalidation-paths }}
-          DISTRIBUTION: ${{ secrets.AWS_CF_DISTRIBUTION_ID }}
-          AWS_REGION: us-east-1
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-
-  notify:
-    if: always()
-    needs: [test, build, upload]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: martialonline/workflow-status@v3
-        id: status
-      - uses: rtCamp/action-slack-notify@v2
-        if: ${{ env.SLACK_WEBHOOK != '' }}
-        env:
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-          SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
-          SLACK_MESSAGE: build job for ${{ inputs.projects }} ${{ steps.status.outputs.status }}
-          SLACK_COLOR: ${{ steps.status.outputs.status }}

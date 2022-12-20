@@ -32,19 +32,12 @@ const get_deps = async (pkg: Package | PackageRequirement) => {
   }
 }
 
-const bootstrap_required = new Set<string>()
-const set = new Set<string>()
-let rv: PackageRequirement[] = []
+const rv: PackageRequirement[] = []
 for await (const pkg of ARGV.pkgs()) {
   const deps = await get_deps(pkg)
   const wet = await hydrate(deps)
   rv.push(...wet.pkgs)
-  set.add(pkg.project)
-  wet.bootstrap_required.forEach(x => bootstrap_required.add(x))
 }
-
-// we don’t want to pre-install packages we intend to build
-rv = rv.filter(({ project }) => !set.has(project) || bootstrap_required.has(project))
 
 const gas = rv.map(pkg.str)
 
