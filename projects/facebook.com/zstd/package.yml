@@ -1,0 +1,48 @@
+distributable:
+  url: https://github.com/facebook/zstd/archive/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: facebook/zstd/releases/tags
+
+dependencies:
+  lz4.org: ^1
+  tukaani.org/xz: ^5
+  zlib.net: ^1
+
+provides:
+  - bin/pzstd
+  - bin/unzstd
+  - bin/zstd
+  - bin/zstdcat
+  - bin/zstdgrep
+  - bin/zstdless
+  - bin/zstdmt
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    cmake.org: ^3
+    ninja-build.org: ^1
+  working-directory: build/out
+  script: |
+    cmake ../cmake $ARGS
+    cmake --build .
+    cmake --install .
+  env:
+    ARGS:
+      - -GNinja
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
+      - -DZSTD_PROGRAMS_LINK_SHARED=ON   # link `zstd` to `libzstd`
+      - -DZSTD_BUILD_CONTRIB=ON
+      - -DZSTD_LEGACY_SUPPORT=ON
+      - -DZSTD_ZLIB_SUPPORT=ON
+      - -DZSTD_LZMA_SUPPORT=ON
+      - -DZSTD_LZ4_SUPPORT=ON
+
+test: |
+  export fixture="asdf123%!*"
+  for x in zstd pzstd xz lz4 gzip; do
+    test $(echo "$fixture" | $x | zstd -d) = "$fixture"
+  done

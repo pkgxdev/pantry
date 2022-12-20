@@ -1,0 +1,25 @@
+distributable:
+  url: https://boostorg.jfrog.io/artifactory/main/release/{{ version }}/source/boost_{{version.major}}_{{version.minor}}_{{version.patch}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: boostorg/boost
+  strip: /^boost-/
+
+dependencies:
+  facebook.com/zstd: ^1
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    ./bootstrap.sh --prefix={{ prefix }}
+    ./b2 install --prefix={{ prefix }}
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script: |
+    c++ test.cpp -std=c++14 -lboost_iostreams -lzstd
+    ./a.out
