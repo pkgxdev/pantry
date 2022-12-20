@@ -1,0 +1,30 @@
+distributable:
+  url: https://github.com/zeromq/libzmq/releases/download/v4.3.4/zeromq-4.3.4.tar.gz
+  strip-components: 1
+
+versions:
+  github: zeromq/libzmq/releases/tags
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    ./configure $ARGS
+    make --jobs {{hw.concurrency}} install
+  env:
+    ARGS:
+    - --disable-Werror  # fails to build due to deprecations
+    - --disable-debug
+    - --prefix={{prefix}}
+    - --without-docs
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    freedesktop.org/pkg-config: '*'
+  script: |
+    cc fixture.c -lzmq
+    ./a.out
+    pkg-config libzmq --cflags
+    pkg-config libzmq --libs
