@@ -80,8 +80,15 @@ class Fixer
   end
 
   def write
+    stat = File.stat(@file.filename)
+    if not stat.writable?
+      File.chmod(0644, @file.filename)
+      chmoded = true
+    end
     @file.write!
     @changed = true
+  ensure
+    File.chmod(stat.mode, @file.filename) if chmoded
   end
 
   def links_to_other_tea_libs?
