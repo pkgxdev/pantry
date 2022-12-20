@@ -12,7 +12,7 @@ args:
 import { S3, S3Object } from "s3"
 import { Sha256 } from "deno/hash/sha256.ts"
 import { readerFromStreamReader, readAll } from "deno/streams/conversion.ts"
-import Path from "../src/vendor/Path.ts"
+import Path from "path"
 
 const s3 = new S3({
   accessKeyID: Deno.env.get("AWS_ACCESS_KEY_ID")!,
