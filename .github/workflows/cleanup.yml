@@ -1,0 +1,24 @@
+name: cleanup
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+      - name: remove staged artifacts
+        run: |
+          REPO=$(echo ${{github.repository}} | sed -e 's_teaxyz/__')
+          PR=$(echo ${{github.ref}} | sed -e 's_refs/pull/\(.*\)/merge_\1_')
+
+          aws s3 rm --recursive s3://$AWS_S3_CACHE/pull-request/$REPO/$PR
+        if: startsWith(github.ref, 'refs/pull/') && startsWith(github.repository, 'teaxyz/pantry.')
+        env:
+          AWS_S3_CACHE: ${{ secrets.AWS_S3_CACHE }}
