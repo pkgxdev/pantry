@@ -1,6 +1,12 @@
 name: bottle
 
-on: workflow_call
+on:
+  workflow_call:
+    inputs:
+      new-version:
+        type: boolean
+        required: false
+        default: false
 
 jobs:
   bottle:
@@ -46,13 +52,13 @@ jobs:
           fi
 
       - uses: actions/download-artifact@v3
-        if: ${{ !startsWith(github.ref, 'refs/pull/')}}
+        if: ${{ inputs.new-version }}
         with:
           name: ${{ matrix.platform.name }}
           path: tea.xyz/var/pantry
 
       - run: scripts/fetch-pr-artifacts.ts ${{ github.repository }} ${{ github.sha }} ${{ matrix.platform.name }}
-        if: startsWith(github.ref, 'refs/pull/')
+        if: ${{ !inputs.new-version }}
         env:
           GITHUB_TOKEN: ${{github.token}}
           AWS_S3_CACHE: ${{ secrets.AWS_S3_CACHE }}
