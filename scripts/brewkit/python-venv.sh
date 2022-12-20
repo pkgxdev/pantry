@@ -1,12 +1,12 @@
 #!/bin/sh
 
-CMD_NAME=$1
-PROJECT_NAME=$2
-VERSION=$3
-PREFIX=$4
-PYTHON_VERSION=$5
-PYTHON_VERSION_MAJ=$6
-PYTHON_VERSION_MIN=$7
+CMD_NAME=$(basename "$1")
+PREFIX="$(dirname "$(dirname "$1")")"
+PROJECT_NAME=$(basename "$(dirname "$PREFIX")")
+VERSION=$(basename "$PREFIX")
+PYTHON_VERSION=$(python --version | cut -d' ' -f2)
+PYTHON_VERSION_MAJ=$(echo $PYTHON_VERSION | cut -d. -f1)
+PYTHON_VERSION_MIN=$(echo $PYTHON_VERSION | cut -d. -f1,2)
 
 python -m venv $PREFIX/libexec
 
@@ -23,7 +23,7 @@ ln -s ../libexec/bin/$CMD_NAME $CMD_NAME
 cd ../libexec/bin
 fix-shebangs.ts *
 
-cat <<EOF>$CMD_NAME
+cat <<EOF >$CMD_NAME
 #!/usr/bin/env bash
 self="\${BASH_SOURCE[0]}"
 if test -L "\$self"; then
@@ -44,7 +44,7 @@ sed -i.bak 's|VIRTUAL_ENV=".*"|VIRTUAL_ENV="$(cd "$(dirname "${BASH_SOURCE[0]}")
 rm activate.bak
 
 # FIXME a lot: this "updates" the `venv` on each run for relocatability
-cat <<EOF>>activate
+cat <<EOF >>activate
 
 sed -i.bak \\
   -e "s|$TEA_PREFIX/python.org/v$PYTHON_VERSION|\$TEA_PREFIX/python.org/v$PYTHON_VERSION_MAJ|" \\
