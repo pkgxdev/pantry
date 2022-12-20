@@ -1,0 +1,41 @@
+distributable:
+  url: https://github.com/ethereum/solidity/releases/download//v{{version}}/solidity_{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: ethereum/solidity/releases/tags
+
+provides:
+  - bin/solc
+  - bin/yul-phaser
+
+dependencies:
+  boost.org: 1
+
+interprets:
+  extensions: sol
+  args: solc --bin
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    cmake.org: 3
+    freedesktop.org/pkg-config: ^0.29
+    git-scm.org: 2
+  working-directory: build
+  script: |
+    cmake .. $ARGS
+    make --jobs {{hw.concurrency}}
+    make install
+    rm {{prefix}}/bin/solidity-upgrade
+  test:
+    make test
+  env:
+    ARGS:
+    - -DCMAKE_BUILD_TYPE=Release
+    - -DCMAKE_INSTALL_PREFIX={{prefix}}
+    - -DPEDANTIC=OFF  # otherwise fails due to deprecations in boost ^1.81
+
+test:
+  solc --bin fixture.sol
