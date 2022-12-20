@@ -38,7 +38,7 @@ scripts/ls.ts | scripts/sort.ts | scripts/build.ts
 ## Typecheck
 
 ```sh
-for x in scripts/*.ts src/app.ts; do
+for x in $(find scripts -name '*.ts'); do
   deno check --unstable --import-map=$SRCROOT/import-map.json $x
 done
 ```
