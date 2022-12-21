@@ -14,13 +14,11 @@ args:
 ---*/
 
 import { usePantry } from "hooks"
-import { Installation } from "types"
 import { pkg as pkgutils } from "utils"
 import { useFlags, usePrefix } from "hooks"
 import { set_output } from "./utils/gha.ts"
 import build, { BuildResult } from "./build/build.ts"
 import * as ARGV from "./utils/args.ts"
-import Path from "path"
 
 useFlags()
 
@@ -52,7 +50,3 @@ await set_output("paths", rv.map(x => x.installation.path), '%0A')
 await set_output("relative-paths", rv.map(x => x.installation.path.relative({ to })))
 await set_output("srcs", rv.map(x => x.src?.relative({ to }) ?? "~"))
 await set_output("srcs-relative-paths", rv.compact(x => x.src?.relative({ to })))
-
-interface InstallationPlus extends Installation {
-  src: Path
-}

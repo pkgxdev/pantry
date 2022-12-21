@@ -73,13 +73,8 @@ jobs:
       - run: /opt/tea.xyz/var/pantry/scripts/sort.ts ${{ inputs.projects }}
         id: sorted
 
-      - run: /opt/tea.xyz/var/pantry/scripts/build-deps.ts ${{ steps.sorted.outputs.pkgs }}
-        id: deps
-
-      - run: cli/scripts/install.ts ${{ steps.deps.outputs.pkgs }}
-
       # running out of /opt because only pantry.core has these scripts
-      - run: /opt/tea.xyz/var/pantry/scripts/build.plumbing.ts ${{ steps.sorted.outputs.pkgs }}
+      - run: /opt/tea.xyz/var/pantry/scripts/build.ts ${{ steps.sorted.outputs.pkgs }}
         id: build
         env:
           GITHUB_TOKEN: ${{ github.token }}
