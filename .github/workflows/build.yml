@@ -50,11 +50,6 @@ jobs:
       - name: HACKS
         run: |
           case ${{ matrix.platform.os }} in
-          ubuntu-latest)
-            #FIXME our LLVM doesn't provide c/c++ headers for some reason
-            apt-get update
-            apt-get --yes install libc-dev libstdc++-8-dev libgcc-8-dev
-            ;;
           macos-11)
             #FIXME we need a clean install of macOS for builds
             #TODO stop using GHA images or chroot or something
@@ -144,11 +139,7 @@ jobs:
           prefix: ${{ github.workspace }}
 
       - run: |
-          apt-get update
-          apt-get --yes install libc-dev libstdc++-8-dev libgcc-8-dev
-
-          # in case this PR contains updates to the scripts
-          #TODO only do for PRs
+          # in case this PR contains updates to the scripts TODO only PRs
           if test "$GITHUB_REPOSITORY" = "teaxyz/pantry.core"; then
             cp -rv pantry/scripts/* $(tea --prefix)/tea.xyz/var/pantry/scripts
           fi
