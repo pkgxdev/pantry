@@ -1,0 +1,38 @@
+distributable:
+  url: https://github.com/oven-sh/bun/archive/refs/tags/bun-v{{version}}.tar.gz
+
+warnings:
+  - vendored
+
+versions:
+  github: oven-sh/bun
+  strip: /^Bun /
+
+#FIXME proper system for re-using pre-built binaries
+# we must require the vendor to provide signatures against a published public
+# key. If they don’t then really we should build ourselves or warn the user
+# about the fact.
+# The thing is, we trust the sources implicitly currently because signing is
+# so rare. The only way wide spread signing will occur is via our protocol.
+
+build:
+  dependencies:
+    curl.se: '*'
+    info-zip.org/unzip: '*'
+  working-directory: ${{prefix}}
+  script: |
+    curl -Lfo bun.zip "https://github.com/oven-sh/bun/releases/download/bun-v{{version}}/bun-$PLATFORM.zip"
+    unzip bun.zip
+    mv bun-$PLATFORM bin
+    rm bun.zip
+  env:
+    darwin/aarch64: {PLATFORM: darwin-aarch64}
+    darwin/x86-64:  {PLATFORM: darwin-x64}
+    linux/aarch64:  {PLATFORM: linux-aarch64}
+    linux/x86-64:   {PLATFORM: linux-x64}
+
+test:
+  bun --help
+
+provides:
+  - bin/bun
