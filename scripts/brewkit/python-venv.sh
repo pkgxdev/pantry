@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -e
+
 CMD_NAME=$(basename "$1")
 PREFIX="$(dirname "$(dirname "$1")")"
 PROJECT_NAME=$(basename "$(dirname "$PREFIX")")
@@ -12,7 +14,7 @@ python -m venv $PREFIX/libexec
 
 cd "$PREFIX"
 
-libexec/bin/pip install -v --no-deps --no-binary :all: --ignore-installed $CMD_NAME
+libexec/bin/pip install -v --no-binary :all: --ignore-installed $CMD_NAME
 mkdir bin
 
 mv libexec/bin/$CMD_NAME libexec/bin/$CMD_NAME.py
@@ -49,7 +51,7 @@ cat <<EOF >>activate
 sed -i.bak \\
   -e "s|$TEA_PREFIX/python.org/v$PYTHON_VERSION|\$TEA_PREFIX/python.org/v$PYTHON_VERSION_MAJ|" \\
   -e 's|bin/python$PYTHON_VERSION_MAJ.$PYTHON_VERSION_MIN|bin/python|' \\
-  -e "s|$PREFIX/libexec|\$TEA_PREFIX/$PROJECT_NAME/v$VERSION/libexec|" \\
+  -e "s|$PREFIX/libexec|\$TEA_PREFIX/$PROJECT_NAME/$VERSION/libexec|" \\
   \$VIRTUAL_ENV/pyvenv.cfg
 rm \$VIRTUAL_ENV/pyvenv.cfg.bak
 EOF
