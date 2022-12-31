@@ -1,0 +1,49 @@
+distributable:
+  url: https://github.com/fish-shell/fish-shell/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: fish-shell/fish-shell/tags
+
+dependencies:
+  gnu.org/gettext: '*'
+  invisible-island.net/ncurses: '>=6.0'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    cmake.org: '>=3.5'
+    freedesktop.org/pkg-config: '*'
+    gnu.org/patch: '*'
+  script: |
+    # cmake looks for modules named (ncurses, curses);
+    # this prepends `ncursesw` to the search set to
+    # properly locate our package.
+    patch -p1 <props/ncurses_cmake.diff
+
+    mkdir build
+    cd build
+    cmake .. $ARGS
+    make install
+  env:
+    ARGS:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
+      - -DCURSES_INCLUDE_PATH="{{deps.invisible-island.net/ncurses.prefix}}/include/ncursesw"
+
+test:
+  script:
+    test "$(fish $FIXTURE)" = "variable1variable2variable3variable4variable5variable6variable7variable8variable9variable10"
+  fixture: |
+    #!/usr/bin/env fish
+
+    set -lx V variable
+    for x in (seq 1 10)
+      echo -n $V$x
+    end
+
+provides:
+  - bin/fish
+  - bin/fish_indent
+  - bin/fish_key_reader
