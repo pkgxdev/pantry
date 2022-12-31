@@ -31,8 +31,15 @@ build:
     linux/aarch64:  {PLATFORM: linux-aarch64}
     linux/x86-64:   {PLATFORM: linux-x64}
 
-test:
-  bun --help
+test: |
+  if [[ {{ hw.platform }} != x86_64-apple-darwin ]]; then
+    bun --version
+    bun --help
+  else
+    echo "not testing on darwin/x86-64 because it hangs in GHA"
+    echo "but seemingly works in less constrained environments"
+    echo "refs https://github.com/oven-sh/bun/issues/1121"
+  fi
 
 provides:
   - bin/bun
