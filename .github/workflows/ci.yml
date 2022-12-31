@@ -14,7 +14,10 @@ jobs:
           PATTERNS: projects/**/package.yml
       - id: diff
         run: |
-          RESULT=$(echo ${{ steps.get-diff.outputs.diff }} | sed 's#projects/\(.*\)/.*#\1#')
+          for x in ${{ steps.get-diff.outputs.diff }}; do
+            y=$(echo $x | sed 's#projects/\(.*\)/package.yml#\1#')
+            RESULT="$RESULT $y"
+          done
           echo "diff=$RESULT" >> $GITHUB_OUTPUT
   build:
     strategy:
