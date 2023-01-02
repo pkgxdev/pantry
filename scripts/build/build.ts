@@ -153,7 +153,8 @@ async function fetch_src(pkg: Package): Promise<[Path, Path] | undefined> {
     cmd: [script.string, pkgstr(pkg)],
     stdout: 'piped'
   })
-  const out = await proc.output()
+  const [out, status] = await Promise.all([proc.output(), proc.status()])
+  if (!status.success) throw new Error()
   const [dstdir, tarball] = new TextDecoder().decode(out).split("\n")
   if (!tarball) {
     // no tarball, e.g. tea.xyz/gx/cc
