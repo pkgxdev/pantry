@@ -53,7 +53,12 @@ export async function fetch_src(pkg: Package): Promise<[Path, Path] | undefined>
 if (import.meta.main) {
   for await (let pkg of ARGV.pkgs()) {
     pkg = await pantry.resolve(pkg)
-    const rv = await fetch_src(pkg) ?? panic()
-    await print(rv.join("\n") + "\n")
+    const rv = await fetch_src(pkg)
+    if (rv) {
+      // a package doesn’t require a source tarball
+      //FIXME is this dumb tho? In theory a package could just be a build script that generates itself
+      // in practice this is rare and pkgs could just specify some dummy tarball
+      await print(rv.join("\n") + "\n")
+    }
   }
 }

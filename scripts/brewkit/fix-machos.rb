@@ -41,7 +41,7 @@ end
 
 class Fixer
   def initialize(file)
-    @file = MachO::MachOFile.new(file)
+    @file = MachO.open(file)
     @changed = false
   end
 

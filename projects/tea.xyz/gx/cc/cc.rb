@@ -11,8 +11,9 @@ $tea_prefix = ENV['TEA_PREFIX'] || `tea --prefix`.chomp
 exe = File.basename($0)
 
 # remove duplicates since this in fact embeds the rpath multiple times
+# and omit -nodefaultrpaths since it is not a valid flag for clang
 args = ARGV.map do |arg|
-  arg unless arg == "-Wl,-rpath,#$tea_prefix"
+  arg unless arg == "-Wl,-rpath,#$tea_prefix" or arg == "-nodefaultrpaths"
 end.compact
 
 # find next example of ourselves
