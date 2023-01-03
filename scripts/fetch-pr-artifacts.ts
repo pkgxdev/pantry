@@ -42,6 +42,8 @@ const artifacts = (await bucket.getObject(key)) ?? panic("No artifacts found")
 const file = await Deno.open("artifacts.tgz", { create: true, write: true })
 await artifacts.body.pipeTo(file.writable)
 
+Deno.stdout.write(new TextEncoder().encode(`PR=${pr}`))
+
 /// Functions
 /// -------------------------------------------------------------------------------
 
