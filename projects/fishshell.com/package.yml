@@ -22,10 +22,16 @@ build:
     # properly locate our package.
     patch -p1 <props/ncurses_cmake.diff
 
+    echo {{version}} >version
+
     mkdir build
     cd build
     cmake .. $ARGS
     make install
+
+    cd {{prefix}}/share/fish
+    sed -i.bak -e "s| $TEA_PREFIX/| (tea --prefix)/|g" __fish_build_paths.fish
+    rm __fish_build_paths.fish.bak
   env:
     ARGS:
       - -DCMAKE_BUILD_TYPE=Release
