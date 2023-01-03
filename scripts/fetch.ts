@@ -19,7 +19,7 @@ args:
 //TODO verify the sha
 
 import { usePantry, useCache, useDownload, useCellar, useSourceUnarchiver, useOffLicense, useFlags} from "hooks"
-import { panic, print } from "utils"
+import { print } from "utils"
 import { Stowage, Package } from "types"
 import * as ARGV from "./utils/args.ts"
 import Path from "path"
