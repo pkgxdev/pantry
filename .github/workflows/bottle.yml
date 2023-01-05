@@ -140,8 +140,10 @@ jobs:
           echo ${{ steps.bottle-gz.outputs.checksums }} ${{ steps.bottle-xz.outputs.checksums }} >checksums
           echo ${{ steps.bottle-gz.outputs.signatures }} ${{ steps.bottle-xz.outputs.signatures }} >signatures
 
+          SRCS=$(echo $srcs | tr -d '~')
+
           tar cf $GITHUB_WORKSPACE/artifacts.tar \
-            $srcs \
+            $SRCS \
             ${{ steps.bottle-gz.outputs.bottles }} \
             ${{ steps.bottle-xz.outputs.bottles }} \
             bottles checksums signatures
