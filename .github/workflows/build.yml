@@ -155,7 +155,8 @@ jobs:
 
   stage:
     needs: [test]
-    if: startsWith(github.ref, 'refs/pull/') && startsWith(github.repository, 'teaxyz/pantry.')
+    # this only works for PRs from our team to our repo (security! :( )
+    if: startsWith(github.ref, 'refs/pull/') && startsWith(github.repository, 'teaxyz/pantry.') && secrets.AWS_S3_CACHE != ''
     runs-on: ubuntu-latest
     strategy:
       matrix:

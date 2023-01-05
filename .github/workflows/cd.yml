@@ -15,7 +15,21 @@ jobs:
           jq -sc . |
           curl https://app.tea.xyz/api/receiveWatcherProjects --fail -X PUT \
             -H "content-type: application/json" -H "authorization: bearer ${{ secrets.TEA_API_TOKEN }}" -d @-
-  bottle:
-    #FIXME: will fail (harmlessly) on non-merge/non-new-version runs
+  bottle-pr:
+    #FIXME: will fail (harmlessly) on non-merge/non-new-version runs, and won't work on 3rd-party PRs
+    if: secrets.AWS_S3_CACHE != ''
     uses: ./.github/workflows/bottle.yml
     secrets: inherit
+  bottle-standalone:
+    runs-on: ubuntu-latest
+    if: secrets.AWS_S3_CACHE == ''
+    steps:
+      - uses: actions/checkout@v3
+      - uses: technote-space/get-diff-action@v6
+        id: diff
+        with:
+          PATTERNS: projects/**/package.yml
+      - run: gh workflow run new-version.yml -R teaxyz/pantry.core -f "projects=$PROJECTS"
+        env:
+          GITHUB_TOKEN: ${{ secrets.TEMP_JACOBS_GITHUB_PAT }}
+          PROJECTS: ${{ steps.diff.outputs.diff | 'zlib.net' }}
