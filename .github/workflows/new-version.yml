@@ -20,3 +20,18 @@ jobs:
     with:
       new-version: true
     secrets: inherit
+
+  complain:
+    if: failure()
+    needs: [build, bottle]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: martialonline/workflow-status@v3
+        id: status
+      - uses: rtCamp/action-slack-notify@v2
+        if: ${{ env.SLACK_WEBHOOK != '' }}
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
+          SLACK_MESSAGE: new-version:${{ inputs.projects }} ${{ steps.status.outputs.status }}
+          SLACK_COLOR: ${{ steps.status.outputs.status }}
