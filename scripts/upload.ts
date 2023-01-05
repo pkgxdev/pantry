@@ -123,6 +123,10 @@ for (const [index, pkg] of pkgs.entries()) {
   // mirror the sources
   if (srcs[index] != "~") {
     const src = usePrefix().join(srcs[index])
+    if (src.isDirectory()) {
+      // we almost certainly expanded `~` to the user’s home directory
+      continue
+    }
     const srcKey = useOffLicense("s3").key({
       pkg: stowed.pkg,
       type: "src",
