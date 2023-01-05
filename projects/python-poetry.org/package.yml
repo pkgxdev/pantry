@@ -17,8 +17,11 @@ build:
       tea.xyz/gx/cc: c99    # ^^
     linux:
       rust-lang.org/cargo: '*'  # for cryptographic bindings
-  script:
+  script: |
     python-venv.sh {{prefix}}/bin/poetry
+    sed -i.bak -e "s|env python|env -S python -P|" {{prefix}}/libexec/bin/poetry.py
+    rm {{prefix}}/libexec/bin/poetry.py.bak
+
 
 test:
   script: |
