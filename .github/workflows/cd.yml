@@ -7,6 +7,8 @@ on:
 jobs:
   cd:
     runs-on: ubuntu-latest
+    outputs:
+      HAS_SECRETS: ${{ secrets.AWS_S3_CACHE != '' }}
     steps:
       - uses: actions/checkout@v3
       - run: >
@@ -16,13 +18,15 @@ jobs:
           curl https://app.tea.xyz/api/receiveWatcherProjects --fail -X PUT \
             -H "content-type: application/json" -H "authorization: bearer ${{ secrets.TEA_API_TOKEN }}" -d @-
   bottle-pr:
+    needs: [cd]
     #FIXME: will fail (harmlessly) on non-merge/non-new-version runs, and won't work on 3rd-party PRs
-    if: secrets.AWS_S3_CACHE != ''
+    if: ${{ needs.cd.outputs.HAS_SECRETS }}
     uses: ./.github/workflows/bottle.yml
     secrets: inherit
   bottle-standalone:
     runs-on: ubuntu-latest
-    if: secrets.AWS_S3_CACHE == ''
+    needs: [cd]
+    if: ${{ ! needs.cd.outputs.HAS_SECRETS }}
     steps:
       - uses: actions/checkout@v3
       - uses: technote-space/get-diff-action@v6
@@ -30,7 +34,7 @@ jobs:
         with:
           PATTERNS: projects/**/package.yml
       - run: gh workflow run new-version.yml -R teaxyz/pantry.core -f "projects=$PROJECTS"
-        if: steps.diff.outputs.diff != ''
+        if: ${{ steps.diff.outputs.diff != '' }}
         env:
           GITHUB_TOKEN: ${{ secrets.TEMP_JACOBS_GITHUB_PAT }}
           PROJECTS: ${{ steps.diff.outputs.diff }}
