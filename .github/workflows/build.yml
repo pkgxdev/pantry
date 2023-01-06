@@ -121,6 +121,8 @@ jobs:
           name: darwin+aarch64
         - os: [self-hosted, linux, ARM64]
           name: linux+aarch64
+    outputs:
+      HAS_SECRETS: ${{ secrets.AWS_S3_CACHE != '' }}
     container: ${{ matrix.platform.container }}
     steps:
       - uses: actions/checkout@v3
@@ -156,7 +158,7 @@ jobs:
   stage:
     needs: [test]
     # this only works for PRs from our team to our repo (security! :( )
-    if: startsWith(github.ref, 'refs/pull/') && startsWith(github.repository, 'teaxyz/pantry.') && secrets.AWS_S3_CACHE != ''
+    if: startsWith(github.ref, 'refs/pull/') && startsWith(github.repository, 'teaxyz/pantry.') && needs.test.outputs.HAS_SECRETS
     runs-on: ubuntu-latest
     strategy:
       matrix:
