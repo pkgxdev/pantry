@@ -20,13 +20,13 @@ jobs:
   bottle-pr:
     needs: [cd]
     #FIXME: will fail (harmlessly) on non-merge/non-new-version runs, and won't work on 3rd-party PRs
-    if: needs.cd.outputs.HAS_SECRETS
+    if: ${{ needs.cd.outputs.HAS_SECRETS }}
     uses: ./.github/workflows/bottle.yml
     secrets: inherit
   bottle-standalone:
     runs-on: ubuntu-latest
     needs: [cd]
-    if: ! needs.cd.outputs.HAS_SECRETS
+    if: ${{ ! needs.cd.outputs.HAS_SECRETS }}
     steps:
       - uses: actions/checkout@v3
       - uses: technote-space/get-diff-action@v6
