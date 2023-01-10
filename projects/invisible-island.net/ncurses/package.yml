@@ -15,6 +15,15 @@ build:
     mkdir -p $PCDIR
     ./configure $ARGS
     make --jobs {{ hw.concurrency }} install
+
+    # fix up symlinks
+    cd {{prefix}}/lib
+    for lib in form menu ncurses panel curses++; do
+      for ii in $(find . -name lib${lib}w\*); do
+        # hopefully no new w's will be introduced
+        ln -s $ii $(echo $ii | tr -d w)
+      done
+    done
   env:
     PCDIR: ${{prefix}}/lib/pkgconfig
     ARGS:
