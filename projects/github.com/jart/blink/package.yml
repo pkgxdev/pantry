@@ -1,0 +1,32 @@
+distributable:
+  # url: https://github.com/jart/blink/archive/refs/tags/{{version}}.tar.gz   currently no tags/releases
+  url: https://github.com/jart/blink/archive/13df12124d69aba8a7f74803715af36ed629b349.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/blink
+  - bin/blinkenlights
+
+versions:
+  # github: jart/blink/tags  FIXME once they start tagging/releasing
+  - 0.0.0
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    make -j {{hw.concurrency}}
+    mkdir {{prefix}}/bin
+    cp o/blink/blink{,enlights} {{prefix}}/bin
+  test: |
+    make check
+    make check2
+    make emulates
+
+test:
+  dependencies:
+    curl.se: '*'
+  script: |
+    curl -O https://raw.githubusercontent.com/jart/blink/13df12124d69aba8a7f74803715af36ed629b349/third_party/cosmo/tinyhello.elf
+    blink tinyhello.elf
