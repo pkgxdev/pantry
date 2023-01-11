@@ -1,0 +1,43 @@
+distributable:
+  url: https://ftp.gnu.org/gnu/mpc/mpc-{{ version.raw }}.tar.gz
+  strip-components: 1
+
+versions:
+  #TODO HTML listing: https://ftp.gnu.org/gnu/mpc/
+  - 1.3.1
+
+build:
+  dependencies:
+    tea.xyz/gx/make: '*'
+    tea.xyz/gx/cc: c99
+    gnu.org/gmp: '>=4.2'
+    gnu.org/mpfr: ^4
+  script: |
+    ./configure --prefix={{ prefix }}
+    make --jobs {{ hw.concurrency }} install
+  test:
+    make test
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    gnu.org/gmp: '>=4.2'
+    gnu.org/mpfr: ^4.0
+  script: |
+    mv $FIXTURE test.c
+    cc -lgmp -lmpc -lmpfr test.c -o test
+    ./test
+  fixture: |
+    #include <mpc.h>
+    #include <assert.h>
+    #include <math.h>
+
+    int main() {
+      mpc_t x;
+      mpc_init2 (x, 256);
+      mpc_set_d_d (x, 1., INFINITY, MPC_RNDNN);
+      mpc_tanh (x, x, MPC_RNDNN);
+      assert (mpfr_nan_p (mpc_realref (x)) && mpfr_nan_p (mpc_imagref (x)));
+      mpc_clear (x);
+      return 0;
+    }

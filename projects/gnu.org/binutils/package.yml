@@ -1,0 +1,54 @@
+distributable:
+  url: https://ftp.gnu.org/gnu/binutils/binutils-{{ version.raw }}.tar.xz
+  strip-components: 1
+
+versions:
+  #TODO HTML listing: https://ftp.gnu.org/gnu/binutils/
+  - v2.39
+
+build:
+  dependencies:
+    tea.xyz/gx/make: '*'
+    gnu.org/bison: '*'
+    gnu.org/texinfo: '*'
+    darwin:
+      tea.xyz/gx/cc: c99
+    linux:
+      gnu.org/gcc: '*'
+  script: |
+    # FIXME: bootstrap - we need `as` from binutils to build with gcc
+    if test "{{hw.platform}}" = "linux"; then
+      if command -v sudo; then
+        sudo apt-get --yes install binutils
+      else # assume no sudo = we can just run apt-get
+        apt-get --yes install binutils
+      fi
+    fi
+
+
+    ./configure --prefix={{ prefix }}
+    make --jobs {{ hw.concurrency }}
+    make install
+
+test:
+  script: objdump -x $(which objdump) | grep -s $TEST_STRING
+  env:
+    # Representitive output to look for
+    darwin:
+      TEST_STRING: _opendir
+    linux:
+      TEST_STRING: GNU_HASH
+
+provides:
+  - bin/addr2line
+  - bin/ar
+  - bin/c++filt
+  - bin/elfedit
+  - bin/nm
+  - bin/objcopy
+  - bin/objdump
+  - bin/ranlib
+  - bin/readelf
+  - bin/size
+  - bin/strings
+  - bin/strip
