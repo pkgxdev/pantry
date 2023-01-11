@@ -1,0 +1,31 @@
+distributable:
+  url: https://aomedia.googlesource.com/aom/+archive/v{{version}}.tar.gz
+
+versions:
+  - 3.5.0
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    cmake.org: ^3
+    tea.xyz/gx/make: '*'
+  working-directory:
+    out
+  script: |
+    cmake .. $ARGS
+    make
+    make install
+  env:
+    CC: clang
+    ARGS:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
+
+test:
+  script: |
+    aomenc --help
+    aomdec --help
+
+provides:
+  - bin/aomenc
+  - bin/aomdec
