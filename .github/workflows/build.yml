@@ -121,7 +121,7 @@ jobs:
         - os: [self-hosted, linux, ARM64]
           name: linux+aarch64
     outputs:
-      HAS_SECRETS: ${{ secrets.AWS_S3_CACHE != '' }}
+      HAS_SECRETS: ${{ env.HAS_SECRETS }}
     container: ${{ matrix.platform.container }}
     steps:
       - uses: actions/checkout@v3
@@ -154,10 +154,15 @@ jobs:
 
       - run: tea.xyz/var/pantry/scripts/test.ts ${{ inputs.projects }}
 
+      - run:
+          echo "HAS_SECRETS=$HAS_SECRETS" >>$GITHUB_ENV
+        env:
+          HAS_SECRETS: ${{ secrets.AWS_S3_CACHE != null }}
+
   stage:
     needs: [test]
     # this only works for PRs from our team to our repo (security! :( )
-    if: startsWith(github.ref, 'refs/pull/') && startsWith(github.repository, 'teaxyz/pantry.') && needs.test.outputs.HAS_SECRETS
+    if: startsWith(github.ref, 'refs/pull/') && startsWith(github.repository, 'teaxyz/pantry.') && needs.test.outputs.HAS_SECRETS == 'true'
     runs-on: ubuntu-latest
     strategy:
       matrix:

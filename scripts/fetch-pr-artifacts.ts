@@ -13,39 +13,47 @@ args:
 /// Test
 /// ./scripts/fetch-pr-artifacts.ts e582b03fe6efedde80f9569403555f4513dbec91
 
-import { S3 } from "https://deno.land/x/s3@0.5.0/mod.ts";
-import { panic, undent } from "utils/index.ts";
+import { S3 } from "s3";
+import { panic, undent } from "utils";
 
 /// Main
 /// -------------------------------------------------------------------------------
 
-const usage = "usage: fetch-pr-artifacts.ts {REPO} {SHA} {platform+arch}"
-const repo = Deno.args[0] ?? panic(usage)
-const ref = Deno.args[1] ?? panic(usage)
-const flavor = Deno.args[2] ?? panic(usage)
+if (import.meta.main) {
+  const usage = "usage: fetch-pr-artifacts.ts {REPO} {SHA} {platform+arch}"
+  const repo = Deno.args[0] ?? panic(usage)
+  const ref = Deno.args[1] ?? panic(usage)
+  const flavor = Deno.args[2] ?? panic(usage)
 
-const res = await queryGraphQL<CommitQuery>(prQuery(repo))
+  const pr = await find_pr(repo, ref)
 
-const node = res.repository?.ref?.target?.history?.edges.find(n => n.node.oid === ref)
-const pr = node?.node.associatedPullRequests.nodes[0].number
+  if (!pr) throw new Error(`No PR found for commit ${ref} in ${repo}`)
 
-const s3 = new S3({
-  accessKeyID: Deno.env.get("AWS_ACCESS_KEY_ID")!,
-  secretKey: Deno.env.get("AWS_SECRET_ACCESS_KEY")!,
-  region: "us-east-1",
-})
-const bucket = s3.getBucket(Deno.env.get("AWS_S3_CACHE")!)
+  const s3 = new S3({
+    accessKeyID: Deno.env.get("AWS_ACCESS_KEY_ID")!,
+    secretKey: Deno.env.get("AWS_SECRET_ACCESS_KEY")!,
+    region: "us-east-1",
+  })
+  const bucket = s3.getBucket(Deno.env.get("AWS_S3_CACHE")!)
 
-const key = `pull-request/${repo.split("/")[1]}/${pr}/${flavor}`
-const artifacts = (await bucket.getObject(key)) ?? panic("No artifacts found")
+  const key = `pull-request/${repo.split("/")[1]}/${pr}/${flavor}`
+  const artifacts = (await bucket.getObject(key)) ?? panic("No artifacts found")
 
-const file = await Deno.open("artifacts.tgz", { create: true, write: true })
-await artifacts.body.pipeTo(file.writable)
+  const file = await Deno.open("artifacts.tgz", { create: true, write: true })
+  await artifacts.body.pipeTo(file.writable)
 
-Deno.stdout.write(new TextEncoder().encode(`PR=${pr}`))
+  Deno.stdout.write(new TextEncoder().encode(`PR=${pr}`))
+}
 
 /// Functions
 /// -------------------------------------------------------------------------------
+
+export async function find_pr(repo: string, ref: string): Promise<number | undefined> {
+  const res = await queryGraphQL<CommitQuery>(prQuery(repo))
+
+  const node = res.repository?.ref?.target?.history?.edges.find(n => n.node.oid === ref)
+  return node?.node.associatedPullRequests.nodes[0].number
+}
 
 async function queryGraphQL<T>(query: string): Promise<T> {
   const headers: HeadersInit = {}
