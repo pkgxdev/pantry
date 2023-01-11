@@ -52,7 +52,9 @@ export async function find_pr(repo: string, ref: string): Promise<number | undef
   const res = await queryGraphQL<CommitQuery>(prQuery(repo))
 
   const node = res.repository?.ref?.target?.history?.edges.find(n => n.node.oid === ref)
-  return node?.node.associatedPullRequests.nodes[0].number
+  const nodes = node?.node.associatedPullRequests.nodes
+  if (!nodes || nodes.length === 0) return
+  return nodes[0].number
 }
 
 async function queryGraphQL<T>(query: string): Promise<T> {
