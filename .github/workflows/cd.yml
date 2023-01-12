@@ -11,18 +11,17 @@ jobs:
       HAS_ARTIFACTS: ${{ env.HAS_ARTIFACTS }}
     steps:
       - uses: actions/checkout@v3
-      - run: >
-          grep -E '  github: [^\w]+/[^\w/]+' projects/**/package.yml |
-          sed -e 's|^projects/\(.*\)/package.yml: *github: \([^/]*/[^/]*\).*|{ "project": "\1", "github": "\2" }|' |
-          jq -sc . |
-          curl https://app.tea.xyz/api/receiveWatcherProjects --fail -X PUT \
-            -H "content-type: application/json" -H "authorization: bearer ${{ secrets.TEA_API_TOKEN }}" -d @-
       - uses: teaxyz/setup@v0
       - uses: actions/checkout@v3
         name: co core
         with:
           path: pantry.core
           repository: teaxyz/pantry.core
+      - run: ./scripts/map-projects-to-githubs.ts
+        working-directory: pantry.core
+        env:
+          WATCHER_URL: ${{ secrets.WATCHER_URL }}
+          TEA_API_TOKEN: ${{ secrets.TEA_API_TOKEN }}
       - run: ./scripts/has-artifacts.ts ${{ github.repository }} ${{ github.sha }} >>$GITHUB_ENV
         working-directory: pantry.core
         env:
