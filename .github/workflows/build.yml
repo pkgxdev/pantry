@@ -11,14 +11,34 @@ env:
   TEA_PANTRY_PATH: ${{ github.workspace }}/pantry
 
 jobs:
+  check-core-sizes:
+    runs-on: ubuntu-latest
+    outputs:
+      gha-linux-build-size: ${{ env.GHA_LINUX_BUILD_SIZE }}
+    steps:
+      - name: co pantry
+        uses: actions/checkout@v3
+        with:
+          path: pantry
+          repository: teaxyz/pantry.core
+
+      - uses: teaxyz/setup@v0
+        with:
+          # necessary because we currently require a `.git` directory
+          srcroot: ~/pantry
+
+      - run: ./scripts/check-core-sizes.ts ${{ inputs.projects }}
+        working-directory: pantry
+
   build:
     runs-on: ${{ matrix.platform.os }}
+    needs: [check-core-sizes]
     strategy:
       matrix:
         platform:
           - os: macos-11
             name: darwin+x86-64
-          - os: ubuntu-latest-4-cores
+          - os: ${{ needs.check-core-sizes.outputs.gha-linux-build-size }}
             name: linux+x86-64
             container:
               image: debian:buster-slim
