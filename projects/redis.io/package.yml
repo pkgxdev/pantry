@@ -16,16 +16,32 @@ dependencies:
 
 build:
   dependencies:
-    gnu.org/make: '>=4.3'
+    # gnu.org/make: '>=4.3'
+    tea.xyz/gx/make: '*'
     freedesktop.org/pkg-config: '>=0.29'
     tea.xyz/gx/cc: c99
   script:
-    PREFIX={{prefix}}
-    BUILD_TLS=yes
     make install
     # TODO: configure default redis.conf if necessary
+  env:
+    PREFIX: ${{prefix}}
+    BUILD_TLS: yes
 test:
   script: |
     redis-server --test-memory 2
     redis-cli --version
     redis-benchmark --version
+
+    redis-server --daemonize yes
+    redis-cli --raw SET key123 value123
+    redis_value=$(redis-cli --raw GET key123)
+    echo $redis_value
+
+    redis-cli shutdown
+
+    if [ $redis_value = "value123" ]; then
+      echo "redis works!"
+    else
+      echo "redis install doesnt work!"
+      set -e
+    fi
