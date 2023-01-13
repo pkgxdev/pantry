@@ -12,9 +12,18 @@ build:
     libevent.org: ^2.0
     invisible-island.net/ncurses: '*'
   script: |
-    ./configure --prefix={{prefix}} --enable-utf8proc
+    ./configure $ARGS
     make
     make install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+    darwin:
+      ARGS:
+        - --enable-utf8proc
+    linux:
+      ARGS:
+        - --disable-utf8proc
 
 test:
   script: |
