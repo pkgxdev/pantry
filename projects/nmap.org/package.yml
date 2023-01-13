@@ -1,0 +1,28 @@
+distributable:
+  url: https://nmap.org/dist/nmap-{{version.raw}}.tgz
+  strip-components: 1
+
+versions:
+  - v7.93
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/autoconf: '*'
+    gnu.org/automake: '*'
+  script: |
+    ./configure --prefix={{prefix}}
+    make
+    make install
+  test:
+    make test
+
+
+test:
+  script: nmap -h
+
+provides:
+  - bin/nmap
+  - bin/ncat
+  - bin/nping
