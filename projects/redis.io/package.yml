@@ -34,14 +34,7 @@ test:
 
     redis-server --daemonize yes
     redis-cli --raw SET key123 value123
-    redis_value=$(redis-cli --raw GET key123)
-    echo $redis_value
+
+    test "$(redis-cli --raw GET key123)" = "value123"
 
     redis-cli shutdown
-
-    if [ $redis_value = "value123" ]; then
-      echo "redis works!"
-    else
-      echo "redis install doesnt work!"
-      set -e
-    fi
