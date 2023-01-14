@@ -17,31 +17,17 @@ versioned.
 
 See the contributing guide in [pantry.zero].
 
-
 &nbsp;
 
 
 # Meta
+
 ## Dependencies
 
 |   Project   | Version |
 |-------------|---------|
 | deno.land   | ^1.27   |
 | tea.xyz     | ^0      |
-
-## Build All
-
-```sh
-scripts/ls.ts | scripts/sort.ts | scripts/build.ts
-```
-
-## Typecheck
-
-```sh
-for x in $(find scripts -name '*.ts'); do
-  deno check --unstable --import-map=$SRCROOT/import-map.json $x
-done
-```
 
 [pantry.zero]: https://github.com/teaxyz/pantry.zero#contributing
 [pantry.extra]: https://github.com/teaxyz/pantry.extra

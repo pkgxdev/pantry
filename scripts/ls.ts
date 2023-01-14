@@ -59,10 +59,10 @@ if (import.meta.main) {
   if (Deno.env.get("GITHUB_ACTIONS")) {
     const projects = rv.map(x => x.project).join(":")
     console.log(`::set-output name=projects::${projects}`)
-  } else if (flags.json) {
-    const obj = rv.map(({ path, project }) => ({ path: path.string, project }))
-    const out = JSON.stringify(obj, null, 2)
-    console.log(out)
+  // } else if (flags.json) {
+  //   const obj = rv.map(({ path, project }) => ({ path: path.string, project }))
+  //   const out = JSON.stringify(obj, null, 2)
+  //   console.log(out)
   } else {
     console.log(rv.map(x => x.project).join("\n"))
   }

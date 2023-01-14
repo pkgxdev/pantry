@@ -19,7 +19,7 @@ import { hydrate } from "prefab"
 import * as ARGV from "./utils/args.ts"
 import { set_output } from "./utils/gha.ts";
 
-const flags = useFlags()
+// const flags = useFlags()
 const pantry = usePantry()
 
 const dry = await ARGV.toArray(ARGV.pkgs())
@@ -33,9 +33,9 @@ if (Deno.env.get("GITHUB_ACTIONS")) {
   await set_output('pkgs', wet.dry.map(pkg.str))
 } else {
   const gas = wet.dry.map(pkg.str)
-  if (flags.json) {
-    console.log(gas)
-  } else {
+  // if (flags.json) {
+  //   console.log(gas)
+  // } else {
     console.log(gas.join("\n"))
-  }
+  // }
 }
