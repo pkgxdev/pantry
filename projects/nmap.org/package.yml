@@ -3,24 +3,28 @@ distributable:
   strip-components: 1
 
 versions:
-  - v7.93
+  - 7.93
+
+dependencies:
+  openssl.org: '*'
 
 build:
   dependencies:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
-    gnu.org/autoconf: '*'
-    gnu.org/automake: '*'
+    gnu.org/patch: '*'
   script: |
+    # https://github.com/openresty/openresty/issues/372
+    patch -p1 <props/openssl-1.1.1.patch
+
     ./configure --prefix={{prefix}}
-    make
+    make -j {{hw.concurrency}}
     make install
   test:
     make test
 
-
 test:
-  script: nmap -h
+  script: nmap -vvvv localhost
 
 provides:
   - bin/nmap
