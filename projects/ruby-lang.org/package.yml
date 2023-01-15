@@ -8,7 +8,7 @@ versions:
 dependencies:
   openssl.org: ^1.1
   pyyaml.org: ^0.2
-  zlib.net: 1
+  zlib.net: ^1
 
 build:
   dependencies:
@@ -16,11 +16,17 @@ build:
     gnu.org/gettext: ^0.21
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
+    git-scm.org: ^2
   script: |
-    ./configure --prefix="{{prefix}}" --enable-load-relative
+    ./configure --prefix="{{prefix}}" --enable-load-relative --disable-rubygems
     make --jobs {{hw.concurrency}} install
 
-    cd "{{prefix}}"/bin
+    cd "{{prefix}}"
+
+    # use the GEM_PATH we want
+    git apply "$SRCROOT"/props/defaults.rb.patch
+
+    cd bin
 
     # we provide these as `rubygems.org`
     rm bundle bundler gem rake rbs rdbg typeprof
@@ -37,8 +43,18 @@ build:
       - rdoc
       - ri
 
-test: |
-  ruby -e 'puts "Hello World!"'
+test:
+  dependencies:
+    #NOTE rubygems.org depends on us… so it may be difficult to test this
+    # in a bootstrap scenario…
+    rubygems.org: '*'
+    tea.xyz/gx/cc: c99  # for native extensions
+    tea.xyz/gx/make: '*'
+  script: |
+    ruby -e 'puts "Hello World!"'
+    gem install hexapdf -v 0.28.0
+    hexapdf version
+    test -d "{{tea.prefix}}"/ruby-lang.org/gems/{{version}}/gems/hexapdf-0.28.0
 
 provides:
   - bin/erb
