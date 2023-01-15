@@ -1,0 +1,49 @@
+diff --color -u a/Makefile b/Makefile
+--- a/Makefile	2014-06-16 03:27:59
++++ b/Makefile	2023-01-15 03:32:37
+@@ -8,6 +8,9 @@
+ 
+ CC=gcc
+ CFLAGS=-O
++TEA_VERSION?= "0.0.0-dev"
+ 
+ sl: sl.c sl.h
++	sed -i.bak -e "s/#define TEA_VERSION \".*\"/#define TEA_VERSION \"$(TEA_VERSION)\"/" sl.h
++	rm sl.h.bak
+ 	$(CC) $(CFLAGS) -o sl sl.c -lncurses
+Common subdirectories: a/props and b/props
+diff --color -u a/sl.c b/sl.c
+--- a/sl.c	2014-06-16 03:27:59
++++ b/sl.c	2023-01-15 03:27:18
+@@ -39,6 +39,8 @@
+ #include <curses.h>
+ #include <signal.h>
+ #include <unistd.h>
++#include <stdio.h>
++#include <stdlib.h>
+ #include "sl.h"
+ 
+ void add_smoke(int y, int x);
+@@ -73,6 +75,10 @@
+             case 'F': FLY      = 1; break;
+             case 'l': LOGO     = 1; break;
+             case 'c': C51      = 1; break;
++            case 'v':
++                printf("sl version %s", TEA_VERSION);
++                exit(0);
++                break;
+             default:                break;
+         }
+     }
+diff --color -u a/sl.h b/sl.h
+--- a/sl.h	2014-06-16 03:27:59
++++ b/sl.h	2023-01-15 03:33:08
+@@ -12,6 +12,8 @@
+ #define D51LENGTH	83
+ #define D51PATTERNS	 6
+ 
++#define TEA_VERSION "UNSET"
++
+ 
+ #define D51STR1  "      ====        ________                ___________ "
+ #define D51STR2  "  _D _|  |_______/        \\__I_I_____===__|_________| "

@@ -15,14 +15,20 @@ build:
   dependencies:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
+    gnu.org/patch: '*'
   script: |
+    # Add -v to allow testing resultant binary
+    patch -p1 < props/version.patch
     make
     mkdir "{{prefix}}"/bin
     mv sl "{{prefix}}"/bin
   env:
     CPATH: ${{ deps.invisible-island.net/ncurses.prefix }}/include/ncursesw:$CPATH
+    TEA_VERSION: ${{ version }}
 
 test:
-  dependencies:
-    tcl-lang.org/expect: '*'
-  script: expect -d ./script.exp
+  # FIXME: best tested with Expect, if possible.
+  # dependencies:
+  #   tcl-lang.org/expect: '*'
+  # script: expect -d ./script.exp
+  test "$(sl -v)" = "sl version {{version}}"
