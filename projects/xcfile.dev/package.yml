@@ -1,0 +1,53 @@
+distributable:
+  url: https://github.com/joerdav/xc/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: joerdav/xc/tags
+  strip: /v/
+
+build:
+  dependencies:
+    go.dev: '*'
+  script: |
+    cd ./cmd/xc
+    GOBIN={{prefix}}/bin go install -ldflags="$LDFLAGS" .
+  env:
+    LDFLAGS:
+      - -X=main.version={{version}}
+    linux:
+      # or segmentation fault
+      # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
+      LDFLAGS:
+        - -buildmode=pie
+
+
+test:
+  script: |
+    cp $FIXTURE README.md
+    xc system
+  fixture: |
+    # Tasks
+
+    ## System
+
+    Prints the `uname` info in all caps.
+
+    Requires: pre-check
+
+    ```
+    uname -a | tr a-z A-Z
+    ```
+
+    ## Pre-check
+
+    Runs `ls` in the current directory.
+
+    ```
+    ls
+    ```
+
+provides:
+  - bin/xc
+
+
