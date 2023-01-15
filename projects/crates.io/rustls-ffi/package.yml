@@ -17,5 +17,26 @@ build:
     make DESTDIR={{prefix}} install
 
 test:
-  script: true
-
+  dependencies:
+    tea.xyz/gx/cc: c99
+    openssl.org: '*'  # needed for SSL_CERT_FILE
+  env:
+    LIBS:
+      - -lrustls
+      - -lc
+    linux:
+      LIBS:
+        - -lgcc_s
+        - -lutil
+        - -lrt
+        - -lpthread
+        - -lm
+        - -ldl
+    darwin:
+      LIBS:
+        - -framework Security
+        - -liconv
+        - -lSystem
+  script: |
+    cc client.c common.c -o client $LIBS
+    CA_FILE=$SSL_CERT_FILE ./client tea.xyz 443 /
