@@ -1,0 +1,31 @@
+distributable:
+  url: https://prdownloads.sourceforge.net/tcl/tcl{{ version }}-src.tar.gz
+  strip-components: 1
+
+versions:
+  # FIXME: tcltk/tcl/tags needs serious parsing
+  - 8.6.13
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  working-directory: unix
+  script: |
+    ./configure --prefix={{ prefix }}
+    make --jobs {{ hw.concurrency }}
+    make install
+    make install-private-headers
+
+    cd {{prefix}}/bin
+    ln -s tclsh{{version.major}}.{{version.minor}} tclsh
+  test: make test
+
+test:
+  script: test "$(echo 'puts "Hello, World!";' | tclsh)" = 'Hello, World!'
+
+provides:
+  - bin/sqlite3_analyzer
+  - bin/tclsh{{version.major}}.{{version.minor}}
+  - bin/tclsh
+

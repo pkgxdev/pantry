@@ -1,0 +1,72 @@
+distributable:
+  url: https://cytranet.dl.sourceforge.net/project/expect/Expect/{{ version }}/expect{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  - 5.45.4
+
+dependencies:
+  tcl.tk/tcl: ^8
+
+interprets:
+  extensions: exp
+  args: [expect, -f]
+
+runtime:
+  env:
+    TCLLIBPATH: ${{prefix}}/lib
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/automake: '*'
+    gnu.org/autoconf: '*'
+    gnu.org/patch: '*'
+  script: |
+    # Config scripts are from 2003
+    autoreconf --force --install --verbose
+
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }}
+    make install
+
+    cd {{prefix}}/lib
+    mv expect{{version}}/* .
+    rmdir expect{{version}}
+  env:
+    ARGS:
+      - --prefix={{ prefix }}
+      - --exec-prefix={{ prefix }}
+      - --with-tcl={{ deps.tcl.tk/tcl.prefix }}/lib
+    darwin:
+      # Works around Apple Clang 12+ "bug"
+      # https://core.tcl-lang.org/expect/tktview/0d5b33c00e5b4bbedb835498b0360d7115e832a0
+      CFLAGS: $CFLAGS -Wno-implicit-function-declaration
+
+test:
+  script: test "$(echo 'Hello, World!' | timed-read 1)" = 'Hello, World!'
+
+provides:
+  - bin/autoexpect
+  - bin/autopasswd
+  - bin/cryptdir
+  - bin/decryptdir
+  - bin/dislocate
+  - bin/expect
+  - bin/ftp-rfc
+  - bin/kibitz
+  - bin/lpunlock
+  - bin/mkpasswd
+  - bin/multixterm
+  - bin/passmass
+  - bin/rftp
+  - bin/rlogin-cwd
+  - bin/timed-read
+  - bin/timed-run
+  - bin/tknewsbiff
+  - bin/tkpasswd
+  - bin/unbuffer
+  - bin/weather
+  - bin/xkibitz
+  - bin/xpstat
