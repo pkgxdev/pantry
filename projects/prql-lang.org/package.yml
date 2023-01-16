@@ -10,10 +10,25 @@ build:
     rust-lang.org/cargo: '*'
   script: |
     cd ./prql-compiler
-    cargo install --path . --root {{prefix}}
+    cargo install --path . --root {{prefix}} --all-features
 
-test:
-  echo "from employees | filter has_dog | select salary" | prql-compiler compile
+    cd {{prefix}}/bin
+
+    # Bin got renamed; this is one way to keep ourselves working
+    if test {{version.major}} -eq 0 -a {{version.minor}} -lt 4; then
+      ln -s prql-compiler prqlc
+    else
+      ln -s prqlc prql-compiler
+    fi
+
+test: |
+  if test {{version.major}} -eq 0 -a {{version.minor}} -lt 4; then
+    COMPILER=prql-compiler
+  else
+    COMPILER=prqlc
+  fi
+  echo "from employees | filter has_dog | select salary" | $COMPILER compile
 
 provides:
   - bin/prql-compiler
+  - bin/prqlc
