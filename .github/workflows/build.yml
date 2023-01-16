@@ -22,12 +22,6 @@ jobs:
           path: pantry
           repository: teaxyz/pantry.core
 
-      - name: co extra
-        uses: actions/checkout@v3
-        with:
-          path: extra
-          repository: teaxyz/pantry.extra
-
       - uses: teaxyz/setup@v0
         with:
           # necessary because we currently require a `.git` directory
@@ -36,7 +30,7 @@ jobs:
       - run: ./scripts/check-core-sizes.ts ${{ inputs.projects }}
         working-directory: pantry
         env:
-          TEA_PANTRY_PATH: ${{ env.TEA_PANTRY_PATH }}:${{ github.workspace }}/extra
+          TEA_PANTRY_PATH: ${{ env.TEA_PANTRY_PATH }}
 
   build:
     runs-on: ${{ matrix.platform.os }}

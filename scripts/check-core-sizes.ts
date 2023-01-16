@@ -10,20 +10,18 @@ args:
   - --import-map={{ srcroot }}/import-map.json
 ---*/
 
-import { usePantry } from "hooks"
 import * as ARGV from "./utils/args.ts"
 
-const pantry = usePantry()
+const exceptions: { [pkg: string]: number } = {
+  "deno.land": 4
+}
 
 const pkgs = await ARGV.toArray(ARGV.pkgs())
 
 let coreSize = 2
 
 for (const pkg of pkgs) {
-  const yml = await pantry.getYAML(pkg).parse()
-  if (yml?.build?.cores) {
-    coreSize = Math.max(yml.build.cores, coreSize)
-  }
+  coreSize = Math.max(exceptions[pkg.project] || 2, coreSize)
 }
 
 const output = `GHA_LINUX_BUILD_SIZE=${imageName(coreSize)}\n`
