@@ -11,6 +11,10 @@ dependencies:
   curl.se: '>=5'
   perl.org: '*'
 
+runtime:
+  env:
+    GIT_TEMPLATE_DIR: '{{prefix}}/share/git-core/templates'
+
 build:
   dependencies:
     tea.xyz/gx/cc: c99
@@ -38,7 +42,12 @@ build:
     INSTALL_STRIP: -s
 
 test: |
-  git clone https://github.com/teaxyz/white-paper
+  git clone https://github.com/teaxyz/white-paper 2>&1 | tee clone-output.txt
+
+  # check that the templates can be found
+  if grep -q 'warning: templates not found in' clone-output.txt; then
+    false
+  fi
 
   mkdir foo
   cd foo
