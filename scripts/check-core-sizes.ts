@@ -13,7 +13,8 @@ args:
 import * as ARGV from "./utils/args.ts"
 
 const exceptions: { [pkg: string]: number } = {
-  "deno.land": 4
+  "deno.land": 4,
+  "ziglang.org": 8,
 }
 
 const pkgs = await ARGV.toArray(ARGV.pkgs())
