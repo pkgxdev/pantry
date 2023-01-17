@@ -7,6 +7,8 @@ versions:
   strip: /^releases\/gcc-/
 
 dependencies:
+  darwin:
+    apple.com/xcode/clt: '*'   # needed for MacOS.sdk
   gnu.org/gmp: '>=4.2'
   gnu.org/mpfr: '>=2.4.0'
   gnu.org/mpc: '>=0.8.0'
@@ -16,16 +18,17 @@ dependencies:
 build:
   dependencies:
     darwin:
-      tea.xyz/gx/cc: c99
+      tea.xyz/gx/cc: c99   # need cc to strip `-nodefaultrpaths`
     # linux:
     #   gnu.org/gcc: '*'
     gnu.org/make: '*'
     perl.org: '^5.6.1'
     gnu.org/patch: '*'
+    curl.se: '*'
   script: |
     # Branch from the Darwin maintainer of GCC, with a few generic fixes and
     # Apple Silicon support, located at https://github.com/iains/gcc-12-branch
-    patch -p1 <props/aarch64.diff
+    curl https://raw.githubusercontent.com/Homebrew/formula-patches/1d184289/gcc/gcc-12.2.0-arm.diff | patch -p1
 
     # skip multilib prefixes for best interop
     sed -i.bak -e 's_m64=../lib64_m64=_' gcc/config/i386/t-linux64
@@ -36,11 +39,8 @@ build:
 
     ### /*** BOOTSTRAP BLOCK - REMOVE AFTER BOOTSTRAP ***/
     if test "{{hw.platform}}" = "linux"; then
-      if command -v sudo; then
-        sudo apt-get --yes install gcc g++
-      else # assume no sudo = we can just run apt-get
-        apt-get --yes install gcc g++
-      fi
+      command -v sudo && SUDO=sudo
+      $SUDO apt-get --yes install gcc g++
     fi
     ### /*** END BOOTSTRAP BLOCK ***/
 
@@ -66,6 +66,8 @@ build:
     make --jobs {{ hw.concurrency }}
     make install
 
+    cd {{prefix}}/bin
+    ln -s c++ gc++
   env:
     ARGS:
       - --prefix={{ prefix }}
@@ -102,15 +104,9 @@ test:
     test "$(./test2)" = "Hello, world!"
 
 provides:
-  # shouldn't need to support these.
-  # - bin/{{hw.arch}}-{{##MANUFACTURER}}-{{hw.platform}}{{##KERNEL-VERSION}}-c++
-  # - bin/{{hw.arch}}-{{##MANUFACTURER}}-{{hw.platform}}{{##KERNEL-VERSION}}-g++
-  # - bin/{{hw.arch}}-{{##MANUFACTURER}}-{{hw.platform}}{{##KERNEL-VERSION}}-gcc
-  # - bin/{{hw.arch}}-{{##MANUFACTURER}}-{{hw.platform}}{{##KERNEL-VERSION}}-gcc-{{version}}
-  # - bin/{{hw.arch}}-{{##MANUFACTURER}}-{{hw.platform}}{{##KERNEL-VERSION}}-gcc-ar
-  # - bin/{{hw.arch}}-{{##MANUFACTURER}}-{{hw.platform}}{{##KERNEL-VERSION}}-gcc-nm
-  # - bin/{{hw.arch}}-{{##MANUFACTURER}}-{{hw.platform}}{{##KERNEL-VERSION}}-gcc-ranlib
-  - bin/c++
+  # we keep `c++` in tea.xyz/gx/cc, but we expose it
+  # as `gc++` here in case someone wants it explicitly
+  - bin/gc++
   - bin/cpp
   - bin/g++
   - bin/gcc
