@@ -10,8 +10,9 @@ args:
 ---*/
 
 import { S3, S3Object } from "s3"
-import { Sha256 } from "deno/hash/sha256.ts"
-import { readerFromStreamReader, readAll } from "deno/streams/conversion.ts"
+import { crypto, toHashString } from "deno/crypto/mod.ts";
+import { readerFromStreamReader } from "deno/streams/reader_from_stream_reader.ts"
+import { readAll } from "deno/streams/read_all.ts"
 import Path from "path"
 
 const s3 = new S3({
@@ -33,7 +34,7 @@ for await (const pkg of bucket.listAllObjects({ batchSize: 200 })) {
 
     const reader = (await bucket.getObject(keys.bottle.string))!.body.getReader()
     const contents = await readAll(readerFromStreamReader(reader))
-    const sha256sum = new Sha256().update(contents).toString()
+    const sha256sum = toHashString(await crypto.subtle.digest("SHA-256", contents))
     const body = new TextEncoder().encode(`${sha256sum}  ${keys.bottle.basename()}`)
     await bucket.putObject(keys.checksum.string, body)
 

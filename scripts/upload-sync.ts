@@ -13,7 +13,7 @@ args:
 import { readAll, readerFromStreamReader } from "deno/streams/mod.ts"
 import { useCache, useOffLicense } from "hooks"
 import { Package } from "types"
-import { Sha256 } from "deno/hash/sha256.ts"
+import { crypto, toHashString } from "deno/crypto/mod.ts";
 import { S3 } from "s3"
 import Path from "path"
 
@@ -37,7 +37,7 @@ for (const stowed of await useCache().ls()) {
 
   // path.read() returns a string; this is easier to get a UInt8Array
   const contents = await Deno.readFile(stowed.path.string)
-  const sha256sum = new Sha256().update(contents).toString()
+  const sha256sum = toHashString(await crypto.subtle.digest("SHA-256", contents))
 
   if (!inRepo || repoChecksum !== sha256sum) {
     const basename = url.path().basename()

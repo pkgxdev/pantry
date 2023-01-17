@@ -16,6 +16,7 @@ import { useCache, useFlags, useOffLicense, usePrefix } from "hooks"
 import { Package, PackageRequirement } from "types"
 import SemVer, * as semver from "semver"
 import { basename, dirname } from "deno/path/mod.ts"
+import { retry } from "deno/async/retry.ts"
 import { decode as base64Decode } from "deno/encoding/base64.ts"
 import Path from "path"
 import { set_output } from "./utils/gha.ts"
@@ -77,7 +78,8 @@ async function put(key: string, body: string | Path | Uint8Array, bucket: S3Buck
   } else if (typeof body === "string") {
     body = encode(body)
   }
-  return bucket.putObject(key, body)
+  // @ts-ignore typescript doesn't narrow the types properly here
+  return retry(()=>bucket.putObject(key, body))
 }
 
 //------------------------------------------------------------------------- main
