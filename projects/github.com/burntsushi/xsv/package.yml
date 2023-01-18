@@ -1,0 +1,25 @@
+distributable:
+  url: https://github.com/BurntSushi/xsv/archive/refs/tags/{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: BurntSushi/xsv/tags
+
+provides:
+  - bin/xsv
+
+build:
+  dependencies:
+    rust-lang.org: ">=1.60"
+    rust-lang.org/cargo: "*"
+  script: cargo install --locked --path . --root {{prefix}}
+
+test:
+  script: |
+    out=$(xsv count $FIXTURE)
+    test "$out" = "2"
+
+  fixture: |
+    foo,bar
+    1,2
+    3,42
