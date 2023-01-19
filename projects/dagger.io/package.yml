@@ -1,0 +1,52 @@
+distributable:
+  url: https://github.com/dagger/dagger/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: dagger/dagger
+  strip: /v/
+
+provides:
+  - bin/dagger
+
+build:
+  script: |
+    go build -v -ldflags="$LDFLAGS" ./cmd/dagger
+    mkdir -p "{{ prefix }}"/bin
+    mv dagger "{{ prefix }}"/bin
+  dependencies:
+    go.dev: ^1.18
+  env:
+    CGO_ENABLED: 0
+    LDFLAGS:
+      - -s
+      - -w
+      - -X go.dagger.io/dagger/version.Version={{ version }}
+      - -X go.dagger.io/dagger/version.Revision=tea
+    linux:
+      # or segmentation fault
+      # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
+      LDFLAGS:
+        - -buildmode=pie
+
+test: |
+    dagger version
+    # This is a better test, but we might mask failures using || true
+    # think more about this.
+    #out=$(dagger query <<EOF 2>&1 || true
+    #  {
+    #    container {
+    #      from(address:"alpine:latest") {
+    #        withExec(args:["uname", "-nrio"]) {
+    #          stdout
+    #        }
+    #      }
+    #    }
+    #  }
+    #EOF
+    #)
+    #if command -v docker; then
+    #  test ! -z "$out"
+    #else
+    #  test "$out" = 'Error: failed to run container: : exec: "docker": executable file not found in $PATH'
+    #fi
