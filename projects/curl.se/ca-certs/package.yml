@@ -1,0 +1,22 @@
+distributable: ~
+
+versions:
+  - 2022.07.19
+
+runtime:
+  env:
+    SSL_CERT_FILE: ${{prefix}}/ssl/cert.pem
+
+build:
+  dependencies:
+    curl.se: '*'
+  script: |
+    cd "{{prefix}}"
+    mkdir -p ssl
+    URL_VER=$(echo {{version.raw}} | tr -- . -)
+    curl -k https://curl.se/ca/cacert-$URL_VER.pem -o ssl/cert.pem
+
+test:
+  dependencies:
+    curl.se: '*'
+  script: curl https://tea.xyz

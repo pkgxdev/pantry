@@ -17,12 +17,14 @@ provides:
   - bin/openssl
   - bin/c_rehash
 
+dependencies:
+  curl.se/ca-certs: '*'
+
 build:
   dependencies:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
     perl.org: 5
-    curl.se: '*'    # to download ca-certs on linux
     git-scm.org: 2  # to apply our patch
   script: |
     git apply props/x509_def.c.diff
@@ -31,12 +33,6 @@ build:
     make --jobs {{ hw.concurrency }}
     make install_sw   # `_sw` avoids installing docs
 
-    #FIXME needs to be a curl.se/ca-certs that gets updates
-    #FIXME on macOS use /etc/ssl/cert.pem (I couldn't make this work)
-    #FIXME or on macOS get certs from the keychain
-    cd "{{prefix}}"
-    mkdir -p ssl
-    curl -k https://curl.se/ca/cacert-2022-07-19.pem -o ssl/cert.pem
   env:
     darwin/aarch64: {ARCH: 'darwin64-arm64-cc'}
     darwin/x86-64:  {ARCH: 'darwin64-x86_64-cc'}
