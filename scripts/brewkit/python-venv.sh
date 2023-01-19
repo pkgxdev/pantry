@@ -17,28 +17,17 @@ cd "$PREFIX"
 libexec/bin/pip install -v --no-binary :all: --ignore-installed $CMD_NAME
 mkdir bin
 
-mv libexec/bin/$CMD_NAME libexec/bin/teaxyz.py
-
-cd bin
-ln -s ../libexec/bin/$CMD_NAME $CMD_NAME
-
-cd ../libexec/bin
-fix-shebangs.ts *
-
-cat <<EOF >$CMD_NAME
+cat <<EOF >bin/$CMD_NAME
 #!/usr/bin/env bash
 self="\${BASH_SOURCE[0]}"
-if test -L "\$self"; then
-  prefix="\$(dirname "\$self")"
-  suffix="\$(dirname \$(readlink \$self))"
-  LIBEXEC="\$(cd \$prefix/\$suffix && pwd)"
-else
-  LIBEXEC="\$(cd "\$(dirname "\$self")" && pwd)"
-fi
+LIBEXEC="\$(cd "\$(dirname "\$self")"/../libexec/bin && pwd)"
 source "\$LIBEXEC/activate"
-exec "\$LIBEXEC"/teaxyz.py "\$@"
+exec "\$LIBEXEC"/$CMD_NAME "\$@"
 EOF
-chmod +x $CMD_NAME
+chmod +x bin/$CMD_NAME
+
+cd libexec/bin
+fix-shebangs.ts *
 
 rm Activate.ps1 activate.csh activate.fish
 
