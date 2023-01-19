@@ -30,7 +30,7 @@ build:
         - -buildmode=pie
 
 test: |
-    dagger query <<EOF
+    out=dagger query <<EOF 2>&1
       {
         container {
           from(address:"alpine:latest") {
@@ -41,3 +41,9 @@ test: |
         }
       }
     EOF
+    )
+    if command -v docker; then
+      test ! -z "$out"
+    else
+      test "$out" = 'Error: failed to run container: : exec: "docker": executable file not found in $PATH'
+    fi
