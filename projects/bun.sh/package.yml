@@ -33,9 +33,18 @@ build:
     linux/aarch64:  {PLATFORM: linux-aarch64}
     linux/x86-64:   {PLATFORM: linux-x64}
 
-test: |
-  bun --help
-  bunx shx ls
+test:
+  script: |
+    bun --help
+    cp $FIXTURE cat.ts
+    bun run cat.ts cat.ts
+  fixture: |
+    import { resolve } from "path";
+    const { write, stdout, file } = Bun;
+    import { argv } from "process";
+
+    const path = resolve(argv.at(-1)!);
+    await write(stdout, file(path));
 
 provides:
   - bin/bun
