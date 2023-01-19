@@ -11,13 +11,13 @@ provides:
 
 build:
   script: |
-    export CGO_ENABLED=0
     go build -v -ldflags="$LDFLAGS" ./cmd/dagger
     mkdir -p "{{ prefix }}"/bin
     mv dagger "{{ prefix }}"/bin
   dependencies:
     go.dev: ^1.18
   env:
+    CGO_ENABLED: 0
     LDFLAGS:
       - -s
       - -w
@@ -29,6 +29,15 @@ build:
       LDFLAGS:
         - -buildmode=pie
 
-test:
-  script: |
-    dagger version
+test: |
+    dagger query <<EOF
+      {
+        container {
+          from(address:"alpine:latest") {
+            withExec(args:["uname", "-nrio"]) {
+              stdout
+            }
+          }
+        }
+      }
+    EOF
