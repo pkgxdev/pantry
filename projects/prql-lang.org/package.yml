@@ -8,9 +8,15 @@ versions:
 build:
   dependencies:
     rust-lang.org/cargo: '*'
+  working-directory: prql-compiler
   script: |
-    cd ./prql-compiler
-    cargo install --path . --root {{prefix}} --all-features
+    if test {{version.major}} -eq 0 -a {{version.minor}} -lt 4; then
+      cargo install --path . --root {{prefix}}
+    elif test "{{version}}" = "0.4.0"; then
+      cargo install --path . --root {{prefix}} --all-features
+    else
+      cargo install --path prqlc --root {{prefix}}
+    fi
 
     cd {{prefix}}/bin
 
