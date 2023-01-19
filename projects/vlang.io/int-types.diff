@@ -1,0 +1,300 @@
+diff --git a/vlib/builtin/builtin_windows.c.v b/vlib/builtin/builtin_windows.c.v
+index 8b1d7ef219bc4..1de0c0983621c 100644
+--- a/vlib/builtin/builtin_windows.c.v
++++ b/vlib/builtin/builtin_windows.c.v
+@@ -63,7 +63,7 @@ const (
+ 	symopt_load_lines            = 0x00000010
+ 	symopt_include_32bit_modules = 0x00002000
+ 	symopt_allow_zero_address    = 0x01000000
+-	symopt_debug                 = 0x80000000
++	symopt_debug                 = u32(0x80000000)
+ )
+ 
+ // g_original_codepage - used to restore the original windows console code page when exiting
+diff --git a/vlib/crypto/md5/md5.v b/vlib/crypto/md5/md5.v
+index 1b7cd28dc38be..6a6dc49f90b9f 100644
+--- a/vlib/crypto/md5/md5.v
++++ b/vlib/crypto/md5/md5.v
+@@ -19,8 +19,8 @@ pub const (
+ 
+ const (
+ 	init0 = 0x67452301
+-	init1 = 0xEFCDAB89
+-	init2 = 0x98BADCFE
++	init1 = u32(0xEFCDAB89)
++	init2 = u32(0x98BADCFE)
+ 	init3 = 0x10325476
+ )
+ 
+diff --git a/vlib/crypto/sha1/sha1.v b/vlib/crypto/sha1/sha1.v
+index 0b13ad4f305f7..4f7622c38d824 100644
+--- a/vlib/crypto/sha1/sha1.v
++++ b/vlib/crypto/sha1/sha1.v
+@@ -20,10 +20,10 @@ pub const (
+ const (
+ 	chunk = 64
+ 	init0 = 0x67452301
+-	init1 = 0xEFCDAB89
+-	init2 = 0x98BADCFE
++	init1 = u32(0xEFCDAB89)
++	init2 = u32(0x98BADCFE)
+ 	init3 = 0x10325476
+-	init4 = 0xC3D2E1F0
++	init4 = u32(0xC3D2E1F0)
+ )
+ 
+ // digest represents the partial evaluation of a checksum.
+diff --git a/vlib/crypto/sha1/sha1block_generic.v b/vlib/crypto/sha1/sha1block_generic.v
+index d03bd8f400610..3144fb9ab3fbf 100644
+--- a/vlib/crypto/sha1/sha1block_generic.v
++++ b/vlib/crypto/sha1/sha1block_generic.v
+@@ -11,8 +11,8 @@ import math.bits
+ const (
+ 	_k0 = 0x5A827999
+ 	_k1 = 0x6ED9EBA1
+-	_k2 = 0x8F1BBCDC
+-	_k3 = 0xCA62C1D6
++	_k2 = u32(0x8F1BBCDC)
++	_k3 = u32(0xCA62C1D6)
+ )
+ 
+ fn block_generic(mut dig Digest, p_ []u8) {
+diff --git a/vlib/crypto/sha256/sha256.v b/vlib/crypto/sha256/sha256.v
+index 65340f9b6c364..0fc6280971605 100644
+--- a/vlib/crypto/sha256/sha256.v
++++ b/vlib/crypto/sha256/sha256.v
+@@ -21,21 +21,21 @@ pub const (
+ const (
+ 	chunk     = 64
+ 	init0     = 0x6A09E667
+-	init1     = 0xBB67AE85
++	init1     = u32(0xBB67AE85)
+ 	init2     = 0x3C6EF372
+-	init3     = 0xA54FF53A
++	init3     = u32(0xA54FF53A)
+ 	init4     = 0x510E527F
+-	init5     = 0x9B05688C
++	init5     = u32(0x9B05688C)
+ 	init6     = 0x1F83D9AB
+ 	init7     = 0x5BE0CD19
+-	init0_224 = 0xC1059ED8
++	init0_224 = u32(0xC1059ED8)
+ 	init1_224 = 0x367CD507
+ 	init2_224 = 0x3070DD17
+-	init3_224 = 0xF70E5939
+-	init4_224 = 0xFFC00B31
++	init3_224 = u32(0xF70E5939)
++	init4_224 = u32(0xFFC00B31)
+ 	init5_224 = 0x68581511
+ 	init6_224 = 0x64F98FA7
+-	init7_224 = 0xBEFA4FA4
++	init7_224 = u32(0xBEFA4FA4)
+ )
+ 
+ // digest represents the partial evaluation of a checksum.
+diff --git a/vlib/os/const_windows.c.v b/vlib/os/const_windows.c.v
+index dbbac405ffed0..47eab9e478f52 100644
+--- a/vlib/os/const_windows.c.v
++++ b/vlib/os/const_windows.c.v
+@@ -9,7 +9,7 @@ const (
+ )
+ 
+ const (
+-	handle_generic_read  = 0x80000000
++	handle_generic_read  = u32(0x80000000)
+ 	handle_open_existing = 0x00000003
+ )
+ 
+@@ -111,38 +111,38 @@ const (
+ )
+ 
+ const (
+-	status_access_violation           = 0xC0000005
+-	status_in_page_error              = 0xC0000006
+-	status_invalid_handle             = 0xC0000008
+-	status_invalid_parameter          = 0xC000000D
+-	status_no_memory                  = 0xC0000017
+-	status_illegal_instruction        = 0xC000001D
+-	status_noncontinuable_exception   = 0xC0000025
+-	status_invalid_disposition        = 0xC0000026
+-	status_array_bounds_exceeded      = 0xC000008C
+-	status_float_denormal_operand     = 0xC000008D
+-	status_float_divide_by_zero       = 0xC000008E
+-	status_float_inexact_result       = 0xC000008F
+-	status_float_invalid_operation    = 0xC0000090
+-	status_float_overflow             = 0xC0000091
+-	status_float_stack_check          = 0xC0000092
+-	status_float_underflow            = 0xC0000093
+-	status_integer_divide_by_zero     = 0xC0000094
+-	status_integer_overflow           = 0xC0000095
+-	status_privileged_instruction     = 0xC0000096
+-	status_stack_overflow             = 0xC00000FD
+-	status_dll_not_found              = 0xC0000135
+-	status_ordinal_not_found          = 0xC0000138
+-	status_entrypoint_not_found       = 0xC0000139
+-	status_control_c_exit             = 0xC000013A
+-	status_dll_init_failed            = 0xC0000142
+-	status_float_multiple_faults      = 0xC00002B4
+-	status_float_multiple_traps       = 0xC00002B5
+-	status_reg_nat_consumption        = 0xC00002C9
+-	status_heap_corruption            = 0xC0000374
+-	status_stack_buffer_overrun       = 0xC0000409
+-	status_invalid_cruntime_parameter = 0xC0000417
+-	status_assertion_failure          = 0xC0000420
++	status_access_violation           = u32(0xC0000005)
++	status_in_page_error              = u32(0xC0000006)
++	status_invalid_handle             = u32(0xC0000008)
++	status_invalid_parameter          = u32(0xC000000D)
++	status_no_memory                  = u32(0xC0000017)
++	status_illegal_instruction        = u32(0xC000001D)
++	status_noncontinuable_exception   = u32(0xC0000025)
++	status_invalid_disposition        = u32(0xC0000026)
++	status_array_bounds_exceeded      = u32(0xC000008C)
++	status_float_denormal_operand     = u32(0xC000008D)
++	status_float_divide_by_zero       = u32(0xC000008E)
++	status_float_inexact_result       = u32(0xC000008F)
++	status_float_invalid_operation    = u32(0xC0000090)
++	status_float_overflow             = u32(0xC0000091)
++	status_float_stack_check          = u32(0xC0000092)
++	status_float_underflow            = u32(0xC0000093)
++	status_integer_divide_by_zero     = u32(0xC0000094)
++	status_integer_overflow           = u32(0xC0000095)
++	status_privileged_instruction     = u32(0xC0000096)
++	status_stack_overflow             = u32(0xC00000FD)
++	status_dll_not_found              = u32(0xC0000135)
++	status_ordinal_not_found          = u32(0xC0000138)
++	status_entrypoint_not_found       = u32(0xC0000139)
++	status_control_c_exit             = u32(0xC000013A)
++	status_dll_init_failed            = u32(0xC0000142)
++	status_float_multiple_faults      = u32(0xC00002B4)
++	status_float_multiple_traps       = u32(0xC00002B5)
++	status_reg_nat_consumption        = u32(0xC00002C9)
++	status_heap_corruption            = u32(0xC0000374)
++	status_stack_buffer_overrun       = u32(0xC0000409)
++	status_invalid_cruntime_parameter = u32(0xC0000417)
++	status_assertion_failure          = u32(0xC0000420)
+ )
+ 
+ // Windows Registry Constants
+diff --git a/vlib/rand/constants/constants.v b/vlib/rand/constants/constants.v
+index c70d3e48954f2..371d54d7390d9 100644
+--- a/vlib/rand/constants/constants.v
++++ b/vlib/rand/constants/constants.v
+@@ -3,7 +3,7 @@ module constants
+ // Commonly used constants across RNGs - some taken from "Numerical Recipes".
+ pub const (
+ 	lower_mask     = u64(0x00000000FFFFFFFF)
+-	max_u32        = 0xFFFFFFFF
++	max_u32        = u32(0xFFFFFFFF)
+ 	max_u64        = u64(0xFFFFFFFFFFFFFFFF)
+ 	max_u32_as_f32 = f32(max_u32) + 1
+ 	max_u64_as_f64 = f64(max_u64) + 1
+diff --git a/vlib/regex/regex.v b/vlib/regex/regex.v
+index 0b465aa8732aa..6f600cb371794 100644
+--- a/vlib/regex/regex.v
++++ b/vlib/regex/regex.v
+@@ -53,18 +53,18 @@ const (
+ 	// char class 11 0100 AA xxxxxxxx
+ 	// AA = 00  regular class
+ 	// AA = 01  Negated class ^ char
+-	ist_char_class     = 0xD1000000 // MASK
+-	ist_char_class_pos = 0xD0000000 // char class normal [abc]
+-	ist_char_class_neg = 0xD1000000 // char class negate [^abc]
++	ist_char_class     = u32(0xD1000000) // MASK
++	ist_char_class_pos = u32(0xD0000000) // char class normal [abc]
++	ist_char_class_neg = u32(0xD1000000) // char class negate [^abc]
+ 	// dot char        10 0110 xx xxxxxxxx
+-	ist_dot_char       = 0x98000000 // match any char except \n
++	ist_dot_char       = u32(0x98000000) // match any char except \n
+ 	// backslash chars 10 0100 xx xxxxxxxx
+-	ist_bsls_char      = 0x90000000 // backslash char
++	ist_bsls_char      = u32(0x90000000) // backslash char
+ 	// OR |            10 010Y xx xxxxxxxx
+-	ist_or_branch      = 0x91000000 // OR case
++	ist_or_branch      = u32(0x91000000) // OR case
+ 	// groups          10 010Y xx xxxxxxxx
+-	ist_group_start    = 0x92000000 // group start (
+-	ist_group_end      = 0x94000000 // group end   )
++	ist_group_start    = u32(0x92000000) // group start (
++	ist_group_end      = u32(0x94000000) // group end   )
+ 	// control instructions
+ 	ist_prog_end       = u32(0x88000000) // 10 0010 xx xxxxxxxx
+ 		//*************************************
+diff --git a/vlib/v/checker/checker.v b/vlib/v/checker/checker.v
+index e63787e7210d3..1130f1e9ba97c 100644
+--- a/vlib/v/checker/checker.v
++++ b/vlib/v/checker/checker.v
+@@ -1395,6 +1395,20 @@ pub fn (mut c Checker) const_decl(mut node ast.ConstDecl) {
+ 				}
+ 			}
+ 		}
++		// Check for int overflow
++		if field.typ == ast.int_type {
++			if mut field.expr is ast.IntegerLiteral {
++				mut is_large := field.expr.val.len > 13
++				if !is_large && field.expr.val.len > 8 {
++					val := field.expr.val.i64()
++					is_large = val > checker.int_max || val < checker.int_min
++				}
++				if is_large {
++					c.error('overflow in implicit type `int`, use explicit type casting instead',
++						field.expr.pos)
++				}
++			}
++		}
+ 		c.const_deps = []
+ 		c.const_var = prev_const_var
+ 	}
+diff --git a/vlib/v/checker/tests/const_int_overflow_err.out b/vlib/v/checker/tests/const_int_overflow_err.out
+new file mode 100644
+index 0000000000000..3b32fe5b2cd89
+--- /dev/null
++++ b/vlib/v/checker/tests/const_int_overflow_err.out
+@@ -0,0 +1,5 @@
++vlib/v/checker/tests/const_int_overflow_err.vv:1:11: error: overflow in implicit type `int`, use explicit type casting instead
++    1 | const c = 2847238432
++      |           ~~~~~~~~~~
++    2 | 
++    3 | fn main() {
+diff --git a/vlib/v/checker/tests/const_int_overflow_err.vv b/vlib/v/checker/tests/const_int_overflow_err.vv
+new file mode 100644
+index 0000000000000..ae44dc55320aa
+--- /dev/null
++++ b/vlib/v/checker/tests/const_int_overflow_err.vv
+@@ -0,0 +1,6 @@
++const c = 2847238432
++
++fn main() {
++    i := c
++    assert i == c
++}
+diff --git a/vlib/v/gen/native/macho.v b/vlib/v/gen/native/macho.v
+index 862be4d200b32..eac5ce8968ace 100644
+--- a/vlib/v/gen/native/macho.v
++++ b/vlib/v/gen/native/macho.v
+@@ -5,20 +5,20 @@ module native
+ 
+ const (
+ 	s_attr_some_instructions = 0x0400
+-	s_attr_pure_instructions = 0x80000000
++	s_attr_pure_instructions = u32(0x80000000)
+ 	s_attr_ext_reloc         = 0x0200
+ 	s_attr_loc_reloc         = 0x0100
+ 	macho_symcmd_size        = 0x18
+ 	macho_d_size             = 0x50
+ 	mh_object                = 1
+ 	mh_execute               = 2
+-	lc_dyld_chained_fixups   = 0x80000034
+-	lc_dyld_exports_trie     = 0x80000033
+-	lc_dyld_info_only        = 0x80000022
++	lc_dyld_chained_fixups   = u32(0x80000034)
++	lc_dyld_exports_trie     = u32(0x80000033)
++	lc_dyld_info_only        = u32(0x80000022)
+ 	lc_dysymtab              = 0xb
+ 	lc_load_dylib            = 0xc
+ 	lc_load_dylinker         = 0xe
+-	lc_main                  = 0x80000028
++	lc_main                  = u32(0x80000028)
+ 	lc_segment_64            = 0x19
+ 	lc_symtab                = 0x2
+ 	base_addr                = i64(0x1_0000_0000)
