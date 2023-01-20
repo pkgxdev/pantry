@@ -1,0 +1,87 @@
+distributable:
+  url: https://github.com/erlang/otp/releases/download/OTP-{{ version.raw }}/otp_src_{{ version.raw }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/ct_run
+  - bin/dialyzer
+  - bin/epmd
+  - bin/erl
+  - bin/erlc
+  - bin/escript
+  - bin/run_erl
+  - bin/to_erl
+  - bin/typer
+
+interprets:
+  extensions: erl
+  args: escript
+
+versions:
+  github: erlang/otp
+  strip: /^OTP /
+
+dependencies:
+  openssl.org: '*'
+  invisible-island.net/ncurses: '*'
+
+runtime:
+  env:
+    ERL_ROOTDIR: ${{prefix}}/lib/erlang
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    perl.org: '>=5'
+  script: |
+    export ERL_TOP=$(pwd)
+    ./configure $ARGS
+    make -j {{hw.concurrency}}
+    make install
+  env:
+    CC: cc
+    CXX: c++
+    LD: ld
+    ARGS:
+      - --disable-debug
+      - --disable-silent-rules
+      - --prefix={{prefix}}
+      - --enable-dynamic-ssl-lib
+      - --enable-hipe
+      - --enable-smp-support
+      - --enable-threads
+      - --with-ssl={{deps.openssl.org.prefix}}
+      - --without-javac
+    darwin:
+      ARGS:
+        - --enable-darwin-64bit
+        - --enable-kernel-poll
+        - --with-dynamic-trace=dtrace
+
+test:
+  script: |
+    test "$(escript $FIXTURE 10)" = "factorial 10 = 3628800"
+  env:
+    ERL_DIST_PORT: 8001
+  fixture: |
+    #!/usr/bin/env escript
+    %% -*- erlang -*-
+    %%! -smp enable -sname factorial -mnesia debug verbose
+    main([String]) ->
+        try
+            N = list_to_integer(String),
+            F = fac(N),
+            io:format("factorial ~w = ~w\n", [N,F])
+        catch
+            _:_ ->
+                usage()
+        end;
+    main(_) ->
+        usage().
+
+    usage() ->
+        io:format("usage: factorial integer\n").
+
+    fac(0) -> 1;
+    fac(N) -> N * fac(N-1).
