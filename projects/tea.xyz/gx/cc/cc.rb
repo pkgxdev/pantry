@@ -22,6 +22,9 @@ exe_path = ENV['PATH'].split(":").filter { |path|
   path != File.dirname(__FILE__)
 }.map { |path|
   "#{path}/#{exe}"
+}.reject { |path|
+  # if the user created a symlink of `cc` to `tea` don’t use it
+  File.symlink? path and File.basename(File.readlink(path)) == "tea"
 }.find { |path|
   File.exist?(path)
 }
