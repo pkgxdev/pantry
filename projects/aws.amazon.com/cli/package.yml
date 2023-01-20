@@ -5,34 +5,31 @@ distributable:
 versions:
   github: aws/aws-cli/tags
 
+dependencies:
+  python.org: '>=3.7<3.11'
+  pip.pypa.io: '*'
+  gnu.org/bash: '*'
+
+# runtime:
+#   env:
+#     PYTHONPATH: ${{prefix}}/libexec/lib/python3.10/site-packages:{{deps.python.org.prefix}}/lib/python3.10/site-packages:{{deps.pip.pypa.io.prefix}}
+
 build:
   dependencies:
-    python.org: '>=3.7<3.11'
-    pip.pypa.io: '*'
-    info-zip.org/unzip: '*'
-    tea.xyz/gx/cc: '*' # pyinstaller requires `objdump`
-  script: |
-    # There's probably a better way to do this, but it's not
-    # trivial. Using the provided scripts should be reliable
-    # across present and future releases.
-
-    ./scripts/installers/make-exe
-
-    mkdir -p {{prefix}}/libexec
-
-    unzip dist/awscli-exe.zip
-    mv aws/dist/* {{prefix}}/libexec
-
-    cd {{prefix}}
-    mkdir bin
-
-    ln -s ../libexec/aws bin/aws
+    tea.xyz/gx/cc: '*'
+    rust-lang.org: '>=1.48.0' # needed for cryptography
+    rust-lang.org/cargo: '*'
+  script:
+    python-venv.sh {{prefix}}/bin/aws
+  env:
+    # python includes are subdirectoried under the version
+    # frankly, python's versioning system causes a lot of
+    # issues for us despite its similarities to our own,
+    # due to versioning at the end of the path tree,
+    # instead of the beginning.
+    CPATH: $CPATH:{{deps.python.org.prefix}}/include/python{{deps.python.org.version.major}}.{{deps.python.org.version.minor}}
 
 test: |
-  if test "{{hw.platform}}" == "linux"; then
-    ldd {{prefix}}/libexec/aws
-    command -v strace && strace aws
-  fi
   # Pretty much anything else appears to require AWS credentials
   aws --version
 
