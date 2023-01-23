@@ -11,8 +11,16 @@ versions:
 build:
   dependencies:
     tea.xyz/gx/make: '*'
+    tea.xyz/gx/cc: c99
     go.dev: 1
+    gnu.org/patch: '*'
   script: |
+    if test "{{hw.platform}}" = "linux"; then
+      # Need to pass -buildmode=pie to the build
+      # or segmentation fault
+      # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
+      patch -p1 <props/ldflags.diff
+    fi
     make build
     mkdir -p {{prefix}}/bin
     mv cmd/ipfs/ipfs {{prefix}}/bin
