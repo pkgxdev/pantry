@@ -1,0 +1,26 @@
+distributable:
+  url: https://github.com/pytest-dev/pytest/archive/refs/tags/{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: pytest-dev/pytest
+
+dependencies:
+  python.org: '>=3.7'
+
+
+build:
+  dependencies:
+    pip.pypa.io: '*'
+  script:
+    python-venv.sh {{prefix}}/bin/pytest
+
+provides:
+  - bin/pytest
+
+test:
+  script: |
+    pytest --version
+    # Must return true to pass test; we check for the failure response afterwards explicitly.
+    pytest >> test.txt || true
+    cat test.txt | grep "FAILED test_fail.py::test_answer - assert 4 == 5"
