@@ -7,10 +7,12 @@ versions:
 
 dependencies:
   python.org: '>=3.7'
-  pip.pypa.io: '*'
+
 
 build:
-  script: |
+  dependencies:
+    pip.pypa.io: '*'
+  script:
     python-venv.sh {{prefix}}/bin/pytest
 
 provides:
@@ -19,5 +21,6 @@ provides:
 test:
   script: |
     pytest --version
+    # Must return true to pass test; we check for the failure response afterwards explicitly.
     pytest >> test.txt || true
-    cat test.txt | grep "FAILED test_fail.py::test_answer - assert 4 == 5" ; echo $?
+    cat test.txt | grep "FAILED test_fail.py::test_answer - assert 4 == 5"
