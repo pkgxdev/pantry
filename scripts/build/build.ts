@@ -78,6 +78,8 @@ async function __build(pkg: Package): Promise<BuildResult> {
       env['MACOSX_DEPLOYMENT_TARGET'] = ['11.0']
     }
 
+    env['PATH'].push("$PATH")
+
     return env
   }
 
