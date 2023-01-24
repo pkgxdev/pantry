@@ -58,6 +58,7 @@ async function __build(pkg: Package): Promise<BuildResult> {
     }
 
     async function should_clean() {
+      if (pkg.project == 'tea.xyz') return
       // only required as we aren't passing everything into hydrate
       const depends_on_self = () => deps.build.some(x => x.project === pkg.project)
       const wet_dep = () => wet.pkgs.some(x => x.project === pkg.project)
