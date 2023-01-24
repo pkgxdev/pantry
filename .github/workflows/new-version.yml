@@ -8,6 +8,10 @@ on:
         required: true
         type: string
 
+permissions:
+  contents: read
+  issues: write
+
 jobs:
   build:
     uses: ./.github/workflows/build.yml
@@ -35,3 +39,11 @@ jobs:
           SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
           SLACK_MESSAGE: new-version:${{ inputs.projects }} ${{ steps.status.outputs.status }}
           SLACK_COLOR: ${{ steps.status.outputs.status }}
+      - uses: actions/checkout@v3
+        if: ${{ steps.status.outputs.status == 'failure' }}
+      - uses: JasonEtco/create-an-issue@v2
+        if: ${{ steps.status.outputs.status == 'failure' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PACKAGE: ${{ inputs.projects }}
+          URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
