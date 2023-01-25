@@ -1,0 +1,27 @@
+distributable:
+  url: https://github.com/Byron/dua-cli/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/dua
+
+versions:
+  github: Byron/dua-cli/tags
+  strip: /v/
+
+dependencies:
+  zlib.net: ^1
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.60'
+    rust-lang.org/cargo: '*'
+  script:
+    cargo install --locked --path . --root {{prefix}}
+
+test:
+  script: |
+    for x in foo bar baz bat; do
+      echo $x > $x
+    done
+    dua
