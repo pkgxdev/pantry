@@ -1,0 +1,25 @@
+distributable:
+  url: https://github.com/nishanths/license/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: nishanths/license
+
+provides:
+  - bin/license
+
+build:
+  script: |
+    curl -Lfo license "https://github.com/nishanths/license/releases/download/v{{version}}/license-v{{version}}-$PLATFORM"
+    mkdir bin
+    mv license bin
+  dependencies:
+    curl.se: '*'
+  env:
+    darwin/aarch64: {PLATFORM: darwin-arm64}
+    darwin/x86-64:  {PLATFORM: darwin-amd64}
+    linux/aarch64:  {PLATFORM: linux-arm64}
+    linux/x86-64:   {PLATFORM: linux-amd64}
+
+test: |
+  license --version
