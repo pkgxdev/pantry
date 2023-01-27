@@ -11,18 +11,18 @@ provides:
   - bin/license
 
 build:
-  script: |
-    curl -Lfo license "https://github.com/nishanths/license/releases/download/v{{version}}/license-v{{version}}-$PLATFORM"
-    mkdir bin
-    mv license bin
   dependencies:
     curl.se: '*'
-  working-directory: ${{prefix}}
   env:
     darwin/aarch64: {PLATFORM: darwin-arm64}
     darwin/x86-64:  {PLATFORM: darwin-amd64}
     linux/aarch64:  {PLATFORM: linux-arm64}
     linux/x86-64:   {PLATFORM: linux-amd64}
+  working-directory: ${{prefix}}
+  script: |
+    curl -Lfo license "https://github.com/nishanths/license/releases/download/v{{version}}/license-v{{version}}-$PLATFORM"
+    mkdir bin
+    mv license bin
 
 test: |
   license --version
