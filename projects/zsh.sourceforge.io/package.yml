@@ -1,0 +1,48 @@
+distributable:
+  url: https://prdownloads.sourceforge.net/zsh/zsh/{{version.raw}}/zsh-{{version.raw}}.tar.xz
+  strip-components: 1
+
+versions:
+  #TODO https://sourceforge.net/projects/zsh/rss?path=/zsh
+  - 5.9
+
+provides:
+  - bin/zsh
+
+dependencies:
+  #TODO tighten these up
+  invisible-island.net/ncurses: '*'
+  pcre.org: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    SHARE="$(cd "{{prefix}}" && cd .. && pwd)"
+
+    ./configure $ARGS \
+       --enable-site-fndir="$SHARE/share/zsh/site-functions" \
+      --enable-site-scriptdir="$SHARE/share/zsh/site-scripts"
+
+    make --jobs {{ hw.concurrency }} install
+
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --enable-fndir={{prefix}}/functions
+      - --enable-scriptdir={{prefix}}/scripts
+      - --enable-runhelpdir=#{pkgshare}/help
+      - --enable-cap
+      - --enable-maildir-support
+      - --enable-multibyte
+      - --enable-pcre
+      - --enable-zsh-secure-free
+      - --enable-unicode9
+      - --enable-etcdir=/etc
+      - --with-tcsetpgrp
+      - DL_EXT=bundle
+
+test: |
+  test "$(zsh -c echo\ fancy-a-cuppa)" = 'fancy-a-cuppa'
+  zsh -c "printf -v hello -- '%s'"
