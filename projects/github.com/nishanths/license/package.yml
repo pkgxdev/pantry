@@ -1,5 +1,6 @@
 distributable:
   url: https://github.com/nishanths/license/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
 
 warnings:
   - vendored
@@ -12,18 +13,18 @@ provides:
 
 build:
   dependencies:
-    curl.se: '*'
+    go.dev: '*'
   env:
-    darwin/aarch64: {PLATFORM: darwin-arm64}
-    darwin/x86-64:  {PLATFORM: darwin-amd64}
-    linux/aarch64:  {PLATFORM: linux-arm64}
-    linux/x86-64:   {PLATFORM: linux-amd64}
-  working-directory: ${{prefix}}
+    LDFLAGS:
+      - -X=main.version={{version}}
+    linux:
+      # or segmentation fault
+      # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
+      LDFLAGS:
+        - -buildmode=pie
   script: |
-    curl -Lfo license "https://github.com/nishanths/license/releases/download/v{{version}}/license-v{{version}}-$PLATFORM"
-    mkdir bin
-    chmod +x license
-    mv license bin
+    # cd ./cmd/xc
+    GOBIN={{prefix}}/bin go install -ldflags="$LDFLAGS" .
 
 test: |
   license --version
