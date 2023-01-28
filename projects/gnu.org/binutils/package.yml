@@ -4,7 +4,8 @@ distributable:
 
 versions:
   #TODO HTML listing: https://ftp.gnu.org/gnu/binutils/
-  - v2.39
+  - '2.40'
+  - 2.39
 
 build:
   dependencies:
@@ -15,17 +16,9 @@ build:
       tea.xyz/gx/cc: c99
     linux:
       gnu.org/gcc: '*'
+      # bootstrap phase 2
+      gnu.org/binutils: '*'
   script: |
-    # FIXME: bootstrap - we need `as` from binutils to build with gcc
-    if test "{{hw.platform}}" = "linux"; then
-      if command -v sudo; then
-        sudo apt-get --yes install binutils
-      else # assume no sudo = we can just run apt-get
-        apt-get --yes install binutils
-      fi
-    fi
-
-
     ./configure --prefix={{ prefix }}
     make --jobs {{ hw.concurrency }}
     make install
