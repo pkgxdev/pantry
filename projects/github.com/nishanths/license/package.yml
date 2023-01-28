@@ -1,0 +1,30 @@
+distributable:
+  url: https://github.com/nishanths/license/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+warnings:
+  - vendored
+
+versions:
+  github: nishanths/license
+
+provides:
+  - bin/license
+
+build:
+  dependencies:
+    go.dev: '*'
+  env:
+    LDFLAGS:
+      - -X=main.version={{version}}
+    linux:
+      # or segmentation fault
+      # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
+      LDFLAGS:
+        - -buildmode=pie
+  script: |
+    # cd ./cmd/xc
+    GOBIN={{prefix}}/bin go install -ldflags="$LDFLAGS" .
+
+test: |
+  license --version
