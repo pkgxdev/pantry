@@ -39,6 +39,8 @@ async function test(self: Installation) {
 
   const env = await useShellEnv({ installations })
 
+  env['PATH'].push("$PATH")
+
   let text = undent`
     #!/bin/bash
 
