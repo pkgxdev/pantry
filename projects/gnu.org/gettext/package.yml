@@ -27,6 +27,10 @@ build:
     make --jobs {{ hw.concurrency }}
     make install
 
+    cd {{prefix}}/bin
+    sed -i.bak 's|{{prefix}}|"$(cd "$(dirname "$0")/.." \&\& pwd)"|' gettextize autopoint
+    rm gettextize.bak autopoint.bak
+
 test: gettext test
 
 provides:
