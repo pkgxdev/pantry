@@ -66,5 +66,9 @@ for (const path of Deno.args) {
 
   console.verbose({rewrote: path, to: `#!/usr/bin/env ${interpreter}`})
 
+  const stat = Deno.lstatSync(path)
+  const needs_chmod = stat.mode && !(stat.mode & 0o200)
+  if (needs_chmod) Deno.chmodSync(path, 0o666)
   await Deno.writeFile(path, new TextEncoder().encode(rewrite))
+  if (needs_chmod) Deno.chmodSync(path, stat.mode!)
 }
