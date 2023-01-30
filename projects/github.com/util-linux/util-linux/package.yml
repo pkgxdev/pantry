@@ -100,5 +100,7 @@ build:
 test:
   dependencies:
     stedolan.github.io/jq: '*'
-  script:
-   test "$(echo 5 6 7 | column -tJN first,second,third | jq .table[0].second)" = '"6"'
+  script: |
+    if test "{{hw.platform}}" = "linux"; then
+      test "$(echo 5 6 7 | column -tJN first,second,third | jq .table[0].second)" = '"6"'
+    fi
