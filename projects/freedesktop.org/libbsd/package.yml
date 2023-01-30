@@ -1,0 +1,32 @@
+distributable:
+  url: https://libbsd.freedesktop.org/releases/libbsd-{{version}}.tar.xz
+  strip-components: 1
+
+versions:
+  github: freedesktop/libbsd/tags
+
+provides:
+  - bin/column
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    hadrons.org/libmd: '*'
+  script: |
+    if test "{{hw.platform}}" != "linux"; then
+      echo "libbsd is only supported on Linux"
+      touch {{prefix}}/linux-only
+      exit 0
+    fi
+
+    ./configure --prefix={{prefix}}
+    make --jobs {{hw.concurrency}} install
+
+test:
+  dependencies:
+    gnu.org/binutils: '*'
+  script: |
+    if test "{{hw.platform}}" = "linux"; then
+      nm {{prefix}}/lib/libbsd.so.{{version.major}} | grep strtonum
+    fi

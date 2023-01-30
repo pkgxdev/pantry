@@ -1,0 +1,28 @@
+distributable:
+  url: https://github.com/arzzen/git-quick-stats/archive/refs/tags/{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: arzzen/git-quick-stats
+  strip: /^Version /
+
+provides:
+  - bin/git-quick-stats
+
+dependencies:
+  git-scm.org: '*'
+  gnu.org/bash: '*'
+  linux:
+    # bin/column
+    github.com/util-linux/util-linux: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: make PREFIX={{prefix}} install
+  test: make test
+
+test: |
+  git clone https://github.com/teaxyz/cli
+  git -C cli quick-stats -T
