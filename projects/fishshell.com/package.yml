@@ -17,6 +17,12 @@ build:
     freedesktop.org/pkg-config: '*'
     git-scm.org: '*'
   script: |
+    # By default, fish's fish_command_not_found handler will redirect to stderr,
+    # return an exit code of 127. Always. This patch fixes it. Hopefully, it will
+    # be merged upstream soon. https://github.com/fish-shell/fish-shell/pull/9517
+
+    git apply props/command_not_found_handler.diff
+
     echo {{version}} >version
 
     mkdir build
@@ -36,13 +42,19 @@ build:
 
 test:
   script:
-    test "$(fish $FIXTURE)" = "variable1variable2variable3variable4variable5variable6variable7variable8variable9variable10"
+    fish $FIXTURE | grep "variable1variable2variable3variable4variable5variable6variable7variable8variable9variable10go version go"
   fixture: |
     #!/usr/bin/env fish
 
     set -lx V variable
     for x in (seq 1 10)
       echo -n $V$x
+    end
+
+    begin
+      set -lx SHELL fish
+      tea --magic | source
+      go version
     end
 
 provides:
