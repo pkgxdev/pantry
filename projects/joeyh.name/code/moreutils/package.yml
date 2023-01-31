@@ -1,0 +1,60 @@
+distributable:
+  url: http://deb.debian.org/debian/pool/main/m/moreutils/moreutils_{{version.raw}}.orig.tar.gz
+  strip-components: 1
+
+versions:
+  - 0.67
+
+dependencies:
+  perl.org: '*'
+
+runtime:
+  env:
+    PERL5LIB: ${{prefix}}/lib/perl5
+
+build:
+  dependencies:
+    tea.xyz/gx/make: '*'
+    tea.xyz/gx/cc: c99
+    cpanmin.us: ^1
+  script: |
+    cpanm -l {{prefix}} Time::Duration
+    cpanm -l {{prefix}} IPC::Run
+
+    make all MANS=""
+    touch .noop
+    make install PREFIX="{{prefix}}" MANS=".noop"
+    rm -rf {{prefix}}/share
+
+    fix-shebangs.ts {{prefix}}/bin/*
+  # we unset MANS because it requires another dep in order to install and we don’t yet have it
+
+test: |
+  echo hello | isutf8
+  # test all the perl scripts work
+  chronic true
+  echo foo > f1
+  echo bar > f2
+  test "$(combine f1 OR f2)" = "foo
+  bar"
+  echo foo | ts
+  gzip f1
+  test $(zrun cat f1.gz) = foo
+# ^^ can’t test vipe or vidr easily because they require a tty
+
+provides:
+  - bin/chronic   # runs a command quietly unless it fails
+  - bin/combine   # combine the lines in two files using boolean operations
+  - bin/errno     # look up errno names and descriptions
+  - bin/ifdata    # get network interface info without parsing ifconfig output
+  - bin/ifne      # run a program if the standard input is not empty
+  - bin/isutf8    # check if a file or standard input is utf-8
+  - bin/lckdo     # execute a program with a lock held
+  - bin/mispipe   # pipe two commands, returning the exit status of the first
+  - bin/parallel  # run multiple jobs at once
+  - bin/pee       # tee standard input to pipes
+  - bin/sponge    # soak up standard input and write to a file
+  - bin/ts        # timestamp standard input
+  - bin/vidir     # edit a directory in your text editor
+  - bin/vipe      # insert a text editor into a pipe
+  - bin/zrun      # automatically uncompress arguments to command
