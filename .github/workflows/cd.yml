@@ -11,19 +11,14 @@ jobs:
       HAS_ARTIFACTS: ${{ env.HAS_ARTIFACTS }}
     steps:
       - uses: actions/checkout@v3
-      - uses: teaxyz/setup@v0
-      - uses: actions/checkout@v3
-        name: co core
         with:
-          path: pantry.core
           repository: teaxyz/pantry.core
+      - uses: teaxyz/setup@v0
       - run: ./scripts/map-projects-to-githubs.ts
-        working-directory: pantry.core
         env:
           WATCHER_URL: ${{ secrets.WATCHER_URL }}
           TEA_API_TOKEN: ${{ secrets.TEA_API_TOKEN }}
       - run: ./scripts/has-artifacts.ts ${{ github.repository }} ${{ github.sha }} >>$GITHUB_ENV
-        working-directory: pantry.core
         env:
           GITHUB_TOKEN: ${{github.token}}
           AWS_S3_CACHE: ${{ secrets.AWS_S3_CACHE }}
