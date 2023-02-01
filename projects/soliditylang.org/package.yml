@@ -24,8 +24,15 @@ build:
     freedesktop.org/pkg-config: ^0.29
     git-scm.org: 2
     crates.io/semverator: '*'
+    gnu.org/patch: '*'
   working-directory: build
   script: |
+    if semverator satisfies ^0.8.18 {{version}}; then
+      # New libsolidity/lsb/DocumentHoverHandler.cpp doesn't like some versions of clang
+      # (default argument issue)
+      patch -p1 -d.. <../props/clang-error.diff
+    fi
+
     cmake .. $ARGS
     make --jobs {{hw.concurrency}}
     make install
