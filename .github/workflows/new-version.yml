@@ -24,7 +24,12 @@ jobs:
     with:
       new-version: true
     secrets: inherit
-
+  index_data:
+    needs: [bottle]
+    uses: ./.github/workflows/index-data.yml
+    with:
+      projects: ${{ inputs.projects }}
+    secrets: inherit
   complain:
     if: failure()
     needs: [build, bottle]

@@ -1,0 +1,25 @@
+name: index-data
+
+on:
+  workflow_call:
+    inputs:
+      projects:
+        required: true
+        type: string
+
+env:
+  TEA_PANTRY_PATH: ${{ github.workspace }}/pantry
+
+jobs:
+  queue_detail_ingestion:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: teaxyz/setup@v0
+      - run: ./scripts/index-packages.ts ${{ inputs.projects }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
+          TEA_PANTRY_PATH: ${{ env.TEA_PANTRY_PATH }}
+          SQS_GENERATE_PACKAGE_DETAILS_URL: ${{ secrets.SQS_GENERATE_PACKAGE_DETAILS_URL }}
