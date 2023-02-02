@@ -10,7 +10,6 @@ args:
   - --allow-write={{tea.prefix}}
   - --allow-env
   - --unstable
-  - --import-map={{ srcroot }}/import-map.json
 ---*/
 
 import { usePantry, useFlags, useCellar, useInventory, usePrefix } from "hooks"

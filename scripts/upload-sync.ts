@@ -7,7 +7,6 @@ args:
   - --allow-read
   - --allow-net
   - --allow-env=AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_S3_BUCKET,TEA_PREFIX
-  - --import-map={{ srcroot }}/import-map.json
 ---*/
 
 import { readAll, readerFromStreamReader } from "deno/streams/mod.ts"

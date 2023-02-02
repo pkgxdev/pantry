@@ -7,7 +7,6 @@ args:
   - --allow-run
   - --allow-read
   - --allow-env
-  - --import-map={{ srcroot }}/import-map.json
 ---*/
 
 const args = [...Deno.args]

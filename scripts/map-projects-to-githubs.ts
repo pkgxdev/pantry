@@ -7,7 +7,6 @@ args:
   - --allow-read
   - --allow-env
   - --allow-net
-  - --import-map={{ srcroot }}/import-map.json
 ---*/
 
 import { usePantry } from "hooks"

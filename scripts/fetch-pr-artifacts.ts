@@ -7,7 +7,6 @@ args:
   - --allow-net
   - --allow-env
   - --allow-write=./artifacts.tgz
-  - --import-map={{ srcroot }}/import-map.json
 ---*/
 
 /// Test

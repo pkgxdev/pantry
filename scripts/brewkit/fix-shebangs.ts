@@ -8,7 +8,6 @@ args:
   - --allow-env
   - --allow-read
   - --allow-write={{tea.prefix}}
-  - --import-map={{ srcroot }}/import-map.json
 --- */
 
 import Path from "path"

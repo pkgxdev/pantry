@@ -7,7 +7,6 @@ args:
   - --allow-net
   - --allow-read
   - --allow-env
-  - --import-map={{ srcroot }}/import-map.json
 ---*/
 
 import { S3 } from "s3"

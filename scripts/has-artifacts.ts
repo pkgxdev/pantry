@@ -6,7 +6,6 @@ args:
   - run
   - --allow-net
   - --allow-env
-  - --import-map={{ srcroot }}/import-map.json
 ---*/
 
 /// Test

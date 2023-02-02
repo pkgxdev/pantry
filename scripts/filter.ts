@@ -6,7 +6,6 @@ args:
   - run
   - --allow-read
   - --allow-env
-  - --import-map={{ srcroot }}/import-map.json
 ---*/
 
 import { useCellar, useFlags } from "hooks"

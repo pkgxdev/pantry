@@ -7,7 +7,6 @@ args:
   - --allow-read
   - --allow-env
   - --allow-write
-  - --import-map={{ srcroot }}/import-map.json
 ---*/
 
 import * as ARGV from "./utils/args.ts"

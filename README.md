@@ -17,17 +17,5 @@ versioned.
 
 See the contributing guide in [pantry.zero].
 
-&nbsp;
-
-
-# Meta
-
-## Dependencies
-
-|   Project   | Version |
-|-------------|---------|
-| deno.land   | ^1.27   |
-| tea.xyz     | ^0      |
-
 [pantry.zero]: https://github.com/teaxyz/pantry.zero#contributing
 [pantry.extra]: https://github.com/teaxyz/pantry.extra

@@ -13,7 +13,6 @@ args:
   - --allow-read
   - --allow-write={{ tea.prefix }}
   - --allow-env
-  - --import-map={{ srcroot }}/import-map.json
 ---*/
 
 //TODO verify the sha

@@ -14,7 +14,6 @@ args:
   - --allow-env
   - --allow-read
   - --allow-write
-  - --import-map={{ srcroot }}/import-map.json
 --- */
 
 import { Installation } from "types"
