@@ -21,7 +21,9 @@ let testMatrix: { os: string | string[], container: string | undefined }[]
 switch(platform) {
   case "darwin+x86-64":
     os = "macos-11"
-    buildOs = ["self-hosted", "macOS", "X64"]
+    // Using GHA resources for now, until we resolve network issues with our runners
+    // buildOs = ["self-hosted", "macOS", "X64"]
+    buildOs = os
     testMatrix = [{ os, container: undefined }]
     break
   case "darwin+aarch64":
