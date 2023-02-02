@@ -15,8 +15,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+        with:
+          path: tea.xyz/var/cli
+          repository: teaxyz/cli
+
+      - uses: actions/checkout@v3
+        with:
+          path: pantry
+
       - uses: teaxyz/setup@v0
-      - run: ./scripts/index-packages.ts ${{ inputs.projects }}
+        with:
+          srcroot: tea.xyz/var/pantry
+          prefix: ${{ github.workspace }}
+
+      - run: ./pantry/scripts/index-packages.ts ${{ inputs.projects }}
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
