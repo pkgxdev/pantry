@@ -8,21 +8,22 @@ args:
   - --allow-env
   - --allow-net
   - --allow-sys
-  - --import-map={{ srcroot }}/import-map.json
 ---*/
 
-import * as semver from "semver"
 import { usePantry } from "hooks"
 import * as ARGV from "./utils/args.ts"
-import  { SQSClient, SendMessageCommand } from "npm:@aws-sdk/client-sqs"
+import { SQSClient, SendMessageCommand } from "npm:@aws-sdk/client-sqs@^3"
+import { panic } from "utils"
 
-const sqsClient = new SQSClient({ region: 'us-east-1' })
+const sqsClient = new SQSClient({ region: Deno.env.get("AWS_REGION") ?? panic("No region specified") })
 const pantry = usePantry()
 
 const pkgs = await ARGV.toArray(ARGV.pkgs())
-for(const { project } of pkgs) {
+for(const pkg of pkgs) {
   try {
-    const yml = await pantry.getYAML({ project, constraint: new semver.Range('*') }).parse()
+    const yml = await pantry.getYAML(pkg).parse()
+
+    const project = pkg.project
 
     const taskMessage = {
       project,
