@@ -20,6 +20,7 @@ jobs:
     outputs:
       os: ${{ steps.platform.outputs.os }}
       build-os: ${{ steps.platform.outputs.build-os }}
+      container: ${{ steps.platform.outputs.container }}
       test-matrix: ${{ steps.platform.outputs.test-matrix }}
     steps:
       - uses: actions/checkout@v3
@@ -34,6 +35,7 @@ jobs:
 
   build:
     runs-on: ${{ fromJson(needs.get-platform.outputs.build-os) }}
+    container: ${{ fromJson(needs.get-platform.outputs.container) }}
     needs: [get-platform]
     steps:
       - uses: actions/checkout@v3

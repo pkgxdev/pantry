@@ -15,6 +15,7 @@ const platform = Deno.env.get("PLATFORM") ?? panic("$PLATFORM not set")
 
 let os: string | string[]
 let buildOs: string | string[]
+let container: string | undefined
 let testMatrix: { os: string | string[], container: string | undefined }[]
 
 switch(platform) {
@@ -35,11 +36,14 @@ switch(platform) {
     break
   case "linux+x86-64":
     os = "ubuntu-latest"
-    buildOs = ["self-hosted", "linux", "X64"]
+    // Using GHA resources for now, until we resolve network issues with our runners
+    // buildOs = ["self-hosted", "linux", "X64"]
+    buildOs = os
+    container = "ghcr.io/teaxyz/infuser:latest"
     testMatrix = [
       { os, container: undefined },
-      { os: buildOs, container: undefined },
-      { os, container: "ghcr.io/teaxyz/infuser:latest" },
+      // { os: buildOs, container: undefined },
+      { os, container },
       { os, container: "debian:buster-slim" },
     ]
     break
@@ -49,6 +53,7 @@ switch(platform) {
 
 const output = `os=${JSON.stringify(os)}\n` +
   `build-os=${JSON.stringify(buildOs)}\n` +
+  `container=${JSON.stringify(container)}\n` +
   `test-matrix=${JSON.stringify(testMatrix)}\n`
 
 Deno.stdout.write(new TextEncoder().encode(output))
