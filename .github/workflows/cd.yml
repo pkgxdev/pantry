@@ -24,9 +24,18 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
   bottle-pr:
+    strategy:
+          matrix:
+            platform:
+              - darwin+x86-64
+              - linux+x86-64
+              - darwin+aarch64
+              - linux+aarch64
     needs: [cd]
     if: ${{ needs.cd.outputs.HAS_ARTIFACTS == 'true' }}
     uses: ./.github/workflows/bottle.yml
+    with:
+      platform: ${{ matrix.platform }}
     secrets: inherit
   bottle-standalone:
     runs-on: ubuntu-latest

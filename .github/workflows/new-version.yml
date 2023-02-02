@@ -14,15 +14,31 @@ permissions:
 
 jobs:
   build:
+    strategy:
+        matrix:
+          platform:
+            - darwin+x86-64
+            - linux+x86-64
+            - darwin+aarch64
+            - linux+aarch64
     uses: ./.github/workflows/build.yml
     with:
       projects: ${{ inputs.projects }}
+      platform: ${{ matrix.platform }}
     secrets: inherit
   bottle:
+    strategy:
+        matrix:
+          platform:
+            - darwin+x86-64
+            - linux+x86-64
+            - darwin+aarch64
+            - linux+aarch64
     needs: [build]
     uses: ./.github/workflows/bottle.yml
     with:
       new-version: true
+      platform: ${{ matrix.platform }}
     secrets: inherit
   index_data:
     needs: [bottle]

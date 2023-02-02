@@ -13,8 +13,16 @@ jobs:
         with:
           PATTERNS: projects/**/package.yml
   build:
+    strategy:
+        matrix:
+          platform:
+            - darwin+x86-64
+            - linux+x86-64
+            - darwin+aarch64
+            - linux+aarch64
     needs: [get-diff]
     uses: ./.github/workflows/build.yml
     with:
       projects: ${{ needs.get-diff.outputs.diff || 'zlib.net' }}
+      platform: ${{ matrix.platform }}
     secrets: inherit

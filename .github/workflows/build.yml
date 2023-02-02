@@ -6,38 +6,35 @@ on:
       projects:
         required: true
         type: string
+      platform:
+        required: true
+        type: string
+      new-version:
+        type: boolean
+        required: false
+        default: false
 
 jobs:
-  check-core-sizes:
+  get-platform:
     runs-on: ubuntu-latest
     outputs:
-      gha-linux-build-size: ${{ env.GHA_LINUX_BUILD_SIZE }}
+      os: ${{ steps.platform.outputs.os }}
+      build-os: ${{ steps.platform.outputs.build-os }}
+      test-matrix: ${{ steps.platform.outputs.test-matrix }}
     steps:
       - uses: actions/checkout@v3
         with:
           repository: teaxyz/pantry.core
       - uses: teaxyz/setup@v0
-      - run: scripts/check-core-sizes.ts ${{ inputs.projects }}
+      - run: scripts/get-platform.ts ${{ inputs.projects }}
+        id: platform
         env:
+          PLATFORM: ${{ inputs.platform }}
           TEA_PANTRY_PATH: ${{ github.workspace }}
 
   build:
-    runs-on: ${{ matrix.platform.os }}
-    needs: [check-core-sizes]
-    strategy:
-      matrix:
-        platform:
-          - os: macos-11
-            name: darwin+x86-64
-          - os: ${{ needs.check-core-sizes.outputs.gha-linux-build-size }}
-            name: linux+x86-64
-            container:
-              image: debian:buster-slim
-          - os: [self-hosted, macOS, ARM64]
-            name: darwin+aarch64
-          - os: [self-hosted, linux, ARM64]
-            name: linux+aarch64
-    container: ${{ matrix.platform.container }}
+    runs-on: ${{ fromJson(needs.get-platform.outputs.build-os) }}
+    needs: [get-platform]
     steps:
       - uses: actions/checkout@v3
 
@@ -89,30 +86,16 @@ jobs:
       - name: upload artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ matrix.platform.name }}
+          name: ${{ inputs.platform }}
           path: artifacts.tgz
           if-no-files-found: error
 
   test:
-    needs: [build]
+    needs: [get-platform, build]
     runs-on: ${{ matrix.platform.os }}
     strategy:
       matrix:
-        platform:
-        - os: macos-11
-          name: darwin+x86-64
-        - os: ubuntu-latest
-          name: linux+x86-64
-        - os: ubuntu-latest
-          name: linux+x86-64
-          container: ghcr.io/teaxyz/infuser:latest
-        - os: ubuntu-latest
-          name: linux+x86-64
-          container: debian:buster-slim
-        - os: [self-hosted, macOS, ARM64]
-          name: darwin+aarch64
-        - os: [self-hosted, linux, ARM64]
-          name: linux+aarch64
+        platform: ${{ fromJson(needs.get-platform.outputs.test-matrix) }}
     outputs:
       HAS_SECRETS: ${{ env.HAS_SECRETS }}
     container: ${{ matrix.platform.container }}
@@ -125,7 +108,7 @@ jobs:
 
       - uses: actions/download-artifact@v3
         with:
-          name: ${{ matrix.platform.name }}
+          name: ${{ inputs.platform }}
 
       - name: extract bottles
         run: tar xzf artifacts.tgz -C $TEA_PREFIX
@@ -145,17 +128,6 @@ jobs:
     # this only works for PRs from our team to our repo (security! :( )
     if: startsWith(github.ref, 'refs/pull/') && startsWith(github.repository, 'teaxyz/pantry.') && needs.test.outputs.HAS_SECRETS == 'true'
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        platform:
-          - os: macos-11
-            name: darwin+x86-64
-          - os: ubuntu-latest
-            name: linux+x86-64
-          - os: [self-hosted, macOS, ARM64]
-            name: darwin+aarch64
-          - os: [self-hosted, linux, ARM64]
-            name: linux+aarch64
     steps:
       - uses: actions/checkout@v3
       - uses: teaxyz/setup@v0
@@ -165,14 +137,37 @@ jobs:
 
       - uses: actions/download-artifact@v3
         with:
-          name: ${{ matrix.platform.name }}
+          name: ${{ inputs.platform }}
 
       - run: cache-artifacts.ts
           ${{github.repository}}
           ${{github.ref}}
-          ${{matrix.platform.name}}
+          ${{inputs.platform}}
           artifacts.tgz
         env:
           AWS_S3_CACHE: ${{ secrets.AWS_S3_CACHE }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+  complain:
+    if: failure() && inputs.new-version == 'true'
+    needs: [test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: martialonline/workflow-status@v3
+        id: status
+      - uses: rtCamp/action-slack-notify@v2
+        if: ${{ env.SLACK_WEBHOOK != '' }}
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
+          SLACK_MESSAGE: new-version:${{ inputs.projects }} (${{ inputs.platform }}) ${{ steps.status.outputs.status }}
+          SLACK_COLOR: ${{ steps.status.outputs.status }}
+      - uses: actions/checkout@v3
+        if: ${{ steps.status.outputs.status == 'failure' }}
+      - uses: JasonEtco/create-an-issue@v2
+        if: ${{ steps.status.outputs.status == 'failure' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PACKAGE: ${{ inputs.projects }} (${{ inputs.platform }})
+          URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
