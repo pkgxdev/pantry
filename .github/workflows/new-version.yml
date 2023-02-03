@@ -8,65 +8,27 @@ on:
         required: true
         type: string
 
-permissions:
-  contents: read
-  issues: write
 
 jobs:
   build:
     strategy:
-        matrix:
-          platform:
-            - darwin+x86-64
-            - linux+x86-64
-            - darwin+aarch64
-            - linux+aarch64
+      fail-fast: false
+      matrix:
+        platform:
+        - darwin+x86-64
+        - linux+x86-64
+        - darwin+aarch64
+        - linux+aarch64
     uses: ./.github/workflows/build.yml
     with:
+      new-version: true
       projects: ${{ inputs.projects }}
       platform: ${{ matrix.platform }}
     secrets: inherit
-  bottle:
-    strategy:
-        matrix:
-          platform:
-            - darwin+x86-64
-            - linux+x86-64
-            - darwin+aarch64
-            - linux+aarch64
-    needs: [build]
-    uses: ./.github/workflows/bottle.yml
-    with:
-      new-version: true
-      platform: ${{ matrix.platform }}
-    secrets: inherit
   index_data:
-    needs: [bottle]
+    needs: [build]
+    if: success()
     uses: ./.github/workflows/index-data.yml
     with:
       projects: ${{ inputs.projects }}
     secrets: inherit
-  complain:
-    if: failure()
-    needs: [build, bottle]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: martialonline/workflow-status@v3
-        id: status
-      - uses: rtCamp/action-slack-notify@v2
-        if: ${{ env.SLACK_WEBHOOK != '' }}
-        env:
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-          SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
-          SLACK_MESSAGE: new-version:${{ inputs.projects }} ${{ steps.status.outputs.status }}
-          SLACK_COLOR: ${{ steps.status.outputs.status }}
-      - uses: actions/checkout@v3
-        if: ${{ steps.status.outputs.status == 'failure' }}
-      - uses: JasonEtco/create-an-issue@v2
-        if: ${{ steps.status.outputs.status == 'failure' }}
-        with:
-          filename: .github/NEW_VERSION_ISSUE_TEMPLATE.md
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PACKAGE: ${{ inputs.projects }}
-          URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

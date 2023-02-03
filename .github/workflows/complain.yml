@@ -1,0 +1,32 @@
+name: complain
+
+on:
+  workflow_call:
+    inputs:
+      projects:
+        required: true
+        type: string
+      platform:
+        required: true
+        type: string
+
+permissions:
+  issues: write
+
+jobs:
+  complain:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: rtCamp/action-slack-notify@v2
+        if: ${{ env.SLACK_WEBHOOK != '' }}
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
+          SLACK_MESSAGE: new-version:${{ inputs.projects }} (${{ inputs.platform }}) ${{ steps.status.outputs.status }}
+          SLACK_COLOR: ${{ steps.status.outputs.status }}
+      - uses: actions/checkout@v3
+      - uses: JasonEtco/create-an-issue@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PACKAGE: ${{ inputs.projects }} (${{ inputs.platform }})
+          URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

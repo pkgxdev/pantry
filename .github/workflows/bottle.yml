@@ -243,24 +243,10 @@ jobs:
           PR: ${{ needs.bottle.outputs.pr }}
 
   complain:
-    if: failure() && inputs.new-version == 'true'
     needs: [upload]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: martialonline/workflow-status@v3
-        id: status
-      - uses: rtCamp/action-slack-notify@v2
-        if: ${{ env.SLACK_WEBHOOK != '' }}
-        env:
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-          SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
-          SLACK_MESSAGE: new-version:${{ inputs.projects }} (${{ inputs.platform }}) ${{ steps.status.outputs.status }}
-          SLACK_COLOR: ${{ steps.status.outputs.status }}
-      - uses: actions/checkout@v3
-        if: ${{ steps.status.outputs.status == 'failure' }}
-      - uses: JasonEtco/create-an-issue@v2
-        if: ${{ steps.status.outputs.status == 'failure' }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PACKAGE: ${{ inputs.projects }} (${{ inputs.platform }})
-          URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    if: inputs.new-version == 'true' && failure()
+    uses: ./.github/workflows/complain.yml
+    with:
+      projects: ${{ inputs.projects }}
+      platform: ${{ inputs.platform }}
+    secrets: inherit

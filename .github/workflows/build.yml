@@ -96,6 +96,7 @@ jobs:
     needs: [get-platform, build]
     runs-on: ${{ matrix.platform.os }}
     strategy:
+      fail-fast: false
       matrix:
         platform: ${{ fromJson(needs.get-platform.outputs.test-matrix) }}
     outputs:
@@ -125,6 +126,24 @@ jobs:
         env:
           HAS_SECRETS: ${{ secrets.AWS_S3_CACHE != null }}
 
+  bottle:
+    needs: [test]
+    if: inputs.new-version == true
+    uses: ./.github/workflows/bottle.yml
+    with:
+      new-version: ${{ inputs.new-version }}
+      platform: ${{ inputs.platform }}
+    secrets: inherit
+
+  complain:
+    needs: [test]
+    if: inputs.new-version == true && failure()
+    uses: ./.github/workflows/complain.yml
+    with:
+      projects: ${{ inputs.projects }}
+      platform: ${{ inputs.platform }}
+    secrets: inherit
+
   stage:
     needs: [test]
     # this only works for PRs from our team to our repo (security! :( )
@@ -150,26 +169,3 @@ jobs:
           AWS_S3_CACHE: ${{ secrets.AWS_S3_CACHE }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-
-  complain:
-    if: failure() && inputs.new-version == 'true'
-    needs: [test]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: martialonline/workflow-status@v3
-        id: status
-      - uses: rtCamp/action-slack-notify@v2
-        if: ${{ env.SLACK_WEBHOOK != '' }}
-        env:
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-          SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
-          SLACK_MESSAGE: new-version:${{ inputs.projects }} (${{ inputs.platform }}) ${{ steps.status.outputs.status }}
-          SLACK_COLOR: ${{ steps.status.outputs.status }}
-      - uses: actions/checkout@v3
-        if: ${{ steps.status.outputs.status == 'failure' }}
-      - uses: JasonEtco/create-an-issue@v2
-        if: ${{ steps.status.outputs.status == 'failure' }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PACKAGE: ${{ inputs.projects }} (${{ inputs.platform }})
-          URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
