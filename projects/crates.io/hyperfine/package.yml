@@ -1,0 +1,19 @@
+distributable:
+  url: https://github.com/sharkdp/hyperfine/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/hyperfine
+
+versions:
+  github: sharkdp/hyperfine/tags
+  strip: /v/
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.60'
+    rust-lang.org/cargo: '*'
+  script:
+    cargo install --locked --path . --root {{prefix}}
+
+test: hyperfine --runs 5 'sleep 0.3'
