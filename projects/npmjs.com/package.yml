@@ -13,11 +13,14 @@ dependencies:
   nodejs.org: '>=14'
 
 build:
-  script:
-    node . install --global --prefix={{prefix}}
+  dependencies:
+    crates.io/semverator: '*'
+  script: |
+    if semverator satisfies '^8' {{ version }}; then
+      ARGS="--install-links"
+    fi
+
+    node . install --global --prefix={{prefix}} $ARGS
 
 test:
-  dependencies:
-    git-scm.org: '*' # `npm doctor` checks for, but doesn't use, `git`
-  script: |
-    npx -q tldr ls
+  npx -q tldr ls
