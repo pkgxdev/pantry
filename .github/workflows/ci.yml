@@ -13,8 +13,17 @@ jobs:
         with:
           PATTERNS: projects/**/package.yml
   build:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+        - darwin+x86-64
+        - linux+x86-64
+        - darwin+aarch64
+        - linux+aarch64
     needs: [get-diff]
     uses: teaxyz/pantry.core/.github/workflows/build.yml@main
     with:
       projects: ${{ needs.get-diff.outputs.diff || 'zlib.net' }}
+      platform: ${{ matrix.platform }}
     secrets: inherit

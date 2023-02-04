@@ -24,10 +24,21 @@ jobs:
           AWS_S3_CACHE: ${{ secrets.AWS_S3_CACHE }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
   bottle-pr:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+        - darwin+x86-64
+        - linux+x86-64
+        - darwin+aarch64
+        - linux+aarch64
     needs: [cd]
     if: ${{ needs.cd.outputs.HAS_ARTIFACTS == 'true' }}
     uses: teaxyz/pantry.core/.github/workflows/bottle.yml@main
+    with:
+      platform: ${{ matrix.platform }}
     secrets: inherit
   bottle-standalone:
     runs-on: ubuntu-latest
