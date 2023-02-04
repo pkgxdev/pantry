@@ -22,10 +22,15 @@ jobs:
       build-os: ${{ steps.platform.outputs.build-os }}
       container: ${{ steps.platform.outputs.container }}
       test-matrix: ${{ steps.platform.outputs.test-matrix }}
+      cache-set: ${{ steps.platform.outputs.cache-set }}
     steps:
       - uses: actions/checkout@v3
         with:
           repository: teaxyz/pantry.core
+      - uses: actions/cache@v2
+        with:
+          path: $HOME/.cache/deno
+          key: ${{ runner.os }}-deno-deps
       - uses: teaxyz/setup@v0
       - run: scripts/get-platform.ts ${{ inputs.projects }}
         id: platform
@@ -39,7 +44,10 @@ jobs:
     needs: [get-platform]
     steps:
       - uses: actions/checkout@v3
-
+      - uses: actions/cache@v2
+        with:
+          path: ${{ needs.get-platform.outputs.cache-set }}
+          key: ${{ runner.os }}-deno-deps
       - uses: teaxyz/setup@v0
         id: tea
         with:
@@ -104,6 +112,10 @@ jobs:
     container: ${{ matrix.platform.container }}
     steps:
       - uses: actions/checkout@v3
+      - uses: actions/cache@v2
+        with:
+          path: ${{ needs.get-platform.outputs.cache-set }}
+          key: ${{ runner.os }}-deno-deps
       - uses: teaxyz/setup@v0
 
       - name: configure scripts PATH
@@ -151,6 +163,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - uses: actions/cache@v2
+        with:
+          path: $HOME/.cache/deno
+          key: ${{ runner.os }}-deno-deps
       - uses: teaxyz/setup@v0
 
       - name: configure scripts PATH

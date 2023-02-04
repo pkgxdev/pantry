@@ -15,11 +15,16 @@ jobs:
   get-platform:
     runs-on: ubuntu-latest
     outputs:
-      os: ${{ steps.platform.outputs.OS }}
+      os: ${{ steps.platform.outputs.os }}
+      cache-set: ${{ steps.platform.outputs.cache-set }}
     steps:
       - uses: actions/checkout@v3
         with:
           repository: teaxyz/pantry.core
+      - uses: actions/cache@v2
+        with:
+          path: $HOME/.cache/deno
+          key: ${{ runner.os }}-deno-deps
       - uses: teaxyz/setup@v0
       - run: scripts/get-platform.ts ${{ inputs.projects }}
         id: platform
@@ -37,15 +42,10 @@ jobs:
       built: ${{ env.built }}
       pr: ${{ env.PR }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/cache@v2
         with:
-          path: tea.xyz/var/cli
-          repository: teaxyz/cli
-
-      - uses: actions/checkout@v3
-        with:
-          path: pantry
-
+          path: ${{ needs.get-platform.outputs.cache-set }}
+          key: ${{ runner.os }}-deno-deps
       - uses: teaxyz/setup@v0
         id: tea
         with:
@@ -53,7 +53,7 @@ jobs:
           prefix: ${{ github.workspace }}
 
       - name: configure scripts PATH
-        run: echo "$PWD/scripts:$TEA_PREFIX/tea.xyz/var/pantry/scripts" >> $GITHUB_PATH
+        run: echo "$TEA_PREFIX/tea.xyz/var/pantry/scripts" >> $GITHUB_PATH
 
       - uses: actions/download-artifact@v3
         if: ${{ inputs.new-version }}
@@ -61,7 +61,7 @@ jobs:
           name: ${{ inputs.platform }}
           path: tea.xyz/var/pantry
 
-      - run: scripts/fetch-pr-artifacts.ts ${{ github.repository }} ${{ github.sha }} ${{ inputs.platform }} >>$GITHUB_ENV
+      - run: fetch-pr-artifacts.ts ${{ github.repository }} ${{ github.sha }} ${{ inputs.platform }} >>$GITHUB_ENV
         if: ${{ !inputs.new-version }}
         env:
           GITHUB_TOKEN: ${{github.token}}
@@ -124,14 +124,14 @@ jobs:
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
 
-      - run: scripts/bottle.ts $built
+      - run: bottle.ts $built
         id: bottle-xz
         env:
           COMPRESSION: xz
           GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
-      - run: scripts/bottle.ts $built
+      - run: bottle.ts $built
         id: bottle-gz
         env:
           COMPRESSION: gz
@@ -167,14 +167,10 @@ jobs:
       run:
         working-directory: tea.xyz/var/pantry
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/cache@v2
         with:
-          path: tea.xyz/var/cli
-          repository: teaxyz/cli
-
-      - uses: actions/checkout@v3
-        with:
-          path: pantry
+          path: $HOME/.cache/deno
+          key: ${{ runner.os }}-deno-deps
 
       - uses: teaxyz/setup@v0
         id: tea
@@ -195,11 +191,11 @@ jobs:
         working-directory: ${{ steps.tea.outputs.prefix }}
 
       - name: configure scripts PATH
-        run: echo "$PWD/scripts:$TEA_PREFIX/tea.xyz/var/pantry/scripts" >> $GITHUB_PATH
+        run: echo "$TEA_PREFIX/tea.xyz/var/pantry/scripts" >> $GITHUB_PATH
 
       - name: upload bottles
         id: upload
-        run: scripts/upload.ts
+        run: upload.ts
           --pkgs ${{ needs.bottle.outputs.built }} ${{ needs.bottle.outputs.built }}
           --srcs ${{ needs.bottle.outputs.srcs }} ${{ needs.bottle.outputs.srcs }}
           --bottles $bottles

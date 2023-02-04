@@ -11,6 +11,10 @@ jobs:
       HAS_ARTIFACTS: ${{ env.HAS_ARTIFACTS }}
     steps:
       - uses: actions/checkout@v3
+      - uses: actions/cache@v2
+        with:
+          path: $HOME/.cache/deno
+          key: ${{ runner.os }}-deno-deps
       - uses: teaxyz/setup@v0
       - run: ./scripts/map-projects-to-githubs.ts
         env:
