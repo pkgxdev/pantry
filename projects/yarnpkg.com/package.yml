@@ -15,23 +15,16 @@ dependencies:
   nodejs.org: '>=18.3'
 
 build:
+  dependencies:
+    npmjs.com: '*'
   script: |
-    rm scripts/bin/yarnpkg || true
-    cp -r . {{prefix}}
-    mkdir -p {{prefix}}/bin
+    npm install . --global --prefix={{prefix}}
 
-    yarnScript=$(cat scripts/bin/yarn)
-    replace="../.."
-    next=..
-    echo "${yarnScript/$replace/$next}" >> {{prefix}}/bin/yarn
-    chmod +x {{prefix}}/bin/yarn
+    mkdir {{prefix}}/bin
+    cd {{prefix}}/bin
 
-    cp {{prefix}}/bin/yarn {{prefix}}/bin/yarnpkg
-
-    if test "{{hw.platform}}" = "linux"; then
-      $SUDO apt-get --yes install libatomic1
-    fi
-
+    ln -s ../lib/node_modules/@yarnpkg/monorepo/scripts/bin/yarn .
+    ln -s yarn yarnpkg
 test:
   script: |
     yarn --version
