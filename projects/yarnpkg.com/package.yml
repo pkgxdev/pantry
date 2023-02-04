@@ -7,15 +7,20 @@ versions:
 
 provides:
   - scripts/bin/yarn
+  # no idea why yarn provides a shortcut of yarnpkg but it errors in mac
   - scripts/bin/yarnpkg
 
 dependencies:
-  nodejs.org: '>=16'
+  nodejs.org: '>=18.3'
 
 build:
   script: |
+    rm scripts/bin/yarnpkg || true
+    cp scripts/bin/yarn scripts/bin/yarnpkg
     cp -r . {{prefix}}
 
 test:
   script: |
     yarn --version
+    yarnpkg --version
+    yarn add jquery
