@@ -30,6 +30,7 @@ build:
     if semverator satisfies ^0.8.18 {{version}}; then
       # New libsolidity/lsb/DocumentHoverHandler.cpp doesn't like some versions of clang
       # (default argument issue)
+      # https://github.com/ethereum/solidity/issues/13854
       patch -p1 -d.. <../props/clang-error.diff
     fi
 
@@ -47,6 +48,7 @@ build:
     - -DCMAKE_BUILD_TYPE=Release
     - -DCMAKE_INSTALL_PREFIX={{prefix}}
     - -DPEDANTIC=OFF  # otherwise fails due to deprecations in boost ^1.81
+    - -DSTRICT_Z3_VERSION=OFF # otherwise complains about Z3 version in cmake
 
 test:
   solc --bin fixture.sol
