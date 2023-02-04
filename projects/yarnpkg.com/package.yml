@@ -1,0 +1,32 @@
+distributable:
+  url: https://github.com/yarnpkg/berry/archive/refs/tags/@yarnpkg/cli/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: yarnpkg/berry
+
+provides:
+  - bin/yarn
+  # no idea why yarn provides a shortcut of yarnpkg but it errors in mac
+  # - scripts/bin/yarnpkg
+  - bin/yarnpkg
+
+dependencies:
+  nodejs.org: '>=18.3'
+
+build:
+  dependencies:
+    npmjs.com: '*'
+  script: |
+    npm install . --global --prefix={{prefix}}
+
+    mkdir {{prefix}}/bin
+    cd {{prefix}}/bin
+
+    ln -s ../lib/node_modules/@yarnpkg/monorepo/scripts/bin/yarn .
+    ln -s yarn yarnpkg
+test:
+  script: |
+    yarn --version
+    yarnpkg --version
+    yarn add jquery
