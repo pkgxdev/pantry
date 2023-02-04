@@ -28,17 +28,6 @@ build:
     freedesktop.org/pkg-config: ^0.29
   script: |
     ./configure $ARGS
-
-    # FIXME: currently, dynamic builds of nodejs.org are segfaulting on linux/x86-64
-    if test "{{hw.platform}}/{{hw.arch}}" = "linux/x86-64"; then
-      for i in out/tools/v8_gypfiles/gen-regexp-special-case.target.mk out/test_crypto_engine.target.mk; do
-        if test -f "$i"; then
-          sed -i.bak -e 's/\-static//g' $i
-          rm $i.bak
-        fi
-      done
-    fi
-
     make --jobs {{ hw.concurrency }} install
   env:
     ARGS:
@@ -49,10 +38,6 @@ build:
     - --with-intl=system-icu
     - --shared-openssl
     - --shared-zlib
-    linux/x86-64:
-      ARGS:
-      - --fully-static
-      - --enable-static
 
 test:
   script: |
