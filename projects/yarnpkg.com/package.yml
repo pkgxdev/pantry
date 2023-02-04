@@ -6,9 +6,10 @@ versions:
   github: yarnpkg/berry
 
 provides:
-  - scripts/bin/yarn
+  - bin/yarn
   # no idea why yarn provides a shortcut of yarnpkg but it errors in mac
-  - scripts/bin/yarnpkg
+  # - scripts/bin/yarnpkg
+  - bin/yarnpkg
 
 dependencies:
   nodejs.org: '>=18.3'
@@ -16,8 +17,18 @@ dependencies:
 build:
   script: |
     rm scripts/bin/yarnpkg || true
-    cp scripts/bin/yarn scripts/bin/yarnpkg
     cp -r . {{prefix}}
+    mkdir -p {{prefix}}/bin
+
+    yarnScript=$(cat scripts/bin/yarn)
+    replace="../.."
+    next=".."
+    echo "${yarnScript/$replace/"$next"}" >> {{prefix}}/bin/yarn
+    chmod +x {{prefix}}/bin/yarn
+
+    cp {{prefix}}/bin/yarn {{prefix}}/bin/yarnpkg
+
+    $SUDO apt-get --yes install libatomic1
 
 test:
   script: |
