@@ -1,0 +1,27 @@
+distributable:
+  url: https://github.com/google/brotli/archive/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: google/brotli
+
+build:
+  dependencies:
+    cmake.org: '*'
+    tea.xyz/gx/make: '*'
+  working-directory: build.d
+  script: |
+    cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX={{prefix}}
+    make --jobs={{ hw.concurrency }}
+    make install
+
+provides:
+  bin/brotli
+
+test:
+  fixture:
+    Hello, World!
+  script: |
+    brotli $FIXTURE $FIXTURE.br
+    brotli $FIXTURE.br --output=out.txt --decompress
+    test "$(cat $FIXTURE)" = "$(cat out.txt)"
