@@ -30,7 +30,7 @@ jobs:
       - uses: actions/cache@v2
         with:
           path: $HOME/.cache/deno
-          key: ${{ runner.os }}-deno-deps
+          key: ${{ runner.os }}-deno-get-platform-${{ hashFiles('deno.jsonc')}}
       - uses: teaxyz/setup@v0
       - run: scripts/get-platform.ts ${{ inputs.projects }}
         id: platform
@@ -47,7 +47,7 @@ jobs:
       - uses: actions/cache@v2
         with:
           path: ${{ needs.get-platform.outputs.cache-set }}
-          key: ${{ runner.os }}-deno-deps
+          key: ${{ runner.os }}-deno-build-${{ hashFiles('deno.jsonc')}}
       - uses: teaxyz/setup@v0
         id: tea
         with:
@@ -115,7 +115,7 @@ jobs:
       - uses: actions/cache@v2
         with:
           path: ${{ needs.get-platform.outputs.cache-set }}
-          key: ${{ runner.os }}-deno-deps
+          key: ${{ runner.os }}-deno-test-${{ hashFiles('deno.jsonc')}}
       - uses: teaxyz/setup@v0
 
       - name: configure scripts PATH
@@ -166,7 +166,7 @@ jobs:
       - uses: actions/cache@v2
         with:
           path: $HOME/.cache/deno
-          key: ${{ runner.os }}-deno-deps
+          key: ${{ runner.os }}-deno-stage-${{ hashFiles('deno.jsonc')}}
       - uses: teaxyz/setup@v0
 
       - name: configure scripts PATH

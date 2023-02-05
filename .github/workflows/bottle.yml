@@ -24,7 +24,7 @@ jobs:
       - uses: actions/cache@v2
         with:
           path: $HOME/.cache/deno
-          key: ${{ runner.os }}-deno-deps
+          key: ${{ runner.os }}-deno-get-platform-${{ hashFiles('deno.jsonc')}}
       - uses: teaxyz/setup@v0
       - run: scripts/get-platform.ts ${{ inputs.projects }}
         id: platform
@@ -42,15 +42,15 @@ jobs:
       built: ${{ env.built }}
       pr: ${{ env.PR }}
     steps:
-      - uses: actions/cache@v2
-        with:
-          path: ${{ needs.get-platform.outputs.cache-set }}
-          key: ${{ runner.os }}-deno-deps
       - uses: teaxyz/setup@v0
         id: tea
         with:
           srcroot: tea.xyz/var/pantry
           prefix: ${{ github.workspace }}
+      - uses: actions/cache@v2
+        with:
+          path: ${{ needs.get-platform.outputs.cache-set }}
+          key: ${{ runner.os }}-deno-bottle-${{ hashFiles('.tea/tea.xyz/var/pantry/deno.jsonc')}}
 
       - name: configure scripts PATH
         run: echo "$TEA_PREFIX/tea.xyz/var/pantry/scripts" >> $GITHUB_PATH
@@ -167,16 +167,16 @@ jobs:
       run:
         working-directory: tea.xyz/var/pantry
     steps:
-      - uses: actions/cache@v2
-        with:
-          path: $HOME/.cache/deno
-          key: ${{ runner.os }}-deno-deps
-
       - uses: teaxyz/setup@v0
         id: tea
         with:
           srcroot: tea.xyz/var/pantry
           prefix:  ${{ github.workspace }}
+
+      - uses: actions/cache@v2
+        with:
+          path: $HOME/.cache/deno
+          key: ${{ runner.os }}-deno-bottle-${{ hashFiles('.tea/tea.xyz/var/pantry/deno.jsonc')}}
 
       - uses: actions/download-artifact@v3
         with:
