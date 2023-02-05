@@ -1,0 +1,33 @@
+distributable:
+  url: https://github.com/jhheider/sanitize/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/sanitize
+
+versions:
+  github: jhheider/sanitize/tags
+  strip: /v/
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
+  script:
+    cargo install --locked --path . --root {{prefix}}
+
+test:
+  script: |
+    mkdir -p foo/foo
+    touch foo/bar foo/bat foo/foo/bat foo/foo/bar
+    sanitize foo -f $FIXTURE -y
+    test "$(find foo | sort)" = "$OUT"
+  env:
+    OUT: |
+      foo
+      foo/bar
+      foo/foo
+      foo/foo/bat
+  fixture: |
+    /bar
+    /foo/bat
