@@ -1,0 +1,28 @@
+distributable:
+  url: https://github.com/p11-glue/p11-kit/releases/download/{{ version }}/p11-kit-{{ version }}.tar.xz
+  strip-components: 1
+
+provides:
+  - bin/pkg-config
+
+versions:
+  github: p11-glue/p11-kit
+  strip: / \(stable\)$/
+
+dependencies:
+  sourceware.org/libffi: ^3
+  curl.se/ca-certs: '*'
+  gnu.org/gettext: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/libtasn1: ^4
+    freedesktop.org/pkg-config: '*'
+  script: |-
+    ./configure --prefix={{prefix}} --with-trust-paths={{deps.curl.se/ca-certs}}/ssl
+    make -j {{ hw.concurrency }} install
+
+test:
+  script: p11-kit list-modules
