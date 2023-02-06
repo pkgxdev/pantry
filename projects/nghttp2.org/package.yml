@@ -1,0 +1,34 @@
+distributable:
+  url: https://github.com/nghttp2/nghttp2/releases/download/v{{ version }}/nghttp2-{{ version }}.tar.gz
+
+  strip-components: 1
+
+versions:
+  github: nghttp2/nghttp2
+  strip: /^nghttp2 v/
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    freedesktop.org/pkg-config: '*'
+  script: |
+    ./configure --prefix={{ prefix }}
+    make -j {{ hw.concurrency }} -C lib install
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script: |
+    mv $FIXTURE test.c
+    cc -lnghttp2 -o test test.c
+    test "$(./test)" == "{{ version }}"
+  fixture: |
+    #include <nghttp2/nghttp2.h>
+    #include <stdio.h>
+
+    int main() {
+      nghttp2_info *info = nghttp2_version(0);
+      printf("%s", info->version_str);
+      return 0;
+    }
