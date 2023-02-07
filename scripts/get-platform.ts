@@ -9,8 +9,16 @@ args:
   - --allow-write
 ---*/
 
-import { panic } from "utils";
+import { panic } from "utils"
+import { Package, PackageRequirement } from "types"
+import * as ARGV from "./utils/args.ts"
 
+const exceptions: { [project: string]: number } = {
+  "deno.land": 4,
+  "ziglang.org": 8,
+}
+
+const packages = await ARGV.toArray(ARGV.pkgs())
 type Output = {
   os: OS,
   buildOs: OS,
@@ -66,7 +74,7 @@ const output: Output = (() => {
     const os = "ubuntu-latest"
     const container = "ghcr.io/teaxyz/infuser:latest"
     return { os,
-      buildOs: os,
+      buildOs: sizedUbuntu(packages),
       container,
       testMatrix: [
         { os },
@@ -91,4 +99,16 @@ Deno.stdout.write(new TextEncoder().encode(rv))
 if (Deno.env.get("GITHUB_OUTPUT")) {
   const envFile = Deno.env.get("GITHUB_OUTPUT")!
   await Deno.writeTextFile(envFile, rv, { append: true})
+}
+
+function sizedUbuntu(packages: (Package | PackageRequirement)[]): string {
+  const size = Math.max(...packages.map(p => exceptions[p.project] ?? 2))
+
+  if (size == 2) {
+    return "ubuntu-latest"
+  } else if ([4, 8, 16].includes(size)) {
+    return `ubuntu-latest-${size}-cores`
+  } else {
+    panic(`Invalid size: ${size}`)
+  }
 }
