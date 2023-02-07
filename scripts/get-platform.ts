@@ -102,7 +102,7 @@ if (Deno.env.get("GITHUB_OUTPUT")) {
 }
 
 function sizedUbuntu(packages: (Package | PackageRequirement)[]): string {
-  const size = Math.max(...packages.map(p => exceptions[p.project] ?? 2))
+  const size = Math.max(2, ...packages.map(p => exceptions[p.project] ?? 2))
 
   if (size == 2) {
     return "ubuntu-latest"
