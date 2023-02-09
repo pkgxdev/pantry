@@ -8,56 +8,36 @@ versions:
 
 dependencies:
   darwin:
-    apple.com/xcode/clt: '*'   # needed for MacOS.sdk
+    apple.com/xcode/clt: '*' # MacOS.sdk
+  linux:
+    gnu.org/binutils: '*'  # linker needs `as`
   gnu.org/gmp: '>=4.2'
   gnu.org/mpfr: '>=2.4.0'
   gnu.org/mpc: '>=0.8.0'
-  # Post bootstrap
-  # gnu.org/binutils: '*'
 
 build:
   dependencies:
     darwin:
-      tea.xyz/gx/cc: c99   # need cc to strip `-nodefaultrpaths`
-    # linux:
-    #   gnu.org/gcc: '*'
+      tea.xyz/gx/cc: c99
+    linux:
+      gnu.org/gcc: '*'
     gnu.org/make: '*'
     perl.org: '^5.6.1'
     gnu.org/patch: '*'
     curl.se: '*'
+  working-directory: build
   script: |
+    # Remove: cleanup bootstrap version
+    if test -d {{deps.gnu.org/gcc.prefix}}/lib64; then
+      mv {{deps.gnu.org/gcc.prefix}}/lib64/* {{deps.gnu.org/gcc.prefix}}/lib/
+      rmdir {{deps.gnu.org/gcc.prefix}}/lib64
+    fi
+
     # Branch from the Darwin maintainer of GCC, with a few generic fixes and
     # Apple Silicon support, located at https://github.com/iains/gcc-12-branch
-    curl https://raw.githubusercontent.com/Homebrew/formula-patches/1d184289/gcc/gcc-12.2.0-arm.diff | patch -p1
+    curl https://raw.githubusercontent.com/Homebrew/formula-patches/1d184289/gcc/gcc-12.2.0-arm.diff | patch -p1 -d..
 
-    # skip multilib prefixes for best interop
-    sed -i.bak -e 's_m64=../lib64_m64=_' gcc/config/i386/t-linux64
-    rm gcc/config/i386/t-linux64.bak
-
-
-
-
-    ### /*** BOOTSTRAP BLOCK - REMOVE AFTER BOOTSTRAP ***/
-    if test "{{hw.platform}}" = "linux"; then
-      command -v sudo && SUDO=sudo
-      $SUDO apt-get --yes install gcc g++
-    fi
-    ### /*** END BOOTSTRAP BLOCK ***/
-
-
-
-
-
-    mkdir build
-    cd build
-
-    # Note that env vars with spaces don't behave well, due to shells and life
-    # in general. So we handle those in script. Unless and until we decide to
-    # change to bash arrays, as in https://github.com/teaxyz/cli/pull/283,
-    # but that will have untold and unforseen consequences.
-
-    # convert ARGS to an array since we need space-including values
-    export ARGS=($ARGS --with-pkgversion="tea GCC {{version}}")
+    ARGS=($ARGS --with-pkgversion="tea GCC {{version}}")
     if test {{hw.platform}} = "linux"; then
       export ARGS=("${ARGS[@]}" --with-boot-ldflags="-static-libstdc++ -static-libgcc $LDFLAGS")
     fi
@@ -67,7 +47,15 @@ build:
     make install
 
     cd {{prefix}}/bin
-    ln -s c++ gc++
+    # Since we depend on ourselves, this symlink might already exist
+    test -f gc++ || ln -sf c++ gc++
+
+    # On Linux, we need to move the libraries to the lib directory.
+    if test {{hw.platform}} = "linux"; then
+      cd {{prefix}}
+      mv lib64/* lib/
+      rmdir lib64
+    fi
   env:
     ARGS:
       - --prefix={{ prefix }}
@@ -80,6 +68,7 @@ build:
       ARGS:
         - --disable-multilib
         - --enable-default-pie
+        - --enable-pie-tools
     darwin:
       ARGS:
         # Reliance on CLT hard path is yuck.
@@ -92,21 +81,18 @@ build:
       ARGS:
         - --build=x86_64-apple-darwin20.0.0
 
-test:
-  # FIXME: remove after bootstrap of gcc/binutils
-  dependencies:
-    gnu.org/binutils: '*'  # for `as`
-  script: |
-    gcc --version | grep -q "tea GCC {{version}}"
-    gcc -o test1 test.c -lgmp
-    ./test1
-    g++ -o test2 test.cc
-    test "$(./test2)" = "Hello, world!"
+test: |
+  gcc --version | grep -q "tea GCC {{version}}"
+  gcc -print-libgcc-file-name
+  gcc -print-multiarch
+  gcc -dumpspecs
+  gcc -o test1 test.c -lgmp
+  ./test1
+  g++ -o test2 test.cc
+  test "$(./test2)" = "Hello, world!"
 
 provides:
-  # we keep `c++` in tea.xyz/gx/cc, but we expose it
-  # as `gc++` here in case someone wants it explicitly
-  - bin/gc++
+  - bin/gc++ # we provide c++ in tea.xyz/gx/cc
   - bin/cpp
   - bin/g++
   - bin/gcc
