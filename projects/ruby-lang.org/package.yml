@@ -16,17 +16,17 @@ build:
     gnu.org/gettext: ^0.21
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
-    git-scm.org: ^2
+    gnu.org/patch: '*'
   script: |
     ./configure --prefix="{{prefix}}" --enable-load-relative --disable-rubygems
     make --jobs {{hw.concurrency}} install
 
-    cd "{{prefix}}"
+    cd "{{prefix}}/lib/ruby/{{version.major}}.{{version.minor}}.0"
 
     # use the GEM_PATH we want
-    git apply "$SRCROOT"/props/defaults.rb.patch
+    patch -p4 < "$SRCROOT"/props/defaults.rb.patch
 
-    cd bin
+    cd "{{prefix}}/bin"
 
     # we provide these as `rubygems.org`
     rm bundle bundler gem rake rbs rdbg typeprof
@@ -54,7 +54,7 @@ test:
     ruby -e 'puts "Hello World!"'
     gem install hexapdf -v 0.28.0
     hexapdf version
-    test -d "{{tea.prefix}}"/ruby-lang.org/gems/{{version}}/gems/hexapdf-0.28.0
+    test -d "{{tea.prefix}}"/ruby-lang.org/gems/{{version.major}}.{{version.minor}}.0/gems/hexapdf-0.28.0
 
 provides:
   - bin/erb
