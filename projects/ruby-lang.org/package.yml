@@ -16,20 +16,22 @@ build:
     gnu.org/gettext: ^0.21
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
-    gnu.org/patch: '*'
   script: |
     ./configure --prefix="{{prefix}}" --enable-load-relative --disable-rubygems
     make --jobs {{hw.concurrency}} install
 
-    cd "{{prefix}}/lib/ruby/{{version.major}}.{{version.minor}}.0"
+    cd "{{prefix}}/lib/ruby/{{version.major}}.{{version.minor}}.0/rubygems"
 
     # use the GEM_PATH we want
-    patch -p4 < "$SRCROOT"/props/defaults.rb.patch
+    sed -i.bak -e 's;@default_dir ||=.*;@default_dir ||= File.expand_path(File.join(__FILE__, "../../../../../../gems", RbConfig::CONFIG["ruby_version"]));' defaults.rb
+    rm defaults.rb.bak
 
     cd "{{prefix}}/bin"
 
     # we provide these as `rubygems.org`
-    rm bundle bundler gem rake rbs rdbg typeprof
+    for GEM in bundle bundler gem rake rbs rdbg typeprof; do
+      test -f $GEM && rm $GEM
+    done
 
     for shim in $shims; do
       sed -i.bak -e 's_#!{{prefix}}/bin/ruby_#!/usr/bin/env ruby_' $shim
