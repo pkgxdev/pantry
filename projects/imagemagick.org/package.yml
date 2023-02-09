@@ -1,0 +1,53 @@
+distributable:
+  #FIXME: they use a weird versioning scheme
+  url: https://github.com/ImageMagick/ImageMagick/archive/refs/tags/7.1.0-61.tar.gz
+  strip-components: 1
+
+versions:
+  #FIXME: they use a weird versioning scheme
+  # github: ImageMagick/ImageMagick
+  - 7.1.0.61
+
+provides:
+  - bin/animate
+  - bin/compare
+  - bin/composite
+  - bin/conjure
+  - bin/convert
+  - bin/display
+  - bin/identify
+  - bin/import
+  - bin/magick
+  - bin/magick-script
+  - bin/Magick++-config
+  - bin/MagickCore-config
+  - bin/MagickWand-config
+  - bin/mogrify
+  - bin/montage
+  - bin/stream
+
+dependencies:
+    libpng.org: 1
+    ijg.org: 9
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    freedesktop.org/pkg-config: '*'
+  script: |-
+    # seemingly `./configure` doesn't use pkg-config for libjpeg
+    export CPPFLAGS=`pkg-config --cflags libjpeg`
+    export LDFLAGS=`pkg-config --libs libjpeg`
+
+    ./configure \
+      --prefix={{ prefix }} \
+      --disable-silent-rules
+    make --jobs {{ hw.concurrency }} install
+
+test:
+  dependencies:
+    curl.se: '*'
+  script: |
+    curl "https://upload.wikimedia.org/wikipedia/commons/6/6a/PNG_Test.png" -o a.png
+    identify a.png | grep "a.png PNG 3120x3920 3120x3920+0+0 8-bit sRGB 7.02443MiB 0.000u"
