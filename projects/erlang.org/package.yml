@@ -51,6 +51,7 @@ build:
       - --enable-hipe
       - --enable-smp-support
       - --enable-threads
+      - --enable-pie
       - --with-ssl={{deps.openssl.org.prefix}}
       - --without-javac
     darwin:
@@ -61,7 +62,11 @@ build:
 
 test:
   script: |
+    epmd -kill || true
+    epmd -daemon -address 127.0.0.1 -relaxed_command_check
     test "$(escript $FIXTURE 10)" = "factorial 10 = 3628800"
+    epmd -kill || true
+
   env:
     ERL_DIST_PORT: 8001
   fixture: |
