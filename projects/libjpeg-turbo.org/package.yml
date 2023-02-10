@@ -1,0 +1,33 @@
+distributable:
+   url: https://versaweb.dl.sourceforge.net/project/libjpeg-turbo/{{version}}/libjpeg-turbo-{{version}}.tar.gz
+   strip-components: 1
+
+versions:
+  github: libjpeg-turbo/libjpeg-turbo
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    cmake.org: ^3
+  working-directory: build
+  script: |
+    cmake .. $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+    - -DCMAKE_INSTALL_PREFIX={{prefix}}
+    - -DCMAKE_BUILD_TYPE=Release
+    - -DWITH_JPEG8=1
+
+provides:
+  - bin/cjpeg
+  - bin/djpeg
+  - bin/jpegtran
+  - bin/rdjpgcom
+  - bin/tjbench
+  - bin/wrjpgcom
+
+test: |
+  jpegtran -crop 1x1 -transpose -perfect -outfile out.jpg fixture.jpeg
+  test -f out.jpg
