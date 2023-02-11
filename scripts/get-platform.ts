@@ -31,9 +31,12 @@ type OS = string | string[]
 
 const platform = Deno.env.get("PLATFORM") ?? panic("$PLATFORM not set")
 
+
+const home = Deno.env.get("HOME")
+
 const cacheSets = {
-  "darwin": "$HOME/Library/Caches/deno/deps/https/",
-  "linux": "$HOME/.cache/deno/deps/https/"
+  "darwin": `${home}/Library/Caches/deno/deps/https/`,
+  "linux": `${home}/.cache/deno/deps/https/`
 }
 
 const output: Output = (() => {
