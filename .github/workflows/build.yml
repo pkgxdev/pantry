@@ -48,9 +48,11 @@ jobs:
         with:
           path: ${{ needs.get-platform.outputs.cache-set }}
           key: ${{ runner.os }}-deno-build-${{ hashFiles('deno.jsonc')}}
+
       - uses: teaxyz/setup@v0
         id: tea
         with:
+          srcroot: null
           prefix: /opt
 
       - name: sanitize macOS runners
@@ -68,10 +70,6 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           FORCE_UNSAFE_CONFIGURE: 1  # some configure scripts refuse to run as root
 
-      - name: delete `.la` files
-        run: find . -name '*.la' -delete
-        working-directory: ${{ steps.tea.outputs.prefix }}
-
       # cache data we'll need in the bottling job
       - name: assemble artifact metadata
         run: |
@@ -84,7 +82,7 @@ jobs:
       # /ref https://github.com/actions/upload-artifact/issues/38
       - name: create artifacts.tgz
         run:
-          tar czf $GITHUB_WORKSPACE/artifacts.tgz
+          tar czvf $GITHUB_WORKSPACE/artifacts.tgz
             ${{ steps.build.outputs.relative-paths }}
             ${{ steps.build.outputs.srcs-relative-paths }}
             built relative-paths srcs

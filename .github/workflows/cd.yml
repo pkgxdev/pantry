@@ -1,11 +1,11 @@
 name: cd
+
 on:
   push:
-   branches:
-   - main
+   branches: [main]
 
 jobs:
-  cd:
+  cd:  # job is named poorly, all I can tell you about it is: it’s *not* CD
     runs-on: ubuntu-latest
     outputs:
       HAS_ARTIFACTS: ${{ env.HAS_ARTIFACTS }}
@@ -16,11 +16,11 @@ jobs:
           path: $HOME/.cache/deno
           key: ${{ runner.os }}-deno-cd-${{ hashFiles('deno.jsonc')}}
       - uses: teaxyz/setup@v0
-      - run: ./scripts/map-projects-to-githubs.ts
+      - run: scripts/map-projects-to-githubs.ts
         env:
           WATCHER_URL: ${{ secrets.WATCHER_URL }}
           TEA_API_TOKEN: ${{ secrets.TEA_API_TOKEN }}
-      - run: ./scripts/has-artifacts.ts ${{ github.repository }} ${{ github.sha }} >>$GITHUB_ENV
+      - run: scripts/has-artifacts.ts ${{ github.repository }} ${{ github.sha }} >>$GITHUB_ENV
         env:
           GITHUB_TOKEN: ${{github.token}}
           AWS_S3_CACHE: ${{ secrets.AWS_S3_CACHE }}
@@ -42,6 +42,7 @@ jobs:
     with:
       platform: ${{ matrix.platform }}
     secrets: inherit
+
   cleanup:
     needs: [bottle-pr]
     runs-on: ubuntu-latest
@@ -67,6 +68,7 @@ jobs:
         env:
           AWS_S3_CACHE: ${{ secrets.AWS_S3_CACHE }}
           PR: ${{ needs.bottle.outputs.pr }}
+
   bottle-standalone:
     runs-on: ubuntu-latest
     needs: [cd]
@@ -74,9 +76,13 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: technote-space/get-diff-action@v6
-        id: diff
+        id: get-diff
         with:
           PATTERNS: projects/**/package.yml
+      - id: diff
+        run: |
+          RESULT=$(echo ${{ steps.get-diff.outputs.diff }} | sed 's#projects/\(.*\)/.*#\1#')
+          echo "diff=$RESULT" >> $GITHUB_OUTPUT
       - run: gh workflow run new-version.yml -R teaxyz/pantry.core -f "projects=$PROJECTS"
         if: ${{ steps.diff.outputs.diff != '' }}
         env:

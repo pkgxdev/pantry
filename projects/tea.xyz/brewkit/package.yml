@@ -12,9 +12,13 @@ dependencies:
 
 build: |
   mkdir -p {{prefix}}
+  rm -rf {{prefix}}/*  # because our build infra uses this pkg to build itself
   mv bin libexec share deno.* {{prefix}}
 
 test:
-  test zlib.net
-  # we would like to test builds but we need a `GITHUB_TOKEN` and
-  # currently that is not possible
+  dependencies:
+    zlib.net: '*'
+  script:
+    test zlib.net
+    # we would like to test builds but we need a `GITHUB_TOKEN` and
+    # (currently) we can’t figure out how to set that up in CI/CD
