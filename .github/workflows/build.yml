@@ -62,10 +62,7 @@ jobs:
           echo "$PWD/scripts:$TEA_PREFIX/tea.xyz/var/pantry/scripts" >> $GITHUB_PATH
           echo "TEA_PANTRY_PATH=$GITHUB_WORKSPACE" >> $GITHUB_ENV
 
-      - run: sort.ts ${{ inputs.projects }}
-        id: sorted
-
-      - run: build.ts ${{ steps.sorted.outputs.pkgs }}
+      - run: tea +tea.xyz/brewkit build ${{ inputs.projects }}
         id: build
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -112,14 +109,13 @@ jobs:
     container: ${{ matrix.platform.container }}
     steps:
       - uses: actions/checkout@v3
+
       - uses: actions/cache@v2
         with:
           path: ${{ needs.get-platform.outputs.cache-set }}
           key: ${{ runner.os }}-deno-test-${{ hashFiles('deno.jsonc')}}
-      - uses: teaxyz/setup@v0
 
-      - name: configure scripts PATH
-        run: echo "$PWD/scripts:$TEA_PREFIX/tea.xyz/var/pantry/scripts" >> $GITHUB_PATH
+      - uses: teaxyz/setup@v0
 
       - uses: actions/download-artifact@v3
         with:
@@ -128,7 +124,7 @@ jobs:
       - name: extract bottles
         run: tar xzf artifacts.tgz -C $TEA_PREFIX
 
-      - run: test.ts ${{ inputs.projects }}
+      - run: tea +tea.xyz/brewkit test ${{ inputs.projects }}
         env:
           TEA_PANTRY_PATH: ${{ github.workspace }}
 
