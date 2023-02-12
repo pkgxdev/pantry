@@ -77,42 +77,18 @@ jobs:
             echo "$file=$(cat $file)" >>$GITHUB_ENV
           done
 
-      # the next three steps bless our code for Apple. It might be the case they should be
-      # encapulated separately.
-      # FIXME: using an explicit commit in a PR isn't great, but the last release was almost 3 years
-      # ago, and we need bugfixes.
-      # FIXME: replace this with a tea script based on https://localazy.com/blog/how-to-automatically-sign-macos-apps-using-github-actions
-      # github has a doc with similar content, but it's not returning to me atm.
-      - uses: apple-actions/import-codesign-certs@d54750db52a4d3eaed0fc107a8bab3958f3f7494
+      - uses: actions/checkout@v3
         if: startsWith(inputs.platform, 'darwin+')
         with:
-          p12-file-base64: ${{ secrets.APPLE_CERTIFICATE_P12 }}
-          p12-password: ${{ secrets.APPLE_CERTIFICATE_P12_PASSWORD }}
-
-      # Codesign libs and bins
-      - name: Codesign package
+          path: pantry
+          repository: teaxyz/pantry.core
+      - uses: ./pantry/.github/actions/apple-signing
         if: startsWith(inputs.platform, 'darwin+')
-        run: |
-          for PKG in ${{ env.relative-paths }}; do
-            find /opt/$PKG -name '*.so' -or -name '*.dylib' -print0 | \
-              xargs -0 codesign -s "Developer ID Application: Tea Inc. (7WV56FL599)" --force -v --deep --timestamp --preserve-metadata=entitlements -o runtime || true
-            codesign -s "Developer ID Application: Tea Inc. (7WV56FL599)" -v --force --deep --timestamp --preserve-metadata=entitlements -o runtime /opt/$PKG/bin/* || true
-          done
-
-      # This isn't very informative, but even a no-op is safer than none
-      - name: Check codesigning
-        if: startsWith(inputs.platform, 'darwin+')
-        run: |
-          for PKG in ${{ env.relative-paths }}; do
-            for SIG in `find /opt/$PKG -name '*.so' -or -name '*.dylib'` `find /opt/$PKG/bin -type f`; do
-              codesign -vvv --deep --strict "$SIG"
-            done
-          done
-
-      # Needed for self-hosted runner, since it doesn't destroy itself automatically.
-      - name: Delete keychain
-        if: always() && inputs.platform == 'darwin+aarch64'
-        run: security delete-keychain signing_temp.keychain
+        with:
+            p12-file-base64: ${{ secrets.APPLE_CERTIFICATE_P12 }}
+            p12-password: ${{ secrets.APPLE_CERTIFICATE_P12_PASSWORD }}
+            identity: "Developer ID Application: Tea Inc. (7WV56FL599)"
+            paths: ${{ env.relative-paths}}
 
       - run: |
           tea +gnupg.org gpg-agent --daemon || true

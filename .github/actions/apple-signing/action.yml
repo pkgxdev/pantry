@@ -1,0 +1,76 @@
+name: Apple signing
+description: signs binaries for macOS
+inputs:
+  p12-file-base64:
+    description: Base64 encoded p12 file
+    required: true
+  p12-password:
+    description: Password for p12 file
+    required: true
+  identity:
+    description: Identity to use for signing
+    required: true
+  paths:
+    description: Paths to search for libs/bins sign
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    # Only runs on macOS
+    - name: Check platform
+      shell: sh
+      run: |
+        if [[ "$RUNNER_OS" != "macOS" ]]; then
+          echo "This action only runs on macOS"
+          exit 1
+        fi
+
+    # the next three steps bless our code for Apple. It might be the case they should be
+    # encapulated separately.
+    # FIXME: using an explicit commit in a PR isn't great, but the last release was almost 3 years
+    # ago, and we need bugfixes.
+    # FIXME: replace this with a tea script based on https://localazy.com/blog/how-to-automatically-sign-macos-apps-using-github-actions
+    # github has a doc with similar content, but it's not returning to me atm.
+    - uses: apple-actions/import-codesign-certs@d54750db52a4d3eaed0fc107a8bab3958f3f7494
+      with:
+        p12-file-base64: ${{ inputs.p12-file-base64 }}
+        p12-password: ${{ inputs.p12-password }}
+
+    # Codesign libs and bins
+    - name: Codesign package
+      shell: bash
+      run: |
+        for PATH in $PATHS; do
+          /usr/bin/find $PATH -name '*.so' -or -name '*.dylib' -print0 | \
+            /usr/bin/xargs -0 /usr/bin/codesign -s "$IDENTITY" --force -v --deep --timestamp --preserve-metadata=entitlements -o runtime
+          if test -d $PATH/bin; then
+            /usr/bin/find $PATH/bin -type f -print0 | \
+              /usr/bin/xargs -0 /usr/bin/codesign -s "$IDENTITY" -v --force --deep --timestamp --preserve-metadata=entitlements -o runtime
+          fi
+        done
+      env:
+        PATHS: ${{ inputs.paths }}
+        IDENTITY: ${{ inputs.identity }}
+
+    # This isn't very informative, but even a no-op is safer than none
+    - name: Check codesigning
+      shell: bash
+      run: |
+        for PATH in $PATHS; do
+          LIBS="$(/usr/bin/find $PATH -name '*.so' -or -name '*.dylib')"
+          if test -d $PATH/bin; then
+            BINS="$(/usr/bin/find $PATH/bin -type f)"
+          fi
+          for SIGNED in $LIBS $BINS; do
+            /usr/bin/codesign -vvv --deep --strict "$SIGNED"
+          done
+        done
+      env:
+        PATHS: ${{ inputs.paths }}
+
+    # Needed for self-hosted runner, since it doesn't destroy itself automatically.
+    - name: Delete keychain
+      if: always()
+      shell: bash
+      run: /usr/bin/security delete-keychain signing_temp.keychain
