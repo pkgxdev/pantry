@@ -25,17 +25,18 @@ $ cd pantry.extra
 # all the following commands operate in `./tea.out`
 # your tea installation remains untouched
 
-$ xc init
+$ pkg init
 # ^^ creates a “wip” package.yml
+# ^^ if you already know the name, you can pass it as an argument
 
-$ xc edit
+$ pkg edit
 # ^^ opens the new package.yml in your EDITOR
 
-$ xc build
+$ pkg build
 # ^^ will probably require a (zero permissions) GitHub [PAT].
-# Using `gh auth login` is the easiest way to set this up.
+# using `gh auth login` is the easiest way to set this up.
 
-$ xc test
+$ pkg test
 # ^^ you need to write a test that verifies the package works
 
 $ gh repo fork
@@ -62,47 +63,15 @@ submit PRs for updates.
 &nbsp;
 
 
+# Dependencies
 
-# Tasks
-
-The following can all be run with `xc`, eg. `xc init`.
-
-## Init
-
-Creates a new package at `./projects/wip/$RANDOM_TEA_BLEND/package.yml`.
-
-```sh
-tea -E +tea.xyz/brewkit init
-```
-
-## Edit
-
-Opens all wip packages in `$EDITOR`.
-
-```sh
-tea -E +tea.xyz/brewkit edit
-```
-
-## Build
-
-Builds all wip packages to `./tea.out`.
-
-```sh
-tea -E +tea.xyz/brewkit build
-```
-
-## Test
-
-Tests all wip packages.
-
-```sh
-tea -E +tea.xyz/brewkit test
-```
-
+| Project         | Version |
+|-----------------|---------|
+| tea.xyz/brewkit | ^0.2    |
 
 
 [pantry.zero]: https://github.com/teaxyz/pantry.zero
-[pantry.extra]: https://github.com/teaxyz/pantry.extra
+[pantry.core]: https://github.com/teaxyz/pantry.core
 [wiki]: https://github.com/teaxyz/pantry.zero/wiki
 [tea/cli]: https://github.com/teaxyz/cli
 [discussion]: https://github.com/orgs/teaxyz/discussions
