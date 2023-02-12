@@ -25,17 +25,17 @@ $ cd pantry.core
 # all the following commands operate in `./tea.out`
 # your tea installation remains untouched
 
-$ xc init
+$ pkg init
 # ^^ creates a “wip” package.yml
 
-$ xc edit
+$ pkg edit
 # ^^ opens the new package.yml in your EDITOR
 
-$ xc build
+$ pkg build
 # ^^ will probably require a (zero permissions) GitHub [PAT].
 # Using `gh auth login` is the easiest way to set this up.
 
-$ xc test
+$ pkg test
 # ^^ you need to write a test that verifies the package works
 
 $ gh repo fork
@@ -58,46 +58,6 @@ bottle storage and decentralized [IPFS].
 tea automatically builds new releases of packages *as soon as they are
 released* (usually starting the builds within seconds). There is no need to
 submit PRs for updates.
-
-&nbsp;
-
-
-
-# Tasks
-
-The following can all be run with `xc`, eg. `xc init`.
-
-## Init
-
-Creates a new package at `./projects/wip/$RANDOM_TEA_BLEND/package.yml`.
-
-```sh
-tea -E +tea.xyz/brewkit init
-```
-
-## Edit
-
-Opens all wip packages in `$EDITOR`.
-
-```sh
-tea -E +tea.xyz/brewkit edit
-```
-
-## Build
-
-Builds all wip packages to `./tea.out`.
-
-```sh
-tea -E +tea.xyz/brewkit build
-```
-
-## Test
-
-Tests all wip packages.
-
-```sh
-tea -E +tea.xyz/brewkit test
-```
 
 
 
