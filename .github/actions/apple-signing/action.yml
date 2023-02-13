@@ -42,12 +42,15 @@ runs:
       shell: bash
       run: |
         for PATH in $PATHS; do
-          /usr/bin/find $PATH -name '*.so' -or -name '*.dylib' -print0 | \
-            /usr/bin/xargs -0 /usr/bin/codesign -s "$IDENTITY" --force -v --deep --timestamp --preserve-metadata=entitlements -o runtime || true
+          LIBS="$(/usr/bin/find $PATH -name '*.so' -or -name '*.dylib')"
           if test -d $PATH/bin; then
-            /usr/bin/find $PATH/bin -type f -print0 | \
-              /usr/bin/xargs -0 /usr/bin/codesign -s "$IDENTITY" -v --force --deep --timestamp --preserve-metadata=entitlements -o runtime || true
+            BINS="$(/usr/bin/find $PATH/bin -type f)"
           fi
+
+          for FILE in $LIBS $BINS; do
+            BASENAME="$(/usr/bin/basename "$FILE")"
+            /usr/bin/codesign -s "$IDENTITY" --force -v --deep --timestamp --preserve-metadata=entitlements -o runtime "$FILE" || true
+          done
         done
       env:
         PATHS: ${{ inputs.paths }}
@@ -63,6 +66,12 @@ runs:
             BINS="$(/usr/bin/find $PATH/bin -type f)"
           fi
           for SIGNED in $LIBS $BINS; do
+            # FIXME: `deno` compiled binaries don't currently pass validation.
+            # https://github.com/denoland/deno/issues/17753
+            if test "$(/usr/bin/basename "$SIGNED")" = "tea"; then
+              continue
+            fi
+
             /usr/bin/codesign -vvv --deep --strict "$SIGNED"
           done
         done
