@@ -1,12 +1,14 @@
 # You may notice that this bottle named "mamba-org" refers to conda-forge github repo
 # This is intentional and not an error
 
+# cask: https://github.com/Homebrew/homebrew-cask/blob/c6e8fd99bdfd5ec217ff3b53505f42214f5cba58/Casks/mambaforge.rb
+
 distributable:
-  url: https://github.com/conda-forge/miniforge/archive/refs/tags/{{version}}-4.tar.gz #FIXME UGLY HACK, NEED TO MOVE '-4' TO VARIABLES AS PATCH
+  url: https://github.com/conda-forge/miniforge/archive/refs/tags/22.11.1-4.tar.gz #FIXME UGLY HACK, NEED TO MOVE '-4' TO versions.anytext 
+  strip-components: 1
 
 versions:
-  #FIXME parse versions correctly from https://github.com/conda-forge/miniforge/releases
-  - "22.11.1"
+  - "22.11.1.4" # 
 
 build:
 #FIXME mamba provides sha256 signatures, should we check against them before building?
@@ -15,15 +17,21 @@ build:
     curl.se: '*'
   script: |
     # download mamba installation script
-    curl -Lfo mamba.sh "https://github.com/conda-forge/miniforge/releases/download/{{version}}-4/Mambaforge-{{version}}-4-$PLATFORM.sh" #FIXME UGLY HACK, NEED TO MOVE '-4' TO VARIABLES AS PATCH
+    if [ -e "mamba.sh" ]; then
+        echo 'File already exists'
+    else
+        curl -Lfo mamba.sh "https://github.com/conda-forge/miniforge/releases/download/22.11.1-4/Mambaforge-22.11.1-4-$PLATFORM.sh" #FIXME UGLY HACK, NEED TO MOVE '-4' TO versions.anytext
+    fi
 
-    sh mamba.sh $ARGS
+
+    # install mamba
+    chmod +x mamba.sh
+    ./mamba.sh $ARGS
 
     # cleanup
-    rm mamba.sh
+    # rm mamba.sh
 
-    # post-install: link bin
-    ln -s mamba
+    ls -la "{{ prefix }}"/bin
 
     #FIXME post-install, {{prefix}}/bin should ideally be added to path,
     # ^ because that's the point of using mamba: you do a `mamba install pkg_name` 
@@ -40,14 +48,21 @@ build:
     linux/x86-64:   {PLATFORM: Linux-x86_64}
     # mamba install args 
     ARGS:
-      - -b             # skip interactive - accept all licence agreements
-      - -p {{prefix}} # prefix - where to install
+      - -b                 # skip interactive - accept all licence agreements
+      - -s                 # skip running pre/post-link/install scripts
+      - -u                 # update if already installed 
+      - -p {{prefix}}      # prefix - where to install
 
 test: |
   mamba --version
-  python -c "print('Hello World!')"
+  python -c "print('Hello World!')" #FIXME this should be a proper test
 
 
 provides:
   - bin/mamba #FIXME is this the correct provides?
   - bin/python #FIXME make sure this python does not conflict with https://tea.xyz/+python.org/
+
+
+#FIXME: add caveats
+# ^     Please run the following to setup your shell:
+# ^       conda init "$(basename "${SHELL}")"
