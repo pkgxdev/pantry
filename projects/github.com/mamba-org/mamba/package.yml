@@ -36,13 +36,16 @@ build:
     #   -s             # skip running pre/post-link/install scripts #FIXME maybe this is needed? or is tea.xyz already binded into bin etc?
     #   -p ${{prefix}} # prefix - where to install
 
-    pwd
+    # cleanup
+    rm mamba.sh
+
+    # post-install: link bin
+    echo $(pwd)
+    echo ${{prefix}}
     ls
     cd bin
     ln -s mamba python #FIXME make sure this python does not conflict with https://tea.xyz/+python.org/
 
-    # cleanup
-    rm mamba.sh
   env:
     darwin/aarch64: {PLATFORM: MacOSX-arm64}
     darwin/x86-64:  {PLATFORM: MacOSX-x86_64}
