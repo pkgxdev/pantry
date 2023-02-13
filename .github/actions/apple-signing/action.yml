@@ -43,10 +43,10 @@ runs:
       run: |
         for PATH in $PATHS; do
           /usr/bin/find $PATH -name '*.so' -or -name '*.dylib' -print0 | \
-            /usr/bin/xargs -0 /usr/bin/codesign -s "$IDENTITY" --force -v --deep --timestamp --preserve-metadata=entitlements -o runtime
+            /usr/bin/xargs -0 /usr/bin/codesign -s "$IDENTITY" --force -v --deep --timestamp --preserve-metadata=entitlements -o runtime || true
           if test -d $PATH/bin; then
             /usr/bin/find $PATH/bin -type f -print0 | \
-              /usr/bin/xargs -0 /usr/bin/codesign -s "$IDENTITY" -v --force --deep --timestamp --preserve-metadata=entitlements -o runtime
+              /usr/bin/xargs -0 /usr/bin/codesign -s "$IDENTITY" -v --force --deep --timestamp --preserve-metadata=entitlements -o runtime || true
           fi
         done
       env:
