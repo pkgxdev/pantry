@@ -26,7 +26,8 @@ build:
 
     # install mamba
     chmod +x mamba.sh
-    ./mamba.sh $ARGS
+    ./mamba.sh $ARGS #FIXME when running on gh actions, this fails
+                     # ^ /opt/github.com/mamba-org/mamba/v22.11.1.4/bin/python: bad interpreter: No such file or directory
 
     # cleanup
     # rm mamba.sh
@@ -54,6 +55,7 @@ build:
       - -p {{prefix}}      # prefix - where to install
 
 test: |
+  cat "{{ prefix }}"/bin/mamba
   mamba --version
   python -c "print('Hello World!')" #FIXME this should be a proper test
 
