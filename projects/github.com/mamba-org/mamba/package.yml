@@ -25,32 +25,32 @@ build:
 # https://github.com/conda-forge/miniforge/releases
   dependencies:
     curl.se: '*'
-  working-directory: ${{prefix}}
   script: |
     # download mamba installation script
     # curl -Lfo mamba.sh "https://github.com/conda-forge/miniforge/releases/download/{{version}}/Mambaforge-{{version}}-$PLATFORM.sh"
     curl -Lfo mamba.sh "https://github.com/conda-forge/miniforge/releases/download/{{version}}-4/Mambaforge-{{version}}-4-$PLATFORM.sh" #FIXME UGLY HACK, NEED TO MOVE '-4' TO VARIABLES AS PATCH
 
-    sh mamba.sh -b
-    #   -b             # skip interactive - accept all licence agreements
-    #   -s             # skip running pre/post-link/install scripts #FIXME maybe this is needed? or is tea.xyz already binded into bin etc?
-    #   -p ${{prefix}} # prefix - where to install
+    sh mamba.sh $ARGS
 
     # cleanup
     rm mamba.sh
 
     # post-install: link bin
-    echo $(pwd)
     echo ${{prefix}}
-    ls
-    cd bin
+    ls ${{prefix}}
+    cd ${{prefix}}/bin
     ln -s mamba python #FIXME make sure this python does not conflict with https://tea.xyz/+python.org/
 
   env:
+    # env-dependent vars
     darwin/aarch64: {PLATFORM: MacOSX-arm64}
     darwin/x86-64:  {PLATFORM: MacOSX-x86_64}
     linux/aarch64:  {PLATFORM: Linux-aarch64}
     linux/x86-64:   {PLATFORM: Linux-x86_64}
+    # mamba install args 
+    ARGS:
+      - -b             # skip interactive - accept all licence agreements
+      - -p ${{prefix}} # prefix - where to install
 
 test: |
   mamba --version
