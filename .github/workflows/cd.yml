@@ -74,9 +74,13 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: technote-space/get-diff-action@v6
-        id: diff
+        id: get-diff
         with:
           PATTERNS: projects/**/package.yml
+      - id: diff
+        run: |
+          RESULT=$(echo ${{ steps.get-diff.outputs.diff }} | sed 's#projects/\(.*\)/.*#\1#')
+          echo "diff=$RESULT" >> $GITHUB_OUTPUT
       - run: gh workflow run new-version.yml -R teaxyz/pantry.core -f "projects=$PROJECTS"
         if: ${{ steps.diff.outputs.diff != '' }}
         env:
