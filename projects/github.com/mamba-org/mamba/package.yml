@@ -1,0 +1,51 @@
+#FIXME this build currently fails when following instructions from https://github.com/teaxyz/pantry.zero/wiki#step-by-step
+# platform: Ubuntu 22.10, Intel CPU
+# tea version: 0.24.1 
+# Fail logs:
+# ❯ ./pantry.core/scripts/bottle.ts github.com
+# error: Uncaught (in promise) Error: missing GPG_PASSPHRASE
+#   throw new Error(message)
+#         ^
+#     at panic (https://raw.githubusercontent.com/teaxyz/cli/v0.23/src/utils/safe-utils.ts:8:9)
+
+
+# You may notice that this bottle named "mamba-org" refers to conda-forge github repo
+# This is intentional and not an error
+
+distributable:
+  url: https://github.com/conda-forge/miniforge/archive/refs/tags/{{version}}.tar.gz
+
+versions:
+  github: conda-forge/miniforge
+
+#FIXME mamba provides sha256 signatures, should we check against them?
+# https://github.com/conda-forge/miniforge/releases
+
+build:
+  dependencies:
+    curl.se: '*'
+  working-directory: ${{prefix}}
+  script: |
+    # download mamba installation script
+    curl -Lfo mamba.sh "https://github.com/conda-forge/miniforge/releases/download/{{version}}/Mambaforge-{{version}}-$PLATFORM.sh"
+
+    sh mamba.sh \
+      -b \                  # skip interactive - accept all licence agreements 
+      -s \                  # skip running pre/post-link/install scripts #FIXME maybe this is needed? or is tea.xyz already binded into bin etc?
+      -p ${{prefix}}        # prefix - where to install
+
+    rm mamba.sh
+  env:
+    darwin/aarch64: {PLATFORM: MacOSX-arm64}
+    darwin/x86-64:  {PLATFORM: MacOSX-x86_64}
+    linux/aarch64:  {PLATFORM: Linux-aarch64}
+    linux/x86-64:   {PLATFORM: Linux-x86_64}
+
+test: |
+  mamba --version
+  python -c "print('Hello World!')"
+
+
+provides:
+  - bin/mamba #FIXME is this the correct provides?
+  - bin/python #FIXME is this the correct provides?
