@@ -13,11 +13,12 @@
 # This is intentional and not an error
 
 distributable:
-  url: https://github.com/conda-forge/miniforge/archive/refs/tags/{{version}}.tar.gz
+  url: https://github.com/conda-forge/miniforge/archive/refs/tags/{{version}}-4.tar.gz #FIXME UGLY HACK, NEED TO MOVE '-4' TO VARIABLES AS PATCH
 
 versions:
   #FIXME parse versions correctly from https://github.com/conda-forge/miniforge/releases
-  - 22.11.1-4
+  - 22.11.1
+  # - 22.11.1-4
 
 build:
 #FIXME mamba provides sha256 signatures, should we check against them before building?
@@ -27,7 +28,8 @@ build:
   working-directory: ${{prefix}}
   script: |
     # download mamba installation script
-    curl -Lfo mamba.sh "https://github.com/conda-forge/miniforge/releases/download/{{version}}/Mambaforge-{{version}}-$PLATFORM.sh"
+    # curl -Lfo mamba.sh "https://github.com/conda-forge/miniforge/releases/download/{{version}}/Mambaforge-{{version}}-$PLATFORM.sh"
+    curl -Lfo mamba.sh "https://github.com/conda-forge/miniforge/releases/download/{{version}}-4/Mambaforge-{{version}}-4-$PLATFORM.sh" #FIXME UGLY HACK, NEED TO MOVE '-4' TO VARIABLES AS PATCH
 
     sh mamba.sh \
       -b \                  # skip interactive - accept all licence agreements 
