@@ -32,11 +32,9 @@ type OS = string | string[]
 const platform = Deno.env.get("PLATFORM") ?? panic("$PLATFORM not set")
 
 
-const home = Deno.env.get("HOME")
-
 const cacheSets = {
-  "darwin": `${home}/Library/Caches/deno/deps/https/`,
-  "linux": `${home}/.cache/deno/deps/https/`
+  "darwin": `~/.deno\n~/Library/Caches/deno/deps/https/`,
+  "linux": `~/.deno\n~/.cache/deno/deps/https/`
 }
 
 const output: Output = (() => {
@@ -95,7 +93,7 @@ const rv = `os=${JSON.stringify(output.os)}\n` +
   `build-os=${JSON.stringify(output.buildOs)}\n` +
   `container=${JSON.stringify(output.container)}\n` +
   `test-matrix=${JSON.stringify(output.testMatrix)}\n` +
-  `cache-set=${JSON.stringify(output.cacheSet)}\n`
+  `cache-set<<EOF\n${output.cacheSet}\nEOF\n`
 
 Deno.stdout.write(new TextEncoder().encode(rv))
 
