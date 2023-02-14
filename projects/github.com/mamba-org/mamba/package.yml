@@ -14,33 +14,19 @@ build:
 #FIXME mamba provides sha256 signatures, should we check against them before building?
 # https://github.com/conda-forge/miniforge/releases
   dependencies:
-    curl.se: '*'
+    aria2.github.io: '1.36'
   script: |
     # download mamba installation script
-    if [ -e "mamba.sh" ]; then
-        echo 'File already exists'
-    else
-        curl -Lfo mamba.sh "https://github.com/conda-forge/miniforge/releases/download/22.11.1-4/Mambaforge-22.11.1-4-$PLATFORM.sh" #FIXME UGLY HACK, NEED TO MOVE '-4' TO versions.anytext
-    fi
-
-    sleep 1
-    pwd
-    sleep 1
-    ls
+    aria2c -c -o mamba.sh "https://github.com/conda-forge/miniforge/releases/download/22.11.1-4/Mambaforge-22.11.1-4-$PLATFORM.sh"
 
     # install mamba
     chmod +x mamba.sh
-    ./mamba.sh $ARGS #FIXME when running on gh actions, this fails
-                     # ^ /opt/github.com/mamba-org/mamba/v22.11.1.4/bin/python: bad interpreter: No such file or directory
+    ./mamba.sh $ARGS
 
-    head {{prefix}}/bin/mamba
-    sleep 1
     fix-shebangs.ts {{prefix}}/bin/*
-    sleep 1
-    head {{prefix}}/bin/mamba
 
     # cleanup
-    # rm mamba.sh
+    # rm mamba.sh #FIXME is there any reason to remove this file? For having smaller cache maybe?
 
 
     #FIXME post-install, {{prefix}}/bin should ideally be added to path,
@@ -49,6 +35,13 @@ build:
     # ^ at the moment, I'm not sure whether this should be a default behaviour of tea,
     # ^ or whether it should be up to a user to add the correct path to their shell config.
     # export PATH="${{prefix}}/bin:$PATH"
+    # or
+    #FIXME: add caveats
+    # ^     Please run the following to setup your shell:
+    # ^       conda init "$(basename "${SHELL}")"
+    # ^ OR    mamba init "$(basename "${SHELL}")"
+
+
 
   env:
     # env-dependent vars
@@ -64,27 +57,13 @@ build:
       - -p {{prefix}}      # prefix - where to install #FIXME what if I use a relative link here? will the shebang in `mamba` also become relative?
 
 test: |
-  # ln -s {{prefix}} /opt
-  # ln -s /home/runner/.tea /opt #FIXME because build uses a different folder, need this fixture for test-time
-  # /home/runner/.tea/github.com/mamba-org/mamba/v22.11.1.4/bin/mamba   # test env
-  #              /opt/github.com/mamba-org/mamba/v22.11.1.4/bin/python  # shebang
-  sleep 1 #FIXME this is a hack to wait for the installation to finish
-  pwd
-  sleep 1
-  ls {{prefix}}
-  sleep 1
-  ls {{prefix}}/bin
-  sleep 1
   mamba --version
-  which python #FIXME test that this is mamba-provided python, not system python
-  python -c "print('Hello World!')" #FIXME this should be a proper test
-
+  which python | grep "mamba\-org\/mamba"
+  python --version | grep "3\.10\.9"
 
 provides:
   - bin/mamba #FIXME is this the correct provides?
   - bin/python #FIXME make sure this python does not conflict with https://tea.xyz/+python.org/
 
 
-#FIXME: add caveats
-# ^     Please run the following to setup your shell:
-# ^       conda init "$(basename "${SHELL}")"
+
