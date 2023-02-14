@@ -1,0 +1,34 @@
+distributable:
+  url: https://download.gnome.org/sources/libxslt/{{ version.marketing }}/libxslt-{{ version }}.tar.xz
+  strip-components: 1
+
+versions:
+  github: GNOME/libxslt/tags
+
+dependencies:
+  gnome.org/libxml2: '*'
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }}
+    make install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --without-python  # mysterious build failure in GHA macOS-11
+      - --without-lzma
+      - --without-plugins
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    gnome.org/libxml2: '*'
+  script: |
+    cc `xslt-config --cflags --libs` test.c
+    ./a.out
+provides:
+  - bin/xslt-config
+  - bin/xsltproc
