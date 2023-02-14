@@ -14,7 +14,9 @@ build:
 #FIXME mamba provides sha256 signatures, should we check against them before building?
 # https://github.com/conda-forge/miniforge/releases
   dependencies:
-    aria2.github.io: '1.36'
+    aria2.github.io: '1.36' #FIXME aria2 has more and heavier dependencies than curl
+                            # ^ when this package is more stable and we no longer need fast local iteration,
+                            # ^ look into swapping it for curl
   script: |
     # download mamba installation script
     aria2c -c -o mamba.sh "https://github.com/conda-forge/miniforge/releases/download/22.11.1-4/Mambaforge-22.11.1-4-$PLATFORM.sh"
@@ -54,7 +56,7 @@ build:
       - -b                 # skip interactive - accept all licence agreements
       - -s                 # skip running pre/post-link/install scripts
       - -u                 # update if already installed 
-      - -p {{prefix}}      # prefix - where to install #FIXME what if I use a relative link here? will the shebang in `mamba` also become relative?
+      - -p {{prefix}}      # prefix - where to install
 
 test: |
   mamba --version
@@ -62,8 +64,7 @@ test: |
   python --version | grep "3\.10\.9"
 
 provides:
-  - bin/mamba #FIXME is this the correct provides?
-  - bin/python #FIXME make sure this python does not conflict with https://tea.xyz/+python.org/
-
+  - bin/mamba
+  - bin/python
 
 
