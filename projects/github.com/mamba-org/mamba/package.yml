@@ -8,7 +8,7 @@ distributable:
   strip-components: 1
 
 versions:
-  - "22.11.1.4" # 
+  - "22.11.1.4"
 
 build:
 #FIXME mamba provides sha256 signatures, should we check against them before building?
@@ -23,13 +23,21 @@ build:
         curl -Lfo mamba.sh "https://github.com/conda-forge/miniforge/releases/download/22.11.1-4/Mambaforge-22.11.1-4-$PLATFORM.sh" #FIXME UGLY HACK, NEED TO MOVE '-4' TO versions.anytext
     fi
 
+    sleep 1
     pwd
+    sleep 1
     ls
 
     # install mamba
     chmod +x mamba.sh
     ./mamba.sh $ARGS #FIXME when running on gh actions, this fails
                      # ^ /opt/github.com/mamba-org/mamba/v22.11.1.4/bin/python: bad interpreter: No such file or directory
+
+    head {{prefix}}/bin/mamba
+    sleep 1
+    fix-shebangs.ts {{prefix}}/bin/*
+    sleep 1
+    head {{prefix}}/bin/mamba
 
     # cleanup
     # rm mamba.sh
@@ -57,7 +65,7 @@ build:
 
 test: |
   # ln -s {{prefix}} /opt
-  ln -s /home/runner/.tea /opt #FIXME because build uses a different folder, need this fixture for test-time
+  # ln -s /home/runner/.tea /opt #FIXME because build uses a different folder, need this fixture for test-time
   # /home/runner/.tea/github.com/mamba-org/mamba/v22.11.1.4/bin/mamba   # test env
   #              /opt/github.com/mamba-org/mamba/v22.11.1.4/bin/python  # shebang
   sleep 1 #FIXME this is a hack to wait for the installation to finish
