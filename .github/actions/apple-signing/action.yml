@@ -38,45 +38,45 @@ runs:
         p12-password: ${{ inputs.p12-password }}
 
     # Codesign libs and bins
-    - name: Codesign package
+    - name: Find libs and bins
+      id: find
       shell: bash
       run: |
         for PATH in $PATHS; do
-          LIBS="$(/usr/bin/find $PATH -name '*.so' -or -name '*.dylib')"
+          LIBS="$(/usr/bin/find $PATH -name '*.so' -or -name '*.dylib' -or -name '*.bundle')"
           if test -d $PATH/bin; then
             BINS="$(/usr/bin/find $PATH/bin -type f)"
           fi
-
-          for FILE in $LIBS $BINS; do
-            BASENAME="$(/usr/bin/basename "$FILE")"
-            /usr/bin/codesign -s "$IDENTITY" --force -v --deep --timestamp --preserve-metadata=entitlements -o runtime "$FILE" || true
-          done
         done
+
+        echo -e "files<<EOF\n$LIBS\n$BINS\nEOF" >> $GITHUB_OUTPUT
       env:
         PATHS: ${{ inputs.paths }}
+
+    - name: Codesign files
+      shell: bash
+      run: |
+        echo "$FILES" | /usr/bin/xargs /usr/bin/codesign -s "$IDENTITY" --force -v --deep \
+          --timestamp --preserve-metadata=entitlements -o runtime || true
+      env:
+        FILES: ${{ steps.find.outputs.files }}
         IDENTITY: ${{ inputs.identity }}
 
     # This isn't very informative, but even a no-op is safer than none
     - name: Check codesigning
       shell: bash
       run: |
-        for PATH in $PATHS; do
-          LIBS="$(/usr/bin/find $PATH -name '*.so' -or -name '*.dylib')"
-          if test -d $PATH/bin; then
-            BINS="$(/usr/bin/find $PATH/bin -type f)"
+        for FILE in $FILES; do
+          # FIXME: `deno` compiled binaries don't currently pass validation.
+          # https://github.com/denoland/deno/issues/17753
+          if test "$(/usr/bin/basename "$FILE")" = "tea"; then
+            continue
           fi
-          for SIGNED in $LIBS $BINS; do
-            # FIXME: `deno` compiled binaries don't currently pass validation.
-            # https://github.com/denoland/deno/issues/17753
-            if test "$(/usr/bin/basename "$SIGNED")" = "tea"; then
-              continue
-            fi
 
-            /usr/bin/codesign -vvv --deep --strict "$SIGNED"
-          done
+          /usr/bin/codesign -vvv --deep --strict "$FILE"
         done
       env:
-        PATHS: ${{ inputs.paths }}
+        FILES: ${{ steps.find.outputs.files }}
 
     # Needed for self-hosted runner, since it doesn't destroy itself automatically.
     - name: Delete keychain
