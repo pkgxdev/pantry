@@ -1,0 +1,29 @@
+distributable:
+  url: https://github.com/fukuchi/libqrencode/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: fukuchi/libqrencode/tags
+  strip: /v/
+
+provides:
+  - bin/qrencode
+
+dependencies:
+  libpng.org: '*'
+
+build:
+  dependencies:
+    gnu.org/autoconf: '*'
+    gnu.org/automake: '*'
+    gnu.org/libtool: '*'
+    freedesktop.org/pkg-config: '*'
+  script: |
+    mkdir {{prefix}}/bin
+    ./autogen.sh
+    ./configure --disable-dependency-tracking --prefix={{prefix}}
+    make
+    make install
+
+test: |
+  qrencode 123456789 -o test.png
