@@ -8,19 +8,16 @@ versions:
 dependencies:
   python.org: '>=3.7'
 
-
 build:
   dependencies:
     pip.pypa.io: '*'
     gnu.org/bash: '>=2'  # for our venv/relocation scripts: feel free to fix that
-
   script:
     python-venv.sh {{prefix}}/bin/pipenv
 
-provides:
-  - bin/pipenv
-
 test:
+  env:
+    PIPENV_IGNORE_VIRTUALENVS: true # ignore existing venv and create new one for testing
   script: |
     pipenv --version
     mkdir test
@@ -28,3 +25,5 @@ test:
     pipenv install pycowsay
     pipenv run pycowsay "Hello World"
 
+provides:
+  - bin/pipenv
