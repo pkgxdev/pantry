@@ -1,0 +1,48 @@
+# Tree is a recursive directory listing command that produces a depth indented listing of files, which is colorized
+# brew formula: https://formulae.brew.sh/formula/tree
+
+distributable:
+  url: https://gitlab.com/OldManProgrammer/unix-tree/-/archive/{{version}}/unix-tree-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  - 2.1.0
+
+build:
+  dependencies:
+    tea.xyz/gx/make: '*'
+    linux:
+        gnu.org/gcc: "*"
+    darwin:
+        tea.xyz/gx/cc: c99
+
+
+
+  script: |
+    make
+
+    echo "DESTDIR: $DESTDIR" #LOGGING
+    echo "MANDIR: $MANDIR"   #LOGGING
+
+    make install
+
+  env:
+    DESTDIR:
+      - "{{prefix}}/bin"
+    MANDIR:
+      - "{{prefix}}/man"
+    LDFLAGS:
+      - -s
+    linux:
+      CC: gcc
+      CFLAGS: -O3
+    darwin: #FIXME need to patch this and Makefile to build on OSX
+      CC: cc
+
+
+
+test: |
+  tree --version
+
+provides:
+  - bin/tree
