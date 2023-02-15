@@ -1,0 +1,26 @@
+distributable:
+  url: https://github.com/pre-commit/pre-commit/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+# if there’s a github then we can parse the versions
+versions:
+  github: pre-commit/pre-commit/releases/tags  # reads github *releases* but uses the tags of those releases
+  strip: /^v/
+
+dependencies:
+  python.org: '>=3.7'
+
+build:
+  dependencies:
+    mamba: '*'
+  script:
+    python-venv.sh {{prefix}}/bin/pre-commit
+
+provides:
+  - bin/pre-commit
+
+test:
+  script:
+    test "$(pre-commit --version)" = {{version}}
+  # ^^ we prefer that you test the functionality of the package works, but
+  # we know tests are tedious, so will (for now) accept a simple version check
