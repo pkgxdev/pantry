@@ -22,6 +22,13 @@ test:
     pipenv --version
     mkdir test
     cd test
+
+    # delete old venv if it exists (relevant for self-hosted testing rigs)
+    # otherwise pipenv fails (https://github.com/pypa/pipenv/issues/5052#issuecomment-1108872335)
+    if pipenv --venv; then
+        rm -rf $(pipenv --venv)
+    fi
+
     pipenv install pycowsay
     pipenv run pycowsay "Hello World"
 
