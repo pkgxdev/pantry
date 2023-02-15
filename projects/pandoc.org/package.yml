@@ -24,11 +24,17 @@ build:
     haskell.org/cabal: ^3
   script: |-
     cabal update
+    mkdir -p {{prefix}}/bin
     cabal install $ARGS
   env:
     ARGS:
       - --install-method=copy
       - --installdir={{prefix}}/bin
+      - --jobs={{hw.concurrency}}
+    linux:
+      ARGS:
+        # else segfaults
+        - --enable-relocatable
 
 test:
   fixture: |
