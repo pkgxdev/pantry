@@ -1,4 +1,4 @@
-#include <libxml/tree.h>
+#include <libxml/parser.h>
 #include <libxslt/xslt.h>
 #include <libxslt/xsltInternals.h>
 
