@@ -27,8 +27,10 @@ test:
     tea.xyz/gx/cc: c99
     gnome.org/libxml2: '*'
   script: |
-    cc `xslt-config --cflags --libs` test.c
+    cc `xslt-config --cflags --libs` test.c $CFLAGS
     ./a.out
+  env:
+    CFLAGS: -I{{pkgs.gnome.org/libxml2.prefix}}/include
 provides:
   - bin/xslt-config
   - bin/xsltproc
