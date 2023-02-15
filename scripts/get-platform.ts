@@ -10,15 +10,16 @@ args:
 ---*/
 
 import { panic } from "utils"
-import { Package, PackageRequirement } from "types"
-import * as ARGV from "./utils/args.ts"
 
-const exceptions: { [project: string]: number } = {
-  "deno.land": 4,
-  "ziglang.org": 8,
-}
+// These are only needed if we switch back to GHA runners
 
-const packages = await ARGV.toArray(ARGV.pkgs())
+// const exceptions: { [project: string]: number } = {
+//   "deno.land": 4,
+//   "ziglang.org": 8,
+// }
+
+// const packages = await ARGV.toArray(ARGV.pkgs())
+
 type Output = {
   os: OS,
   buildOs: OS,
@@ -40,12 +41,10 @@ const cacheSets = {
 const output: Output = (() => {
   switch(platform) {
   case "darwin+x86-64": {
-    // Using GHA resources for now, until we resolve network issues with our runners
-    // buildOs: ["self-hosted", "macOS", "X64"]
     const os = "macos-11"
     return {
       os,
-      buildOs: os,
+      buildOs: ["self-hosted", "macOS", "X64"],
       testMatrix: [{ os }],
       cacheSet: cacheSets["darwin"]
     }
@@ -69,14 +68,13 @@ const output: Output = (() => {
     }
   }
   case "linux+x86-64": {
-    // Using GHA resources for now, until we resolve network issues with our runners
-    // buildOs: ["self-hosted", "linux", "X64"]
-    // testMatrix.push({ os: buildOs, container: undefined })
+    // buildOs: sizedUbuntu(packages),
     const os = "ubuntu-latest"
     const container = "ghcr.io/teaxyz/infuser:latest"
-    return { os,
-      buildOs: sizedUbuntu(packages),
-      container,
+    return {
+      os,
+      buildOs: ["self-hosted", "linux", "X64"],
+      // container,
       testMatrix: [
         { os },
         { os, container },
@@ -102,14 +100,16 @@ if (Deno.env.get("GITHUB_OUTPUT")) {
   await Deno.writeTextFile(envFile, rv, { append: true})
 }
 
-function sizedUbuntu(packages: (Package | PackageRequirement)[]): string {
-  const size = Math.max(2, ...packages.map(p => exceptions[p.project] ?? 2))
+// Leaving this in case we need to switch back to GHA runners
 
-  if (size == 2) {
-    return "ubuntu-latest"
-  } else if ([4, 8, 16].includes(size)) {
-    return `ubuntu-latest-${size}-cores`
-  } else {
-    panic(`Invalid size: ${size}`)
-  }
-}
+// function sizedUbuntu(packages: (Package | PackageRequirement)[]): string {
+//   const size = Math.max(2, ...packages.map(p => exceptions[p.project] ?? 2))
+
+//   if (size == 2) {
+//     return "ubuntu-latest"
+//   } else if ([4, 8, 16].includes(size)) {
+//     return `ubuntu-latest-${size}-cores`
+//   } else {
+//     panic(`Invalid size: ${size}`)
+//   }
+// }
