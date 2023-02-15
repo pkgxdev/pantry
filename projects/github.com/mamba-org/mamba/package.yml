@@ -11,13 +11,14 @@ versions:
   - "22.11.1.4"
 
 build:
-#FIXME mamba provides sha256 signatures, should we check against them before building?
-# https://github.com/conda-forge/miniforge/releases
   dependencies:
-    aria2.github.io: '1.36' #FIXME aria2 has more and heavier dependencies than curl
+    aria2.github.io: '1.36' #FIXME aria2 has heavier dependencies than curl,
                             # ^ when this package is more stable and we no longer need fast local iteration,
                             # ^ look into swapping it for curl
   script: |
+    #FIXME mamba provides sha256 signatures, should we check against them before building?
+    #      ^ https://github.com/conda-forge/miniforge/releases
+
     # download mamba installation script
     aria2c -c -o mamba.sh "https://github.com/conda-forge/miniforge/releases/download/22.11.1-4/Mambaforge-22.11.1-4-$PLATFORM.sh"
 
@@ -27,19 +28,10 @@ build:
 
     fix-shebangs.ts {{prefix}}/bin/*
 
-    #FIXME post-install, {{prefix}}/bin should ideally be added to path,
-    # ^ because that's the point of using mamba: you do a `mamba install pkg_name` 
-    # ^ and then you should be able to use `pkg_name` in your shell.
-    # ^ at the moment, I'm not sure whether this should be a default behaviour of tea,
-    # ^ or whether it should be up to a user to add the correct path to their shell config.
-    # export PATH="${{prefix}}/bin:$PATH"
-    # or
     #FIXME: add caveats
     # ^     Please run the following to setup your shell:
     # ^       conda init "$(basename "${SHELL}")"
     # ^ OR    mamba init "$(basename "${SHELL}")"
-
-
 
   env:
     # env-dependent vars
@@ -56,10 +48,11 @@ build:
 
 test: |
   mamba --version
-  which python | grep "mamba\-org\/mamba"
-  python --version | grep "3\.10\.9"
+  whereis mamba  | grep 'mamba-org/mamba'
+
+  python --version
+  whereis python | grep 'mamba-org/mamba'
 
 provides:
+  - condabin/conda
   - bin/mamba
-  - bin/conda
-
