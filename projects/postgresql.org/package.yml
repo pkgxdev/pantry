@@ -1,0 +1,92 @@
+# this is a basic template for packages we strongly recommend looking at the
+# contents of both:
+#
+# * https://github.com/teaxyz/pantry.core
+# * https://github.com/teaxyz/pantry.extra
+#
+# as a learning guide and reference. For example, if you are package a `go`
+# project, then browse the listings and find a go package.
+
+
+# this is the source tarball. Swap the version out for {{version}} or we won’t
+# be able to upgrade the package when it updates!
+distributable:
+   url: https://github.com/postgres/postgres/archive/refs/tags/REL_{{version.major}}_{{version.minor}}.tar.gz
+   # this obscure option dictates how many components are removed from the
+   # extracted tarball. It only works with tarballs. You almost always want
+   # `1`. If after extraction the src-directory is funky try `0` or `2`.
+   strip-components: 1
+
+# if there’s a github then we can parse the versions
+versions:
+  # if the repo has a github then we can parse versions
+  # this should be one of these (remove the rest or the YAML won’t parse)
+  # github: postgres/postgres/tags  # reads github tags from github
+
+  # # often maintainers prepend or append junk, this can be an array of regexes
+  # strip: /^v/
+  - 15.2
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/readline: '*'
+    openssl.org: ^1.0.1
+    zlib.net: '*'
+    # ^^ often packages need dependencies to build, it is very common for
+    # packages to need a C compiler and make, the above provide those
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }}
+    make install
+  # it’s extremely common for packages to require the above
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --with-ssl=openssl
+
+provides:
+  - bin/clusterdb
+  - bin/createdb
+  - bin/dropdb
+  - bin/dropuser
+  - bin/ecpg
+  - bin/initdb
+  - bin/pg_amcheck
+  - bin/pg_archivecleanup
+  - bin/pg_basebackup
+  - bin/pg_config
+  - bin/pg_controldata
+  - bin/pg_ctl
+  - bin/pg_dump
+  - bin/pg_dumpall
+  - bin/pg_isready
+  - bin/pg_receivewal
+  - bin/pg_recvlogical
+  - bin/pg_resetwal
+  - bin/pg_restore
+  - bin/pg_rewind
+  - bin/pg_test_fsync
+  - bin/pg_test_timing
+  - bin/pg_upgrade
+  - bin/pg_verifybackup
+  - bin/pg_waldump
+  - bin/pgbench
+  - bin/postgres
+  - bin/psql
+  - bin/reindexdb
+  - bin/vacuumdb
+  # ^^ specify the binaries or tea magic won’t work
+
+test:
+  script: |
+    mkdir -p ./data
+    initdb -D ./data
+    pg_ctl -D ./data -l logfile start
+    createdb test
+    psql -c 'create table test (id int);' test
+    dropdb test
+    pg_ctl -D ./data stop
+  # ^^ we prefer that you test the functionality of the package works, but
+  # we know tests are tedious, so will (for now) accept a simple version check
