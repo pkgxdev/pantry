@@ -3,7 +3,8 @@ distributable:
   strip-components: 1
 
 versions:
-  - 2023.2.4
+  github: pypa/pipenv/releases/tags  # reads github *releases* but uses the tags of those releases
+  strip: /^v/
 
 dependencies:
   python.org: '>=3.7'
@@ -19,9 +20,9 @@ test:
   env:
     PIPENV_IGNORE_VIRTUALENVS: true # ignore existing venv and create new one for testing
   script: |
-    pipenv --version
-    mkdir test
-    cd test
+    test "$(pipenv --version)" = "pipenv, version {{version}}"
+    mkdir -p tmp_test
+    cd tmp_test
 
     # delete old venv if it exists (relevant for self-hosted testing rigs)
     # otherwise pipenv fails (https://github.com/pypa/pipenv/issues/5052#issuecomment-1108872335)
