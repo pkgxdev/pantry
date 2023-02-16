@@ -32,5 +32,20 @@ build:
       - -DCMAKE_INSTALL_PREFIX="{{ prefix }}"
       - -DCMAKE_BUILD_TYPE=Release
 
-#FIXME
-test: true
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    freedesktop.org/pkg-config: ^0.29
+  script: |
+    mv $FIXTURE test.c
+    cc -o test test.c $(pkg-config --cflags --libs freetype2)
+    ./test
+  fixture: |
+    #include <ft2build.h>
+    #include FT_FREETYPE_H
+
+    FT_Library  library;
+
+    int main() {
+      return FT_Init_FreeType( &library );
+    }
