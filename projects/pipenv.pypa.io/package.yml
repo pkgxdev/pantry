@@ -1,0 +1,37 @@
+distributable:
+  url: https://github.com/pypa/pipenv/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: pypa/pipenv/releases/tags  # reads github *releases* but uses the tags of those releases
+  strip: /^v/
+
+dependencies:
+  python.org: '>=3.7'
+
+build:
+  dependencies:
+    pip.pypa.io: '*'
+    gnu.org/bash: '>=2'  # for our venv/relocation scripts: feel free to fix that
+  script:
+    python-venv.sh {{prefix}}/bin/pipenv
+
+test:
+  env:
+    PIPENV_IGNORE_VIRTUALENVS: true # ignore existing venv and create new one for testing
+  script: |
+    test "$(pipenv --version)" = "pipenv, version {{version}}"
+    mkdir -p tmp_test
+    cd tmp_test
+
+    # delete old venv if it exists (relevant for self-hosted testing rigs)
+    # otherwise pipenv fails (https://github.com/pypa/pipenv/issues/5052#issuecomment-1108872335)
+    if pipenv --venv; then
+        rm -rf $(pipenv --venv)
+    fi
+
+    pipenv install pycowsay
+    pipenv run pycowsay "Hello World"
+
+provides:
+  - bin/pipenv
