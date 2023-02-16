@@ -26,11 +26,11 @@ jobs:
           SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
           SLACK_MESSAGE: new-version:${{ inputs.projects }} (${{ inputs.platform }}) ${{ steps.status.outputs.status }}
           SLACK_COLOR: ${{ steps.status.outputs.status }}
-      - run: echo ${{ env.GITHUB_REF_NAME }}
+      - run: env | grep ^GITHUB
       - uses: actions/checkout@v3
-        if: env.GITHUB_REF_NAME == 'main'
+        if: endsWith(env.GITHUB_REF, '/main')
       - uses: JasonEtco/create-an-issue@v2
-        if: env.GITHUB_REF_NAME == 'main'
+        if: endsWith(env.GITHUB_REF, '/main')
         with:
           filename: ./.github/NEW_VERSION_ISSUE_TEMPLATE.md
         env:
