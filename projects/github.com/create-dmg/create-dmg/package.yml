@@ -9,12 +9,16 @@ versions:
 provides:
   - bin/create-dmg
 
-dependencies:
-  tea.xyz/gx/cc: c99
-  tea.xyz/gx/make: '*'
-
 build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
   script: |
+    if test "{{hw.platform}}" != "darwin"; then
+      echo "libbsd is only supported on mac"
+      touch {{prefix}}/mac-only
+      exit 0
+    fi
     mkdir -p {{prefix}}/bin
     cp create-dmg {{prefix}}/bin
     mkdir -p {{prefix}}/share/create-dmg
@@ -22,9 +26,11 @@ build:
     cp -r tests {{prefix}}/share/create-dmg
     cp -r examples {{prefix}}/share/create-dmg
 test: |
-  create-dmg --version
-  touch Brew-Eula.txt
-  echo "Eula" >> Brew-Eula.txt
-  mkdir -p Test-Source
-  mkdir -p Test-Source/Brew.app
-  create-dmg --sandbox-safe --eula Brew-Eula.txt Brew-Test.dmg Test-Source
+  if test "{{hw.platform}}" = "darwin"; then
+    create-dmg --version
+    touch Brew-Eula.txt
+    echo "Eula" >> Brew-Eula.txt
+    mkdir -p Test-Source
+    mkdir -p Test-Source/Brew.app
+    create-dmg --sandbox-safe --eula Brew-Eula.txt Brew-Test.dmg Test-Source
+  fi
