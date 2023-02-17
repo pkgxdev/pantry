@@ -16,15 +16,12 @@ build:
     gnu.org/gettext: ^0.21
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
+    gnu.org/patch: '*'
   script: |
+    patch -p1 < props/mkconfig.rb.diff
+
     ./configure --prefix="{{prefix}}" --enable-load-relative --disable-rubygems
     make --jobs {{hw.concurrency}} install
-
-    cd "{{prefix}}/lib/ruby/{{version.major}}.{{version.minor}}.0/rubygems"
-
-    # use the GEM_PATH we want
-    sed -i.bak -e 's;@default_dir ||=.*;@default_dir ||= File.expand_path(File.join(__FILE__, "../../../../../../gems", RbConfig::CONFIG["ruby_version"]));' defaults.rb
-    rm defaults.rb.bak
 
     cd "{{prefix}}/bin"
 
@@ -36,6 +33,19 @@ build:
     for shim in $shims; do
       sed -i.bak -e 's_#!{{prefix}}/bin/ruby_#!/usr/bin/env ruby_' $shim
       rm $shim.bak
+    done
+
+    cd ../lib/ruby/{{version.major}}.{{version.minor}}.0
+
+    # ruby itself provides the gems for these and we don’t want that
+    # we want to pkg them ourselves as part of rubygems.org
+    for x in bundler rubygems bundler.rb rubygems.rb; do
+      if test -d $x; then
+        rm -rf $x
+      else
+        rm $x
+      fi
+      ln -s ../../../../rubygems.org/v\*/lib/$x
     done
   env:
     shims:
@@ -54,9 +64,12 @@ test:
     tea.xyz/gx/make: '*'
   script: |
     ruby -e 'puts "Hello World!"'
-    gem install hexapdf -v 0.28.0
-    hexapdf version
+    gem install hexapdf -v 0.28.0 --bindir=. --no-user-install
+    ./hexapdf version
     test -d "{{tea.prefix}}"/ruby-lang.org/gems/{{version.major}}.{{version.minor}}.0/gems/hexapdf-0.28.0
+    gem install bundle
+    test -d ~/.gem/ruby/{{version.major}}.{{version.minor}}.0/gems/bundle-0.0.1
+    test -f ~/.local/bin/bundle
 
 provides:
   - bin/erb

@@ -9,18 +9,31 @@ dependencies:
   ruby-lang.org: '>=2.3'
 
 build:
+  dependencies:
+    gnu.org/patch: '*'
   script: |
-    ruby setup.rb --prefix={{prefix}} --env-shebang
+    ruby setup.rb --prefix={{prefix}} --env-shebang --no-ri --no-rdoc
+    cd "{{prefix}}"
+    patch -p1 < "$SRCROOT"/props/fit-n-finish.patch
+
+runtime:
+  env:
+    # HACK that is only required for this ruby package
+    # since we cannot use `gem` to build `gem` itself
+    RUBYLIB: ${{prefix}}/lib
 
 test:
   dependencies:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
+  env:
+    HOME: $PWD
   script: |
     gem install awesome_print
     ruby -e 'require "rubygems"' -e 'require "awesome_print"' -e'ap $LOAD_PATH'
+    #TODO test -d ~/.gem/ruby/{{deps.ruby.version.major}}.{{deps.ruby.version.minor}}.0/gems/hexapdf-0.28.0
     gem install hexapdf
-    hexapdf version
+    ~/.local/bin/hexapdf version
 
 provides:
   - bin/bundle
