@@ -9,14 +9,18 @@ versions:
 provides:
   - bin/create-dmg
 
-build:
-  dependencies:
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
-  script: |
-    make
-    make install prefix={{prefix}}
+dependencies:
+  tea.xyz/gx/cc: c99
+  tea.xyz/gx/make: '*'
 
+build:
+  script: |
+    mkdir -p {{prefix}}/bin
+    cp create-dmg {{prefix}}/bin
+    mkdir -p {{prefix}}/share/create-dmg
+    cp -r support {{prefix}}/share/create-dmg
+    cp -r tests {{prefix}}/share/create-dmg
+    cp -r examples {{prefix}}/share/create-dmg
 test: |
   create-dmg --version
   touch Brew-Eula.txt
