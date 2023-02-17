@@ -13,18 +13,15 @@ dependencies:
   tea.xyz/gx/cc: c99
 
 build:
+  dependencies:
+    tea.xyz/gx/make: '*'
   script: |
     if test "{{hw.platform}}" != "darwin"; then
       mkdir -p {{prefix}}
       echo "create-dmg is only supported on mac" >> {{prefix}}/mac-only
       exit 0
     fi
-    mkdir -p {{prefix}}/bin
-    cp create-dmg {{prefix}}/bin
-    mkdir -p {{prefix}}/share/create-dmg
-    cp -r support {{prefix}}/share/create-dmg
-    cp -r tests {{prefix}}/share/create-dmg
-    cp -r examples {{prefix}}/share/create-dmg
+    make prefix={{prefix}} install
 test: |
   if test "{{hw.platform}}" = "darwin"; then
     create-dmg --version
