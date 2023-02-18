@@ -18,6 +18,8 @@ versioned.
 
 # Contributing
 
+Assuming you have tea+magic installed:
+
 ```sh
 $ git clone https://github.com/teaxyz/pantry.extra
 
@@ -33,8 +35,8 @@ $ pkg edit
 # ^^ opens the new package.yml in your EDITOR
 
 $ pkg build
-# ^^ will probably require a (zero permissions) GitHub [PAT].
-# using `gh auth login` is the easiest way to set this up.
+# ^^ needs a zero permissions GITHUB_TOKEN to use the GitHub API
+# either set `GITHUB_TOKEN` or run `gh auth login`
 
 $ pkg test
 # ^^ you need to write a test that verifies the package works
@@ -44,6 +46,10 @@ $ git branch -m my-new-package
 $ git push origin my-new-package
 $ gh pr create
 ```
+
+> `pkg` can be run without magic via `tea -E pkg` (this dev-env provides `+tea.xyz/brewkit`).
+> `gh` can be run without magic via `tea gh`.
+> `git` can be run without magic via `tea git`.
 
 ## Packaging Guide
 
@@ -67,7 +73,7 @@ submit PRs for updates.
 
 | Project         | Version |
 |-----------------|---------|
-| tea.xyz/brewkit | ^0.2    |
+| tea.xyz/brewkit | ^0.3    |
 
 
 [pantry.zero]: https://github.com/teaxyz/pantry.zero
