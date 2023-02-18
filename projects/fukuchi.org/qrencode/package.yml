@@ -22,13 +22,15 @@ build:
     gnu.org/libtool: '*'
     freedesktop.org/pkg-config: '*'
   script: |
-    export CPPFLAGS=`pkg-config --cflags libpng`
-    export LDFLAGS=`pkg-config --libs libpng`
-
     ./autogen.sh
-    ./configure --prefix="{{prefix}}"
+    ./configure $ARGS
     echo '#define VERSION "{{version}}"' >> config.h
     make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+    CPPFLAGS: $(pkg-config --cflags libpng)
+    LDFLAGS: $(pkg-config --libs libpng)
 
 test: |
   qrencode 123456789 -o test.png
