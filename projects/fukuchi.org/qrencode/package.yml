@@ -25,10 +25,11 @@ build:
     ./autogen.sh
     ./configure $ARGS
     echo '#define VERSION "{{version}}"' >> config.h
-    make --jobs {{ hw.concurrency }} install
+    make install
   env:
     ARGS:
-      - --prefix="{{prefix}}"
+      - --prefix={{prefix}}
+      - --libdir={{prefix}}/lib
     CFLAGS: $(pkg-config --cflags libpng)
     LDFLAGS: $(pkg-config --libs libpng)
 
