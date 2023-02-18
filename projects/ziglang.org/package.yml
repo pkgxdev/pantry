@@ -1,0 +1,40 @@
+distributable:
+  url: https://github.com/ziglang/zig/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: ziglang/zig/tags
+
+dependencies:
+  zlib.net: ^1
+
+build:
+  dependencies:
+    cmake.org: '>=2.8.12'
+    llvm.org: ^15 # v0.10.0
+    tea.xyz/gx/make: '*'
+    invisible-island.net/ncurses: 6
+  working-directory: build
+  script: |
+    cmake .. $ARGS
+    make install
+  env:
+    ARGS:
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DZIG_STATIC_LLVM=ON
+
+test:
+  script: |
+    cp $FIXTURE hello.zig
+    zig build-exe hello.zig
+    ./hello
+  fixture: |
+      const std = @import("std");
+      pub fn main() !void {
+          const stdout = std.io.getStdOut().writer();
+          try stdout.print("Hello, world!", .{});
+      }
+
+provides:
+  - bin/zig
