@@ -18,6 +18,8 @@ versioned.
 
 # Contributing
 
+Assuming you have tea+magic installed:
+
 ```sh
 $ git clone https://github.com/teaxyz/pantry.core
 
@@ -43,6 +45,11 @@ $ git branch -m my-new-package
 $ git push origin my-new-package
 $ gh pr create
 ```
+
+> `pkg` can be run without magic via `tea -E pkg` (this dev-env provides `+tea.xyz/brewkit`).
+> `gh` can be run without magic via `tea gh`.
+> `git` can be run without magic via `tea git`.
+
 
 ## Packaging Guide
 
