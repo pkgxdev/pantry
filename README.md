@@ -47,7 +47,7 @@ $ git push origin my-new-package
 $ gh pr create
 ```
 
-> `pkg` can be run without magic via `tea +tea.xyz/brewkit pkg`.
+> `pkg` can be run without magic via `tea -E pkg` (this dev-env provides `+tea.xyz/brewkit`).
 > `gh` can be run without magic via `tea gh`.
 > `git` can be run without magic via `tea git`.
 
@@ -73,7 +73,7 @@ submit PRs for updates.
 
 | Project         | Version |
 |-----------------|---------|
-| tea.xyz/brewkit | ^0.2    |
+| tea.xyz/brewkit | ^0.3    |
 
 
 [pantry.zero]: https://github.com/teaxyz/pantry.zero
