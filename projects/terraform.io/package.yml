@@ -28,4 +28,8 @@ build:
       - -buildmode=pie
 
 test:
-  terraform --version
+  script: |
+    terraform init
+    terraform apply --auto-approve
+    out=$(terraform output fixture)
+    test "$out" = '"Hello, World!"'
