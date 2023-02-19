@@ -1,0 +1,44 @@
+distributable:
+  url: https://github.com/pre-commit/pre-commit/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: pre-commit/pre-commit/releases/tags
+  strip: /^v/
+
+dependencies:
+  python.org: '>=3.8'
+
+build:
+  dependencies:
+    pip.pypa.io: '*'
+  script:
+    python-venv.sh {{prefix}}/bin/pre-commit
+
+provides:
+  - bin/pre-commit
+
+test:
+  dependencies:
+    git-scm.org: '*'
+  env:
+    GIT_AUTHOR_NAME : "test user"
+    GIT_AUTHOR_EMAIL : "test@example.com"
+    GIT_COMMITTER_NAME : "test user"
+    GIT_COMMITTER_EMAIL : "test@example.com"
+  script: |
+    test "$(pre-commit --version)" = "pre-commit {{version}}"
+    git config --global init.defaultBranch main # get rid of the warning
+    git init
+    mv $FIXTURE .pre-commit-config.yaml
+    pre-commit install
+    echo 'hi\n' > f.txt
+    git add f.txt
+    git commit f.txt -m "test"
+  fixture: |
+    repos:
+    -   repo: https://github.com/pre-commit/pre-commit-hooks
+        rev: v0.9.1
+        hooks:
+        -   id: trailing-whitespace
+
