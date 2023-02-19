@@ -32,5 +32,9 @@ build:
     CFLAGS: $(pkg-config --cflags libpng)
     LDFLAGS: $(pkg-config --libs libpng)
 
-test: |
-  qrencode 123456789 -o test.png
+test:
+  dependencies:
+    imagemagick.org: '*'
+  script: |
+    qrencode 123456789 -o test.png
+    test "$(identify test.png)" = "test.png PNG 87x87 87x87+0+0 8-bit sRGB 293B 0.000u 0:00.000"
