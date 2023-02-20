@@ -1,0 +1,36 @@
+distributable:
+  url: https://github.com/PCRE2Project/pcre2/releases/download/pcre2-{{version.major}}.{{version.minor}}/pcre2-{{version.major}}.{{version.minor}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: PCRE2Project/pcre2/tags  # reads github tags from github
+  strip: /^pcre2-/
+
+dependencies:
+  sourceware.org/bzip2: 1
+  zlib.net: 1
+  
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }}
+    make install
+  env: 
+    ARGS:
+      - --prefix={{ prefix }}
+      - --enable-pcre2-16
+      - --enable-pcre2-32
+      - --enable-pcre2grep-libz
+      - --enable-pcre2grep-libbz2
+      - --enable-jit
+
+provides:
+  - bin/pcre2-config
+  - bin/pcre2grep
+  - bin/pcre2test
+
+test:
+  script: pcre2grep "regular expression" {{ prefix }}/share/doc/pcre2/README
