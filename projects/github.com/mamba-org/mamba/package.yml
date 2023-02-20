@@ -57,15 +57,15 @@ test:
     # check that we run mamba-provided python
     which python | grep '{{prefix}}/bin/python'
 
+    # now install a small package and try running it
+    mamba install isodate --yes
+    python -c "import isodate"
+
 
     # should return nothing
     # test that relocatable paths from build env were all fixed
     export out="$(grep -r '/opt/github.com/mamba-org/mamba' {{prefix}})"
     test "$out" = '' 
-
-    # now install a small package and try running it
-    mamba install isodate --yes
-    python -c "import isodate"
 
 provides:
   - condabin/conda
