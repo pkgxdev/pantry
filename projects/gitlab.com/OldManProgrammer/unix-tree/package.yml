@@ -20,29 +20,43 @@ build:
 
   script: |
     make
-
-    echo "DESTDIR: $DESTDIR" #LOGGING
-    echo "MANDIR: $MANDIR"   #LOGGING
-
-    make install
+    make $ARGS install
 
   env:
-    DESTDIR:
-      - "{{prefix}}/bin"
-    MANDIR:
-      - "{{prefix}}/man"
+    ARGS:
+      - PREFIX={{prefix}}
     LDFLAGS:
       - -s
     linux:
       CC: gcc
       CFLAGS: -O3
+
     darwin: #FIXME need to patch this and Makefile to build on OSX
       CC: cc
+      CFLAGS: -O2 -Wall -fomit-frame-pointer -no-cpp-precomp
 
 
 
-test: |
-  tree --version
+
+test:
+  script: |
+    # prepare for tests
+    mkdir -p foo/bar
+    mkdir -p foo/buzz
+    touch foo/buzz/lupus.txt
+    # run tests
+    tree --version | grep 'tree v{{version}}'
+    test "$(tree .)" = "$(cat $FIXTURE)"
+  fixture: |
+    .
+    ├── foo
+    │   ├── bar
+    │   └── buzz
+    │       └── lupus.txt
+    ├── xyz.tea.fixture
+    └── xyz.tea.test.sh
+
+    4 directories, 3 files
 
 provides:
   - bin/tree
