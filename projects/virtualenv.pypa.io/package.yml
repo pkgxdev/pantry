@@ -1,0 +1,37 @@
+distributable:
+  url: https://codeload.github.com/pypa/virtualenv/tar.gz/refs/tags/{{version}}
+  strip-components: 1
+
+versions:
+  github: pypa/virtualenv/releases/tags  # reads github *releases* but uses the tags of those releases
+  strip: /^v/
+
+dependencies:
+  python.org: '>=3.7'
+  pip.pypa.io: '*'
+
+
+build:
+  script:
+    #python-venv.sh {{prefix}}/bin/virtualenv
+    pip install -e .
+
+test:
+  script: |
+    # verify version
+    echo "$(virtualenv --version)" | grep "^virtualenv {{version}}"
+
+    # create venv in venv_dir
+    virtualenv venv_dir
+    WANT=$(venv_dir/bin/python -c 'import sys; print(sys.prefix)')
+    source venv_dir/bin/activate
+    test $WANT=$VIRTUAL_ENV # verify that venv activates successfully
+
+    pip install pycowsay # install a package inside the venv
+
+    deactivate # exit venv
+    venv_dir/bin/pycowsay "All tests pass!" # verify that pycowsay was installed inside the vm
+
+
+provides:
+  - bin/virtualenv
