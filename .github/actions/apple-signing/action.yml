@@ -11,7 +11,7 @@ inputs:
     description: Identity to use for signing
     required: true
   paths:
-    description: Paths to search for libs/bins sign
+    description: Paths to search for files to sign
     required: true
 
 runs:
@@ -37,49 +37,35 @@ runs:
         p12-file-base64: ${{ inputs.p12-file-base64 }}
         p12-password: ${{ inputs.p12-password }}
 
-    # Codesign libs and bins
-    - name: Find libs and bins
-      id: find
-      shell: bash
-      run: |
-        for PATH in $PATHS; do
-          LIBS="$(/usr/bin/find $PATH -name '*.so' -or -name '*.dylib' -or -name '*.bundle')"
-          if test -d $PATH/bin; then
-            BINS="$(/usr/bin/find $PATH/bin -type f)"
-          fi
-        done
-
-        echo -e "files<<EOF\n$LIBS\n$BINS\nEOF" >> $GITHUB_OUTPUT
-      env:
-        PATHS: ${{ inputs.paths }}
 
     - name: Codesign files
-      shell: bash
+      shell: sh
       run: |
-        echo "$FILES" | /usr/bin/xargs /usr/bin/codesign -s "$IDENTITY" --force -v --deep \
-          --timestamp --preserve-metadata=entitlements -o runtime || true
+        find $PATHS -type f -print0 | \
+          xargs -0 /usr/bin/codesign -s "$IDENTITY" --force -v \
+          --timestamp || true
       env:
-        FILES: ${{ steps.find.outputs.files }}
+        PATHS: ${{ inputs.paths }}
         IDENTITY: ${{ inputs.identity }}
 
     # This isn't very informative, but even a no-op is safer than none
     - name: Check codesigning
-      shell: bash
+      shell: sh
       run: |
-        for FILE in $FILES; do
+        for FILE in $(find $PATHS -type f); do
           # FIXME: `deno` compiled binaries don't currently pass validation.
           # https://github.com/denoland/deno/issues/17753
-          if test "$(/usr/bin/basename "$FILE")" = "tea"; then
+          if test "$(basename "$FILE")" = "tea"; then
             continue
           fi
 
-          /usr/bin/codesign -vvv --deep --strict "$FILE"
+          codesign -vvv --strict "$FILE"
         done
       env:
-        FILES: ${{ steps.find.outputs.files }}
+        PATHS: ${{ inputs.paths }}
 
     # Needed for self-hosted runner, since it doesn't destroy itself automatically.
     - name: Delete keychain
       if: always()
-      shell: bash
-      run: /usr/bin/security delete-keychain signing_temp.keychain
+      shell: sh
+      run: security delete-keychain signing_temp.keychain
