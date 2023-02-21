@@ -4,7 +4,6 @@ distributable:
 
 provides:
   - bin/tre
-  - bin/tree
 
 versions:
   github: dduan/tre/tags
@@ -20,10 +19,6 @@ build:
   script: |
     cargo install --locked --path . --root {{prefix}}
 
-    # alias tree to tre
-    cd {{prefix}}/bin
-    ln -sf tre tree
-
 test:
   script: |
     # prepare for tests
@@ -35,7 +30,6 @@ test:
     test "$(tre --version)"='tre-command {{version}}'
     test "$(tre)" = '.'                               # by default tre follows the .gitignore, so this would be empty at test directory
     test "$(tre --all)" = "$(cat $FIXTURE)"           # check that output matches fixture
-    test "$(tree --version)" = "$(tre --version)"     # check that tree is aliased to tre correctly
 
   fixture: |
     .
