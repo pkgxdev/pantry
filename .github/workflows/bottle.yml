@@ -75,22 +75,9 @@ jobs:
       - run: tar xzvf artifacts.tgz
 
       - run: |
-          for file in built relative-paths srcs; do
+          for file in built srcs; do
             echo "$file=$(cat $file)" >>$GITHUB_ENV
           done
-
-      - uses: actions/checkout@v3
-        if: startsWith(inputs.platform, 'darwin+')
-        with:
-          path: pantry
-          repository: teaxyz/pantry.core
-      - uses: ./pantry/.github/actions/apple-signing
-        if: startsWith(inputs.platform, 'darwin+')
-        with:
-            p12-file-base64: ${{ secrets.APPLE_CERTIFICATE_P12 }}
-            p12-password: ${{ secrets.APPLE_CERTIFICATE_P12_PASSWORD }}
-            identity: "Developer ID Application: Tea Inc. (7WV56FL599)"
-            paths: ${{ env.relative-paths}}
 
       - run: |
           tea +gnupg.org gpg-agent --daemon || true

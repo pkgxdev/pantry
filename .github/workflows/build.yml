@@ -72,11 +72,28 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           FORCE_UNSAFE_CONFIGURE: 1  # some configure scripts refuse to run as root
 
+      - run: |
+          ABS_PATHS=$(echo $PATHS | tr ' ' '\n' | sed -e "s_^_$TEA_PREFIX/_" | tr '\n' ' ')
+          echo "paths=$ABS_PATHS" >> $GITHUB_OUTPUT
+        if: startsWith(inputs.platform, 'darwin+')
+        id: absolute-paths
+        env:
+          PATHS: ${{ steps.build.outputs.relative-paths }}
+          TEA_PREFIX: ${{ steps.tea.outputs.prefix }}
+
+      # sign macOS binaries
+      - uses: teaxyz/pantry.core/.github/actions/apple-signing@main
+        if: startsWith(inputs.platform, 'darwin+')
+        with:
+            p12-file-base64: ${{ secrets.APPLE_CERTIFICATE_P12 }}
+            p12-password: ${{ secrets.APPLE_CERTIFICATE_P12_PASSWORD }}
+            identity: "Developer ID Application: Tea Inc. (7WV56FL599)"
+            paths: ${{ steps.absolute-paths.outputs.paths }}
+
       # cache data we'll need in the bottling job
       - name: assemble artifact metadata
         run: |
           echo ${{ steps.build.outputs.pkgs }} >built
-          echo ${{ steps.build.outputs.relative-paths }} >relative-paths
           echo ${{ steps.build.outputs.srcs }} >srcs
         working-directory: ${{ steps.tea.outputs.prefix }}
 
@@ -87,7 +104,7 @@ jobs:
           tar czvf $GITHUB_WORKSPACE/artifacts.tgz
             ${{ steps.build.outputs.relative-paths }}
             ${{ steps.build.outputs.srcs-relative-paths }}
-            built relative-paths srcs
+            built srcs
         working-directory: ${{ steps.tea.outputs.prefix }}
 
       - name: upload artifacts
