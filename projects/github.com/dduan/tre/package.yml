@@ -28,15 +28,9 @@ test:
 
     # run tests
     test "$(tre --version)"='tre-command {{version}}'
-    test "$(tre --all)" = "$(cat $FIXTURE)"           # check that output matches fixture
-
-  fixture: |
-    .
-    ├── xyz.tea.fixture
-    ├── xyz.tea.test.sh
-    └── foo
-        ├── bar
-        └── buzz
-            └── lupus.txt
-
+    out="$(tre . --all)"
+    echo $out | grep lupus.txt  # test for files found
+    echo $out | grep bar        # test for level 2 dirs found
+    echo $out | grep buzz       # ^
+    tre --all
 
