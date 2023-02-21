@@ -1,0 +1,48 @@
+distributable:
+  url: https://github.com/dduan/tre/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/tre
+  - bin/tree
+
+versions:
+  github: dduan/tre/tags
+  strip: /v/
+
+dependencies:
+  zlib.net: ^1
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.60'
+    rust-lang.org/cargo: '*'
+  script: |
+    cargo install --locked --path . --root {{prefix}}
+
+    # alias tree to tre
+    cd {{prefix}}/bin
+    ln -sf tre tree
+
+test:
+  script: |
+    # prepare for tests
+    mkdir -p foo/bar
+    mkdir -p foo/buzz
+    touch foo/buzz/lupus.txt
+
+    # run tests
+    test "$(tre --version)"='tre-command {{version}}'
+    test "$(tre)" = '.'                               # by default tre follows the .gitignore, so this would be empty at test directory
+    test "$(tre --all)" = "$(cat $FIXTURE)"           # check that output matches fixture
+    test "$(tree --version)" = "$(tre --version)"     # check that tree is aliased to tre correctly
+
+  fixture: |
+    .
+    ├── xyz.tea.test.sh
+    ├── foo
+    │   ├── buzz
+    │   │   └── lupus.txt
+    │   └── bar
+    └── xyz.tea.fixture
+
