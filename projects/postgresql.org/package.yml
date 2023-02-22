@@ -70,13 +70,28 @@ provides:
 
 test:
   script: |
-    postgres -V
+    mkdir -p ./data
 
-    # this won't work because it requires 'su' priviledges
-    # mkdir -p ./data
-    # initdb -D ./data
-    # pg_ctl -D ./data -l logfile start
-    # createdb test
-    # psql -c 'create table test (id int);' test
-    # dropdb test
-    # pg_ctl -D ./data stop
+    if test "{{ hw.platform }}" = "linux"; then
+      adduser postgres --disabled-password --gecos ""
+      chown -R postgres:postgres ./data
+      PASSWD=$(date | md5sum | cut -c1-8)
+      echo "postgres:$PASSWD" | chpasswd
+      su postgres -c 'initdb -D ./data'
+      su postgres -c 'pg_ctl -D ./data -l logfile start'
+      su postgres -c 'createdb test'
+      su postgres -c "psql -c 'create table test (id int);' test"
+      su postgres -c 'dropdb test'
+      su postgres -c 'pg_ctl -D ./data stop'
+    fi
+
+    if test "{{ hw.platform }}" = "darwin"; then
+      initdb -D ./data
+      pg_ctl -D ./data -l logfile start
+      createdb test
+      psql -c 'create table test (id int);' test
+      dropdb test
+      pg_ctl -D ./data stop
+    fi
+
+    rm -rf ./data
