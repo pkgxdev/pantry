@@ -133,13 +133,15 @@ jobs:
           key: ${{ runner.os }}-deno-test-${{ hashFiles('deno.jsonc')}}
 
       - uses: teaxyz/setup@v0
+        with:
+          srcroot: null
 
       - uses: actions/download-artifact@v3
         with:
           name: ${{ inputs.platform }}
 
       - name: extract bottles
-        run: tar xzf artifacts.tgz -C $TEA_PREFIX
+        run: tar xzvf artifacts.tgz -C $TEA_PREFIX
 
       - run: tea +tea.xyz/brewkit test ${{ inputs.projects }}
         env:
