@@ -52,15 +52,9 @@ runs:
     - name: Check codesigning
       shell: sh
       run: |
-        for FILE in $(find $PATHS -type f); do
-          # FIXME: `deno` compiled binaries don't currently pass validation.
-          # https://github.com/denoland/deno/issues/17753
-          if test "$(basename "$FILE")" = "tea"; then
-            continue
-          fi
-
-          codesign -vvv --strict "$FILE"
-        done
+        # FIXME: `deno` compiled binaries don't currently pass validation.
+        # https://github.com/denoland/deno/issues/17753
+        find $PATHS -type f ! -name tea -print0 | xargs -0 codesign -vvv --strict
       env:
         PATHS: ${{ inputs.paths }}
 
