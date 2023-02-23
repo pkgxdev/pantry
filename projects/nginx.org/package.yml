@@ -1,0 +1,34 @@
+distributable:
+   url: https://nginx.org/download/nginx-{{version}}.tar.gz
+   strip-components: 1
+
+versions:
+  github: nginx/nginx/tags  # reads github tags from github
+  strip: /^release-/
+
+dependencies:
+  pcre.org: 8.45 # switch to pcre.org/pcre2 once it's available
+  zlib.net: ^1.2.13
+  openssl.org: ^1.1.1k
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} 
+    make install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --with-http_ssl_module
+      - --with-stream
+
+provides:
+  - sbin/nginx
+
+test:
+  script: |
+    sed -i.bak -e 's/80/8080/g' {{prefix}}/conf/nginx.conf
+    nginx -p {{prefix}} -c {{prefix}}/conf/nginx.conf -t
