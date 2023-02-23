@@ -73,16 +73,12 @@ test:
     mkdir -p ./data
 
     if test "{{ hw.platform }}" = "linux"; then
-      adduser postgres --disabled-password --gecos ""
-      chown -R postgres:postgres ./data
-      PASSWD=$(date | md5sum | cut -c1-8)
-      echo "postgres:$PASSWD" | chpasswd
-      su postgres -c 'initdb -D ./data'
-      su postgres -c 'pg_ctl -D ./data -l logfile start'
-      su postgres -c 'createdb test'
-      su postgres -c "psql -c 'create table test (id int);' test"
-      su postgres -c 'dropdb test'
-      su postgres -c 'pg_ctl -D ./data stop'
+      sudo -u nobody initdb -D ./data
+      sudo -u nobody pg_ctl -D ./data -l logfile start
+      sudo -u nobody createdb test
+      sudo -u nobody psql -c 'create table test (id int);' test
+      sudo -u nobody dropdb test
+      sudo -u nobody pg_ctl -D ./data stop
     fi
 
     if test "{{ hw.platform }}" = "darwin"; then
