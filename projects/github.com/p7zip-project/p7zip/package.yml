@@ -20,16 +20,13 @@ build:
     make --jobs {{ hw.concurrency }} all3
     make DEST_HOME={{prefix}} DEST_MAN={{prefix}}/man install
 
-    # for some reason these are exec shell scripts
-    # we need to move them since we are relocatable
+    # relocatability
     cd "{{prefix}}/bin"
     for x in *; do
-      mv ../lib/p7zip/$x .
+      echo "#!/bin/sh" > $x
+      echo 'd="$(cd "$(dirname "$0")/.." && pwd)"' >> $x
+      echo "exec \"\$d\"/lib/p7zip/$x \"\$@\"" >> $x
     done
-
-    cd ../lib
-    mv p7zip/7z.so .
-    rm -rf p7zip
 
 provides:
   - bin/7z
