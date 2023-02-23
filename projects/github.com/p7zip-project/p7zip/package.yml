@@ -1,0 +1,42 @@
+distributable:
+   url: https://github.com/p7zip-project/p7zip/archive/v{{version.raw}}.tar.gz
+   strip-components: 1
+
+versions:
+  github: p7zip-project/p7zip  # reads github release *names*
+  strip: /^p7zip /
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    if test {{ hw.platform }} = darwin; then
+      mv makefile.macosx_llvm_64bits makefile.machine
+    else
+      mv makefile.linux_any_cpu makefile.machine
+    fi
+
+    make --jobs {{ hw.concurrency }} all3
+    make DEST_HOME={{prefix}} DEST_MAN={{prefix}}/man install
+
+    # relocatability
+    cd "{{prefix}}/bin"
+    for x in *; do
+      echo "#!/bin/sh" > $x
+      echo 'd="$(cd "$(dirname "$0")/.." && pwd)"' >> $x
+      echo "exec \"\$d\"/lib/p7zip/$x \"\$@\"" >> $x
+    done
+
+provides:
+  - bin/7z
+  - bin/7za
+  - bin/7zr
+
+test:
+  script: |
+    7z a -t7z foo.7z $FIXTURE
+    7z e foo.7z -oout
+    test "hello world!" = "$(cat out/*)"
+  fixture:
+    hello world!
