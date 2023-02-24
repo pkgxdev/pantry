@@ -1,25 +1,30 @@
 name: tea/pantry/has-artifacts
-description: Outputs the platform spec we need for builds
+description: Determines if PR artifacts exist for a given SHA
 
 inputs:
-  platform:
-    description: >
-      The platform+arch to get specs for
+  repo:
+    description: The repo to check for artifacts
+    required: true
+  sha:
+    description: The SHA to check for artifacts
+    required: true
+  token:
+    description: The GitHub token to use
+    required: true
+  s3-bucket:
+    description: The S3 bucket to use
+    required: true
+  aws-access-key-id:
+    description: The AWS access key ID to use
+    required: true
+  aws-secret-access-key:
+    description: The AWS secret access key to use
     required: true
 
 outputs:
-  os:
-    description: the OS for general tasks
-    value: ${{ steps.platform.outputs.os }}
-  build-os:
-    description: the OS for build tasks
-    value: ${{ steps.platform.outputs.build-os }}
-  container:
-    description: the container for build tasks
-    value: ${{ steps.platform.outputs.container }}
-  test-matrix:
-    description: the matrix of os/containers for test tasks
-    value: ${{ steps.platform.outputs.test-matrix }}
+  has-artifacts:
+    description: whether there is a PR associated with that SHA with artifacts in staging
+    value: ${{ steps.has-artifacts.outputs.has-artifacts }}
 
 runs:
   using: composite
@@ -32,8 +37,11 @@ runs:
       with:
         cache-name: has-artifacts
 
-    - run: ${{github.action_path}}/get-platform.ts
+    - run: ${{github.action_path}}/has-artifacts.ts ${{ inputs.REPO }} ${{ inputs.SHA }} >>$GITHUB_OUTPUT
       shell: sh
-      id: platform
+      id: has-artifacts
       env:
-        PLATFORM: ${{ inputs.platform }}
+        GITHUB_TOKEN: ${{ inputs.token }}
+        AWS_S3_CACHE: ${{ inputs.s3-bucket }}
+        AWS_ACCESS_KEY_ID: ${{ inputs.aws-access-key-id }}
+        AWS_SECRET_ACCESS_KEY: ${{ inputs.aws-secret-access-key }}

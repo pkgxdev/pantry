@@ -26,7 +26,7 @@ if (import.meta.main) {
   const pr = await find_pr(repo, ref)
 
   if (!pr) {
-    Deno.stdout.write(new TextEncoder().encode("HAS_ARTIFACTS=false"))
+    Deno.stdout.write(new TextEncoder().encode("has-artifacts=false"))
     Deno.exit(0)
   }
 
@@ -41,5 +41,5 @@ if (import.meta.main) {
 
   const hasArtifacts = (objects?.contents?.length || 0) > 0
 
-  Deno.stdout.write(new TextEncoder().encode(`HAS_ARTIFACTS=${hasArtifacts ? "true" : "false"}`))
+  Deno.stdout.write(new TextEncoder().encode(`has-artifacts=${hasArtifacts ? "true" : "false"}`))
 }
