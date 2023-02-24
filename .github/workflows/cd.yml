@@ -8,7 +8,7 @@ jobs:
   cd:
     runs-on: ubuntu-latest
     outputs:
-      HAS_ARTIFACTS: ${{ env.HAS_ARTIFACTS }}
+      has-artifacts: ${{ steps.has-artifacts.outputs.has-artifacts }}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -21,12 +21,15 @@ jobs:
           WATCHER_URL: ${{ secrets.WATCHER_URL }}
           TEA_API_TOKEN: ${{ secrets.TEA_API_TOKEN }}
 
-      - run: ./scripts/has-artifacts.ts ${{ github.repository }} ${{ github.sha }} >>$GITHUB_ENV
-        env:
-          GITHUB_TOKEN: ${{github.token}}
-          AWS_S3_CACHE: ${{ secrets.AWS_S3_CACHE }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      - uses: teaxyz/pantry.core/.github/actions/cache@main
+        id: has-artifacts
+        with:
+          repo: ${{ github.repository }}
+          sha: ${{ github.sha }}
+          token: ${{github.token}}
+          s3-bucket: ${{ secrets.AWS_S3_CACHE }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
   bottle-pr:
     strategy:
@@ -38,7 +41,7 @@ jobs:
         - darwin+aarch64
         - linux+aarch64
     needs: [cd]
-    if: ${{ needs.cd.outputs.HAS_ARTIFACTS == 'true' }}
+    if: ${{ needs.cd.outputs.has-artifacts == 'true' }}
     uses: teaxyz/pantry.core/.github/workflows/bottle.yml@main
     with:
       platform: ${{ matrix.platform }}
@@ -47,7 +50,7 @@ jobs:
   cleanup:
     needs: [bottle-pr]
     runs-on: ubuntu-latest
-    if: ${{ needs.cd.outputs.HAS_ARTIFACTS == 'true' }}
+    if: ${{ needs.cd.outputs.has-artifacts == 'true' }}
     env:
       PR: ${{ needs.bottle.outputs.pr }}
     steps:
@@ -73,7 +76,7 @@ jobs:
   bottle-standalone:
     runs-on: ubuntu-latest
     needs: [cd]
-    if: ${{ needs.cd.outputs.HAS_ARTIFACTS == 'false' }}
+    if: ${{ needs.cd.outputs.has-artifacts == 'false' }}
     steps:
       - uses: actions/checkout@v3
       - uses: technote-space/get-diff-action@v6
