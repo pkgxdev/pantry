@@ -1,5 +1,6 @@
-name: Apple signing
-description: signs binaries for macOS
+name: Apple Codesigning
+description: Codesigns macOS binaries
+
 inputs:
   p12-file-base64:
     description: Base64 encoded p12 file
@@ -11,11 +12,11 @@ inputs:
     description: Identity to use for signing
     required: true
   paths:
-    description: Paths to search for files to sign
+    description: paths to sign
     required: true
 
 runs:
-  using: "composite"
+  using: composite
   steps:
     # Only runs on macOS
     - name: Check platform
@@ -37,13 +38,9 @@ runs:
         p12-file-base64: ${{ inputs.p12-file-base64 }}
         p12-password: ${{ inputs.p12-password }}
 
-
     - name: Codesign files
       shell: sh
-      run: |
-        find $PATHS -type f -print0 | \
-          xargs -0 /usr/bin/codesign -s "$IDENTITY" --force -v \
-          --timestamp || true
+      run: find $PATHS -type f -print0 | xargs -0 codesign -s "$IDENTITY" --force -v --timestamp || true
       env:
         PATHS: ${{ inputs.paths }}
         IDENTITY: ${{ inputs.identity }}
@@ -51,10 +48,9 @@ runs:
     # This isn't very informative, but even a no-op is safer than none
     - name: Check codesigning
       shell: sh
-      run: |
-        # FIXME: `deno` compiled binaries don't currently pass validation.
-        # https://github.com/denoland/deno/issues/17753
-        find $PATHS -type f ! -name tea -print0 | xargs -0 codesign -vvv --strict
+      # FIXME: `deno` compiled binaries don't currently pass validation.
+      # https://github.com/denoland/deno/issues/17753
+      run: find $PATHS -type f ! -name tea -print0 | xargs -0 codesign -vvv --strict
       env:
         PATHS: ${{ inputs.paths }}
 

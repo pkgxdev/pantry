@@ -34,7 +34,7 @@ const s3 = new S3({
   secretKey: Deno.env.get("AWS_SECRET_ACCESS_KEY")!,
   region: "us-east-1",
 })
-const bucket = s3.getBucket(Deno.env.get("AWS_S3_CACHE")!)
+const bucket = s3.getBucket(Deno.env.get("AWS_S3_BUCKET")!)
 
 const key = `pull-request/${repo.split("/")[1]}/${pr}/${dest}`
 const body = await Deno.readFile(file.string)

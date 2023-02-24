@@ -22,20 +22,10 @@ jobs:
       os: ${{ steps.platform.outputs.os }}
       cache-set: ${{ steps.platform.outputs.cache-set }}
     steps:
-      - uses: actions/checkout@v3
-        with:
-          repository: teaxyz/pantry.core
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ~/.deno
-            ~/.cache/deno
-          key: ${{ runner.os }}-deno-get-platform-${{ hashFiles('deno.jsonc')}}
-      - uses: teaxyz/setup@v0
-      - run: scripts/get-platform.ts
+      - uses: teaxyz/pantry.core/.github/actions/get-platform@main
         id: platform
-        env:
-          PLATFORM: ${{ inputs.platform }}
+        with:
+          platform: ${{ inputs.platform }}
 
   bottle:
     needs: [get-platform]
@@ -45,29 +35,17 @@ jobs:
       built: ${{ env.built }}
       pr: ${{ env.PR }}
     steps:
-      - uses: teaxyz/setup@v0
-        id: tea
-        with:
-          srcroot: null
-          prefix: ${{ github.workspace }}
-
-      - uses: actions/cache@v3
-        with:
-          path: ${{ needs.get-platform.outputs.cache-set }}
-          key: ${{ runner.os }}-deno-bottle-${{ hashFiles('tea.xyz/var/pantry/deno.jsonc')}}
-
-      - name: configure scripts PATH
-        run: echo "$TEA_PREFIX/tea.xyz/var/pantry/scripts" >> $GITHUB_PATH
+      - uses: teaxyz/pantry.core/.github/actions/setup-brewkit@main
 
       - uses: actions/download-artifact@v3
         if: ${{ inputs.new-version }}
         with:
           name: ${{ inputs.platform }}
 
-      - run: fetch-pr-artifacts.ts ${{ github.repository }} ${{ github.sha }} ${{ inputs.platform }} >>$GITHUB_ENV
+      - uses: teaxyz/pantry.core/.github/actions/fetch-pr-artifacts@main
         if: ${{ !inputs.new-version }}
-        env:
-          GITHUB_TOKEN: ${{github.token}}
+        with:
+          token: ${{ github.token }}
           AWS_S3_CACHE: ${{ secrets.AWS_S3_CACHE }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -87,19 +65,21 @@ jobs:
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
 
-      - run: bottle.ts $built
+      - uses: teaxyz/pantry.core/.github/actions/bottle@main
         id: bottle-xz
-        env:
-          COMPRESSION: xz
-          GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
-          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        with:
+          built: ${{ env.built }}
+          compresson: xz
+          gpg-key-id: ${{ secrets.GPG_KEY_ID }}
+          gpg-passphrase: ${{ secrets.GPG_PASSPHRASE }}
 
-      - run: bottle.ts $built
+      - uses: teaxyz/pantry.core/.github/actions/bottle@main
         id: bottle-gz
-        env:
-          COMPRESSION: gz
-          GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
-          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        with:
+          built: ${{ env.built }}
+          compresson: gz
+          gpg-key-id: ${{ secrets.GPG_KEY_ID }}
+          gpg-passphrase: ${{ secrets.GPG_PASSPHRASE }}
 
       - run: |
           echo ${{ steps.bottle-gz.outputs.bottles }} ${{ steps.bottle-xz.outputs.bottles }} >bottles
@@ -125,22 +105,6 @@ jobs:
     needs: [bottle]
     runs-on: ubuntu-latest
     steps:
-      - uses: teaxyz/setup@v0
-        id: tea
-        with:
-          srcroot: null
-          prefix: ${{ github.workspace }}
-
-      - name: configure scripts PATH
-        run: echo "${{ steps.tea.outputs.prefix }}/tea.xyz/var/pantry/scripts" >> $GITHUB_PATH
-
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ~/.deno
-            ~/.cache/deno
-          key: ${{ runner.os }}-deno-bottle-${{ hashFiles('tea.xyz/var/pantry/deno.jsonc')}}
-
       - uses: actions/download-artifact@v3
         with:
           name: ${{ inputs.platform }}-bottles
@@ -152,15 +116,13 @@ jobs:
             echo "$file=$(cat $file)" >>$GITHUB_ENV
           done
 
-      - name: upload bottles
-        id: upload
-        run: upload.ts
-          --pkgs ${{ needs.bottle.outputs.built }} ${{ needs.bottle.outputs.built }}
-          --srcs ${{ needs.bottle.outputs.srcs }} ${{ needs.bottle.outputs.srcs }}
-          --bottles $bottles
-          --checksums $checksums
-          --signatures $signatures
-        env:
+      - uses: teaxyz/pantry.core/.github/actions/upload@main
+        with:
+          pkgs: ${{ needs.bottle.outputs.built }} ${{ needs.bottle.outputs.built }}
+          srcs: ${{ needs.bottle.outputs.srcs }} ${{ needs.bottle.outputs.srcs }}
+          bottles: ${{ env.bottles }}
+          checksums: ${{ env.checksums }}
+          signatures: ${{ env.signatures }}
           AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

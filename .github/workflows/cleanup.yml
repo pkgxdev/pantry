@@ -1,4 +1,7 @@
-name: cleanup
+# cleans up our S3 staging area if a PR is closed without merge
+
+name: teaxyz s3 cleanup
+
 on:
   pull_request:
     types: [closed]
@@ -14,6 +17,7 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
+
       - name: remove staged artifacts
         run: |
           REPO=$(echo ${{github.repository}} | sed -e 's_teaxyz/__')

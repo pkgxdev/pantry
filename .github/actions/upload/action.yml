@@ -1,0 +1,47 @@
+name: tea/pantry/upload
+description: internal tea.xyz specific at this time
+
+inputs:
+  pkgs:
+    description: ''
+    required: true
+  srcs:
+    description: ''
+    required: true
+  bottles:
+    description: ''
+    required: true
+  checksums:
+    description: ''
+    required: true
+  signatures:
+    description: ''
+    required: true
+  AWS_S3_BUCKET:
+    description: ''
+    required: true
+  AWS_ACCESS_KEY_ID:
+    description: ''
+    required: true
+  AWS_SECRET_ACCESS_KEY:
+    description: ''
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: teaxyz/pantry.core/.github/actions/cache@main
+      with:
+        cache-name: upload
+
+    - run: ${{ github.action_path }}/upload.ts
+          --pkgs ${{ inputs.pkgs }}
+          --srcs ${{ inputs.srcs }}
+          --bottles ${{ inputs.bottles }}
+          --checksums ${{ inputs.checksums }}
+          --signatures ${{ inputs.signatures }}
+      shell: sh
+      env:
+        AWS_S3_BUCKET: ${{ inputs.AWS_S3_BUCKET }}
+        AWS_ACCESS_KEY_ID: ${{ inputs.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ inputs.AWS_SECRET_ACCESS_KEY }}

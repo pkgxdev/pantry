@@ -25,18 +25,12 @@ type Output = {
   buildOs: OS,
   container?: string,
   testMatrix: { os: OS, container?: string }[]
-  cacheSet: string
 }
 
 type OS = string | string[]
 
 const platform = Deno.env.get("PLATFORM") ?? panic("$PLATFORM not set")
 
-
-const cacheSets = {
-  "darwin": `~/.deno\n~/Library/Caches/deno/deps/https/`,
-  "linux": `~/.deno\n~/.cache/deno/deps/https/`
-}
 
 const output: Output = (() => {
   switch(platform) {
@@ -46,7 +40,6 @@ const output: Output = (() => {
       os,
       buildOs: ["self-hosted", "macOS", "X64"],
       testMatrix: [{ os }],
-      cacheSet: cacheSets["darwin"]
     }
   }
   case "darwin+aarch64": {
@@ -55,7 +48,6 @@ const output: Output = (() => {
       os,
       buildOs: os,
       testMatrix: [{ os }],
-      cacheSet: cacheSets["darwin"]
     }
   }
   case "linux+aarch64": {
@@ -64,7 +56,6 @@ const output: Output = (() => {
       os,
       buildOs: os,
       testMatrix: [{ os }],
-      cacheSet: cacheSets["linux"]
     }
   }
   case "linux+x86-64": {
@@ -80,7 +71,6 @@ const output: Output = (() => {
         { os, container },
         { os, container: "debian:buster-slim" }
       ],
-      cacheSet: cacheSets["linux"]
     }
   }
   default:
@@ -90,8 +80,7 @@ const output: Output = (() => {
 const rv = `os=${JSON.stringify(output.os)}\n` +
   `build-os=${JSON.stringify(output.buildOs)}\n` +
   `container=${JSON.stringify(output.container)}\n` +
-  `test-matrix=${JSON.stringify(output.testMatrix)}\n` +
-  `cache-set<<EOF\n${output.cacheSet}\nEOF\n`
+  `test-matrix=${JSON.stringify(output.testMatrix)}\n`
 
 Deno.stdout.write(new TextEncoder().encode(rv))
 

@@ -24,21 +24,10 @@ jobs:
       test-matrix: ${{ steps.platform.outputs.test-matrix }}
       cache-set: ${{ steps.platform.outputs.cache-set }}
     steps:
-      - uses: actions/checkout@v3
-        with:
-          repository: teaxyz/pantry.core
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ~/.deno
-            ~/.cache/deno
-          key: ${{ runner.os }}-deno-get-platform-${{ hashFiles('deno.jsonc')}}
-      - uses: teaxyz/setup@v0
-      - run: scripts/get-platform.ts ${{ inputs.projects }}
+      - uses: teaxyz/pantry.core/.github/actions/get-platform@main
         id: platform
-        env:
-          PLATFORM: ${{ inputs.platform }}
-          TEA_PANTRY_PATH: ${{ github.workspace }}
+        with:
+          platform: ${{ inputs.platform }}
 
   build:
     runs-on: ${{ fromJson(needs.get-platform.outputs.build-os) }}
@@ -46,27 +35,17 @@ jobs:
     needs: [get-platform]
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/cache@v3
-        with:
-          path: ${{ needs.get-platform.outputs.cache-set }}
-          key: ${{ runner.os }}-deno-build-${{ hashFiles('deno.jsonc')}}
 
-      - uses: teaxyz/setup@v0
+      - uses: teaxyz/pantry.core/.github/actions/setup-brewkit@main
         id: tea
         with:
-          srcroot: null
           prefix: /opt
 
       - name: sanitize macOS runners
         if: fromJson(needs.get-platform.outputs.build-os) == 'macos-11'
         run: sudo mv /usr/local/bin/* /tmp/
 
-      - name: configure tea env
-        run: |
-          echo "$PWD/scripts:$TEA_PREFIX/tea.xyz/var/pantry/scripts" >> $GITHUB_PATH
-          echo "TEA_PANTRY_PATH=$GITHUB_WORKSPACE" >> $GITHUB_ENV
-
-      - run: tea +tea.xyz/brewkit build ${{ inputs.projects }}
+      - run: pkg build ${{ inputs.projects }}
         id: build
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -82,7 +61,7 @@ jobs:
           TEA_PREFIX: ${{ steps.tea.outputs.prefix }}
 
       # sign macOS binaries
-      - uses: teaxyz/pantry.core/.github/actions/apple-signing@main
+      - uses: teaxyz/pantry.core/.github/actions/codesign@main
         if: startsWith(inputs.platform, 'darwin+') && github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name
         with:
             p12-file-base64: ${{ secrets.APPLE_CERTIFICATE_P12 }}
@@ -118,7 +97,6 @@ jobs:
     needs: [get-platform, build]
     runs-on: ${{ matrix.platform.os }}
     strategy:
-      fail-fast: false
       matrix:
         platform: ${{ fromJson(needs.get-platform.outputs.test-matrix) }}
     outputs:
@@ -126,11 +104,7 @@ jobs:
     container: ${{ matrix.platform.container }}
     steps:
       - uses: actions/checkout@v3
-
-      - uses: actions/cache@v3
-        with:
-          path: ${{ needs.get-platform.outputs.cache-set }}
-          key: ${{ runner.os }}-deno-test-${{ hashFiles('deno.jsonc')}}
+      - uses: teaxyz/pantry.core/.github/actions/setup-brewkit@main
 
       - uses: teaxyz/setup@v0
         with:
@@ -143,12 +117,11 @@ jobs:
       - name: extract bottles
         run: tar xzvf artifacts.tgz -C $TEA_PREFIX
 
-      - run: tea +tea.xyz/brewkit test ${{ inputs.projects }}
+      - run: pkg test ${{ inputs.projects }}
         env:
-          TEA_PANTRY_PATH: ${{ github.workspace }}
-          GITHUB_TOKEN: ${{github.token}}
+          GITHUB_TOKEN: ${{ github.token }}
 
-      - name: post
+      - name: '[post]'
         run:
           echo "HAS_SECRETS=$HAS_SECRETS" >>$GITHUB_ENV
         env:
@@ -178,28 +151,13 @@ jobs:
     if: startsWith(github.ref, 'refs/pull/') && startsWith(github.repository, 'teaxyz/pantry.') && needs.test.outputs.HAS_SECRETS == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ~/.deno
-            ~/.cache/deno
-          key: ${{ runner.os }}-deno-stage-${{ hashFiles('deno.jsonc')}}
-      - uses: teaxyz/setup@v0
-
-      - name: configure scripts PATH
-        run: echo "$PWD/scripts:$TEA_PREFIX/tea.xyz/var/pantry/scripts" >> $GITHUB_PATH
-
       - uses: actions/download-artifact@v3
         with:
           name: ${{ inputs.platform }}
 
-      - run: cache-artifacts.ts
-          ${{github.repository}}
-          ${{github.ref}}
-          ${{inputs.platform}}
-          artifacts.tgz
-        env:
-          AWS_S3_CACHE: ${{ secrets.AWS_S3_CACHE }}
+      - uses: teaxyz/pantry.core/.github/actions/stage-build-artifacts@main
+        with:
+          platform: ${{ inputs.platform }}
+          AWS_S3_BUCKET: ${{ secrets.AWS_S3_CACHE }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

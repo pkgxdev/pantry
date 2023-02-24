@@ -1,0 +1,35 @@
+name: tea/pantry/fetch-pr-artifacts
+description: internal tea.xyz specific at this time
+
+inputs:
+  platform:
+    description: platform+arch to fetch
+    required: true
+  token:
+    description: github token
+    default: ${{ github.token }}
+    required: true
+  AWS_S3_BUCKET:
+    description: AWS S3 bucket to use for cache
+    required: true
+  AWS_ACCESS_KEY_ID:
+    description: AWS access key id
+    required: true
+  AWS_SECRET_ACCESS_KEY:
+    description: AWS secret access key
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - run:
+        ${{ github.action_path }}/fetch-pr-artifacts.ts
+          ${{ github.repository }}
+          ${{ github.sha }}
+          ${{ inputs.platform }} >>$GITHUB_ENV
+      shell: sh
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+        AWS_S3_CACHE: ${{ inputs.AWS_S3_CACHE }}
+        AWS_ACCESS_KEY_ID: ${{ inputs.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ inputs.AWS_SECRET_ACCESS_KEY }}

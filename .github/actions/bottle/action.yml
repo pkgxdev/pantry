@@ -1,0 +1,26 @@
+name: tea/pantry/bottle
+description: internal tea.xyz specific at this time
+
+inputs:
+  gpg-key-id:
+    description: ''
+    required: true
+  gpg-key-passphrase:
+    description: ''
+    required: true
+  built:
+    description: ''
+    required: true
+  compression:
+    description: ''
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - run: ${{ github.action_path }}/bottle.ts ${{ inputs.built }}
+      shell: sh
+      env:
+        COMPRESSION: ${{ inputs.compression }}
+        GPG_KEY_ID: ${{ inputs.gpg-key-id }}
+        GPG_PASSPHRASE: ${{ inputs.gpg-passphrase }}

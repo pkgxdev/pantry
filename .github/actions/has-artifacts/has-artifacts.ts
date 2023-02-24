@@ -11,9 +11,9 @@ args:
 /// Test
 /// ./scripts/has-artifacts.ts e582b03fe6efedde80f9569403555f4513dbec91
 
-import { S3 } from "s3";
-import { panic } from "utils";
-import { find_pr } from "./fetch-pr-artifacts.ts";
+import { S3 } from "s3"
+import { panic } from "utils"
+import { find_pr } from "../fetch-pr-artifacts/fetch-pr-artifacts.ts"
 
 /// Main
 /// -------------------------------------------------------------------------------

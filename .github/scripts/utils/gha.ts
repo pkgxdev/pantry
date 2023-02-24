@@ -1,4 +1,3 @@
-
 const e = new TextEncoder()
 const encode = e.encode.bind(e)
 

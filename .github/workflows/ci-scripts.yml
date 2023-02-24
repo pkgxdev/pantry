@@ -3,14 +3,18 @@ name: ci·scripts
 on:
   pull_request:
     paths:
-      - scripts/**/*.ts
+      - .github/**.ts
 
 jobs:
   typecheck:
     runs-on: ubuntu-latest
-    env:
-      TEA_SECRET: ${{ secrets.TEA_SECRET }}
     steps:
       - uses: actions/checkout@v3
       - uses: teaxyz/setup@v0
-      - run: deno check --unstable scripts/*.ts
+        with:
+          srcroot: .github
+      - uses: teaxyz/pantry.core/.github/actions/cache@main
+        with:
+          cache-name: ci-scripts
+      - run: deno check --unstable **/*.ts
+        working-directory: .github

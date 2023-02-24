@@ -5,23 +5,22 @@ on:
    branches: [main]
 
 jobs:
-  cd:  # job is named poorly, all I can tell you about it is: it’s *not* CD
+  cd:
     runs-on: ubuntu-latest
     outputs:
       HAS_ARTIFACTS: ${{ env.HAS_ARTIFACTS }}
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/cache@v3
         with:
-          path: |
-            ~/.deno
-            ~/.cache/deno
-          key: ${{ runner.os }}-deno-cd-${{ hashFiles('deno.jsonc')}}
-      - uses: teaxyz/setup@v0
+          repo: teaxyz/pantry.core
+
+      - uses: teaxyz/pantry.core/.github/actions/setup-brewkit@main
+
       - run: scripts/map-projects-to-githubs.ts
         env:
           WATCHER_URL: ${{ secrets.WATCHER_URL }}
           TEA_API_TOKEN: ${{ secrets.TEA_API_TOKEN }}
+
       - run: scripts/has-artifacts.ts ${{ github.repository }} ${{ github.sha }} >>$GITHUB_ENV
         env:
           GITHUB_TOKEN: ${{github.token}}

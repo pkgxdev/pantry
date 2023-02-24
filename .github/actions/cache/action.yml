@@ -1,0 +1,28 @@
+name: tea.xyz/pantry/actions/cache
+description: cache deno deps
+
+inputs:
+  cache-name:
+    description: name of the job to use on the cache key
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - run: |
+        if test "$RUNNER_OS" = "macOS"; then
+          echo "cache=~/Library/Caches/deno" >> $GITHUB_OUTPUT
+        else
+          echo "cache=~/.cache/deno" >> $GITHUB_OUTPUT
+        fi
+      id: os-cache
+      shell: sh
+
+    - uses: actions/cache@v3
+      with:
+        path: |
+          ~/.deno
+          ${{ steps.os-cache.outputs.cache }}
+        # This isn't perfect (can't hash stuff outside github.workspace, and if the there scripts change, the hash won't)
+        # but it's good enough for now. It's slightly conservative, since it monitors all .ts files, but that's fine.
+        key: ${{ runner.os }}-deno-${{ inputs.cache-name }}-${{ hashFiles('**/deno.jsonc', '**/*.ts') }}

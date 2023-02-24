@@ -22,8 +22,8 @@ import { backticks, panic, run } from "utils"
 import { crypto } from "deno/crypto/mod.ts"
 import { encode } from "deno/encoding/hex.ts"
 import { encode as base64Encode } from "deno/encoding/base64.ts"
-import { set_output } from "./utils/gha.ts"
-import * as ARGV from "./utils/args.ts"
+import { set_output } from "../../scripts/utils/gha.ts"
+import * as ARGV from "../../scripts/utils/args.ts"
 import Path from "path"
 
 const cellar = useCellar()
