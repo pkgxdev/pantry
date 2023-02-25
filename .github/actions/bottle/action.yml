@@ -3,22 +3,33 @@ description: internal tea.xyz specific at this time
 
 inputs:
   gpg-key-id:
-    description: ''
+    description: gpg key id
     required: true
   gpg-key-passphrase:
-    description: ''
+    description: gpg key passphrase
     required: true
   built:
-    description: ''
+    description: packages to bottle
     required: true
   compression:
-    description: ''
+    description: compression to use (gz or xz)
     required: true
+outputs:
+  bottles:
+    description: bottle files
+    value: ${{ steps.bottle.outputs.bottles }}
+  checksums:
+    description: checksum files
+    value: ${{ steps.bottle.outputs.checksums }}
+  signatures:
+    description: signature files
+    value: ${{ steps.bottle.outputs.signatures }}
 
 runs:
   using: composite
   steps:
     - run: ${{ github.action_path }}/bottle.ts ${{ inputs.built }}
+      id: bottle
       shell: sh
       env:
         COMPRESSION: ${{ inputs.compression }}

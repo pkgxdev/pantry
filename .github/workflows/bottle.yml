@@ -36,6 +36,7 @@ jobs:
       pr: ${{ env.PR }}
     steps:
       - uses: teaxyz/pantry.core/.github/actions/setup-brewkit@main
+        id: tea
 
       - uses: actions/download-artifact@v3
         if: ${{ inputs.new-version }}
@@ -50,19 +51,20 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-      - run: tar xzvf artifacts.tgz
+      - run: tar xzvf $GITHUB_WORKSPACE/artifacts.tgz
+        working-directory: ${{ steps.tea.outputs.prefix }}
 
       - run: |
           for file in built srcs; do
             echo "$file=$(cat $file)" >>$GITHUB_ENV
           done
+        working-directory: ${{ steps.tea.outputs.prefix }}
 
       - run: |
-          source <(tea --sync --magic=bash --silent)
-          gpg-agent --daemon || true
+          tea +gnupg.org gpg-agent --daemon || true
           echo $GPG_PRIVATE_KEY | \
             base64 -d | \
-            gpg --import --batch --yes
+            tea +gnupg.org gpg --import --batch --yes
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
 
@@ -70,7 +72,7 @@ jobs:
         id: bottle-xz
         with:
           built: ${{ env.built }}
-          compresson: xz
+          compression: xz
           gpg-key-id: ${{ secrets.GPG_KEY_ID }}
           gpg-passphrase: ${{ secrets.GPG_PASSPHRASE }}
 
@@ -78,7 +80,7 @@ jobs:
         id: bottle-gz
         with:
           built: ${{ env.built }}
-          compresson: gz
+          compression: gz
           gpg-key-id: ${{ secrets.GPG_KEY_ID }}
           gpg-passphrase: ${{ secrets.GPG_PASSPHRASE }}
 
@@ -89,11 +91,12 @@ jobs:
 
           SRCS=$(echo $srcs | tr -d '~')
 
-          tar cf artifacts.tar \
+          tar cf $GITHUB_WORKSPACE/artifacts.tar \
             $SRCS \
             ${{ steps.bottle-gz.outputs.bottles }} \
             ${{ steps.bottle-xz.outputs.bottles }} \
             bottles checksums signatures
+        working-directory: ${{ steps.tea.outputs.prefix }}
 
       - name: upload artifacts
         uses: actions/upload-artifact@v3
@@ -106,6 +109,10 @@ jobs:
     needs: [bottle]
     runs-on: ubuntu-latest
     steps:
+      - uses: teaxyz/pantry.core/.github/actions/setup-brewkit@main
+        with:
+          prefix: ${{ github.workspace }}
+
       - uses: actions/download-artifact@v3
         with:
           name: ${{ inputs.platform }}-bottles
@@ -118,6 +125,7 @@ jobs:
           done
 
       - uses: teaxyz/pantry.core/.github/actions/upload@main
+        id: upload
         with:
           pkgs: ${{ needs.bottle.outputs.built }} ${{ needs.bottle.outputs.built }}
           srcs: ${{ needs.bottle.outputs.srcs }} ${{ needs.bottle.outputs.srcs }}

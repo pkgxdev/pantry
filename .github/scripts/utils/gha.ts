@@ -1,10 +1,14 @@
 const e = new TextEncoder()
 const encode = e.encode.bind(e)
 
-export function set_output<T>(name: string, arr: T[], separator = " ") {
+export async function set_output<T>(name: string, arr: T[], separator = " ") {
   const value = arr.map(escape).join(separator)
-  const txt = `::set-output name=${name}::${value}`
-  return Deno.stdout.write(encode(`${txt}\n`))
+  const txt = `${name}=${value}`
+  const outfile = Deno.env.get("GITHUB_OUTPUT")
+  if (outfile) {
+    await Deno.writeTextFile(outfile, `${name}=${value}\n`, { append: true})
+  }
+  return await Deno.stdout.write(encode(`${txt}\n`))
 }
 
 //TODO HTML escapes probs

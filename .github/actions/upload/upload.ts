@@ -7,6 +7,7 @@ args:
   - --allow-net
   - --allow-read
   - --allow-env
+  - --allow-write
 ---*/
 
 import { S3, S3Bucket } from "s3"

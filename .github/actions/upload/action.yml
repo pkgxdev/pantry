@@ -3,29 +3,33 @@ description: internal tea.xyz specific at this time
 
 inputs:
   pkgs:
-    description: ''
+    description: packages to upload
     required: true
   srcs:
-    description: ''
+    description: source tarballs
     required: true
   bottles:
-    description: ''
+    description: bottles
     required: true
   checksums:
-    description: ''
+    description: checksums
     required: true
   signatures:
-    description: ''
+    description: signature files
     required: true
   AWS_S3_BUCKET:
-    description: ''
+    description: AWS S3 bucket
     required: true
   AWS_ACCESS_KEY_ID:
-    description: ''
+    description: AWS access key ID
     required: true
   AWS_SECRET_ACCESS_KEY:
-    description: ''
+    description: AWS secret access key
     required: true
+outputs:
+  cf-invalidation-paths:
+    description: CloudFront invalidation paths
+    value: ${{ steps.upload.outputs.cf-invalidation-paths }}
 
 runs:
   using: composite
@@ -41,6 +45,7 @@ runs:
           --checksums ${{ inputs.checksums }}
           --signatures ${{ inputs.signatures }}
       shell: sh
+      id: upload
       env:
         AWS_S3_BUCKET: ${{ inputs.AWS_S3_BUCKET }}
         AWS_ACCESS_KEY_ID: ${{ inputs.AWS_ACCESS_KEY_ID }}
