@@ -58,10 +58,11 @@ jobs:
           done
 
       - run: |
-          tea +gnupg.org gpg-agent --daemon || true
+          source <(tea --sync --magic=bash --silent)
+          gpg-agent --daemon || true
           echo $GPG_PRIVATE_KEY | \
             base64 -d | \
-            tea +gnupg.org gpg --import --batch --yes
+            gpg --import --batch --yes
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
 
