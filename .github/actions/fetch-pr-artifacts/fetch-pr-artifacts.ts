@@ -33,7 +33,7 @@ if (import.meta.main) {
     secretKey: Deno.env.get("AWS_SECRET_ACCESS_KEY")!,
     region: "us-east-1",
   })
-  const bucket = s3.getBucket(Deno.env.get("AWS_S3_CACHE")!)
+  const bucket = s3.getBucket(Deno.env.get("AWS_S3_BUCKET")!)
 
   const key = `pull-request/${repo.split("/")[1]}/${pr}/${flavor}`
   const artifacts = (await bucket.getObject(key)) ?? panic("No artifacts found")
