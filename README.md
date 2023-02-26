@@ -66,6 +66,18 @@ tea automatically builds new releases of packages *as soon as they are
 released* (usually starting the builds within seconds). There is no need to
 submit PRs for updates.
 
+## Working on Other People’s Pull Requests
+
+Packaging can be fiddly so we all pitch in. If you want to help someone else
+with their pull request then you can use GitHub’s CLI:
+
+```
+$ gh pr checkout 123
+
+# or you can copy paste the URL
+$ gh pr checkout https://github.com/teaxyz/pantry.extra/pull/123
+```
+
 &nbsp;
 
 
