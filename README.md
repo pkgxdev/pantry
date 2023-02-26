@@ -74,8 +74,11 @@ with their pull request then you can use GitHub’s CLI:
 ```
 $ gh pr checkout 123
 
-# or you can copy paste the URL
+# or you can copy paste the URL:
 $ gh pr checkout https://github.com/teaxyz/pantry.extra/pull/123
+
+# then open for editing:
+$ pkg edit
 ```
 
 &nbsp;
