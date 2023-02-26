@@ -25,9 +25,12 @@ build:
       LDFLAGS:
         - -buildmode=pie
 
-test: |
-  export GITHUB_API_TOKEN=$(gh auth token)
-  echo "teaxyz/pantry.zero" > repos.txt
-  mp init -f repos.txt
-  mp clone
-  mp status
+test:
+  dependencies:
+    cli.github.com: '*'
+  script: |
+    export GITHUB_API_TOKEN=$(gh auth token)
+    echo "teaxyz/pantry.zero" > repos.txt
+    mp init -f repos.txt
+    mp clone
+    mp status
