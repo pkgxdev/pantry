@@ -33,6 +33,13 @@ runs:
     # ago, and we need bugfixes.
     # FIXME: replace this with a tea script based on https://localazy.com/blog/how-to-automatically-sign-macos-apps-using-github-actions
     # github has a doc with similar content, but it's not returning to me atm.
+
+    # apple-actions/import-codesign-certs will fail if the keychain already exists, so we prophylactically
+    # delete it if it does.
+    - name: Delete keychain
+      shell: sh
+      run: security delete-keychain signing_temp.keychain || true
+
     - uses: apple-actions/import-codesign-certs@d54750db52a4d3eaed0fc107a8bab3958f3f7494
       with:
         p12-file-base64: ${{ inputs.p12-file-base64 }}
