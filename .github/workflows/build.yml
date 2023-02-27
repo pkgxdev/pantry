@@ -46,7 +46,10 @@ jobs:
         run: sudo mv /usr/local/bin/* /tmp/
 
       # some build pieces fail if git has no user
-      - uses: fregante/setup-git-user@v1
+      - name: setup git user.name etc.
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
 
       - run: pkg build ${{ inputs.projects }}
         id: build
