@@ -45,6 +45,9 @@ jobs:
         if: fromJson(needs.get-platform.outputs.build-os) == 'macos-11'
         run: sudo mv /usr/local/bin/* /tmp/
 
+      # some build pieces fail if git has no user
+      - uses: fregante/setup-git-user@v1
+
       - run: pkg build ${{ inputs.projects }}
         id: build
         env:
