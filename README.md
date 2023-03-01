@@ -51,6 +51,9 @@ $ gh pr create
 > `gh` can be run without magic via `tea gh`.
 > `git` can be run without magic via `tea git`.
 
+While in a pantry dev-env you can run commands from any built packages
+provided you specified their `provides:` key.
+
 ## Packaging Guide
 
 Packaging can be cumbersome.
