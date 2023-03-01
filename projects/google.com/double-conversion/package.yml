@@ -1,0 +1,23 @@
+distributable:
+   url: https://github.com/google/double-conversion/archive/refs/tags/v{{version}}.tar.gz
+   strip-components: 1
+
+versions:
+  github: google/double-conversion/tags
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    cmake.org: ^3
+  script: |
+    cmake -DCMAKE_INSTALL_PREFIX="{{prefix}}" -DBUILD_SHARED_LIBS=ON .
+    make --jobs {{ hw.concurrency }} 
+    make install
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script: |
+    cc fixture.c -ldouble-conversion
+    ./a.out
