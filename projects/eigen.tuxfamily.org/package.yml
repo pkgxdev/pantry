@@ -6,38 +6,42 @@ versions:
   - 3.4.0
 
 build:
+  working-directory: ./eigen-build 
   dependencies:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
+    cmake.org: '^3'
   script: |
-    mkdir -p ./eigen-build
-    cd eigen-build
+    pwd
     cmake .. -DCMAKE_INSTALL_PREFIX={{prefix}}
     make install 
   test:
     make test
 
 test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  env:
+    cxxflags: "-I{{prefix}}/include/eigen3"
+  fixture: |
+    #include <iostream>
+    #include <Eigen/Dense>
+    using Eigen::MatrixXd;
+    int main()
+    {
+      MatrixXd m(2,2);
+      m(0,0) = 3;
+      m(1,0) = 2.5;
+      m(0,1) = -1;
+      m(1,1) = m(1,0) + m(0,1);
+      std::cout << m << std::endl;
+    }
   script: |
-    echo '#include <iostream>
-      #include <Eigen/Dense>
-      using Eigen::MatrixXd;
-      int main()
-      {
-        MatrixXd m(2,2);
-        m(0,0) = 3;
-        m(1,0) = 2.5;
-        m(0,1) = -1;
-        m(1,1) = m(1,0) + m(0,1);
-        std::cout << m << std::endl;
-      }' > test.cpp
-    g++ test.cpp -I/{{prefix}}/include/eigen3 -o test
+    mv $FIXTURE test.cpp
+    g++ test.cpp ${cxxflags} -o test
     ./test > output.txt
-    if diff -w output.txt - <<EOF
-    3 -1
-    2.5 1.5
-    EOF
-    then
+    out=$(./test)
+    if test "$out" = $'  3  -1\n2.5 1.5'; then
       echo "PASS"
     else
       echo "FAIL"
