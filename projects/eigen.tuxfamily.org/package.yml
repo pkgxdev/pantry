@@ -1,0 +1,44 @@
+distributable:
+  url: https://gitlab.com/libeigen/eigen/-/archive/{{version}}/eigen-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  - 3.4.0
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    mkdir -p ./eigen-build
+    cd eigen-build
+    cmake .. -DCMAKE_INSTALL_PREFIX={{prefix}}
+    make install 
+  test:
+    make test
+
+test:
+  script: |
+    echo '#include <iostream>
+      #include <Eigen/Dense>
+      using Eigen::MatrixXd;
+      int main()
+      {
+        MatrixXd m(2,2);
+        m(0,0) = 3;
+        m(1,0) = 2.5;
+        m(0,1) = -1;
+        m(1,1) = m(1,0) + m(0,1);
+        std::cout << m << std::endl;
+      }' > test.cpp
+    g++ test.cpp -I/{{prefix}}/include/eigen3 -o test
+    ./test > output.txt
+    if diff -w output.txt - <<EOF
+    3 -1
+    2.5 1.5
+    EOF
+    then
+      echo "PASS"
+    else
+      echo "FAIL"
+    fi
