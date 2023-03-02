@@ -1,0 +1,34 @@
+distributable:
+   url: https://ftp.gnu.org/gnu/grep/grep-{{version.raw}}.tar.xz
+   strip-components: 1
+
+versions:
+  - 3.8
+
+dependencies:
+  pcre.org/v2: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    freedesktop.org/pkg-config: ^0.29
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --disable-nls
+      - --mandir={{prefix}}/man
+      - --infodir={{prefix}}/info
+      - -with-packager=tea
+
+provides:
+  - bin/grep
+
+test:
+  fixture:
+    This line should be matched
+  script:
+    grep -P match $FIXTURE
