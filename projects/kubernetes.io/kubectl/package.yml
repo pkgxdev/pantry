@@ -1,0 +1,25 @@
+distributable:
+   url: https://github.com/kubernetes/kubernetes/archive/refs/tags/v{{version}}.tar.gz
+   strip-components: 1
+
+versions:
+  github: kubernetes/kubernetes/releases/tags 
+
+provides:
+  - bin/kubectl
+
+build:
+  dependencies:
+    go.dev: ^1.19
+    tea.xyz/gx/make: '*'
+    gnu.org/coreutils: ^9.1.0
+    gnu.org/bash: ^5.1
+  script: |
+    make WHAT=cmd/kubectl
+    mkdir -p "{{ prefix }}"/bin
+    mv _output/bin/kubectl "{{ prefix }}"/bin
+
+test:
+  script: |
+    kubectl | grep "kubectl controls the Kubernetes cluster manager."
+    echo $(kubectl version --short 2>&1 || true) | grep "Client Version: v{{version}}"
