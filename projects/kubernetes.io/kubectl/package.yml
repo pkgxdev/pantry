@@ -14,7 +14,12 @@ build:
     tea.xyz/gx/make: '*'
     gnu.org/coreutils: ^9.1.0
     gnu.org/bash: ^5.1
+  # FIXME: when rsync is packaged it should be added to dependencies
   script: |
+    if test {{ hw.platform }} == "linux"; then
+      sudo apt-get install rsync
+    fi
+
     make WHAT=cmd/kubectl
     mkdir -p "{{ prefix }}"/bin
     mv _output/bin/kubectl "{{ prefix }}"/bin
