@@ -73,12 +73,12 @@ test:
     mkdir -p ./data
 
     if test "{{ hw.platform }}" = "linux"; then
-      sudo -u nobody initdb -D ./data
-      sudo -u nobody pg_ctl -D ./data -l logfile start
-      sudo -u nobody createdb test
-      sudo -u nobody psql -c 'create table test (id int);' test
-      sudo -u nobody dropdb test
-      sudo -u nobody pg_ctl -D ./data stop
+      sudo -u -p nobody initdb -U nobody -D ./data
+      sudo -u -p nobody pg_ctl -D ./data -l logfile start
+      sudo -u -p nobody createdb test
+      sudo -u -p nobody psql -c 'create table test (id int);' test
+      sudo -u -p nobody dropdb test
+      sudo -u -p nobody pg_ctl -D ./data stop
     fi
 
     if test "{{ hw.platform }}" = "darwin"; then
