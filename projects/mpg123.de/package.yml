@@ -1,0 +1,40 @@
+distributable:
+   url: https://www.mpg123.de/download/mpg123-{{version}}.tar.bz2
+   strip-components: 1
+
+# if there’s a github then we can parse the versions
+versions:
+  - 1.31.2
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    # ^^ often packages need dependencies to build, it is very common for
+    # packages to need a C compiler and make, the above provide those
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --prefix={{prefix}}
+      - --with-module-suffix=.so
+      - --enable-static
+    darwin:
+      ARGS:
+      - --with-default-audio=coreaudio
+    aarch64:
+      ARGS:
+      - --with-cpu=aarch64
+    x86-64:
+      ARGS:
+      - --with-cpu=x86-64
+
+provides:
+  - bin/mpg123
+  # ^^ specify the binaries or tea magic won’t work
+
+test:
+  mpg123 --test fixture.mp3
