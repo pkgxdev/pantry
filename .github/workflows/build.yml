@@ -116,7 +116,9 @@ jobs:
           name: ${{ inputs.platform }}
 
       - name: extract bottles
-        run: tar xzvf artifacts.tgz -C $TEA_PREFIX
+        # Note: unlink needed when changing a directory to a symlink, for example in
+        # https://github.com/teaxyz/pantry.extra/pull/435
+        run: tar xzvf artifacts.tgz -C $TEA_PREFIX --unlink
 
       - run: pkg test ${{ inputs.projects }}
         env:
