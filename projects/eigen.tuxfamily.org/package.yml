@@ -6,23 +6,23 @@ versions:
   - 3.4.0
 
 build:
-  working-directory: ./eigen-build 
+  working-directory: build
   dependencies:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
     cmake.org: '^3'
   script: |
-    pwd
     cmake .. -DCMAKE_INSTALL_PREFIX={{prefix}}
-    make install 
+    make install
   test:
     make test
 
 test:
   dependencies:
     tea.xyz/gx/cc: c99
+    freedesktop.org/pkg-config: ^0.29
   env:
-    cxxflags: "-I{{prefix}}/include/eigen3"
+    cxxflags: $(pkg-config --cflags eigen3)
   fixture: |
     #include <iostream>
     #include <Eigen/Dense>
