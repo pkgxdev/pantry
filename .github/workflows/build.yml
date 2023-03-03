@@ -115,9 +115,17 @@ jobs:
         with:
           name: ${{ inputs.platform }}
 
-      - name: extract bottles
-        # Note: unlinking needed when changing a directory to a symlink, for example in
+      - name: clean destination
+        # Note: needed when changing a directory to a symlink, for example in
         # https://github.com/teaxyz/pantry.extra/pull/435
+        run: |
+          tar tzf artifacts.tgz | \
+            awk '{ print length, $0 }' | \
+            sort -n -s -r | \
+            cut -d" " -f2- | \
+            xargs rm -rf
+
+      - name: extract bottles
         run: tar xzvf artifacts.tgz -C $TEA_PREFIX --recursive-unlink --unlink-first
 
       - run: pkg test ${{ inputs.projects }}
