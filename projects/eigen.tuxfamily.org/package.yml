@@ -14,6 +14,14 @@ build:
   script: |
     cmake .. -DCMAKE_INSTALL_PREFIX={{prefix}}
     make install
+
+    # stuff expects `Eigen` to be in `include` rather than namespaced
+    cd "{{prefix}}"
+    mv include/eigen3/* include
+    cd include
+    rmdir eigen3
+    # but work for stuff that expects the namespace too
+    ln -s eigen3 .
   test:
     make test
 
