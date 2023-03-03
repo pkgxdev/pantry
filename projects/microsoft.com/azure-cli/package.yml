@@ -17,37 +17,13 @@ build:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
     rust-lang.org: '*'
-    pip.pypa.io: '*'
     linux:
       freedesktop.org/pkg-config: '*'
 
   script: |
-    python -m venv {{prefix}}/venv
-    cd {{prefix}}/venv
-    pip install {{prefix}}/../src-v{{version}}/src/azure-cli
-    pip install {{prefix}}/../src-v{{version}}/src/azure-cli-core
-    pip install {{prefix}}/../src-v{{version}}/src/azure-cli-telemetry
-    mkdir -p ../bin
-
-    cat <<EOF > ../bin/"az"
-      #!/bin/sh
-      export VIRTUAL_ENV="\$(cd "\$(dirname "\$0")"/.. && pwd)/venv"
-      TEA_PYTHON="\$(which python)"
-      TEA_PYHOME="\$(dirname "\$TEA_PYTHON")"
-      cat <<EOSH > \$VIRTUAL_ENV/pyvenv.cfg
-        home = \$TEA_PYHOME
-        include-system-site-packages = false
-        executable = \$TEA_PYTHON
-      EOSH
-      find "\$VIRTUAL_ENV"/bin -maxdepth 1 -type f | xargs \\
-        sed -i.bak "1s|.*|#!\$VIRTUAL_ENV/bin/python|"
-      rm "\$VIRTUAL_ENV"/bin/*.bak
-      ln -sf "\$TEA_PYTHON" "\$VIRTUAL_ENV"/bin/python
-      exec "\$VIRTUAL_ENV"/bin/az "\$@"
-    EOF
-
-    chmod +x ../bin/"az"
-
+    for venv in azure-cli{-telemetry,-core,}; do
+      SRCROOT={{prefix}}/../src-v{{version}}/src/"$venv" python-venv.sh "{{prefix}}"/bin/az
+    done
 
 
 provides:
