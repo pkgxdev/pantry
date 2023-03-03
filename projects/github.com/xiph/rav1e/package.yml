@@ -1,0 +1,27 @@
+distributable:
+   url: https://github.com/xiph/rav1e/archive/refs/tags/v{{ version }}.tar.gz
+   strip-components: 1
+
+versions:
+  github: xiph/rav1e/tags  # reads github tags from github
+  strip: /^(?!v).*/
+
+dependencies:
+  rust-lang.org: ">=1.60"
+  rust-lang.org/cargo: "*"
+  nasm.us: 2.14.02
+
+provides:
+  - bin/rav1e
+
+build:
+  dependencies:
+    rust-lang.org: ">=1.60"
+    rust-lang.org/cargo: "*"
+  script: |
+    cargo install --locked --path . --root {{prefix}}
+
+test:
+  fixture: ./small_input.y4m
+  script: |
+    rav1e --version
