@@ -1,0 +1,45 @@
+distributable:
+   url: https://github.com/fastlane/fastlane/archive/{{version}}.tar.gz
+   strip-components: 1
+
+versions:
+  github: fastlane/fastlane/releases/tags
+
+dependencies:
+  ruby-lang.org: ^3.1
+  rubygems.org: '*'
+
+build:
+  dependencies:
+    rubygems.org: '*'
+    tea.xyz/gx/make: '*'
+    tea.xyz/gx/cc: '*'
+  env:
+    GEM_HOME: ${{prefix}}
+    GEM_PATH: ${{prefix}}
+  script: |
+    gem build fastlane.gemspec
+
+    gem install \
+      --no-user-install \
+      --bindir={{prefix}}/gems/bin \
+      --no-document \
+      fastlane-{{version}}.gem
+
+    mkdir "{{prefix}}"/bin
+    mv props/fastlane "{{prefix}}"/bin
+
+    # fails to code sign and non-essential
+    rm -rf "{{prefix}}"/gems/terminal-notifier-*
+
+provides:
+  - bin/fastlane
+
+test:
+  env:
+    # or writes a bunch of warnings to stdout
+    LC_ALL: en_US.UTF-8
+    LANG: en_US.UTF-8
+  script: |
+    out="$(fastlane --version 2>/dev/null | tail -n1)"
+    test "$out" = "fastlane {{version}}"
