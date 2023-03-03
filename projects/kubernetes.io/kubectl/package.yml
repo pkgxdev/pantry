@@ -3,7 +3,7 @@ distributable:
    strip-components: 1
 
 versions:
-  github: kubernetes/kubernetes/releases/tags 
+  github: kubernetes/kubernetes/releases/tags
 
 provides:
   - bin/kubectl
@@ -14,17 +14,12 @@ build:
     tea.xyz/gx/make: '*'
     gnu.org/coreutils: ^9.1.0
     gnu.org/bash: ^5.1
-  # FIXME: when rsync is packaged it should be added to dependencies
+    rsync.samba.org: '*'
   script: |
-    if test {{ hw.platform }} == "linux"; then
-      sudo apt-get -y install rsync
-    fi
-
     make WHAT=cmd/kubectl
     mkdir -p "{{ prefix }}"/bin
     mv _output/bin/kubectl "{{ prefix }}"/bin
 
-test:
-  script: |
-    kubectl | grep "kubectl controls the Kubernetes cluster manager."
-    echo $(kubectl version --short 2>&1 || true) | grep "Client Version: v{{version}}"
+test: |
+  kubectl | grep "kubectl controls the Kubernetes cluster manager."
+  echo $(kubectl version --short 2>&1 || true) | grep "Client Version: v{{version}}"
