@@ -1,0 +1,43 @@
+distributable:
+   url: https://github.com/tesseract-ocr/tesseract/archive/refs/tags/{{version}}.tar.gz
+   strip-components: 1
+
+versions:
+  github: tesseract-ocr/tesseract/tags
+
+dependencies:
+  cairographics.org: 1
+  unicode.org: 71
+  leptonica.org: '*'
+  libarchive.org: '*'
+  gnome.org/pango: 1
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/autoconf: '*'
+    gnu.org/automake: '*'
+    gnu.org/libtool: '*'
+    freedesktop.org/pkg-config: '*'
+  script: |
+    ./autogen.sh
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} 
+    make install
+  env: 
+    ARGS: 
+      - --prefix="{{prefix}}"
+      - --disable-dependency-tracking
+
+provides:
+  - bin/tesseract
+
+test:
+  dependencies:
+    gnu.org/wget: '*'
+  script: |
+    wget https://github.com/tesseract-ocr/tessdata/blob/main/eng.traineddata?raw=true -O eng.traineddata
+    mv eng.traineddata "{{prefix}}"/share/tessdata/
+    export TESSDATA_PREFIX="{{prefix}}"/share/tessdata
+    tesseract eurotext.png stdout -l eng
