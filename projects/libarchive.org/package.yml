@@ -1,0 +1,43 @@
+distributable:
+   url: https://github.com/libarchive/libarchive/releases/download/v{{version}}/libarchive-{{version}}.tar.gz
+   strip-components: 1
+
+versions:
+  github: libarchive/libarchive/tags  # reads github tags from github
+  strip: /^v/
+
+dependencies:
+  gnu.org/coreutils: '*'
+  lz4.org: 1
+  tukaani.org/xz: 5
+  facebook.com/zstd: 1
+  sourceware.org/bzip2: 1
+  libexpat.github.io: 2
+  zlib.net: 1
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} 
+    make install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --without-lzo2    # Use lzop binary instead of lzo2 due to GPL
+      - --without-nettle  # xar hashing option but GPLv3
+      - --without-xml2    # xar hashing option but tricky dependencies
+      - --without-openssl # mtree hashing now possible without OpenSSL
+      - --with-expat      # best xar hashing option
+
+provides:
+  - bin/bsdcat
+  - bin/bsdcpio
+  - bin/bsdtar
+
+test:
+  script: |
+    bsdtar -cf test.tar.gz fixture.c
+
