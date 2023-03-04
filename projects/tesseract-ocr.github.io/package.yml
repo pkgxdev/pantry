@@ -20,24 +20,29 @@ build:
     gnu.org/automake: '*'
     gnu.org/libtool: '*'
     freedesktop.org/pkg-config: '*'
+    gnu.org/wget: '*'
   script: |
     ./autogen.sh
     ./configure $ARGS
     make --jobs {{ hw.concurrency }} 
-    make install
+    make install 
+
+    # install trained datafiles and move to share/tessdata
+    wget https://github.com/tesseract-ocr/tessdata/blob/main/eng.traineddata?raw=true -O eng.traineddata
+    wget https://github.com/tesseract-ocr/tessdata/blob/main/osd.traineddata?raw=true -O osd.traineddata
+    mv eng.traineddata "{{prefix}}"/share/tessdata/
+    mv osd.traineddata "{{prefix}}"/share/tessdata/
+    
   env: 
     ARGS: 
       - --prefix="{{prefix}}"
       - --disable-dependency-tracking
+      - --datarootdir="{{prefix}}"/share
 
 provides:
   - bin/tesseract
 
 test:
-  dependencies:
-    gnu.org/wget: '*'
   script: |
-    wget https://github.com/tesseract-ocr/tessdata/blob/main/eng.traineddata?raw=true -O eng.traineddata
-    mv eng.traineddata "{{prefix}}"/share/tessdata/
-    export TESSDATA_PREFIX="{{prefix}}"/share/tessdata
+    # export TESSDATA_PREFIX="{{prefix}}"/share/tessdata
     tesseract eurotext.png stdout -l eng
