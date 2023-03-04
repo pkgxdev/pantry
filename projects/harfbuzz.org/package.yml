@@ -14,7 +14,6 @@ dependencies:
 build:
   dependencies:
     tea.xyz/gx/cc: c99
-    cmake.org: 3
     mesonbuild.com: ^0.63
     ninja-build.org: 1
     freedesktop.org/pkg-config: ^0.29
@@ -35,12 +34,15 @@ build:
       - -Dfreetype=enabled
       - -Dglib=enabled
       - -Dtests=disabled
-    #FIXME or gir scanner fails
-    # CC: clang
+    linux/x86-64:
+      CFLAGS: -fPIC
+      CXXFLAGS: -fPIC
+      LDFLAGS: -pie
 
 test:
   dependencies:
     curl.se: '*'
+    gnu.org/binutils: '*'
   script: |
     curl $FIXTURE > font.ttf
     out=$(echo 'സ്റ്റ്' | hb-shape font.ttf)
