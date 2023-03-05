@@ -1,0 +1,31 @@
+distributable:
+   url: https://git3.sh/git3.w3q/git3-cli/archive/master.tar.gz
+   strip-components: 1
+
+versions:
+  - 0.1.3 # they don't have a version yet, I took the version from package.json
+
+dependencies:
+  nodejs.org: '*'
+
+build:
+  dependencies:
+    yarnpkg.com: '*'
+  script: |
+    mkdir -p {{prefix}}/bin
+    sed -i.bak 's|/usr/local/bin|{{prefix}}/bin|g' package.json
+    yarn
+    yarn $INSTALL
+  env:
+    linux:
+      INSTALL: install-linux
+    darwin:
+      INSTALL: install-mac
+
+provides:
+  - bin/git-remote-git3
+  - bin/git3
+
+test:
+  script: |
+    git3 --help
