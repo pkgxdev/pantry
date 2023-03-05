@@ -27,7 +27,7 @@ build:
     gnu.org/patch: '*'
   working-directory: build
   script: |
-    if semverator satisfies ^0.8.18 {{version}}; then
+    if semverator eq 0.8.18 {{version}}; then
       # New libsolidity/lsb/DocumentHoverHandler.cpp doesn't like some versions of clang
       # (default argument issue)
       # https://github.com/ethereum/solidity/issues/13854
@@ -49,6 +49,13 @@ build:
     - -DCMAKE_INSTALL_PREFIX={{prefix}}
     - -DPEDANTIC=OFF  # otherwise fails due to deprecations in boost ^1.81
     - -DSTRICT_Z3_VERSION=OFF # otherwise complains about Z3 version in cmake
+    - -DCMAKE_C_FLAGS=$CFLAGS
+    - -DCMAKE_CXX_FLAGS=$CXXFLAGS
+    - -DCMAKE_EXE_LINKER_FLAGS=$LDFLAGS
+    linux/x86-64:
+      CFLAGS: -fPIC
+      CXXFLAGS: -fPIC
+      LDFLAGS: -pie
 
 test:
   solc --bin fixture.sol

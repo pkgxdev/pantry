@@ -17,6 +17,12 @@ build:
     cd {{prefix}}/bin
     sed -i.bak 's|{{prefix}}|"$(cd "$(dirname "$0")/.." \&\& pwd)"|' xml2-config
     rm *.bak
+
+    # a lot of stuff is surprised at the libxml2 prefix
+    cd {{prefix}}/include
+    mv libxml2/libxml .
+    rmdir libxml2
+    ln -s . libxml2
   env:
     ARGS:
       - --prefix={{prefix}}

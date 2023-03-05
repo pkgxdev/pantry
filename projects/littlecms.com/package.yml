@@ -1,0 +1,38 @@
+
+distributable:
+   url: https://github.com/mm2/Little-CMS/releases/download/lcms{{version.major}}.{{version.minor}}/lcms2-{{version.major}}.{{version.minor}}.tar.gz
+   strip-components: 1
+
+versions:
+  github: mm2/Little-CMS/tags  # reads github tags from github
+  strip: /^Little CMS /
+
+dependencies:
+  simplesystems.org/libtiff: ^4
+  libjpeg-turbo.org: ^2
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} 
+    make install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+
+provides:
+  - bin/jpgicc
+  - bin/linkicc
+  - bin/psicc
+  - bin/tificc
+  - bin/transicc
+
+test:
+  dependencies:
+    gnu.org/wget: '*'
+  script: |
+    wget https://webkit.org/blog-files/color-gamut/Shoes-sRGB.jpg
+    jpgicc -iscanner.icc Shoes-sRGB.jpg out.jpg
