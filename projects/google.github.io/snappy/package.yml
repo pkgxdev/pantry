@@ -1,0 +1,46 @@
+distributable:
+   url: https://github.com/google/snappy/archive/refs/tags/{{version}}.tar.gz
+   strip-components: 1
+
+versions:
+  github: google/snappy/tags 
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    freedesktop.org/pkg-config: '*'
+    cmake.org: '*'
+  script: |
+    cmake . $ARGS
+    make --jobs {{ hw.concurrency }} 
+    make install
+  env: 
+    ARGS:
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DSNAPPY_BUILD_TESTS=OFF
+      - -DSNAPPY_BUILD_BENCHMARKS=OFF
+      - -DBUILD_SHARED_LIBS=ON
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  fixture: |
+    #include <assert.h>
+    #include <snappy.h>
+    #include <string>
+    using namespace std;
+    using namespace snappy;
+    int main()
+    {
+      string source = "Hello World!";
+      string compressed, decompressed;
+      Compress(source.data(), source.size(), &compressed);
+      Uncompress(compressed.data(), compressed.size(), &decompressed);
+      assert(source == decompressed);
+      return 0;
+    }
+  script: |
+    mv $FIXTURE fixture.cc
+    cc fixture.cc -lsnappy -o a.out
+    ./a.out
