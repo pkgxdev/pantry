@@ -1,0 +1,35 @@
+distributable:
+   url: https://github.com/Azure/azure-cli/archive/refs/tags/azure-cli-{{version}}.tar.gz
+   strip-components: 1
+
+# if there’s a github then we can parse the versions
+versions:
+  github: Azure/azure-cli/tags  # reads github tags from github
+  strip: /^azure-cli-/
+
+dependencies:
+  openssl.org: 1.1
+  python.org: ^3.10
+  sourceware.org/libffi: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    rust-lang.org: '*'
+    linux:
+      freedesktop.org/pkg-config: '*'
+
+  script: |
+    _SRCROOT="$SRCROOT"
+    for venv in azure-cli{-telemetry,-core,}; do
+      SRCROOT="$_SRCROOT"/src/"$venv" python-venv.sh "{{prefix}}"/bin/az
+    done
+
+
+provides:
+  - bin/az
+
+test:
+  script: |
+    az cloud show --name AzureCloud
