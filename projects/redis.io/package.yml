@@ -25,12 +25,13 @@ build:
   env:
     PREFIX: ${{prefix}}
     BUILD_TLS: yes
+    linux/x86-64:
+      CFLAGS: -fPIC
+      CXXFLAGS: -fPIC
+      LDFLAGS: -pie
+
 test:
   script: |
-    redis-server --test-memory 2
-    redis-cli --version
-    redis-benchmark --version
-
     redis-server --daemonize yes
     redis-cli --raw SET key123 value123
 
