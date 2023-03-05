@@ -1,0 +1,35 @@
+distributable:
+   url: https://github.com/google/double-conversion/archive/refs/tags/v{{version}}.tar.gz
+   strip-components: 1
+
+versions:
+  github: google/double-conversion/tags
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    cmake.org: ^3
+  script: |
+    cmake -DCMAKE_INSTALL_PREFIX="{{prefix}}" -DBUILD_SHARED_LIBS=ON .
+    make --jobs {{ hw.concurrency }} 
+    make install
+
+test:
+  fixture: |
+    #include <double-conversion/bignum.h>
+    #include <stdio.h>
+    int main() {
+        char buf[20] = {0};
+        double_conversion::Bignum bn;
+        bn.AssignUInt64(0x1234567890abcdef);
+        bn.ToHexString(buf, sizeof buf);
+        printf("%s", buf);
+        return 0;
+    }
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script: |
+    mv $FIXTURE fixture.cc
+    cc fixture.cc -ldouble-conversion -o a.out
+    ./a.out
