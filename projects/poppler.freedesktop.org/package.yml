@@ -1,0 +1,63 @@
+distributable:
+  url: https://poppler.freedesktop.org/poppler-{{version}}.tar.xz
+  strip-components: 1
+
+versions:
+  github: freedesktop/poppler/tags
+  strip: /^poppler-/
+
+provides:
+  - bin/pdfattach
+  - bin/pdfdetach
+  - bin/pdffonts
+  - bin/pdfimages
+  - bin/pdfinfo
+  - bin/pdfseparate
+  - bin/pdftocairo
+  - bin/pdftohtml
+  - bin/pdftoppm
+  - bin/pdftops
+  - bin/pdftotext
+  - bin/pdfunite
+
+# TODO: Add in libopenjpeg, libtiff
+dependencies:
+  boost.org: '>=1.58.0'
+  cairographics.org: '>=1.16.0'
+  curl.se: '*'
+  freedesktop.org/fontconfig: '>=2.13'
+  freetype.org: '>=2.10'
+  gnome.org/glib: '>=2.64'
+  libjpeg-turbo.org: '*'
+  libpng.org: '*'
+  openjpeg.org: '*'
+  poppler.freedesktop.org/poppler-data: '*'
+  simplesystems.org/libtiff: '*'
+  zlib.net: '*'
+
+build:
+  dependencies:
+    cmake.org: '>=3.16.0'
+    freedesktop.org/pkg-config: '*'
+    gnome.org/gobject-introspection: '>=1.64.0'
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    cmake -S . -B build_shared $ARGS
+    cmake --build build_shared
+    cmake --install build_shared
+
+    cmake -S . -B build_static $ARGS -DBUILD_SHARED_LIBS=OFF
+    cmake --build build_static
+    install -c build_static/libpoppler.a build_static/cpp/libpoppler-cpp.a build_static/glib/libpoppler-glib.a {{prefix}}/lib
+  env:
+    ARGS:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
+    linux/x86-64:
+      ARGS:
+        - -DCMAKE_C_FLAGS=-fPIC
+        - -DCMAKE_CXX_FLAGS=-fPIC
+        - -DCMAKE_EXE_LINKER_FLAGS=-pie
+
+test: pdfinfo test.pdf
