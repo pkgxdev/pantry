@@ -52,6 +52,17 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
+      - name: clean destination
+        # Note: needed when changing a directory to a symlink, for example in
+        # https://github.com/teaxyz/pantry.extra/pull/435
+        run: |
+          tar tzf $GITHUB_WORKSPACE/artifacts.tgz | \
+            awk '{ print length, $0 }' | \
+            sort -n -s -r | \
+            cut -d" " -f2- | \
+            xargs rm -rf
+        working-directory: ${{ steps.tea.outputs.prefix }}
+
       - run: tar xzvf $GITHUB_WORKSPACE/artifacts.tgz
         working-directory: ${{ steps.tea.outputs.prefix }}
 
