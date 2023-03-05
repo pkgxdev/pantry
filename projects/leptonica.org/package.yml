@@ -1,0 +1,46 @@
+distributable:
+   url: https://github.com/DanBloomberg/leptonica/releases/download/{{version}}/leptonica-{{version}}.tar.gz
+   strip-components: 1
+
+versions:
+  github: DanBloomberg/leptonica/tags  
+
+dependencies:
+  giflib.sourceforge.io: 5
+  libjpeg-turbo.org: 2
+  libpng.org: 1
+  simplesystems.org/libtiff: 4
+  openjpeg.org: '*'
+  google.com/webp: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    freedesktop.org/pkg-config: '*'
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} 
+    make install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+
+provides:
+  - bin/convertfilestopdf
+  - bin/convertfilestops
+  - bin/convertformat
+  - bin/convertsegfilestopdf
+  - bin/convertsegfilestops
+  - bin/converttopdf
+  - bin/converttops
+  - bin/fileinfo
+  - bin/imagetops
+  - bin/xtractprotos
+
+test:
+  dependencies:
+    gnu.org/wget: '*'
+  script: |
+    wget https://people.math.sc.edu/Burkardt/data/tif/at3_1m4_01.tif
+    fileinfo at3_1m4_01.tif
