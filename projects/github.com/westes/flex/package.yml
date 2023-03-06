@@ -14,11 +14,19 @@ build:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
   script: |
-    ./configure --prefix={{ prefix }}
+    ./configure $ARGS
     make --jobs {{ hw.concurrency }} install
   env:
+    ARGS:
+      - --prefix={{ prefix }}
+      - --with-pic
+      - --disable-bootstrap
+      - --enable-shared
     darwin:
       MACOSX_DEPLOYMENT_TARGET: 10.6  #FIXME our default (11) breaks the build
+    linux:
+      # Fix segmentation fault during install on Ubuntu
+      CPPFLAGS: -D_GNU_SOURCE
 
 test:
   dependencies:
