@@ -1,0 +1,59 @@
+# this is a basic template for packages we strongly recommend looking at the
+# contents of both:
+#
+# * https://github.com/teaxyz/pantry.core
+# * https://github.com/teaxyz/pantry.extra
+#
+# as a learning guide and reference. For example, if you are package a `go`
+# project, then browse the listings and find a go package.
+
+
+# this is the source tarball. Swap the version out for {{version}} or we won’t
+# be able to upgrade the package when it updates!
+distributable:
+  url: https://github.com/quarto-dev/quarto-cli/releases/tag/v{{version}}
+  strip-components: 1
+
+# if there’s a github then we can parse the versions
+versions:
+  # if the repo has a github then we can parse versions
+  # this should be one of these (remove the rest or the YAML won’t parse)
+  # github: user/repo  # reads github release *names*
+  # github: quarto-dev/quarto-cli/tags  # reads github tags from github
+  github: quarto-dev/quarto-cli/releases/tags  # reads github *releases* but uses the tags of those releases
+  # ^^ REMOVE ALL BUT ONE!
+
+  # often maintainers prepend or append junk, this can be an array of regexes
+  strip: /^v/
+
+dependencies:
+  # to figure out dependencies you can read the project’s README
+  # however it is often easier to read the [brew formula](https://formulae.brew.sh/formula/)
+  #
+  # see tea.xyz/+/ for the packages tea provides
+  # if you need a package that isn’t there, you may need to build it!
+  # we can help you: https://discord.tea.xyz
+  #
+  # see semver.org for version specifications
+  lua.org: '*' 
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    # ^^ often packages need dependencies to build, it is very common for
+    # packages to need a C compiler and make, the above provide those
+  script: |
+    ./configure $ARGS
+    # make --jobs {{ hw.concurrency }} install
+    ./configure
+  # it’s extremely common for packages to require the above
+
+provides:
+  - bin/quarto
+
+test:
+  script:
+    test "$(foo --version)" = {{version}}
+  # ^^ we prefer that you test the functionality of the package works, but
+  # we know tests are tedious, so will (for now) accept a simple version check
