@@ -1,0 +1,38 @@
+distributable:
+   url: https://gitlab.com/procps-ng/procps/-/archive/v{{ version }}/v{{ version }}.tar.gz
+   strip-components: 1
+
+versions:
+ - 4.0.3
+
+provides:
+  - bin/watch
+
+dependencies:
+  invisible-island.net/ncurses: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/autoconf: '*'
+    gnu.org/automake: '*'
+    gnu.org/gettext: '*'
+    gnu.org/libtool: '*'
+    freedesktop.org/pkg-config: '*'
+  script: |
+    autoreconf -fiv
+    ./configure $ARGS
+    make src/watch
+    mkdir -p "{{ prefix }}"/bin
+    mv src/watch "{{ prefix }}"/bin
+  env:
+    ARGS:
+      - --disable-dependency-tracking
+      - --prefix={{ prefix }}
+      - --disable-nls
+      - --enable-watch8bit
+
+test:
+  script: |
+    watch --errexit --chgexit --interval 1 date
