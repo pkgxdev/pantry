@@ -1,0 +1,50 @@
+distributable:
+  # url: https://github.com/pypa/pipenv/archive/refs/tags/v{{ version }}.tar.gz
+  # url: https://codeload.github.com/ansible/ansible/tar.gz/refs/tags/v{{version}}
+  url: https://github.com/ansible/ansible/archive/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: ansible/ansible/tags  # reads github *tags*
+  strip: /^v/
+
+dependencies:
+  python.org: '>=3.7'
+
+build:
+  dependencies:
+    pip.pypa.io: '*'
+  script: |
+    python-venv.sh {{prefix}}/bin/ansible
+    # manually register all the ansible-* executables with tea
+    #FIXME dirty hack, replace with a proper solution
+    for _EXEC in {{prefix}}/venv/bin/ansible-*; do
+      CMD_NAME="${_EXEC##*/}"
+      TRG_BIN_NAME="{{prefix}}/bin/$CMD_NAME"
+      cp -v  {{prefix}}/bin/ansible $TRG_BIN_NAME # copy the tea-configured executable with the correct name
+      # replace the original 'ansible' with the correct $CMD_NAME
+      sed -i.bak -e \
+        "s|/bin/ansible|/bin/$CMD_NAME|" \
+        $TRG_BIN_NAME
+    done
+
+    rm -v {{prefix}}/bin/ansible-*.bak
+
+test:
+  script: |
+    ansible --version
+    ansible-playbook playbook.yml -i hosts.ini
+
+
+provides:
+  - bin/ansible
+  - bin/ansible-config
+  - bin/ansible-connection
+  - bin/ansible-console
+  - bin/ansible-doc
+  - bin/ansible-galaxy
+  - bin/ansible-inventory
+  - bin/ansible-playbook
+  - bin/ansible-pull
+  - bin/ansible-test
+  - bin/ansible-vault
