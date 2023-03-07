@@ -14,7 +14,6 @@ build:
     pip.pypa.io: '*'
   script: |
     python-venv.sh {{prefix}}/bin/twine
-    {{prefix}}/venv/bin/pip install --upgrade build
 
 provides:
   - bin/twine
@@ -28,7 +27,10 @@ test:
     echo "Hello World" > README.md
 
     # Build the package
+    {{prefix}}/venv/bin/pip install --upgrade build
     {{prefix}}/venv/bin/python -m build
+
+    # check the package
     twine check dist/*
 
     # clean up
