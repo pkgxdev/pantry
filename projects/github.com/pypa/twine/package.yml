@@ -15,17 +15,24 @@ build:
   script: |
     python-venv.sh {{prefix}}/bin/twine
     {{prefix}}/venv/bin/pip install --upgrade build
-test:
-  env:
-    PYPI_PASSWORD: tea_password 
-    PYPI_USERNAME: tea_username
-  script: |
-    twine --version
-    which python
 
+provides:
+  - bin/twine
+
+test:
+  script: |
+    twine --version | grep "^twine version {{version}}"
+
+    # Create a minimal package
     mv $FIXTURE pyproject.toml
+    echo "Hello World" > README.md
+
+    # Build the package
     {{prefix}}/venv/bin/python -m build
     twine check dist/*
+
+    # clean up
+    rm -rf dist
   fixture: |
     # pyproject.toml
     [build-system]
@@ -50,6 +57,3 @@ test:
     [project.urls]
     "Homepage" = "https://github.com/pypa/sampleproject"
     "Bug Tracker" = "https://github.com/pypa/sampleproject/issues"
-
-provides:
-  - bin/twine
