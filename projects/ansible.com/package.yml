@@ -33,6 +33,27 @@ test:
     ansible --version
     ansible-playbook playbook.yml -i hosts.ini
 
+    #FIXME below is a test from the brew formula, but I'm not sure what it's testing
+    # ^ especially considering that 'requests' is not a part of ansible's dependencies
+    # Ensure requests[security] is activated
+    # py_script="import requests as r; r.get('https://mozilla-modern.badssl.com')"
+    # {{prefix}}/venv/bin/python -c "$py_script"
+
+    # Ensure ansible-vault can encrypt/decrypt files.
+    echo $SECRET_MESSAGE > vault-test-file.txt
+    echo $VAULT_PASSWORD > vault-password.txt
+
+    ansible-vault encrypt --vault-password-file vault-password.txt vault-test-file.txt
+    test "$(cat vault-test-file.txt)" != "$SECRET_MESSAGE" # encrypted
+
+    ansible-vault decrypt --vault-password-file vault-password.txt vault-test-file.txt
+    test "$(cat vault-test-file.txt)" = "$SECRET_MESSAGE" # decrypted
+
+  env:
+    VAULT_PASSWORD: "123456789"
+    SECRET_MESSAGE: "Hello world!"
+
+
 provides:
   - bin/ansible
   - bin/ansible-config
