@@ -36,6 +36,9 @@ build:
       git apply props/unzip_option_feature.diff
     fi
 
+    # change default bindir to ~/.local/bin per our conventions
+    git apply props/default_bindir.diff
+
     cargo build --release
     mkdir -p "{{ prefix }}"/bin
     mv target/release/deno "{{ prefix }}"/bin
@@ -49,4 +52,11 @@ build:
     crates.io/semverator: '*'
 
 test:
-  script: deno --version
+  script: |
+    deno --version | grep {{version}}
+    mv $FIXTURE test.ts
+    deno install test.ts
+    test "$(.local/bin/test)" = "Hello, world!"
+  fixture: |
+    console.log("Hello, world!");
+
