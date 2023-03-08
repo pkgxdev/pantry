@@ -1,0 +1,22 @@
+distributable:
+   url: https://github.com/xiph/rav1e/archive/refs/tags/v{{ version }}.tar.gz
+   strip-components: 1
+
+versions:
+  github: xiph/rav1e/releases
+
+dependencies:
+  nasm.us: ^2.14.02
+
+provides:
+  - bin/rav1e
+
+build:
+  dependencies:
+    rust-lang.org: ">=1.60"
+    rust-lang.org/cargo: "*"
+  script: |
+    cargo install --locked --path . --root {{prefix}}
+
+test:
+  rav1e --version
