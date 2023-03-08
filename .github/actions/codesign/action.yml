@@ -45,21 +45,51 @@ runs:
         p12-file-base64: ${{ inputs.p12-file-base64 }}
         p12-password: ${{ inputs.p12-password }}
 
-    - name: Codesign files
+    - name: Create file list
       shell: sh
-      run: find $PATHS -type f -print0 | xargs -0 codesign -s "$IDENTITY" --force -v --timestamp || true
+      id: files
+      run: |
+        echo "sign<<EOF" >> $GITHUB_OUTPUT
+        /usr/bin/find $PATHS \
+          -type f \
+          -not -name '*.py' \
+          -not -name '*.pyc' \
+          -not -name '*.txt' \
+          -not -name '*.h' | \
+          /usr/bin/sed -e 's/ /\\ /g' >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+        # `tea` won't pass strict checking due to a deno bug with the way
+        # MachO headers are created
+        # https://github.com/denoland/deno/issues/17753
+        echo "check<<EOF" >> $GITHUB_OUTPUT
+        /usr/bin/find $PATHS \
+          -type f \
+          -not -name '*.py' \
+          -not -name '*.pyc' \
+          -not -name '*.txt' \
+          -not -name '*.h' \
+          -not -name tea | \
+          /usr/bin/sed -e 's/ /\\ /g' >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
       env:
         PATHS: ${{ inputs.paths }}
+
+    - name: Codesign files
+      shell: sh
+      run: |
+        echo "$FILES" | \
+          /usr/bin/xargs /usr/bin/codesign -s "$IDENTITY" --force -v --timestamp || true
+      env:
+        FILES: ${{ steps.files.outputs.sign }}
         IDENTITY: ${{ inputs.identity }}
 
     # This isn't very informative, but even a no-op is safer than none
     - name: Check codesigning
       shell: sh
-      # FIXME: `deno` compiled binaries don't currently pass validation.
-      # https://github.com/denoland/deno/issues/17753
-      run: find $PATHS -type f ! -name tea -print0 | xargs -0 codesign -vvv --strict
+      run: echo "$FILES" | /usr/bin/xargs /usr/bin/codesign -vvv --strict
       env:
-        PATHS: ${{ inputs.paths }}
+        FILES: ${{ steps.files.outputs.check }}
 
     # Needed for self-hosted runner, since it doesn't destroy itself automatically.
     - name: Delete keychain
