@@ -1,0 +1,38 @@
+distributable:
+  url: https://github.com/virtualsquare/vde-2/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: virtualsquare/vde-2/releases/tags 
+  strip: /^v/
+
+provides:
+  - vde_autolink
+  - vde_over_ns
+  - vde_pcapplug
+  - vde_plug
+  - vde_plug2tap
+  - vde_router
+  - vde_switch
+  - vdecmd
+  - vdeterm
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/autoconf: ^2
+    gnu.org/automake: ^1
+    gnu.org/libtool: ^2.4
+  script: |
+    autoreconf --install
+    ./configure $ARGS
+    make install
+  env:
+    ARGS:
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --prefix="{{prefix}}"
+
+test: |
+  echo $(vde_switch -v) | grep "VDE {{ version }}"
