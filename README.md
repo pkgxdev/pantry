@@ -47,8 +47,8 @@ $ git push origin my-new-package
 $ gh pr create
 ```
 
-> `pkg` can be run without magic via `tea -E pkg` (this dev-env provides `+tea.xyz/brewkit`).
-> `gh` can be run without magic via `tea gh`.
+> `pkg` can be run without magic via `tea -E pkg` (this dev-env provides `+tea.xyz/brewkit`).  
+> `gh` can be run without magic via `tea gh`.  
 > `git` can be run without magic via `tea git`.
 
 While in a pantry dev-env you can run commands from any built packages
