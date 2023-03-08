@@ -1,0 +1,24 @@
+distributable:
+  url: https://github.com/render-oss/render-cli/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: render-oss/render-cli/tags
+  strip: /^v/
+
+build:
+  dependencies:
+    deno.land: ^1.30
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    make build-local
+    mkdir -p "{{prefix}}/bin"
+    install -m755 ./bin/render "{{prefix}}/bin"
+
+provides:
+  - bin/render
+
+test:
+  script: |
+    render commands
