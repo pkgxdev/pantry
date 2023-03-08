@@ -3,7 +3,7 @@ distributable:
   strip-components: 1
 
 versions:
-  github: pypa/pipenv/releases/tags  # reads github *releases* but uses the tags of those releases
+  github: pypa/pipenv/releases/tags
   strip: /^v/
 
 dependencies:
@@ -16,9 +16,11 @@ build:
   script:
     python-venv.sh {{prefix}}/bin/pipenv
 
-test:
+runtime:
   env:
-    PIPENV_IGNORE_VIRTUALENVS: true # ignore existing venv and create new one for testing
+    PIPENV_IGNORE_VIRTUALENVS: 1
+
+test:
   script: |
     test "$(pipenv --version)" = "pipenv, version {{version}}"
     mkdir -p tmp_test
