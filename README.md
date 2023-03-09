@@ -24,21 +24,24 @@ Assuming you have tea+magic installed:
 $ git clone https://github.com/teaxyz/pantry.core
 
 $ cd pantry.core
-# all the following commands operate in `./tea.out`
-# your tea installation remains untouched
 
 $ pkg init
 # ^^ creates a “wip” package.yml
 
 $ pkg edit
-# ^^ opens the new package.yml in your EDITOR
+# ^^ opens the new package.yml in your `$EDITOR`
 
 $ pkg build
-# ^^ will probably require a (zero permissions) GitHub [PAT].
-# Using `gh auth login` is the easiest way to set this up.
+# ^^ runs the build script from your package.yml
+# refer to other packages for examples
+# ^^ usually requires a (zero permissions) GitHub [PAT]
+# either set `$GITHUB_TOKEN` or run `gh auth login` (once) first
+# builds in `./srcs`, installs to `~/.tea`
 
 $ pkg test
-# ^^ you need to write a test that verifies the package works
+# ^^ runs the test script from your package.yml
+# refer to other packages for examples
+# ^^ operates in `./tests`
 
 $ gh repo fork
 $ git branch -m my-new-package
@@ -46,10 +49,11 @@ $ git push origin my-new-package
 $ gh pr create
 ```
 
-> `pkg` can be run without magic via `tea -E pkg` (this dev-env provides `+tea.xyz/brewkit`).
-> `gh` can be run without magic via `tea gh`.
-> `git` can be run without magic via `tea git`.
-
+> * `pkg` can be run without magic via `tea -E pkg` (this dev-env provides `+tea.xyz/brewkit`).
+> * `gh` can be run without magic via `tea gh`.
+> * `git` can be run without magic via `tea git`.
+> * `pkg build` and `pkg test` take a `-L` flag to run in a Linux Docker container
+> * All commands take an optional pkg-spec eg. `pkg build zlib.net^1.1`
 
 ## Packaging Guide
 
