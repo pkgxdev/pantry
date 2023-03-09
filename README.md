@@ -5,7 +5,7 @@ We promise to prioritize fixes, updates and robustness for these packages.
 We will not lightly accept additions, and thus suggest submitting your pull
 request against [pantry.extra] first.
 
-> † see [pantry.zero] for “what is a pantry”
+> † see [pantry.extra] for “what is a pantry”
 
 # Use with tea/cli
 
@@ -72,9 +72,8 @@ submit PRs for updates.
 
 
 
-[pantry.zero]: https://github.com/teaxyz/pantry.zero
 [pantry.extra]: https://github.com/teaxyz/pantry.extra
-[wiki]: https://github.com/teaxyz/pantry.zero/wiki
+[wiki]: https://github.com/teaxyz/pantry.extra/wiki
 [tea/cli]: https://github.com/teaxyz/cli
 [discussion]: https://github.com/orgs/teaxyz/discussions
 [PAT]: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token
