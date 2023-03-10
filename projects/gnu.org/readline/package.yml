@@ -4,10 +4,11 @@ distributable:
 
 versions:
   #TODO brew has a couple patches we should apply
+  - 8.2
   - 8.1
 
 dependencies:
-  invisible-island.net/ncurses: 6
+  invisible-island.net/ncurses: ^6
 
 build:
   dependencies:
@@ -18,4 +19,9 @@ build:
     make --jobs {{ hw.concurrency }} install
 
 test:
-  script: true  #FIXME
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script: |
+    cc -lreadline -lncurses fixture.c
+    test "$(echo "Hello, World!" | ./a.out)" = "test> Hello, World!
+    Hello, World!\\n"
