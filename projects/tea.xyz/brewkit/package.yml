@@ -9,12 +9,16 @@ dependencies:
   deno.land: ^1.30
   gnu.org/bash: '*'
   tea.xyz: ^0.24.10
-  git-scm.org: ^2
 
 build: |
   mkdir -p {{prefix}}
-  rm -rf {{prefix}}/*  # because our build infra uses this pkg to build itself
-  mv bin libexec share deno.* {{prefix}}
+
+  rm -rf {{prefix}}/*
+  # ^^ because our build infra uses this pkg to build itself
+
+  for x in bin libexec lib share deno.*; do
+    test -e $x && mv $x "{{prefix}}"
+  done
 
 test:
   dependencies:
