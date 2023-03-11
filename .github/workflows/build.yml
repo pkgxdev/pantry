@@ -24,7 +24,7 @@ jobs:
       test-matrix: ${{ steps.platform.outputs.test-matrix }}
       cache-set: ${{ steps.platform.outputs.cache-set }}
     steps:
-      - uses: teaxyz/pantry.core/.github/actions/get-platform@main
+      - uses: teaxyz/brewkit/actions/get-platform@v0
         id: platform
         with:
           platform: ${{ inputs.platform }}
@@ -36,7 +36,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - uses: teaxyz/pantry.core/.github/actions/setup-brewkit@main
+      - uses: teaxyz/brewkit/actions/setup-brewkit@v0
         id: tea
         with:
           prefix: /opt
@@ -61,7 +61,7 @@ jobs:
           TEA_PREFIX: ${{ steps.tea.outputs.prefix }}
 
       # sign macOS binaries
-      - uses: teaxyz/pantry.core/.github/actions/codesign@main
+      - uses: teaxyz/brewkit/actions/codesign@v0
         if: startsWith(inputs.platform, 'darwin+') && github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name
         with:
             p12-file-base64: ${{ secrets.APPLE_CERTIFICATE_P12 }}
@@ -104,7 +104,7 @@ jobs:
     container: ${{ matrix.platform.container }}
     steps:
       - uses: actions/checkout@v3
-      - uses: teaxyz/pantry.core/.github/actions/setup-brewkit@main
+      - uses: teaxyz/brewkit/actions/setup-brewkit@v0
 
       - uses: teaxyz/setup@v0
         with:
@@ -169,7 +169,7 @@ jobs:
         with:
           name: ${{ inputs.platform }}
 
-      - uses: teaxyz/pantry.core/.github/actions/stage-build-artifacts@main
+      - uses: teaxyz/brewkit/actions/stage-build-artifacts@v0
         with:
           platform: ${{ inputs.platform }}
           AWS_S3_BUCKET: ${{ secrets.AWS_S3_CACHE }}

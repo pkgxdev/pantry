@@ -22,7 +22,7 @@ jobs:
       os: ${{ steps.platform.outputs.os }}
       cache-set: ${{ steps.platform.outputs.cache-set }}
     steps:
-      - uses: teaxyz/pantry.core/.github/actions/get-platform@main
+      - uses: teaxyz/brewkit/actions/get-platform@v0
         id: platform
         with:
           platform: ${{ inputs.platform }}
@@ -35,7 +35,7 @@ jobs:
       built: ${{ env.built }}
       pr: ${{ env.PR }}
     steps:
-      - uses: teaxyz/pantry.core/.github/actions/setup-brewkit@main
+      - uses: teaxyz/brewkit/actions/setup-brewkit@v0
         id: tea
 
       - uses: actions/download-artifact@v3
@@ -43,7 +43,7 @@ jobs:
         with:
           name: ${{ inputs.platform }}
 
-      - uses: teaxyz/pantry.core/.github/actions/fetch-pr-artifacts@main
+      - uses: teaxyz/brewkit/actions/fetch-pr-artifacts@v0
         if: ${{ !inputs.new-version }}
         with:
           platform: ${{ inputs.platform }}
@@ -80,7 +80,7 @@ jobs:
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
 
-      - uses: teaxyz/pantry.core/.github/actions/bottle@main
+      - uses: teaxyz/brewkit/actions/bottle@v0
         id: bottle-xz
         with:
           built: ${{ env.built }}
@@ -88,7 +88,7 @@ jobs:
           gpg-key-id: ${{ secrets.GPG_KEY_ID }}
           gpg-key-passphrase: ${{ secrets.GPG_PASSPHRASE }}
 
-      - uses: teaxyz/pantry.core/.github/actions/bottle@main
+      - uses: teaxyz/brewkit/actions/bottle@v0
         id: bottle-gz
         with:
           built: ${{ env.built }}
@@ -121,7 +121,7 @@ jobs:
     needs: [bottle]
     runs-on: ubuntu-latest
     steps:
-      - uses: teaxyz/pantry.core/.github/actions/setup-brewkit@main
+      - uses: teaxyz/brewkit/actions/setup-brewkit@v0
         with:
           prefix: ${{ github.workspace }}
 
@@ -136,7 +136,7 @@ jobs:
             echo "$file=$(cat $file)" >>$GITHUB_ENV
           done
 
-      - uses: teaxyz/pantry.core/.github/actions/upload@main
+      - uses: teaxyz/brewkit/actions/upload@v0
         id: upload
         with:
           pkgs: ${{ needs.bottle.outputs.built }} ${{ needs.bottle.outputs.built }}
