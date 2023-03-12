@@ -116,7 +116,7 @@ jobs:
 
       - name: clean destination
         # Note: needed when changing a directory to a symlink, for example in
-        # https://github.com/teaxyz/pantry.extra/pull/435
+        # https://github.com/teaxyz/pantry/pull/435
         run: |
           tar tzf $GITHUB_WORKSPACE/artifacts.tgz | \
             awk '{ print length, $0 }' | \
@@ -162,7 +162,7 @@ jobs:
   stage:
     needs: [test]
     # this only works for PRs from our team to our repo (security! :( )
-    if: startsWith(github.ref, 'refs/pull/') && startsWith(github.repository, 'teaxyz/pantry.') && needs.test.outputs.HAS_SECRETS == 'true'
+    if: startsWith(github.ref, 'refs/pull/') && github.repository_owner == 'teaxyz' && needs.test.outputs.HAS_SECRETS == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v3

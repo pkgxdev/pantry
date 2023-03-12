@@ -11,8 +11,6 @@ jobs:
       has-artifacts: ${{ steps.has-artifacts.outputs.has-artifacts }}
     steps:
       - uses: actions/checkout@v3
-        with:
-          repo: teaxyz/pantry.core
 
       - uses: teaxyz/brewkit/actions/setup-brewkit@v0
 
@@ -91,7 +89,7 @@ jobs:
             RESULT="$RESULT $y"
           done
           echo "diff=$RESULT" >> $GITHUB_OUTPUT
-      - run: gh workflow run new-version.yml -R teaxyz/pantry.core -f "projects=$PROJECTS"
+      - run: gh workflow run new-version.yml -f "projects=$PROJECTS"
         if: ${{ steps.diff.outputs.diff != '' }}
         env:
           GITHUB_TOKEN: ${{ secrets.TEMP_JACOBS_GITHUB_PAT }}
