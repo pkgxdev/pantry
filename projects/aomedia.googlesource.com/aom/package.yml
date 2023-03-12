@@ -18,15 +18,16 @@ build:
     make
     make install
   env:
-    CC: clang
     ARGS:
       - -DCMAKE_BUILD_TYPE=Release
       - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
-
-test:
-  script: |
-    aomenc --help
-    aomdec --help
+    linux:
+      CFLAGS: -fPIC
+      CXXFLAGS: -fPIC
+      LDFLAGS: -pie
+test: |
+  aomenc --help
+  aomdec --help
 
 provides:
   - bin/aomenc
