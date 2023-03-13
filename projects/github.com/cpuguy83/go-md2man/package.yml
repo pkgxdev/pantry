@@ -1,0 +1,23 @@
+distributable:
+  url: https://github.com/cpuguy83/go-md2man/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: cpuguy83/go-md2man/releases/tags  
+  strip: /^v/
+
+provides:
+  - bin/go-md2man
+
+build:
+  dependencies:
+    go.dev: ^1.19
+  script: |
+    go build -ldflags="-s -w" -o bin/go-md2man
+    mkdir -p "{{ prefix }}"/bin
+    mv bin/go-md2man "{{ prefix }}"/bin
+
+test: |
+  echo '# manpage\nand a half\n' > input.md
+  go-md2man -in input.md -out output.man
+  grep ".TH manpage" output.man

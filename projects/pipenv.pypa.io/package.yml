@@ -3,22 +3,20 @@ distributable:
   strip-components: 1
 
 versions:
-  github: pypa/pipenv/releases/tags  # reads github *releases* but uses the tags of those releases
+  github: pypa/pipenv/releases/tags
   strip: /^v/
 
 dependencies:
   python.org: '>=3.7'
 
 build:
-  dependencies:
-    pip.pypa.io: '*'
-    gnu.org/bash: '>=2'  # for our venv/relocation scripts: feel free to fix that
-  script:
-    python-venv.sh {{prefix}}/bin/pipenv
+  python-venv.sh {{prefix}}/bin/pipenv
+
+runtime:
+  env:
+    PIPENV_IGNORE_VIRTUALENVS: 1
 
 test:
-  env:
-    PIPENV_IGNORE_VIRTUALENVS: true # ignore existing venv and create new one for testing
   script: |
     test "$(pipenv --version)" = "pipenv, version {{version}}"
     mkdir -p tmp_test
