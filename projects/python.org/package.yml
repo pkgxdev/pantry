@@ -41,6 +41,7 @@ build:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
     freedesktop.org/pkg-config: ^0.29
+    crates.io/semverator: '*'
 
   #TODO use the diff
   #TODO $libdir/_sysconfigdata__darwin_darwin.py contains non-relocatable paths
@@ -59,9 +60,15 @@ build:
     done
     ln -sf python{{ version.marketing }}-config python-config
 
+    # older versions use a different config dir
+    if semverator satisfies '<3.8' {{ version }}; then
+      confdir=$(echo $confdir | sed -e 's/\(config-{{ version.marketing }}\)/\1m/')
+    fi
+
     # make relocatable
     cd {{prefix}}
     for binfile in $shebangs $confdir/python-config.py; do
+      binfile=$(readlink -f $binfile)
       sed -i.bak -e 's|#!{{ prefix }}/bin/|#!/usr/bin/env |g' $binfile
       rm $binfile.bak
     done
