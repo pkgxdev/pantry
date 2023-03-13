@@ -12,6 +12,7 @@ dependencies:
 build:
   script: |
     python-venv.sh {{prefix}}/bin/ansible
+
     # manually register all the ansible-* executables with tea
     #FIXME dirty hack, replace with a proper solution
     for _EXEC in {{prefix}}/venv/bin/ansible-*; do
@@ -24,7 +25,11 @@ build:
         $TRG_BIN_NAME
     done
 
+    # install paramiko, a python ssh library sometimes used with ansible
+    {{prefix}}/venv/bin/pip install paramiko #FIXME should we pin a version?
+
     rm -v {{prefix}}/bin/ansible-*.bak
+
 
 test:
   script: |
@@ -46,6 +51,9 @@ test:
 
     ansible-vault decrypt --vault-password-file vault-password.txt vault-test-file.txt
     test "$(cat vault-test-file.txt)" = "$SECRET_MESSAGE" # decrypted
+
+    # ensure paramiko is installed
+    {{prefix}}/venv/bin/python -c "import paramiko"
 
   env:
     VAULT_PASSWORD: "123456789"
