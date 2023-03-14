@@ -1,0 +1,29 @@
+distributable:
+  url: https://github.com/CircleCI-Public/circleci-cli/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: CircleCI-Public/circleci-cli/tags 
+  strip: /^v/
+
+build:
+  dependencies:
+    tea.xyz/gx/make: '*'
+    go.dev: '*'
+  script: |
+    go build -ldflags="$LDFLAGS" -o {{prefix}}/bin/circleci
+  env:
+    LDFLAGS:
+      - -s
+      - -w
+      - -X github.com/CircleCI-Public/circleci-cli/version.packageManager=tea
+      - -X github.com/CircleCI-Public/circleci-cli/version.Version={{version}}
+
+provides:
+  - bin/circleci
+
+test:
+  script: |
+    circleci version
+    echo "{version: 2.1}" > .circleci.yml 
+    circleci config pack .circleci.yml
