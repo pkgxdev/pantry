@@ -1,0 +1,28 @@
+distributable:
+  url: https://github.com/nektos/act/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: nektos/act/tags  # reads github tags from github
+  strip: /^v/
+
+build:
+  dependencies:
+    go.dev: '*'
+  script: |
+    make build VERSION={{version}}
+    mkdir -p {{prefix}}/bin
+    cp dist/local/act {{prefix}}/bin/act
+    chmod 755 {{prefix}}/bin/act
+
+provides:
+  - bin/act
+
+test:
+  dependencies:
+    git-scm.org: '*'
+  script: |
+    git clone https://github.com/teaxyz/setup.git
+    cd setup
+    git checkout v0.15.0
+    act push --list
