@@ -1,0 +1,48 @@
+distributable:
+  url: https://github.com/nih-at/libzip/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: nih-at/libzip
+  strip: /^libzip /
+  
+provides:
+  - bin/zipcmp
+  - bin/zipmerge
+  - bin/ziptool
+
+dependencies:
+  facebook.com/zstd: '>=1.5.0'
+  darwin: 
+    sourceware.org/bzip2: '>=1.0.8'
+    tukaani.org/xz: '>=5.2.7'
+    zlib.net: '>=1.2.13'
+  linux:
+    openssl.org: '>=1.1.1'
+
+build:
+  dependencies:
+    cmake.org: '>=3.24'
+    tea.xyz/gx/make: '*'
+    tea.xyz/gx/cc: c99
+
+  script: |
+    cmake . $ARGS
+    cmake --build .
+    cmake --install .
+  env:
+    ARGS:
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
+      - -DBUILD_REGRESS=OFF
+      - -DBUILD_EXAMPLES=OFF
+      - -DENABLE_GNUTLS=OFF
+      - -DENABLE_MBEDTLS=OFF
+    darwin:
+      ARGS:
+        - -DENABLE_OPENSSL=OFF
+
+test: 
+  script: |
+    ziptool -n foobar.zip add foo.txt bar
+    out=$(ziptool foobar.zip cat 0)
+    test "$out" = "bar"
