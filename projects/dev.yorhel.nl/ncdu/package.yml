@@ -1,0 +1,26 @@
+distributable:
+  url: https://dev.yorhel.nl/download/ncdu-{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/ncdu
+
+versions:
+  - 2.2.2
+
+dependencies:
+  invisible-island.net/ncurses: '*'
+  tea.xyz/gx/make: '*'
+
+build:
+  dependencies:
+    ziglang.org: ~0.10
+  script: |
+    sed -i.bak -e 's_\(\(\s*[a-z]*\).linkSystemLibrary("ncursesw");\)_\2.addLibraryPath("{{ deps.invisible-island.net/ncurses.prefix }}/lib");\n\1_' build.zig
+    rm build.zig.bak
+
+    make install PREFIX="{{ prefix }}"
+
+test: |
+  ncdu -o test
+  cat test
