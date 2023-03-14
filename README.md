@@ -1,7 +1,5 @@
 ![tea](https://tea.xyz/banner.png)
 
-This pantry is the complement to [pantry.core].
-
 
 # What is a Pantry?
 
@@ -29,9 +27,9 @@ other sources as much as possible, eg. versions are taken from the
 Assuming you have tea (/w magic) installed:
 
 ```sh
-$ git clone https://github.com/teaxyz/pantry.extra
+$ git clone https://github.com/teaxyz/pantry
 
-$ cd pantry.extra
+$ cd pantry
 # all the following commands operate in `./tea.out`
 # your tea installation remains untouched
 
@@ -88,16 +86,13 @@ with their pull request then you can use GitHub’s CLI:
 $ gh pr checkout 123
 
 # or you can copy paste the URL:
-$ gh pr checkout https://github.com/teaxyz/pantry.extra/pull/123
+$ gh pr checkout https://github.com/teaxyz/pantry/pull/123
 
 # then open for editing:
 $ pkg edit
 ```
 
 
-[pantry.core]: https://github.com/teaxyz/pantry.core
-[wiki]: https://github.com/teaxyz/pantry.extra/wiki
-[tea/cli]: https://github.com/teaxyz/cli
+[wiki]: https://github.com/teaxyz/pantry/wiki
 [discussion]: https://github.com/orgs/teaxyz/discussions
-[PAT]: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token
 [IPFS]: https://ipfs.tech
