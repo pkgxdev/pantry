@@ -75,6 +75,9 @@ jobs:
   bottle-standalone:
     runs-on: ubuntu-latest
     needs: [cd]
+    permissions:
+      contents: read
+      actions: write
     if: ${{ needs.cd.outputs.has-artifacts == 'false' }}
     steps:
       - uses: actions/checkout@v3
@@ -92,5 +95,4 @@ jobs:
       - run: gh workflow run new-version.yml -f "projects=$PROJECTS"
         if: ${{ steps.diff.outputs.diff != '' }}
         env:
-          GITHUB_TOKEN: ${{ secrets.TEMP_JACOBS_GITHUB_PAT }}
           PROJECTS: ${{ steps.diff.outputs.diff }}
