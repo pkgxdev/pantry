@@ -15,13 +15,17 @@ build:
     x.org/util-macros: '*'
     freedesktop.org/pkg-config: ~0.29
   script: |
+    # otherwise X11 fails to build on all platforms we support at least lol
+    sed -i.bak 's|# include <sys/stropts.h>|# include <sys/ioctl.h>|g' Xtranslcl.c
+
     ./configure \
       --prefix="{{prefix}}" \
       --sysconfdir="$SHELF"/etc \
       --localstatedir="$SHELF"/var \
       --disable-debug \
       --enable-docs=no
-    make --jobs {{ hw.concurrency }} install
+    make
+    make install
   env:
     SHELF: ${{tea.prefix}}/x.org
 
