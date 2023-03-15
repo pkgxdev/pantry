@@ -1,0 +1,29 @@
+distributable:
+  url: https://github.com/pygments/pygments/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: pygments/pygments/tags
+
+dependencies:
+  python.org: 3.11
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    
+  script: |
+    python-venv.sh {{prefix}}/bin/pygmentize
+
+provides:
+  - /bin/pygmentize
+
+test:
+  fixture: |
+    import os
+    print(os.getcwd())
+  script: |
+    mv $FIXTURE test.py
+    pygmentize -f html -o test.html test.py
+
