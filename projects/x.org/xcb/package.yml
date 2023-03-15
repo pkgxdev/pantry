@@ -1,0 +1,44 @@
+distributable:
+  url: https://xcb.freedesktop.org/dist/libxcb-{{version.raw}}.tar.gz
+  strip-components: 1
+
+versions:
+  - 1.15
+
+dependencies:
+  x.org/xau: ^1
+  x.org/xdmcp: ^1
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    freedesktop.org/pkg-config: ^0.29
+    python.org: ^3.11
+    x.org/protocol/xcb: ^1
+    gnu.org/patch: '*'
+  script: |
+    patch -p1 <props/configure.patch
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    SHELF: ${{tea.prefix}}/x.org
+    ARGS:
+    - --prefix="{{prefix}}"
+    - --sysconfdir="$SHELF"/etc
+    - --localstatedir="$SHELF"/var
+    - --enable-dri3
+    - --enable-ge
+    - --enable-xevie
+    - --enable-xprint
+    - --enable-selinux
+    - --disable-silent-rules
+    - --enable-devel-docs=no
+    - --with-doxygen=no
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script: |
+    cc fixture.c -lxcb
+    ./a.out
