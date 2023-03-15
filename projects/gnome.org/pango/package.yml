@@ -1,0 +1,47 @@
+distributable:
+  url: https://download.gnome.org/sources/pango/{{ version.major }}.{{ version.minor }}/pango-{{ version }}.tar.xz
+  strip-components: 1
+
+versions:
+  #FIXME github: GNOME/pango/tags
+  #NOTE above has a v2 which nothing seems to reference otherwise
+  - 1.50.9
+
+dependencies:
+  cairographics.org: 1
+  freetype.org: 2
+  gnome.org/glib: 2
+  harfbuzz.org: '>=4 <6'  #FIXME we’re actually not sure about the specifics of this requirement
+  freedesktop.org/fontconfig: 2
+  sourceware.org/libffi: 3
+  gnu.org/fribidi: 1
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    mesonbuild.com: ^0.63
+    ninja-build.org: 1
+    freedesktop.org/pkg-config: ^0.29
+    gnome.org/gobject-introspection: 1
+    python.org: 3  #FIXME rq’d by gnome.org/gobject-introspection but should be added by tea-env
+  working-directory: build
+  script: |
+    meson .. $ARGS
+    ninja --verbose
+    ninja install
+  env:
+    ARGS:
+      - -Dcairo=enabled
+      - -Dfontconfig=enabled
+      - -Dfreetype=enabled
+      - --buildtype=release
+      - --prefix={{prefix}}
+      - --libdir={{prefix}}/lib
+
+#TODO more
+test: pango-view --version
+
+provides:
+  - bin/pango-list
+  - bin/pango-segmentation
+  - bin/pango-view

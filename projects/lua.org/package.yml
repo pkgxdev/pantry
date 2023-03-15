@@ -1,0 +1,29 @@
+distributable:
+  url: http://www.lua.org/ftp/lua-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  - 5.4.4
+
+provides:
+  - bin/lua
+  - bin/luac
+
+interprets:
+  extensions: lua
+  args: lua
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+
+  script: |
+    make all INSTALL_TOP={{prefix}}
+    make install INSTALL_TOP={{prefix}}
+    make test
+
+test:
+  script: |
+    lua -v
+    lua -e 'print("Hello World!")'

@@ -1,0 +1,54 @@
+# Tree is a recursive directory listing command that produces a depth indented listing of files, which is colorized
+# brew formula: https://formulae.brew.sh/formula/tree
+
+distributable:
+  url: https://gitlab.com/OldManProgrammer/unix-tree/-/archive/{{version}}/unix-tree-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  - 2.1.0
+
+build:
+  dependencies:
+    tea.xyz/gx/make: '*'
+    linux:
+        gnu.org/gcc: "*"
+    darwin:
+        tea.xyz/gx/cc: c99
+
+
+
+  script: |
+    make
+    make $ARGS install
+
+  env:
+    ARGS:
+      - PREFIX={{prefix}}
+    #FIXME seems to work ok, but someone needs to take a second look at these LDFLAGS/CFLAGS, I don't really know what I'm doing here
+    LDFLAGS:
+      - -s
+    linux:
+      CC: gcc
+      CFLAGS: -O3
+    darwin:
+      CC: cc
+      CFLAGS: -O2 -Wall -fomit-frame-pointer -no-cpp-precomp
+
+
+test:
+  script: |
+    # prepare for tests
+    mkdir -p foo/bar
+    mkdir -p foo/buzz
+    touch foo/buzz/lupus.txt
+    # run tests
+    tree --version | grep 'tree v{{version}}'
+    out="$(tree . )"
+    echo $out | grep lupus.txt  # test for files found
+    echo $out | grep bar        # test for level 2 dirs found
+    echo $out | grep buzz       # ^
+    echo $out | grep '4 directories, 2 files'
+    tree .
+provides:
+  - bin/tree

@@ -1,0 +1,29 @@
+distributable:
+  url: https://github.com/gohugoio/hugo/archive/v{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/hugo
+
+versions:
+  github: gohugoio/hugo
+
+# TODO completion is available by running the command
+
+build:
+  script: |
+    go build -ldflags="$LDFLAGS"
+    mkdir -p "{{ prefix }}"/bin
+    mv hugo "{{ prefix }}"/bin
+  dependencies:
+    go.dev: ^1.18  # probs higher than is true
+  env:
+    LDFLAGS:
+      - -s -w
+    linux:
+      # or segmentation fault
+      # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
+      LDFLAGS:
+      - -buildmode=pie
+test:
+  hugo version

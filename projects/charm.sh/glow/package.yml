@@ -1,0 +1,32 @@
+distributable:
+  url: https://github.com/charmbracelet/glow/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: charmbracelet/glow
+
+provides:
+  - bin/glow
+
+build:
+  script: |
+    go mod download
+    go build -v -ldflags="$LDFLAGS"
+    mkdir -p "{{ prefix }}"/bin
+    mv glow "{{ prefix }}"/bin
+  dependencies:
+    go.dev: ^1.18
+    #FIXME should be this but we didn’t build 1.17 yet
+    # go.dev: ~1.17
+  env:
+    GO111MODULE: on
+    LDFLAGS:
+      [-s, -w, "-X=main.Version={{version}}"]
+    linux:
+      # or segmentation fault
+      # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
+      LDFLAGS:
+      - -buildmode=pie
+
+test:
+  glow --version

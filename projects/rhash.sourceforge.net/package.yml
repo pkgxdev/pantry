@@ -1,0 +1,38 @@
+distributable:
+  url: https://github.com/rhash/RHash/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: rhash/RHash/releases/tags
+
+provides:
+  - bin/whirlpool-hash
+  - bin/tiger-hash
+  - bin/tth-hash
+  - bin/rhash
+  - bin/sfv-hash
+  - bin/magnet-link
+  - bin/has160-hash
+  - bin/gost12-256-hash
+  - bin/gost12-512-hash
+  - bin/edonr512-hash
+  - bin/edonr256-hash
+  - bin/ed2k-link
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    ./configure --prefix={{ prefix }}
+    make --jobs {{ hw.concurrency }}
+    make --jobs {{ hw.concurrency }} install
+    make -C librhash install-lib-headers
+    make test
+
+test:
+  script: |
+    rhash --version
+    echo -n test > test
+    echo -n a94a8fe5ccb19ba61c4c0873d391e987982fbbd3 test > test.sha1
+    rhash -c test.sha1

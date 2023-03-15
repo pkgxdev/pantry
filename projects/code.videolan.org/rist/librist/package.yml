@@ -1,0 +1,30 @@
+distributable:
+  url: https://code.videolan.org/rist/librist/-/archive/v{{version}}/librist-v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  - 0.2.7
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    mesonbuild.com: ^0.47
+    ninja-build.org: 1
+  working-directory:
+    build
+  script: |
+    meson .. --prefix={{prefix}} --libdir={{prefix}}/lib --buildtype=release
+    ninja -v
+    ninja install
+  env:
+    CC: clang
+
+test:
+  script: |
+    ristsrppasswd test test
+
+provides:
+  - bin/rist2rist
+  - bin/ristreceiver
+  - bin/ristsender
+  - bin/ristsrppasswd

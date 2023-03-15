@@ -1,0 +1,29 @@
+distributable:
+  url: https://ffmpeg.org/releases/ffmpeg-{{version}}.tar.xz
+  sig: ${{url}}.asc
+  strip-components: 1
+
+# docs: https://trac.ffmpeg.org/wiki/CompilationGuide
+
+versions:
+  - 5.1.2
+  # TODO they have their own git repo we can grab tags from
+
+provides:
+  - bin/ffmpeg
+  - bin/ffprobe
+
+build:
+  dependencies:
+    x86-64:
+      nasm.us: 2
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    ./configure --prefix="{{prefix}}"
+    make --jobs {{hw.concurrency}}
+    make install
+
+test: |
+  ffmpeg -filter_complex testsrc=rate=1:duration=1 out.mp4
+  test -f out.mp4

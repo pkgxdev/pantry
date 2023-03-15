@@ -1,0 +1,38 @@
+distributable:
+  url: https://github.com/numactl/numactl/archive/refs/tags/v{{ version }}/numactl-{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: numactl/numactl
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/autoconf: 2
+    gnu.org/automake: 1
+    gnu.org/libtool: 2
+    gnu.org/m4: 1
+  script: |
+    # numa is linux only
+    if test {{ hw.platform }} != "linux"
+    then
+      mkdir {{ prefix }}/bin
+      touch {{ prefix }}/not-used-on-darwin
+      exit
+    fi
+
+    ./autogen.sh
+    ./configure --prefix={{ prefix }}
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ACLOCAL_PATH: ${{ deps.gnu.org/libtool.prefix }}/share/aclocal
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script: |
+    if test {{ hw.platform }} != "linux"; then exit; fi
+
+    cc -lnuma mynode.c
+    ./a.out

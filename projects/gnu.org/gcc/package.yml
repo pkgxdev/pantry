@@ -1,0 +1,105 @@
+distributable:
+  url: https://ftp.gnu.org/gnu/gcc/gcc-{{version.raw}}/gcc-{{ version.raw }}.tar.xz
+  strip-components: 1
+
+versions:
+  github: gcc-mirror/gcc/tags
+  strip: /^releases\/gcc-/
+
+dependencies:
+  darwin:
+    apple.com/xcode/clt: '*' # MacOS.sdk
+  linux:
+    gnu.org/binutils: '*'  # linker needs `as`
+  gnu.org/gmp: '>=4.2'
+  gnu.org/mpfr: '>=2.4.0'
+  gnu.org/mpc: '>=0.8.0'
+
+build:
+  dependencies:
+    darwin:
+      tea.xyz/gx/cc: c99
+    linux:
+      gnu.org/gcc: '*'
+    gnu.org/make: '*'
+    perl.org: '^5.6.1'
+    gnu.org/patch: '*'
+    curl.se: '*'
+  working-directory: build
+  script: |
+    # Remove: cleanup bootstrap version
+    if test -d {{deps.gnu.org/gcc.prefix}}/lib64; then
+      mv {{deps.gnu.org/gcc.prefix}}/lib64/* {{deps.gnu.org/gcc.prefix}}/lib/
+      rmdir {{deps.gnu.org/gcc.prefix}}/lib64
+    fi
+
+    # Branch from the Darwin maintainer of GCC, with a few generic fixes and
+    # Apple Silicon support, located at https://github.com/iains/gcc-12-branch
+    curl https://raw.githubusercontent.com/Homebrew/formula-patches/1d184289/gcc/gcc-12.2.0-arm.diff | patch -p1 -d..
+
+    ARGS=($ARGS --with-pkgversion="tea GCC {{version}}")
+    if test {{hw.platform}} = "linux"; then
+      export ARGS=("${ARGS[@]}" --with-boot-ldflags="-static-libstdc++ -static-libgcc $LDFLAGS")
+    fi
+
+    ../configure "${ARGS[@]}"
+    make --jobs {{ hw.concurrency }}
+    make install
+
+    cd {{prefix}}/bin
+    # Since we depend on ourselves, this symlink might already exist
+    test -f gc++ || ln -sf c++ gc++
+
+    # On Linux, we need to move the libraries to the lib directory.
+    if test {{hw.platform}} = "linux"; then
+      cd {{prefix}}
+      mv lib64/* lib/
+      rmdir lib64
+    fi
+  env:
+    ARGS:
+      - --prefix={{ prefix }}
+      - --libdir={{ prefix }}/lib
+      - --enable-languages=c,c++,objc,obj-c++
+      - --with-bugurl="https://github.com/teaxyz/pantry/issues"
+      - --disable-bootstrap
+      - --disable-nls
+    linux:
+      ARGS:
+        - --disable-multilib
+        - --enable-default-pie
+        - --enable-pie-tools
+    darwin:
+      ARGS:
+        # Reliance on CLT hard path is yuck.
+        - --with-sysroot=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
+    darwin/aarch64:
+      ARGS:
+        # https://en.wikipedia.org/wiki/Darwin_(operating_system)#Darwin_16%E2%80%9319;_OS_X_rebranded_into_macOS
+        - --build=aarch64-apple-darwin20.0.0
+    darwin/x86-64:
+      ARGS:
+        - --build=x86_64-apple-darwin20.0.0
+
+test: |
+  gcc --version | grep -q "tea GCC {{version}}"
+  gcc -print-libgcc-file-name
+  gcc -print-multiarch
+  gcc -dumpspecs
+  gcc -o test1 test.c -lgmp
+  ./test1
+  g++ -o test2 test.cc
+  test "$(./test2)" = "Hello, world!"
+
+provides:
+  - bin/gc++ # we provide c++ in tea.xyz/gx/cc
+  - bin/cpp
+  - bin/g++
+  - bin/gcc
+  - bin/gcc-ar
+  - bin/gcc-nm
+  - bin/gcc-ranlib
+  - bin/gcov
+  - bin/gcov-dump
+  - bin/gcov-tool
+  - bin/lto-dump

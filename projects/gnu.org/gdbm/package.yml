@@ -1,0 +1,28 @@
+distributable:
+  url: https://ftp.gnu.org/gnu/gdbm/gdbm-{{ version.raw }}.tar.gz
+  strip-components: 1
+
+versions:
+  #TODO HTML listing: https://ftp.gnu.org/gnu/gdbm/
+  - 1.23
+
+build:
+  dependencies:
+    tea.xyz/gx/make: '*'
+    tea.xyz/gx/cc: c99
+  script: |
+    ./configure --prefix={{ prefix }} --without-readline
+    make install
+
+test:
+  script: |
+    echo -e $INPUT1 | gdbmtool --norc --newdb test
+    test $(echo -e $INPUT2 | gdbmtool --norc test) = "2"
+  env:
+    INPUT1: "store 1 2\\nquit\\n"
+    INPUT2: "fetch 1\\nquit\\n"
+
+provides:
+  - bin/gdbm_dump
+  - bin/gdbm_load
+  - bin/gdbmtool

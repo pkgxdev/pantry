@@ -1,0 +1,27 @@
+distributable:
+  url: https://ftp.gnu.org/gnu/gawk/gawk-{{ version.raw }}.tar.xz
+  strip-components: 1
+
+versions:
+  #TODO HTML listing: https://ftp.gnu.org/gnu/gawk/
+  - 5.2.1
+
+provides:
+  - bin/awk
+  - bin/gawk
+  - bin/gawk-{{version}}
+  - bin/gawkbug
+
+build:
+  dependencies:
+    tea.xyz/gx/make: '*'
+    tea.xyz/gx/cc: c99
+  script: |
+    ./configure --prefix={{ prefix }}
+    make --jobs {{ hw.concurrency }} install
+  test:
+    make test
+
+test:
+  script:
+    test "$(echo "Goodbye, cruel World" | gawk '{ gsub("Goodbye, cruel", "Hello,"); print }')" = "Hello, World"

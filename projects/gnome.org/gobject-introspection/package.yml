@@ -1,0 +1,56 @@
+distributable:
+  url: https://download.gnome.org/sources/gobject-introspection/{{version.major}}.{{version.minor}}/gobject-introspection-{{version}}.tar.xz
+  strip-components: 1
+
+versions:
+  - 1.72.0
+
+dependencies:
+  gnome.org/glib: 2
+  sourceware.org/libffi: 3
+  gnu.org/bison: 3  #NOTE macOS provides v2
+  python.org: 3
+  github.com/westes/flex: 2
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    mesonbuild.com: ^0.63
+    ninja-build.org: 1
+    freedesktop.org/pkg-config: ^0.29
+  working-directory:
+    build
+  script: |
+    meson .. --prefix={{prefix}} --libdir={{prefix}}/lib --buildtype=release
+    ninja -v
+    ninja install
+  env:
+    #FIXME for python3 distutils
+    CC: clang
+    #FIXME of fails during build for a gir-scanner step
+    # LD_LIBRARY_PATH: /opt/gnome.org/glib/v2.72.2/lib
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    gnome.org/glib: 2
+    pcre.org: 8   #NOTE possibly should be automatic
+    git-scm.org: 2
+    tea.xyz/gx/make: '*'
+    freedesktop.org/pkg-config: ^0.29
+  script: |
+    git clone $FIXTURE test
+    cd test
+    git apply ../test_make.diff
+    make
+    test -f Tut-0.1.typelib
+  env:
+    FIXTURE: https://gist.github.com/7a0023656ccfe309337a.git
+    PKG_CONFIG_PATH: $PKG_CONFIG_PATH:{{prefix}}/lib/pkgconfig
+
+provides:
+  - bin/g-ir-annotation-tool
+  - bin/g-ir-compiler
+  - bin/g-ir-generate
+  - bin/g-ir-inspect
+  - bin/g-ir-scanner

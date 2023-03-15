@@ -1,0 +1,43 @@
+distributable:
+  url: https://bitcoincore.org/bin/bitcoin-core-{{version}}/bitcoin-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: bitcoin/bitcoin
+  strip: /^Bitcoin Core /
+
+dependencies:
+  oracle.com/berkeley-db: ^18
+  boost.org: ^1
+  libevent.org: ^2
+  zeromq.org: ^4
+  sqlite.org: ^3
+
+build:
+  dependencies:
+    gnu.org/autoconf: ^2
+    gnu.org/automake: ^1
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    freedesktop.org/pkg-config: ^0.29
+    gnu.org/libtool: ^2
+  script: |
+    ./autogen.sh
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --disable-debug
+      - --disable-tests  # needs: `hexedit`
+      - --disable-bench  # fails: linux/aarch64/v24.0.1
+
+provides:
+  - bin/bitcoin-cli
+  - bin/bitcoin-tx
+  - bin/bitcoin-util
+  - bin/bitcoin-wallet
+  - bin/bitcoind
+
+test:
+  bitcoind -version

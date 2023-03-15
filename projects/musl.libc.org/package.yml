@@ -1,0 +1,74 @@
+distributable:
+  url: https://git.musl-libc.org/cgit/musl/snapshot/{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  - 1.2.3
+
+relocatable: true
+
+provides:
+  - bin/ld.musl-clang
+  - bin/musl-clang
+
+dependencies:
+  tea.xyz/gx/cc: c99
+
+build:
+  dependencies:
+    tea.xyz/gx/make: '*'
+  script: |
+    # musl is linux only, so just make passthrough scripts on Darwin
+    if test {{ hw.platform }} != "linux"
+    then
+      mkdir {{ prefix }}/bin
+      cat > {{ prefix }}/ld.musl-clang <<EOF
+    #!/bin/sh
+    exec ld "$@"
+    EOF
+    cat > {{ prefix }}/musl-clang <<EOF
+    #!/bin/sh
+    exec cc "$@"
+    EOF
+      chmod +x {{ prefix }}/ld.musl-clang {{ prefix }}/musl-clang
+      exit
+    fi
+
+    ./configure --prefix={{ prefix }} --syslibdir={{ prefix }}/lib
+
+    make --jobs {{ hw.concurrency }}
+    make install
+
+    ln -sf libc.so {{prefix}}/lib/ld-musl-{{hw.arch}}.so.1
+
+    # fix script paths; might be a better way
+    #FIXME probably: dynamic linker causes segfaults
+    sed -i.bak \
+      -e 's/-dynamic-linker "\$ldso"//' \
+      -e 's/^sflags=$/sflags="-static"/' \
+      -e 's/^libc=".*/libc="$(dirname $(dirname $(which ld.musl-clang)))"/' \
+      -e 's#^libc_inc=".*#libc_inc="$libc/include"#' \
+      -e 's#^libc_lib=".*#libc_lib="$libc/lib"#' \
+      {{prefix}}/bin/musl-clang \
+      {{prefix}}/bin/ld.musl-clang
+  env:
+    CC: clang
+
+test:
+  fixture: |
+    #include <stdio.h>
+    int main() {
+      printf("Hello World!");
+      return 0;
+    }
+  script: |
+    # musl is linux only
+    #FIXME? We don't sub our tokens in test scripts
+    if test $(uname) != "Linux"
+    then
+      exit
+    fi
+
+    mv $FIXTURE $FIXTURE.c
+    musl-clang $FIXTURE.c
+    test "$(./a.out)" = "Hello World!"

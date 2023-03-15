@@ -1,0 +1,63 @@
+distributable:
+  url: https://github.com/fish-shell/fish-shell/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: fish-shell/fish-shell/tags
+
+dependencies:
+  gnu.org/gettext: '*'
+  invisible-island.net/ncurses: '>=6.0'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    cmake.org: '>=3.5'
+    freedesktop.org/pkg-config: '*'
+    git-scm.org: '*'
+  script: |
+    # By default, fish's fish_command_not_found handler will redirect to stderr,
+    # return an exit code of 127. Always. This patch fixes it. Hopefully, it will
+    # be merged upstream soon. https://github.com/fish-shell/fish-shell/pull/9517
+
+    git apply props/command_not_found_handler.diff
+
+    echo {{version}} >version
+
+    mkdir build
+    cd build
+
+    cmake .. $ARGS
+    make install
+
+    cd {{prefix}}/share/fish
+    sed -i.bak -e "s| $TEA_PREFIX/| (tea --prefix)/|g" __fish_build_paths.fish
+    rm __fish_build_paths.fish.bak
+  env:
+    ARGS:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
+      - -DCURSES_INCLUDE_PATH="{{deps.invisible-island.net/ncurses.prefix}}/include/ncursesw"
+
+test:
+  script:
+    fish $FIXTURE | grep "variable1variable2variable3variable4variable5variable6variable7variable8variable9variable10go version go"
+  fixture: |
+    #!/usr/bin/env fish
+
+    set -lx V variable
+    for x in (seq 1 10)
+      echo -n $V$x
+    end
+
+    begin
+      set -lx SHELL fish
+      tea --magic | source
+      go version
+    end
+
+provides:
+  - bin/fish
+  - bin/fish_indent
+  - bin/fish_key_reader

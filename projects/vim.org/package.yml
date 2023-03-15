@@ -1,0 +1,51 @@
+distributable:
+  url: https://github.com/vim/vim/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  - 9.0.1294
+
+provides:
+  - bin/vim
+  - bin/vi
+
+dependencies:
+  python.org: '>=3.11'
+  lua.org: '>=5.4'
+  invisible-island.net/ncurses: '>=6.3'
+  perl.org: '>=5.36'
+  ruby-lang.org: '>=3.2'
+build:
+  dependencies:
+    gnu.org/make: ^4.3
+    tea.xyz/gx/cc: ^0.1
+  script: |
+    ./configure \
+      --prefix={{prefix}} \
+      --enable-multibyte \
+      --with-tlib=ncurses \
+      --with-compiledby=tea.xyz \
+      --enable-cscope \
+      --enable-terminal \
+      --enable-perlinterp \
+      --enable-rubyinterp \
+      --enable-python3interp \
+      --disable-gui \
+      --without-x \
+      --enable-luainterp
+    make
+    make install prefix={{prefix}}
+    if test "{{hw.platform}}+{{hw.arch}}" = "linux+x86-64"; then
+      cd {{prefix}}/bin
+      ln -s vim vi
+    fi
+test:
+  script: |
+    vim --version
+    vi --version
+    echo "hello world" >> ./test.txt
+    echo ":s/hello/test/" >> ./commands.vim
+    echo ":wq" >> ./commands.vim
+    touch $HOME/.exrc
+    vim -T dumb -S ./commands.vim ./test.txt
+    test "$(cat ./test.txt)" = "test world"

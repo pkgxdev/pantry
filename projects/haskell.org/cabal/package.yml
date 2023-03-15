@@ -1,0 +1,76 @@
+distributable:
+  url: https://hackage.haskell.org/packages/archive/cabal-install/{{ version }}.0/cabal-install-{{ version }}.0.tar.gz
+  strip-components: 1
+
+versions:
+  github: haskell/cabal
+  strip:
+    - /^[Cc]abal /
+    - /\.0$/ #FIXME cabal uses 4 digit versioning
+
+dependencies:
+  haskell.org: 9
+  gnu.org/gmp: 6
+  zlib.net: 1
+
+provides:
+  - bin/cabal
+
+build:
+  dependencies:
+    curl.se: '*'
+    tea.xyz/gx/cc: c99
+    linux/aarch64:
+      github.com/numactl/numactl: ^2  # downloaded cabal needs this
+    tukaani.org/xz: 5
+  script: |-
+    case "X{{ hw.target }}" in
+    "Xaarch64-apple-darwin")
+      BOOTSTRAP="https://downloads.haskell.org/~ghcup/unofficial-bindists/cabal/3.6.0.0/cabal-install-3.6.0.0-aarch64-darwin-big-sur.tar.xz"
+      ;;
+    "Xx86_64-apple-darwin")
+      BOOTSTRAP="https://downloads.haskell.org/~cabal/cabal-install-3.2.0.0/cabal-install-3.2.0.0-x86_64-apple-darwin17.7.0.tar.xz"
+      ;;
+    "Xx86_64-unknown-linux-gnu")
+      BOOTSTRAP="https://downloads.haskell.org/~cabal/cabal-install-3.2.0.0/cabal-install-3.2.0.0-x86_64-unknown-linux.tar.xz"
+      ;;
+    "Xaarch64-unknown-linux-gnu")
+      BOOTSTRAP="https://downloads.haskell.org/ghcup/unofficial-bindists/cabal/3.7.0.0-pre20220407/cabal-install-3.7-aarch64-linux-deb10.tar.xz"
+      ;;
+    *)
+      echo "Unknown arch. Please update the pantry."
+      exit 1
+    esac
+
+    if [[ "X{{ hw.platform }}" == Xlinux ]]; then
+      ADDITIONAL_CABAL_FLAGS="--with-gcc=clang"
+    fi
+
+    if test ! -e ../../bootstrap/cabal; then
+      if test ! -e ../../bootstrap; then
+        mkdir ../../bootstrap
+      fi
+      curl -L "${BOOTSTRAP}" | tar Jxf - -C ../../bootstrap
+    fi
+
+    ## This seems dirty, but building is an internal-only gig atm.
+    # Likely fix is to use CABAL_DIR in build scripts
+    if test -e ~/.cabal/bin; then
+      rm -r ~/.cabal/bin
+    fi
+
+    # this is not an acceptable solution, do you know a better one? pls PR 🙏
+    #FIXME also this sed line sucks but I got bored trying to make it work
+    sed -i.bak -e 's/4.15,/4.17,/' cabal-install.cabal
+    # ^^ SEE https://github.com/haskell/cabal/issues/8118
+    rm *.bak
+
+    ../../bootstrap/cabal v2-update
+    ../../bootstrap/cabal v2-install \
+      --install-method=copy \
+      --installdir={{prefix}}/bin \
+      $ADDITIONAL_CABAL_FLAGS
+
+test: |
+  cabal --config-file=./config user-config init
+  cabal --config-file=./config info Cabal

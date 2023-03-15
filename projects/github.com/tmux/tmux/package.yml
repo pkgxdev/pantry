@@ -1,0 +1,26 @@
+distributable:
+  url: https://github.com/tmux/tmux/releases/download/{{version.raw}}/tmux-{{version.raw}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: tmux/tmux/tags
+
+dependencies:
+  libevent.org: ^2.0
+  invisible-island.net/ncurses: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/bison: '*'
+    freedesktop.org/pkg-config: '*'
+  script: |
+    ./configure --prefix={{prefix}} --disable-utf8proc
+    make
+    make install
+test:
+  script: tmux -V
+
+provides:
+  - bin/tmux

@@ -1,0 +1,23 @@
+distributable:
+  url: https://gnupg.org/ftp/gcrypt/libassuan/libassuan-{{version}}.tar.bz2
+  strip-components: 1
+
+versions:
+  - 2.5.5
+
+provides:
+  - bin/libassuan-config
+
+build:
+  script: |
+    ./configure --prefix={{prefix}}
+    make
+    make check
+    make install
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnupg.org/libgpg-error: 1
+
+test:
+  script: test "$(libassuan-config --version)" = "{{version}}"

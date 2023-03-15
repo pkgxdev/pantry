@@ -1,0 +1,34 @@
+distributable:
+   url: https://github.com/jasper-software/jasper/releases/download/version-{{version}}/jasper-{{version}}.tar.gz
+   strip-components: 1
+
+versions:
+  github: jasper-software/jasper/releases/tags
+  strip: /^version-/
+
+dependencies:
+  libjpeg-turbo.org: ^2
+
+provides:
+   - bin/jasper
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    cmake.org: ^3
+  working-directory: tmp_cmake
+  script: |
+    cmake .. $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - -DJAS_ENABLE_DOC=OFF
+      - -DJAS_ENABLE_AUTOMATIC_DEPENDENCIES=false
+      - -DJAS_ENABLE_SHARED=ON
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_BUILD_TYPE=Release
+
+test: |
+  jasper --input fixture.jpeg --output test.bmp
+  test -f test.bmp

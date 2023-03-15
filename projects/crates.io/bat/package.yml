@@ -1,0 +1,27 @@
+distributable:
+  url: https://github.com/sharkdp/bat/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/bat
+
+versions:
+  github: sharkdp/bat/tags
+  strip: /v/
+
+dependencies:
+  zlib.net: ^1
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.60'
+    rust-lang.org/cargo: '*'
+  script:
+    cargo install --locked --path . --root {{prefix}}
+
+test:
+  script: |
+    mv $FIXTURE $FIXTURE.js
+    bat $FIXTURE.js
+  fixture: |
+    console.log("Hello, World!");

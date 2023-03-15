@@ -1,0 +1,28 @@
+distributable:
+  url: https://github.com/casey/just/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: casey/just/tags
+  strip: /v/
+
+build:
+  dependencies:
+    rust-lang.org: ^1.47.0
+    rust-lang.org/cargo: ^0.65
+  script:
+    cargo install --path=. --root={{prefix}}
+  test:
+    cargo test
+
+test:
+  script: |
+    cp $FIXTURE justfile
+    just
+  fixture: |
+    # run just -l
+    default:
+      @just -l
+
+provides:
+  - bin/just

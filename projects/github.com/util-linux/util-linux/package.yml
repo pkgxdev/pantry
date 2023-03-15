@@ -1,0 +1,106 @@
+distributable:
+  url: https://github.com/util-linux/util-linux/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: util-linux/util-linux/tags
+  strip: /^v/
+
+provides:
+  - bin/cal
+  - bin/chmem
+  - bin/choom
+  - bin/chrt
+  - bin/col
+  - bin/colcrt
+  - bin/colrm
+  - bin/column
+  - bin/dmesg
+  - bin/eject
+  - bin/fallocate
+  - bin/fincore
+  - bin/findmnt
+  - bin/flock
+  - bin/getopt
+  - bin/hardlink
+  - bin/hexdump
+  - bin/ionice
+  - bin/ipcmk
+  - bin/ipcrm
+  - bin/ipcs
+  - bin/isosize
+  - bin/kill
+  - bin/last
+  - bin/lastb
+  - bin/linux32
+  - bin/linux64
+  - bin/logger
+  - bin/look
+  - bin/lsblk
+  - bin/lscpu
+  - bin/lsfd
+  - bin/lsipc
+  - bin/lsirq
+  - bin/lslocks
+  - bin/lslogins
+  - bin/lsmem
+  - bin/lsns
+  - bin/mcookie
+  - bin/mesg
+  - bin/mount
+  - bin/mountpoint
+  - bin/namei
+  - bin/nsenter
+  - bin/prlimit
+  - bin/rename
+  - bin/renice
+  - bin/rev
+  - bin/script
+  - bin/scriptlive
+  - bin/scriptreplay
+  - bin/setarch
+  - bin/setsid
+  - bin/taskset
+  - bin/uclampset
+  - bin/umount
+  - bin/uname26
+  - bin/unshare
+  - bin/utmpdump
+  - bin/uuidgen
+  - bin/uuidparse
+  - bin/wall
+  - bin/wdctl
+  - bin/whereis
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/autoconf: '*'
+    gnu.org/automake: '*'
+    gnu.org/gettext: '*'
+    gnu.org/libtool: '*'
+    gnu.org/bison: '*'
+    gnu.org/m4: '*'
+    freedesktop.org/pkg-config: '*'
+  script: |
+    if test "{{hw.platform}}" != "linux"; then
+      echo "glibc is only supported on Linux"
+      touch {{prefix}}/linux-only
+      exit 0
+    fi
+    ./autogen.sh
+    ./configure $ARGS
+    make --jobs {{hw.concurrency}} install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --disable-makeinstall-chown
+      - --disable-makeinstall-setuid
+test:
+  dependencies:
+    stedolan.github.io/jq: '*'
+  script: |
+    if test "{{hw.platform}}" = "linux"; then
+      test "$(echo 5 6 7 | column -tJN first,second,third | jq .table[0].second)" = '"6"'
+    fi

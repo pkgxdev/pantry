@@ -1,0 +1,25 @@
+distributable:
+  url: https://github.com/ahmetb/kubectx/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: ahmetb/kubectx
+
+provides:
+  - bin/kubectx
+  - bin/kubens
+
+dependencies:
+  kubernetes.io/kubectl: ^1.26.2
+  gnu.org/bash: ^5.1
+
+build:
+  script: |
+    mkdir -p "{{ prefix }}"/bin
+    mv kubectx "{{ prefix }}"/bin
+    mv kubens "{{ prefix }}"/bin
+
+test:
+  script: |
+    kubectx --help
+    kubens --help

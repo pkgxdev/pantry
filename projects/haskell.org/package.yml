@@ -1,0 +1,113 @@
+distributable:
+  url: https://downloads.haskell.org/~ghc/{{version}}/ghc-{{version}}-src.tar.xz
+  sig: "{{url}}.sig"
+  strip-components: 1
+
+versions:
+  - 9.2.4
+  #TODO
+  # github: ghc/ghc/tags
+  # strip:
+  #   - /^ghc-/
+  #   - /-release$/
+  # however ghc breaks every time they release a new version
+  # so you are welcome to embrace trying to build it, we kindly ask they care
+  # more about ensuring their monolithic nonsense has stability in builds
+
+provides:
+  - bin/ghc
+  - bin/ghc-pkg
+  - bin/ghci
+  - bin/haddock
+  - bin/hp2ps
+  - bin/hpc
+  - bin/hsc2hs
+  - bin/runghc
+  - bin/runhaskell
+
+dependencies:
+  gnu.org/gmp: 6
+  invisible-island.net/ncurses: 6
+  tea.xyz/gx/cc: 'c99'  # ghc uses this during builds
+  sourceware.org/libffi: 3
+
+build:
+  dependencies:
+    gnu.org/autoconf: ^2
+    gnu.org/automake: ^1  # `aclocal` is used during the build for some reason
+    tea.xyz/gx/make: '*'  #FIXME specifically, gnu make is *required*
+    curl.se: '*'
+    gnu.org/m4: '*'
+    git-scm.org: ^2
+    python.org: ^3
+    gnu.org/patch: '*'
+    linux:
+      github.com/numactl/numactl: ^2 # ghcup needs this
+
+  # `ghc` needs `ghc` to bootstrap `ghc`
+  # The canonical way to achieve this is with `ghcup`
+  # To that end, we capture $HOME so as to no pollute the user's life with unwanted
+  # stage0 tooling. Instead, everything is localized to $HOME, and can be
+  # cleaned up at will, and won't capture any of the user's workflow
+  script: |
+    export HOME="$(pwd)"
+
+    if test -d .ghcup; then
+      echo "ghcup already installed"
+    else
+      curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | sh
+    fi
+
+    PATH="$HOME/.ghcup/bin:$PATH"
+
+    if test -e $HOME/.cabal/bin; then
+      rm -r $HOME/.cabal/bin
+    fi
+
+    cabal update
+    cabal install alex happy
+
+    export PATH="$HOME/.cabal/bin:$PATH"
+    GHC="$HOME/.ghcup/bin/ghc"
+
+    ./configure $ARGS
+    hadrian/build -j --docs=none --prefix="{{prefix}}" install
+
+    for shim in $(find "{{prefix}}/bin" -type f); do
+      sed -i.bak -e 's_="{{prefix}}_="$(dirname $(dirname $0))_' $shim
+      rm $shim.bak
+    done
+
+    sed -i.bak 's|{{tea.prefix}}|$TEA_PREFIX|g' "{{prefix}}/bin/hsc2hs-ghc-{{version}}"
+    rm "{{prefix}}/bin/hsc2hs-ghc-{{version}}.bak"
+  env:
+    BOOTSTRAP_HASKELL_NONINTERACTIVE: 1
+    BOOTSTRAP_HASKELL_ADJUST_BASHRC: 0
+    BOOTSTRAP_HASKELL_GHC_VERSION: ${{version}}
+    CONF_CC_OPTS_STAGE0: $LDFLAGS
+    CONF_CC_OPTS_STAGE1: $LDFLAGS
+    CONF_CC_OPTS_STAGE2: $LDFLAGS
+    CONF_GCC_LINKER_OPTS_STAGE0: $LDFLAGS
+    CONF_GCC_LINKER_OPTS_STAGE1: $LDFLAGS
+    CONF_GCC_LINKER_OPTS_STAGE2: $LDFLAGS
+    ARGS:
+      - --prefix={{prefix}}
+      - --disable-numa
+      - --with-curses-includes={{deps.invisible-island.net/ncurses.prefix}}/include/ncursesw
+      - --with-intree-gmp
+      - --with-system-libffi
+    linux:
+      C_INCLUDE_PATH: ${{deps.invisible-island.net/ncurses.prefix}}/include/ncursesw
+      # ^^ yep telling `./configure` about it just aint enough
+    darwin:
+      ARGS:
+      - --with-ffi-includes=$(xcrun --show-sdk-path)/usr/include/ffi
+      # workaround `fatal error: 'ffitarget_arm64.h' file not found`
+      C_INCLUDE_PATH: $(xcrun --show-sdk-path)/usr/include/ffi
+
+test:
+  script: |
+    out=$(runghc $FIXTURE)
+    test "$out" = "Hello World"
+  fixture:
+    main = putStrLn "Hello World"

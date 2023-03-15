@@ -1,0 +1,55 @@
+distributable:
+  url: https://download.gnome.org/sources/gdk-pixbuf/{{version.major}}.{{version.minor}}/gdk-pixbuf-{{ version }}.tar.xz
+  strip-components: 1
+
+versions:
+  - 2.42.8
+
+dependencies:
+  ijg.org: 9
+  gnome.org/glib: 2
+  libpng.org: 1
+  freedesktop.org/shared-mime-info: 2  #FIXME only on Linux
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    mesonbuild.com: ^0.63
+    ninja-build.org: 1
+    freedesktop.org/pkg-config: ^0.29
+    gnome.org/gobject-introspection: 1
+    python.org: 3  #FIXME rq’d by gnome.org/gobject-introspection but should be added by tea-env
+  working-directory: build
+  script: |
+    if test {{ hw.platform }} == linux; then
+      #FIXME so linux build finds the shared-mime-info cache
+      export XDG_DATA_DIRS="$XDG_DATA_DIRS:/usr/share"
+    fi
+
+    meson \
+        --buildtype=release \
+        --prefix={{prefix}} \
+        --libdir={{prefix}}/lib \
+      -Dman=false \
+      ..
+    ninja
+    ninja install
+  # ^^ man pages break the build due to needing some other dep
+
+#TODO we should read pkg config and add to the env ffs
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    freedesktop.org/pkg-config: ^0.29
+  script: |
+    cc test.c $CFLAGS $LDFLAGS
+    ./a.out
+  env:
+    CFLAGS: $(pkg-config --cflags gdk-pixbuf-2.0)
+    LDFLAGS: $(pkg-config --libs gdk-pixbuf-2.0)
+
+provides:
+  - bin/gdk-pixbuf-csource
+  - bin/gdk-pixbuf-pixdata
+  - bin/gdk-pixbuf-query-loaders
+  - bin/gdk-pixbuf-thumbnailer

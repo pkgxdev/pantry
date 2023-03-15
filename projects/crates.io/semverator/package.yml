@@ -1,0 +1,38 @@
+distributable:
+  url: https://github.com/jhheider/semverator/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/semverator
+
+versions:
+  github: jhheider/semverator
+  strip: /v/
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
+  script:
+    cargo install --locked --path . --root {{prefix}}
+
+test:
+  script: |
+    # Passes
+    semverator validate 1.2.3
+    semverator eq 1.2.3 1.2.3
+    semverator neq 1.2.3 1.2.4
+    semverator gt 1.2.3 1.2.2
+    semverator lt 1.2.3 1.2.4
+
+    # Fails
+    semverator validate 1.2.three || rv1=$?
+    test $rv1 -ne 0
+    semverator eq 1.2.3 1.2.4 || rv2=$?
+    test $rv2 -ne 0
+    semverator neq 1.2.3 1.2.3 || rv3=$?
+    test $rv3 -ne 0
+    semverator gt 1.2.3 1.2.4 || rv4=$?
+    test $rv4 -ne 0
+    semverator lt 1.2.3 1.2.2 || rv5=$?
+    test $rv5 -ne 0

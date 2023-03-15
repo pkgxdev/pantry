@@ -1,0 +1,45 @@
+distributable:
+  url: https://download.gnome.org/sources/librsvg/{{ version.major }}.{{ version.minor }}/librsvg-{{ version }}.tar.xz
+  strip-components: 1
+
+versions:
+  github: GNOME/librsvg/tags
+  ignore: [2.55.90] # https://gitlab.gnome.org/GNOME/librsvg/-/issues/923 - sigh
+
+dependencies:
+  cairographics.org: 1
+  gnome.org/pango: 1
+  gnome.org/gdk-pixbuf: 2
+  gnome.org/glib: 2
+  gnu.org/gettext: ^0.21
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    rust-lang.org/cargo: 0
+    rust-lang.org: ^1.63
+    freedesktop.org/pkg-config: ^0.29
+    gnome.org/gobject-introspection: 1
+    python.org: 3
+  script: |
+    ./configure \
+      --prefix={{ prefix }} \
+      --enable-pixbuf-loader=yes \
+      --enable-introspection=yes \
+      --disable-Bsymbolic
+    make --jobs {{hw.concurrency}} install
+
+test:
+  dependencies:
+    freedesktop.org/pkg-config: ^0.29
+    tea.xyz/gx/cc: c99
+  script: |
+    cc test.c $CFLAGS $LDFLAGS
+    ./a.out
+  env:
+    CFLAGS: $(pkg-config --cflags librsvg-2.0)  #FIXME should be in env automatically
+    LDFLAGS: $(pkg-config --libs librsvg-2.0)
+
+provides:
+  - bin/rsvg-convert

@@ -1,0 +1,20 @@
+distributable:
+  url: https://github.com/Peltoche/lsd/archive/refs/tags/{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/lsd
+
+versions:
+  github: Peltoche/lsd/tags
+
+build:
+  dependencies:
+    rust-lang.org: ">=1.60"
+    rust-lang.org/cargo: "*"
+  script: cargo install --locked --path . --root {{prefix}}
+
+test:
+  script: |
+    out=$(lsd --oneline)
+    test "$out" = ""

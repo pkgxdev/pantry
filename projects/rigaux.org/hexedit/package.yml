@@ -1,0 +1,36 @@
+distributable:
+  url: https://github.com/pixel/hexedit/archive/refs/tags/{{version.raw}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: pixel/hexedit/tags
+
+dependencies:
+  invisible-island.net/ncurses: 6
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/autoconf: '*'
+  script: |
+    ./autogen.sh
+
+    # configure won't find libncursesw for libncurses.
+    sed -i.bak -e 's/-lncurses/-lncursesw/' configure
+    rm configure.bak
+
+    ./configure --prefix={{prefix}}
+    make
+    make install
+  env:
+    # needed to `include <curses.h>;`
+    CPATH: $CPATH:{{deps.invisible-island.net/ncurses.prefix}}/include/ncursesw
+
+test:
+  true
+  # FIXME: curses tool, no --version, --help is exit code 1
+  # hexedit -h
+
+provides:
+  - bin/hexedit

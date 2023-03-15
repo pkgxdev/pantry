@@ -1,0 +1,31 @@
+distributable:
+  url: https://downloads.sourceforge.net/project/giflib/giflib-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  - 5.2.1
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/patch: '*'
+  script: |
+    if test {{ hw.platform }} = "darwin"; then
+      # needed to work on macOS
+      patch -p0 < props/Makefile.patch
+    fi
+
+    make --jobs {{ hw.concurrency }} all
+    make install PREFIX="{{ prefix }}"
+
+test:
+  giftext fixture.gif
+
+provides:
+  - bin/gif2rgb
+  - bin/gifbuild
+  - bin/gifclrmp
+  - bin/giffix
+  - bin/giftext
+  - bin/giftool

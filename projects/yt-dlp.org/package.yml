@@ -1,0 +1,22 @@
+distributable:
+  url: https://github.com/yt-dlp/yt-dlp/releases/download/{{version.raw}}/yt-dlp.tar.gz
+  strip-components: 1
+
+versions:
+  github: yt-dlp/yt-dlp
+  strip: /^yt-dlp /
+
+dependencies:
+  python.org: 3
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99 # to build brotli pymod
+  script:
+    python-venv.sh {{prefix}}/bin/yt-dlp
+
+test:
+  yt-dlp --simulate https://youtu.be/pOtd1cbOP7k
+
+provides:
+  - bin/yt-dlp

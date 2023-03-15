@@ -1,0 +1,42 @@
+distributable:
+   url: https://github.com/evilmartians/lefthook/archive/refs/tags/v{{version}}.tar.gz
+
+versions:
+  github: evilmartians/lefthook/tags
+  strip: /^v/
+
+build:
+  dependencies:
+    curl.se: '*'
+  working-directory: ${{prefix}}
+  script: |
+    if test "{{hw.platform}}+{{hw.arch}}" == "darwin+x86-64"; then
+    	curl -sSfL --output lefthook.gz "${DOWNLOAD_BASE}/v{{version}}/lefthook_{{version}}_MacOS_x86_64.gz"
+    elif test "{{hw.platform}}+{{hw.arch}}" == "darwin+aarch64"; then
+    	curl -sSfL --output lefthook.gz "${DOWNLOAD_BASE}/v{{version}}/lefthook_{{version}}_MacOS_arm64.gz"
+    elif test "{{hw.platform}}+{{hw.arch}}" == "linux+x86-64"; then
+    	curl -sSfL --output lefthook.gz "${DOWNLOAD_BASE}/v{{version}}/lefthook_{{version}}_Linux_x86_64.gz"
+    elif test "{{hw.platform}}+{{hw.arch}}" == "linux+aarch64"; then
+    	curl -sSfL --output lefthook.gz "${DOWNLOAD_BASE}/v{{version}}/lefthook_{{version}}_Linux_arm64.gz"
+    elif test "{{hw.platform}}+{{hw.arch}}" == "windows+x86-64"; then
+    	curl -sSfL --output lefthook.gz "${DOWNLOAD_BASE}/v{{version}}/lefthook_{{version}}_Windows_x86_64.gz"
+    elif test "{{hw.platform}}+{{hw.arch}}" == "windows+aarch64"; then
+    	curl -sSfL --output lefthook.gz "${DOWNLOAD_BASE}/v{{version}}/lefthook_{{version}}_Windows_arm64.gz"
+    fi
+    gunzip --force lefthook.gz
+    mkdir -p {{ prefix }}/bin
+    chmod +x lefthook
+    if test "{{hw.platform}}" == "windows"; then
+        mv lefthook bin/lefthook.exe
+    else
+        mv lefthook bin/
+    fi
+
+  env:
+    DOWNLOAD_BASE: https://github.com/evilmartians/lefthook/releases/download
+
+provides:
+  - bin/lefthook
+
+test: |
+  lefthook completion zsh

@@ -1,0 +1,40 @@
+distributable:
+  url: https://github.com/PRQL/prql/archive/refs/tags/{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: PRQL/prql/tags
+
+build:
+  dependencies:
+    rust-lang.org/cargo: '*'
+  working-directory: prql-compiler
+  script: |
+    if test {{version.major}} -eq 0 -a {{version.minor}} -lt 4; then
+      cargo install --path . --root {{prefix}}
+    elif test "{{version}}" = "0.4.0"; then
+      cargo install --path . --root {{prefix}} --all-features
+    else
+      cargo install --path prqlc --root {{prefix}}
+    fi
+
+    cd {{prefix}}/bin
+
+    # Bin got renamed; this is one way to keep ourselves working
+    if test {{version.major}} -eq 0 -a {{version.minor}} -lt 4; then
+      ln -s prql-compiler prqlc
+    else
+      ln -s prqlc prql-compiler
+    fi
+
+test: |
+  if test {{version.major}} -eq 0 -a {{version.minor}} -lt 4; then
+    COMPILER=prql-compiler
+  else
+    COMPILER=prqlc
+  fi
+  echo "from employees | filter has_dog | select salary" | $COMPILER compile
+
+provides:
+  - bin/prql-compiler
+  - bin/prqlc

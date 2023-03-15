@@ -1,0 +1,33 @@
+distributable:
+  url: https://github.com/gleam-lang/gleam/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/gleam
+
+versions:
+  github: gleam-lang/gleam
+  strip: /v/
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.60'
+    rust-lang.org/cargo: '*'
+  script:
+    cargo install --path compiler-cli --force --locked --root {{prefix}}
+
+test:
+  dependencies:
+    erlang.org: '*'
+  script: |
+    gleam --version
+    gleam new test
+    cp $FIXTURE test/src/test.gleam
+    cd test
+    gleam run | grep "Hello, world!"
+  fixture: |
+    import gleam/io
+
+    pub fn main() {
+      io.print("Hello, world!")
+    }

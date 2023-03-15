@@ -1,0 +1,42 @@
+distributable:
+  url: https://codeload.github.com/rustls/rustls-ffi/tar.gz/refs/tags/v{{version}}
+  strip-components: 1
+
+versions:
+  github: rustls/rustls-ffi/tags
+  strip: /v/
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    rust-lang.org/cargo: '*'
+  script: |
+    cargo install cbindgen
+    make DESTDIR={{prefix}}
+    make DESTDIR={{prefix}} install
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    openssl.org: '*'  # needed for SSL_CERT_FILE
+  env:
+    LIBS:
+      - -lrustls
+      - -lc
+    linux:
+      LIBS:
+        - -lgcc_s
+        - -lutil
+        - -lrt
+        - -lpthread
+        - -lm
+        - -ldl
+    darwin:
+      LIBS:
+        - -framework Security
+        - -liconv
+        - -lSystem
+  script: |
+    cc client.c common.c -o client $LIBS
+    CA_FILE=$SSL_CERT_FILE ./client tea.xyz 443 /

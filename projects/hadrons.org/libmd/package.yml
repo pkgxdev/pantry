@@ -1,0 +1,47 @@
+distributable:
+  url: https://archive.hadrons.org/software/libmd/libmd-{{ version }}.tar.xz
+  strip-components: 1
+
+versions:
+  github: guillemj/libmd/tags
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/patch: '*'
+  script: |
+    # Combats "error: aliases are not supported on darwin"
+    patch -p1 <props/patch-symbol-alias.diff
+
+    ./configure --prefix={{prefix}}
+    make --jobs {{hw.concurrency}} install
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script: |
+    mv $FIXTURE test.c
+    cc test.c -lmd -o test
+    test $(./test) = "900150983cd24fb0d6963f7d28e17f72"
+  fixture: |
+    #include <stdlib.h>
+    #include <stdio.h>
+    #include <string.h>
+    #include <md5.h>
+
+    int main() {
+        MD5_CTX ctx;
+        uint8_t results[MD5_DIGEST_LENGTH];
+        char *buf;
+        buf = "abc";
+        int n;
+        n = strlen(buf);
+        MD5Init(&ctx);
+        MD5Update(&ctx, (uint8_t *)buf, n);
+        MD5Final(results, &ctx);
+        for (n = 0; n < MD5_DIGEST_LENGTH; n++)
+            printf("%02x", results[n]);
+        putchar('\n');
+        return EXIT_SUCCESS;
+    }

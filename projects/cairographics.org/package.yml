@@ -1,0 +1,42 @@
+distributable:
+  url: https://cairographics.org/releases/cairo-{{ version }}.tar.xz
+  strip-components: 1
+
+versions:
+  - 1.16.0
+
+dependencies:
+  tea.xyz/gx/cc: c99
+  tea.xyz/gx/make: '*'
+  libpng.org: 1
+  pixman.org: ^0.40.0
+  freetype.org: 2
+  gnome.org/glib: 2
+  freedesktop.org/fontconfig: 2
+  sourceware.org/bzip2: 1
+
+build:
+  dependencies:
+    freedesktop.org/pkg-config: ^0.29
+    #FIXME or fontconfig detection fails
+    #FIXME build looks for 2.4.9 even when it has 2.5.0
+    libexpat.github.io: =2.4.9
+    gnome.org/gobject-introspection: 1
+    gnu.org/libtool: ^2
+  script: |
+    ./configure --prefix={{ prefix }} --disable-dependency-tracking
+    make --jobs {{ hw.concurrency }}
+    make install
+
+    rm -rf {{prefix}}/share  # docs are online
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script: |
+    cc test.c -I{{prefix}}/include/cairo -lcairo
+    ./a.out
+  #FIXME env should add that include path via pkg-config look up
+
+provides:
+  - bin/cairo-trace

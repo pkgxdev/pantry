@@ -1,0 +1,20 @@
+distributable:
+  url: https://github.com/NixOS/patchelf/releases/download/{{version}}/patchelf-{{version}}.tar.bz2
+  strip-components: 1
+
+versions:
+  github: NixOS/patchelf
+  strip: /^PatchELF /
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    ./configure --prefix={{prefix}}
+    make --jobs {{hw.concurrency}} install
+
+test: patchelf --version  #FIXME better
+
+provides:
+  - bin/patchelf

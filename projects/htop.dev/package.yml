@@ -1,0 +1,30 @@
+distributable:
+  url: https://github.com/htop-dev/htop/releases/download/{{version}}/htop-{{version}}.tar.xz
+  strip-components: 1
+
+versions:
+  github: htop-dev/htop/tags
+
+dependencies:
+  invisible-island.net/ncurses: 6
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/autoconf: '*'
+    gnu.org/automake: '*'
+  script: |
+    ./configure --prefix={{prefix}}
+    make
+    make install
+  test:
+    make test
+
+
+test:
+  script: |
+    htop -h
+
+provides:
+  - bin/htop

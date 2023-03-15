@@ -1,0 +1,24 @@
+distributable:
+  url: https://github.com/sharkdp/fd/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/fd
+
+versions:
+  github: sharkdp/fd/tags
+
+build:
+  dependencies:
+    tea.xyz/gx/make: '*'
+    rust-lang.org: '>=1.60'
+    rust-lang.org/cargo: '*'
+  script:
+    cargo install --locked --path . --root {{prefix}}
+
+test:
+  script: |
+    mv $FIXTURE test.cpp
+    fd -e cpp test
+  fixture: |
+    hello, world

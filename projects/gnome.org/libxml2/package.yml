@@ -1,0 +1,42 @@
+distributable:
+  url: https://download.gnome.org/sources/libxml2/{{ version.marketing }}/libxml2-{{ version }}.tar.xz
+  strip-components: 1
+
+versions:
+  github: GNOME/libxml2/tags
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }}
+    make install
+
+    cd {{prefix}}/bin
+    sed -i.bak 's|{{prefix}}|"$(cd "$(dirname "$0")/.." \&\& pwd)"|' xml2-config
+    rm *.bak
+
+    # a lot of stuff is surprised at the libxml2 prefix
+    cd {{prefix}}/include
+    mv libxml2/libxml .
+    rmdir libxml2
+    ln -s . libxml2
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --without-python  # mysterious build failure in GHA macOS-11
+      - --without-lzma
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script: |
+    cc `xml2-config --cflags --libs` test.c
+    ./a.out
+
+provides:
+  - bin/xml2-config
+  - bin/xmlcatalog
+  - bin/xmllint

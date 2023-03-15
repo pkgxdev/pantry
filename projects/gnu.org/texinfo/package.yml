@@ -1,0 +1,49 @@
+distributable:
+  url: https://ftp.gnu.org/gnu/texinfo/texinfo-{{ version }}.tar.xz
+  strip-components: 1
+
+versions:
+  #TODO HTML listing: https://ftp.gnu.org/gnu/texinfo/
+  - 7.0.1
+
+dependencies:
+  perl.org: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/gettext: '*'
+    invisible-island.net/ncurses: '*'
+  script: |
+    ./configure --prefix={{ prefix }}
+    make --jobs {{ hw.concurrency }} install
+
+    cd {{prefix}}/bin
+    for file in pod2texi texi2any; do
+      sed -i.bak "s_#! {{deps.perl.org.prefix}}/bin/perl_#!/usr/bin/env perl_" $file
+      rm $file.bak
+    done
+
+test:
+  script: |
+    makeinfo $FIXTURE
+    grep -q 'Hello World!' $(basename $FIXTURE).info
+  fixture: |
+    @ifnottex
+    @node Top
+    @top Hello World!
+    @end ifnottex
+    @bye
+
+provides:
+  - bin/info
+  - bin/install-info
+  - bin/makeinfo
+  - bin/pdftexi2dvi
+  - bin/pod2texi
+  - bin/texi2any
+  - bin/texi2dvi
+  - bin/texi2pdf
+  - bin/texindex
+

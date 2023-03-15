@@ -1,0 +1,36 @@
+distributable:
+  url: https://github.com/clever/microplane/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: clever/microplane/tags
+
+dependencies:
+  git-scm.org: ^2
+
+provides:
+  - bin/mp
+
+build:
+  script: |
+    go mod download
+    go build -v -ldflags="$LDFLAGS" -o "{{ prefix }}"/bin/mp
+  dependencies:
+    go.dev: ^1.18
+  env:
+    LDFLAGS:
+      - -s
+      - -w
+      - -X main.version=v{{ version }}
+    linux:
+      # or segmentation fault
+      # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
+      LDFLAGS:
+        - -buildmode=pie
+
+test: |
+  echo "teaxyz/pantry" > repos.txt
+  mp init -f repos.txt
+  # mp clone
+  # ^^ FIXME fails with exit code 128
+  mp status

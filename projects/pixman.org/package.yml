@@ -1,0 +1,28 @@
+distributable:
+  url: https://cairographics.org/releases/pixman-{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: freedesktop/pixman/tags
+  strip: /^pixman-/
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    ./configure --prefix={{ prefix }} --disable-debug
+    make --jobs {{ hw.concurrency }}
+    make install
+
+test:
+  dependencies:
+    freedesktop.org/pkg-config: ^0.29
+    tea.xyz/gx/cc: c99
+  script: |
+    cc test.c -lpixman-1 $CFLAGS
+    ./a.out
+  env:
+    # using pkg-config as pixman puts its headers in `include/pixman-1`
+    LDFLAGS: $(pkg-config --libs pixman-1)
+    CFLAGS: $(pkg-config --cflags pixman-1)

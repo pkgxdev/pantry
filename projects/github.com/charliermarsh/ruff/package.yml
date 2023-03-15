@@ -1,0 +1,32 @@
+distributable:
+  url: https://github.com/charliermarsh/ruff/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: charliermarsh/ruff
+  strip: /^v /
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.60'
+    rust-lang.org/cargo: '*'
+    crates.io/semverator: '*'
+    tea.xyz/gx/make: '*' #build.rs uses make since 0.0.246
+  script: |
+    if semverator lt {{version}} 0.0.242; then
+      CRATE=ruff_cli
+    else
+      CRATE=crates/ruff_cli
+    fi
+    cargo install --locked --path $CRATE --root {{prefix}}
+
+provides:
+  - bin/ruff
+
+test:
+  script: |
+    ruff -e $FIXTURE | grep "\`os\` imported but unused"
+    ruff --fix $FIXTURE
+    test ! -s $FIXTURE
+  fixture: |
+    import os

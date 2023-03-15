@@ -1,0 +1,61 @@
+distributable:
+  url: https://github.com/ethereum/solidity/releases/download//v{{version}}/solidity_{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: ethereum/solidity/releases/tags
+
+provides:
+  - bin/solc
+  - bin/yul-phaser
+
+dependencies:
+  boost.org: 1
+
+interprets:
+  extensions: sol
+  args: solc --bin
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    cmake.org: 3
+    freedesktop.org/pkg-config: ^0.29
+    git-scm.org: 2
+    crates.io/semverator: '*'
+    gnu.org/patch: '*'
+  working-directory: build
+  script: |
+    if semverator eq 0.8.18 {{version}}; then
+      # New libsolidity/lsb/DocumentHoverHandler.cpp doesn't like some versions of clang
+      # (default argument issue)
+      # https://github.com/ethereum/solidity/issues/13854
+      patch -p1 -d.. <../props/clang-error.diff
+    fi
+
+    cmake .. $ARGS
+    make --jobs {{hw.concurrency}}
+    make install
+
+    if semverator lt {{version}} 0.8.18; then
+      rm {{prefix}}/bin/solidity-upgrade
+    fi
+  test:
+    make test
+  env:
+    ARGS:
+    - -DCMAKE_BUILD_TYPE=Release
+    - -DCMAKE_INSTALL_PREFIX={{prefix}}
+    - -DPEDANTIC=OFF  # otherwise fails due to deprecations in boost ^1.81
+    - -DSTRICT_Z3_VERSION=OFF # otherwise complains about Z3 version in cmake
+    - -DCMAKE_C_FLAGS=$CFLAGS
+    - -DCMAKE_CXX_FLAGS=$CXXFLAGS
+    - -DCMAKE_EXE_LINKER_FLAGS=$LDFLAGS
+    linux/x86-64:
+      CFLAGS: -fPIC
+      CXXFLAGS: -fPIC
+      LDFLAGS: -pie
+
+test:
+  solc --bin fixture.sol

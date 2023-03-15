@@ -1,0 +1,38 @@
+distributable:
+  url: https://github.com/charmbracelet/vhs/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: charmbracelet/vhs
+
+provides:
+  - bin/vhs
+
+interprets:
+  extensions: tape
+  args: vhs
+
+dependencies:
+  ffmpeg.org: '>=5'  # note might work with older versions
+  tsl0922.github.io/ttyd: ^1.7.2
+
+build:
+  dependencies:
+    go.dev: ^1.18
+  script: |
+    go mod download
+    go build -v -ldflags="$LDFLAGS"
+    mkdir -p "{{ prefix }}"/bin
+    mv vhs "{{ prefix }}"/bin
+  env:
+    LDFLAGS:
+      [-s, -w, "-X=main.Version={{version}}"]
+    linux:
+      # or segmentation fault
+      # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
+      LDFLAGS:
+      - -buildmode=pie
+
+#TODO better
+test:
+  vhs --version

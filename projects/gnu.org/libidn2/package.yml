@@ -1,0 +1,35 @@
+distributable:
+  url: https://ftp.gnu.org/gnu/libidn/libidn2-{{ version.raw }}.tar.gz
+  strip-components: 1
+
+versions:
+  #TODO HTML listing: https://ftp.gnu.org/gnu/libidn/
+  - 2.3.4
+
+dependencies:
+  gnu.org/gettext: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/make: '*'
+    tea.xyz/gx/cc: c99
+    gnu.org/texinfo: '*'
+    freedesktop.org/pkg-config: '*'
+  script: |
+    ./configure --prefix={{ prefix }}
+    make install
+
+test:
+  script: |
+    test "$(idn2 ""$IN1"")" = "$OUT1"
+    test "$(idn2 ""$IN2"")" = "$OUT2"
+  env:
+    linux:
+      LC_ALL: C.UTF-8
+    IN1: räksmörgås.se
+    IN2: blåbærgrød.no
+    OUT1: xn--rksmrgs-5wao1o.se
+    OUT2: xn--blbrgrd-fxak7p.no
+
+provides:
+  - bin/idn2
