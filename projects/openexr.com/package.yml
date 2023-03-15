@@ -1,0 +1,44 @@
+distributable:
+  url: https://github.com/AcademySoftwareFoundation/openexr/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: AcademySoftwareFoundation/openexr/tags
+  strip: /^v/
+
+dependencies:
+  zlib.net: ^1
+  openexr.com/imath: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    cmake.org: '*'
+    freedesktop.org/pkg-config: '*'
+  working-directory: build
+  script: |
+    cmake .. $ARGS
+    make install
+  env:
+    ARGS:
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
+      - -DCMAKE_BUILD_TYPE=Release
+
+provides:
+  - bin/exr2aces
+  - bin/exrenvmap
+  - bin/exrheader
+  - bin/exrinfo
+  - bin/exrmakepreview
+  - bin/exrmaketiled
+  - bin/exrmultipart
+  - bin/exrmultiview
+  - bin/exrstdattr
+
+test:
+  dependencies:
+    gnu.org/wget: '*'
+  script: |
+    wget https://github.com/AcademySoftwareFoundation/openexr-images/raw/main/TestImages/AllHalfValues.exr
+    exrheader AllHalfValues.exr

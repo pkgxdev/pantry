@@ -1,38 +1,48 @@
 distributable:
-  url: https://github.com/AcademySoftwareFoundation/openexr/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/AcademySoftwareFoundation/Imath/archive/refs/tags/v{{version}}.tar.gz
   strip-components: 1
 
+# if there’s a github then we can parse the versions
 versions:
-  github: AcademySoftwareFoundation/openexr/tags  # reads github tags from github
+  github: AcademySoftwareFoundation/Imath/tags  # reads github tags from github
   strip: /^v/
-
-dependencies:
-  zlib.net: ^1
-  openexr.com/imath: '*'
 
 build:
   dependencies:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
     cmake.org: '*'
-    freedesktop.org/pkg-config: '*'
-  working-directory: build
   script: |
-    cmake .. $ARGS
-    make install
+    cmake -S . -B build $ARGS
+    cmake --build build
+    cmake --install build
+      
+    mv {{ prefix}}/include/Imath/* {{prefix}}/include
+    rmdir {{ prefix}}/include/Imath
+    ln -s . {{ prefix }}/include/Imath
   env:
+    # add any environment variables here
     ARGS:
-      - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
       - -DCMAKE_BUILD_TYPE=Release
 
-provides:
-  - bin/foo
-  # ^^ specify the binaries or tea magic won’t work
 
 test:
+  fixture: |
+    #include <ImathRoots.h>
+    #include <algorithm>
+    #include <iostream>
+    int main(int argc, char *argv[])
+    {
+      double x[2] = {0.0, 0.0};
+      int n = IMATH_NAMESPACE::solveQuadratic(1.0, 3.0, 2.0, x);
+      if (x[0] > x[1])
+        std::swap(x[0], x[1]);
+      std::cout << n << ", " << x[0] << ", " << x[1] << "\n";
+    }
   dependencies:
-    foo.com: '*'  # asterisk means “any version, usually the latest”
-  script:
-    test "$(foo --version)" = {{version}}
-  # ^^ we prefer that you test the functionality of the package works, but
-  # we know tests are tedious, so will (for now) accept a simple version check
+    tea.xyz/gx/cc: c99
+  script: |
+    mv $FIXTURE foo.cc
+    g++ -std=c++11 -lImath foo.cc 
+    ./a.out
