@@ -1,0 +1,87 @@
+distributable:
+  url: https://cache.ruby-lang.org/pub/ruby/{{version.marketing}}/ruby-{{version}}.tar.xz
+  strip-components: 1
+
+versions:
+  github: ruby/ruby
+
+dependencies:
+  openssl.org: ^1.1
+  pyyaml.org: ^0.2
+  zlib.net: ^1
+
+build:
+  dependencies:
+    freedesktop.org/pkg-config: ^0.29
+    gnu.org/gettext: ^0.21
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/patch: '*'
+  script: |
+    patch -p1 < props/mkconfig.rb.diff
+
+    ./configure --prefix="{{prefix}}" --enable-load-relative --disable-rubygems --without-gmp
+    make --jobs {{hw.concurrency}} install
+
+    cd "{{prefix}}/bin"
+
+    # we provide these as `rubygems.org`
+    for GEM in bundle bundler gem rake rbs rdbg typeprof; do
+      test -f $GEM && rm $GEM
+    done
+
+    for shim in $shims; do
+      sed -i.bak -e 's_#!{{prefix}}/bin/ruby_#!/usr/bin/env ruby_' $shim
+      rm $shim.bak
+    done
+
+    cd ../lib/ruby/{{version.major}}.{{version.minor}}.0
+
+    # ruby itself provides the gems for these and we don’t want that
+    # we want to pkg them ourselves as part of rubygems.org
+    for x in bundler rubygems bundler.rb rubygems.rb; do
+      if test -d $x; then
+        rm -rf $x
+      else
+        rm $x
+      fi
+      ln -s ../../../../rubygems.org/v\*/lib/$x
+    done
+  env:
+    shims:
+      - erb
+      - irb
+      - racc
+      - rdoc
+      - ri
+
+test:
+  dependencies:
+    #NOTE rubygems.org depends on us… so it may be difficult to test this
+    # in a bootstrap scenario…
+    rubygems.org: '*'
+    tea.xyz/gx/cc: c99  # for native extensions
+    tea.xyz/gx/make: '*'
+  script: |
+    ruby -e 'puts "Hello World!"'
+    gem install hexapdf -v 0.28.0 --bindir=. --no-user-install
+    ./hexapdf version
+    test -d "{{tea.prefix}}"/ruby-lang.org/gems/{{version.major}}.{{version.minor}}.0/gems/hexapdf-0.28.0
+    gem install bundle
+    test -d ~/.gem/ruby/{{version.major}}.{{version.minor}}.0/gems/bundle-0.0.1
+    test -f ~/.local/bin/bundle
+
+provides:
+  - bin/erb
+  - bin/irb
+  - bin/racc
+  - bin/rdoc
+  - bin/ri
+  - bin/ruby
+
+interprets:
+  extensions: rb
+  args: ruby
+
+companions:
+  rubygems.org: '*'

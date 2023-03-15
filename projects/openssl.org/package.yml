@@ -1,0 +1,60 @@
+# NOTE
+# on darwin we use Apple’s provided TLS certs at /etc/certs
+# on linux we grab the curl certs (usually these are package as ca-certificates)
+
+distributable:
+  url: https://www.openssl.org/source/openssl-{{version.raw}}.tar.gz
+  sha: ${{url}}.sha256
+  sig: ${{url}}.asc
+  strip-components: 1
+
+versions:
+  - 1.1.1s
+  # github: openssl/openssl
+  # transform: /^OpenSSL_(\d+)_(\d+)_(\d+\w)$/$1.$2.$3/
+
+provides:
+  - bin/openssl
+  - bin/c_rehash
+
+dependencies:
+  curl.se/ca-certs: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    perl.org: 5
+    git-scm.org: 2  # to apply our patch
+  script: |
+    git apply props/x509_def.c.diff
+
+    ./Configure --prefix={{ prefix }} $ARCH no-tests $ARGS --openssldir={{prefix}}/ssl
+    make --jobs {{ hw.concurrency }}
+    make install_sw   # `_sw` avoids installing docs
+
+  env:
+    darwin/aarch64: {ARCH: 'darwin64-arm64-cc'}
+    darwin/x86-64:  {ARCH: 'darwin64-x86_64-cc'}
+    linux/aarch64:  {ARCH: 'linux-aarch64'}
+    linux/x86-64:   {ARCH: 'linux-x86_64'}
+    darwin:
+      # supposedly enables important optimizations
+      ARGS: enable-ec_nistp_64_gcc_128
+  test:
+    make test
+
+#TODO need to test the SSL certs work
+# otherwise we are basically relying on wget etc. to test for it
+
+test:
+  dependencies:
+    gnu.org/wget: '*'
+  script: |
+    echo "This is a test file" > in
+    openssl dgst -sha256 -out out ./in
+    test "$(cat ./out)" = "$SAMPLE"
+
+    wget tea.xyz  # test the certs work
+  env:
+    SAMPLE: SHA256(./in)= c87e2ca771bab6024c269b933389d2a92d4941c848c52f155b9b84e1f109fe35

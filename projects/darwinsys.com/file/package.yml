@@ -1,0 +1,28 @@
+distributable:
+  url: https://astron.com/pub/file/file-{{version.raw}}.tar.gz
+  #TODO url: ftp://ftp.astron.com/pub/file/file-{{version.raw}}.tar.gz
+  strip-components: 1
+
+versions:
+  - 5.43
+  #TODO github: file/file/tags (has an awful format :/)
+
+dependencies:
+  zlib.net: 1  #FIXME this is actually an optional dep
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    git-scm.org: 2
+  script: |
+    git apply props/relocatable.diff
+    ./configure --prefix={{prefix}}
+    make --jobs {{hw.concurrency}} install
+
+test: |
+  file {{prefix}}/bin/file
+#TODO check output, we don’t since it varies by platform annoyingly
+
+provides:
+  - bin/file

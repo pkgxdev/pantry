@@ -1,0 +1,85 @@
+distributable:
+  url: https://www.cpan.org/src/{{ version.major }}.0/perl-{{ version }}.tar.xz
+  strip-components: 1
+
+versions:
+  github: perl/perl5/tags
+  ignore: /^v\d+\.\d*[13579]\.\d+$/
+  # ^^ perl considers odd minor versions “dev” releases
+
+build:
+  dependencies:
+    tea.xyz/gx/make: '*'
+    tea.xyz/gx/cc: c99
+  script: |
+    ./Configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+
+    cd "{{prefix}}"/bin
+    for x in *; do
+      case $x in
+      perl|perl{{version}})
+        ;;
+      *)
+        sed -i.bak 's|^#!{{prefix}}/bin/|#!/usr/bin/env |' $x
+        sed -i.bak 's|exec {{prefix}}/bin/|exec |' $x
+      esac
+    done
+
+    rm -f *.bak
+
+  # relocatable fixes from: https://github.com/skaji/relocatable-perl
+
+  env:
+    ARGS:
+      - -d  # use defaults
+      - -e  # non interactive
+      - -Dprefix={{prefix}}
+      - -Duselargefiles
+      - -Dusethreads
+      - -Duseshrplib=false
+      # makes perl “more” relocatable
+      - -Duserelocatableinc
+
+test:
+  script: |
+    perl $FIXTURE
+    shasum --version
+  fixture: |
+    print 'Perl is not an acronym, but JAPH is a Perl acronym!'
+
+provides:
+  - bin/corelist
+  - bin/cpan
+  - bin/enc2xs
+  - bin/encguess
+  - bin/h2ph
+  - bin/h2xs
+  - bin/instmodsh
+  - bin/json_pp
+  - bin/libnetcfg
+  - bin/perl
+  - bin/perlbug
+  - bin/perldoc
+  - bin/perlivp
+  - bin/perlthanks
+  - bin/piconv
+  - bin/pl2pm
+  - bin/pod2html
+  - bin/pod2man
+  - bin/pod2text
+  - bin/pod2usage
+  - bin/podchecker
+  - bin/prove
+  - bin/ptar
+  - bin/ptardiff
+  - bin/ptargrep
+  - bin/shasum
+  - bin/splain
+  - bin/streamzip
+  - bin/xsubpp
+  - bin/zipdetails
+
+interprets:
+  extensions: pl
+  args: perl

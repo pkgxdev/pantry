@@ -1,0 +1,32 @@
+distributable:
+  url: https://gitlab.freedesktop.org/xdg/shared-mime-info/-/archive/{{version.raw}}/shared-mime-info-{{version.raw}}.tar.bz2
+  strip-components: 1
+
+versions:
+  - 2.2
+
+dependencies:
+  gnome.org/glib: 2
+  gnu.org/gettext: ^0.21
+
+build:
+  dependencies:
+    freedesktop.org/pkg-config: ^0.29
+    mesonbuild.com: ^0.63
+    ninja-build.org: 1
+    gnome.org/libxml2: 2
+    tea.xyz/gx/cc: c99
+  working-directory: build
+  script: |
+    meson .. --prefix={{prefix}} --buildtype=release
+    ninja
+    ninja install
+    {{prefix}}/bin/update-mime-database {{prefix}}/share/mime
+
+#TODO you need a library to use this db
+#see: https://www.freedesktop.org/wiki/Specifications/shared-mime-info-spec/
+test: |
+  test -f "{{prefix}}"/share/mime/packages/freedesktop.org.xml
+
+provides:
+  - bin/update-mime-database

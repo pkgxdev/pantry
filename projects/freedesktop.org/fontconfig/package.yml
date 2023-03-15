@@ -1,0 +1,41 @@
+distributable:
+  url: https://www.freedesktop.org/software/fontconfig/release/fontconfig-{{ version }}.tar.xz
+  strip-components: 1
+
+versions:
+  github: freedesktop/fontconfig/tags
+
+dependencies:
+  sourceware.org/bzip2: 1
+  freetype.org: 2
+  zlib.net: 1
+  gnome.org/libxml2: 2
+  libexpat.github.io: 2
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    freedesktop.org/pkg-config: ^0.29
+    gnu.org/gperf: 3
+    python.org: 3
+  script: |
+    ./configure --prefix={{ prefix }}
+    make --jobs {{ hw.concurrency }} install RUN_FC_CACHE_TEST=false
+    rm -rf {{prefix}}/share/doc
+
+    sed -i.bak 's|<cachedir>{{prefix}}/var/cache/fontconfig</cachedir>|<cachedir prefix="relative">../../var/cache/fontconfig</cachedir>|' {{prefix}}/etc/fonts/fonts.conf
+
+test:
+  fc-list
+
+provides:
+  - bin/fc-cache
+  - bin/fc-cat
+  - bin/fc-conflist
+  - bin/fc-list
+  - bin/fc-match
+  - bin/fc-pattern
+  - bin/fc-query
+  - bin/fc-scan
+  - bin/fc-validate

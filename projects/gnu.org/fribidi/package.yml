@@ -1,0 +1,25 @@
+distributable:
+  url: https://github.com/fribidi/fribidi/releases/download/v{{ version }}/fribidi-{{ version }}.tar.xz
+  strip-components: 1
+
+versions:
+  github: fribidi/fribidi
+  strip: /^FriBidi Version /
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    ./configure --prefix={{prefix}} --disable-debug
+    make --jobs={{ hw.concurrency }} install
+
+test:
+  fixture:
+    a _lsimple _RteST_o th_oat
+  script: |
+    out="$(fribidi --charset=CapRTL --clean --nobreak $FIXTURE)"
+    test "$out" = "a simple TSet that"
+
+provides:
+  - bin/fribidi

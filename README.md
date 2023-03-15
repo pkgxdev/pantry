@@ -1,6 +1,5 @@
 ![tea](https://tea.xyz/banner.png)
 
-
 # What is a Pantry?
 
 Pantries provide consistent metadata about open source packages. This

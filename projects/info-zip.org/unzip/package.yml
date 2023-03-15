@@ -1,0 +1,38 @@
+distributable:
+  url:
+    #FIXME https://downloads.sourceforge.net/project/infozip/UnZip
+    https://cytranet.dl.sourceforge.net/project/infozip/UnZip
+    {{ version.major }}.x
+    (latest)/UnZip
+    {{ version.raw }}/unzip{{ version.major }}{{version.minor }}.tar.gz
+  strip-components: 1
+
+versions:
+  - '6.0'
+
+#TODO
+# see brew formula, they apply a SHIT TONNE of patches
+# because this is unmaintained I guess
+# https://github.com/Homebrew/homebrew-core/blob/HEAD/Formula/unzip.rb
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    case {{ hw.platform }} in
+    darwin) TARGET=macosx;;
+    linux) TARGET=macosx;;  #SURPRISE!
+    esac
+    make --file unix/Makefile --jobs {{ hw.concurrency }} $TARGET
+    make prefix={{prefix}} install
+
+test:
+  script: unzip -h
+
+provides:
+  - bin/funzip
+  - bin/unzip
+  - bin/unzipsfx
+  - bin/zipgrep
+  - bin/zipinfo

@@ -1,0 +1,36 @@
+distributable:
+  url: https://curl.se/download/curl-{{version}}.tar.bz2
+  strip-components: 1
+
+versions:
+  github: curl/curl
+  strip: /^curl /
+
+dependencies:
+  openssl.org: ^1.1
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+    - --prefix={{prefix}}
+    - --with-openssl
+    - --with-ca-fallback  # uses openssl’s certs (which we control)
+  test:
+    make test
+
+test:
+  script: |
+    curl -i tea.xyz
+    curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org
+
+# TODO need to fix the .la file
+
+provides:
+  - bin/curl
+  - bin/curl-config

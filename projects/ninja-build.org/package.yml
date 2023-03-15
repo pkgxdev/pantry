@@ -1,0 +1,25 @@
+distributable:
+  url: https://github.com/ninja-build/ninja/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/ninja
+
+versions:
+  github: ninja-build/ninja
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    cmake.org: 3
+  script: |-
+    cmake ..
+    make --jobs {{ hw.concurrency }}
+    mkdir "{{ prefix }}/bin"
+    mv ninja "{{ prefix }}/bin"
+  working-directory: build-cmake
+
+test:
+  script:
+    ninja --version

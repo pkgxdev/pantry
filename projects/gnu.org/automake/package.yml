@@ -1,0 +1,48 @@
+distributable:
+  url: https://ftp.gnu.org/gnu/automake/automake-{{ version }}.tar.xz
+  strip-components: 1
+
+#FIXME: need to parse versions from someplace
+versions:
+  - 1.16.5
+
+provides:
+  - bin/aclocal
+  - bin/automake
+
+dependencies:
+  gnu.org/autoconf: ^2.65.0
+  perl.org: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    git-scm.org: 2
+  script: |-
+    ./configure \
+      --build={{ hw.target }} \
+      --prefix="{{ prefix }}"
+    make --jobs {{ hw.concurrency }} install
+
+    cd "{{prefix}}"
+
+    # fix hardcoded paths
+    perl -pi -e "s|'{{prefix}}/|\\\$prefix.'/|" bin/* share/automake-{{version.marketing}}/Automake/Config.pm
+    git apply "$SRCROOT"/props/relocatable.diff
+
+    fix-shebangs.ts bin/*
+
+# TODO to prove automake doesn't require autoconf we should
+# use “depend” on the autoconf test to generate our `configure` separately
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    aclocal
+    automake --add-missing --foreign
+    autoconf
+    ./configure
+    make
+    ./test
