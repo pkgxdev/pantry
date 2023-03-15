@@ -1,0 +1,31 @@
+distributable:
+  url: https://ftp.gnu.org/gnu/sed/sed-{{version.raw}}.tar.xz
+  strip-components: 1
+
+# if there’s a github then we can parse the versions
+versions:
+  - 4.9
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+  # it’s extremely common for packages to require the above
+  env:
+    # add any environment variables here
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --disable-debug
+
+provides:
+  - bin/sed
+
+test:
+  fixture:
+    Hello world!
+  script: |
+    sed -i 's/world/World/g' $FIXTURE
+    test "$(cat $FIXTURE)" = 'Hello World!'
