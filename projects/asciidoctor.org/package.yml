@@ -1,0 +1,59 @@
+distributable:
+  url: https://github.com/asciidoctor/asciidoctor/archive/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: asciidoctor/asciidoctor
+
+dependencies:
+  ruby-lang.org: ^3.1
+  rubygems.org: '*'
+
+build:
+  dependencies:
+    rubygems.org: '*'
+    tea.xyz/gx/make: '*'
+    tea.xyz/gx/cc: '*'
+  env:
+    GEM_HOME: ${{prefix}}
+    GEM_PATH: ${{prefix}}
+  script: |
+    gem build asciidoctor.gemspec
+
+    gem install \
+      --no-user-install \
+      --bindir={{prefix}}/gems/bin \
+      --no-document \
+      asciidoctor-{{version}}.gem
+
+    mkdir "{{prefix}}"/bin
+    mv props/asciidoctor "{{prefix}}"/bin
+
+provides:
+  - bin/asciidoctor
+
+test:
+  script:
+    asciidoctor -b html5 -o test.html $FIXTURE
+  fixture: |
+    = AsciiDoc is Writing Zen
+    Random J. Author <rjauthor@example.com>
+    :icons: font
+    :source-highlighter: #{highlighter}
+
+    Hello, World!
+
+    == Syntax Highlighting
+
+    Python source.
+
+    [source, python]
+    ----
+    import something
+    ----
+
+    List
+
+    - one
+    - two
+    - three
