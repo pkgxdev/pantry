@@ -20,7 +20,15 @@ build:
   script: |
     patch -p1 < props/mkconfig.rb.diff
 
-    ./configure --prefix="{{prefix}}" --enable-load-relative --disable-rubygems --without-gmp
+    ./configure \
+      --prefix="{{prefix}}" \
+      --enable-load-relative \
+      --disable-rubygems \
+      --without-gmp \
+      --with-rubyhdrdir={{prefix}}/include \
+      --with-rubyarchhdrdir={{prefix}}/include \
+      --with-rubyarchprefix={{prefix}}/lib
+
     make --jobs {{hw.concurrency}} install
 
     cd "{{prefix}}/bin"
@@ -35,7 +43,7 @@ build:
       rm $shim.bak
     done
 
-    cd ../lib/ruby/{{version.major}}.{{version.minor}}.0
+    cd ../lib/ruby/{{version.marketing}}.0
 
     # ruby itself provides the gems for these and we don’t want that
     # we want to pkg them ourselves as part of rubygems.org
@@ -47,6 +55,11 @@ build:
       fi
       ln -s ../../../../rubygems.org/v\*/lib/$x
     done
+
+    rm -rf {{prefix}}/share/ri
+    rm -rf {{prefix}}/share/doc
+    rmdir {{prefix}}/lib/ruby/site_ruby
+    rmdir {{prefix}}/lib/ruby/vendor_ruby
   env:
     shims:
       - erb
