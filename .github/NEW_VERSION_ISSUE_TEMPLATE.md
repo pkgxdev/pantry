@@ -1,7 +1,7 @@
 ---
-title: "new release: {{env.PACKAGE}} failed"
+title: "❌ {{env.PACKAGE}}"
 assignees: jhheider
-labels: bug
+labels: build-failure
 ---
-A new-version run for the {{env.PACKAGE}} release. Review the failure
-<a href="{{env.URL}}">here</a> and mitigate.
+
+build logs: {{env.URL}}
