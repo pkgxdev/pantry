@@ -92,6 +92,6 @@ $ pkg edit
 ```
 
 
-[wiki]: https://github.com/teaxyz/pantry/wiki
+[wiki]: https://github.com/teaxyz/pantry.extra/wiki
 [discussion]: https://github.com/orgs/teaxyz/discussions
 [IPFS]: https://ipfs.tech
