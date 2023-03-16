@@ -3,7 +3,7 @@ distributable:
    strip-components: 1
 
 versions:
-  github: google/snappy/tags 
+  github: google/snappy/tags
 
 build:
   dependencies:
@@ -11,13 +11,17 @@ build:
     tea.xyz/gx/make: '*'
     freedesktop.org/pkg-config: '*'
     cmake.org: '*'
+    gnu.org/patch: '*'
   script: |
+    # disable -Werror (because there are warnings lol)
+    patch -p1 <props/CMakeLists.txt.patch
     cmake . $ARGS
-    make --jobs {{ hw.concurrency }} 
+    make
     make install
-  env: 
+  env:
     ARGS:
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_BUILD_TYPE=Release
       - -DSNAPPY_BUILD_TESTS=OFF
       - -DSNAPPY_BUILD_BENCHMARKS=OFF
       - -DBUILD_SHARED_LIBS=ON
@@ -31,8 +35,7 @@ test:
     #include <string>
     using namespace std;
     using namespace snappy;
-    int main()
-    {
+    int main() {
       string source = "Hello World!";
       string compressed, decompressed;
       Compress(source.data(), source.size(), &compressed);
@@ -42,5 +45,5 @@ test:
     }
   script: |
     mv $FIXTURE fixture.cpp
-    c++ fixture.cpp -lsnappy -o a.out
+    c++ fixture.cpp -lsnappy -std=c++11
     ./a.out
