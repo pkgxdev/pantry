@@ -11,8 +11,16 @@ build:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
     cmake.org: ^3
+    git-scm.org: '*'
   working-directory: build
   script: |
+    # duckdb uses git to get its version
+    git init ..
+    git config user.email "bot@tea.xyz"
+    git config user.name "teabot"
+    git commit --allow-empty -mnil
+    git tag v{{version}}
+
     cmake ..
     make --jobs {{ hw.concurrency }}
     mkdir -p "{{prefix}}"/bin
@@ -46,3 +54,8 @@ test:
     EOS)
 
     test "$out" = "$exp"
+
+    if [[ "$(duckdb --version)" != "v{{version}}"* ]]; then
+      echo "invalid version" >&2
+      exit 1
+    fi
