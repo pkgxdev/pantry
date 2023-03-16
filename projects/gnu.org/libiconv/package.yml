@@ -1,0 +1,32 @@
+distributable:
+  url: https://ftp.gnu.org/gnu/libiconv/libiconv-{{version.marketing}}.tar.gz
+  strip-components: 1
+
+versions:
+  - 1.17.0 # fix
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} 
+    make install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --enable-extra-encodings
+      - --enable-static
+
+provides:
+  - bin/iconv
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script: |
+    cc test.cc -liconv
+    ./a.out
