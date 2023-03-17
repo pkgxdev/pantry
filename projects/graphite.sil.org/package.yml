@@ -1,0 +1,27 @@
+distributable:
+  url: https://github.com/silnrsi/graphite/releases/download/{{version}}/graphite2-{{version}}.tgz
+  strip-components: 1
+
+versions:
+  github: silnrsi/graphite/releases/tags
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    cmake.org: ^3
+    freetype.org: '*'
+  working-directory: build
+  script: |
+    cmake .. -DCMAKE_INSTALL_PREFIX={{prefix}} -DCMAKE_BUILD_TYPE=Release
+    make --jobs {{ hw.concurrency }} install
+
+provides:
+  - bin/gr2fonttest
+
+test:
+  dependencies:
+    gnu.org/wget: '*'
+  script: |
+    wget https://scripts.sil.org/pub/woff/fonts/Simple-Graphite-Font.ttf
+    gr2fonttest Simple-Graphite-Font.ttf 'abcde'
