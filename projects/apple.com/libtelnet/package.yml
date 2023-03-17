@@ -1,0 +1,30 @@
+distributable:
+  url: https://github.com/apple-oss-distributions/libtelnet/archive/refs/tags/libtelnet-{{ version.raw }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: apple-oss-distributions/libtelnet/tags
+  strip: /^libtelnet-/
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+     echo ----------------------------------------------------------------------
+     xcodebuild SYMROOT=build -arch arm64
+     mkdir {{prefix}}
+     mkdir {{prefix}}/include
+     mkdir {{prefix}}/lib
+     cp -R build/Release/usr/local/include/libtelnet {{prefix}}/include
+     cp -R build/Release/libtelnet.a {{prefix}}/lib/
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script: |
+    cc fixture.c -ltelnet
+    ./a.out
