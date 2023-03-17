@@ -76,22 +76,21 @@ build:
     sed -i.bak -e 's|{{ prefix }}|\\$(shell tea --prefix)/python.org/v{{version.major}}|g' $confdir/Makefile
     rm $confdir/Makefile.bak
 
+    # we provide the binaries in a separate package
+    # but we don’t use --without-ensurepip because stuff expects python to
+    # come bundled with setuptools
+    rm {{prefix}}/bin/pip*
+
   env:
     ARGS:
       - --prefix="{{ prefix }}"
-      # it’s 202x
       - --enable-ipv6
-      # prevent auto updates -> we control that
-      - --without-ensurepip
       - --disable-loadable-sqlite-extensions
-      # use our libraries not the bundled ones
       - --with-system-expat
       - --with-system-ffi
       - --with-system-libmpdec
-      # these two make our binary not portable
-      #- --enable-optimizations
-      #- --with-lto
-      # on macOS we want an option that is instead --enable-framework
+      # - --enable-optimizations  # fails due to clang/llvm pkging bug on Linux
+      # - --with-lto  # fails on linux/aarch64
       - --enable-shared
     libdir:
       lib/python{{version.marketing}}
