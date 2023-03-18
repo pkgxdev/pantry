@@ -1,0 +1,40 @@
+distributable:
+  url: https://www.nano-editor.org/dist/v{{ version.major }}/nano-{{ version.major }}.{{ version.minor }}.tar.gz
+
+versions:
+  - 7.2
+
+dependencies:
+  gnu.org/gettext: '*'
+  invisible-island.net/ncurses: '>=6.0'
+  freedesktop.org/pkg-config: '*'
+  tea.xyz/gx/cc: "*"
+
+provides:
+  - bin/nano
+
+build:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+    gnu.org/automake: '*'
+    tea.xyz/gx/cc: "*"
+  script: |
+    ls
+    cd nano-$VERSION && ./configure $ARGS
+    make install
+  env:
+    VERSION: "{{ version.major }}.{{ version.minor }}"
+    ARGS:
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --prefix="{{prefix}}"
+      - --sysconfdir="{{prefix}}"
+      - --enable-color
+      - --enable-extra
+      - --enable-multibuffer
+      - --enable-nanorc
+      - --enable-utf8
+
+test:
+  script: |
+    nano --version
