@@ -1,5 +1,5 @@
 distributable:
-  url: https://www.nano-editor.org/dist/v{{ version.major }}/nano-{{ version.major }}.{{ version.minor }}.tar.gz
+  url: https://www.nano-editor.org/dist/v{{ version.major }}/nano-{{ version.raw }}.tar.gz
 
 versions:
   - 7.2
@@ -17,11 +17,11 @@ build:
     gnu.org/automake: "*"
     gnu.org/make: "*"
     tea.xyz/gx/cc: "*"
+  working-directory: nano-{{ version.raw }}
   script: |
-    cd nano-$VERSION && ./configure $ARGS
+    ./configure $ARGS
     make install
   env:
-    VERSION: "{{ version.major }}.{{ version.minor }}"
     ARGS:
       - --disable-debug
       - --disable-dependency-tracking
