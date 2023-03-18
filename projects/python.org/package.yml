@@ -53,12 +53,20 @@ build:
     make --jobs {{ hw.concurrency }}
     make install
 
+    # customize `pip install` locations to tea defaults
+    cp props/sitecustomize.py {{prefix}}/lib/python{{version.marketing}}
+
     # provide unversioned symlinks
     cd {{prefix}}/bin
     for x in python idle pydoc; do
       ln -sf ${x}{{ version.marketing }} $x
     done
     ln -sf python{{ version.marketing }}-config python-config
+
+    # we provide the binaries in a separate package
+    # but we don’t use --without-ensurepip because stuff expects python to
+    # come bundled with setuptools
+    rm pip*
 
     # older versions use a different config dir
     if semverator satisfies '<3.8' {{ version }}; then
@@ -75,11 +83,6 @@ build:
 
     sed -i.bak -e 's|{{ prefix }}|\\$(shell tea --prefix)/python.org/v{{version.major}}|g' $confdir/Makefile
     rm $confdir/Makefile.bak
-
-    # we provide the binaries in a separate package
-    # but we don’t use --without-ensurepip because stuff expects python to
-    # come bundled with setuptools
-    rm {{prefix}}/bin/pip*
 
   env:
     ARGS:
@@ -129,6 +132,31 @@ build:
             # be assumed that no additional -I,-L directives are needed.
 
 test:
-  #TODO test all modules eg zlib module
   script: |
-    python --version
+    # Check if sqlite is ok, because we build with --enable-loadable-sqlite-extensions
+    # and it can occur that building sqlite silently fails if OSX's sqlite is used.
+    python -c "import sqlite3"
+
+    # check to see if we can create a venv
+    python -m venv myvenv
+
+    # Check if some other modules import. Then the linked libs are working.
+    python -c "import _ctypes"
+    # python -c "import _decimal" #FIXME
+    python -c "import pyexpat"
+    python -c "import zlib"
+
+    # Verify that the selected DBM interface works
+    python $FIXTURE
+
+    if which pip; then
+      exit 1
+    fi
+  fixture: |
+    import dbm
+    with dbm.ndbm.open("test", "c") as db:
+        db[b"foo \\xbd"] = b"bar \\xbd"
+    with dbm.ndbm.open("test", "r") as db:
+        assert list(db.keys()) == [b"foo \\xbd"]
+        assert b"foo \\xbd" in db
+        assert db[b"foo \\xbd"] == b"bar \\xbd"
