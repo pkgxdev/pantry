@@ -53,12 +53,20 @@ build:
     make --jobs {{ hw.concurrency }}
     make install
 
+    # customize `pip install` locations to tea defaults
+    cp props/sitecustomize.py {{prefix}}/lib/python{{version.marketing}}
+
     # provide unversioned symlinks
     cd {{prefix}}/bin
     for x in python idle pydoc; do
       ln -sf ${x}{{ version.marketing }} $x
     done
     ln -sf python{{ version.marketing }}-config python-config
+
+    # we provide the binaries in a separate package
+    # but we don’t use --without-ensurepip because stuff expects python to
+    # come bundled with setuptools
+    rm pip*
 
     # older versions use a different config dir
     if semverator satisfies '<3.8' {{ version }}; then
@@ -75,11 +83,6 @@ build:
 
     sed -i.bak -e 's|{{ prefix }}|\\$(shell tea --prefix)/python.org/v{{version.major}}|g' $confdir/Makefile
     rm $confdir/Makefile.bak
-
-    # we provide the binaries in a separate package
-    # but we don’t use --without-ensurepip because stuff expects python to
-    # come bundled with setuptools
-    rm {{prefix}}/bin/pip*
 
   env:
     ARGS:
