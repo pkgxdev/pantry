@@ -30,8 +30,9 @@ test:
     tea.xyz/gx/cc: c99
     gnu.org/wget: '*'
   script: |
-    wget https://github.com/google/highway/raw/master/hwy/examples/benchmark.cc
-    c++ -std=c++11 -lhwy -I. ./benchmark.cc
+    mkdir -p hwy/examples
+    curl -LO --output-dir hwy/examples https://github.com/google/highway/raw/master/hwy/examples/benchmark.cc
+    c++ -std=c++11 -lhwy -I. hwy/examples/benchmark.cc
     ./a.out
   # ^^ the -I. is because bizarely benchmark.cc configures other headers to
   # include itself but only on intel…
