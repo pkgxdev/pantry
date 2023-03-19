@@ -3,7 +3,7 @@ distributable:
   strip-components: 1
 
 versions:
-  github: xiph/flac/tags
+  github: xiph/flac/releases/tags
 
 dependencies:
   xiph.org/ogg: ^1.3.5
@@ -18,14 +18,13 @@ build:
     tea.xyz/gx/make: '*'
   script: |
     ./configure $ARGS
-    make install
+    make --jobs {{ hw.concurrency }} install
   env:
     ARGS:
       - --disable-debug
       - --disable-dependency-tracking
       - --prefix="{{prefix}}"
       - --enable-static
-
 
 provides:
   - bin/flac
