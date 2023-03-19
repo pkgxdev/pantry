@@ -13,14 +13,27 @@ build:
     gnu.org/patch: '*'
   script: |
     ruby setup.rb --prefix={{prefix}} --env-shebang --no-ri --no-rdoc
+
+    mkdir {{prefix}}/shim
+    cp props/proxy {{prefix}}/shim
+
     cd "{{prefix}}"
     patch -p1 < "$SRCROOT"/props/fit-n-finish.patch
 
-runtime:
-  env:
-    # HACK that is only required for this ruby package
-    # since we cannot use `gem` to build `gem` itself
-    RUBYLIB: ${{prefix}}/lib
+    # these are provided by ruby-lang.org
+    # we don’t know why they turn up here too…
+    for x in rake rbs rdbg typeprof; do
+      rm {{prefix}}/bin/$x
+    done
+
+    # We’re not a “GEMHOME” since we *are* gem, so yeah instead
+    # we have a RUBYLIB hack via our proxy script
+    for x in bin/*; do
+      mv $x shim
+      ln shim/proxy $x
+    done
+
+    rmdir {{prefix}}/plugins
 
 test:
   dependencies:
@@ -31,9 +44,14 @@ test:
   script: |
     gem install awesome_print
     ruby -e 'require "rubygems"' -e 'require "awesome_print"' -e'ap $LOAD_PATH'
-    #TODO test -d ~/.gem/ruby/{{deps.ruby.version.major}}.{{deps.ruby.version.minor}}.0/gems/hexapdf-0.28.0
     gem install hexapdf
-    ~/.local/bin/hexapdf version
+    v="$(~/.local/bin/hexapdf version | cut -d' ' -f2)"
+    test -d ~/.gem/ruby/3.2.0/gems/hexapdf-$v  #FIXME ruby version
+
+    gem install bundle
+    test -d ~/.gem/ruby/{{version.marketing}}.0/gems/bundle-0.0.1
+    test -f ~/.local/bin/bundle
+    ~/.local/bin/bundle --version
 
 provides:
   - bin/bundle

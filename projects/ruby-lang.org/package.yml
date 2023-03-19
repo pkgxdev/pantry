@@ -25,23 +25,25 @@ build:
       --enable-load-relative \
       --disable-rubygems \
       --without-gmp \
+      --with-rubyarchprefix={{prefix}}/lib/ruby \
       --with-rubyhdrdir={{prefix}}/include \
       --with-rubyarchhdrdir={{prefix}}/include \
-      --with-rubyarchprefix={{prefix}}/lib
+      --with-vendordir=no \
+      --with-vendorarchdir=no \
+      --with-sitedir=no \
+      --with-sitearchdir=no \
+      --disable-multiarch
 
     make --jobs {{hw.concurrency}} install
 
     cd "{{prefix}}/bin"
 
     # we provide these as `rubygems.org`
-    for GEM in bundle bundler gem rake rbs rdbg typeprof; do
-      test -f $GEM && rm $GEM
+    for x in bundle bundler gem; do
+      test -f $x && rm $x
     done
 
-    for shim in $shims; do
-      sed -i.bak -e 's_#!{{prefix}}/bin/ruby_#!/usr/bin/env ruby_' $shim
-      rm $shim.bak
-    done
+    fix-shebangs.ts *
 
     cd ../lib/ruby/{{version.marketing}}.0
 
@@ -53,44 +55,37 @@ build:
       else
         rm $x
       fi
-      ln -s ../../../../rubygems.org/v\*/lib/$x
+      ln -s ../../../../../rubygems.org/v\*/lib/$x
     done
 
-    rm -rf {{prefix}}/share/ri
-    rm -rf {{prefix}}/share/doc
-    rmdir {{prefix}}/lib/ruby/site_ruby
-    rmdir {{prefix}}/lib/ruby/vendor_ruby
-  env:
-    shims:
-      - erb
-      - irb
-      - racc
-      - rdoc
-      - ri
+    cd {{prefix}}
+    rm -rf share/ri
+    rm -rf share/doc
+    rm -rf lib/ruby/site_ruby
+    rm -rf lib/ruby/vendor_ruby
+
+    # weirdly files get put here and we can't figure out how to stop it
+    mv lib/*-{{hw.platform}}*/* lib
+    rmdir lib/*-{{hw.platform}}*
 
 test:
   dependencies:
-    #NOTE rubygems.org depends on us… so it may be difficult to test this
-    # in a bootstrap scenario…
-    rubygems.org: '*'
     tea.xyz/gx/cc: c99  # for native extensions
     tea.xyz/gx/make: '*'
   script: |
     ruby -e 'puts "Hello World!"'
-    gem install hexapdf -v 0.28.0 --bindir=. --no-user-install
-    ./hexapdf version
-    test -d "{{tea.prefix}}"/ruby-lang.org/gems/{{version.major}}.{{version.minor}}.0/gems/hexapdf-0.28.0
-    gem install bundle
-    test -d ~/.gem/ruby/{{version.major}}.{{version.minor}}.0/gems/bundle-0.0.1
-    test -f ~/.local/bin/bundle
 
 provides:
   - bin/erb
   - bin/irb
   - bin/racc
+  - bin/rake
+  - bin/rbs
+  - bin/rdbg
   - bin/rdoc
   - bin/ri
   - bin/ruby
+  - bin/typeprof
 
 interprets:
   extensions: rb

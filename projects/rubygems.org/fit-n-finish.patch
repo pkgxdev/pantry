@@ -1,24 +1,3 @@
-diff --git a/lib/rubygems.rb b/lib/rubygems.rb
-index e42aca8..84128e1 100644
---- a/lib/rubygems.rb
-+++ b/lib/rubygems.rb
-@@ -297,10 +297,12 @@ def self.binary_mode
-   ##
-   # The path where gem executables are to be installed.
-
--  def self.bindir(install_dir=Gem.dir)
--    return File.join install_dir, "bin" unless
--      install_dir.to_s == Gem.default_dir.to_s
--    Gem.default_bindir
-+  def self.bindir(install_dir=nil)
-+    if install_dir
-+      File.join install_dir, "bin"
-+    else
-+      Gem.default_bindir
-+    end
-   end
-
-   ##
 diff --git a/lib/rubygems/config_file.rb b/lib/rubygems/config_file.rb
 index 4aa8b4d..8354c08 100644
 --- a/lib/rubygems/config_file.rb
@@ -38,7 +17,7 @@ index 4aa8b4d..8354c08 100644
    # :startdoc:
 
 diff --git a/lib/rubygems/defaults.rb b/lib/rubygems/defaults.rb
-index 8daff0b..1fab83c 100644
+index b186375..3835559 100644
 --- a/lib/rubygems/defaults.rb
 +++ b/lib/rubygems/defaults.rb
 @@ -20,13 +20,7 @@ def self.default_sources
@@ -61,7 +40,7 @@ index 8daff0b..1fab83c 100644
 
    def self.default_dir
 -    @default_dir ||= File.join(RbConfig::CONFIG["rubylibprefix"], "gems", RbConfig::CONFIG["ruby_version"])
-+    @default_dir ||= File.expand_path(File.join(__FILE__, "../../../../../ruby-lang.org/gems", RbConfig::CONFIG["ruby_version"]))
++    @default_dir ||= File.join("/usr/local/lib/ruby/gems", RbConfig::CONFIG["ruby_version"])
    end
 
    ##
@@ -107,7 +86,7 @@ index 8daff0b..1fab83c 100644
    end
 
    ##
-@@ -151,14 +143,18 @@ def self.cache_home
+@@ -151,7 +143,11 @@ def self.cache_home
    # The path to standard location of the user's data directory.
 
    def self.data_home
@@ -117,14 +96,6 @@ index 8daff0b..1fab83c 100644
 +    else
 +      File.join(Gem.user_home, ".gem")
 +    end
-   end
-
-   ##
-   # The path to standard location of the user's state directory.
-
-   def self.state_home
--    @data_home ||= (ENV["XDG_STATE_HOME"] || File.join(Gem.user_home, ".local", "state"))
-+    File.join(Gem.data_home, "state")
    end
 
    ##
@@ -172,20 +143,22 @@ index 8daff0b..1fab83c 100644
    def self.operating_system_defaults
 -    {}
 +    {
-+      'install' => '--no-rdoc --no-ri --env-shebang --user-install',
-+      'update' => '--no-rdoc --no-ri --env-shebang --user-install'
++      'install' => '--no-rdoc --no-ri --env-shebang',
++      'update' => '--no-rdoc --no-ri --env-shebang'
 +    }
    end
 
    ##
-
 diff --git a/lib/rubygems/installer.rb b/lib/rubygems/installer.rb
-index 9fbb282..8fa8bd9 100644
+index 9fbb282..3be62a6 100644
 --- a/lib/rubygems/installer.rb
 +++ b/lib/rubygems/installer.rb
-@@ -190,7 +190,7 @@ def initialize(package, options={})
+@@ -188,9 +188,9 @@ def initialize(package, options={})
+     @package.prog_mode = options[:prog_mode]
+     @package.data_mode = options[:data_mode]
 
-     if options[:user_install]
+-    if options[:user_install]
++    if options[:user_install] or options[:user_install].nil? and not File.writable? Gem.paths.home
        @gem_home = Gem.user_dir
 -      @bin_dir = Gem.bindir gem_home unless options[:bin_dir]
 +      @bin_dir = File.join(Gem.user_home, ".local/bin") unless options[:bin_dir]
