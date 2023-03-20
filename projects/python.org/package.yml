@@ -84,9 +84,16 @@ build:
     sed -i.bak -e 's|{{ prefix }}|\\$(shell tea --prefix)/python.org/v{{version.major}}|g' $confdir/Makefile
     rm $confdir/Makefile.bak
 
+    # force pip to user-install mode without sudo
+    ln -s /dev {{prefix}}/lib/python{{version.marketing}}/site-packages
+    # ^^ probs nuts lol, but the below has repurcussions
+    # chmod -w {{prefix}}/lib/python{{version.marketing}}
+    # ^^ makes rm -rf ~/.tea/python.org on macOS fail
+
   env:
     ARGS:
       - --prefix="{{ prefix }}"
+      - --with-ensurepip
       - --enable-ipv6
       - --disable-loadable-sqlite-extensions
       - --with-system-expat
