@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/util-linux/util-linux/archive/refs/tags/v{{ version }}.tar.gz
+  url: https://mirrors.edge.kernel.org/pub/linux/utils/util-linux/v{{version.marketing}}/util-linux-{{version.raw}}.tar.xz
   strip-components: 1
 
 versions:
@@ -83,13 +83,9 @@ build:
     gnu.org/bison: '*'
     gnu.org/m4: '*'
     freedesktop.org/pkg-config: '*'
+    gnu.org/patch: '*'
   script: |
-    if test "{{hw.platform}}" != "linux"; then
-      echo "glibc is only supported on Linux"
-      touch {{prefix}}/linux-only
-      exit 0
-    fi
-    ./autogen.sh
+    patch -p0 <props/macports.patch  # thanks to MacPorts
     ./configure $ARGS
     make --jobs {{hw.concurrency}} install
   env:
