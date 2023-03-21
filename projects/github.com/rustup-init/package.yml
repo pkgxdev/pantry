@@ -1,0 +1,19 @@
+distributable:
+  url: https://github.com/rust-lang/rustup/archive/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: rust-lang/rustup/tags
+
+build:
+  dependencies:
+    rust-lang.org/cargo: '*'
+  script:
+    cargo install --features no-self-update --locked --path . --root {{prefix}}
+
+provides:
+  - bin/rustup-init
+
+test:
+  script:
+    rustup-init --version
