@@ -1,0 +1,40 @@
+distributable:
+  url: https://ftp.gnu.org/gnu/libtool/libtool-{{ version }}.tar.xz
+  strip-components: 1
+
+#FIXME: need versions
+versions:
+  - 2.4.7
+
+provides:
+  - bin/libtool
+  - bin/libtoolize
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/autoconf: ^2.65.0
+    gnu.org/m4: 1
+  script: |-
+    ./configure --prefix={{ prefix }}
+    make --jobs {{ hw.concurrency }} install
+
+    cd {{prefix}}/bin
+
+    sed -i.bak \
+      -e 's_prefix="{{prefix}}"_prefix="$(dirname $(dirname $0))"_' \
+      -e 's_{{prefix}}_$prefix_' \
+      libtoolize
+    rm libtoolize.bak
+
+    # often expected aliases
+    ln -s libtoolize glibtoolize
+    ln -s libtool glibtool
+
+test:
+  dependencies:
+    tea.xyz/gx/make: '*'
+  script: |
+    libtoolize
+    test -f ltmain.sh

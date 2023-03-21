@@ -1,0 +1,36 @@
+distributable:
+  url: https://ftp.gnu.org/gnu/bison/bison-{{ version }}.tar.xz
+  strip-components: 1
+
+versions:
+  github: akimd/bison/tags
+
+dependencies:
+  # bison cannot operate without the m4 executable
+  gnu.org/m4: 1
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    M4: m4  # or fails on Linux
+    ARGS:
+      - --prefix={{ prefix }}
+      - --enable-relocatable
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script: |
+    bison test.y
+    c++ test.tab.c
+    test pass = $(echo "((()(())))()" | ./a.out)
+    test fail = $(echo "())" | ./a.out)
+
+provides:
+  - bin/bison
+  - bin/yacc

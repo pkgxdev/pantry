@@ -1,0 +1,37 @@
+#FIXME
+# libjpeg has archaic versioning and we need a mechanism to convert to
+# semantic versions with a `versions.ts` script
+
+distributable:
+  url: https://jpegclub.org/reference/wp-content/uploads/2022/01/jpegsrc.v9e.tar.gz
+  strip-components: 1
+
+versions:
+  - 9.5.0
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |-
+    ./configure \
+      --disable-dependency-tracking \
+      --disable-silent-rules \
+      --prefix="{{ prefix }}"
+    make --jobs {{ hw.concurrency }} install
+
+test:
+  dependencies:
+    curl.se: '*'
+  env:
+    FIXTURE: https://samplelib.com/lib/preview/jpeg/sample-clouds-400x300.jpg
+  script: |
+    curl $FIXTURE > test.jpeg
+    djpeg test.jpeg
+
+provides:
+  - bin/cjpeg
+  - bin/djpeg
+  - bin/jpegtran
+  - bin/rdjpgcom
+  - bin/wrjpgcom

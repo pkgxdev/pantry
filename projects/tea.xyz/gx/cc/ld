@@ -1,0 +1,37 @@
+#!/bin/sh
+
+dir=$(dirname "$0")
+exe=$(basename "$0")
+
+# Remove us from our path
+PATH=$(echo "$PATH" | tr ":" "\n" | grep -v "$dir" | tr "\n" ":")
+
+# If we can find our specific name, e.g. `lld`,
+# passthrough to that
+if which "$exe" >/dev/null 2>&1; then
+  exe=$(which "$exe")
+# Otherwise, fallback to `ld`
+# NB: this might not have the right invocations, sometimes;
+# (invoking `ld` as `lld64.ld`) watch for those potential cases
+elif which ld >/dev/null 2>&1; then
+  exe=$(which ld)
+else
+  echo 'ld not found in PATH' >&2
+  exit 127
+fi
+
+if test -z "$TEA_PREFIX"
+then
+  echo 'TEA_PREFIX mysteriously unset' >&2
+  exit 1
+else
+  # At a minimum, `ld` will complain if you mix the `-r` and `-rpath` flags,
+  # so if any argument to this script is `-r`, we just pass through without
+  # additions.
+  for word in "$@"; do
+    if test "$word" = "-r"; then
+      exec "$exe" "$@"
+    fi
+  done
+  exec "$exe" "$@" -rpath "$TEA_PREFIX"
+fi

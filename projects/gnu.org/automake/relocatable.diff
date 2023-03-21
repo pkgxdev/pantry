@@ -1,0 +1,47 @@
+diff --git a/bin/aclocal b/bin/aclocal
+index 6b58b9b..ad251a7 100755
+--- a/bin/aclocal
++++ b/bin/aclocal
+@@ -23,8 +23,11 @@ use 5.006;
+ use strict;
+ use warnings FATAL => 'all';
+
++use Cwd qw(abs_path); use File::Basename;
++my $prefix;
+ BEGIN
+ {
++  $prefix = dirname(dirname(abs_path(__FILE__)));
+   unshift (@INC, $prefix.'/share/automake-1.16')
+     unless $ENV{AUTOMAKE_UNINSTALLED};
+ }
+diff --git a/bin/automake b/bin/automake
+index ff1f453..e26e80c 100755
+--- a/bin/automake
++++ b/bin/automake
+@@ -26,8 +26,11 @@ use 5.006;
+ use strict;
+ use warnings FATAL => 'all';
+
++use Cwd qw(abs_path); use File::Basename;
++my $prefix;
+ BEGIN
+ {
++  $prefix = dirname(dirname(abs_path(__FILE__)));
+   unshift (@INC, $prefix.'/share/automake-1.16')
+     unless $ENV{AUTOMAKE_UNINSTALLED};
+
+diff --git a/share/automake-1.16/Automake/Config.pm b/share/automake-1.16/Automake/Config.pm
+index f0d78c9..35af767 100644
+--- a/share/automake-1.16/Automake/Config.pm
++++ b/share/automake-1.16/Automake/Config.pm
+@@ -21,6 +21,10 @@ use 5.006;
+ use strict;
+ use warnings FATAL => 'all';
+
++use Cwd qw(abs_path);
++use File::Basename;
++my $prefix = dirname(dirname(dirname(dirname(abs_path(__FILE__)))));
++
+ use Exporter;
+
+ our @ISA = qw (Exporter);

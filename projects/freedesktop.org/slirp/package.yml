@@ -1,0 +1,52 @@
+distributable:
+  url: https://gitlab.freedesktop.org/slirp/libslirp/-/archive/v{{ version }}/libslirp-v{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  - 4.7.0
+
+dependencies:
+  gnome.org/glib: ^2
+
+build:
+  dependencies:
+    mesonbuild.com: ^0.63
+    ninja-build.org: 1
+    freedesktop.org/pkg-config: ^0.29
+    tea.xyz/gx/cc: c99
+  script: |
+    meson build $ARGS
+    ninja -C build install all
+    cd "{{ prefix }}/lib"
+    mv pkgconfig/* .
+    rmdir pkgconfig
+    ln -s . slirp
+  env:
+    ARGS:
+      - -Ddefault_library=both 
+      - --prefix={{ prefix }}
+      - --libdir={{ prefix }}/lib
+      - --buildtype=release
+      - --wrap-mode=nofallback
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script: |
+    mv $FIXTURE test.c
+    gcc test.c -lslirp -o test
+    ./test
+  fixture: |
+    #include <stdio.h>
+    #include <string.h>
+    #include <stddef.h>
+    #include <slirp/libslirp.h>
+    int main() {
+      SlirpConfig cfg;
+      memset(&cfg, 0, sizeof(cfg));
+      cfg.version = 1;
+      cfg.in_enabled = true;
+      cfg.vhostname = "testServer";
+      Slirp* ctx = slirp_new(&cfg, NULL, NULL);
+      return 0;
+    }

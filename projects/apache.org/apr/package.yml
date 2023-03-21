@@ -1,0 +1,33 @@
+distributable:
+  url: https://dlcdn.apache.org//apr/apr-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  - 1.7.2
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    # add any environment variables here
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --disable-debug
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  fixture: |
+    #include <stdio.h>
+    #include <apr-1/apr_version.h>
+    int main() {
+      printf("%s", apr_version_string());
+      return 0;
+    }
+  script: |
+    mv $FIXTURE b.c
+    cc b.c -lapr-{{version.major}}

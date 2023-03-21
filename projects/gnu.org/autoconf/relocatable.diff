@@ -1,0 +1,152 @@
+diff --git a/bin/autoconf b/bin/autoconf
+index 90e1822..3b58d1f 100755
+--- a/bin/autoconf
++++ b/bin/autoconf
+@@ -19,6 +19,8 @@
+ # You should have received a copy of the GNU General Public License
+ # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
++PREFIX="$(cd "$(dirname "$0")/.." && pwd)"
++
+ ## -------------------- ##
+ ## M4sh Initialization. ##
+ ## -------------------- ##
+diff --git a/bin/autoheader b/bin/autoheader
+index 2994b69..4cd2587 100755
+--- a/bin/autoheader
++++ b/bin/autoheader
+@@ -29,9 +29,14 @@ eval 'case $# in 0) exec perl -S "$0";; *) exec perl
+ use 5.006;
+ use strict;
+ use warnings FATAL => 'all';
++use Cwd qw(abs_path);
++use File::Basename;
+
++my $prefix;
+ BEGIN
+ {
++  $prefix = dirname(dirname(abs_path(__FILE__)));
++
+   my $pkgdatadir = $ENV{'autom4te_perllibdir'} || $prefix.'/share/autoconf';
+   unshift @INC, "$pkgdatadir";
+
+diff --git a/bin/autom4te b/bin/autom4te
+index 215c42a..2a9e9ea 100755
+--- a/bin/autom4te
++++ b/bin/autom4te
+@@ -25,9 +25,14 @@ eval 'case $# in 0) exec perl -S "$0";; *) exec perl
+ use 5.006;
+ use strict;
+ use warnings FATAL => 'all';
++use Cwd qw(abs_path);
++use File::Basename;
+
++my $prefix;
+ BEGIN
+ {
++  $prefix = dirname(dirname(abs_path(__FILE__)));
++
+   my $pkgdatadir = $ENV{'autom4te_perllibdir'} || $prefix.'/share/autoconf';
+   unshift @INC, $pkgdatadir;
+
+@@ -393,6 +398,9 @@ Try '$me --help' for more information."
+   $tcache = "$cache/traces.";
+   $ocache = "$cache/output.";
+
++  # added by tea
++  @prepend_include = map { $_ =~ s/\$PREFIX/$prefix/r } @prepend_include;
++
+   # Normalize the includes: the first occurrence is enough, several is
+   # a pain since it introduces a useless difference in the path which
+   # invalidates the cache.  And strip '.' which is implicit and always
+diff --git a/bin/autoreconf b/bin/autoreconf
+index 69c27ea..96d3ab9 100755
+--- a/bin/autoreconf
++++ b/bin/autoreconf
+@@ -28,10 +28,15 @@ eval 'case $# in 0) exec perl -S "$0";; *) exec perl
+ use 5.006;
+ use strict;
+ use warnings FATAL => 'all';
++use Cwd qw(abs_path);
++use File::Basename;
+
++my $prefix;
+ my $buildauxdir;
+ BEGIN
+ {
++  $prefix = dirname(dirname(abs_path(__FILE__)));
++
+   my $pkgdatadir = $ENV{'autom4te_perllibdir'} || $prefix.'/share/autoconf';
+   unshift @INC, $pkgdatadir;
+
+diff --git a/bin/autoscan b/bin/autoscan
+index b41d9f3..815bb7c 100755
+--- a/bin/autoscan
++++ b/bin/autoscan
+@@ -27,9 +27,14 @@ eval 'case $# in 0) exec perl -S "$0";; *) exec perl
+ use 5.006;
+ use strict;
+ use warnings FATAL => 'all';
++use Cwd qw(abs_path);
++use File::Basename;
+
++my $prefix;
+ BEGIN
+ {
++  $prefix = dirname(dirname(abs_path(__FILE__)));
++
+   my $pkgdatadir = $ENV{'autom4te_perllibdir'} || $prefix.'/share/autoconf';
+   unshift @INC, $pkgdatadir;
+
+diff --git a/bin/autoupdate b/bin/autoupdate
+index 156d508..e31c5d1 100755
+--- a/bin/autoupdate
++++ b/bin/autoupdate
+@@ -28,9 +28,14 @@ eval 'case $# in 0) exec perl -S "$0";; *) exec perl
+ use 5.006;
+ use strict;
+ use warnings FATAL => 'all';
++use Cwd qw(abs_path);
++use File::Basename;
+
++my $prefix;
+ BEGIN
+ {
++  $prefix = dirname(dirname(abs_path(__FILE__)));
++
+   my $pkgdatadir = $ENV{'autom4te_perllibdir'} || $prefix.'/share/autoconf';
+   unshift @INC, $pkgdatadir;
+
+diff --git a/bin/ifnames b/bin/ifnames
+index c5823fc..3177eb0 100755
+--- a/bin/ifnames
++++ b/bin/ifnames
+@@ -32,9 +32,14 @@ eval 'case $# in 0) exec perl -S "$0";; *) exec perl
+ use 5.006;
+ use strict;
+ use warnings FATAL => 'all';
++use Cwd qw(abs_path);
++use File::Basename;
+
++my $prefix;
+ BEGIN
+ {
++  $prefix = dirname(dirname(abs_path(__FILE__)));
++
+   my $pkgdatadir = $ENV{'autom4te_perllibdir'} || $prefix.'/share/autoconf';
+   unshift @INC, $pkgdatadir;
+
+diff --git a/bin/autom4te b/bin/autom4te
+ index 042ece6..89e4968 100755
+ --- a/bin/autom4te
+ +++ b/bin/autom4te
+ @@ -393,6 +393,9 @@ Try '$me --help' for more information."
+    $tcache = "$cache/traces.";
+    $ocache = "$cache/output.";
+
+ +  # added by tea
+ +  @prepend_include = map { $_ =~ s/\$PREFIX/$prefix/r } @prepend_include;
+ +
+    # Normalize the includes: the first occurrence is enough, several is
+    # a pain since it introduces a useless difference in the path which
+    # invalidates the cache.  And strip '.' which is implicit and always

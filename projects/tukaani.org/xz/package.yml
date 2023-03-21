@@ -1,0 +1,48 @@
+distributable:
+  url: https://tukaani.org/xz/xz-{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  - 5.2.7
+  - 5.2.5
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: 'c99'
+    tea.xyz/gx/make: '*'
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix={{ prefix }}
+      - --disable-debug
+      - --disable-doc
+
+test:
+  script: xz --version
+
+provides:
+  - bin/lzcat
+  - bin/lzcmp
+  - bin/lzdiff
+  - bin/lzegrep
+  - bin/lzfgrep
+  - bin/lzgrep
+  - bin/lzless
+  - bin/lzma
+  - bin/lzmadec
+  - bin/lzmainfo
+  - bin/lzmore
+  - bin/unlzma
+  - bin/unxz
+  - bin/xz
+  - bin/xzcat
+  - bin/xzcmp
+  - bin/xzdec
+  - bin/xzdiff
+  - bin/xzegrep
+  - bin/xzfgrep
+  - bin/xzgrep
+  - bin/xzless
+  - bin/xzmore

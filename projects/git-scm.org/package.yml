@@ -1,0 +1,74 @@
+distributable:
+  url: https://mirrors.edge.kernel.org/pub/software/scm/git/git-{{version}}.tar.xz
+  strip-components: 1
+
+versions:
+  github: git/git/tags
+
+dependencies:
+  zlib.net: 1
+  gnu.org/gettext: ^0.21
+  curl.se: '>=5'
+  perl.org: '*'
+  libexpat.github.io: ~2
+
+runtime:
+  env:
+    GIT_TEMPLATE_DIR: '{{prefix}}/share/git-core/templates'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    mv props/config.mak .
+
+    ./configure $CONF
+    make install $BAKE
+
+    cd "{{prefix}}"
+    DEBUG=1 fix-shebangs.ts bin/* libexec/*
+
+    mkdir -p etc
+    cp "$SRCROOT"/props/git* etc
+  env:
+    V: 1
+    BAKE:
+    - --jobs {{ hw.concurrency }}
+    - NO_TCLTK=1
+    CONF:
+    - --prefix={{ prefix }}
+    - --with-perl={{ deps.perl.org.prefix }}
+    - --with-gitconfig=etc/gitconfig
+    INSTALL_STRIP: -s
+
+test: |
+  git clone https://github.com/teaxyz/white-paper 2>&1 | tee clone-output.txt
+
+  # check that the templates can be found
+  if grep -q 'warning: templates not found in' clone-output.txt; then
+    false
+  fi
+
+  mkdir foo
+  cd foo
+  touch .DS_Store testfile
+  git init
+  git add .
+  test "$(git diff --name-only --cached)" = "testfile"
+
+  # necessary so `git commit` will work
+  git config user.email "you@example.com"
+  git config user.name "Your Name"
+
+  # necessary to check the libexec binaries work
+  git commit --message "test"
+
+provides:
+  - bin/git
+  - bin/git-cvsserver
+  - bin/git-receive-pack
+  - bin/git-shell
+  - bin/git-upload-archive
+  - bin/git-upload-pack
+  - bin/scalar

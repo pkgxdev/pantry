@@ -1,0 +1,22 @@
+distributable:
+  url: https://github.com/libffi/libffi/releases/download/v{{version}}/libffi-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: libffi/libffi/tags
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    ./configure --prefix={{prefix}} --disable-debug
+    make --jobs {{ hw.concurrency }} install
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    freedesktop.org/pkg-config: ^0.29
+  script: |
+    cc -o closure test.c $(pkg-config --libs libffi)
+    ./closure

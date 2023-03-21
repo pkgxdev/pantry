@@ -1,0 +1,29 @@
+distributable:
+  url: https://code.videolan.org/videolan/dav1d/-/archive/{{version}}/dav1d-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  - 1.0.0
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    x86-64:
+      nasm.us: 2.14
+    mesonbuild.com: ^0.49
+    ninja-build.org: 1
+  working-directory:
+    build
+  script: |
+    meson .. --prefix={{prefix}} --libdir={{prefix}}/lib --buildtype=release
+    ninja -v
+    ninja install
+  env:
+    CC: clang
+
+test:
+  script: |
+    dav1d --version
+
+provides:
+  - bin/dav1d

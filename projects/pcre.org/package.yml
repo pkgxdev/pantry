@@ -1,0 +1,39 @@
+distributable:
+  #FIXME certs issue
+  # url: https://downloads.sourceforge.net/project/pcre/pcre/{{ version.raw }}/pcre-{{ version.raw }}.tar.bz2
+  url: https://cytranet.dl.sourceforge.net/project/pcre/pcre/{{ version.raw }}/pcre-{{ version.raw }}.tar.bz2
+  strip-components: 1
+
+# commonly called PCRE2 starts at semver v10
+# PCRE (unmaintained) goes up to 8.45
+# despite PCRE being unmaintained, most stuff still uses it, lol
+
+versions:
+  - 8.45
+
+dependencies:
+  sourceware.org/bzip2: 1
+  zlib.net: 1
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    ./configure \
+      --prefix={{ prefix }} \
+      --enable-pcre2-16 \
+      --enable-pcre2-32 \
+      --enable-pcre2grep-libz \
+      --enable-pcre2grep-libbz2 \
+      --enable-jit
+    make --jobs {{ hw.concurrency }}
+    make install
+
+test:
+  script: pcregrep "regular expression" {{ prefix }}/share/doc/pcre/README
+
+provides:
+  - bin/pcre-config
+  - bin/pcregrep
+  - bin/pcretest

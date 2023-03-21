@@ -1,0 +1,59 @@
+distributable:
+  url: https://github.com/harfbuzz/harfbuzz/archive/{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: harfbuzz/harfbuzz/tags
+
+dependencies:
+  cairographics.org: 1
+  freetype.org: 2
+  gnome.org/glib: 2
+  unicode.org: '>=71'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    mesonbuild.com: ^0.63
+    ninja-build.org: 1
+    freedesktop.org/pkg-config: ^0.29
+    gnome.org/gobject-introspection: 1
+    python.org: 3  #FIXME rq’d by gnome.org/gobject-introspection but should be added by tea-env
+  working-directory: build
+  script: |
+    meson .. $ARGS
+    ninja --verbose
+    ninja install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --libdir={{prefix}}/lib
+      - --buildtype=release
+      - -Dcairo=enabled
+      - -Dcoretext=enabled
+      - -Dfreetype=enabled
+      - -Dglib=enabled
+      - -Dtests=disabled
+    linux/x86-64:
+      CFLAGS: -fPIC
+      CXXFLAGS: -fPIC
+      LDFLAGS: -pie
+
+test:
+  dependencies:
+    curl.se: '*'
+    gnu.org/binutils: '*'
+  script: |
+    curl $FIXTURE > font.ttf
+    out=$(echo 'സ്റ്റ്' | hb-shape font.ttf)
+    test $out = '[gid0=0+500|gid0=0+500|gid0=2+500|gid0=2+500|gid0=4+500|gid0=4+500]'
+  env:
+    FIXTURE: https://github.com/harfbuzz/harfbuzz/raw/fc0daafab0336b847ac14682e581a8838f36a0bf/test/shaping/fonts/sha1sum/270b89df543a7e48e206a2d830c0e10e5265c630.ttf
+  receipt:
+    build/meson-logs/meson-log.txt
+
+provides:
+  - bin/hb-ot-shape-closure
+  - bin/hb-shape
+  - bin/hb-subset
+  - bin/hb-view

@@ -1,0 +1,72 @@
+distributable:
+  url: https://github.com/llvm/llvm-project/releases/download/llvmorg-{{ version }}/llvm-project-{{ version }}.src.tar.xz
+  strip-components: 1
+
+versions:
+  github: llvm/llvm-project
+  strip: /^LLVM /
+
+provides:
+  - bin/lld
+  - bin/clang
+  - bin/clang++
+
+dependencies:
+  zlib.net: 1
+  darwin:
+    apple.com/xcode/clt: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    cmake.org: 3
+    ninja-build.org: 1
+    python.org: 3
+  working-directory: build
+  script: |-
+    cmake \
+      ../llvm \
+      -G Ninja \
+      $ARGS
+    ninja
+    ninja install
+  receipt:
+    - LLVMConfig.cmake
+  env:
+    ARGS:
+      - -DCMAKE_INSTALL_PREFIX="{{ prefix }}"
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DLLVM_ENABLE_PROJECTS='lld;clang'
+      - -DLLVM_INCLUDE_DOCS=OFF
+      - -DLLVM_INCLUDE_TESTS=OFF
+    linux:
+      ARGS:
+      # the default is `ld` however clang when handling linking itself
+      # internally passes flags that, in fact, expect `lld`
+      #NOTE only wanted on linux because on macOS we actually *need* the Apple
+      # provided `ld` or things *also* break 😆
+      - -DCLANG_DEFAULT_LINKER=lld
+    darwin:
+      ARGS:
+      #FIXME shouldn’t *have to* require the command line tools package
+      #FIXME this is no good for systems with only Xcode installed
+      #NOTE how do Apple make their LLVM find both? we want the same trick
+      - -DDEFAULT_SYSROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
+    linux/x86-64:
+      ARGS:
+      # required to build something that works on linux/x86-64
+      - -DCLANG_DEFAULT_CXX_STDLIB=libstdc++
+      - -DCLANG_DEFAULT_RTLIB=libgcc
+      - -DCOMPILER_RT_INCLUDE_TESTS=OFF
+      - -DCOMPILER_RT_USE_LIBCXX=OFF"
+test:
+  fixture: |
+    #include <stdio.h>
+    int main() {
+      printf("Hello World!\n");
+      return 0;
+    }
+  script: |
+    mv $FIXTURE $FIXTURE.c
+    clang $FIXTURE.c
+    ./a.out

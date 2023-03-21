@@ -1,0 +1,66 @@
+distributable:
+  url: https://ftp.gnu.org/gnu/ncurses/ncurses-{{ version.raw }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: mirror/ncurses/tags
+  strip: /v/
+
+build:
+  dependencies:
+    freedesktop.org/pkg-config: ^0.29
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    mkdir -p $PCDIR
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+
+    # fix up symlinks
+    cd {{prefix}}/lib
+    for lib in form menu ncurses panel curses++; do
+      for ii in $(find . -name lib${lib}w\*); do
+        # hopefully no new w's will be introduced
+        ln -sf $ii $(echo $ii | tr -d w)
+      done
+    done
+
+    # things often expect either no namespace or namespace
+    cd ../include
+    mv ncursesw/* .
+    rmdir ncursesw
+    ln -sf . ncursesw
+
+  env:
+    PCDIR: ${{prefix}}/lib/pkgconfig
+    ARGS:
+      - --prefix={{ prefix }}
+      - --enable-pc-files
+      - --enable-sigwinch
+      - --enable-widec
+      - --with-shared
+      - --with-cxx-shared
+      - --with-gpm=no
+      - --without-ada
+      - --with-pkg-config-libdir=$PCDIR
+
+runtime:
+  env:
+    TERMINFO: /usr/share/terminfo:${{prefix}}/share/terminfo
+    # ^^ we delegate to the system first since they may apply platform specific info
+
+test:
+  script: true  #FIXME
+
+provides:
+  - bin/captoinfo
+  - bin/clear
+  - bin/infocmp
+  - bin/infotocap
+  - bin/ncursesw6-config
+  - bin/reset
+  - bin/tabs
+  - bin/tic
+  - bin/toe
+  - bin/tput
+  - bin/tset

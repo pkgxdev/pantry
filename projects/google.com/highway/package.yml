@@ -1,0 +1,38 @@
+distributable:
+  url: https://github.com/google/highway/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: google/highway/tags
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    cmake.org: '*'
+  script: |
+    cmake -S . -B builddir $ARGS
+    cmake --build builddir
+    cmake --install builddir
+
+    mkdir -p {{prefix}}/share/hwy/examples
+    cp -R hwy/examples {{prefix}}/share/hwy/
+  env:
+    ARGS:
+      - -DBUILD_SHARED_LIBS=ON
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DHWY_ENABLE_TESTS=OFF
+      - -DHWY_ENABLE_EXAMPLES=OFF
+      - -DCMAKE_BUILD_TYPE=Release
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    curl.se: '*'
+  script: |
+    mkdir -p hwy/examples
+    curl -LO --output-dir hwy/examples https://github.com/google/highway/raw/master/hwy/examples/benchmark.cc
+    c++ -std=c++11 -lhwy -I. hwy/examples/benchmark.cc
+    ./a.out
+  # ^^ the -I. is because bizarely benchmark.cc configures other headers to
+  # include itself but only on intel…

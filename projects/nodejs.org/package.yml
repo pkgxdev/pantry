@@ -1,0 +1,51 @@
+distributable:
+  url: https://nodejs.org/dist/v{{ version }}/node-v{{ version }}.tar.xz
+  strip-components: 1
+
+versions:
+  github: nodejs/node/tags
+
+companions:
+  npmjs.com: '*'
+
+dependencies:
+  unicode.org: '>=71'
+  openssl.org: 1.1
+  zlib.net: 1
+
+provides:
+  - bin/node
+
+interprets:
+  extensions: js
+  args: node
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    python.org: '>=3.7 <3.11'
+    freedesktop.org/pkg-config: ^0.29
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+    - --without-npm
+    - --prefix={{ prefix }}
+    # like, maybe we should include this?
+    - --without-corepack
+    - --with-intl=system-icu
+    - --shared-openssl
+    - --shared-zlib
+    linux/x86-64:
+      CFLAGS: -fPIC
+      CXXFLAGS: -fPIC
+      LDFLAGS: -pie
+
+test:
+  script: |
+    out=$(node $FIXTURE)
+    test "$out" = "Hello, world!"
+  fixture:
+    console.log("Hello, world!");

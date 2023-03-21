@@ -1,0 +1,63 @@
+distributable:
+  url: https://sourceware.org/pub/bzip2/bzip2-{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: libarchive/bzip2/tags
+  strip: /^bzip2-/
+
+provides:
+  - bin/bunzip2
+  - bin/bzcat
+  - bin/bzcmp
+  - bin/bzdiff
+  - bin/bzegrep
+  - bin/bzfgrep
+  - bin/bzgrep
+  - bin/bzip2
+  - bin/bzip2recover
+  - bin/bzless
+  - bin/bzmore
+
+build:
+  dependencies:
+    tea.xyz/gx/make: '*'
+    tea.xyz/gx/cc: c99
+  script: |
+    make \
+      --environment-overrides \
+      --jobs {{ hw.concurrency }} \
+      install
+
+    case {{ hw.platform }} in
+    linux)
+      make \
+        --file Makefile-libbz2_so \
+        --environment-overrides \
+        --jobs {{ hw.concurrency }}
+
+      mv libbz2.*.1.* {{ prefix }}/lib
+      cd {{ prefix }}/lib
+      test -e libbz2.so || ln -s libbz2.so.{{ version }} libbz2.so
+      test -e libbz2.so.{{ version.major }} || ln -s libbz2.so.{{ version }} libbz2.so.{{ version.major }}
+      ;;
+    darwin)
+      cd {{ prefix }}/lib
+      test -e libbz2.dylib
+      test -e libbz2.{{version}}.dylib
+      test -e libbz2.{{version.major}}.dylib
+      ;;
+    esac
+
+  env:
+    CFLAGS: -fPIC  # so deps link without relocation issues on linux/aarch64
+    PREFIX: ${{ prefix }}
+    darwin:
+      PKG_VERSION: ${{ version }}
+
+test:
+  script: |
+    OUT=$(echo "$INPUT" | bzip2 | bunzip2)
+    test "$OUT" = "$INPUT"
+  env:
+    INPUT: tea.xyz

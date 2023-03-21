@@ -1,0 +1,62 @@
+diff --git a/crypto/x509/x509_def.c b/crypto/x509/x509_def.c
+index bfa8d7d..da3c743 100644
+--- a/crypto/x509/x509_def.c
++++ b/crypto/x509/x509_def.c
+@@ -11,25 +11,53 @@
+ #include "internal/cryptlib.h"
+ #include <openssl/crypto.h>
+ #include <openssl/x509.h>
++#include <libgen.h>   /* dirname */
++
++#ifdef __linux__
++#define __USE_GNU
++#endif
++#include <dlfcn.h>    /* dladdr */
++
++const char *relocat0r(const char *suffix) {
++    static const char *prefix = NULL;
++    if (!prefix) {
++      // repeated calls to dladdr seem to return different values on Linux ¯\_(ツ)_/¯
++      Dl_info info;
++      if (!dladdr(relocat0r, &info)) { return NULL; }
++      prefix = dirname(info.dli_fname);
++    }
++    char *dir = malloc(strlen(prefix) + 4 + strlen(suffix) + 2);
++    if (!dir) { return NULL; }
++    sprintf(dir, "%s/../%s", prefix, suffix);
++    return dir;
++}
+
+ const char *X509_get_default_private_dir(void)
+ {
+-    return X509_PRIVATE_DIR;
++    static const char *dir = NULL;
++    if (!dir) dir = relocat0r("ssl/private");
++    return dir ?: X509_PRIVATE_DIR;
+ }
+
+ const char *X509_get_default_cert_area(void)
+ {
+-    return X509_CERT_AREA;
++    static const char *dir = NULL;
++    if (!dir) dir = relocat0r("ssl");
++    return dir ?: X509_CERT_AREA;
+ }
+
+ const char *X509_get_default_cert_dir(void)
+ {
+-    return X509_CERT_DIR;
++    static const char *dir = NULL;
++    if (!dir) dir = relocat0r("ssl/certs");
++    return dir ?: X509_CERT_DIR;
+ }
+
+ const char *X509_get_default_cert_file(void)
+ {
+-    return X509_CERT_FILE;
++    static const char *dir = NULL;
++    if (!dir) dir = relocat0r("ssl/cert.pem");
++    return dir ?: X509_CERT_FILE;
+ }
+
+ const char *X509_get_default_cert_dir_env(void)

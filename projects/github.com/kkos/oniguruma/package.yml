@@ -1,0 +1,21 @@
+distributable:
+  url: https://github.com/kkos/oniguruma/releases/download/v{{version}}/onig-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: kkos/oniguruma
+  strip: /[rR]elease /
+
+provides:
+  - bin/onig-config
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    ./configure --disable-dependency-tracking --prefix={{prefix}}
+    make install
+
+test:
+  script: test "$(onig-config --version)" = "{{version}}"
