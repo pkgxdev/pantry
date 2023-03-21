@@ -1,0 +1,43 @@
+distributable:
+  url: https://github.com/apple-oss-distributions/remote_cmds/archive/refs/tags/remote_cmds-{{ version.raw }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: apple-oss-distributions/remote_cmds/tags
+  strip: /^remote_cmds-/
+
+dependencies:
+  apple.com/libtelnet: ^13
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+
+  script: |
+    #xcode-select --switch /Applications/Xcode.app
+    xcodebuild SYMROOT=build -arch {{hw.arch}}
+    make -C telnet --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+#    SDKROOT: /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.sdk/
+    MACOSX_DEPLOYMENT_TARGET: 11.0
+
+provides:
+  #- bin/logger  
+  #- bin/talk
+  #- bin/talkd
+  - bin/telnet
+  #- bin/telnetd
+  #- bin/tftp
+  #- bin/tftpd
+  #- bin/wall
+
+# test:
+#   dependencies:
+#     foo.com: '*'  # asterisk means “any version, usually the latest”
+#   script:
+#     test "$(foo --version)" = {{version}}
+#   # ^^ we prefer that you test the functionality of the package works, but
+#   # we know tests are tedious, so will (for now) accept a simple version check
