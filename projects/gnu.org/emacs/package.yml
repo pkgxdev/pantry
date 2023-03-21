@@ -1,0 +1,52 @@
+distributable:
+  url: https://ftp.gnu.org/gnu/emacs/emacs-{{ version.marketing }}.tar.xz
+  strip-components: 1
+
+versions:
+  github: emacs-mirror/emacs/tags
+  strip: /^emacs-/
+
+dependencies:
+  gnome.org/libxml2: ^2.10.3
+  invisible-island.net/ncurses: ^6.3.0
+  libjpeg-turbo.org: ^2.1.5.1
+
+build:
+  dependencies:
+    gnu.org/autoconf: ^2.17.0
+    gnu.org/sed: ^4.9.0
+    gnu.org/texinfo: ^7.0.1
+    gnutls.org: ^3.6
+    freedesktop.org/pkg-config: ^0.29.2
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    ./configure $ARGS
+    make
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --disable-silent-rules
+      - --with-gnutls
+      - --without-x
+      - --with-xml2
+      - --without-dbus
+      - --with-modules
+      - --without-ns
+      - --without-imagemagick
+      - --without-selinux
+provides:
+  - bin/emacs
+
+test:
+  script: |
+    valid_version=0
+    if echo $(emacs --version) | grep "GNU Emacs {{version.marketing}}"
+    then
+      valid_version=1
+    fi
+    test $valid_version = 1
+
+    sum_test=$(emacs --batch --eval="(print (+ 2 2))")
+    test sum_test = "4"
