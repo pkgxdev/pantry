@@ -1,5 +1,5 @@
 distributable:
-  url: https://ftp.gnu.org/gnu/emacs/emacs-{{ version.marketing }}.tar.xz
+  url: https://ftp.gnu.org/gnu/emacs/emacs-{{ version.raw }}.tar.xz
   strip-components: 1
 
 versions:
@@ -13,18 +13,16 @@ dependencies:
   gnu.org/sed: ^4.9.0
   gnu.org/texinfo: ^7.0.1
   gnu.org/libidn2: ^2.3
+  gnutls.org: ^3.6
+  zlib.net: ^1.2
 
 build:
   dependencies:
-    gnu.org/autoconf: ^2.17.0
-    gnutls.org: ^3.6
     freedesktop.org/pkg-config: ^0.29.2
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
-    zlib.net: ^1.2
   script: |
     ./configure $ARGS
-    make
     make --jobs {{ hw.concurrency }} install
   env:
     ARGS:
@@ -41,14 +39,8 @@ build:
 provides:
   - bin/emacs
 
-test:
-  script: |
-    valid_version=0
-    if echo $(emacs --version) | grep "GNU Emacs {{version.marketing}}"
-    then
-      valid_version=1
-    fi
-    test $valid_version = 1
+test: |
+  emacs --version | grep "GNU Emacs {{version.marketing}}"
 
-    sum_test=$(emacs --batch --eval="(print (+ 2 2))")
-    test sum_test = "4"
+  four=$(emacs --batch --eval="(print (+ 2 2))")
+  test $four = 4
