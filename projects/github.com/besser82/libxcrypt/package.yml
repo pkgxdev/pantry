@@ -1,0 +1,30 @@
+distributable:
+  url: https://github.com/besser82/libxcrypt/releases/download/v{{version}}/libxcrypt-{{version}}.tar.xz
+  strip-components: 1
+
+versions:
+  github: besser82/libxcrypt/releases/tags
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    freedesktop.org/pkg-config: ~0.29
+    perl.org: '*'
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --disable-valgrind
+      - --disable-failure-tokens
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script: |
+    cc fixture.c -lcrypt -L{{prefix}}/lib
+    ./a.out
+  # ^^ we nee to add the -L because system lib paths come first on Linux
+  # and most linuxes have a (arcaic) libcrypt.so in /lib
