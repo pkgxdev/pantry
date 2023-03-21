@@ -15,17 +15,9 @@ build:
     gnu.org/autoconf: '*'
   script: |
     ./autogen.sh
-
-    # configure won't find libncursesw for libncurses.
-    sed -i.bak -e 's/-lncurses/-lncursesw/' configure
-    rm configure.bak
-
     ./configure --prefix={{prefix}}
     make
     make install
-  env:
-    # needed to `include <curses.h>;`
-    CPATH: $CPATH:{{deps.invisible-island.net/ncurses.prefix}}/include/ncursesw
 
 test:
   true
