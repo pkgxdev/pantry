@@ -1,7 +1,3 @@
-# NOTE
-# on darwin we use Apple’s provided TLS certs at /etc/certs
-# on linux we grab the curl certs (usually these are package as ca-certificates)
-
 distributable:
   url: https://www.openssl.org/source/openssl-{{version.raw}}.tar.gz
   sha: ${{url}}.sha256
@@ -9,9 +5,8 @@ distributable:
   strip-components: 1
 
 versions:
-  - 1.1.1s
-  # github: openssl/openssl
-  # transform: /^OpenSSL_(\d+)_(\d+)_(\d+\w)$/$1.$2.$3/
+  github: openssl/openssl
+  strip: /^OpenSSL /
 
 provides:
   - bin/openssl
@@ -53,8 +48,15 @@ test:
   script: |
     echo "This is a test file" > in
     openssl dgst -sha256 -out out ./in
-    test "$(cat ./out)" = "$SAMPLE"
+    if test {{version.major}} = 3; then
+      test "$(cat ./out)" = "SHA2-256(./in)= $SAMPLE"
+    else
+      test "$(cat ./out)" = "SHA256(./in)= $SAMPLE"
+    fi
 
-    wget tea.xyz  # test the certs work
+    if test {{version.major}} = 1; then
+      wget tea.xyz  # test the certs work
+    fi
+    # ^^ can't test openssl 3 yet since like, what uses it even?!
   env:
-    SAMPLE: SHA256(./in)= c87e2ca771bab6024c269b933389d2a92d4941c848c52f155b9b84e1f109fe35
+    SAMPLE: c87e2ca771bab6024c269b933389d2a92d4941c848c52f155b9b84e1f109fe35
