@@ -1,0 +1,27 @@
+distributable:
+  url: https://github.com/strace/strace/releases/download/v{{version.raw}}/strace-{{version.raw}}.tar.xz
+  strip-components: 1
+
+versions:
+  github: strace/strace/releases/tags
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    ./configure $ARGS
+    make --jobs {{hw.concurrency}} install
+  env:
+    ARGS:
+      - --disable-dependency-tracking
+      - --disable-silent-rules
+      - --enable-mpers=no # FIX: configure: error: Cannot enable m32 personality support
+      - --prefix="{{prefix}}"
+      - --disable-gcc-Werror
+
+provides:
+  - bin/strace
+
+test:
+  strace true 2>&1
