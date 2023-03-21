@@ -4,7 +4,6 @@ distributable:
 
 versions:
   github: util-linux/util-linux/tags
-  strip: /^v/
 
 provides:
   - bin/cal
@@ -76,16 +75,14 @@ build:
   dependencies:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
-    gnu.org/autoconf: '*'
-    gnu.org/automake: '*'
     gnu.org/gettext: '*'
-    gnu.org/libtool: '*'
     gnu.org/bison: '*'
-    gnu.org/m4: '*'
     freedesktop.org/pkg-config: '*'
     gnu.org/patch: '*'
   script: |
-    patch -p0 <props/macports.patch  # thanks to MacPorts
+    if test darwin = {{hw.platform}}; then
+      patch -p0 <props/macports.patch  # thanks to MacPorts
+    fi
     ./configure $ARGS
     make --jobs {{hw.concurrency}} install
   env:
@@ -96,7 +93,5 @@ build:
 test:
   dependencies:
     stedolan.github.io/jq: '*'
-  script: |
-    if test "{{hw.platform}}" = "linux"; then
-      test "$(echo 5 6 7 | column -tJN first,second,third | jq .table[0].second)" = '"6"'
-    fi
+  script:
+    test "$(echo 5 6 7 | column -tJN first,second,third | jq .table[0].second)" = '"6"'
