@@ -23,9 +23,10 @@ build:
     tea.xyz/gx/make: '*'
   script: |
     mkdir -p {{prefix}}/share/emacs/site-lisp
+    mkdir -p {{prefix}}/share/emacs/{{version.raw}}
     ./configure $ARGS
     make --jobs {{ hw.concurrency }} install
-    cp -R lisp {{prefix}}
+    cp -R lisp {{prefix}}/share/emacs/{{version.raw}}
   env:
     ARGS:
       - --prefix="{{prefix}}"
