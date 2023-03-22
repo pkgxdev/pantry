@@ -1,0 +1,30 @@
+distributable:
+  url: https://github.com/realm/SwiftLint/archive/refs/tags/{{version}}.tar.gz
+
+versions:
+  github: realm/SwiftLint/releases/tags
+
+warnings:
+  - vendored
+
+build:
+  dependencies:
+    curl.se: "*"
+    info-zip.org/unzip: "*"
+  script: |
+    curl -Lfo swiftlint-artifact.zip "https://github.com/realm/SwiftLint/releases/download/{{version}}/$PLATFORM_ARTIFACT"
+    unzip swiftlint-artifact.zip
+    mkdir -p "{{ prefix }}/bin"
+    mv swiftlint "{{ prefix }}/bin"
+  env:
+    darwin: { PLATFORM_ARTIFACT: portable_swiftlint.zip }
+    linux: { PLATFORM_ARTIFACT: swiftlint_linux.zip }
+test:
+  script: |
+    test "$(swiftlint --version)" = {{version}}
+    echo -n 'import Foundation' >> Test.swift
+    out="$(SWIFTLINT_SWIFT_VERSION=3 SWIFTLINT_DISABLE_SOURCEKIT=1 swiftlint lint --no-cache)"
+    test "$out" = "$(pwd)/Test.swift:1:1: warning: Trailing Newline Violation: Files should have a single trailing newline. (trailing_newline)"
+
+provides:
+  - bin/swiftlint
