@@ -33,6 +33,8 @@ dependencies:
   sqlite.org: 3
   gnu.org/readline: 8
   invisible-island.net/ncurses: 6
+  linux:
+    oracle.com/berkeley-db: 18
 
 build:
   dependencies:
@@ -111,6 +113,8 @@ build:
       confdir:
         $libdir/config-{{version.marketing}}-darwin
     linux:
+      ARGS:
+        - --with-dbmliborder=bdb
       ARCH: ${{hw.arch}}
       confdir:
         $libdir/config-{{version.marketing}}-${ARCH/-/_}-linux-gnu
@@ -143,7 +147,7 @@ test:
     # Verify that the selected DBM interface works
     python $FIXTURE
 
-    if which pip; then
+    if which -a pip | grep '{{ prefix }}'; then
       exit 1
     fi
 
