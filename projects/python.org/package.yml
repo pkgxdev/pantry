@@ -16,8 +16,6 @@ unpackaged:
 
 provides:
   - bin/python
-  - bin/python{{version.major}}
-  - bin/python{{version.marketing}}
 
 interprets:
   extensions: py
@@ -43,7 +41,6 @@ build:
     freedesktop.org/pkg-config: ^0.29
     crates.io/semverator: '*'
 
-  #TODO use the diff
   #TODO $libdir/_sysconfigdata__darwin_darwin.py contains non-relocatable paths
   script: |
     sed -i.bak -e 's|system_lib_dirs = .*|system_lib_dirs = os.getenv("LIBRARY_PATH").split(":")|' ./setup.py
@@ -90,6 +87,12 @@ build:
     # chmod -w {{prefix}}/lib/python{{version.marketing}}
     # ^^ makes rm -rf ~/.tea/python.org on macOS fail
 
+    # some stuff expects python includes to be accessible without the prefix
+    cd include
+    mv python{{version.marketing}}/* .
+    rmdir python{{version.marketing}}
+    ln -s . python{{version.marketing}}
+
   env:
     ARGS:
       - --prefix="{{ prefix }}"
@@ -120,25 +123,9 @@ build:
     OPENSSL_INCLUDES: ${{ deps.openssl.org.prefix }}/include
     OPENSSL_LDFLAGS: -L{{ deps.openssl.org.prefix }}/lib
 
-  # required for `setup.py` which is used to detect the libs for python’s modules
-  diff: |
-    diff --git a/setup.py b/setup.py
-    index 85a2b26..4f2f742 100644
-    --- a/setup.py
-    +++ b/setup.py
-    @@ -847,8 +847,8 @@ class PyBuildExt(build_ext):
-                add_dir_to_list(self.compiler.include_dirs,
-                                sysconfig.get_config_var("INCLUDEDIR"))
-
-    -        system_lib_dirs = ['/lib64', '/usr/lib64', '/lib', '/usr/lib']
-    -        system_include_dirs = ['/usr/include']
-    +        system_lib_dirs = os.getenv("LIBRARY_PATH").split(":")
-    +        system_include_dirs = os.getenv("CPATH").split(":")
-            # lib_dirs and inc_dirs are used to search for files;
-            # if a file is found in one of those directories, it can
-            # be assumed that no additional -I,-L directives are needed.
-
 test:
+  dependencies:
+    tea.xyz/gx/cc: c99
   script: |
     # Check if sqlite is ok, because we build with --enable-loadable-sqlite-extensions
     # and it can occur that building sqlite silently fails if OSX's sqlite is used.
@@ -159,6 +146,10 @@ test:
     if which pip; then
       exit 1
     fi
+
+    echo '#include <Python.h>' > fixture.c
+    echo '#include <python{{version.major}}.{{version.minor}}/Python.h>' >> fixture.c
+    cc -c fixture.c
   fixture: |
     import dbm
     with dbm.ndbm.open("test", "c") as db:
