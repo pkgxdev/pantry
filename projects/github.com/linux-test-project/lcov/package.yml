@@ -1,0 +1,46 @@
+distributable:
+  url: https://github.com/linux-test-project/lcov/releases/download/v{{ version.major }}.{{ version.minor }}/lcov-{{ version.major }}.{{ version.minor }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: linux-test-project/lcov/releases/tags  
+  strip: /^v/
+
+provides:
+  - bin/lcov
+  - bin/geninfo
+  - bin/genhtml
+  - bin/gendesc
+  - bin/genpng
+
+dependencies:
+  perl.org: ">=5"
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    make --jobs {{ hw.concurrency }} $ARGS install
+  env:
+    ARGS:
+      - PREFIX="{{prefix}}"
+      - BIN_DR="{{prefix}}/bin"
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: '*'
+  script: |
+    mv $FIXTURE hello_world.c
+    gcc -g -O2 --coverage -o hello_world hello_world.c
+    ./hello_world
+    lcov --gcov-tool gcov --directory . --capture --output-file all_coverage.info
+    test -f all_coverage.info
+    grep hello_world.c all_coverage.info
+  fixture: |
+    #include <stdio.h>
+    int main(void)
+    {
+      puts("hello world");
+      return 0;
+    }
