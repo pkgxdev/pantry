@@ -1,0 +1,45 @@
+distributable:
+  url: https://github.com/ggerganov/llama.cpp/archive/refs/tags/master-f7dc43b.tar.gz
+  strip-components: 1
+
+# if there’s a github then we can parse the versions
+versions:
+  - 0.0.0
+  # TODO
+  # github: ggerganov/llama.cpp/releases
+  # become: calver
+
+dependencies:
+  google.com/sentencepiece: ^0.1.95
+  python.org: ^3.11
+  facebook.com/LLaMA: '*'
+
+provides:
+  - bin/llama.cpp
+  - bin/llama.cpp-chat
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    freedesktop.org/pkg-config: ~0.29
+    cmake.org: ^3
+  script: |
+    make
+    mkdir -p {{prefix}}/bin
+    mv main {{prefix}}/bin/llama.cpp.exe
+
+    cd props  # building the venv in SRCROOT fails
+    SRCROOT=$PWD
+    python-venv.sh {{prefix}}/bin/llama.cpp
+
+    mv $SRCROOT/stub {{prefix}}/venv/bin/llama.cpp
+  env:
+    CPATH: ${{deps.python.org.prefix}}/include/python{{deps.python.org.version.marketing}}:$CPATH
+
+test:
+  dependencies:
+    shellcheck.net: '*'
+  script: |
+    shellcheck {{prefix}}/libexec/aria2c-tracker-updater.bash
+    # llama.cpp

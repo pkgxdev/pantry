@@ -1,0 +1,26 @@
+distributable:
+  url: https://github.com/ggerganov/llama.cpp/files/11010068/LLaMA-q4.torrent.zip
+
+versions:
+  - 2023.03.19
+
+build:
+  working-directory: ${{prefix}}
+  script: |
+    mkdir bin share
+    cp $SRCROOT/props/fetch bin
+    cp $SRCROOT/*.torrent share
+
+runtime:
+  env:
+    LLAMA_DIR: ${{home}}/.local/share/LLaMA/{{version}}
+
+test: |
+  found=0
+  for x in {{prefix}}/share/*.torrent; do
+    test -f $x
+    found = 1
+  done
+  test $found = 1
+
+  test "$LLAMA_DIR" = "$HOME/.local/share/LLaMA/{{version}}"

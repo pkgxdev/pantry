@@ -1,0 +1,12 @@
+#!/bin/sh
+
+cd "$(dirname "$0")"/../..
+
+fetch
+
+tea aria2 \
+  --dir=models \
+  --conf-file=etc/aria2.conf \
+  share/LLaMA-q4.torrent
+
+./bin/llama.cpp.exe --models-path $LLAMA_DIR "$@"
