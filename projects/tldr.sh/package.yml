@@ -13,15 +13,8 @@ build:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
     curl.se: '*'
-  script: make $ARGS --jobs {{ hw.concurrency }} install
-  env:
-    ARGS:
-      - PREFIX="{{prefix}}"
-    linux:
-      ARGS:
-        - CFLAGS="-ggdb -O0 -ftrapv $CFLAGS"
-        - CPPFLAGS="$CPPFLAGS"
-        - LDFLAGS="$LDFLAGS"
+  script: |
+    make PREFIX="{{prefix}}" CFLAGS="-ggdb -O0 -ftrapv $CFLAGS" CPPFLAGS="$CPPFLAGS" LDFLAGS="$LDFLAGS" --jobs {{ hw.concurrency }} install
 
 provides:
   - bin/tldr
