@@ -1,0 +1,38 @@
+distributable:
+  url: https://github.com/typst/typst/archive/refs/tags/22-03-21-2.tar.gz
+  # url: https://github.com/typst/typst/archive/refs/tags/{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  - 0.0.0
+  # FIXME: once they have releases
+  # github: typst/typst
+
+build:
+  dependencies:
+    rust-lang.org: ^1.61
+    rust-lang.org/cargo: ^0.65
+  script: |
+    # Currently, typst tries to use git-hash for the version
+    # which is not available in the tarball. It just sets the
+    # env var TYPST_HASH
+    rm cli/build.rs
+
+    cargo install --path cli --locked --root {{prefix}}
+  env:
+    # see above
+    TYPST_HASH: ${{ version }}-tea
+
+provides:
+  - bin/typst
+
+test:
+  fixture: |
+    Total displaced soil by glacial flow:
+
+    $ 7.32 beta +
+      sum_(i=0)^nabla Q_i / 2 $
+  script: |
+    cp $FIXTURE test.typ
+    typst test.typ
+    test -s test.pdf

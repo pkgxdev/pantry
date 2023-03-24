@@ -1,0 +1,26 @@
+distributable:
+  url: https://github.com/ap/rename/archive/refs/tags/v{{version.raw}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: ap/rename/tags
+
+dependencies:
+  perl.org: '>=5'
+
+build:
+  script: |
+    pod2man rename rename.1
+    mkdir -p "{{ prefix }}"/bin
+    mv rename "{{ prefix }}"/bin
+    mkdir -p "{{ prefix }}"/share/man/man1
+    mv rename.1 "{{ prefix }}"/share/man/man1
+
+provides:
+  - bin/rename
+
+test:
+  script: |
+    touch foo.txt
+    rename -s .txt .md foo.txt
+    ls foo.md

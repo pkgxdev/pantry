@@ -1,0 +1,49 @@
+versions:
+  - 4.1.2
+  - 4.2
+  - 4.3
+  - 4.4
+  - 4.5
+  - 5.0
+  - 5.1
+
+build:
+  dependencies:
+    curl.se: '*'
+    info-zip.org/unzip: '*'
+  script: |
+    if [ -e "docbook" ]; then
+        rm -r docbook
+    fi
+    mkdir -p docbook/xml
+    VERSIONS=(4.1.2 4.2 4.3 4.4 4.5 5.0 5.1) #{{ versions }}
+    for VERSION in "${VERSIONS[@]}"; do
+        case $VERSION in
+        4.1.2)
+          URL=https://docbook.org/xml/${VERSION}/docbkx412.zip
+          ;;
+        4.*)
+          URL=https://docbook.org/xml/${VERSION}/docbook-xml-${VERSION}.zip
+          ;;
+        5.0)
+          URL=https://docbook.org/xml/${VERSION}/docbook-${VERSION}.zip
+          ;;
+        *)
+          URL=https://docbook.org/xml/${VERSION}/docbook-v${VERSION}-os.zip
+          ;;
+        esac
+        curl -o docbook-$VERSION.zip $URL
+        unzip -d docbook/xml/${VERSION} docbook-${VERSION}.zip
+        rm docbook-${VERSION}.zip
+    done
+    mv docbook/xml/5.0/docbook-5.0/* docbook/xml/5.0
+    rmdir docbook/xml/5.0/docbook-5.0
+    if [ "{{prefix}}" != "" -a -e "{{prefix}}" ]; then
+        rm -r {{prefix}}
+    fi
+    mkdir -p {{prefix}}
+    mv docbook {{prefix}}
+
+test:
+  script:
+    test -d {{prefix}}/docbook/xml

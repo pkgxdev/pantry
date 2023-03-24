@@ -5,10 +5,16 @@ distributable:
 versions:
   github: GNOME/libxml2/tags
 
+runtime:
+  env:
+    PYTHONPATH: ${{prefix}}/lib/python3.11/site-packages
+
 build:
   dependencies:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
+    python.org: ^3
+    freedesktop.org/pkg-config: ~0.29
   script: |
     ./configure $ARGS
     make --jobs {{ hw.concurrency }}
@@ -19,22 +25,24 @@ build:
     rm *.bak
 
     # a lot of stuff is surprised at the libxml2 prefix
-    cd {{prefix}}/include
+    cd ../include
     mv libxml2/libxml .
     rmdir libxml2
     ln -s . libxml2
   env:
     ARGS:
       - --prefix={{prefix}}
-      - --without-python  # mysterious build failure in GHA macOS-11
       - --without-lzma
 
 test:
   dependencies:
     tea.xyz/gx/cc: c99
+    python.org: ^3
   script: |
     cc `xml2-config --cflags --libs` test.c
     ./a.out
+
+    python -c "import libxml2"
 
 provides:
   - bin/xml2-config
