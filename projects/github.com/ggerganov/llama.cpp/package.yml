@@ -9,7 +9,6 @@ dependencies:
   python.org: ^3.11
 
 provides:
-  - bin/llama
   - bin/llama.cpp
 
 build:
@@ -22,17 +21,17 @@ build:
     mkdir -p {{prefix}}/bin {{prefix}}/tbin {{prefix}}/share
 
     make
-    mv main {{prefix}}/bin/llama.cpp
+    mv main {{prefix}}/tbin/llama.cpp
 
-    mv props/llama {{prefix}}/bin
+    mv props/llama.cpp {{prefix}}/bin
 
     mv props/llama-fetch {{prefix}}/tbin
     mv $SRCROOT/prompts {{prefix}}/share
 
     wget \
       'https://gist.githubusercontent.com/eiz/828bddec6162a023114ce19146cb2b82/raw/6b1d2b192815e6d61386a9a8853f2c3293b3f568/gistfile1.txt' \
-       -O {{prefix}}/bin/upgrade-model.py
-    chmod +x {{prefix}}/bin/upgrade-model.py
+       -O {{prefix}}/tbin/upgrade-model.py
+    chmod +x {{prefix}}/tbin/upgrade-model.py
 
 test:
   llama.cpp --help

@@ -3,16 +3,9 @@
 set -e
 test -n "$VERBOSE" && set -x
 
-if test -f VERSION; then
-  if test $(cat VERSION) = $2; then
-    exit
-  else
-    UPDATE=1
-  fi
+if test -f "$1"/VERSION && test $(cat "$1"/VERSION) = $2; then
+  exit
 fi
-
-mkdir -p "$1"
-cd "$1"
 
 if command -v git >/dev/null; then
   GIT="tea git"
@@ -20,44 +13,42 @@ else
   GIT=git
 fi
 
-# the .aria2 file’s presence indicates an unfinished download
-if [ ! -f tokenizer.model ] || [ -f ../LLaMA.aria2 ] || [ "$UPDATE" = 1 ]; then
-  tea gum format "# preparing for model fetch"
-  echo  # spacer
+mkdir -p "$1"
+cd "$1"
 
-  if test -d trackers; then
-    $GIT -C trackers fetch origin
-    $GIT -C trackers reset --hard origin/master
-  else
-    $GIT clone "https://github.com/ngosang/trackerslist" trackers
-  fi
+tea gum format "# preparing for model fetch"
+echo  # spacer
 
-  TRACKERS=$(grep -v '^#' "trackers/trackers_all.txt" | tr '\n' ',')
 
-  tea gum format <<EoMD
-  # downloading 4b quantized LLaMA (7B) model
-  models will be placed: \`$PWD\`
-  > this may take a a few minutes…
+if test -d trackers; then
+  $GIT -C trackers fetch origin
+  $GIT -C trackers reset --hard origin/master
+else
+  $GIT clone "https://github.com/ngosang/trackerslist" trackers
+fi
+
+TRACKERS=$(grep -v '^#' "trackers/trackers_all.txt" | tr '\n' ',')
+
+tea gum format <<EoMD
+# downloading 4b quantized LLaMA (7B) model
+models will be placed: \`$PWD\`
+> this may take a a few minutes…
 EoMD
 
-  # --dir is .. coz the torrent is prefixed with a LLaMA directory
+# --dir is .. coz the torrent is prefixed with a LLaMA directory
+tea aria2c \
+  --dir=.. \
+  --seed-time=0 \
+  --bt-tracker="$TRACKERS" \
+  --summary-interval=0 \
+  --validate \
+  'magnet:?xt=urn:btih:FLWZABA5EDZXVC45YHEMX6W55O6S4HXK'
 
-  tea aria2c \
-    --dir=.. \
-    --seed-time=0 \
-    --bt-tracker="$TRACKERS" \
-    --summary-interval=0 \
-    'magnet:?xt=urn:btih:FLWZABA5EDZXVC45YHEMX6W55O6S4HXK'
-fi
+tea gum format "# finalizing model"
 
-# conversion is required for the model we have to work with the llama.cpp version we are using
-if [ -d LLaMA ]; then
-  tea gum format "# finalizing model"
+tea +google.com/sentencepiece upgrade-model.py 7B tokenizer.model
 
-  tea +google.com/sentencepiece upgrade-model.py 7B tokenizer.model
+rm 7B/ggml-model-q4_0.bin
+mv 7B/ggml-model-q4_0.bin.tmp LLaMA/7B/ggml-model-q4_0.bin
 
-  rm 7B/ggml-model-q4_0.bin
-  mv 7B/ggml-model-q4_0.bin.tmp LLaMA/7B/ggml-model-q4_0.bin
-
-  echo $2 > VERSION
-fi
+echo $2 > VERSION

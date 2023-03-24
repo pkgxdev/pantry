@@ -1,19 +1,18 @@
 #!/bin/sh
 
 set -e
+test -n "$VERBOSE" && set -x
 
-if test -n "$VERBOSE"; then
-  set -x
-fi
-
-cd "$(dirname "$0")"/..
-VERSION="$(basename $PWD)"
+D="$(cd "$(dirname "$0")"/.. && pwd)"
+VERSION="$(basename "$D")"
 MODEL_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/LLaMA"
 
-tbin/llama-fetch "$MODEL_DIR" "$VERSION"
+export PATH="$D/tbin:$PATH"
+
+llama-fetch "$MODEL_DIR" "$VERSION"
 
 if test $1 = chat; then
-  exec bin/llama.cpp \
+  exec "$D"/bin/llama.cpp \
     --model "$MODEL_DIR"/7B/ggml-model-q4_0.bin \
     -n 256 \
     --repeat_penalty 1.0 \
@@ -23,7 +22,7 @@ if test $1 = chat; then
     "User:" \
     -f share/prompts/chat-with-bob.txt
 else
-  exec bin/llama.cpp \
+  exec "$D"/bin/llama.cpp \
     --color \
     --model "$MODEL_DIR"/7B/ggml-model-q4_0.bin \
     "$@"
