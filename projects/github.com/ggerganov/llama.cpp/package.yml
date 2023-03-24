@@ -1,45 +1,39 @@
 distributable:
-  url: https://github.com/ggerganov/llama.cpp/archive/refs/tags/master-f7dc43b.tar.gz
+  url: https://github.com/ggerganov/llama.cpp/archive/refs/tags/master-3cd8dde.tar.gz
   strip-components: 1
 
-# if there’s a github then we can parse the versions
 versions:
-  - 0.0.0
-  # TODO
-  # github: ggerganov/llama.cpp/releases
-  # become: calver
+  - 2023.03.23
 
 dependencies:
-  google.com/sentencepiece: ^0.1.95
   python.org: ^3.11
-  facebook.com/LLaMA: '*'
 
 provides:
+  - bin/llama
   - bin/llama.cpp
-  - bin/llama.cpp-chat
 
 build:
   dependencies:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
     freedesktop.org/pkg-config: ~0.29
-    cmake.org: ^3
+    gnu.org/wget: '*'
   script: |
+    mkdir -p {{prefix}}/bin {{prefix}}/tbin {{prefix}}/share
+
     make
-    mkdir -p {{prefix}}/bin
-    mv main {{prefix}}/bin/llama.cpp.exe
+    mv main {{prefix}}/bin/llama.cpp
 
-    cd props  # building the venv in SRCROOT fails
-    SRCROOT=$PWD
-    python-venv.sh {{prefix}}/bin/llama.cpp
+    mv props/llama {{prefix}}/bin
 
-    mv $SRCROOT/stub {{prefix}}/venv/bin/llama.cpp
-  env:
-    CPATH: ${{deps.python.org.prefix}}/include/python{{deps.python.org.version.marketing}}:$CPATH
+    mv props/llama-fetch {{prefix}}/tbin
+    mv $SRCROOT/prompts {{prefix}}/share
+
+    wget \
+      'https://gist.githubusercontent.com/eiz/828bddec6162a023114ce19146cb2b82/raw/6b1d2b192815e6d61386a9a8853f2c3293b3f568/gistfile1.txt' \
+       -O {{prefix}}/bin/upgrade-model.py
+    chmod +x {{prefix}}/bin/upgrade-model.py
 
 test:
-  dependencies:
-    shellcheck.net: '*'
-  script: |
-    shellcheck {{prefix}}/libexec/aria2c-tracker-updater.bash
-    # llama.cpp
+  llama.cpp --help
+  # testing more than this requires downloading the models 😬

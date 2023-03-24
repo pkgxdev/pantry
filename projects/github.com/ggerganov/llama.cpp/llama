@@ -1,0 +1,30 @@
+#!/bin/sh
+
+set -e
+
+if test -n "$VERBOSE"; then
+  set -x
+fi
+
+cd "$(dirname "$0")"/..
+VERSION="$(basename $PWD)"
+MODEL_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/LLaMA"
+
+tbin/llama-fetch "$MODEL_DIR" "$VERSION"
+
+if test $1 = chat; then
+  exec bin/llama.cpp \
+    --model "$MODEL_DIR"/7B/ggml-model-q4_0.bin \
+    -n 256 \
+    --repeat_penalty 1.0 \
+    --color \
+    -i \
+    -r \
+    "User:" \
+    -f share/prompts/chat-with-bob.txt
+else
+  exec bin/llama.cpp \
+    --color \
+    --model "$MODEL_DIR"/7B/ggml-model-q4_0.bin \
+    "$@"
+fi
