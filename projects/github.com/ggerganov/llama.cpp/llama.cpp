@@ -12,7 +12,7 @@ export PATH="$D/tbin:$PATH"
 llama-fetch "$MODEL_DIR" "$VERSION"
 
 if test $1 = chat; then
-  exec "$D"/bin/llama.cpp \
+  exec "$D"/tbin/llama.cpp \
     --model "$MODEL_DIR"/7B/ggml-model-q4_0.bin \
     -n 256 \
     --repeat_penalty 1.0 \
@@ -20,9 +20,9 @@ if test $1 = chat; then
     -i \
     -r \
     "User:" \
-    -f share/prompts/chat-with-bob.txt
+    -f "$D"/share/prompts/chat-with-bob.txt
 else
-  exec "$D"/bin/llama.cpp \
+  exec "$D"/tbin/llama.cpp \
     --color \
     --model "$MODEL_DIR"/7B/ggml-model-q4_0.bin \
     "$@"
