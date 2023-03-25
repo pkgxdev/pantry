@@ -1,0 +1,46 @@
+distributable:
+  url: https://ftp.gnu.org/gnu/inetutils/inetutils-{{version.marketing}}.tar.xz
+  strip-components: 1
+
+versions:
+  #TODO HTML listing: https://ftp.gnu.org/gnu/inetutils
+  - 2.4
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/libidn2: '*'
+  script: |
+    ./configure $ARGS
+    make SUIDMODE= install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --disable-silent-rules
+      - --with-idn
+      - --program-prefix=g
+
+provides:
+  - bin/gdnsdomainname
+  - bin/gftp
+  - bin/ghostname
+  - bin/gifconfig
+  - bin/glogger
+  - bin/gping
+  - bin/gping6
+  - bin/grcp
+  - bin/grexec
+  - bin/grlogin
+  - bin/grsh
+  - bin/gtalk
+  - bin/gtelnet
+  - bin/gtftp
+  - bin/gtraceroute
+  - bin/gwhois
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script: |
+    test "$(gtelnet --version | head -n1)" = "telnet (GNU inetutils) {{version.marketing}}"
