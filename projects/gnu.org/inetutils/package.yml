@@ -16,9 +16,9 @@ build:
   script: |
     ./configure $ARGS
     make SUIDMODE= install
-    cd "{{prefix}}"/libexec
     mkdir "{{prefix}}"/sbin
-    for x in *; do ln -s ../$x ../sbin; done
+    cd "{{prefix}}"/libexec
+    for x in *; do ln -s ../libexec/$x ../sbin; done
   env:
     ARGS:
       - --prefix="{{prefix}}"
@@ -57,4 +57,5 @@ test:
   dependencies:
     tea.xyz/gx/cc: c99
   script: |
+    ls -al
     test "$(telnet --version | head -n1)" = "telnet (GNU inetutils) {{version.marketing}}"
