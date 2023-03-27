@@ -71,6 +71,15 @@ build:
     export PATH="$HOME/.cabal/bin:$PATH"
     GHC="$HOME/.ghcup/bin/ghc"
 
+    # We need PIC on linux-x86_64 (it's already on the other
+    # platforms). This does that.
+    # https://www.hobson.space/posts/haskell-foreign-library/
+
+    sed -i.bak \
+      's/\((OSLinux,   ArchAArch64) -> \[Opt_PIC, Opt_ExternalDynamicRefs\]\)/\1\n    (OSLinux,   ArchX86_64)  -> \[Opt_PIC, Opt_ExternalDynamicRefs\]/' \
+      compiler/GHC/Driver/Session.hs
+    rm compiler/GHC/Driver/Session.hs.bak
+
     ./configure $ARGS
     hadrian/build -j --docs=none --prefix="{{prefix}}" install
 
