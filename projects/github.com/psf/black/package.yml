@@ -1,0 +1,23 @@
+distributable:
+  url: https://github.com/psf/black/archive/refs/tags/{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: psf/black/releases/tags
+  strip: /^v/
+
+dependencies:
+  python.org: '>=3.7'
+
+build:
+  script: |
+    python-venv.sh {{prefix}}/bin/black
+    ln -s black {{prefix}}/bin/blackd
+
+provides:
+  - bin/black
+  - bin/blackd
+
+test:
+  script: |
+    black --version | grep "^black, {{version}}"
