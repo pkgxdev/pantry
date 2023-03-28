@@ -11,7 +11,9 @@ export PATH="$D/tbin:$PATH"
 
 alpaca.cpp-fetch-model "$MODEL_DIR" "$VERSION"
 
-exec "$D"/tbin/alpaca.cpp \
-  --color \
-  --model "$MODEL_DIR"/ggml-alpaca-7b-q4.bin \
-  "$@"
+if test "$1" != '--fetch'; then
+  exec "$D"/tbin/alpaca.cpp \
+    --color \
+    --model "$MODEL_DIR"/ggml-alpaca-7b-q4.bin \
+    "$@"
+fi
