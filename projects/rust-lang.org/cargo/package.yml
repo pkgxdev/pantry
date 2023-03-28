@@ -8,10 +8,17 @@ versions:
 provides:
   - bin/cargo
 
+runtime:
+  env:
+    CARGO_INSTALL_ROOT: ${{env.HOME}}/.local
+
 dependencies:
   git-scm.org: 2
   rust-lang.org: '*'
   openssl.org: ^1 # cargo needs the certs
+  #TODO curl.se: ^8
+  zlib.net: ^1
+#TODO ^^ prevent vendoring by requiring these: libssh2.org & libgit2.org
 
 build:
   dependencies:
@@ -52,3 +59,6 @@ test:
     cargo clippy
     cargo run
     cargo run --release
+    cargo install cowsay
+    test -x ~/.local/bin/cowsay
+    ~/.local/bin/cowsay xyz.tea.hi
