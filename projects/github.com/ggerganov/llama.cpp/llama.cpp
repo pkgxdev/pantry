@@ -5,7 +5,7 @@ test -n "$VERBOSE" && set -x
 
 D="$(cd "$(dirname "$0")"/.. && pwd)"
 VERSION="$(basename "$D")"
-MODEL_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/LLaMA"
+MODEL_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/models/LLaMA"
 
 export PATH="$D/tbin:$PATH"
 
