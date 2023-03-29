@@ -1,0 +1,38 @@
+distributable:
+  url: https://github.com/abseil/abseil-cpp/archive/refs/tags/{{version.raw}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: abseil/abseil-cpp/releases/tags
+
+build:
+  dependencies:
+    cmake.org: ^3
+  
+  script: |
+    cmake -S . -B build \
+      -DCMAKE_CXX_STANDARD=17 \
+      -DBUILD_SHARED_LIBS=ON \
+      -DCMAKE_INSTALL_RPATH={{ prefix }}/bla \
+      -DCMAKE_BINARY_DIR={{ prefix }}/bin \
+      -DABSL_PROPAGATE_CXX_STD=ON \
+      -DCMAKE_INSTALL_PREFIX={{ prefix }} \
+      -DCMAKE_INSTALL_LIBDIR={{ prefix }}/lib \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_FIND_FRAMEWORK=LAST \
+      -DCMAKE_VERBOSE_MAKEFILE=ON \
+      -Wno-dev \
+      -DBUILD_TESTING=OFF
+    cmake --build build
+    cmake --install build
+    # Remove bad flags in .pc files.
+    # https://github.com/abseil/abseil-cpp/issues/1408
+    if [[ "$(uname)" == "Darwin" ]]; then
+      sed -i '' 's/-Xarch_x86_64 -Xarch_x86_64 -Xarch_arm64 //g' {{ prefix }}/lib/pkgconfig/absl_random_internal_randen_hwaes{_impl,}.pc
+    fi
+
+test:
+  script: |
+    ls -l
+    c++ -std=c++17 -I{{ prefix }}/include -L{{ prefix }}/lib -labsl_strings test.cc 
+    test "$(./a.out)" = "Joined string: foo-bar-baz\n"
