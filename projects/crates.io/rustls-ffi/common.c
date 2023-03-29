@@ -74,9 +74,9 @@ write_all(int fd, const char *buf, int n)
 /*
  * Set a socket to be nonblocking.
  *
- * Returns CRUSTLS_DEMO_OK on success, CRUSTLS_DEMO_ERROR on error.
+ * Returns DEMO_OK on success, DEMO_ERROR on error.
  */
-enum crustls_demo_result
+enum demo_result
 nonblock(int sockfd)
 {
 #ifdef _WIN32
@@ -84,22 +84,22 @@ nonblock(int sockfd)
 
   if(ioctlsocket(sockfd, FIONBIO, &nonblock) != 0) {
     perror("Error setting socket nonblocking");
-    return CRUSTLS_DEMO_ERROR;
+    return DEMO_ERROR;
   }
 #else
   int flags;
   flags = fcntl(sockfd, F_GETFL, 0);
   if(flags < 0) {
     perror("getting socket flags");
-    return CRUSTLS_DEMO_ERROR;
+    return DEMO_ERROR;
   }
   flags = fcntl(sockfd, F_SETFL, flags | O_NONBLOCK);
   if(flags < 0) {
     perror("setting socket nonblocking");
-    return CRUSTLS_DEMO_ERROR;
+    return DEMO_ERROR;
   }
 #endif
-  return CRUSTLS_DEMO_OK;
+  return DEMO_OK;
 }
 
 int
@@ -183,8 +183,8 @@ bytevec_consume(struct bytevec *vec, size_t n)
 
 // Ensure there are at least n bytes available between vec->len and
 // vec->capacity. If this requires reallocating, this may return
-// CRUSTLS_DEMO_ERROR.
-enum crustls_demo_result
+// DEMO_ERROR.
+enum demo_result
 bytevec_ensure_available(struct bytevec *vec, size_t n)
 {
   size_t available = vec->capacity - vec->len;
@@ -198,12 +198,12 @@ bytevec_ensure_available(struct bytevec *vec, size_t n)
     newdata = realloc(vec->data, newsize);
     if(newdata == NULL) {
       fprintf(stderr, "out of memory trying to get %zu bytes\n", newsize);
-      return CRUSTLS_DEMO_ERROR;
+      return DEMO_ERROR;
     }
     vec->data = newdata;
     vec->capacity = newsize;
   }
-  return CRUSTLS_DEMO_OK;
+  return DEMO_OK;
 }
 
 /**
@@ -217,8 +217,8 @@ copy_plaintext_to_buffer(struct conndata *conn)
   size_t n;
   struct rustls_connection *rconn = conn->rconn;
 
-  if(bytevec_ensure_available(&conn->data, 1024) != CRUSTLS_DEMO_OK) {
-    return CRUSTLS_DEMO_ERROR;
+  if(bytevec_ensure_available(&conn->data, 1024) != DEMO_OK) {
+    return DEMO_ERROR;
   }
 
   for(;;) {
@@ -227,23 +227,23 @@ copy_plaintext_to_buffer(struct conndata *conn)
     result = rustls_connection_read(rconn, (uint8_t *)buf, avail, &n);
     if(result == RUSTLS_RESULT_PLAINTEXT_EMPTY) {
       /* This is expected. It just means "no more bytes for now." */
-      return CRUSTLS_DEMO_OK;
+      return DEMO_OK;
     }
     if(result != RUSTLS_RESULT_OK) {
       print_error(conn->program_name, "Error in rustls_connection_read", result);
-      return CRUSTLS_DEMO_ERROR;
+      return DEMO_ERROR;
     }
     if(n == 0) {
       fprintf(stderr, "got 0-byte read, cleanly ending connection\n");
-      return CRUSTLS_DEMO_EOF;
+      return DEMO_EOF;
     }
     bytevec_consume(&conn->data, n);
-    if(bytevec_ensure_available(&conn->data, 1024) != CRUSTLS_DEMO_OK) {
-      return CRUSTLS_DEMO_ERROR;
+    if(bytevec_ensure_available(&conn->data, 1024) != DEMO_OK) {
+      return DEMO_ERROR;
     }
   }
 
-  return CRUSTLS_DEMO_ERROR;
+  return DEMO_ERROR;
 }
 
 /**

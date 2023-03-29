@@ -21,22 +21,18 @@ test:
     tea.xyz/gx/cc: c99
     openssl.org: '*'  # needed for SSL_CERT_FILE
   env:
-    LIBS:
+    ARGS:
       - -lrustls
-      - -lc
     linux:
-      LIBS:
-        - -lgcc_s
-        - -lutil
-        - -lrt
+      ARGS:
+        - -Wl,--gc-sections
         - -lpthread
-        - -lm
         - -ldl
     darwin:
-      LIBS:
+      ARGS:
+        - -Wl,-dead_strip
         - -framework Security
-        - -liconv
-        - -lSystem
+        - -framework Foundation
   script: |
-    cc client.c common.c -o client $LIBS
+    cc client.c common.c -o client $ARGS
     CA_FILE=$SSL_CERT_FILE ./client tea.xyz 443 /
