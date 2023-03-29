@@ -1,0 +1,23 @@
+distributable:
+  url: https://github.com/jaseg/lolcat/archive/refs/tags/v{{version.raw}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: jaseg/lolcat/tags
+  strip: /^v/
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    make --jobs {{ hw.concurrency }} lolcat
+    mkdir -p {{prefix}}/bin
+    mv lolcat {{prefix}}/bin
+
+provides:
+  - bin/lolcat
+
+test:
+  script: |
+    lolcat --version | grep "lolcat version {{version.marketing}}"
