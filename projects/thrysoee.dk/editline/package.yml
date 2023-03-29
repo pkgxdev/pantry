@@ -1,0 +1,35 @@
+distributable:
+  url: https://thrysoee.dk/editline/libedit-20221030-{{ version.raw }}.tar.gz
+  strip-components: 1
+
+versions:
+  - 3.1
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    invisible-island.net/ncurses: '*'
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --disable-dependency-tracking
+      - --disable-silent-rules
+      - --prefix={{ prefix }}
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script: |
+    mv $FIXTURE test.c
+    cc -o test test.c -ledit
+    ./test
+  fixture: |
+    #include <stdio.h>
+    #include <histedit.h>
+    int main(int argc, char *argv[]) {
+      EditLine *el = el_init(argv[0], stdin, stdout, stderr);
+      return (el == NULL);
+    }
