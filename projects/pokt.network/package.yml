@@ -1,0 +1,29 @@
+distributable:
+  url: https://github.com/pokt-network/pocket-core/archive/refs/tags/RC-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: pokt-network/pocket-core/tags
+  strip: /^RC-/
+
+provides:
+  - bin/pocket
+
+dependencies:
+  go.dev: ^1.18
+
+build:
+  dependencies:
+    go.dev: ^1.18
+  script: |
+    go build -o pocket ./app/cmd/pocket_core/main.go
+    mkdir -p "{{ prefix }}"/bin
+    mv pocket "{{ prefix }}"/bin
+
+test:
+  script: |
+    pocket --help >> /tmp/pocket.help
+    if ! grep -q "Pocket is a distributed network that relays data" /tmp/pocket.help; then
+      echo "Error: Pocket was not installed successfully"
+      exit 1
+    fi

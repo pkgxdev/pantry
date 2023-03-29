@@ -1,0 +1,36 @@
+distributable:
+  url: https://github.com/ggerganov/llama.cpp/archive/refs/tags/master-3cd8dde.tar.gz
+  strip-components: 1
+
+versions:
+  - 2023.03.23
+
+provides:
+  - bin/llama.cpp
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    freedesktop.org/pkg-config: ~0.29
+    gnu.org/wget: '*'
+  script: |
+    mkdir -p {{prefix}}/bin {{prefix}}/tbin {{prefix}}/share
+
+    make
+    mv main {{prefix}}/tbin/llama.cpp
+
+    mv props/llama.cpp {{prefix}}/bin
+
+    mv props/llama-fetch {{prefix}}/tbin
+    mv $SRCROOT/prompts {{prefix}}/share
+
+    wget \
+      --no-check-certificate \
+      'https://gist.githubusercontent.com/eiz/828bddec6162a023114ce19146cb2b82/raw/6b1d2b192815e6d61386a9a8853f2c3293b3f568/gistfile1.txt' \
+       -O {{prefix}}/tbin/upgrade-model.py
+    chmod +x {{prefix}}/tbin/upgrade-model.py
+
+test: |
+  {{prefix}}/tbin/llama.cpp --help
+# testing more than this requires downloading the models 😬

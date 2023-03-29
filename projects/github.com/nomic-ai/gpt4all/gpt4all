@@ -1,0 +1,19 @@
+#!/bin/sh
+
+set -e
+test -n "$VERBOSE" && set -x
+
+D="$(cd "$(dirname "$0")"/.. && pwd)"
+VERSION="$(basename "$D")"
+MODEL_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/models"
+
+export PATH="$D/tbin:$PATH"
+
+gpt4all-fetch-model "$MODEL_DIR" "$VERSION"
+
+if test "$1" != '--fetch'; then
+  exec "$D"/tbin/gpt4all \
+    --color \
+    --model "$MODEL_DIR"/gpt4all-lora-quantized.bin \
+    "$@"
+fi
