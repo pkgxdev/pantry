@@ -16,6 +16,11 @@ dependencies:
   gnutls.org: ^3.6
   zlib.net: ^1.2
 
+runtime:
+  env:
+    EMACS_ROOT: ${{prefix}}
+    EMACSLOADPATH: ${{prefix}}/share/emacs/{{version}}/site-lisp:{{prefix}}/share/emacs/site-lisp
+
 build:
   dependencies:
     freedesktop.org/pkg-config: ^0.29.2
@@ -28,7 +33,6 @@ build:
     ARGS:
       - --prefix="{{prefix}}"
       - --enable-check-lisp-object-type
-      - --enable-locallisppath="{{prefix}}/share/emacs/{{version.raw}}/lisp"
       - --disable-silent-rules
       - --with-gnutls
       - --without-x
@@ -38,11 +42,21 @@ build:
       - --without-ns
       - --without-imagemagick
       - --without-selinux
+      - --with-x-toolkit=no
 provides:
   - bin/emacs
 
-test: |
-  emacs --version | grep "GNU Emacs {{version.marketing}}"
+test:
+  script: |
+    emacs --version | grep "GNU Emacs {{version.marketing}}"
 
-  four=$(emacs --batch --eval="(print (+ 2 2))")
-  test $four = 4
+    four=$(emacs --batch --eval="(print (+ 2 2))")
+    test $four = 4
+
+    emacs -batch -l $FIXTURE
+  fixture: |
+    (require 'simple)
+    (defun my-print-message ()
+      "Print a message to the *Messages* buffer"
+      (message "This is a message from my script"))
+    (my-print-message)
