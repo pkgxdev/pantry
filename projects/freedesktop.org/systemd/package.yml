@@ -1,0 +1,58 @@
+distributable:
+  url: https://github.com/systemd/systemd/archive/v{{ version.major }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: systemd/systemd
+  strip: /^systemd v/
+
+dependencies:
+  libexpat.github.io: 2
+  lz4.org: 1
+  openssl.org: ^1.1
+  github.com/util-linux/util-linux: 2
+  tukaani.org/xz: 5
+  facebook.com/zstd: 1
+  google.com/fullycapable: 2
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    mesonbuild.com: 1
+    gnu.org/coreutils: '*'
+    docbook.org: 5
+    gnu.org/gettext: '*'
+    gnu.org/gperf: 3
+    gnupg.org/libgpg-error: 1
+    gnu.org/libtool: '*'
+    gnome.org/libxslt: 1
+    gnu.org/m4: '*'
+    ninja-build.org: '*'
+    freedesktop.org/pkg-config: '*'
+    python.org: 3
+    rsync.samba.org: 3
+    github.com/mattrobenolt/jinja2-cli: 0
+
+  script: |
+    meson setup $ARGS build --reconfigure
+    meson compile -C build
+    meson install -C build
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - -Drootprefix={{prefix}}
+      - -Dhwdb=false
+      - -Dlz4=true
+      - -Dgcrypt=false
+      - -Dstatic-libsystemd=pic
+      - -Dstatic-libudev=pic
+      - -Dfdisk=false
+    # Systemd needs help finding some of its
+    # dependencies.
+    PYTHONPATH: "$PYTHONPATH:{{ deps.github.com/mattrobenolt/jinja2-cli.prefix }}/venv/lib/python{{ deps.python.org.version.marketing }}/site-packages"
+
+provides:
+  - bin/foo
+  # ^^ specify the binaries or tea magic won’t work
+
+test: systemd-path
