@@ -20,6 +20,7 @@ runtime:
   env:
     EMACS_ROOT: ${{prefix}}
     EMACSLOADPATH: ${{prefix}}/share/emacs/lisp
+    EMACSDATA: ${{prefix}}/share/emacs/etc
 
 build:
   dependencies:
@@ -35,7 +36,13 @@ build:
     mv {{version.marketing}}/lisp .
     mv site-lisp/* lisp
     rmdir site-lisp
-    rm -rf {{version.marketing}}/site-lisp
+
+    # doing it step by step to prove we didn’t leave anything here
+    rm {{version.marketing}}/site-lisp/subdirs.el
+    rmdir {{version.marketing}}/site-lisp
+
+    mv {{version.marketing}}/etc .
+    rmdir {{version.marketing}}
 
   env:
     ARGS:
