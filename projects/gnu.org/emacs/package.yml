@@ -22,13 +22,12 @@ build:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
   script: |
-    mkdir -p {{prefix}}/share/emacs/{{version.raw}}/site-lisp
     ./configure $ARGS
     make --jobs {{ hw.concurrency }} install
-    cp -R lisp {{prefix}}/share/emacs/{{version.raw}}
   env:
     ARGS:
       - --prefix="{{prefix}}"
+      - --enable-check-lisp-object-type
       - --enable-locallisppath="{{prefix}}/share/emacs/{{version.raw}}/site-lisp"
       - --disable-silent-rules
       - --with-gnutls
