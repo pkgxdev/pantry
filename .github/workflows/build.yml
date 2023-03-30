@@ -46,7 +46,7 @@ jobs:
         run: sudo mv /usr/local/bin/* /tmp/
 
       # setup macOS codesigning
-      - uses: teaxyz/brewkit/actions/setup-codesign@move-signing-to-fix-machos
+      - uses: teaxyz/brewkit/actions/setup-codesign@v0
         if: startsWith(inputs.platform, 'darwin+') && github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name
         with:
             p12-file-base64: ${{ secrets.APPLE_CERTIFICATE_P12 }}
@@ -57,7 +57,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           FORCE_UNSAFE_CONFIGURE: 1  # some configure scripts refuse to run as root
-          IDENTITY: ${{ secrets.APPLE_IDENTITY }}
+          APPLE_IDENTITY: ${{ secrets.APPLE_IDENTITY }}
 
       - run: |
           ABS_PATHS=$(echo $PATHS | tr ' ' '\n' | sed -e "s_^_$TEA_PREFIX/_" | tr '\n' ' ')
