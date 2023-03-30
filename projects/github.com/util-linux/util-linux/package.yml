@@ -115,7 +115,7 @@ build:
     make --jobs {{hw.concurrency}} install
 
     cd "{{prefix}}/include"
-    for x in $INCLUDES; do
+    for x in $HEADERS; do
       mv "$x/$x.h" .
       ln -s "../$x.h" "$x/"
     done
@@ -124,12 +124,14 @@ build:
       - --prefix={{prefix}}
       - --disable-makeinstall-chown
       - --disable-makeinstall-setuid
-    INCLUDES:
+    HEADERS:
       - blkid
       - libfdisk
-      - libmount
       - libsmartcols
       - uuid
+    linux:
+      HEADERS:
+      - libmount
 
 test:
   dependencies:
