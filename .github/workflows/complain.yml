@@ -17,17 +17,40 @@ jobs:
   complain:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-        if: github.ref_name == 'main'
-
-      - uses: JasonEtco/create-an-issue@v2
-        if: github.ref_name == 'main'
+      - name: Find issue
+        uses: actions-cool/issues-helper@v3
+        id: find
         with:
-          filename: ./.github/NEW_VERSION_ISSUE_TEMPLATE.md
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PACKAGE: ${{ inputs.projects }} (${{ inputs.platform }})
-          URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          actions: 'find-issues'
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-state: 'open'
+          title-includes: "❌ build issues: ${{ input.projects }}"
+          labels: 'build-failure'
+
+      - name: Create issue
+        uses: actions-cool/issues-helper@v3
+        id: create
+        if: ${{ steps.find.outputs.issues == '[]' }}
+        with:
+          actions: 'create-issue'
+          token: ${{ secrets.GITHUB_TOKEN }}
+          title: "❌ build issues: ${{ input.projects }}"
+          body: "Running log of build failures for ${{ input.projects }}"
+          labels: 'build-failure'
+          assignees: 'jhheider'
+
+      - name: Log comment
+        uses: actions-cool/issues-helper@v3
+        with:
+          actions: 'create-comment'
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ steps.create.outputs.issue-number || fromJSON(steps.find.outputs.issues)[0].number }}
+          body: |
+            # Build failure
+            ## ${{ input.projects }}
+            ### ${{ inputs.platform }}
+
+            logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
       - uses: martialonline/workflow-status@v3
         id: status
