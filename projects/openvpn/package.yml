@@ -1,0 +1,44 @@
+distributable:
+  url: https://swupdate.openvpn.org/community/releases/openvpn-{{version}}.tar.gz
+  # this obscure option dictates how many components are removed from the
+  # extracted tarball. It only works with tarballs. You almost always want
+  # `1`. If after extraction the src-directory is funky try `0` or `2`.
+  strip-components: 1
+
+versions:
+  - 2.6.2
+
+dependencies:
+  lz4.org: ^1.9
+  oberhumer.com/lzo: ^2.10
+  openssl.org: ^3
+  # TODO: Package up pkcs11-helper: ~1.29
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    freedesktop.org/pkg-config: ^0.29
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    # add any environment variables here
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --disable-silent-rules
+      - --with-crypto-library=openssl
+      - --disable-pkcs11
+
+provides:
+  - bin/openvpn 
+
+test:
+  script:
+    openvpn --show-ciphers
+    # if it’s a tool check the version matches
+    # you should run the tool to check it works!
+    # if it's a library then you should *use* the library
+    # don’t forget to check other package.ymls in the pantry for examples!
