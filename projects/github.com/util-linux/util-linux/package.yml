@@ -7,70 +7,72 @@ versions:
   strip: /^v/
 
 provides:
-  - bin/cal
-  - bin/chmem
-  - bin/choom
-  - bin/chrt
-  - bin/col
-  - bin/colcrt
-  - bin/colrm
-  - bin/column
-  - bin/dmesg
-  - bin/eject
-  - bin/fallocate
-  - bin/fincore
-  - bin/findmnt
-  - bin/flock
-  - bin/getopt
-  - bin/hardlink
-  - bin/hexdump
-  - bin/ionice
-  - bin/ipcmk
-  - bin/ipcrm
-  - bin/ipcs
-  - bin/isosize
-  - bin/kill
-  - bin/last
-  - bin/lastb
-  - bin/linux32
-  - bin/linux64
-  - bin/logger
-  - bin/look
-  - bin/lsblk
-  - bin/lscpu
-  - bin/lsfd
-  - bin/lsipc
-  - bin/lsirq
-  - bin/lslocks
-  - bin/lslogins
-  - bin/lsmem
-  - bin/lsns
-  - bin/mcookie
-  - bin/mesg
-  - bin/mount
-  - bin/mountpoint
-  - bin/namei
-  - bin/nsenter
-  - bin/prlimit
-  - bin/rename
-  - bin/renice
-  - bin/rev
-  - bin/script
-  - bin/scriptlive
-  - bin/scriptreplay
-  - bin/setarch
-  - bin/setsid
-  - bin/taskset
-  - bin/uclampset
-  - bin/umount
-  - bin/uname26
-  - bin/unshare
-  - bin/utmpdump
-  - bin/uuidgen
-  - bin/uuidparse
-  - bin/wall
-  - bin/wdctl
-  - bin/whereis
+  darwin: []
+  linux:
+    - bin/cal
+    - bin/chmem
+    - bin/choom
+    - bin/chrt
+    - bin/col
+    - bin/colcrt
+    - bin/colrm
+    - bin/column
+    - bin/dmesg
+    - bin/eject
+    - bin/fallocate
+    - bin/fincore
+    - bin/findmnt
+    - bin/flock
+    - bin/getopt
+    - bin/hardlink
+    - bin/hexdump
+    - bin/ionice
+    - bin/ipcmk
+    - bin/ipcrm
+    - bin/ipcs
+    - bin/isosize
+    - bin/kill
+    - bin/last
+    - bin/lastb
+    - bin/linux32
+    - bin/linux64
+    - bin/logger
+    - bin/look
+    - bin/lsblk
+    - bin/lscpu
+    - bin/lsfd
+    - bin/lsipc
+    - bin/lsirq
+    - bin/lslocks
+    - bin/lslogins
+    - bin/lsmem
+    - bin/lsns
+    - bin/mcookie
+    - bin/mesg
+    - bin/mount
+    - bin/mountpoint
+    - bin/namei
+    - bin/nsenter
+    - bin/prlimit
+    - bin/rename
+    - bin/renice
+    - bin/rev
+    - bin/script
+    - bin/scriptlive
+    - bin/scriptreplay
+    - bin/setarch
+    - bin/setsid
+    - bin/taskset
+    - bin/uclampset
+    - bin/umount
+    - bin/uname26
+    - bin/unshare
+    - bin/utmpdump
+    - bin/uuidgen
+    - bin/uuidparse
+    - bin/wall
+    - bin/wdctl
+    - bin/whereis
 
 build:
   dependencies:
@@ -85,18 +87,30 @@ build:
     freedesktop.org/pkg-config: '*'
   script: |
     if test "{{hw.platform}}" != "linux"; then
-      echo "glibc is only supported on Linux"
+      echo "util-lnux is only supported on Linux"
       touch {{prefix}}/linux-only
       exit 0
     fi
     ./autogen.sh
     ./configure $ARGS
     make --jobs {{hw.concurrency}} install
+
+    cd "{{prefix}}/include"
+    for x in $INCLUDES; do
+      mv "$x/$x.h" .
+      ln -s "../$x.h" "$x/"
+    done
   env:
     ARGS:
       - --prefix={{prefix}}
       - --disable-makeinstall-chown
       - --disable-makeinstall-setuid
+    INCLUDES:
+      - blkid
+      - libfdisk
+      - libmount
+      - libsmartcols
+      - uuid
 test:
   dependencies:
     stedolan.github.io/jq: '*'
