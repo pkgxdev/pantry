@@ -113,11 +113,24 @@ build:
     fi
     ./configure $ARGS
     make --jobs {{hw.concurrency}} install
+
+    cd "{{prefix}}/include"
+    for x in $INCLUDES; do
+      mv "$x/$x.h" .
+      ln -s "../$x.h" "$x/"
+    done
   env:
     ARGS:
       - --prefix={{prefix}}
       - --disable-makeinstall-chown
       - --disable-makeinstall-setuid
+    INCLUDES:
+      - blkid
+      - libfdisk
+      - libmount
+      - libsmartcols
+      - uuid
+
 test:
   dependencies:
     stedolan.github.io/jq: '*'
