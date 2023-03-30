@@ -19,7 +19,7 @@ dependencies:
 runtime:
   env:
     EMACS_ROOT: ${{prefix}}
-    EMACSLOADPATH: ${{prefix}}/share/emacs/{{version.marketing}}/site-lisp:{{prefix}}/share/emacs/site-lisp
+    EMACSLOADPATH: ${{prefix}}/share/emacs/lisp
 
 build:
   dependencies:
@@ -29,6 +29,14 @@ build:
   script: |
     ./configure $ARGS
     make --jobs {{ hw.concurrency }} install
+
+    # we specify this with the env-var
+    cd {{prefix}}/share/emacs
+    mv {{version.marketing}}/lisp .
+    mv site-lisp/* lisp
+    rmdir site-lisp
+    rm -rf {{version.marketing}}/site-lisp
+
   env:
     ARGS:
       - --prefix="{{prefix}}"
