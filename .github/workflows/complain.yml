@@ -24,7 +24,7 @@ jobs:
           actions: 'find-issues'
           token: ${{ secrets.GITHUB_TOKEN }}
           issue-state: 'open'
-          title-includes: "❌ build issues: ${{ input.projects }}"
+          title-includes: "❌ build issues: ${{ inputs.projects }}"
           labels: 'build-failure'
 
       - name: Create issue
@@ -34,8 +34,8 @@ jobs:
         with:
           actions: 'create-issue'
           token: ${{ secrets.GITHUB_TOKEN }}
-          title: "❌ build issues: ${{ input.projects }}"
-          body: "Running log of build failures for ${{ input.projects }}"
+          title: "❌ build issues: ${{ inputs.projects }}"
+          body: "Running log of build failures for ${{ inputs.projects }}"
           labels: 'build-failure'
           assignees: 'jhheider'
 
@@ -47,7 +47,7 @@ jobs:
           issue-number: ${{ steps.create.outputs.issue-number || fromJSON(steps.find.outputs.issues)[0].number }}
           body: |
             # Build failure
-            ## ${{ input.projects }}
+            ## ${{ inputs.projects }}
             ### ${{ inputs.platform }}
 
             logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
