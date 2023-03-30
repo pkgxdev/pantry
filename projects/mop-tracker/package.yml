@@ -1,0 +1,26 @@
+distributable:
+  url: https://github.com/mop-tracker/mop/archive/94ff210f6879277defda6822539cf4987c9dbcb6.tar.gz
+  strip-components: 1
+
+versions:
+  - 2023.03.30
+
+build:
+  dependencies:
+    go.dev: '*'
+  script: |
+    go mod download
+    go build ./cmd/mop 
+    mkdir -p "{{ prefix }}"/bin
+    mv mop "{{ prefix }}"/bin
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+
+provides:
+  - bin/mop
+
+test:
+  script: |
+    mop
+  # Launches mop. Press h for help & esc to quit.
