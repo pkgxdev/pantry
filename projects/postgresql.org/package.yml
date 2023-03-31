@@ -1,0 +1,96 @@
+distributable:
+   url: https://github.com/postgres/postgres/archive/refs/tags/REL_{{version.major}}_{{version.minor}}.tar.gz
+
+   strip-components: 1
+versions:
+  - 15.2 # need to hardcode this version, because no easy way to get the tag yet 
+
+dependencies:
+  openssl.org: ^1.0.1
+  gnu.org/readline: '*'
+  zlib.net: '*'
+  lz4.org: '*'
+  gnome.org/libxml2: '*'
+  gnome.org/libxslt: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/make: '*'
+    freedesktop.org/pkg-config: '*'
+    tea.xyz/gx/cc: c99
+    gnu.org/gcc: '*'
+    gnu.org/bison: '*'
+    github.com/westes/flex: ^2.5.31
+    perl.org: '*'
+  script: |
+    # remove `-w`` from CFLAGS, because it causes build to fail, ironically.
+    # `./configure` *specifically* checks that certain warnings are emitted.
+    export CFLAGS="$(echo $CFLAGS | tr ' ' '\n' | sed -e '/^-w$/d' | tr '\n' ' ')"
+
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }}
+    make install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --with-ssl=openssl
+      - --with-lz4
+      - --with-libxml
+      - --with-libxslt
+
+provides:
+  - bin/clusterdb
+  - bin/createdb
+  - bin/dropdb
+  - bin/dropuser
+  - bin/ecpg
+  - bin/initdb
+  - bin/pg_amcheck
+  - bin/pg_archivecleanup
+  - bin/pg_basebackup
+  - bin/pg_config
+  - bin/pg_controldata
+  - bin/pg_ctl
+  - bin/pg_dump
+  - bin/pg_dumpall
+  - bin/pg_isready
+  - bin/pg_receivewal
+  - bin/pg_recvlogical
+  - bin/pg_resetwal
+  - bin/pg_restore
+  - bin/pg_rewind
+  - bin/pg_test_fsync
+  - bin/pg_test_timing
+  - bin/pg_upgrade
+  - bin/pg_verifybackup
+  - bin/pg_waldump
+  - bin/pgbench
+  - bin/postgres
+  - bin/psql
+  - bin/reindexdb
+  - bin/vacuumdb
+
+test:
+  script: |
+    # While we'd love a good test like this, `initdb` doesn't run as root, and managing
+    # all the environment passthrough with `sudo` is a nightmare.
+    
+    if test "{{ hw.platform }}" = "linux"; then
+      pg_config --sharedir
+      pg_config --libdir
+      pg_config --pkglibdir
+      pg_config --pkgincludedir
+      pg_config --includedir-server
+    else
+      mkdir -p ./data
+
+      initdb -D ./data
+      pg_ctl -D ./data -l logfile start
+      createdb test
+      psql -c 'create table test (id int);' test
+      dropdb test
+      pg_ctl -D ./data stop
+
+      rm -rf ./data
+    fi
+
