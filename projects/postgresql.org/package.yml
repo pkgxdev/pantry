@@ -72,16 +72,23 @@ provides:
 
 test:
   script: |
-    mkdir -p ./data
+    apt-get install -y sudo
+    cat >test.sh <<EOF
+    #!/bin/sh
+
+    $(env)
+
+    $(cat $FIXTURE)
+    EOF
 
     if test "{{ hw.platform }}" = "linux"; then
-      su nobody -c "initdb -D ./data"
+      sudo -u nobody bash -x test.sh
     else
-      initdb -D ./data
+      bash -x test.sh
     fi
-
-    # $SUDO
-    su nobody -c "initdb -D ./data"
+  fixture: |
+    mkdir -p ./data
+    initdb -D ./data
     pg_ctl -D ./data -l logfile start
     createdb test
     psql -c 'create table test (id int);' test
