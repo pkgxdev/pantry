@@ -74,24 +74,18 @@ test:
   script: |
     mkdir -p ./data
 
-    if test "{{ hw.platform }}" = "linux" && command -v sudo; then
-      SUDO="sudo -E -u nobody PATH=$PATH"
-
-      $SUDO initdb -U nobody -D ./data
-      $SUDO pg_ctl -D ./data -l logfile start
-      $SUDO createdb test
-      $SUDO psql -c 'create table test (id int);' test
-      $SUDO dropdb test
-      $SUDO pg_ctl -D ./data stop
-    fi
-
-    if test "{{ hw.platform }}" = "darwin"; then
+    if test "{{ hw.platform }}" = "linux"; then
+      su nobody -c "initdb -D ./data"
+    else
       initdb -D ./data
-      pg_ctl -D ./data -l logfile start
-      createdb test
-      psql -c 'create table test (id int);' test
-      dropdb test
-      pg_ctl -D ./data stop
     fi
+
+    # $SUDO
+    su nobody -c "initdb -D ./data"
+    pg_ctl -D ./data -l logfile start
+    createdb test
+    psql -c 'create table test (id int);' test
+    dropdb test
+    pg_ctl -D ./data stop
 
     rm -rf ./data
