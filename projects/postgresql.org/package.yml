@@ -75,15 +75,15 @@ test:
     mkdir -p ./data
 
     if test "{{ hw.platform }}" = "linux"; then
-      INITDB="$(command -v initdb)"
-      chmod 777 data
-      chmod 777 .
-      sudo -u nobody $INITDB -D $(pwd)/data
+      chown nobody. data
+      chmod 755 .
+      sudo -u nobody {{prefix}}/bin/initdb -D $(pwd)/data
+      sudo -u {{prefix}}/bin/pg_ctl -D ./data -l logfile start
     else
       initdb -D ./data
+      pg_ctl -D ./data -l logfile start
     fi
 
-    pg_ctl -D ./data -l logfile start
     createdb test
     psql -c 'create table test (id int);' test
     dropdb test
