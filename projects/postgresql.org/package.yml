@@ -17,14 +17,16 @@ build:
   dependencies:
     tea.xyz/gx/make: '*'
     freedesktop.org/pkg-config: '*'
-    darwin:
-      tea.xyz/gx/cc: c99
-    linux:
-      gnu.org/gcc: '*'
-      gnu.org/bison: '*'
-      github.com/westes/flex: ^2.5.31
-      perl.org: '*'
+    tea.xyz/gx/cc: c99
+    gnu.org/gcc: '*'
+    gnu.org/bison: '*'
+    github.com/westes/flex: ^2.5.31
+    perl.org: '*'
   script: |
+    # remove `-w`` from CFLAGS, because it causes build to fail, ironically.
+    # `./configure` *specifically* checks that certain warnings are emitted.
+    export CFLAGS="$(echo $CFLAGS | tr ' ' '\n' | sed -e '/^-w$/d' | tr '\n' ' ')"
+
     ./configure $ARGS
     make --jobs {{ hw.concurrency }}
     make install
@@ -72,8 +74,8 @@ test:
   script: |
     mkdir -p ./data
 
-    if test "{{ hw.platform }}" = "linux"; then
-      SUDO="sudo -u -p nobody"
+    if test "{{ hw.platform }}" = "linux" && command -v sudo; then
+      SUDO="sudo -p -u nobody"
 
       $SUDO initdb -U nobody -D ./data
       $SUDO pg_ctl -D ./data -l logfile start
