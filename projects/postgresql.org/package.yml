@@ -72,27 +72,17 @@ provides:
 
 test:
   script: |
-    cat >test.sh <<EOF
-    #!/bin/sh
-    
-    set -x
-
-    $(env)
-
-    $(cat $FIXTURE)
-    EOF
-    
-    chmod 755 test.sh
+    mkdir -p ./data
 
     if test "{{ hw.platform }}" = "linux"; then
-      sudo -u nobody ./test.sh
+      $INITDB="$(command -v initdb)"
+      chmod 777 data
+      chmod 777 .
+      sudo -u nobody $INITDB -D $(pwd)/data
     else
-      ./test.sh
+      initdb -D ./data
     fi
 
-  fixture: |
-    mkdir -p ./data
-    initdb -D ./data
     pg_ctl -D ./data -l logfile start
     createdb test
     psql -c 'create table test (id int);' test
