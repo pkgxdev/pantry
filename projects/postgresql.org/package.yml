@@ -72,21 +72,25 @@ provides:
 
 test:
   script: |
-    mkdir -p ./data
-
+    # While we'd love a good test like this, `initdb` doesn't run as root, and managing
+    # all the environment passthrough with `sudo` is a nightmare.
+    
     if test "{{ hw.platform }}" = "linux"; then
-      chown nobody. data
-      chmod 755 .
-      sudo -u nobody {{prefix}}/bin/initdb -D $(pwd)/data
-      sudo -u {{prefix}}/bin/pg_ctl -D ./data -l logfile start
+      pg_config --sharedir
+      pg_config --libdir
+      pg_config --pkglibdir
+      pg_config --pkgincludedir
+      pg_config --includedir-server
     else
+      mkdir -p ./data
+
       initdb -D ./data
       pg_ctl -D ./data -l logfile start
+      createdb test
+      psql -c 'create table test (id int);' test
+      dropdb test
+      pg_ctl -D ./data stop
+
+      rm -rf ./data
     fi
 
-    createdb test
-    psql -c 'create table test (id int);' test
-    dropdb test
-    pg_ctl -D ./data stop
-
-    rm -rf ./data
