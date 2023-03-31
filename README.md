@@ -43,6 +43,9 @@ $ pkg build
 # ^^ needs a zero permissions GITHUB_TOKEN to use the GitHub API
 # either set `GITHUB_TOKEN` or run `gh auth login`
 
+$ foo
+# ^^ anything in the `provides:` key will now run
+
 $ pkg test
 # ^^ you need to write a test that verifies the package works
 
