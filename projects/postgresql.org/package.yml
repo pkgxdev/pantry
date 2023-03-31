@@ -74,6 +74,8 @@ test:
   script: |
     cat >test.sh <<EOF
     #!/bin/sh
+    
+    set -x
 
     $(env)
 
@@ -83,9 +85,9 @@ test:
     chmod 755 test.sh
 
     if test "{{ hw.platform }}" = "linux"; then
-      sudo -u nobody bash -x test.sh
+      sudo -u nobody ./test.sh
     else
-      bash -x test.sh
+      ./test.sh
     fi
 
   fixture: |
