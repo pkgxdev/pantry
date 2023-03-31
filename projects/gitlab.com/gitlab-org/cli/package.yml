@@ -27,9 +27,12 @@ build:
       LDFLAGS:
       - -buildmode=pie
 
-test: |
-  git clone https://gitlab.com/cli-automated-testing/homebrew-testing.git
-  cd homebrew-testing
-  glab repo contributors
-  glab issue list --all
-  test "$(glab --version)"="glab version {{version}}"
+test:
+  dependencies:
+    git-scm.org: '*'
+  script: |
+    git clone https://gitlab.com/cli-automated-testing/homebrew-testing.git
+    cd homebrew-testing
+    glab repo contributors | grep "Matt Nohr"
+    glab issue list --all | grep "This is a test issue"
+    test "$(glab --version)"="glab version {{version}}"
