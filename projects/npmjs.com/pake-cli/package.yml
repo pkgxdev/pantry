@@ -11,14 +11,22 @@ versions:
 
 dependencies:
   nodejs.org: '>=16'
-  rust-lang.org: '>=1.63'
   npmjs.com: '*'
+  rust-lang.org: '>=1.63'
   rust-lang.org/cargo: '*'
+  darwin:
+    github.com/create-dmg/create-dmg: 1
+  linux:
+    freedesktop.org/pkg-config: ^0.29
+    cairographics.org: 1
+    gnome.org/pango: 1
+    gnome.org/gdk-pixbuf: 2
 
-build:
-  script:
-    npm install --global --prefix={{prefix}} .
-
+build: npm install --global --prefix={{prefix}} --install-links .
 
 test:
-  pake --name teaxyz tea.xyz
+  script: pake --name teaxyz tea.xyz $ARGS
+  env:
+    linux:
+      ARGS:
+        - --targets=deb
