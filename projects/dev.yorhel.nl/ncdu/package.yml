@@ -1,0 +1,27 @@
+distributable:
+  url: https://dev.yorhel.nl/download/ncdu-{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/ncdu
+
+versions:
+  - 1.18.1
+
+dependencies:
+  invisible-island.net/ncurses: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/make: '*'
+    tea.xyz/gx/cc: c99
+  script: |
+    ./configure $ARGS
+    make -j {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix {{ prefix }}
+
+test: |
+  ncdu -o test
+  cat test
