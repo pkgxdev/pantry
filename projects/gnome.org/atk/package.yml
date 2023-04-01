@@ -1,0 +1,44 @@
+distributable:
+  url: https://download.gnome.org/sources/atk/{{ version.major }}.{{ version.minor }}/atk-{{ version }}.tar.xz
+  strip-components: 1
+
+versions:
+  github: GNOME/atk/tags
+
+dependencies:
+  gnome.org/glib: 2
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    mesonbuild.com: ^0.63
+    ninja-build.org: 1
+    freedesktop.org/pkg-config: ^0.29
+    gnu.org/gettext: ^0.21
+    gnome.org/gobject-introspection: 1
+  script: |
+    meson setup build $ARGS
+    meson compile -C build
+    meson install -C build
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --libdir={{prefix}}/lib
+      - --wrap-mode=nofallback
+      - --buildtype=release
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    freedesktop.org/pkg-config: ^0.29
+  script: |
+    cp $FIXTURE test.c
+    cc -o test test.c `pkg-config --cflags --libs atk`
+    ./test
+  fixture: |
+    #include <atk/atk.h>
+
+    int main(int argc, char *argv[]) {
+      const gchar *version = atk_get_version();
+      return 0;
+    }
