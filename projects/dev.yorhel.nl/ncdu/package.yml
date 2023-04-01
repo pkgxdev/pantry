@@ -6,25 +6,21 @@ provides:
   - bin/ncdu
 
 versions:
-  - 2.2.2
+  - 1.18.1
 
 dependencies:
   invisible-island.net/ncurses: '*'
-  tea.xyz/gx/make: '*'
 
 build:
   dependencies:
-    ziglang.org: ~0.10
-  script: zig build $ARGS
+    tea.xyz/gx/make: '*'
+    tea.xyz/gx/cc: c99
+  script: |
+    ./configure $ARGS
+    make -j {{ hw.concurrency }} install
   env:
     ARGS:
       - --prefix {{ prefix }}
-      - -Drelease-safe=true
-      - --search-prefix "{{ deps.invisible-island.net/ncurses.prefix }}"
-    linux:
-      CFLAGS: -fPIC
-      CXXFLAGS: -fPIC
-      LDFLAGS: -pie
 
 test: |
   ncdu -o test
