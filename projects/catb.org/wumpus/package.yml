@@ -5,8 +5,6 @@ distributable:
 versions:
   - 1.9
 
-# TODO: Is there a gitlab version provider?
-
 provides:
   - bin/wumpus
   - bin/superhack
@@ -15,10 +13,19 @@ build:
   dependencies:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
+    #pagure.io/xmlto: '*'
 
   script: |
-    make
-    make prefix={{prefix}} install
+    make wumpus superhack
+    # When xmlto is packaged then switch the to `make ... install`
+    mkdir -p "{{prefix}}"/bin
+    mv wumpus superhack "{{prefix}}"/bin
+    # make prefix={{prefix}} install
 
 test:
-  script: echo no way to test this
+  script: |
+    wumpus > wumpus.out &
+    superhack > superhack.out &
+    sleep 1
+    test "x$(head -n1 wumpus.out)" = "xINSTRUCTIONS (Y-N)" && \
+    test "x$(head -n1 superhack.out)" = "xHunt the Superhack"
