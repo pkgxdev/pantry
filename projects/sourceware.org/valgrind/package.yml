@@ -1,0 +1,43 @@
+distributable:
+  url: https://sourceware.org/pub/valgrind/valgrind-{{version}}.tar.bz2
+  strip-components: 1
+
+versions:
+  - 3.20.0
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/autoconf: '*'
+    gnu.org/automake: '*'
+    gnu.org/libtool: '*'
+
+  script: |
+    if test "{{hw.platform}}" != "linux"; then
+      echo "libbsd is only supported on Linux"
+      touch {{prefix}}/linux-only
+      exit 0
+    fi
+    ./autogen.sh
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --disable-dependency-tracking
+      - --enable-only64bit
+      - --without-mpicc
+
+provides:
+  - bin/valgrind
+
+test:
+  script: |
+    if test "{{hw.platform}}" = "linux"; then
+      #test "$(valgrind --help)" = {{version}}
+      valgrind --help
+    fi
+    
+    
+#system "./autogen.sh" if build.head?
