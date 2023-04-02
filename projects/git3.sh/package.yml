@@ -11,10 +11,25 @@ dependencies:
 build:
   dependencies:
     classic.yarnpkg.com: '*'
+    stedolan.github.io/jq: '*'
   script: |
     mkdir -p {{prefix}}/bin
     sed -i.bak 's|/usr/local/bin|{{prefix}}/bin|g' package.json
     sed -i.bak 's|wait|sleep 10|g' package.json
+
+    # patch git3.pkg.json to add:
+    # - node18-macos-arm64
+    # - node18-linux-arm64
+    jq \
+      '.pkg.targets[3] |= . + "node18-macos-arm64" | .pkg.targets[4] |= . + "node18-linux-arm64"' \
+      git3.pkg.json > git3.pkg.json.tmp
+    mv git3.pkg.json.tmp git3.pkg.json
+    ARCH=$(uname -m | sed -e 's/x86_64/x64/' -e 's/aarch64/arm64/')
+    sed -i.bak \
+      -e "s_bin/git3-macos _bin/git3-macos-${ARCH} _g" \
+      -e "s_bin/git3-linux _bin/git3-linux-${ARCH} _g" \
+      package.json
+    grep cp\ bin/git3 package.json
     yarn
     yarn $INSTALL
   env:
