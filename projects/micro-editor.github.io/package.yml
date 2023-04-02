@@ -4,18 +4,35 @@ distributable:
 
 versions:
   github: zyedidia/micro/tags
+  strip: /^v/
+
+provides:
+  - bin/micro
 
 build:
   dependencies:
-    go.dev: ^1.18
+    tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
+    go.dev: ^1.16
+    git-scm.org: '*'
   script: |
-    make build-tags
-    mkdir {{ prefix }}/bin
-    mkdir {{ prefix }}/share/man/man1
-    mv micro {{ prefix }}/bin
-    mv assets/packaging/micro.1 {{ prefix }}/share/man/man1
+    git init
+    git add README.md
+    git config --global user.email "no-reply@tea-xyz.com"
+    git config --global user.name "Tea Build"
+    git commit -m "Fake commit to set the version: {{ version }}"
+    git tag v{{ version }}
+    if test "{{hw.platform}}" = "linux"; then
+        # https://github.com/docker-library/golang/issues/402#issuecomment-982204575
+        sed -i.bak -e 's/^ADDITIONAL_GO_LINKER_FLAGS = /ADDITIONAL_GO_LINKER_FLAGS = "-buildmode=pie" /' Makefile
+        rm Makefile.bak
+    fi
+    make build
+    mkdir -p "{{ prefix }}"/bin
+    mkdir -p "{{ prefix }}"/share/man/man1
+    install -m755 micro "{{ prefix }}"/bin
+    cp assets/packaging/micro.1 {{ prefix }}/share/man/man1
 
 test:
   script: |
-    micro -version
+    micro -version | grep {{ version }}
