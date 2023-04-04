@@ -1,0 +1,43 @@
+# this is a basic template for packages we strongly recommend looking at the
+# contents of both:
+#
+# * https://github.com/teaxyz/pantry
+#
+# as a learning guide and reference. For example, if you are package a `go`
+# project, then browse the listings and find a go package.
+
+
+# this is the source tarball. Swap the version out for {{version}} or we won’t
+# be able to upgrade the package when it updates!
+distributable:
+  url: https://github.com/google/gops/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: google/gops/tags
+
+dependencies:
+  go.dev: '*'
+
+build:
+  dependencies:
+    go.dev: '*'
+  script: |
+    go build -ldflags="$LDFLAGS"
+    mkdir -p "{{ prefix }}"/bin
+    mv gops "{{ prefix }}"/bin
+  env:
+    LDFLAGS:
+      - -s -w
+
+provides:
+  - bin/gops
+  # ^^ specify the binaries or tea magic won’t work
+
+test:
+  script:
+    gops
+    # if it’s a tool check the version matches
+    # you should run the tool to check it works!
+    # if it's a library then you should *use* the library
+    # don’t forget to check other package.ymls in the pantry for examples!
