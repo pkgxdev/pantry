@@ -12,27 +12,22 @@ provides:
 build:
   dependencies:
     tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
     go.dev: ^1.16
-    git-scm.org: '*'
   script: |
-    git init
-    git add README.md
-    git config --global user.email "no-reply@tea-xyz.com"
-    git config --global user.name "Tea Build"
-    git commit -m "Fake commit to set the version: {{ version }}"
-    git tag v{{ version }}
-    if test "{{hw.platform}}" = "linux"; then
-        # https://github.com/docker-library/golang/issues/402#issuecomment-982204575
-        sed -i.bak -e 's/^ADDITIONAL_GO_LINKER_FLAGS = /ADDITIONAL_GO_LINKER_FLAGS = "-buildmode=pie" /' Makefile
-        rm Makefile.bak
-    fi
-    make build
-    mkdir -p "{{ prefix }}"/bin
-    mkdir -p "{{ prefix }}"/share/man/man1
+    mkdir -p "{{ prefix }}"/{bin,share/man/man1}
+    go build -ldflags "$LDFLAGS -X 'main.CompileDate=$(go run tools/build-date.go)'" ./cmd/micro
     install -m755 micro "{{ prefix }}"/bin
-    cp assets/packaging/micro.1 {{ prefix }}/share/man/man1
+    cp assets/packaging/micro.1 "{{ prefix }}"/share/man/man1
+  env:
+    LDFLAGS:
+      - -s
+      - -w
+      - -X main.Version={{ version }}
+    linux:
+      LDFLAGS:
+        - -buildmode=pie
+    GOOS: $(go env GOHOSTOS)
+    ADDITIONAL_GO_LINKER_FLAGS: $(go run tools/info-plist.go $GOOS {{ version }})
+    GOARCH: $(go env GOHOSTARCH)
 
-test:
-  script: |
-    micro -version | grep {{ version }}
+test: micro -version | grep {{ version }}
