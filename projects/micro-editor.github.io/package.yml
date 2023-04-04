@@ -15,14 +15,14 @@ build:
     go.dev: ^1.16
   script: |
     mkdir -p "{{ prefix }}"/{bin,share/man/man1}
-    go build -ldflags "$LDFLAGS -X 'main.CompileDate=$(go run tools/build-date.go)'" ./cmd/micro
+    go build -ldflags "$LDFLAGS -X 'github.com/zyedidia/micro/v2/internal/util.CompileDate=$(go run tools/build-date.go)'" ./cmd/micro
     install -m755 micro "{{ prefix }}"/bin
     cp assets/packaging/micro.1 "{{ prefix }}"/share/man/man1
   env:
     LDFLAGS:
       - -s
       - -w
-      - -X main.Version={{ version }}
+      - -X github.com/zyedidia/micro/v2/internal/util.Version={{ version }}
     linux:
       LDFLAGS:
         - -buildmode=pie
