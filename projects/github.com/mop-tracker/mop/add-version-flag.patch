@@ -1,0 +1,40 @@
+From 2fe7f1e0f29aa69520d569887a45627afc06bac6 Mon Sep 17 00:00:00 2001
+From: Sanchit Ram Arvind <sanchitram@gmail.com>
+Date: Mon, 3 Apr 2023 23:43:12 -0400
+Subject: [PATCH] Add version flag
+
+---
+ cmd/mop/main.go | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/cmd/mop/main.go b/cmd/mop/main.go
+index 4636339..c87bfdc 100644
+--- a/cmd/mop/main.go
++++ b/cmd/mop/main.go
+@@ -42,6 +42,7 @@ Enter comma-delimited list of stock tickers when prompted.
+ 
+ <r> Press any key to continue </r>
+ `
++var teaVersion = "Mop 1.0.0"
+ 
+ //-----------------------------------------------------------------------------
+ func mainLoop(screen *mop.Screen, profile *mop.Profile) {
+@@ -195,6 +196,15 @@ func main() {
+ 		panic(err)
+ 	}
+ 
++	var showVersion bool
++	flag.BoolVar(&showVersion, "version", false, "Prints mop version")
++	flag.Parse()
++
++	if showVersion {
++		fmt.Printf("mop version %s\n", teaVersion)
++		os.Exit(0)
++	}
++
+ 	profileName := flag.String("profile", path.Join(usr.HomeDir, defaultProfile), "path to profile")
+ 	flag.Parse()
+ 
+-- 
+2.39.1
+

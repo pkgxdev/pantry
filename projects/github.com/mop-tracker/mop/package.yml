@@ -9,6 +9,8 @@ build:
   dependencies:
     go.dev: '*'
   script: |
+    # Add version patch so we can successfully test 
+    patch -p1 < props/add-version-flag.patch 
     go mod download
     go build ./cmd/mop 
     mkdir -p "{{ prefix }}"/bin
@@ -22,5 +24,6 @@ provides:
 
 test:
   script: |
-    mop
+    mop --version
+  # test "$(sl -v)" = "sl version {{version}}"
   # Launches mop. Press h for help & esc to quit.
