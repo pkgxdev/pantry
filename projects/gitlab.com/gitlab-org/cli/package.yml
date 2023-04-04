@@ -12,14 +12,17 @@ build:
   script: |
     go mod download
     mkdir -p "{{ prefix }}"/bin
-    go build -v -trimpath -ldflags="$LDFLAGS" -o $BUILDLOC ./cmd/glab #FIXME for some reason glab --version returns DEV instead of 1.26.0
+    go build -v -trimpath -ldflags="$LDFLAGS" -o $BUILDLOC ./cmd/glab
   dependencies:
     go.dev: ^1.18
   env:
     GO111MODULE: 'on'
     BUILDLOC: '{{prefix}}/bin/glab'
     LDFLAGS:
-      [-s, -w, "-X=main.Version={{version}}", "-X main.debugMode=false"]
+      - -s
+      - -w
+      - -X main.version={{version}}
+      - -X main.debugMode=false
 
     linux:
       # or segmentation fault
