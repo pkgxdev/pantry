@@ -1,0 +1,28 @@
+distributable:
+  url: https://github.com/mop-tracker/mop/archive/refs/heads/master.tar.gz
+  strip-components: 1
+
+versions:
+  - 2023.03.30
+
+build:
+  dependencies:
+    go.dev: '*'
+    gnu.org/patch: '*'
+  script: |
+    patch -p1 < props/add-version-flag.patch 
+    go mod download
+    go build -ldflags="$LDFLAGS" -x -o ./bin/mop $PACKAGE
+    mkdir -p "{{ prefix }}"/bin
+    mv ./bin/mop "{{ prefix }}"/bin
+    chmod +rx "{{ prefix }}"/bin/mop 
+  env:
+    LDFLAGS: "-X main.version={{version}}"
+    PACKAGE: ./cmd/mop
+
+provides:
+  - bin/mop
+
+test:
+  script: |
+    test "$(mop --version)" = "mop-{{version}}"

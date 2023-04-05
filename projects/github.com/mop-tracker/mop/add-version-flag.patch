@@ -1,0 +1,44 @@
+From a7428e16d81ea5481ea6af434565f301cf8397e6 Mon Sep 17 00:00:00 2001
+From: Sanchit Ram Arvind <sanchitram@gmail.com>
+Date: Tue, 4 Apr 2023 22:43:45 -0400
+Subject: [PATCH] add-version-flag
+
+---
+ cmd/mop/main.go | 14 ++++++++++++++
+ 1 file changed, 14 insertions(+)
+
+diff --git a/cmd/mop/main.go b/cmd/mop/main.go
+index 4636339..e4c8157 100644
+--- a/cmd/mop/main.go
++++ b/cmd/mop/main.go
+@@ -18,6 +18,11 @@ import (
+ 	"github.com/nsf/termbox-go"
+ )
+ 
++// Variable for current version
++var (
++	version string 
++)
++
+ // File name in user's home directory where we store the settings.
+ const defaultProfile = `.moprc`
+ 
+@@ -195,6 +200,15 @@ func main() {
+ 		panic(err)
+ 	}
+ 
++	var showVersion bool
++	flag.BoolVar(&showVersion, "version", false, "prints mop version")
++	flag.Parse()
++
++	if showVersion {
++	    fmt.Printf("mop-%s\n", version)
++	    os.Exit(0)
++	}
++
+ 	profileName := flag.String("profile", path.Join(usr.HomeDir, defaultProfile), "path to profile")
+ 	flag.Parse()
+ 
+-- 
+2.39.1
+
