@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/mop-tracker/mop/archive/94ff210f6879277defda6822539cf4987c9dbcb6.tar.gz
+  url: https://github.com/mop-tracker/mop/archive/refs/heads/master.tar.gz
   strip-components: 1
 
 versions:
@@ -10,21 +10,19 @@ build:
     go.dev: '*'
     gnu.org/patch: '*'
   script: |
-    # Add version patch so we can successfully test 
     patch -p1 < props/add-version-flag.patch 
     go mod download
-    go build ./cmd/mop 
+    go build -ldflags="$LDFLAGS" -x -o ./bin/mop $PACKAGE
     mkdir -p "{{ prefix }}"/bin
-    mv mop "{{ prefix }}"/bin
+    mv ./bin/mop "{{ prefix }}"/bin
+    chmod +rx "{{ prefix }}"/bin/mop 
   env:
-    ARGS:
-      - --prefix="{{prefix}}"
+    LDFLAGS: "-X main.version={{version}}"
+    PACKAGE: ./cmd/mop
 
 provides:
   - bin/mop
 
 test:
   script: |
-    mop --version
-  # test "$(sl -v)" = "sl version {{version}}"
-  # Launches mop. Press h for help & esc to quit.
+    test "$(mop --version)" = "mop-{{version}}"
