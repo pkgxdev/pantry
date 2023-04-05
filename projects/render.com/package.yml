@@ -9,17 +9,19 @@ versions:
 build:
   dependencies:
     deno.land: ^1.30
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
-    info-zip.org/unzip: '*'
   script: |
-    make build-local
-    mkdir -p "{{prefix}}"/bin
-    mv ./bin/render "{{prefix}}"/bin
+    deno compile \
+      --unstable \
+      --allow-net \
+      --allow-read \
+      --allow-run \
+      --allow-write \
+      --allow-env \
+      --output='{{prefix}}/bin/render' \
+      ./entry-point.ts
+  test: deno test --allow-write --allow-read --allow-net --allow-env --allow-run
 
 provides:
   - bin/render
 
-test:
-  script: |
-    render commands
+test: render commands
