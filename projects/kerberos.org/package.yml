@@ -1,0 +1,62 @@
+distributable:
+  url: https://kerberos.org/dist/krb5/{{ version.marketing }}/krb5-{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: krb5/krb5/tags
+  strip:
+    - /^krb5-/
+    - /-final$/
+
+dependencies:
+  openssl.org: ^1.1
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/bison: 3
+  working-directory: src
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }}
+    make install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --disable-nls
+      - --without-system-verto
+      - --without-keyutils
+
+provides:
+  - bin/compile_et
+  - bin/gss-client
+  - bin/k5srvutil
+  - bin/kadmin
+  - bin/kdestroy
+  - bin/kinit
+  - bin/klist
+  - bin/kpasswd
+  - bin/krb5-config
+  - bin/kswitch
+  - bin/ktutil
+  - bin/kvno
+  - bin/sclient
+  - bin/sim_client
+  - bin/uuclient
+  - sbin/gss-server
+  - sbin/kadmin.local
+  - sbin/kadmind
+  - sbin/kdb5_util
+  - sbin/kprop
+  - sbin/kpropd
+  - sbin/kproplog
+  - sbin/krb5-send-pr
+  - sbin/krb5kdc
+  - sbin/sim_server
+  - sbin/sserver
+  - sbin/uuserver
+
+test: |
+  krb5-config --version
+  krb5-config --cflags

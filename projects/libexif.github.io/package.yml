@@ -1,0 +1,47 @@
+distributable:
+  url: https://github.com/libexif/libexif/releases/download/v0.6.24/libexif-0.6.24.tar.bz2
+  strip-components: 1
+
+# if there’s a github then we can parse the versions
+versions:
+  github: libexif/libexif/tags  # reads github tags from github
+  strip: /^v/
+
+dependencies:
+  gnu.org/gettext: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} 
+    make install
+  env:
+    # add any environment variables here
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --disable-dependency-tracking
+
+test:
+  fixture: |
+    #include <stdio.h>
+    #include <libexif/exif-loader.h>
+    int main(int argc, char **argv) {
+      ExifLoader *loader = exif_loader_new();
+      ExifData *data;
+      if (loader) {
+        exif_loader_write_file(loader, argv[1]);
+        data = exif_loader_get_data(loader);
+        printf(data ? "Exif data loaded" : "No Exif data");
+      }
+    }
+  dependencies:
+    tea.xyz/gx/cc: c99
+    gnu.org/wget: '*'
+  script: | 
+    wget https://samplelib.com/lib/preview/jpeg/sample-clouds-400x300.jpg -O sample.jpg
+    mv $FIXTURE fixture.c
+    cc fixture.c -lexif
+    ./a.out sample.jpg

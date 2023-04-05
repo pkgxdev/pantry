@@ -1,0 +1,51 @@
+distributable:
+  url: https://github.com/ziglang/zig/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: ziglang/zig/tags
+
+warnings:
+  - vendored
+
+#FIXME proper system for re-using pre-built binaries
+# we must require the vendor to provide signatures against a published public
+# key. If they don’t then really we should build ourselves or warn the user
+# about the fact.
+# The thing is, we trust the sources implicitly currently because signing is
+# so rare. The only way wide spread signing will occur is via our protocol.
+
+build:
+  dependencies:
+    curl.se: '*'
+    gnu.org/tar: '*'
+    tukaani.org/xz: '*'
+  script: |
+    case "{{hw.platform}}+{{hw.arch}}" in
+      darwin+aarch64) PLATFORM="macos-aarch64" ;;
+      darwin+x86-64)  PLATFORM="macos-x86_64"  ;;
+      linux+aarch64)  PLATFORM="linux-aarch64" ;;
+      linux+x86-64)   PLATFORM="linux-x86_64"  ;;
+    esac
+
+    curl -Lfo zig.tar.xz "https://ziglang.org/download/{{ version }}/zig-${PLATFORM}-{{ version }}.tar.xz"
+    tar Jxf zig.tar.xz
+
+    mkdir -p "{{ prefix }}/bin"
+    mv zig-${PLATFORM}-{{ version }}/zig "{{ prefix }}/bin/zig"
+    mv zig-${PLATFORM}-{{ version }}/lib "{{ prefix }}"
+
+test:
+  script: |
+    cp $FIXTURE hello.zig
+    zig build-exe hello.zig
+    ./hello
+  fixture: |
+      const std = @import("std");
+      pub fn main() !void {
+          const stdout = std.io.getStdOut().writer();
+          try stdout.print("Hello, world!", .{});
+      }
+
+provides:
+  - bin/zig

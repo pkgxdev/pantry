@@ -1,0 +1,44 @@
+distributable:
+  url: https://www.x.org/archive/individual/lib/xtrans-1.4.0.tar.bz2
+  strip-components: 1
+
+versions:
+  - 1.4.0
+
+dependencies:
+  x.org/protocol: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    x.org/util-macros: '*'
+    freedesktop.org/pkg-config: ~0.29
+  script: |
+    # otherwise X11 fails to build on all platforms we support at least lol
+    sed -i.bak 's|# include <sys/stropts.h>|# include <sys/ioctl.h>|g' Xtranslcl.c
+
+    ./configure \
+      --prefix="{{prefix}}" \
+      --sysconfdir="$SHELF"/etc \
+      --localstatedir="$SHELF"/var \
+      --disable-debug \
+      --enable-docs=no
+    make
+    make install
+  env:
+    SHELF: ${{tea.prefix}}/x.org
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script: |
+    mv $FIXTURE test.c
+    cc test.c
+    ./a.out
+  fixture: |
+    #include "X11/Xtrans/Xtrans.h"
+    int main(int argc, char* argv[]) {
+      Xtransaddr addr;
+      return 0;
+    }

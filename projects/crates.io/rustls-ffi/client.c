@@ -34,7 +34,7 @@ int
 make_conn(const char *hostname, const char *port)
 {
   int sockfd = 0;
-  enum crustls_demo_result result = 0;
+  enum demo_result result = 0;
   struct addrinfo *getaddrinfo_output = NULL, hints;
 
   memset(&hints, 0, sizeof(hints));
@@ -64,7 +64,7 @@ make_conn(const char *hostname, const char *port)
     goto cleanup;
   }
   result = nonblock(sockfd);
-  if(result != CRUSTLS_DEMO_OK) {
+  if(result != DEMO_OK) {
     return 1;
   }
 
@@ -85,13 +85,13 @@ cleanup:
  * Do one read from the socket, and process all resulting bytes into the
  * rustls_connection, then copy all plaintext bytes from the session to stdout.
  * Returns:
- *  - CRUSTLS_DEMO_OK for success
- *  - CRUSTLS_DEMO_AGAIN if we got an EAGAIN or EWOULDBLOCK reading from the
+ *  - DEMO_OK for success
+ *  - DEMO_AGAIN if we got an EAGAIN or EWOULDBLOCK reading from the
  *    socket
- *  - CRUSTLS_DEMO_EOF if we got EOF
- *  - CRUSTLS_DEMO_ERROR for other errors.
+ *  - DEMO_EOF if we got EOF
+ *  - DEMO_ERROR for other errors.
  */
-enum crustls_demo_result
+enum demo_result
 do_read(struct conndata *conn, struct rustls_connection *rconn)
 {
   int err = 1;
@@ -106,21 +106,21 @@ do_read(struct conndata *conn, struct rustls_connection *rconn)
     fprintf(stderr,
             "client: reading from socket: EAGAIN or EWOULDBLOCK: %s\n",
             strerror(errno));
-    return CRUSTLS_DEMO_AGAIN;
+    return DEMO_AGAIN;
   }
   else if(err != 0) {
     fprintf(stderr, "client: reading from socket: errno %d\n", err);
-    return CRUSTLS_DEMO_ERROR;
+    return DEMO_ERROR;
   }
 
   result = rustls_connection_process_new_packets(rconn);
   if(result != RUSTLS_RESULT_OK) {
     print_error("server", "in process_new_packets", result);
-    return CRUSTLS_DEMO_ERROR;
+    return DEMO_ERROR;
   }
 
   result = copy_plaintext_to_buffer(conn);
-  if(result != CRUSTLS_DEMO_EOF) {
+  if(result != DEMO_EOF) {
     return result;
   }
 
@@ -131,15 +131,15 @@ do_read(struct conndata *conn, struct rustls_connection *rconn)
     fprintf(stderr,
             "client: error: read returned %zu bytes after receiving close_notify\n",
             n);
-    return CRUSTLS_DEMO_ERROR;
+    return DEMO_ERROR;
   }
   else if (signed_n < 0 && errno != EWOULDBLOCK) {
     fprintf(stderr,
             "client: error: read returned incorrect error after receiving close_notify: %s\n",
             strerror(errno));
-    return CRUSTLS_DEMO_ERROR;
+    return DEMO_ERROR;
   }
-  return CRUSTLS_DEMO_EOF;
+  return DEMO_EOF;
 }
 
 static const char *CONTENT_LENGTH = "Content-Length";
@@ -224,13 +224,13 @@ send_request_and_read_response(struct conndata *conn,
          select awaiting the next bit of data. */
       for(;;) {
         result = do_read(conn, rconn);
-        if(result == CRUSTLS_DEMO_AGAIN) {
+        if(result == DEMO_AGAIN) {
           break;
         }
-        else if(result == CRUSTLS_DEMO_EOF) {
+        else if(result == DEMO_EOF) {
           goto drain_plaintext;
         }
-        else if(result != CRUSTLS_DEMO_OK) {
+        else if(result != DEMO_OK) {
           goto cleanup;
         }
         if(headers_len == 0) {
@@ -276,7 +276,7 @@ send_request_and_read_response(struct conndata *conn,
             stderr, "client: error in rustls_connection_write_tls: errno %d\n", err);
           goto cleanup;
         }
-        if(result == CRUSTLS_DEMO_AGAIN) {
+        if(result == DEMO_AGAIN) {
           break;
         }
         else if(n == 0) {
@@ -291,7 +291,7 @@ send_request_and_read_response(struct conndata *conn,
 
 drain_plaintext:
   result = copy_plaintext_to_buffer(conn);
-  if(result != CRUSTLS_DEMO_OK && result != CRUSTLS_DEMO_EOF) {
+  if(result != DEMO_OK && result != DEMO_EOF) {
     goto cleanup;
   }
   fprintf(stderr, "client: writing %zu bytes to stdout\n", conn->data.len);
@@ -373,8 +373,8 @@ verify(void *userdata, const rustls_verify_server_cert_params *params)
 
   fprintf(stderr,
           "client: custom certificate verifier called for %.*s\n",
-          (int)params->dns_name.len,
-          params->dns_name.data);
+          (int)params->server_name.len,
+          params->server_name.data);
   fprintf(stderr, "client: end entity len: %zu\n", params->end_entity_cert_der.len);
   fprintf(stderr, "client: intermediates:\n");
   for(i = 0; i < intermediates_len; i++) {

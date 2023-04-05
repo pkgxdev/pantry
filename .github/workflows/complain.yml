@@ -1,0 +1,64 @@
+name: complain
+
+on:
+  workflow_call:
+    inputs:
+      projects:
+        required: true
+        type: string
+      platform:
+        required: true
+        type: string
+
+permissions:
+  issues: write
+
+jobs:
+  complain:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Find issue
+        uses: actions-cool/issues-helper@v3
+        id: find
+        with:
+          actions: 'find-issues'
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-state: 'open'
+          title-includes: "❌ build issues: ${{ inputs.projects }}"
+          labels: 'build-failure'
+
+      - name: Create issue
+        uses: actions-cool/issues-helper@v3
+        id: create
+        if: ${{ steps.find.outputs.issues == '[]' }}
+        with:
+          actions: 'create-issue'
+          token: ${{ secrets.GITHUB_TOKEN }}
+          title: "❌ build issues: ${{ inputs.projects }}"
+          body: "Running log of build failures for ${{ inputs.projects }}"
+          labels: 'build-failure'
+          assignees: 'jhheider'
+
+      - name: Log comment
+        uses: actions-cool/issues-helper@v3
+        with:
+          actions: 'create-comment'
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ steps.create.outputs.issue-number || fromJSON(steps.find.outputs.issues)[0].number }}
+          body: |
+            # Build failure
+            ## ${{ inputs.projects }}
+            ### ${{ inputs.platform }}
+
+            logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+      - uses: martialonline/workflow-status@v3
+        id: status
+
+      - uses: rtCamp/action-slack-notify@v2
+        if: ${{ env.SLACK_WEBHOOK != '' }}
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
+          SLACK_MESSAGE: new-version:${{ inputs.projects }} (${{ inputs.platform }}) ${{ steps.status.outputs.status }}
+          SLACK_COLOR: ${{ steps.status.outputs.status }}

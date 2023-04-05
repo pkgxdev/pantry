@@ -1,0 +1,31 @@
+distributable:
+  url: https://www.nasm.us/pub/nasm/releasebuilds/{{version.raw}}/nasm-{{version.raw}}.tar.xz
+  strip-components: 1
+
+versions:
+  - 2.15.05  # the left-padded 05 is problematic for automating verison fetching
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    ./configure --prefix="{{prefix}}"
+    make --jobs {{hw.concurrency}} rdf
+    make install install_rdf
+
+test: |
+  nasm --version
+
+provides:
+  - bin/ldrdf
+  - bin/nasm
+  - bin/ndisasm
+  - bin/rdf2bin
+  - bin/rdf2com
+  - bin/rdf2ihx
+  - bin/rdf2ith
+  - bin/rdf2srec
+  - bin/rdfdump
+  - bin/rdflib
+  - bin/rdx

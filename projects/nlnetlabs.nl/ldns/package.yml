@@ -1,0 +1,40 @@
+distributable:
+  url: https://nlnetlabs.nl/downloads/ldns/ldns-{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: NLnetLabs/ldns/tags
+
+dependencies:
+  openssl.org: ^1
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/autoconf: '*'
+    gnu.org/automake: '*'
+    swig.org: '*'
+  script: |
+    autoreconf
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+
+    # Oddly, the man pages are read-only, messing
+    # up our build process
+    find "{{ prefix }}"/share/man -type f -print0 | xargs -0 chmod u+w
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --with-drill
+      - --with-ssl={{ deps.openssl.org.prefix }}
+      - --disable-dane-verify
+      - --without-xcode-sdk
+    # weirdly, drill needs this to find `config.h`
+    CFLAGS: "$CFLAGS -I$(pwd)/ldns"
+
+provides:
+  - bin/drill
+  - bin/ldns-config
+
+test: drill tea.xyz

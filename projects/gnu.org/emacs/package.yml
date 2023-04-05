@@ -1,0 +1,77 @@
+distributable:
+  url: https://ftp.gnu.org/gnu/emacs/emacs-{{ version.raw }}.tar.xz
+  strip-components: 1
+
+versions:
+  github: emacs-mirror/emacs/tags
+  strip: /^emacs-/
+
+dependencies:
+  gnome.org/libxml2: ^2.10.3
+  invisible-island.net/ncurses: ^6.3.0
+  libjpeg-turbo.org: ^2.1.5.1
+  gnu.org/sed: ^4.9.0
+  gnu.org/texinfo: ^7.0.1
+  gnu.org/libidn2: ^2.3
+  gnutls.org: ^3.6
+  zlib.net: ^1.2
+
+runtime:
+  env:
+    EMACS_ROOT: ${{prefix}}
+    EMACSLOADPATH: ${{prefix}}/share/emacs/lisp
+    EMACSDATA: ${{prefix}}/share/emacs/etc
+
+build:
+  dependencies:
+    freedesktop.org/pkg-config: ^0.29.2
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+
+    # we specify this with the env-var
+    cd {{prefix}}/share/emacs
+    mv {{version.marketing}}/lisp .
+    mv site-lisp/* lisp
+    rmdir site-lisp
+
+    # doing it step by step to prove we didn’t leave anything here
+    rm {{version.marketing}}/site-lisp/subdirs.el
+    rmdir {{version.marketing}}/site-lisp
+
+    mv {{version.marketing}}/etc .
+    rmdir {{version.marketing}}
+
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --enable-check-lisp-object-type
+      - --disable-silent-rules
+      - --with-gnutls
+      - --without-x
+      - --with-xml2
+      - --without-dbus
+      - --with-modules
+      - --without-ns
+      - --without-imagemagick
+      - --without-selinux
+      - --with-x-toolkit=no
+provides:
+  - bin/emacs
+
+test:
+  script: |
+    emacs --version | grep "GNU Emacs {{version.marketing}}"
+
+    four=$(emacs --batch --eval="(print (+ 2 2))")
+    test $four = 4
+
+    emacs -batch -l $FIXTURE
+  fixture: |
+    (require 'simple)
+    (defun my-print-message ()
+      "Print a message to the *Messages* buffer"
+      (message "This is a message from my script"))
+    (my-print-message)

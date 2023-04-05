@@ -1,0 +1,55 @@
+distributable:
+  url: https://ftp.gnu.org/gnu/autoconf/autoconf-{{ version.raw }}.tar.xz
+  strip-components: 1
+
+versions:
+  - 2.71
+
+provides:
+  - bin/autoconf
+  - bin/autoheader
+  - bin/autom4te
+  - bin/autoreconf
+  - bin/autoscan
+  - bin/autoupdate
+  - bin/ifnames
+
+dependencies:
+  gnu.org/m4: 1
+  perl.org: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    git-scm.org: 2
+  script: |-
+    ./configure \
+      --build={{ hw.target }} \
+      --prefix="{{ prefix }}"
+    make --jobs {{ hw.concurrency }} install
+
+    cd "{{prefix}}"
+
+    fix-shebangs.ts bin/*
+
+    perl -pi -e 's|\x27{{prefix}}|"\$PREFIX"\x27|g' bin/autoconf
+
+    # fix specific m4 and perl paths
+    perl -pi -e 's|{{ deps.perl.org.prefix }}/bin/perl|perl|g' bin/*
+    perl -pi -e 's|{{ deps.gnu.org/m4.prefix }}/bin/m4|m4|g' bin/*
+
+    # fix hardcoded paths
+    perl -pi -e "s|'{{prefix}}/|\\\$prefix.'/|" bin/*
+    git apply $SRCROOT/props/relocatable.diff
+
+    perl -pi -e 's|{{prefix}}|\$PREFIX|' share/autoconf/autom4te.cfg
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script: |
+    autoconf --verbose --debug
+    ./configure
+    test -f config.status
+    test -f config.log

@@ -1,0 +1,43 @@
+distributable:
+  url: https://github.com/google/sentencepiece/archive/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: google/sentencepiece/releases/tags
+  ignore: '1.0.0'  # whoops, who tagged this then?
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    cmake.org: ^3
+    python.org: ^3
+    pip.pypa.io: '*'
+    freedesktop.org/pkg-config: ~0.29
+  working-directory: build
+  script: |
+    cmake .. -DCMAKE_INSTALL_PREFIX="{{prefix}}" -DCMAKE_BUILD_TYPE=Release
+    make --jobs {{ hw.concurrency }} install
+
+    pip install ../python --verbose  --prefix="{{prefix}}"
+
+provides:
+  - bin/spm_decode
+  - bin/spm_encode
+  - bin/spm_export_vocab
+  - bin/spm_normalize
+  - bin/spm_train
+
+runtime:
+  env:
+    PYTHONPATH: '{{prefix}}/lib/python3.11/site-packages'
+
+test:
+  dependencies:
+    gnu.org/wget: '*'
+    python.org: ^3
+  script: |
+    wget https://raw.githubusercontent.com/google/sentencepiece/master/data/botchan.txt
+    spm_train --input=botchan.txt --model_prefix=m --vocab_size=1000
+
+    python -c 'import sentencepiece as spm; spm.SentencePieceProcessor()'

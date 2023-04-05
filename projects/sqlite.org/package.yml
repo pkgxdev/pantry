@@ -1,0 +1,42 @@
+distributable:
+  #TODO lol supporting this URL scheme will be fun
+  url: https://sqlite.org/2022/sqlite-autoconf-3390200.tar.gz
+  strip-components: 1
+
+versions:
+  github: sqlite/sqlite/tags
+  strip: /^version-/
+
+dependencies:
+  zlib.net: 1
+  gnu.org/readline: 8
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix={{ prefix }}
+      - --enable-dynamic-extensions
+      - --enable-readline
+      - --disable-editline
+      - --enable-session
+    CPPFLAGS:
+      # copied without explanation from brew
+      - -DSQLITE_ENABLE_COLUMN_METADATA=1
+      - -DSQLITE_ENABLE_RTREE=1
+      - -DSQLITE_ENABLE_FTS3=1 -DSQLITE_ENABLE_FTS3_PARENTHESIS=1
+      - -DSQLITE_ENABLE_JSON1=1
+      # Default value of MAX_VARIABLE_NUMBER is 999 which is too low for many
+      # applications. Set to 250000 (Same value used in Debian and Ubuntu).
+      - -DSQLITE_MAX_VARIABLE_NUMBER=250000
+
+test:
+  script: sqlite3 --version
+
+provides:
+  - bin/sqlite3

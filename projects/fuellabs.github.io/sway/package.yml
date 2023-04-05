@@ -1,0 +1,43 @@
+distributable:
+  url: https://github.com/FuelLabs/sway/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: FuelLabs/sway
+
+provides:
+  - bin/forc
+
+dependencies:
+  zlib.net: '*'
+  linux:
+    openssl.org: '*'
+
+build:
+  dependencies:
+    rust-lang.org: 1
+    rust-lang.org/cargo: ^0.65
+    linux:
+      # needed to build openssl module
+      perl.org: '*'
+      tea.xyz/gx/make: '*'
+  script:
+        cargo install --locked --path forc --root {{prefix}}
+
+test:
+  script: |
+    forc new tea_test
+    cd tea_test
+    cp $FIXTURE src/main.sw
+    forc test
+  fixture: |
+    script;
+
+    #[test]
+    fn test_meaning_of_life() {
+        assert(6 * 7 == 42);
+    }
+
+    fn main() {
+        ()
+    }

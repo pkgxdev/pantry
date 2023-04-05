@@ -1,0 +1,32 @@
+distributable:
+  url: https://github.com/elves/elvish/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: elves/elvish
+  strip: /^v/
+
+build:
+  dependencies:
+    go.dev: ^1.19
+  script: |
+    mkdir -p "{{ prefix }}"/bin
+    go build -ldflags="$LDFLAGS" ./cmd/elvish
+    mv elvish "{{ prefix }}"/bin
+  env:
+    LDFLAGS:
+      - -s
+      - -w
+      - -X
+      - src.elv.sh/pkg/buildinfo.VersionSuffix=
+    linux:
+      LDFLAGS:
+        - -buildmode=pie
+
+
+provides:
+  - bin/elvish
+
+test: |
+  test "$(elvish --version)" = "{{version}}"
+  test "$(elvish -c 'echo hello')" = "hello"

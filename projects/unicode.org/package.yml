@@ -1,0 +1,53 @@
+distributable:
+  url: https://github.com/unicode-org/icu/releases/download/release-{{version.major}}-{{version.minor}}/icu4c-{{version.major}}_{{version.minor}}-src.tgz
+  strip-components: 1
+
+versions:
+  - 71.1.0
+#TODO ^^ unicode-org/icu but it's madness
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  working-directory: source
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }}
+    make install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --disable-samples
+      - --disable-tests
+      - --enable-static
+      - --with-library-bits=64
+    darwin:
+      LDFLAGS:
+      # changing install names or rpaths can't be redone for
+      - -headerpad_max_install_names
+
+test:
+  script: |
+    if test -f /usr/share/dict/words; then
+      gendict --uchars /usr/share/dict/words dict
+    else
+      gendict --uchars $FIXTURE dict
+    fi
+  fixture: |
+    hello
+    world
+
+provides:
+  - bin/derb
+  - bin/genbrk
+  - bin/gencfu
+  - bin/gencnval
+  - bin/gendict
+  - bin/genrb
+  - bin/icu-config
+  - bin/icuexportdata
+  - bin/icuinfo
+  - bin/makeconv
+  - bin/pkgdata
+  - bin/uconv

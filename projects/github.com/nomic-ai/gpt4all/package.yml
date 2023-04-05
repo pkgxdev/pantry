@@ -1,0 +1,26 @@
+distributable:
+  url: https://github.com/zanussbaum/gpt4all.cpp/archive/41e992905c4de16b0071338caeb730923323c5f9.tar.gz
+  strip-components: 1
+
+versions:
+  - 2023.03.29
+
+provides:
+  - bin/gpt4all
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    mkdir -p {{prefix}}/bin {{prefix}}/tbin
+
+    make chat
+    mv chat {{prefix}}/tbin/gpt4all
+
+    mv props/gpt4all {{prefix}}/bin
+    mv props/gpt4all-fetch-model {{prefix}}/tbin
+
+test: |
+  {{prefix}}/tbin/gpt4all --help
+# testing more than this requires downloading the models 😬

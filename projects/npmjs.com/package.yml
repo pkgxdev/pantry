@@ -1,0 +1,29 @@
+distributable:
+  url: https://github.com/npm/cli/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: npm/cli
+
+provides:
+  - bin/npm
+  - bin/npx
+
+dependencies:
+  nodejs.org: '>=14'
+
+runtime:
+  env:
+    NPM_CONFIG_UPDATE_NOTIFIER: false
+
+build:
+  dependencies:
+    crates.io/semverator: '*'
+  script: |
+    if semverator satisfies '^8,>=9.4.2' {{ version }}; then
+      ARGS="--install-links"
+    fi
+
+    node . install --global --prefix={{prefix}} $ARGS
+
+test: npx -q tldr ls

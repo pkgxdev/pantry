@@ -1,0 +1,51 @@
+distributable:
+  url: https://download.savannah.gnu.org/releases/freetype/freetype-{{ version }}.tar.xz
+  #FIXME our linux docker image TLS doesn’t like this URL
+  # url: https://downloads.sourceforge.net/project/freetype/freetype{{ version.major }}/{{ version }}/freetype-{{ version }}.tar.xz
+  strip-components: 1
+
+versions:
+  - 2.12.1
+
+dependencies:
+  libpng.org: 1
+  zlib.net: 1
+  sourceware.org/bzip2: 1
+
+#FIXME the freetype-config script contains fullpaths to libpng
+# not sure of a portable way to fix that, probs best is using png-config
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    freedesktop.org/pkg-config: ^0.29
+    #NOTE cmake ∵ autoconf failed on Linux due to not creating the .so files
+    cmake.org: '*'
+  working-directory: build
+  script: |
+    cmake .. $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - -DBUILD_SHARED_LIBS=true
+      - -DCMAKE_INSTALL_PREFIX="{{ prefix }}"
+      - -DCMAKE_BUILD_TYPE=Release
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    freedesktop.org/pkg-config: ^0.29
+  script: |
+    mv $FIXTURE test.c
+    cc -o test test.c $(pkg-config --cflags --libs freetype2)
+    ./test
+  fixture: |
+    #include <ft2build.h>
+    #include FT_FREETYPE_H
+
+    FT_Library  library;
+
+    int main() {
+      return FT_Init_FreeType( &library );
+    }

@@ -1,0 +1,55 @@
+diff --git a/src/file.h b/src/file.h
+index 85675df..8d0f058 100644
+--- a/src/file.h
++++ b/src/file.h
+@@ -95,9 +95,10 @@
+
+ #define ENABLE_CONDITIONALS
+
+-#ifndef MAGIC
+-#define MAGIC "/etc/magic"
+-#endif
++const char *tea_get_lib_dir(void);
++
++#undef MAGIC
++#define MAGIC tea_get_lib_dir()
+
+ #if defined(__EMX__) || defined (WIN32)
+ #define PATHSEP	';'
+diff --git a/src/magic.c b/src/magic.c
+index 7768497..84e8ba7 100644
+--- a/src/magic.c
++++ b/src/magic.c
+@@ -257,7 +257,7 @@ magic_getpath(const char *magicfile, int action)
+ 		return magicfile;
+
+ 	magicfile = getenv("MAGIC");
+-	if (magicfile != NULL)
++	if (magicfile != NULL && magicfile[0] == '/')
+ 		return magicfile;
+
+ 	return action == FILE_LOAD ? get_default_magic() : MAGIC;
+@@ -678,3 +678,23 @@ magic_getparam(struct magic_set *ms, int param, void *val)
+ 		return -1;
+ 	}
+ }
++
++
++#include <libgen.h>
++
++/// returns the library dir of our relocatable installation
++protected const char *tea_get_lib_dir(void) {
++  char path[MAXPATHLEN + 1] = {0};
++  uint32_t len = sizeof(path) - 1;
++#if __APPLE__
++  int rv = _NSGetExecutablePath(path, &len);
++#else
++  int rv = readlink("/proc/self/exe", path, len - 1);
++#endif
++  if (rv != -1) {
++    sprintf(path, "%s/%s", dirname(dirname(path)), "share/misc/magic");
++    return strdup(path) ?: "/etc/magic";
++  } else {
++    return "/etc/magic";
++  }
++}

@@ -1,0 +1,32 @@
+distributable:
+  url: https://ftp.gnu.org/gnu/wget/wget-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  - 1.21.3
+
+provides:
+  - bin/wget
+
+dependencies:
+  openssl.org: ^1.1
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    freedesktop.org/pkg-config: ^0.29
+  script: |
+    ./configure $ARGS
+    make --jobs {{hw.concurrency}} install
+  env:
+    ARGS:
+    - --prefix={{prefix}}
+    - --disable-pcre
+    - --disable-pcre2
+    - --without-libps1
+    - --without-included-regex
+    - --with-ssl=openssl
+
+test:
+  wget tea.xyz

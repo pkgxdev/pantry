@@ -1,0 +1,59 @@
+#!/bin/sh
+
+set -e
+test -n "$VERBOSE" && set -x
+
+if test -f "$1"/gpt4all-lora-quantized.bin.VERSION && test $(cat "$1"/gpt4all-lora-quantized.bin.VERSION) = $2; then
+  exit
+fi
+
+if command -v git >/dev/null; then
+  GIT="tea git"
+else
+  GIT=git
+fi
+
+mkdir -p "$1"
+cd "$1"
+
+tea gum format "# preparing for model fetch"
+echo  # spacer
+
+URL='magnet:?xt=urn:btih:1F11A9691EE06C18F0040E359361DCA0479BCB5A&dn=gpt4all-lora-quantized.bin&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=udp%3A%2F%2Fopentracker.i2p.rocks%3A6969%2Fannounce'
+
+if test -d trackers; then
+  $GIT -C trackers fetch origin
+  $GIT -C trackers reset --hard origin/master
+else
+  $GIT clone "https://github.com/ngosang/trackerslist" trackers
+fi
+
+TRACKERS=$(grep -v '^#' "trackers/trackers_all.txt" | tr '\n' ',')
+
+tea gum format <<EoMD
+# downloading model
+model will be placed: \`$PWD\`
+> this may take a a few minutes…
+EoMD
+
+CHECK=""
+if test -f gpt4all-lora-quantized.bin; then
+  # only add this if file exists sine otherwise spurious (non-fatal) error message is shown
+  CHECK="--check-integrity"
+# else
+  # the above torrent is not seeded yet
+  #URL="https://s3.amazonaws.com/static.nomic.ai/gpt4all/models/gpt4all-lora-quantized.bin"
+fi
+
+tea aria2c \
+  --dir=. \
+  --seed-time=0 \
+  --bt-tracker="$TRACKERS" \
+  --summary-interval=0 \
+  $CHECK \
+  "$URL"
+
+echo $2 > gpt4all-lora-quantized.bin.VERSION
+
+tea gum format "# All done!"
+echo  #spacer

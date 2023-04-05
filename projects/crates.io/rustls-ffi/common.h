@@ -23,12 +23,12 @@ const char * ws_strerror(int err);
 #endif /* !STDOUT_FILENO */
 #endif /* _WIN32 */
 
-enum crustls_demo_result
+enum demo_result
 {
-  CRUSTLS_DEMO_OK,
-  CRUSTLS_DEMO_ERROR,
-  CRUSTLS_DEMO_AGAIN,
-  CRUSTLS_DEMO_EOF,
+  DEMO_OK,
+  DEMO_ERROR,
+  DEMO_AGAIN,
+  DEMO_EOF,
 };
 
 /* A growable vector of bytes. */
@@ -53,7 +53,7 @@ int
 write_all(int fd, const char *buf, int n);
 
 /* Make a socket nonblocking. */
-enum crustls_demo_result
+enum demo_result
 nonblock(int sockfd);
 
 /* A callback that reads bytes from the network. */
@@ -88,17 +88,17 @@ bytevec_consume(struct bytevec *vec, size_t n);
 
 /* Ensure there are at least n bytes available between vec->len and
  * vec->capacity. If this requires reallocating, this may return
- * CRUSTLS_DEMO_ERROR. */
-enum crustls_demo_result
+ * DEMO_ERROR. */
+enum demo_result
 bytevec_ensure_available(struct bytevec *vec, size_t n);
 
 /* Read all available bytes from the rustls_connection until EOF.
  * Note that EOF here indicates "no more bytes until
  * process_new_packets", not "stream is closed".
  *
- * Returns CRUSTLS_DEMO_OK for success,
- * CRUSTLS_DEMO_ERROR for error,
- * CRUSTLS_DEMO_EOF for "connection cleanly terminated by peer"
+ * Returns DEMO_OK for success,
+ * DEMO_ERROR for error,
+ * DEMO_EOF for "connection cleanly terminated by peer"
  */
 int
 copy_plaintext_to_buffer(struct conndata *conn);

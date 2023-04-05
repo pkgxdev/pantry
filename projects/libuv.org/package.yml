@@ -1,0 +1,34 @@
+distributable:
+  url: https://dist.libuv.org/dist/v{{version}}/libuv-v{{version}}-dist.tar.gz
+  sig: ${{url}}.sign
+  strip-components: 1
+
+versions:
+  github: libuv/libuv/tags
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    ./configure --prefix="{{prefix}}"
+    make --jobs {{hw.concurrency}}
+    make install
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script: |
+    mv $FIXTURE $FIXTURE.c
+    cc $FIXTURE.c -luv
+    ./a.out
+  fixture: |
+    #include <uv.h>
+    #include <stdlib.h>
+    int main() {
+      uv_loop_t* loop = malloc(sizeof *loop);
+      uv_loop_init(loop);
+      uv_loop_close(loop);
+      free(loop);
+      return 0;
+    }

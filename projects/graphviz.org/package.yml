@@ -1,0 +1,73 @@
+distributable:
+   url: https://gitlab.com/api/v4/projects/4207231/packages/generic/graphviz-releases/{{ version }}/graphviz-{{ version }}.tar.gz
+   strip-components: 1
+
+versions:
+  - '7.1.0'
+  # gitlab: https://gitlab.com/graphviz/graphviz
+
+dependencies:
+  cairographics.org: '^1.1.10'
+  freedesktop.org/fontconfig: '^2.3.95'
+  freetype.org: '^2.1.0'
+  gnome.org/glib: '^2.11.0'
+  gnome.org/pango: '^1.12.4'
+  gnu.org/libtool: '^2'
+  libexpat.github.io: '^2.0.0'
+  libpng.org: '^1.2.10'
+  poppler.freedesktop.org: '*'
+  zlib.net: '^1.2.3'
+
+build:
+  dependencies:
+    freedesktop.org/pkg-config: '^0.20'
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+
+provides:
+  - bin/acyclic
+  - bin/bcomps
+  - bin/ccomps
+  - bin/circo
+  - bin/cluster
+  - bin/dijkstra
+  - bin/dot
+  - bin/dot2gxl
+  - bin/dot_builtins
+  - bin/edgepaint
+  - bin/fdp
+  - bin/gc
+  - bin/gml2gv
+  - bin/graphml2gv
+  - bin/gv2gml
+  - bin/gv2gxl
+  - bin/gvcolor
+  - bin/gvgen
+  - bin/gvmap
+  - bin/gvmap.sh
+  - bin/gvpack
+  - bin/gvpr
+  - bin/gxl2dot
+  - bin/gxl2gv
+  - bin/mm2gv
+  - bin/neato
+  - bin/nop
+  - bin/osage
+  - bin/patchwork
+  - bin/prune
+  - bin/sccmap
+  - bin/sfdp
+  - bin/tred
+  - bin/twopi
+  - bin/unflatten
+  - bin/vimdot
+
+test:
+  script: |
+    dot -Tpdf -o test.pdf test.dot

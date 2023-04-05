@@ -1,0 +1,25 @@
+distributable:
+  url: https://github.com/tldr-pages/tldr-c-client/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: tldr-pages/tldr-c-client/releases/tags
+
+dependencies:
+  libzip.org: ^1.9.2
+  curl.se: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    make PREFIX="{{prefix}}" CFLAGS="-ggdb -O0 -ftrapv $CFLAGS" CPPFLAGS="$CPPFLAGS" LDFLAGS="$LDFLAGS" --jobs {{ hw.concurrency }} install
+
+provides:
+  - bin/tldr
+
+test: |
+  tldr --version
+  tldr ls
+  tldr --version | grep {{ version }}

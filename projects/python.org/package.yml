@@ -1,0 +1,167 @@
+distributable:
+  url: https://www.python.org/ftp/python/{{ version.raw }}/Python-{{ version.raw }}.tar.xz
+  strip-components: 1
+
+versions:
+  github: python/cpython/tags
+
+companions:
+  pip.pypa.io: '*'
+
+unpackaged:
+  - version: ^2
+    platform: darwin
+    arch: aarc64
+    reason: help-wanted
+
+provides:
+  - bin/python
+  - bin/python{{ version.major }}
+  - bin/python{{ version.marketing }}
+
+interprets:
+  extensions: py
+  args: python
+
+dependencies:
+# recommended (but none are actually required)
+  zlib.net: 1
+  sourceware.org/bzip2: 1
+  openssl.org: ^1.1
+  sourceware.org/libffi: 3
+  libexpat.github.io: 2
+  bytereef.org/mpdecimal: 2
+  tukaani.org/xz: 5
+  sqlite.org: 3
+  gnu.org/readline: 8
+  invisible-island.net/ncurses: 6
+  # linux:
+  #   oracle.com/berkeley-db: 18
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    freedesktop.org/pkg-config: ^0.29
+    crates.io/semverator: '*'
+
+  #TODO $libdir/_sysconfigdata__darwin_darwin.py contains non-relocatable paths
+  script: |
+    sed -i.bak -e 's|system_lib_dirs = .*|system_lib_dirs = os.getenv("LIBRARY_PATH").split(":")|' ./setup.py
+    sed -i.bak -e 's|system_include_dirs = .*|system_include_dirs = os.getenv("CPATH").split(":")|' ./setup.py
+
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }}
+    make install
+
+    # customize `pip install` locations to tea defaults
+    cp props/sitecustomize.py {{prefix}}/lib/python{{version.marketing}}
+
+    # provide unversioned symlinks
+    cd {{prefix}}/bin
+    for x in python idle pydoc; do
+      ln -sf ${x}{{ version.marketing }} $x
+    done
+    ln -sf python{{ version.marketing }}-config python-config
+
+    # we provide the binaries in a separate package
+    # but we don’t use --without-ensurepip because stuff expects python to
+    # come bundled with setuptools
+    rm pip*
+
+    # older versions use a different config dir
+    if semverator satisfies '<3.8' {{ version }}; then
+      confdir=$(echo $confdir | sed -e 's/\(config-{{ version.marketing }}\)/\1m/')
+    fi
+
+    # make relocatable
+    cd {{prefix}}
+    for binfile in $shebangs $confdir/python-config.py; do
+      binfile=$(readlink -f $binfile)
+      sed -i.bak -e 's|#!{{ prefix }}/bin/|#!/usr/bin/env |g' $binfile
+      rm $binfile.bak
+    done
+
+    sed -i.bak -e 's|{{ prefix }}|\\$(shell tea --prefix)/python.org/v{{version.major}}|g' $confdir/Makefile
+    rm $confdir/Makefile.bak
+
+    # force pip to user-install mode without sudo
+    ln -s /dev {{prefix}}/lib/python{{version.marketing}}/site-packages
+    # ^^ probs nuts lol, but the below has repurcussions
+    # chmod -w {{prefix}}/lib/python{{version.marketing}}
+    # ^^ makes rm -rf ~/.tea/python.org on macOS fail
+
+    # some stuff expects python includes to be accessible without the prefix
+    cd include
+    mv python{{version.marketing}}/* .
+    rmdir python{{version.marketing}}
+    ln -s . python{{version.marketing}}
+
+  env:
+    ARGS:
+      - --prefix="{{ prefix }}"
+      - --with-ensurepip
+      - --enable-ipv6
+      - --disable-loadable-sqlite-extensions
+      - --with-system-expat
+      - --with-system-ffi
+      - --with-system-libmpdec
+      # - --enable-optimizations  # fails due to clang/llvm pkging bug on Linux
+      # - --with-lto  # fails on linux/aarch64
+      - --enable-shared
+    libdir:
+      lib/python{{version.marketing}}
+    darwin:
+      confdir:
+        $libdir/config-{{version.marketing}}-darwin
+    linux:
+      # ARGS:
+      #   - --with-dbmliborder=bdb
+      ARCH: ${{hw.arch}}
+      confdir:
+        $libdir/config-{{version.marketing}}-${ARCH/-/_}-linux-gnu
+    shebangs:
+      - bin/2to3-{{version.marketing}}
+      - bin/idle{{version.marketing}}
+      - bin/pydoc{{version.marketing}}
+      - bin/python{{version.marketing}}-config
+
+    OPENSSL_INCLUDES: ${{ deps.openssl.org.prefix }}/include
+    OPENSSL_LDFLAGS: -L{{ deps.openssl.org.prefix }}/lib
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script: |
+    # Check if sqlite is ok, because we build with --enable-loadable-sqlite-extensions
+    # and it can occur that building sqlite silently fails if OSX's sqlite is used.
+    python -c "import sqlite3"
+
+    # check to see if we can create a venv
+    python -m venv myvenv
+
+    # Check if some other modules import. Then the linked libs are working.
+    python -c "import _ctypes"
+    # python -c "import _decimal" #FIXME
+    python -c "import pyexpat"
+    python -c "import zlib"
+
+    # Verify that the selected DBM interface works
+    # FIXME: doen't work
+    # python $FIXTURE
+
+    if which -a pip | grep '{{ prefix }}'; then
+      exit 1
+    fi
+
+    echo '#include <Python.h>' > fixture.c
+    echo '#include <python{{version.major}}.{{version.minor}}/Python.h>' >> fixture.c
+    cc -c fixture.c
+  fixture: |
+    import dbm
+    with dbm.ndbm.open("test", "c") as db:
+        db[b"foo \\xbd"] = b"bar \\xbd"
+    with dbm.ndbm.open("test", "r") as db:
+        assert list(db.keys()) == [b"foo \\xbd"]
+        assert b"foo \\xbd" in db
+        assert db[b"foo \\xbd"] == b"bar \\xbd"

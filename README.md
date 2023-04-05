@@ -1,29 +1,34 @@
 ![tea](https://tea.xyz/banner.png)
 
-This pantry† is the complement to [pantry.core].
+# What is a Pantry?
 
-Longer term it will be split out into more pantries, some of which we hope
-will be maintained by their own communities.
+Pantries provide consistent metadata about open source packages. This
+metadata shouldn’t require manual collection, but at this current state in
+open source it does.
 
-> † see [pantry.zero] for “what is a pantry”
+It is collected and duplicated thousands of times. A huge waste of effort.
 
-# Use with tea/cli
+tea aims to eradicate this wasted effort, though unfortunately, the journey
+there will require—to some extent—doing that duplication one more time.
 
-[tea/cli] clones/updates this pantry and [pantry.core] when installed with
-the installer or when you run `tea --sync`. At this time pantries are not
-versioned.
+## Doing it a Little Better This Time
+
+Our format is YAML, which is at least non-proprietary and could be used by
+other tools without an independent parser. And we’re pulling in data from
+other sources as much as possible, eg. versions are taken from the
+“source” whenever possible.
 
 &nbsp;
 
 
 # Contributing
 
-Assuming you have tea+magic installed:
+Assuming you have tea (/w magic) installed:
 
 ```sh
-$ git clone https://github.com/teaxyz/pantry.extra
+$ git clone https://github.com/teaxyz/pantry
 
-$ cd pantry.extra
+$ cd pantry
 # all the following commands operate in `./tea.out`
 # your tea installation remains untouched
 
@@ -38,6 +43,9 @@ $ pkg build
 # ^^ needs a zero permissions GITHUB_TOKEN to use the GitHub API
 # either set `GITHUB_TOKEN` or run `gh auth login`
 
+$ foo
+# ^^ anything in the `provides:` key will now run
+
 $ pkg test
 # ^^ you need to write a test that verifies the package works
 
@@ -47,11 +55,13 @@ $ git push origin my-new-package
 $ gh pr create
 ```
 
-> `pkg` can be run without magic via `tea -E pkg` (this dev-env provides `+tea.xyz/brewkit`).
-> `gh` can be run without magic via `tea gh`.
-> `git` can be run without magic via `tea git`.
+> * `pkg` can be run without magic via `tea -E pkg` (this dev-env provides `+tea.xyz/brewkit`).
+> * `gh` can be run without magic via `tea gh`.
+> * `git` can be run without magic via `tea git`.
+> * `pkg build` and `pkg test` take a `-L` flag to run in a Linux Docker container
+> * All commands take an optional pkg-spec eg. `pkg build zlib.net^1.1`
 
-While in a pantry dev-env you can run commands from any built packages
+While inside a pantry dev-env you can run commands from any built packages
 provided you specified their `provides:` key.
 
 ## Packaging Guide
@@ -78,26 +88,13 @@ with their pull request then you can use GitHub’s CLI:
 $ gh pr checkout 123
 
 # or you can copy paste the URL:
-$ gh pr checkout https://github.com/teaxyz/pantry.extra/pull/123
+$ gh pr checkout https://github.com/teaxyz/pantry/pull/123
 
 # then open for editing:
 $ pkg edit
 ```
 
-&nbsp;
 
-
-# Dependencies
-
-| Project         | Version |
-|-----------------|---------|
-| tea.xyz/brewkit | ^0.3    |
-
-
-[pantry.zero]: https://github.com/teaxyz/pantry.zero
-[pantry.core]: https://github.com/teaxyz/pantry.core
-[wiki]: https://github.com/teaxyz/pantry.zero/wiki
-[tea/cli]: https://github.com/teaxyz/cli
+[wiki]: https://github.com/teaxyz/pantry/wiki
 [discussion]: https://github.com/orgs/teaxyz/discussions
-[PAT]: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token
 [IPFS]: https://ipfs.tech

@@ -1,0 +1,63 @@
+distributable:
+  url: https://github.com/rubygems/rubygems/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: rubygems/rubygems
+
+dependencies:
+  ruby-lang.org: '>=2.3'
+
+build:
+  dependencies:
+    gnu.org/patch: '*'
+  script: |
+    ruby setup.rb --prefix={{prefix}} --env-shebang --no-ri --no-rdoc
+
+    mkdir {{prefix}}/shim
+    cp props/proxy {{prefix}}/shim
+
+    cd "{{prefix}}"
+    patch -p1 < "$SRCROOT"/props/fit-n-finish.patch
+
+    # these are provided by ruby-lang.org
+    # we don’t know why they turn up here too…
+    for x in rake rbs rdbg typeprof; do
+      rm {{prefix}}/bin/$x
+    done
+
+    # We’re not a “GEMHOME” since we *are* gem, so yeah instead
+    # we have a RUBYLIB hack via our proxy script
+    for x in bin/*; do
+      mv $x shim
+      ln shim/proxy $x
+    done
+
+    rmdir {{prefix}}/plugins
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  env:
+    HOME: $PWD
+  script: |
+    gem install awesome_print
+    ruby -e 'require "rubygems"' -e 'require "awesome_print"' -e'ap $LOAD_PATH'
+    gem install hexapdf
+    v="$(~/.local/bin/hexapdf version | cut -d' ' -f2)"
+    test -d ~/.gem/ruby/3.2.0/gems/hexapdf-$v  #FIXME ruby version
+
+    gem install bundle
+    test -d ~/.gem/ruby/{{version.marketing}}.0/gems/bundle-0.0.1
+    test -f ~/.local/bin/bundle
+    ~/.local/bin/bundle --version
+
+provides:
+  - bin/bundle
+  - bin/bundler
+  - bin/gem
+  - bin/rake
+  - bin/rbs
+  - bin/rdbg
+  - bin/typeprof

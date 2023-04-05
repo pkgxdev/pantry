@@ -1,0 +1,95 @@
+distributable:
+  url: https://cache.ruby-lang.org/pub/ruby/{{version.marketing}}/ruby-{{version}}.tar.xz
+  strip-components: 1
+
+versions:
+  github: ruby/ruby
+
+dependencies:
+  openssl.org: ^1.1
+  pyyaml.org: ^0.2
+  zlib.net: ^1
+
+build:
+  dependencies:
+    freedesktop.org/pkg-config: ^0.29
+    gnu.org/gettext: ^0.21
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/patch: '*'
+  script: |
+    patch -p1 < props/mkconfig.rb.diff
+
+    ./configure \
+      --prefix="{{prefix}}" \
+      --enable-load-relative \
+      --disable-rubygems \
+      --without-gmp \
+      --with-rubyarchprefix={{prefix}}/lib/ruby \
+      --with-rubyhdrdir={{prefix}}/include \
+      --with-rubyarchhdrdir={{prefix}}/include \
+      --with-vendordir=no \
+      --with-vendorarchdir=no \
+      --with-sitedir=no \
+      --with-sitearchdir=no \
+      --disable-multiarch
+
+    make --jobs {{hw.concurrency}} install
+
+    cd "{{prefix}}/bin"
+
+    # we provide these as `rubygems.org`
+    for x in bundle bundler gem; do
+      test -f $x && rm $x
+    done
+
+    fix-shebangs.ts *
+
+    cd ../lib/ruby/{{version.marketing}}.0
+
+    # ruby itself provides the gems for these and we don’t want that
+    # we want to pkg them ourselves as part of rubygems.org
+    for x in bundler rubygems bundler.rb rubygems.rb; do
+      if test -d $x; then
+        rm -rf $x
+      else
+        rm $x
+      fi
+      ln -s ../../../../../rubygems.org/v\*/lib/$x
+    done
+
+    cd {{prefix}}
+    rm -rf share/ri
+    rm -rf share/doc
+    rm -rf lib/ruby/site_ruby
+    rm -rf lib/ruby/vendor_ruby
+
+    # weirdly files get put here and we can't figure out how to stop it
+    mv lib/*-{{hw.platform}}*/* lib
+    rmdir lib/*-{{hw.platform}}*
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99  # for native extensions
+    tea.xyz/gx/make: '*'
+  script: |
+    ruby -e 'puts "Hello World!"'
+
+provides:
+  - bin/erb
+  - bin/irb
+  - bin/racc
+  - bin/rake
+  - bin/rbs
+  - bin/rdbg
+  - bin/rdoc
+  - bin/ri
+  - bin/ruby
+  - bin/typeprof
+
+interprets:
+  extensions: rb
+  args: ruby
+
+companions:
+  rubygems.org: '*'

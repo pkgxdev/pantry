@@ -1,0 +1,34 @@
+distributable:
+  url: https://github.com/Netflix/vmaf/archive/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: Netflix/vmaf
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    mesonbuild.com: '*'
+    ninja-build.org: '*'
+    nasm.us: '*'
+  working-directory: libvmaf
+  script: |
+    meson --prefix={{prefix}} --buildtype=release build
+    ninja -vC build
+    ninja -vC build install
+
+provides:
+  - bin/vmaf
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script: |
+    mv $FIXTURE b.c
+    cc b.c
+    ./a.out
+  fixture: |
+    #include <libvmaf/libvmaf.h>
+    int main() {
+      return 0;
+    }

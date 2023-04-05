@@ -1,0 +1,33 @@
+distributable:
+  url: https://gmplib.org/download/gmp/gmp-{{ version }}.tar.xz
+  strip-components: 1
+
+#FIXME: need actual versions
+versions:
+  - 6.2.1
+
+#TODO make by default runs test
+# disable that
+# but we should have a `build.test` node that runs it after build
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/m4: 1
+  script: |-
+    ./configure \
+      --enable-cxx \
+      --with-pic \
+      --build={{ hw.target }} \
+      --prefix="{{ prefix }}"
+    make --jobs {{ hw.concurrency }}
+    make --jobs {{ hw.concurrency }} check
+    make --jobs {{ hw.concurrency }} install
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script: |
+    cc test.c {{ prefix }}/lib/libgmp.a
+    ./a.out

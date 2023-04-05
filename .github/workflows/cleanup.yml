@@ -1,6 +1,7 @@
 # cleans up our S3 staging area if a PR is closed without merge
 
 name: teaxyz s3 cleanup
+run-name: 'cleanup: ${{ github.event.pull_request.title }}'
 
 on:
   pull_request:
@@ -24,6 +25,6 @@ jobs:
           PR=$(echo ${{github.ref}} | sed -e 's_refs/pull/\(.*\)/merge_\1_')
 
           aws s3 rm --recursive s3://$AWS_S3_CACHE/pull-request/$REPO/$PR
-        if: startsWith(github.ref, 'refs/pull/') && startsWith(github.repository, 'teaxyz/pantry.')
+        if: startsWith(github.ref, 'refs/pull/') && github.repository_owner == 'teaxyz'
         env:
           AWS_S3_CACHE: ${{ secrets.AWS_S3_CACHE }}
