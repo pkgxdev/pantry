@@ -1,0 +1,63 @@
+#!/bin/sh
+
+set -e
+test -n "$VERBOSE" && set -x
+
+if test -f "$1"/VERSION && test $(cat "$1"/VERSION) = $2; then
+  exit
+fi
+
+if command -v git >/dev/null; then
+  GIT="tea git"
+else
+  GIT=git
+fi
+
+mkdir -p "$1"
+cd "$1"
+
+tea gum format "# preparing for model fetch"
+echo  # spacer
+
+
+if test -d trackers; then
+  $GIT -C trackers fetch origin
+  $GIT -C trackers reset --hard origin/master
+else
+  $GIT clone "https://github.com/ngosang/trackerslist" trackers
+fi
+
+TRACKERS=$(grep -v '^#' "trackers/trackers_all.txt" | tr '\n' ',')
+
+# TODO: shouldn't this depend on the model we're using? gpt4all
+# TODO: if you've already got Llama, bc you used llama.cpp
+
+tea gum format <<EoMD
+# downloading 4b quantized whisper (7B) model
+models will be placed: \`$PWD\`
+> this may take a a few minutes…
+EoMD
+
+# --dir is .. coz the torrent is prefixed with a LLaMA directory
+tea aria2c \
+  --dir=.. \
+  --seed-time=0 \
+  --bt-tracker="$TRACKERS" \
+  --summary-interval=0 \
+  --check-integrity \
+  'magnet:?xt=urn:btih:FLWZABA5EDZXVC45YHEMX6W55O6S4HXK'
+
+tea gum format "# finalizing model"
+echo  #spacer
+# TODO: upgrade-model.py fails because ImportError in python
+#   cannot import name '_sentencepiece' from partially initialized module 
+#   'sentencepiece' (most likely due to a circular import)
+tea +google.com/sentencepiece upgrade-model.py 7B tokenizer.model
+
+rm 7B/ggml-model-q4_0.bin
+mv 7B/ggml-model-q4_0.bin.tmp 7B/ggml-model-q4_0.bin
+
+echo $2 > VERSION
+
+tea gum format "# All done!"
+echo  #spacer
