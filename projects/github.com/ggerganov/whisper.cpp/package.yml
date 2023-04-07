@@ -13,28 +13,24 @@ build:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
     freedesktop.org/pkg-config: ~0.29
-    gnu.org/wget: '*'
   script: |
     mkdir -p {{prefix}}/bin {{prefix}}/tbin {{prefix}}/share
-
-    make
-    mv main {{prefix}}/tbin/whisper.cpp
-
-    mv props/whisper.cpp {{prefix}}/bin
-
-    mv props/whisper-fetch {{prefix}}/tbin
-    mv $SRCROOT/examples {{prefix}}/share
-
-    wget \
-      --no-check-certificate \
-      'https://gist.githubusercontent.com/eiz/828bddec6162a023114ce19146cb2b82/raw/6b1d2b192815e6d61386a9a8853f2c3293b3f568/gistfile1.txt' \
-       -O {{prefix}}/tbin/upgrade-model.py
-    chmod +x {{prefix}}/tbin/upgrade-model.py
-    chmod +x {{prefix}}/tbin/whisper.cpp
-    chmod +x {{prefix}}/tbin/whisper-fetch
-    chmod +x {{prefix}}/bin/whisper.cpp
     
+    bash ./models/download-ggml-model.sh base.en
+    make --jobs {{ hw.concurrency }} 
+    
+    mv main {{prefix}}/bin/whisper.cpp
+    mv whisper.cpp {{prefix}}/tbin/whisper.cpp 
+    mv models/ggml-base.en.bin {{prefix}}/tbin/ggml-base.en.bin
+    mv samples/jfk.wav {{prefix}}/share
+
+    chmod +x {{prefix}}/tbin/whisper.cpp
+    chmod +x {{prefix}}/bin/whisper.cpp
+  # TODO: What if you do not want the base model?
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
 
 test: |
-  {{prefix}}/tbin/whisper.cpp --help
+  whisper.cpp -m {{prefix}}/tbin/ggml-base.en.bin -f {{prefix}}/share/jfk.wav --print-colors
 # testing more than this requires downloading the models 😬
