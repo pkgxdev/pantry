@@ -1,5 +1,6 @@
 name: new-version
 run-name: building ${{ inputs.projects }}
+
 on:
   workflow_dispatch:
     inputs:
@@ -18,17 +19,36 @@ jobs:
         - linux+x86-64
         - darwin+aarch64
         - linux+aarch64
-    uses: ./.github/workflows/build.yml
-    with:
-      new-version: true
-      projects: ${{ inputs.projects }}
-      platform: ${{ matrix.platform }}
-    secrets: inherit
+    steps:
+      - name: build
+        uses: ./.github/workflows/build.yml
+        with:
+          new-version: true
+          projects: ${{ inputs.projects }}
+          platform: ${{ matrix.platform }}
+        secrets: inherit
+
+      - name: complain
+        if: failure()
+        uses: ./.github/actions/complain.yml
+        with:
+          projects: ${{ inputs.projects }}
+          platform: ${{ inputs.platform }}
+        secrets: inherit
 
   index_data:
     needs: [build]
-    if: success()
-    uses: ./.github/workflows/index-data.yml
-    with:
-      projects: ${{ inputs.projects }}
-    secrets: inherit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: teaxyz/setup@v0
+        with:
+          srcroot: null
+      - uses: teaxyz/brewkit/actions/cache@v0
+      - run: ./.github/scripts/index-packages.ts ${{ inputs.projects }}
+        env:
+          TEA_PANTRY_PATH: ${{ github.workspace }}
+          AWS_REGION: us-east-1
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          SQS_GENERATE_PACKAGE_DETAILS_URL: ${{ secrets.SQS_GENERATE_PACKAGE_DETAILS_URL }}
