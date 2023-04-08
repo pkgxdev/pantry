@@ -3,7 +3,7 @@ distributable:
   strip-components: 1
 
 versions:
-  github: nodejs/node/tags
+  github: nodejs/node/releases/tags
 
 companions:
   npmjs.com: '*'
@@ -27,11 +27,6 @@ build:
     python.org: '>=3.7 <3.11'
     freedesktop.org/pkg-config: ^0.29
   script: |
-    if test "{{ hw.platform }}" = "darwin"; then
-      # nodejs wants `dtrace` in the path.
-      export PATH="$PATH:/usr/sbin"
-    fi
-
     ./configure $ARGS
     make --jobs {{ hw.concurrency }} install
   env:
