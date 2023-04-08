@@ -13,8 +13,11 @@ build:
   dependencies:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
-  script: |
-    make PREFIX="{{prefix}}" CFLAGS="-ggdb -O0 -ftrapv $CFLAGS" CPPFLAGS="$CPPFLAGS" LDFLAGS="$LDFLAGS" --jobs {{ hw.concurrency }} install
+  script:
+    make --environment-overrides --jobs {{ hw.concurrency }} install
+  env:
+    PREFIX: ${{prefix}}
+    CFLAGS: -ggdb -O0 -ftrapv -fPIC
 
 provides:
   - bin/tldr
