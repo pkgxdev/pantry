@@ -1,0 +1,30 @@
+distributable:
+  url: https://dlcdn.apache.org/apr/apr-util-{{ version }}.tar.bz2
+  strip-components: 1
+
+versions:
+  github: apache/apr-util/tags
+
+provides:
+  - bin/apu-{{ version.major }}-config
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    apache.org/apr: '*'
+    openssl.org: '*'
+    libexpat.github.io: '*'
+    sqlite.org: '*'
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }}
+    make install
+  env:
+    ARGS:
+      - --prefix="{{ prefix }}"
+      - --with-apr="{{ deps.apache.org/apr.prefix }}"
+
+test:
+  script: |
+    test "$(apu-{{ version.major }}-config --version)" = "{{ version }}"
