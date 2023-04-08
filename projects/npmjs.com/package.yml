@@ -12,10 +12,6 @@ provides:
 dependencies:
   nodejs.org: '>=14'
 
-runtime:
-  env:
-    NPM_CONFIG_UPDATE_NOTIFIER: false
-
 build:
   dependencies:
     crates.io/semverator: '*'
@@ -26,4 +22,9 @@ build:
 
     node . install --global --prefix={{prefix}} $ARGS
 
-test: npx -q tldr ls
+    mv props/npmrc {{prefix}}/lib/node_modules/npm
+
+test: |
+  npx -qy tldr ls
+  npm install --global cowsay
+  $HOME/.local/bin/cowsay xyz.tea.hi
