@@ -23,8 +23,14 @@ jobs:
       - name: build
         uses: ./.github/workflows/build.yml
         with:
-          new-version: true
           projects: ${{ inputs.projects }}
+          platform: ${{ matrix.platform }}
+        secrets: inherit
+
+      - name: bottle
+        uses: ./.github/workflows/bottle.yml
+        with:
+          new-version: true
           platform: ${{ matrix.platform }}
         secrets: inherit
 
@@ -34,7 +40,10 @@ jobs:
         with:
           projects: ${{ inputs.projects }}
           platform: ${{ inputs.platform }}
-        secrets: inherit
+          slack-webhook: ${{ secrets.SLACK_WEBHOOK }}
+          slack-channel: ${{ secrets.SLACK_CHANNEL }}
+        permissions:
+          issues: write
 
   index_data:
     needs: [build]

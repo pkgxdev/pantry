@@ -8,43 +8,44 @@ inputs:
   platform:
     description: platform key
     required: true
-
-runs:
-  using: composite
-
-permissions:
-  issues: write
+  token:
+    required: true
+    default: ${{ github.token }}
+  slack-webhook:
+    required: false
+  slack-channel:
+    required: false
 
 runs:
   using: composite
   steps:
-    - name: Find issue
+    - name: Find Issue
       uses: actions-cool/issues-helper@v3
       id: find
       with:
         actions: 'find-issues'
-        token: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ inputs.token }}
         issue-state: 'open'
         title-includes: "❌ build issues: ${{ inputs.projects }}"
         labels: 'build-failure'
 
-    - name: Create issue
+    - name: Create Issue
       uses: actions-cool/issues-helper@v3
       id: create
       if: ${{ steps.find.outputs.issues == '[]' }}
       with:
         actions: 'create-issue'
-        token: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ inputs.token }}
         title: "❌ build issues: ${{ inputs.projects }}"
         body: "Running log of build failures for ${{ inputs.projects }}"
         labels: 'build-failure'
         assignees: 'jhheider'
 
-    - name: Log comment
+    - name: Log Comment
       uses: actions-cool/issues-helper@v3
       with:
         actions: 'create-comment'
-        token: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ inputs.token }}
         issue-number: ${{ steps.create.outputs.issue-number || fromJSON(steps.find.outputs.issues)[0].number }}
         body: |
           # Build failure
@@ -57,9 +58,9 @@ runs:
       id: status
 
     - uses: rtCamp/action-slack-notify@v2
-      if: ${{ env.SLACK_WEBHOOK != '' }}
+      if: ${{ inputs.slack-webhook != '' }}
       env:
-        SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-        SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
+        SLACK_WEBHOOK: ${{ inputs.slack-webhook }}
+        SLACK_CHANNEL: ${{ inputs.slack-channel }}
         SLACK_MESSAGE: new-version:${{ inputs.projects }} (${{ inputs.platform }}) ${{ steps.status.outputs.status }}
         SLACK_COLOR: ${{ steps.status.outputs.status }}

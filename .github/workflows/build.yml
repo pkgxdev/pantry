@@ -9,10 +9,6 @@ on:
       platform:
         required: true
         type: string
-      new-version:
-        type: boolean
-        required: false
-        default: false
 
 jobs:
   get-platform:
@@ -139,15 +135,6 @@ jobs:
           echo "HAS_SECRETS=$HAS_SECRETS" >>$GITHUB_ENV
         env:
           HAS_SECRETS: ${{ secrets.AWS_S3_CACHE != null }}
-
-  bottle:
-    needs: [test]
-    if: inputs.new-version == true
-    uses: ./.github/workflows/bottle.yml
-    with:
-      new-version: ${{ inputs.new-version }}
-      platform: ${{ inputs.platform }}
-    secrets: inherit
 
   stage:
     needs: [test]
