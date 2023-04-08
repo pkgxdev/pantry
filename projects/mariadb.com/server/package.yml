@@ -1,0 +1,104 @@
+distributable:
+  url: https://github.com/MariaDB/server/archive/refs/tags/mariadb-{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: MariaDB/server/tags
+  strip: /^mariadb-/
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: '*'
+    cmake.org: '*'
+    facebook.com/zstd: '*'
+    freedesktop.org/pkg-config: '*'
+    gnu.org/bison: '*'
+    gnu.org/coreutils: '*'
+    openssl.org: '*'
+    pcre.org/v2: '*'
+    git-scm.org: '*'
+
+# What should these be???
+#           -DMYSQL_DATADIR={{ prefix }}/var/mysql \
+#           -DINSTALL_SYSCONFDIR=#{etc} \
+#           -DCOMPILATION_COMMENT=#{tap.user} \
+
+#       bzip2: {if: linux, then: "*"}
+#       libxcrypt: {if: linux, then: "*"}
+#       libxml2: {if: linux, then: "*"}
+#       ncurses: {if: linux, then: "*"}
+#       readline: {if: linux, then: "*"}
+#       linux-pam: {if: linux, then: "*"}
+#       groonga: '*'
+  script: |
+    # Set basedir and ldata so that mysql_install_db can find the server
+    # without needing an explicit path to be set. This can still
+    # be overridden by calling --basedir= when calling.
+    # sed -i -e "s/basedir=\"\\\/usr\\\/local\"/basedir=\"{{ prefix }}\"/g" \
+    #        -e "s/ldata=\"\\\/usr\\\/local\\\/mysql\"/ldata=\"{{ prefix }}\\\/var\\\/mysql\"/g" \
+    #        scripts/mysql_install_db.sh
+    # # Use brew groonga
+    # rm -rf storage/mroonga/vendor/groonga
+    # # -DINSTALL_* are relative to prefix
+    cmake -S . -B _build \
+          -DMYSQL_DATADIR={{ prefix }}/var/mysql \
+          -DINSTALL_INCLUDEDIR=include/mysql \
+          -DINSTALL_MANDIR=share/man \
+          -DINSTALL_DOCDIR=share/doc/mariadb \
+          -DINSTALL_INFODIR=share/info \
+          -DINSTALL_MYSQLSHAREDIR=share/mysql \
+          -DWITH_LIBFMT=system \
+          -DWITH_SSL=system \
+          -DWITH_UNIT_TESTS=OFF \
+          -DDEFAULT_CHARSET=utf8mb4 \
+          -DDEFAULT_COLLATION=utf8mb4_general_ci \
+          -DINSTALL_SYSCONFDIR={{ prefix }}/etc \
+          -DCOMPILATION_COMMENT=IDK \
+          -DPLUGIN_ROCKSDB=NO
+
+#     cmake --build _build
+#     cmake --install _build
+#       # Fix my.cnf to point to {{ etc }} instead of /etc
+#       mkdir -p {{ etc }}/my.cnf.d
+#       sed -i 's/!includedir \/etc\/my.cnf.d/!includedir {{ etc }}\/my.cnf.d/' \
+#              {{ etc }}/my.cnf
+#       touch {{ etc }}/my.cnf.d/.homebrew_dont_prune_me
+#       # Don't create databases inside of the prefix!
+#       # See: https://github.com/Homebrew/homebrew/issues/4975
+#       rm -rf {{ prefix}}/data
+#       # Save space
+#       rm -rf {{ prefix}}/mysql-test {{ prefix}}/sql-bench
+#       # Link the setup script into {{ bin }}
+#       ln -s {{ prefix}}/scripts/mysql_install_db {{ bin }}/mysql_install_db
+#       # Fix up the control script and link into {{ bin }}
+#       sed -i 's/\(PATH="\)/\1{{ bin }}:/' {{ prefix}}/support-files/mysql.server
+#       ln -s {{ prefix}}/support-files/mysql.server {{ bin }}/mysql.server
+#       # Move sourced non-executable out of {{ bin }} into {{ libexec }}
+#       mkdir -p {{ libexec }}
+#       mv {{ bin }}/wsrep_sst_common {{ libexec }}
+#       # Fix up references to wsrep_sst_common
+#       sed -i 's|$(dirname "$0")/wsrep_sst_common|{{ libexec }}/wsrep_sst_common|g' \
+#              {{ bin }}/wsrep_sst_mysqldump \
+#              {{ bin }}/wsrep_sst_rsync \
+#              {{ bin }}/wsrep_sst_mariabackup
+#       # Install my.cnf that binds to 127.0.0.1 by default
+#       printf "[mysqld]\nbind-address = 127.0.0.1" > {{ buildpath }}/my.cnf
+#       sudo install {{ buildpath }}/my.cnf {{ etc }}/my.cnf
+
+# test:
+#   script: |
+#     mkdir -p mysql tmp
+#     mysql_install_db --no-defaults \
+#                       --user=#{ENV["USER"]} \
+#                       --basedir={{ prefix }} \
+#                       --datadir=#{testpath}/mysql \
+#                       --tmpdir=#{testpath}/tmp \
+#                       --auth-root-authentication-method=normal
+#     export port=$(python3 -c 'import socket; with socket.socket() as s: s.bind(("localhost", 0)); print(s.getsockname()[1])')
+#     nohup mysqld --no-defaults --user=#{ENV["USER"]} --datadir=#{testpath}/mysql \
+#            --port=$port --tmpdir=#{testpath}/tmp \
+#            >/tmp/mysqld-test.log 2>&1 &
+#     sleep 5
+#     mysql --port=$port --user=root --password= --execute='show databases;'
+#     mysqladmin --port=$port --user=root --password= shutdown
+#     (ps aux | grep mysqld | grep -v grep) && exit 1 || exit 0
