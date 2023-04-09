@@ -4,7 +4,7 @@ distributable:
   strip-components: 1
 
 versions:
-  - 9.2.7
+  - 9.4.4
   - 9.2.4
   #TODO
   # github: ghc/ghc/tags
@@ -65,9 +65,6 @@ build:
       rm -r $HOME/.cabal/bin
     fi
 
-    cabal update
-    cabal install alex happy $FLAGS
-
     export PATH="$HOME/.cabal/bin:$PATH"
     GHC="$HOME/.ghcup/bin/ghc"
 
@@ -81,7 +78,7 @@ build:
     rm compiler/GHC/Driver/Session.hs.bak
 
     ./configure $ARGS
-    hadrian/build -j --docs=none --prefix="{{prefix}}" install
+    hadrian/build $HADRIAN_ARGS install
 
     for shim in $(find "{{prefix}}/bin" -type f); do
       sed -i.bak -e 's_="{{prefix}}_="$(dirname $(dirname $0))_' $shim
@@ -108,11 +105,14 @@ build:
       - --with-curses-includes={{deps.invisible-island.net/ncurses.prefix}}/include/ncursesw
       - --with-intree-gmp
       - --with-system-libffi
+    HADRIAN_ARGS:
+      - -j
+      - --docs=none
+      - --flavour=release
+      - --prefix="{{prefix}}"
     linux:
       C_INCLUDE_PATH: ${{deps.invisible-island.net/ncurses.prefix}}/include/ncursesw
       # ^^ yep telling `./configure` about it just aint enough
-      # ChatGPT
-      FLAGS: --flags=-fPIC
     darwin:
       ARGS:
       - --with-ffi-includes=$(xcrun --show-sdk-path)/usr/include/ffi
