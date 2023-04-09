@@ -19,34 +19,45 @@ jobs:
         - linux+x86-64
         - darwin+aarch64
         - linux+aarch64
+    uses: ./.github/workflows/build.yml
+    with:
+      projects: ${{ inputs.projects }}
+      platform: ${{ matrix.platform }}
+    secrets: inherit
+
+  bottle:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+        - darwin+x86-64
+        - linux+x86-64
+        - darwin+aarch64
+        - linux+aarch64
+    needs: [build]
+    uses: ./.github/workflows/bottle.yml
+    with:
+      new-version: true
+      platform: ${{ matrix.platform }}
+    secrets: inherit
+
+  complain:
+    needs: [build, bottle]
+    if: failure()
+    permissions:
+      issues: write
+    runs-on: ubuntu-latest
     steps:
-      - name: build
-        uses: ./.github/workflows/build.yml
-        with:
-          projects: ${{ inputs.projects }}
-          platform: ${{ matrix.platform }}
-        secrets: inherit
-
-      - name: bottle
-        uses: ./.github/workflows/bottle.yml
-        with:
-          new-version: true
-          platform: ${{ matrix.platform }}
-        secrets: inherit
-
-      - name: complain
-        if: failure()
-        uses: ./.github/actions/complain.yml
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/complain.yml
         with:
           projects: ${{ inputs.projects }}
           platform: ${{ inputs.platform }}
           slack-webhook: ${{ secrets.SLACK_WEBHOOK }}
           slack-channel: ${{ secrets.SLACK_CHANNEL }}
-        permissions:
-          issues: write
 
   index_data:
-    needs: [build]
+    needs: [bottle]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
