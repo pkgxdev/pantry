@@ -1,0 +1,119 @@
+distributable:
+  url: https://cdn.mysql.com/Downloads/MySQL-8.0/mysql-boost-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: mysql/mysql-server/tags
+  strip: /^mysql-/
+
+dependencies:
+  unicode.org: '>=71'
+  libevent.org: ^2
+  lz4.org: ^1
+  openssl.org: ^1.1
+  protobuf.dev: ^21
+  zlib.net: ^1.2
+  facebook.com/zstd: ^1
+  curl.se: '>=6.0'
+  thrysoee.dk/editline: ^3
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    cmake.org: ^3
+    freedesktop.org/pkg-config: ^0.29
+  working-directory: build
+  script: |
+    cmake .. $ARGS
+    make --jobs {{ hw.concurrency }} install
+
+  env:
+    ARGS:
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DFORCE_INSOURCE_BUILD=1
+      - -DCOMPILATION_COMMENT=tea.xyz
+      - -DINSTALL_DOCDIR=share/doc
+      - -DINSTALL_INCLUDEDIR=include
+      - -DINSTALL_INFODIR=share/info
+      - -DINSTALL_MANDIR=share/man
+      - -DINSTALL_MYSQLSHAREDIR=share
+      - -DINSTALL_PLUGINDIR=lib/plugin
+      - -DSYSCONFDIR=/etc
+      - -DWITH_SYSTEM_LIBS=ON
+      - -DWITH_EDITLINE=system
+      - -DWITH_ICU=system
+      - -DWITH_LIBEVENT=system
+      - -DWITH_LZ4=system
+      - -DWITH_PROTOBUF=system
+      - -DWITH_SSL=system
+      - -DWITH_ZLIB=system
+      - -DWITH_ZSTD=system
+      - -DWITH_UNIT_TESTS=OFF
+      - -DENABLED_LOCAL_INFILE=1
+      - -DWITH_INNODB_MEMCACHED=ON
+
+      #FIXME pkg this and change to =system
+      - -DWITH_FIDO=bundled
+
+      #FIXME mysql requires boost=1.77
+      # which seems perfect for us right! Since we version independently
+      # however boost has only just started using github so its tags only
+      # go back to 1.82 lol. So we need to extend the version mechanism
+      # so that it can do both github and an array
+      - -DDOWNLOAD_BOOST=1
+      - -DWITH_BOOST=boost
+    linux/aarch64:
+      ARGS:
+      - -DCMAKE_CXX_FLAGS="-mno-outline-atomics"
+      #^^ https://www.mail-archive.com/ports@freebsd.org/msg00418.html
+
+provides:
+  - bin/mysql_client_test
+  - bin/my_print_defaults
+  - bin/myisam_ftdump
+  - bin/myisamchk
+  - bin/myisamlog
+  - bin/myisampack
+  - bin/mysql
+  - bin/mysql_config
+  - bin/mysql_config_editor
+  - bin/mysql_keyring_encryption_test
+  - bin/mysql_migrate_keyring
+  - bin/mysql_secure_installation
+  - bin/mysql_ssl_rsa_setup
+  - bin/mysql_tzinfo_to_sql
+  - bin/mysql_upgrade
+  - bin/mysqladmin
+  - bin/mysqlbinlog
+  - bin/mysqlcheck
+  - bin/mysqld
+  - bin/mysqld_multi
+  - bin/mysqld_safe
+  - bin/mysqldump
+  - bin/mysqldumpslow
+  - bin/mysqlimport
+  - bin/mysqlpump
+  - bin/mysqlrouter
+  - bin/mysqlrouter_keyring
+  - bin/mysqlrouter_passwd
+  - bin/mysqlrouter_plugin_info
+  - bin/mysqlshow
+  - bin/mysqlslap
+  - bin/mysqltest
+  - bin/mysqltest_safe_process
+  - bin/mysqlxtest
+
+test:
+  dependencies:
+    gnu.org/coreutils: ^9
+  script: |
+    mkdir -p mysql
+    mkdir -p tmp
+    mysqld --no-defaults --initialize-insecure --user=$USER --datadir=$PWD/mysql --tmpdir=$PWD/tmp
+    PORT=$(shuf -i 2000-65000 -n 1)
+    mysqld --no-defaults --user=$USER --datadir=$PWD/mysql --port=$PORT --tmpdir=$PWD/tmp &
+    sleep 5
+    mysql --port=$PORT --user=root --password= --execute='show databases;'
+    mysqladmin --port=$PORT --user=root --password= shutdown
