@@ -1,0 +1,70 @@
+distributable:
+  # The github version doesn't have ./configure
+  url: https://dlcdn.apache.org/httpd/httpd-{{ version }}.tar.bz2
+  strip-components: 1
+
+versions:
+  github: apache/httpd/tags
+
+build:
+  dependencies:
+    apache.org/apr: '*'
+    apache.org/apr-util: '*'
+    openssl.org: ^1.1
+    pcre.org: '*'
+
+  script: |
+    ./configure --prefix={{ prefix }}
+    make
+    make install
+
+provides:
+  - bin/ab
+  - bin/apachectl
+  - bin/apxs
+  - bin/checkgid
+  - bin/dbmmanage
+  - bin/fcgistarter
+  - bin/htcacheclean
+  - bin/htdbm
+  - bin/htdigest
+  - bin/htpasswd
+  - bin/httpd
+  - bin/httxt2dbm
+  - bin/logresolve
+  - bin/rotatelogs
+
+test:
+  dependencies:
+    curl.se: '*'
+  script: |
+    set -x
+
+    port="37676"
+    cat <<EOS > httpd.conf
+    Listen $port
+    ServerName localhost:$port
+    DocumentRoot "{{ prefix }}/htdocs"
+    LoadModule authz_core_module {{ prefix }}/modules/mod_authz_core.so
+    LoadModule unixd_module {{ prefix }}/modules/mod_unixd.so
+    LoadModule dir_module {{ prefix }}/modules/mod_dir.so
+    EOS
+
+    httpd -X -f $PWD/httpd.conf &
+    trap "kill ${!}; true" EXIT
+    sleep 3
+    if ! curl -s "http://localhost:$port/" | grep -qF "It works!"; then
+      echo "Homebrew Apache HTTPD test: failed"
+      exit 1
+    fi
+    #httpd -V | grep -Fq "Built with OpenSSL version: 'OpenSSL 1.1"
+
+    if [ "$(uname)" != "Darwin" ]; then
+      httpd -V | grep -Fq "Deflate (Zlib) support: enabled"
+    fi
+    apxs -q APU_CONFIG
+
+    apachectl start
+    trap "apachectl stop; true" EXIT
+    sleep 2
+    curl --silent --show-error --fail --retry 10 --retry-max-time 30 -X GET -H 'Content-Type: text/html' http://localhost:$port | grep -qF "It works!"
