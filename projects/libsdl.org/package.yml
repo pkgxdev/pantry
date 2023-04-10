@@ -1,0 +1,43 @@
+distributable:
+  url: https://github.com/libsdl-org/SDL/archive/refs/tags/release-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: libsdl-org/SDL/releases
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    freedesktop.org/pkg-config: ~0.29
+    gnu.org/autoconf: '*'
+    gnu.org/automake: '*'
+    gnu.org/libtool: 2.4.7
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --with-x
+      - --enable-hidapi
+      - --enable-pulseaudio
+      - --enable-pulseaudio-shared
+      - --enable-video-dummy
+      - --enable-video-opengl
+      - --enable-video-opengles
+      - --enable-video-x11
+      - --enable-video-x11-scrnsaver
+      - --enable-video-x11-xcursor
+      - --enable-video-x11-xinerama
+      - --enable-video-x11-xinput
+      - --enable-video-x11-xrandr
+      - --enable-video-x11-xshape
+      - --enable-x11-shared
+
+provides:
+  - bin/sdl2-config
+
+test:
+  script:
+    sdl2-config --version
