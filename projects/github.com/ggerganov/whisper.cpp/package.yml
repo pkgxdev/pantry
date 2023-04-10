@@ -14,23 +14,23 @@ build:
     tea.xyz/gx/make: '*'
     freedesktop.org/pkg-config: ~0.29
   script: |
-    mkdir -p {{prefix}}/bin {{prefix}}/tbin {{prefix}}/share
+    mkdir -p {{prefix}}/bin {{prefix}}/tbin {{prefix}}/tbin/models {{prefix}}/share
     
     bash ./models/download-ggml-model.sh base.en
     make --jobs {{ hw.concurrency }} 
     
-    mv main {{prefix}}/bin/whisper.cpp
-    mv whisper.cpp {{prefix}}/tbin/whisper.cpp 
-    mv models/ggml-base.en.bin {{prefix}}/tbin/ggml-base.en.bin
+    mv main {{prefix}}/tbin/whisper.cpp
+    mv props/whisper.cpp {{prefix}}/bin/whisper.cpp
+    mv models/ggml-base.en.bin {{prefix}}/tbin/models/base.en.bin
     mv samples/jfk.wav {{prefix}}/share
 
     chmod +x {{prefix}}/tbin/whisper.cpp
     chmod +x {{prefix}}/bin/whisper.cpp
-  # TODO: What if you do not want the base model?
   env:
     ARGS:
       - --prefix="{{prefix}}"
 
 test: |
-  whisper.cpp -m {{prefix}}/tbin/ggml-base.en.bin -f {{prefix}}/share/jfk.wav --print-colors
+  whisper.cpp -f {{prefix}}/share/jfk.wav --print-colors
+# whisper.cpp -m {{prefix}}/models/base.en.bin -f {{prefix}}/share/jfk.wav --print-colors
 # testing more than this requires downloading the models 😬
