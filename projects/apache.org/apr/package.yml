@@ -13,6 +13,11 @@ build:
     ./configure $ARGS
     make --jobs {{ hw.concurrency }}
     make install
+
+    cd {{prefix}}/include
+    mv apr-{{version.major}}/* .
+    rmdir apr-{{version.major}}
+    ln -s . apr-{{version.major}}
   env:
     # add any environment variables here
     ARGS:
