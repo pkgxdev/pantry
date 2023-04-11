@@ -1,0 +1,39 @@
+distributable:
+  url: https://www.libssh2.org/download/libssh2-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: libssh2/libssh2
+  strip: /^libssh2-/
+
+dependencies:
+  openssl.org: ^1.1
+  zlib.net: ^1.2
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --with-openssl
+      - --with-libz
+      - --disable-examples-build
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  fixture: |
+    #include <libssh2.h>
+    int main(void) {
+      libssh2_exit();
+      return 0;
+    }
+  script: |
+    mv $FIXTURE b.c
+    cc b.c -lssh2
+    ./a.out
