@@ -19,8 +19,14 @@ test:
     tea.xyz/gx/cc: c99
   script: |
     mv $FIXTURE fixture.c
-    echo "Program('fixture.c')" > SConstruct
-    scons
+
+    # scons doesn’t import the external environment
+    # this means nobody will enjoy using scons with tea so we have to fix that
+    echo "import os" > SConstruct
+    echo "env = Environment(ENV = os.environ)" >> SConstruct
+    echo "env.Program('fixture.c')" >> SConstruct
+
+    scons --debug=explain
     test $(./fixture) = "xyz.tea.hello-world"
   fixture: |
     #include <stdio.h>
