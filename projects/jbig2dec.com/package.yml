@@ -1,0 +1,27 @@
+distributable:
+  url: https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs9531/jbig2dec-0.19.tar.gz
+  strip-components: 1
+
+versions:
+  - 0.19
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/automake: '*'
+    gnu.org/libtool: '*'
+  script: |
+    ./autogen.sh --prefix={{prefix}}
+    make install
+
+provides:
+  - bin/jbig2dec
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    curl.se: '*'
+  script: |
+    curl -LO https://github.com/apache/tika/raw/master/tika-parsers/src/test/resources/test-documents/testJBIG2.jb2
+    jbig2dec -t pbm --hash testJBIG2.jb2 | grep aa35470724c946c7e953ddd49ff5aab9f8289aaf
