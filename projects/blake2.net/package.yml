@@ -1,0 +1,23 @@
+distributable:
+  url: https://github.com/BLAKE2/libb2/releases/download/v{{version}}/libb2-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: BLAKE2/libb2
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    # ^^ often packages need dependencies to build, it is very common for
+    # packages to need a C compiler and make, the above provide those
+  script: |
+    ./configure --prefix="{{prefix}}"
+    make --jobs {{ hw.concurrency }} install
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script: |
+    cc fixture.c -lb2
+    ./a.out
