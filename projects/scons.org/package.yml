@@ -1,0 +1,28 @@
+distributable:
+  url: https://downloads.sourceforge.net/project/scons/scons/{{version}}/SCons-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: SCons/scons
+
+dependencies:
+  python.org: ~3.11
+
+build:
+  python-venv.sh {{prefix}}/bin/scons
+
+provides:
+  - bin/scons
+
+test:
+  script: |
+    mv $FIXTURE fixture.c
+    echo "Program('fixture.c')" > SConstruct
+    scons
+    test $(./fixture) = "xyz.tea.hello-world"
+  fixture: |
+    #include <stdio.h>
+    int main() {
+      printf("xyz.tea.hello-world");
+      return 0;
+    }
