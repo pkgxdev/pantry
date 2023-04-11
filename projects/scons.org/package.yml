@@ -1,0 +1,36 @@
+distributable:
+  url: https://downloads.sourceforge.net/project/scons/scons/{{version}}/SCons-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: SCons/scons
+
+dependencies:
+  python.org: ~3.11
+
+build:
+  python-venv.sh {{prefix}}/bin/scons
+
+provides:
+  - bin/scons
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script: |
+    mv $FIXTURE fixture.c
+
+    # scons doesn’t import the external environment
+    # this means nobody will enjoy using scons with tea so we have to fix that
+    echo "import os" > SConstruct
+    echo "env = Environment(ENV = os.environ)" >> SConstruct
+    echo "env.Program('fixture.c')" >> SConstruct
+
+    scons --debug=explain
+    test $(./fixture) = "xyz.tea.hello-world"
+  fixture: |
+    #include <stdio.h>
+    int main() {
+      printf("xyz.tea.hello-world");
+      return 0;
+    }
