@@ -1,0 +1,29 @@
+versions:
+  - 2023.04.12
+
+provides:
+  - bin/ggml
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    cmake.org: '3'
+    git-scm.org: '*'
+  script: |
+    git init .
+    git remote add origin https://github.com/ggerganov/ggml.git
+    git pull origin master
+    git checkout 0265f08
+    cmake . $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DBUILD_SHARED_LIBS=ON
+
+
+test: |
+  {{prefix}}/tbin/ggml --help
+# testing more than this requires downloading the models 😬
