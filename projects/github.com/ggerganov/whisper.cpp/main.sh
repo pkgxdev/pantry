@@ -7,16 +7,18 @@ D="$(cd "$(dirname "$0")"/.. && pwd)"
 VERSION="$(basename "$D")"
 MODEL_DIR=""$D"/tbin/models"
 
-echo $D 
+export PATH="$D/tbin:$PATH"
 
-if test $1 = chat; then
-  exec "$D"/tbin/whisper.cpp \
-    --m "$MODEL_DIR"/base.en.bin \
+whisper-fetch $MODEL_DIR $VERSION
+
+if test $1 = example; then
+  exec "$D"/tbin/main \
+    -m "$MODEL_DIR"/ggml-base.en.bin \
     --print-colors \
     -f "$D"/share/jfk.wav
 else
-  exec "$D"/tbin/whisper.cpp \
+  exec "$D"/tbin/main \
     --print-colors \
-    --model "$MODEL_DIR"/base.en.bin \
+    --model "$MODEL_DIR"/ggml-base.en.bin \
     "$@"
 fi

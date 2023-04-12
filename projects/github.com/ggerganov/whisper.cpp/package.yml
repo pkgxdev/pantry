@@ -6,31 +6,47 @@ versions:
   github: ggerganov/whisper.cpp/tags
 
 provides:
-  - bin/whisper.cpp
+  - bin/whisper.main
+  - bin/whisper.stream 
+  - bin/whisper.command 
 
 build:
   dependencies:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
     freedesktop.org/pkg-config: ~0.29
+    libsdl.org: '*'
   script: |
-    mkdir -p {{prefix}}/bin {{prefix}}/tbin {{prefix}}/tbin/models {{prefix}}/share
+    mkdir -p {{prefix}}/bin {{prefix}}/tbin/models {{prefix}}/share
     
-    bash ./models/download-ggml-model.sh base.en
     make --jobs {{ hw.concurrency }} 
+    make stream 
+    make command 
     
-    mv main {{prefix}}/tbin/whisper.cpp
-    mv props/whisper.cpp {{prefix}}/bin/whisper.cpp
-    mv models/ggml-base.en.bin {{prefix}}/tbin/models/base.en.bin
-    mv samples/jfk.wav {{prefix}}/share
+    mv main {{prefix}}/tbin/main
+    mv stream {{prefix}}/tbin/stream
+    mv command {{prefix}}/tbin/command 
 
-    chmod +x {{prefix}}/tbin/whisper.cpp
-    chmod +x {{prefix}}/bin/whisper.cpp
-  env:
-    ARGS:
-      - --prefix="{{prefix}}"
+    mv models/download-ggml-model.sh {{prefix}}/tbin/models/download-ggml-model.sh
+
+    mv props/main.sh {{prefix}}/bin/whisper.main
+    mv props/stream.sh {{prefix}}/bin/whisper.stream
+    mv props/command.sh {{prefix}}/bin/whisper.command
+    mv props/whisper-fetch.sh {{prefix}}/tbin/whisper-fetch
+    
+    mv samples/jfk.wav {{prefix}}/share
+    mv examples/command/commands.txt {{prefix}}/share
+
+    chmod +x {{prefix}}/tbin/main
+    chmod +x {{prefix}}/bin/whisper.main
+
+    chmod +x {{prefix}}/tbin/stream
+    chmod +x {{prefix}}/bin/whisper.stream
+
+    chmod +x {{prefix}}/tbin/command
+    chmod +x {{prefix}}/bin/whisper.command
+
+    chmod +x {{prefix}}/tbin/whisper-fetch
 
 test: |
-  whisper.cpp -f {{prefix}}/share/jfk.wav --print-colors
-# whisper.cpp -m {{prefix}}/models/base.en.bin -f {{prefix}}/share/jfk.wav --print-colors
-# testing more than this requires downloading the models 😬
+  whisper.main example --print-colors
