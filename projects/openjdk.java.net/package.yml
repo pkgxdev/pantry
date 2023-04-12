@@ -1,0 +1,91 @@
+distributable:
+  url: https://github.com/openjdk/jdk20u/archive/refs/tags/jdk-{{version.major}}+{{version.minor}}.tar.gz
+  strip-components: 1
+
+versions:
+  - 20.36
+
+dependencies:
+  giflib.sourceforge.io: ^5
+  harfbuzz.org: ^7
+  jpeg.org/jpegxl: ^0.8
+  libpng.org: ^1
+  littlecms.com: ^2
+  zlib.net: ^1
+  libzip.org: ^1
+  info-zip.org/unzip: ^6
+  # darwin:
+  #   apple.com/xcode: '*'
+  # linux:
+  #   cups
+  #   depends_on "alsa-lib"
+  #   depends_on "fontconfig"
+  #   depends_on "freetype"
+  #   depends_on "libx11"
+  #   depends_on "libxext"
+  #   depends_on "libxrandr"
+  #   depends_on "libxrender"
+  #   depends_on "libxt"
+  #   depends_on "libxtst"
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    freedesktop.org/pkg-config: ^0.29
+    gnu.org/bash: '*'
+    gnu.org/autoconf: ^2
+  script: |
+    if ! test -d $BOOT_JDK_D; then
+      mkdir boot-jdk
+      curl "$BOOT_JDK" | tar xz -C boot-jdk --strip-components=2
+    fi
+
+    bash ./configure $ARGS --with-boot-jdk=$BOOT_JDK_D
+    make JOBS={{ hw.concurrency }} images
+    mv build/*/images/jdk-bundle/* {{prefix}}
+  env:
+    darwin:
+      BOOT_JDK_D: $SRCROOT/boot-jdk/Contents/Home
+    linux:
+      BOOT_JDK_D: $SRCROOT/boot-jdk
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --disable-warnings-as-errors
+      # - --with-boot-jdk-jvmargs=#{java_options}
+      - --with-debug-level=release
+      - --with-jvm-variants=server
+      - --with-native-debug-symbols=none
+      - --with-vendor-bug-url="https://github.com/teaxyz/pantry/issues"
+      - --with-vendor-name=tea.xyz
+      - --with-vendor-url="https://tea.xyz"
+      - --with-vendor-version-string={{tea.version}}
+      - --with-vendor-vm-bug-url="https://github.com/teaxyz/pantry/issues"
+      - --with-version-build={{version.minor}}
+      - --without-version-opt
+      - --without-version-pre
+      - --with-giflib=system
+      - --with-harfbuzz=system
+      - --with-lcms=system
+      - --with-libjpeg=system
+      - --with-libpng=system
+      - --with-zlib=system
+      - --disable-debug
+    darwin/aarch64: {BOOT_JDK: https://download.java.net/java/GA/jdk19.0.1/afdd2e245b014143b62ccb916125e3ce/10/GPL/openjdk-19.0.1_macos-aarch64_bin.tar.gz}
+    darwin/x86-64:  {BOOT_JDK: https://download.java.net/java/GA/jdk19.0.1/afdd2e245b014143b62ccb916125e3ce/10/GPL/openjdk-19.0.1_macos-x64_bin.tar.gz}
+    linux/aarch64:  {BOOT_JDK: https://download.java.net/java/GA/jdk19.0.1/afdd2e245b014143b62ccb916125e3ce/10/GPL/openjdk-19.0.1_linux-aarch64_bin.tar.gz}
+    linux/x86-64:   {BOOT_JDK: https://download.java.net/java/GA/jdk19.0.1/afdd2e245b014143b62ccb916125e3ce/10/GPL/openjdk-19.0.1_linux-x64_bin.tar.gz}
+
+provides:
+  - bin/foo
+  # ^^ specify the binaries or tea magic won’t work
+
+test:
+  dependencies:
+    foo.com: '*'  # asterisk means “any version, usually the latest”
+  script:
+    test "$(foo --version)" = {{version}}
+    # if it’s a tool check the version matches
+    # you should run the tool to check it works!
+    # if it's a library then you should *use* the library
+    # don’t forget to check other package.ymls in the pantry for examples!
