@@ -1,0 +1,60 @@
+distributable:
+  url: https://dlcdn.apache.org/subversion/subversion-{{version}}.tar.bz2
+  strip-components: 1
+
+versions:
+  - 1.14.2
+
+dependencies:
+  gnu.org/gettext: ^0.21
+  lz4.org: ^1
+  openssl.org: ^1.1
+  github.com/JuliaStrings/utf8proc: ^2
+  libexpat.github.io: ^2
+  kerberos.org: ^1.20
+  sqlite.org: ^3
+  zlib.net: ^1.2
+
+build:
+  dependencies:
+    freedesktop.org/pkg-config: ^0.29
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    apache.org/apr-util: ^1
+    apache.org/apr: ^1
+    swig.org: ^4
+    python.org: ^3.11
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }}
+    make install
+  env:
+    CFLAGS: -I{{deps.apache.org/apr-util.prefix}}/include/apr-1
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --disable-debug
+      - --enable-optimize
+      - --disable-mod-activation
+      - --disable-plaintext-password-storage
+      - --with-apxs=no
+      - --without-apache-libexecdir
+      - --without-berkeley-db
+      - --without-gpg-agent
+      - --without-jikes
+      - --with-apr-util={{deps.apache.org/apr-util.prefix}}
+
+provides:
+  - bin/svn
+  - bin/svnadmin
+  - bin/svnbench
+  - bin/svndumpfilter
+  - bin/svnfsfs
+  - bin/svnlook
+  - bin/svnmucc
+  - bin/svnrdump
+  - bin/svnserve
+  - bin/svnsync
+  - bin/svnversion
+
+test:
+  svn --version
