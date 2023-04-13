@@ -23,7 +23,8 @@ build:
   env:
     linux:
       RUSTFLAGS: "-C linker=cc"
-      OPENSSL_NO_VENDOR: true
-      OPENSSL_DIR: "{{ deps.openssl.org.prefix }}"
+      # See: https://docs.rs/openssl/latest/openssl/#manual
+      OPENSSL_NO_VENDOR: true # Always find OpenSSL in the system, even if the vendored feature is enabled.
+      OPENSSL_DIR: "{{ deps.openssl.org.prefix }}" # Use tea's openssl installation directory
 
 test: gitui --version
