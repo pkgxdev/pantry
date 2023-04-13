@@ -1,0 +1,25 @@
+distributable:
+  url: https://ftp.gnu.org/gnu/stow/stow-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  - 2.3.1
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --disable-debug
+
+provides:
+  - bin/stow
+
+test: |
+  mkdir xyz.tea.test.d
+  stow -nvS xyz.tea.test.d
