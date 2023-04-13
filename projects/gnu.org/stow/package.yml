@@ -5,17 +5,29 @@ distributable:
 versions:
   - 2.3.1
 
+dependencies:
+  perl.org: ^5.6.1
+
+runtime:
+  env:
+    PERL5LIB: ${{prefix}}/lib/perl5
+
 build:
   dependencies:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
+    cpanmin.us: ^1
   script: |
+    cpanm -l {{prefix}} Test::More Test::Output
     ./configure $ARGS
     make --jobs {{ hw.concurrency }} install
+
+    fix-shebangs.ts {{prefix}}/bin/*
   env:
     ARGS:
       - --prefix="{{prefix}}"
-      - --disable-debug
+      - --with-pmdir={{prefix}}/lib/perl{{deps.perl.org.version.major}}
+    PERL5LIB: ${{prefix}}/lib/perl{{deps.perl.org.version.major}}
 
 provides:
   - bin/stow
