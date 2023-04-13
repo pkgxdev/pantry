@@ -1,0 +1,61 @@
+distributable:
+  #url: https://github.com/ravenscroftj/ggml/archive/{{version}}.tar.gz
+  url: https://github.com/ravenscroftj/ggml/archive/8f81ed5028229f7d9d815fc8a4c7732d08cbf79b.tar.gz
+  strip-components: 1
+
+versions:
+  - 2023.04.12
+
+provides:
+  - bin/codegen
+  - bin/codegen-quantize
+  - bin/codegen-serve
+  - bin/gpt-2
+  - bin/gpt-2-quantize
+  - bin/gpt-j
+  - bin/gpt-j-quantize
+  # - bin/test-blas0
+  # - bin/test-grad0
+  # - bin/test-mul-mat0
+  # - bin/test-mul-mat1
+  # - bin/test-mul-mat2
+  # - bin/test-svd0
+  # - bin/test-vec0
+  # - bin/test-vec2
+  # - bin/test0
+  # - bin/test1
+  # - bin/test2
+  # - bin/test3
+  - bin/whisper
+  - bin/whisper-quantize
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    cmake.org: '3'
+    boost.org: '*'
+    git-scm.org: '*'
+  script: |
+    cmake . $ARGS
+    make --jobs {{ hw.concurrency }} install
+    mv bin {{ prefix }}
+    mv include {{ prefix }}
+
+  env:
+    ARGS:
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_BUILD_TYPE=Release
+
+# test:
+#   dependencies:
+#     tea.xyz/gx/cc: c99
+#   fixture: |
+#     #include <ggml.dylib>
+#     int main() {
+#       return 0;
+#     }
+#   script: |
+#     mv $FIXTURE fixture.cpp
+#     c++ fixture.cpp
+#     ./a.out
