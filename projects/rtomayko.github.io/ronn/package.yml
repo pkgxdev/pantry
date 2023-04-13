@@ -1,0 +1,37 @@
+distributable:
+  url: https://github.com/rtomayko/ronn/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: rtomayko/ronn/tags
+
+build:
+  dependencies:
+    rubygems.org: '*'
+    tea.xyz/gx/make: '*'
+    tea.xyz/gx/cc: '*'
+  env:
+    GEM_HOME: ${{prefix}}
+    GEM_PATH: ${{prefix}}
+  script: |
+    gem build ronn.gemspec
+
+    gem install \
+      --no-user-install \
+      --bindir={{prefix}}/gems/bin \
+      --no-document \
+      ronn-{{version}}.gem
+
+    mkdir "{{prefix}}"/bin
+    mv props/ronn "{{prefix}}"/bin
+
+provides:
+  - bin/ronn
+
+test:
+  script: |
+    ronn --date 1970-01-01 $FIXTURE
+  fixture: |
+      simple(7) -- a simple ronn example
+      ==================================
+      This document is created by ronn.
