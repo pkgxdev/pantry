@@ -9,7 +9,7 @@ MODEL_DIR=$1
 VERSION=$2
 
 # Default to base
-if [[ -z "$MODEL_NAME" ]]; then
+if [ -z "$MODEL_NAME" ]; then
   MODEL_NAME="base"
 fi
 

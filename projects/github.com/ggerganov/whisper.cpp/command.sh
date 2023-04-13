@@ -11,13 +11,6 @@ export PATH="$D/tbin:$PATH"
 
 whisper-fetch $MODEL_DIR $VERSION
 
-
-if test $1 = example; then
-  exec "$D"/tbin/command \
-    -m "$MODEL_DIR"/ggml-base.en.bin \
-    -cmd "$D"/share/commands.txt
-else
-  exec "$D"/tbin/command \
+exec "$D"/tbin/command \
     -m "$MODEL_DIR"/ggml-base.en.bin \
     "$@"
-fi
