@@ -1,0 +1,39 @@
+distributable:
+  url: https://www.x.org/archive/individual/lib/libSM-{{version}}.tar.xz
+  strip-components: 1
+
+versions:
+  - 1.2.4
+
+dependencies:
+  x.org/ice: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    freedesktop.org/pkg-config: ~0.29
+    x.org/xtrans: '*'
+  script: |
+    ./configure \
+      --prefix="{{prefix}}" \
+      --sysconfdir="$SHELF"/etc \
+      --localstatedir="$SHELF"/var
+    make --jobs {{ hw.concurrency }} install
+  env:
+    SHELF: ${{tea.prefix}}/x.org
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script: |
+    mv $FIXTURE test.c
+    cc test.c
+    ./a.out
+  fixture: |
+    #include "X11/SM/SMlib.h"
+
+    int main(int argc, char* argv[]) {
+      SmProp prop;
+      return 0;
+    }
