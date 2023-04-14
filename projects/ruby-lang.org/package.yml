@@ -10,6 +10,10 @@ dependencies:
   pyyaml.org: ^0.2
   zlib.net: ^1
 
+runtime:
+  env:
+    GEM_PATH: ${{prefix}}/lib/ruby/gems/{{version.marketing}}.0/gems
+
 build:
   dependencies:
     freedesktop.org/pkg-config: ^0.29
@@ -64,6 +68,9 @@ build:
     rm -rf lib/ruby/site_ruby
     rm -rf lib/ruby/vendor_ruby
 
+    # mkmf.rb expects to find the include here.
+    ln -s ../../include lib/ruby/
+
     # weirdly files get put here and we can't figure out how to stop it
     mv lib/*-{{hw.platform}}*/* lib
     rmdir lib/*-{{hw.platform}}*
@@ -74,6 +81,7 @@ test:
     tea.xyz/gx/make: '*'
   script: |
     ruby -e 'puts "Hello World!"'
+    rake --version
 
 provides:
   - bin/erb
