@@ -21,16 +21,16 @@ build:
     # musl is linux only, so just make passthrough scripts on Darwin
     if test {{ hw.platform }} != "linux"
     then
-      mkdir {{ prefix }}/bin
-      cat > {{ prefix }}/ld.musl-clang <<EOF
+      mkdir -p "{{ prefix }}/bin"
+      cat > {{ prefix }}/bin/ld.musl-clang <<EOF
     #!/bin/sh
     exec ld "$@"
     EOF
-    cat > {{ prefix }}/musl-clang <<EOF
+    cat > {{ prefix }}/bin/musl-clang <<EOF
     #!/bin/sh
     exec cc "$@"
     EOF
-      chmod +x {{ prefix }}/ld.musl-clang {{ prefix }}/musl-clang
+      chmod +x {{ prefix }}/bin/ld.musl-clang {{ prefix }}/bin/musl-clang
       exit
     fi
 
