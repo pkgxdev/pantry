@@ -12,15 +12,23 @@ provides:
   - bin/mpicalc
 
 build:
-  script: |
-    ./configure --prefix={{prefix}}
-    make
-    make check
-    make install
   dependencies:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
     gnupg.org/libgpg-error: 1
+  script: |
+    ./configure $ARGS
+    make
+    make check
+    make install
+  env:
+    ARGS:
+    - --prefix={{prefix}}
+    linux/x86-64:
+      ARGS:
+        # basic.c:317:16: error: inline assembly requires more registers than available
+        #   asm volatile("movdqu %[data0], %%xmm0\n"
+        - --disable-asm
 
 test:
   script: |
