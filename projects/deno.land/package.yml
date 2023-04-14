@@ -37,7 +37,9 @@ build:
     fi
 
     # change default bindir to ~/.local/bin per our conventions
-    git apply props/default_bindir.diff
+    sed -i.bak -e 's/home_path.push(".deno")/home_path.push(".local")/' cli/tools/installer.rs
+    rm cli/tools/installer.rs.bak
+    grep home_path cli/tools/installer.rs
 
     cargo build --release
     mkdir -p "{{ prefix }}"/bin
