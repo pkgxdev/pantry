@@ -61,10 +61,14 @@ build:
 
     # this is not an acceptable solution, do you know a better one? pls PR 🙏
     #FIXME also this sed line sucks but I got bored trying to make it work
-    sed -i.bak -e 's/4.15,/4.17,/' cabal-install.cabal
+    sed -i.bak \
+      -e 's/build-depends: base.*/build-depends: base >=4.10 \&\& <5/' \
+      -e 's/text.*>=.*/text       >= 1.2.3    \&\& < 3,/' \
+      cabal-install.cabal
     # ^^ SEE https://github.com/haskell/cabal/issues/8118
     rm *.bak
 
+    mkdir -p "{{prefix}}/bin"
     ../../bootstrap/cabal v2-update
     ../../bootstrap/cabal v2-install \
       --install-method=copy \
