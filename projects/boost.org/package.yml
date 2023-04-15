@@ -15,7 +15,13 @@ build:
     tea.xyz/gx/make: '*'
   script: |
     ./bootstrap.sh --prefix={{ prefix }}
-    ./b2 install --prefix={{ prefix }}
+    ./b2 cxxflags="$CXXFLAGS" install --prefix={{ prefix }}
+  env:
+    linux/x86-64:
+      CXXFLAGS: -fPIC
+    linux/aarch64:
+      # fixes cannot preempt symbol: boost::...
+      CXXFLAGS: -fvisibility=hidden
 
 test:
   dependencies:
