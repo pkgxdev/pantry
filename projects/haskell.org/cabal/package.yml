@@ -46,11 +46,11 @@ build:
       ADDITIONAL_CABAL_FLAGS="--with-gcc=clang"
     fi
 
-    if test ! -e ../../bootstrap/cabal; then
-      if test ! -e ../../bootstrap; then
-        mkdir ../../bootstrap
+    if test ! -e .bootstrap/cabal; then
+      if test ! -e .bootstrap; then
+        mkdir .bootstrap
       fi
-      curl -L "${BOOTSTRAP}" | tar Jxf - -C ../../bootstrap
+      curl -L "${BOOTSTRAP}" | tar Jxf - -C .bootstrap
     fi
 
     ## This seems dirty, but building is an internal-only gig atm.
@@ -69,8 +69,8 @@ build:
     rm *.bak
 
     mkdir -p "{{prefix}}/bin"
-    ../../bootstrap/cabal v2-update
-    ../../bootstrap/cabal v2-install \
+    ./.bootstrap/cabal v2-update
+    ./.bootstrap/cabal v2-install \
       --install-method=copy \
       --installdir={{prefix}}/bin \
       $ADDITIONAL_CABAL_FLAGS
