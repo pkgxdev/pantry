@@ -12,7 +12,7 @@ interprets:
 
 build:
   dependencies:
-    tea.xyz/gx/cc: '*'
+    tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
     git-scm.org: '*'
   script: |
@@ -21,9 +21,9 @@ build:
       git apply props/int-types.diff
     fi
 
-    make
+    cc -std=gnu11 -w -o v vc/v.c -lm
 
-    mkdir {{prefix}}/{libexec,bin}
+    mkdir -p "{{prefix}}/"{libexec,bin}
 
     cp -R cmd thirdparty v v.mod vlib {{prefix}}/libexec/
 
