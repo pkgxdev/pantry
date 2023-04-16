@@ -11,11 +11,8 @@ dependencies:
 
 build:
   script: |
-    python-venv.sh {{prefix}}/bin/blackd
-    python-venv.sh {{prefix}}/bin/black
-  env:
-    OPTIONAL_DEPS: "[d]"
-
+    python-venv.py {{prefix}}/bin/black --extra d
+    cp {{prefix}}/bin/black {{prefix}}/bin/blackd
 
 provides:
   - bin/black
@@ -23,5 +20,5 @@ provides:
 
 test:
   script: |
-    black --version | grep "^black, {{version}}"
-    blackd --version
+    test "$(black --version | grep black | sed 's/.*, \([^ ]*\) .*/\1/')" = "{{ version }}"
+    test "$(blackd --version | sed 's/.* //')" = "{{ version }}"
