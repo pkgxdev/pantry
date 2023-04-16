@@ -1,10 +1,10 @@
 distributable:
-  url: https://github.com/vlang/v/archive/refs/tags/{{ version }}.tar.gz
+  url: https://github.com/vlang/v/archive/refs/tags/weekly.{{ version.raw }}.tar.gz
   strip-components: 1
 
 versions:
-  github: vlang/v/tags
-  ignore: /weekly\./
+  github: vlang/v
+  strip: /weekly\./
 
 interprets:
   extensions: v
@@ -21,8 +21,7 @@ build:
       git apply props/int-types.diff
     fi
 
-    cc -std=gnu11 -w -o v vc/v.c -lm
-
+    make
     mkdir -p "{{prefix}}/"{libexec,bin}
 
     cp -R cmd thirdparty v v.mod vlib {{prefix}}/libexec/
