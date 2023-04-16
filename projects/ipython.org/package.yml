@@ -1,0 +1,22 @@
+distributable:
+  url: https://github.com/ipython/ipython/archive/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: ipython/ipython/tags
+
+provides:
+  - bin/ipython
+  - bin/ipython3
+
+dependencies:
+  python.org: '>=3.7'
+
+build:
+  script: |
+    python-venv.py {{prefix}}/bin/ipython
+    cp {{prefix}}/bin/ipython {{prefix}}/bin/ipython3
+
+test:
+  script: |
+    test "$(ipython --version)" = "{{ version }}"
