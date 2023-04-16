@@ -4,7 +4,6 @@ distributable:
 
 provides:
   - bin/hx
-  - runtime
 
 versions:
   github: helix-editor/helix/tags
@@ -13,11 +12,13 @@ build:
   dependencies:
     rust-lang.org: '>=1.60'
     rust-lang.org/cargo: '*'
-  script:
+  script: |
     cargo install --locked --path helix-term --root {{prefix}}
+    mkdir -p "{{prefix}}"/share
+    cp -a runtime "{{prefix}}"/share
 
 test: hx --health
 
 runtime:
   env:
-    HELIX_RUNTIME: ${{prefix}}/runtime
+    HELIX_RUNTIME: ${{prefix}}/share/runtime
