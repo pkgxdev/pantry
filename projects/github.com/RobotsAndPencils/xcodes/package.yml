@@ -18,12 +18,9 @@ build:
   dependencies:
     tea.xyz/gx/cc: c99
   script: |
-    swift build \
-      --configuration release \
-      --disable-sandbox \
-      --build-path build
+    swift build --configuration release
     mkdir -p {{prefix}}/bin
-    mv build/release/xcodes {{prefix}}/bin
+    mv $(swift build --show-bin-path)/xcodes {{prefix}}/bin
 
 test:
   xcodes version | grep {{version}}
