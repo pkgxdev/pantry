@@ -1,0 +1,29 @@
+distributable:
+  url: https://github.com/RobotsAndPencils/xcodes/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: RobotsAndPencils/xcodes
+
+companions:
+  aria2.github.io: '*'
+
+platforms:
+  - darwin
+
+provides:
+  - bin/xcodes
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script: |
+    swift build \
+      --configuration release \
+      --disable-sandbox \
+      --build-path build
+    mkdir -p {{prefix}}/bin
+    mv build/release/xcodes {{prefix}}/bin
+
+test:
+  xcodes version | grep {{version}}
