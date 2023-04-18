@@ -25,6 +25,11 @@ build:
     freedesktop.org/pkg-config: ^0.29
   working-directory: build
   script: |
+    # https://www.mail-archive.com/ports@freebsd.org/msg00418.html
+    # And they *force* it on
+    sed -i.bak -e 's/\(STRING_APPEND.*moutline-atomics.*\)/# \1/' ../CMakeLists.txt
+    rm ../CMakeLists.txt.bak
+
     cmake .. $ARGS
     make --jobs {{ hw.concurrency }} install
 
@@ -67,6 +72,7 @@ build:
     linux/aarch64:
       ARGS:
       - -DCMAKE_CXX_FLAGS="-mno-outline-atomics"
+      - -DCMAKE_C_FLAGS="-mno-outline-atomics"
       #^^ https://www.mail-archive.com/ports@freebsd.org/msg00418.html
 
 provides:
