@@ -97,7 +97,11 @@ build:
     cd include
     mv python{{version.marketing}}$SUFFIX/* .
     rmdir python{{version.marketing}}$SUFFIX
-    ln -s . python{{version.marketing}}$SUFFIX
+    ln -s . python{{version.marketing}}
+    # Keep the suffixed version if we started with one
+    if test -n "$SUFFIX"; then
+      ln -s . python{{version.marketing}}$SUFFIX
+    fi
 
   env:
     ARGS:
