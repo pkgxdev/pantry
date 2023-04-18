@@ -72,6 +72,8 @@ build:
     # older versions use a different config dir
     if semverator satisfies '<3.8' {{ version }}; then
       confdir=$(echo $confdir | sed -e 's/\(config-{{ version.marketing }}\)/\1m/')
+      # 3.7 and older use `python3.7m` for include dir
+      SUFFIX=m
     fi
 
     # make relocatable
@@ -93,9 +95,9 @@ build:
 
     # some stuff expects python includes to be accessible without the prefix
     cd include
-    mv python{{version.marketing}}/* .
-    rmdir python{{version.marketing}}
-    ln -s . python{{version.marketing}}
+    mv python{{version.marketing}}$SUFFIX/* .
+    rmdir python{{version.marketing}}$SUFFIX
+    ln -s . python{{version.marketing}}$SUFFIX
 
   env:
     ARGS:
