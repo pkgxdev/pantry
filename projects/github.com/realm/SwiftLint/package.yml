@@ -1,0 +1,26 @@
+distributable:
+  url: https://github.com/realm/SwiftLint/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: realm/SwiftLint/releases/tags
+
+platforms:
+  - darwin
+
+provides:
+  - bin/swiftlint
+
+warnings:
+  - vendored
+
+build:
+  working-directory: vendor
+  script: |
+    curl -Lfo swiftlint.zip "https://github.com/realm/SwiftLint/releases/download/{{version}}/portable_swiftlint.zip"
+    unzip -o swiftlint.zip
+    mkdir -p "{{prefix}}/bin"
+    mv swiftlint "{{prefix}}/bin"
+
+test:
+  script: test "$(swiftlint --version)" = {{version}}
