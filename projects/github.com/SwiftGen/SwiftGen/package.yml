@@ -1,0 +1,25 @@
+distributable:
+  url: https://github.com/SwiftGen/SwiftGen/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: SwiftGen/SwiftGen/releases/tags
+
+platforms:
+  - darwin
+
+provides:
+  - bin/swiftgen
+
+warnings:
+  - vendored
+
+build:
+  script: |
+    curl -Lfo swiftgen.zip "https://github.com/SwiftGen/SwiftGen/releases/download/{{version}}/swiftgen-{{version}}.zip"
+    unzip swiftgen.zip
+    mkdir -p "{{ prefix }}/bin"
+    mv bin/swiftgen "{{ prefix }}/bin"
+
+test:
+  script: test "$(swiftgen --version)" = {{version}}
