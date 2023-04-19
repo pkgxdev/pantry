@@ -15,11 +15,13 @@ warnings:
   - vendored
 
 build:
+  working-directory: vendor
   script: |
     curl -Lfo swiftgen.zip "https://github.com/SwiftGen/SwiftGen/releases/download/{{version}}/swiftgen-{{version}}.zip"
     unzip swiftgen.zip
-    mkdir -p "{{ prefix }}/bin"
-    mv bin/swiftgen "{{ prefix }}/bin"
+    mkdir -p "{{prefix}}/bin"
+    mv bin/swiftgen "{{prefix}}/bin"
 
 test:
-  script: test "$(swiftgen --version)" = {{version}}
+  script: |
+    [[ "$(swiftgen --version)" = "SwiftGen v{{version}}"* ]]
