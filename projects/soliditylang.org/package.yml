@@ -10,9 +10,7 @@ provides:
   - bin/yul-phaser
 
 dependencies:
-  # boost 1.82 errors out with PIC and
-  # preemption errors on linux+aarch64
-  boost.org: ">=1.70<1.82"
+  boost.org: ^1.70
 
 interprets:
   extensions: sol
@@ -51,6 +49,10 @@ build:
     - -DCMAKE_INSTALL_PREFIX={{prefix}}
     - -DPEDANTIC=OFF  # otherwise fails due to deprecations in boost ^1.81
     - -DSTRICT_Z3_VERSION=OFF # otherwise complains about Z3 version in cmake
+    linux:
+      ARGS:
+      # ChatGPT thinks this will fix the pre-emption errors
+      - -DCMAKE_CXX_FLAGS="-fPIC -Wl,--allow-multiple-definition"
 
 test:
   solc --bin fixture.sol
