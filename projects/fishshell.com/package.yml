@@ -17,24 +17,23 @@ build:
     freedesktop.org/pkg-config: '*'
     gnu.org/patch: '*'
     git-scm.org: ^2 # needed for fish's pcre
-  script: |
+  script:
     # By default, fish's fish_command_not_found handler will redirect to stderr,
     # return an exit code of 127. Always. This patch fixes it. Hopefully, it will
     # be merged upstream soon. https://github.com/fish-shell/fish-shell/pull/9517
+    - patch -p1 <props/command_not_found_handler.diff
 
-    patch -p1 <props/command_not_found_handler.diff
+    - echo {{version}} >version
 
-    echo {{version}} >version
+    - run: |
+        cmake .. $ARGS
+        make install
+      working-directory: build
 
-    mkdir build
-    cd build
-
-    cmake .. $ARGS
-    make install
-
-    cd {{prefix}}/share/fish
-    sed -i.bak -e "s| $TEA_PREFIX/| (tea --prefix)/|g" __fish_build_paths.fish
-    rm __fish_build_paths.fish.bak
+    - run: |
+        sed -i.bak -e "s| $TEA_PREFIX/| \$TEA_PREFIX/|g" __fish_build_paths.fish
+        rm __fish_build_paths.fish.bak
+      working-directory: ${{prefix}}/share/fish
   env:
     ARGS:
       - -DCMAKE_BUILD_TYPE=Release
