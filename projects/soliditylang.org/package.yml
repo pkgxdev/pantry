@@ -10,7 +10,9 @@ provides:
   - bin/yul-phaser
 
 dependencies:
-  boost.org: 1
+  # boost 1.82 errors out with PIC and
+  # preemption errors on linux+aarch64
+  boost.org: ">=1.70<1.82"
 
 interprets:
   extensions: sol
@@ -49,10 +51,11 @@ build:
     - -DCMAKE_INSTALL_PREFIX={{prefix}}
     - -DPEDANTIC=OFF  # otherwise fails due to deprecations in boost ^1.81
     - -DSTRICT_Z3_VERSION=OFF # otherwise complains about Z3 version in cmake
-    - -DCMAKE_C_FLAGS=-fPIC
-    - -DCMAKE_CXX_FLAGS=-fPIC
-    - -DCMAKE_EXE_LINKER_FLAGS=-pie
     linux/x86-64:
+      ARGS:
+      - -DCMAKE_C_FLAGS=-fPIC
+      - -DCMAKE_CXX_FLAGS=-fPIC
+      - -DCMAKE_EXE_LINKER_FLAGS=-pie
       CFLAGS: -fPIC
       CXXFLAGS: -fPIC
       LDFLAGS: -pie
