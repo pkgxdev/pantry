@@ -7,6 +7,7 @@ versions:
 
 dependencies:
   x.org/x11: '*'
+  zlib.net: ^1.2
 
 build:
   dependencies:
@@ -18,7 +19,9 @@ build:
     ./configure \
       --prefix="{{prefix}}" \
       --sysconfdir="$SHELF"/etc \
-      --localstatedir="$SHELF"/var
+      --localstatedir="$SHELF"/var \
+      --disable-open-zfile \
+      --disable-stat-z
     make --jobs {{ hw.concurrency }} install
   env:
     SHELF: ${{tea.prefix}}/x.org
