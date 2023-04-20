@@ -15,7 +15,13 @@ build:
     tea.xyz/gx/make: '*'
   script: |
     ./bootstrap.sh --prefix={{ prefix }}
-    ./b2 install --prefix={{ prefix }}
+    ./b2 install $ARGS
+  env:
+    ARGS:
+    - --prefix={{ prefix }}
+    - cxxflags=-std=c++14
+    - cxxflags=-stdlib=libc++
+    - linkflags=-stdlib=libc++
 
 test:
   dependencies:
