@@ -1,0 +1,38 @@
+distributable:
+  url: https://github.com/php/php-src/archive/refs/tags/php-{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: php/php-src/tags
+  strip: /^php-/
+
+dependencies:
+  openssl.org: '*'
+  gnome.org/libxml2: '*'
+  zlib.net: '*'
+  libpng.org: '*'
+  freetype.org: '*'
+  libjpeg-turbo.org: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    ./configure --prefix={{prefix}} --with-openssl --with-libxml --with-zlib --with-png --with-freetype --with-jpeg
+    make --jobs {{hw.concurrency}} install
+
+provides:
+  - bin/php
+  - bin/php-cgi
+
+test:
+  dependencies:
+    openssl.org: '*'
+    gnome.org/libxml2: '*'
+    zlib.net: '*'
+    libpng.org: '*'
+    freetype.org: '*'
+    libjpeg-turbo.org: '*'
+  script:
+    test "$(php --version)" = "PHP {{version}}"
