@@ -15,6 +15,7 @@ dependencies:
   pcre.org/v2: '*'
   libzip.org: '*'
   gnome.org/libxml2: '*'
+  gnu.org/readline: '*'
 
 build:
   dependencies:
@@ -25,17 +26,15 @@ build:
   script: |
     ./configure \
     --enable-pdo \
-    --enable-mbregex \
     --enable-mbstring \
-    --enable-phpdbg-readline \
     --with-pdo-mysql \
     --with-mysqli \
-    --enable-mbstring \
     --with-curl \
     --with-zlib-dir \
     --with-openssl \
-    --with-iconv=$(tea --prefix)/gnu.org/libiconv/v*
-    make --jobs {{ hw.concurrency }}
+    --with-iconv={{deps.gnu.org/libiconv.prefix}} \
+    --with-readline={{deps.gnu.org/readline.prefix}}
+    make
     make install
 
 provides:
