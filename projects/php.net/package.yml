@@ -1,0 +1,52 @@
+distributable:
+  url: https://www.php.net/distributions/php-{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: php/php-src/tags
+  strip: /^php-/
+
+dependencies:
+  openssl.org: '*'
+  sqlite.org: '>=3.7.7'
+  curl.se: '>=7.29.0'
+  gnu.org/libiconv: '>=1.17.0'
+  github.com/kkos/oniguruma: '*'
+  pcre.org/v2: '*'
+  libzip.org: '*'
+  gnome.org/libxml2: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/libtool: '*'
+    freedesktop.org/pkg-config: '*'
+    re2c.org: '*'
+    gnu.org/bison: '*'
+    gnu.org/autoconf: '*'
+  script: |
+    ./buildconf
+    ./configure \
+    --enable-pdo \
+    --enable-mbregex \
+    --enable-mbstring \
+    --enable-phpdbg-readline \
+    --with-pdo-mysql \
+    --with-mysqli \
+    --enable-mbstring \
+    --with-curl \
+    --with-zlib-dir \
+    --with-openssl \
+    --with-pear \
+    --with-iconv=$(tea --prefix)/gnu.org/libiconv/v* \
+    --without-password-argon2
+    make
+    make install
+
+provides:
+  - bin/php
+  - bin/php-cgi
+
+test:
+  php --version | grep {{ version }}
