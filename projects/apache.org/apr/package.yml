@@ -18,6 +18,10 @@ build:
     mv apr-{{version.major}}/* .
     rmdir apr-{{version.major}}
     ln -s . apr-{{version.major}}
+
+    cd ../bin
+    sed -i.bak "s_{{prefix}}_\$(cd \$(dirname \$0)/.. \&\& pwd)_g" apr-{{version.major}}-config
+    rm apr-{{version.major}}-config.bak
   env:
     # add any environment variables here
     ARGS:
