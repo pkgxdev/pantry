@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/skvadrik/re2c/archive/refs/tags/{{ version.raw }}.tar.gz
+  url: https://github.com/skvadrik/re2c/releases/download/{{ version.raw }}/re2c-{{ version.raw }}.tar.xz 
   strip-components: 1
 
 versions:
@@ -12,12 +12,10 @@ build:
   dependencies:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
-    gnu.org/automake: '*'
     gnu.org/autoconf: '*'
     gnu.org/libtool: '*'
     freedesktop.org/pkg-config: '*'
   script: |
-    ./autogen.sh
     ./configure $ARGS
     make --jobs {{ hw.concurrency }} install
   env:
@@ -29,4 +27,5 @@ provides:
   - man/man1/re2c.1
 
 test:
-  re2c --version
+  script: |
+    re2c --version | grep {{version}}
