@@ -1,0 +1,27 @@
+distributable:
+  url: https://github.com/aswinkarthik/csvdiff/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: aswinkarthik/csvdiff # reads github tags but only tags of releases (this is usually what you want)
+
+build:
+  dependencies:
+    go.dev: "*"
+  env:
+    LDFLAGS:
+      - -s
+      - -w
+      - -X main.version={{version}}
+  script: |
+    go build -ldflags "$LDFLAGS" -o csvdiff main.go
+    mkdir -p "{{ prefix }}"/bin
+    mv csvdiff "{{ prefix }}"/bin
+
+provides:
+  - bin/csvdiff
+
+test:
+  fixture: tea.xyz,is the greatest,MODIFIED
+  script: |
+    test "$(csvdiff file1.csv file2.csv --format rowmark)" = "$(cat $FIXTURE)"
