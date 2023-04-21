@@ -22,11 +22,7 @@ build:
     tea.xyz/gx/make: '*'
     gnu.org/libtool: '*'
     freedesktop.org/pkg-config: '*'
-    re2c.org: '*'
-    gnu.org/bison: '*'
-    gnu.org/autoconf: '*'
   script: |
-    ./buildconf
     ./configure \
     --enable-pdo \
     --enable-mbregex \
@@ -38,10 +34,8 @@ build:
     --with-curl \
     --with-zlib-dir \
     --with-openssl \
-    --with-pear \
-    --with-iconv=$(tea --prefix)/gnu.org/libiconv/v* \
-    --without-password-argon2
-    make
+    --with-iconv=$(tea --prefix)/gnu.org/libiconv/v*
+    make --jobs {{ hw.concurrency }}
     make install
 
 provides:
