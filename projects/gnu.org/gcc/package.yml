@@ -60,7 +60,7 @@ build:
     ARGS:
       - --prefix={{ prefix }}
       - --libdir={{ prefix }}/lib
-      - --enable-languages=c,c++,objc,obj-c++
+      - --enable-languages=c,c++,objc,obj-c++,fortran
       - --with-bugurl="https://github.com/teaxyz/pantry/issues"
       - --disable-bootstrap
       - --disable-nls
@@ -90,6 +90,9 @@ test: |
   ./test1
   g++ -o test2 test.cc
   test "$(./test2)" = "Hello, world!"
+  gfortran -o test3 test.f90
+  test "$(./test3)" = "Hello, world!"
+
 
 provides:
   - bin/gc++ # we provide c++ in tea.xyz/gx/cc
@@ -102,4 +105,5 @@ provides:
   - bin/gcov
   - bin/gcov-dump
   - bin/gcov-tool
+  - bin/gfortran
   - bin/lto-dump
