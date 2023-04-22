@@ -26,15 +26,19 @@ build:
     # configures npm to install to ~/.local
     - mv props/npmrc {{prefix}}/lib/node_modules/npm
 
-    # our shim fixes a bug where npm doesn’t work if ~/.local/lib doesn’t exist
+    # our shim fixes a bug where npx doesn’t work if ~/.local/lib doesn’t exist
     - run: |
-        mv ../bin/npm .
-        mv $SRCROOT/props/npm-shim ../bin/npm
+        rm npx
+        mv $SRCROOT/props/npx-shim npx
       working-directory:
-        ${{prefix}}/tbin
+        ${{prefix}}/bin
 
-test: |
-  npm install --global cowsay
-  $HOME/.local/bin/cowsay xyz.tea.hi
+test:
+  # doing first to test our shim works as expected
+  - npx -qy tldr ls
 
-  npx -qy tldr ls
+  - npm install --global cowsay
+
+  # verify install location is as we configure it
+  - $HOME/.local/bin/cowsay xyz.tea.hi
+
