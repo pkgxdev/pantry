@@ -7,35 +7,97 @@ versions:
   strip: /^php-/
 
 dependencies:
-  openssl.org: '*'
-  sqlite.org: '>=3.7.7'
-  curl.se: '>=7.29.0'
-  gnu.org/libiconv: '>=1.17.0'
-  github.com/kkos/oniguruma: '*'
-  pcre.org/v2: '*'
+  gnu.org/bison: '*'
+  re2c.org: '*'
+  apache.org/apr: '*'
+  apache.org/apr-util: '*'
+  bcrypt.sourceforge.net: '*'
+  gnu.org/autoconf: '*'
+  curl.se: '*'
+  gnu.org/gettext: '*'
+  gnu.org/gmp: '*'
+  libsodium.org: '*'
   libzip.org: '*'
+  github.com/kkos/oniguruma: '*'
+  openssl.org: '*'
+  pcre.org/v2: '>=10.30'
+  sqlite.org: '*'
+  unicode.org: '*'
+  gnu.org/libiconv: '*'
+  kerberos.org: '*'
   gnome.org/libxml2: '*'
-  gnu.org/readline: '*'
+
+  darwin:
+    sourceware.org/bzip2: '*'
+    sourceware.org/libffi: '*'
+    gnome.org/libxslt: '*'
+    zlib.net: '*'
 
 build:
   dependencies:
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
-    gnu.org/libtool: '*'
     freedesktop.org/pkg-config: '*'
+    darwin:
+      tukaani.org/xz: '*'
+
   script: |
     ./configure \
-    --enable-pdo \
+    --prefix={{prefix}} \
+    --enable-bcmath \
+    --enable-calendar \
+    --enable-dba \
+    --enable-exif \
+    --enable-ftp \
+    --enable-fpm \
+    --enable-gd \
+    --enable-intl \
+    --enable-mbregex \
     --enable-mbstring \
-    --with-pdo-mysql \
-    --with-mysqli \
+    --enable-mysqlnd \
+    --enable-pcntl \
+    --enable-phpdbg \
+    --enable-phpdbg-readline \
+    --enable-shmop \
+    --enable-soap \
+    --enable-sockets \
+    --enable-sysvmsg \
+    --enable-sysvsem \
+    --enable-sysvshm \
     --with-curl \
-    --with-zlib-dir \
-    --with-openssl \
+    --with-external-gd \
+    --with-external-pcre \
+    --with-ffi \
+    --with-gettext={{deps.gnu.org/gettext.prefix}} \
+    --with-gmp={{deps.gnu.org/gmp.prefix}} \
     --with-iconv={{deps.gnu.org/libiconv.prefix}} \
-    --with-readline={{deps.gnu.org/readline.prefix}}
-    make
+    --with-kerberos \
+    --with-layout=GNU \
+    --with-libxml \
+    --with-libedit \
+    --with-openssl \
+    --with-pdo-sqlite \
+    --with-pic \
+    --with-sodium \
+    --with-sqlite3 \
+    --with-unixODBC \
+    --with-xsl \
+    --with-zip \
+    --with-zlib \
+    $ARGS
+    make --jobs {{ hw.concurrency }}
     make install
+
+  env:
+    ARGS:
+      - --disable-dtrace
+      - --without-ldap-sasl
+      - --without-ndbm
+      - --without-gdbm
+      - PKG_CONFIG_PATH=$PKG_CONFIG_PATH:{{deps.gnu.org/gettext.prefix}}
+      - PKG_CONFIG_PATH=$PKG_CONFIG_PATH:{{deps.gnome.org/libxml2.prefix}}
+    darwin:
+      ARGS:
+        - --enable-dtrace
+        - --with-ldap-sasl
 
 provides:
   - bin/php
