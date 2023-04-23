@@ -26,6 +26,8 @@ dependencies:
   gnu.org/libiconv: '*'
   kerberos.org: '*'
   gnome.org/libxml2: '*'
+  libgd.github.io: '*'
+  thrysoee.dk/editline: '*'
 
   darwin:
     sourceware.org/bzip2: '*'
@@ -36,6 +38,9 @@ dependencies:
 build:
   dependencies:
     freedesktop.org/pkg-config: '*'
+    gnu.org/gcc: '*'
+    tea.xyz/gx/make: '*'
+    freetype.org: '*'
     darwin:
       tukaani.org/xz: '*'
 
@@ -78,13 +83,11 @@ build:
     --with-pic \
     --with-sodium \
     --with-sqlite3 \
-    --with-unixODBC \
     --with-xsl \
     --with-zip \
     --with-zlib \
     $ARGS
-    make --jobs {{ hw.concurrency }}
-    make install
+    make --jobs {{ hw.concurrency }} install
 
   env:
     ARGS:
@@ -94,14 +97,16 @@ build:
       - --without-gdbm
       - PKG_CONFIG_PATH=$PKG_CONFIG_PATH:{{deps.gnu.org/gettext.prefix}}
       - PKG_CONFIG_PATH=$PKG_CONFIG_PATH:{{deps.gnome.org/libxml2.prefix}}
+      - PKG_CONFIG_PATH=$PKG_CONFIG_PATH:{{deps.github.com/kkos/oniguruma.prefix}}
+      - CC=gcc
     darwin:
       ARGS:
         - --enable-dtrace
         - --with-ldap-sasl
 
 provides:
-  - bin/php
-  - bin/php-cgi
+  - bin/php-config
+  - bin/phpize
 
 test:
-  php --version | grep {{ version }}
+  php-config --version | grep {{ version }}
