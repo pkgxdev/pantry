@@ -1,0 +1,32 @@
+distributable:
+  url: https://github.com/sigp/lighthouse/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: sigp/lighthouse
+  strip: /^v/
+
+dependencies:
+  zlib.net: ^1
+
+build:
+  dependencies:
+    tea.xyz/gx/make: '*'
+    rust-lang.org: ^1.66
+    rust-lang.org/cargo: '*'
+    cmake.org: ^3.12
+    protobuf.dev: '*'
+  script: |
+    make
+    mkdir -p "{{ prefix }}"/bin
+    mv .local/bin/lighthouse "{{ prefix }}"/bin
+  test:
+    make test-release
+
+
+provides:
+  - bin/lighthouse
+
+test: |
+  lighthouse account_manager wallet list
+  test -d ~/.lighthouse/mainnet/wallets

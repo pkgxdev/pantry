@@ -10,6 +10,12 @@ build:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
   script: |
+    if test "{{hw.platform}}" = "darwin"; then
+      mkdir -p "{{prefix}}"
+      touch "{{prefix}}/linux-only.h"
+      exit 0
+    fi
+
     ./configure $ARGS
     make --jobs {{hw.concurrency}} install
   env:
@@ -21,7 +27,11 @@ build:
       - --disable-gcc-Werror
 
 provides:
-  - bin/strace
+  darwin: []
+  linux:
+    - bin/strace
 
-test:
-  strace true 2>&1
+test: |
+  if test "{{hw.platform}}" = "linux"; then
+    strace true 2>&1
+  fi

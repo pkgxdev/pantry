@@ -18,13 +18,14 @@ build:
     ARGS:
       - --prefix="{{prefix}}"
       - --disable-valgrind
+      - --disable-symvers
       - --disable-failure-tokens
 
 test:
   dependencies:
     tea.xyz/gx/cc: c99
   script: |
-    cc fixture.c -lcrypt -L{{prefix}}/lib
+    cc -L{{prefix}}/lib -lcrypt fixture.c
     ./a.out
   # ^^ we nee to add the -L because system lib paths come first on Linux
   # and most linuxes have a (arcaic) libcrypt.so in /lib

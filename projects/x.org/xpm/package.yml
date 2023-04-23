@@ -1,0 +1,42 @@
+distributable:
+  url: https://www.x.org/archive/individual/lib/libXpm-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  - 3.5.15
+
+dependencies:
+  x.org/x11: '*'
+  zlib.net: ^1.2
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    freedesktop.org/pkg-config: ~0.29
+    gnu.org/gettext: 0.21
+  script: |
+    ./configure \
+      --prefix="{{prefix}}" \
+      --sysconfdir="$SHELF"/etc \
+      --localstatedir="$SHELF"/var \
+      --disable-open-zfile
+    make --jobs {{ hw.concurrency }} install
+  env:
+    SHELF: ${{tea.prefix}}/x.org
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script: |
+    mv $FIXTURE test.c
+    cc test.c
+    ./a.out
+  fixture: |
+    #include "X11/Xlib.h"
+    #include "X11/xpm.h"
+
+    int main(int argc, char* argv[]) {
+      XpmColor color;
+      return 0;
+    }

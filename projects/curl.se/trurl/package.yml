@@ -1,0 +1,27 @@
+distributable:
+  url: https://github.com/curl/trurl/archive/refs/tags/trurl-{{version.raw}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: curl/trurl
+  strip: /trurl-/
+
+dependencies:
+  curl.se: ^7,^8
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    openssl.org: ^1.1
+  script: |
+    make
+    mkdir -p {{prefix}}/bin
+    mv trurl {{prefix}}/bin
+
+provides:
+  - bin/trurl
+
+test: |
+  a="$(trurl --url "https://example.com?name=hello" --append query=search=string)"
+  test "$a" = "https://example.com/?name=hello&search=string"

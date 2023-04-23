@@ -14,14 +14,14 @@ dependencies:
   kerberos.org: ^1.20
   sqlite.org: ^3
   zlib.net: ^1.2
+  apache.org/apr: ^1
+  apache.org/apr-util: ^1
 
 build:
   dependencies:
     freedesktop.org/pkg-config: ^0.29
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
-    apache.org/apr-util: ^1
-    apache.org/apr: ^1
     swig.org: ^4
     python.org: ^3.11
   script: |
@@ -29,7 +29,7 @@ build:
     make --jobs {{ hw.concurrency }}
     make install
   env:
-    CFLAGS: -I{{deps.apache.org/apr-util.prefix}}/include/apr-1
+    CFLAGS: "$CFLAGS -I{{deps.apache.org/apr-util.prefix}}/include/apr-1"
     ARGS:
       - --prefix="{{prefix}}"
       - --disable-debug

@@ -22,10 +22,19 @@ build:
   script: |
     case {{ hw.platform }} in
     darwin) TARGET=macosx;;
-    linux) TARGET=macosx;;  #SURPRISE!
+    linux)
+      TARGET=macosx   #SURPRISE!
+      sed -i.bak -e '875s/-DBSD/-DBSD -fPIC/' unix/Makefile
+      rm unix/Makefile.bak
+      ;;
     esac
-    make --file unix/Makefile --jobs {{ hw.concurrency }} $TARGET
+    make --file unix/Makefile --jobs {{ hw.concurrency }} $TARGET LD="$LD"
     make prefix={{prefix}} install
+  env:
+    darwin:
+      LD: cc
+    linux:
+      LD: cc -pie
 
 test:
   script: unzip -h
