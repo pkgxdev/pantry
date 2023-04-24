@@ -10,8 +10,6 @@ build:
     tea.xyz/gx/cc: c99
     gnu.org/gcc: '*'
     tea.xyz/gx/make: '*'
-    # ^^ often packages need dependencies to build, it is very common for
-    # packages to need a C compiler and make, the above provide those
   script: |
     ./configure $ARGS
     make --jobs {{ hw.concurrency }} install
@@ -19,12 +17,9 @@ build:
     ARGS:
       - --prefix="{{prefix}}"
 
-
 provides:
   - bin/jags
-  - bin/jags-uninstall
-  # ^^ specify the binaries or tea magic won’t work
 
 test:
   script: |
-    test "$(foo --version)" = {{version}}
+    jags script
