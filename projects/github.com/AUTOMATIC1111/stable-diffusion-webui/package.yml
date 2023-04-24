@@ -34,7 +34,7 @@ build:
     # move this installation into its prefix
     - run: |
         mv $OLDWD lib
-        mkdir tbin bin
+        mkdir -p bin
         mkdir $OLDWD    # or breaks brewkit
       working-directory: ${{prefix}}
 
@@ -43,11 +43,11 @@ build:
     # install our scripts and shims
     - |
       cp lib/props/webui-user.sh lib
-      cp lib/props/gui.sh tbin
+      cp lib/props/entrypoint.sh .
       cp lib/props/stable-diffusion-webui bin
 
     # delete our crap
-    - rm -rf lib/props lib/xyz.tea.*
+    - rm -rf lib/props lib/xyz.tea.* lib/tea.yaml
 
     # we set this as a symlink to ~/.local/share/models in our stub scripts
     - rm -rf lib/models/Stable-diffusion lib/extensions lib/outputs
@@ -63,7 +63,8 @@ build:
 
 provides:
   - bin/stable-diffusion-webui
-  - tbin/gui.sh
+
+entrypoint: ./entrypoint.sh
 
 test:
   stable-diffusion-webui --help
