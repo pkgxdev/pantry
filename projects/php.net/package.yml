@@ -33,7 +33,6 @@ dependencies:
   libpng.org: '*'
   google.com/webp: '*'
   ijg.org: '*'
-
   darwin:
     sourceware.org/bzip2: '*'
     zlib.net: '*'
@@ -47,51 +46,50 @@ build:
       tukaani.org/xz: '*'
 
   script: |
-    ./configure \
-    --prefix={{prefix}} \
-    --enable-bcmath \
-    --enable-calendar \
-    --enable-dba \
-    --enable-exif \
-    --enable-ftp \
-    --enable-fpm \
-    --enable-gd \
-    --enable-intl \
-    --enable-mbregex \
-    --enable-mbstring \
-    --enable-mysqlnd \
-    --enable-pcntl \
-    --enable-phpdbg \
-    --enable-phpdbg-readline \
-    --enable-shmop \
-    --enable-soap \
-    --enable-sockets \
-    --enable-sysvmsg \
-    --enable-sysvsem \
-    --enable-sysvshm \
-    --with-curl \
-    --with-external-pcre \
-    --with-ffi \
-    --with-gettext={{deps.gnu.org/gettext.prefix}} \
-    --with-gmp={{deps.gnu.org/gmp.prefix}} \
-    --with-iconv={{deps.gnu.org/libiconv.prefix}} \
-    --with-kerberos \
-    --with-layout=GNU \
-    --with-libxml \
-    --with-libedit \
-    --with-openssl \
-    --with-pdo-sqlite \
-    --with-pic \
-    --with-sodium \
-    --with-sqlite3 \
-    --with-xsl \
-    --with-zip \
-    --with-zlib \
-    $ARGS
+    ./configure $ARGS
     make --jobs {{ hw.concurrency }} install
 
   env:
     ARGS:
+      - --prefix={{prefix}}
+      - --enable-bcmath
+      - --enable-calendar
+      - --enable-dba
+      - --enable-exif
+      - --enable-ftp
+      - --enable-fpm
+      - --enable-gd
+      - --enable-intl
+      - --enable-mbregex
+      - --enable-mbstring
+      - --enable-mysqlnd
+      - --enable-pcntl
+      - --enable-phpdbg
+      - --enable-phpdbg-readline
+      - --enable-shmop
+      - --enable-soap
+      - --enable-sockets
+      - --enable-sysvmsg
+      - --enable-sysvsem
+      - --enable-sysvshm
+      - --with-curl
+      - --with-external-pcre
+      - --with-ffi
+      - --with-gettext={{deps.gnu.org/gettext.prefix}}
+      - --with-gmp={{deps.gnu.org/gmp.prefix}}
+      - --with-iconv={{deps.gnu.org/libiconv.prefix}}
+      - --with-kerberos
+      - --with-layout=GNU
+      - --with-libxml
+      - --with-libedit
+      - --with-openssl
+      - --with-pdo-sqlite
+      - --with-pic
+      - --with-sodium
+      - --with-sqlite3
+      - --with-xsl
+      - --with-zip
+      - --with-zlib
       - --disable-dtrace
       - --without-ldap-sasl
       - --without-ndbm
@@ -106,9 +104,13 @@ build:
         - --with-ldap-sasl
 
 provides:
+  - bin/phar
   - bin/php
   - bin/php-cgi
+  - bin/php-config
   - bin/phpdbg
+  - bin/phpize
 
-test:
+test: |
   php --version | grep {{ version }}
+  php -r 'echo "Hello World!\n";'
