@@ -33,9 +33,9 @@ build:
       rmdir {{deps.gnu.org/gcc.prefix}}/lib64
     fi
 
-    # Branch from the Darwin maintainer of GCC, with a few generic fixes and
-    # Apple Silicon support, located at https://github.com/iains/gcc-12-branch
-    curl https://raw.githubusercontent.com/Homebrew/formula-patches/1d184289/gcc/gcc-12.2.0-arm.diff | patch -p1 -d..
+    if test -n "$PATCH{{version.major}}"; then
+      curl "$PATCH{{version.major}}" | patch -p1 -d..
+    fi
 
     ARGS=($ARGS --with-pkgversion="tea GCC {{version}}")
     if test {{hw.platform}} = "linux"; then
@@ -57,6 +57,11 @@ build:
       rmdir lib64
     fi
   env:
+    # Branch from the Darwin maintainer of GCC, with a few generic fixes and
+    # Apple Silicon support, located at https://github.com/iains/gcc-12-branch
+    PATCH12: https://raw.githubusercontent.com/Homebrew/formula-patches/1d184289/gcc/gcc-12.2.0-arm.diff
+    # https://github.com/iains/gcc-darwin-arm64
+    PATCH13: https://raw.githubusercontent.com/Homebrew/formula-patches/master/gcc/gcc-13.1.0.diff
     ARGS:
       - --prefix={{ prefix }}
       - --libdir={{ prefix }}/lib
