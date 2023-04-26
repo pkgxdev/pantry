@@ -1,0 +1,28 @@
+distributable:
+  url: https://cdn.kernel.org/pub/linux/kernel/v{{version.major}}.x/linux-{{version}}.tar.xz
+  strip-components: 1
+
+versions:
+  # FIXME: source for _all_ mainline versions
+  url: "https://cdn.kernel.org/pub/linux/kernel/v5.x/"
+  match: /linux-\d+\.\d+\.\d+\.tar\.xz/
+  strip:
+    - /linux-/
+    - /\.tar\.xz/
+
+platforms: linux
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/sed: '*'
+  script: |
+    make headers
+    mkdir -p "{{prefix}}"
+    cp -a usr/include "{{prefix}}/"
+
+test: |
+  grep "LINUX_VERSION_MAJOR {{version.major}}" "{{prefix}}/include/linux/version.h"
+  grep "LINUX_VERSION_PATCHLEVEL {{version.minor}}" "{{prefix}}/include/linux/version.h"
+  grep "LINUX_VERSION_SUBLEVEL {{version.patch}}" "{{prefix}}/include/linux/version.h"
