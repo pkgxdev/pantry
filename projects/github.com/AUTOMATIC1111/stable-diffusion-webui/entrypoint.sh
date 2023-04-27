@@ -1,21 +1,33 @@
 #!/bin/bash
 
-set -emx
+set -emfo pipefail
 
-d="$(cd "$(dirname $0)"/.. && pwd)"
+tea gum format <<EoMD
+# loading…
+
+> *NOTE* this may take a few minutes the first time it runs
+
+EoMD
+
+echo  # spacer
+
+d="$(cd "$(dirname $0)" && pwd)"
 
 "$d"/bin/stable-diffusion-webui &
 
-# poll into a HEAD request succeeds
+# poll until a HEAD request succeeds
 while ! curl -Is http://127.0.0.1:7860 | grep -q "HTTP/1.1 200 OK"; do
   sleep 1
 done
 
 # open the URL once the HEAD request succeeds
+# TODO open in a window controlled by the gui (see next section)
 open http://127.0.0.1:7860
 
 # tell tea/gui about it
-echo '{"viewer": "http://127.0.0.1:7860"}'
+if test -n "$TEA_IPC_FD"; then
+  echo '{"viewer": "http://127.0.0.1:7860"}' >&$TEA_IPC_FD
+fi
 
 tea gum format <<EoMD
 # Stable Diffusion WEBUI
@@ -34,4 +46,6 @@ this package has been modified for your convenience:
 enjoy!
 EoMD
 
-fg
+echo  # spacer
+
+fg  # unbackground the webui process

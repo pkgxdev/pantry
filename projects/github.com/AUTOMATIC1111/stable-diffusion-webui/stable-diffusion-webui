@@ -1,8 +1,8 @@
-#!/bin/sh
+#!/bin/bash
 
-set -ex
+set -eo pipefail
 
-export install_dir="$(cd "$(dirname $0)"/.. && pwd)"
+export install_dir="$(cd "$(dirname "$0")"/.. && pwd)"
 export clone_dir=lib
 
 cd "$install_dir"/"$clone_dir"
@@ -41,4 +41,27 @@ if ! test -f "$CONFIG"; then
 EoJSON
 fi
 
-python ./launch.py "$@" --ui-config-file="$CONFIG"
+#NOTE sourced from brewkit python-venv.sh results
+export VIRTUAL_ENV="$PWD"/venv
+
+TEA_PYTHON="$(which python)"
+TEA_PYHOME="$(dirname "$TEA_PYTHON")"
+
+cat <<EOSH > "$VIRTUAL_ENV"/pyvenv.cfg
+home = $TEA_PYHOME
+include-system-site-packages = false
+executable = $TEA_PYTHON
+EOSH
+
+find "$VIRTUAL_ENV"/bin -maxdepth 1 -type f | xargs \
+  sed -i.bak "1s|.*|#!$VIRTUAL_ENV/bin/python|"
+
+rm "$VIRTUAL_ENV"/bin/*.bak
+
+ln -sf "$TEA_PYTHON" "$VIRTUAL_ENV"/bin/python
+#NOTE.END
+
+# this is all `activate` in the venv does
+export PATH="$VIRTUAL_ENV/bin":$PATH
+
+exec python ./launch.py "$@" --ui-config-file="$CONFIG"
