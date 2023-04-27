@@ -13,9 +13,18 @@ build:
     gnu.org/autoconf: '*'
     gnu.org/automake: '*'
     gnu.org/libtool: 2.4.7
-  script: |
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }} install
+  script:
+    - |
+      ./configure $ARGS
+      make --jobs {{ hw.concurrency }} install
+
+    # often stuff expects SDL.h to be directly in the include-path
+    - run: |
+        mv SDL2/* .
+        rmdir SDL2
+        ln -s . SDL2
+      working-directory: ${{prefix}}/include
+
   env:
     ARGS:
       - --prefix="{{prefix}}"
@@ -39,5 +48,4 @@ provides:
   - bin/sdl2-config
 
 test:
-  script:
-    sdl2-config --version
+  sdl2-config --version

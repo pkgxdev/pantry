@@ -1,0 +1,40 @@
+distributable:
+  url: https://github.com/acaudwell/Gource/releases/download/gource-0.54/gource-0.54.tar.gz
+  strip-components: 1
+
+versions:
+  github: acaudwell/Gource
+  strip: /^gource-/
+
+dependencies:
+  boost.org: ^1.82
+  freetype.org: ^2
+  libpng.org: ^1.6
+  pcre.org/v2: ^10
+  libsdl.org: ^2
+  glew.sourceforge.io: ^2
+  libsdl.org/SDL_image: ^2
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    freedesktop.org/pkg-config: ^0.29
+    glm.g-truc.net: ^0
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --without-x
+      - --with-boost={{deps.boost.org.prefix}}
+    CXXFLAGS: -std=c++17
+    CXX: clang++
+    CC: clang
+
+provides:
+  - bin/gource
+
+test:
+  gource --help

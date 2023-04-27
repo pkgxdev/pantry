@@ -1,0 +1,33 @@
+distributable:
+  url: https://github.com/g-truc/glm/releases/download/{{version}}/glm-{{version}}.zip
+
+versions:
+  github: g-truc/glm
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    cmake.org: ^3
+  working-directory: glm/build
+  script:
+    - cmake .. -DCMAKE_INSTALL_PREFIX={{prefix}} -DCMAKE_BUILD_TYPE=Release -DCMAKE_VERBOSE_MAKEFILE=ON
+    - make --jobs {{ hw.concurrency }}
+    - run: |
+        mkdir -p {{prefix}}/include {{prefix}}/lib/pkgconfig
+        rm glm/CMakeLists.txt
+        mv glm {{prefix}}/include
+        mv cmake/glm {{prefix}}/lib/cmake
+
+        cp $SRCROOT/props/glm.pc {{prefix}}/lib/pkgconfig
+        echo 'Version: {{version}}' >> {{prefix}}/lib/pkgconfig/glm.pc
+
+
+      working-directory: ..
+  env:
+    CXXFLAGS:
+      - -std=c++17
+      # or fails to build with clang 15
+      - -Wno-error=implicit-int-conversion
+      - -Wno-error=unused-but-set-variable
+      - -Wno-error=deprecated-declarations

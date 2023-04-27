@@ -1,0 +1,30 @@
+distributable:
+  url: https://downloads.sourceforge.net/project/glew/glew/{{version}}/glew-{{version}}.tgz
+  strip-components: 1
+
+versions:
+  - 2.2.0
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    cmake.org: ^3
+  working-directory: _build
+  script: |
+    cmake ../build/cmake -DCMAKE_INSTALL_PREFIX="{{prefix}}" -DCMAKE_BUILD_TYPE=Release
+    make --jobs {{ hw.concurrency }} install
+
+provides:
+  - bin/glewinfo
+  - bin/visualinfo
+
+test:
+  dependencies:
+    foo.com: '*'  # asterisk means “any version, usually the latest”
+  script:
+    test "$(foo --version)" = {{version}}
+    # if it’s a tool check the version matches
+    # you should run the tool to check it works!
+    # if it's a library then you should *use* the library
+    # don’t forget to check other package.ymls in the pantry for examples!
