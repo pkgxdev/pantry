@@ -10,18 +10,12 @@ build:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
     cmake.org: '*'
-
+  working-directory: build/cmake
   script: |
-    cd build/cmake
     cmake --install-prefix={{prefix}} ../..
     make --jobs {{ hw.concurrency }} install
-  env:
-    ARGS:
-      - --prefix="{{prefix}}"
 
 provides:
   - bin/tidy
 
-test:
-  script:
-    tidy --version | grep {{version}}
+test: tidy --version | grep {{version}}
