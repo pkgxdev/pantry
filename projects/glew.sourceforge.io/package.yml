@@ -3,7 +3,11 @@ distributable:
   strip-components: 1
 
 versions:
-  - 2.2.0
+  url: https://sourceforge.net/projects/glew/files/glew/
+  match: /tr title="\d+\.\d+\.\d+" class="folder/
+  strip:
+    - /tr title="/
+    - /" class="folder/
 
 build:
   dependencies:
@@ -20,11 +24,4 @@ provides:
   - bin/visualinfo
 
 test:
-  dependencies:
-    foo.com: '*'  # asterisk means “any version, usually the latest”
-  script:
-    test "$(foo --version)" = {{version}}
-    # if it’s a tool check the version matches
-    # you should run the tool to check it works!
-    # if it's a library then you should *use* the library
-    # don’t forget to check other package.ymls in the pantry for examples!
+  visualinfo | grep "OpenGL vendor string:"
