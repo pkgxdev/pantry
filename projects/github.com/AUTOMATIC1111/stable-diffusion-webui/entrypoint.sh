@@ -34,10 +34,10 @@ tea gum format <<EoMD
 
 this package has been modified for your convenience:
 
-* Stable Diffusion models can be added to ~/.local/share/models/stable-diffusion
-* extensions can be added to ~/.local/share/stable-diffusion-webui/extensions
-* generated images are saved to ~/Documents/Stable Diffusion WEBUI
-* configuration is saved to ~/.config/stable-diffusion-webui
+* download additional Stable Diffusion models to \`~/.local/share/models/stable-diffusion\`
+* extensions can be added to \`~/.local/share/stable-diffusion-webui/extensions\`
+* generated images are saved to \`~/Documents/Stable Diffusion WEBUI\`
+* configuration is saved to \`~/.config/stable-diffusion-webui\`
 
 > *NOTE* we obey \`XDG_\` variables for all the above if they are set
 
