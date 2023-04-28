@@ -1,0 +1,34 @@
+distributable:
+  url: https://downloads.sourceforge.net/project/smartmontools/smartmontools/{{version.marketing}}/smartmontools-{{version.marketing}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://sourceforge.net/projects/smartmontools/files/smartmontools/
+  match: _/projects/smartmontools/files/smartmontools/\d+.\d+/_
+  strip:
+    - _^/projects/smartmontools/files/smartmontools/_
+    - _/$_
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --disable-dependency-tracking
+      - --with-savestates
+      - --with-attributelog
+      - --with-nvme-devicescan
+
+provides:
+  - bin/smartctl
+  - bin/smartd
+
+test:
+  script:
+    smartctl --version | grep {{version.marketing}}

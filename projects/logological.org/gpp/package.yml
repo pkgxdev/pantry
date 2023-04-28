@@ -1,0 +1,31 @@
+distributable:
+  url: https://github.com/logological/gpp/releases/download/{{ version.marketing }}/gpp-{{ version.marketing }}.tar.bz2
+  strip-components: 1
+
+versions:
+  github: logological/gpp
+  strip: '/^v/'
+
+dependencies:
+  tea.xyz/gx/cc: c99
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/autoconf: '*'
+
+  script: |
+    ./configure $ARGS
+    make install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --disable-dependency-tracking
+
+provides:
+  - bin/gpp
+
+test:
+  script:
+    gpp --version | grep {{version.marketing}}

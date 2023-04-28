@@ -23,7 +23,7 @@ other sources as much as possible, eg. versions are taken from the
 
 # Contributing
 
-Assuming you have tea (/w magic) installed:
+Assuming you have tea (w/magic) installed:
 
 ```sh
 $ git clone https://github.com/teaxyz/pantry
