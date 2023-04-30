@@ -36,6 +36,13 @@ build:
     mv $SRCROOT xyz.tea.srcs
     cmake $ARGS -S xyz.tea.srcs -B .
     make --jobs {{hw.concurrency}} install
+
+    sed -i.bak "s:$TEA_PREFIX:\$\{_IMPORT_PREFIX\}/../../..:g" "{{prefix}}"/lib/cmake/folly/folly-targets.cmake
+    rm "{{prefix}}"/lib/cmake/folly/folly-targets.cmake.bak
+
+    cd {{prefix}}/lib/pkgconfig
+    sed -i.bak -e 's/-I[^ ]* *//g' ./libfolly.pc
+    rm *.bak
   env:
     ARGS:
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
