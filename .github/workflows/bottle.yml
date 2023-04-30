@@ -26,7 +26,7 @@ jobs:
       cache-set: ${{ steps.platform.outputs.cache-set }}
       available: ${{ steps.platform.outputs.available }}
     steps:
-      - uses: teaxyz/brewkit/actions/get-platform@v0
+      - uses: teaxyz/brewkit/actions/get-platform@make-available-better
         id: platform
         with:
           platform: ${{ inputs.platform }}
@@ -34,7 +34,7 @@ jobs:
 
   bottle:
     needs: [get-platform]
-    if: ${{ needs.get-platform.outputs.available == 'true' }}
+    if: ${{ needs.get-platform.outputs.available }}
     runs-on: ${{ fromJson(needs.get-platform.outputs.os) }}
     outputs:
       srcs: ${{ env.srcs }}
