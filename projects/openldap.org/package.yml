@@ -11,7 +11,6 @@ versions:
 
 dependencies:
   openssl.org: '*'
-
   linux:
     github.com/util-linux/util-linux: '*'
 
@@ -19,8 +18,14 @@ build:
   dependencies:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
+    gnu.org/sed: '*' # darwin sed doesn't support \b
   script: |
     ./configure $ARGS
+
+    # Avoid needing groff to build the docs
+    sed -i.bak -e 's/SUBDIRS=\(.*\)\bdoc\b\(.*\)/SUBDIRS=\1\2/' Makefile
+    rm Makefile.bak
+
     make --jobs {{ hw.concurrency }} install
   env:
     ARGS:
@@ -55,5 +60,5 @@ provides:
   - bin/ldapvc
   - bin/ldapwhoami
 
-test: 
-  ldapcompare -VV | grep {{version}}
+test:
+  ldapcompare -VV 2>&1 | grep {{version}}
