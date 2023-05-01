@@ -31,7 +31,7 @@ jobs:
     runs-on: ${{ fromJson(needs.get-platform.outputs.build-os) }}
     container: ${{ fromJson(needs.get-platform.outputs.container) }}
     needs: [get-platform]
-    if: ${{ needs.get-platform.outputs.available == 'true' }}
+    if: ${{ needs.get-platform.outputs.available != '' }}
     steps:
       - uses: actions/checkout@v3
 
@@ -51,7 +51,7 @@ jobs:
             p12-file-base64: ${{ secrets.APPLE_CERTIFICATE_P12 }}
             p12-password: ${{ secrets.APPLE_CERTIFICATE_P12_PASSWORD }}
 
-      - run: pkg build ${{ inputs.projects }}
+      - run: pkg build ${{ needs.get-platform.outputs.available }}
         id: build
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -93,7 +93,7 @@ jobs:
 
   test:
     needs: [get-platform, build]
-    if: ${{ needs.get-platform.outputs.available == 'true' }}
+    if: ${{ needs.get-platform.outputs.available != '' }}
     runs-on: ${{ matrix.platform.os }}
     strategy:
       matrix:
@@ -129,7 +129,7 @@ jobs:
       - name: extract bottles
         run: tar xzvf artifacts.tgz -C $TEA_PREFIX
 
-      - run: pkg test ${{ inputs.projects }}
+      - run: pkg test ${{ needs.get-platform.outputs.available }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
           # FIXME: this shouldn't be necessary, but it currently is for the
@@ -145,7 +145,7 @@ jobs:
   stage:
     needs: [get-platform, test]
     # this only works for PRs from our team to our repo (security! :( )
-    if: startsWith(github.ref, 'refs/pull/') && github.repository_owner == 'teaxyz' && needs.test.outputs.HAS_SECRETS == 'true' && needs.get-platform.outputs.available == 'true'
+    if: startsWith(github.ref, 'refs/pull/') && github.repository_owner == 'teaxyz' && needs.test.outputs.HAS_SECRETS == 'true' && needs.get-platform.outputs.available != ''
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v3

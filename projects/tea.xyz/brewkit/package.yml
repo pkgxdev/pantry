@@ -20,6 +20,21 @@ build: |
     test -e $x && mv $x "{{prefix}}"
   done
 
+  cd "{{prefix}}/bin"
+  if ! test -e bk; then
+    cat >>bk <<EOF
+  #!/bin/sh
+
+  echo "bk is provided by brewkit >=0.25.0"
+  echo "please update to use this shortcut"
+  exit 1
+  EOF
+    chmod +x bk
+  fi
+
+provides:
+  - bin/bk
+
 test:
   dependencies:
     zlib.net: '*'
