@@ -1,0 +1,59 @@
+distributable:
+  url: https://www.openldap.org/software/download/OpenLDAP/openldap-release/openldap-{{version}}.tgz
+  strip-components: 1
+
+versions:
+  url: https://www.openldap.org/software/download/OpenLDAP/openldap-release/
+  match: /openldap-\d+\.\d+\.\d+.tgz/
+  strip:
+    - /^openldap-/
+    - /\.tgz/
+
+dependencies:
+  openssl.org: '*'
+
+  linux:
+    github.com/util-linux/util-linux: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --enable-accesslog
+      - --enable-auditlog
+      - --enable-constraint
+      - --enable-dds
+      - --enable-deref
+      - --enable-dyngroup
+      - --enable-dynlist
+      - --enable-memberof
+      - --enable-ppolicy
+      - --enable-proxycache
+      - --enable-refint
+      - --enable-retcode
+      - --enable-seqmod
+      - --enable-translucent
+      - --enable-unique
+      - --enable-valsort
+      - --without-systemd
+
+provides:
+  - bin/ldapcompare
+  - bin/ldapdelete
+  - bin/ldapexop
+  - bin/ldapmodify
+  - bin/ldapmodrdn
+  - bin/ldappasswd
+  - bin/ldapsearch
+  - bin/ldapurl
+  - bin/ldapvc
+  - bin/ldapwhoami
+
+test: 
+  ldapcompare -VV | grep {{version}}
