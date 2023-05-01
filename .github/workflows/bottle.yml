@@ -34,7 +34,7 @@ jobs:
 
   bottle:
     needs: [get-platform]
-    if: ${{ needs.get-platform.outputs.available == 'true' }}
+    if: ${{ !inputs.new-version || needs.get-platform.outputs.available != '' }}
     runs-on: ${{ fromJson(needs.get-platform.outputs.os) }}
     outputs:
       srcs: ${{ env.srcs }}
@@ -125,7 +125,7 @@ jobs:
 
   upload:
     needs: [get-platform, bottle]
-    if: ${{ needs.get-platform.outputs.available == 'true' }}
+    if: ${{ !inputs.new-version || needs.get-platform.outputs.available != '' }}
     runs-on: ubuntu-latest
     steps:
       - uses: teaxyz/brewkit/actions/setup-brewkit@v0
