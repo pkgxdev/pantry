@@ -1,0 +1,25 @@
+distributable:
+  url: https://github.com/yaml/libyaml/releases/download/{{version}}/yaml-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: yaml/libyaml
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/libtool: '*'
+    gnu.org/autoconf: '*'
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script:
+    cc fixture.c -L {{prefix}} -lyaml -o test
