@@ -1,0 +1,33 @@
+distributable:
+  url: https://github.com/superfly/flyctl/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: superfly/flyctl/releases/tags
+  strip: /^v/
+
+build:
+  dependencies:
+    go.dev: ^1.20
+  env:
+    CGO_ENABLED: 0
+    LDFLAGS:
+      - -s
+      - -w
+      - -X github.com/superfly/flyctl/internal/buildinfo.environment=production
+      - -X github.com/superfly/flyctl/internal/buildinfo.buildDate=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+      - -X github.com/superfly/flyctl/internal/buildinfo.version={{ version }}
+      - -X github.com/superfly/flyctl/internal/buildinfo.commit=tea
+  script: |
+    go build -v -ldflags="$LDFLAGS" -o "{{ prefix }}"/bin/flyctl .
+    cd "{{ prefix }}"/bin
+    ln -s flyctl fly
+
+provides:
+  - bin/fly
+  - bin/flyctl
+
+test: |
+  fly version | grep {{version}}
+  flyctl version | grep {{version}}
+  echo $(flyctl status 2>&1 || true) | grep " No access token available"

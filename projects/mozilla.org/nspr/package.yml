@@ -1,0 +1,35 @@
+distributable:
+  url: https://archive.mozilla.org/pub/nspr/releases/v{{version}}/src/nspr-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://archive.mozilla.org/pub/nspr/releases/
+  match: v\d+\.\d+\.\d+\
+  strip: /^v-/
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    ./nspr/configure $ARGS
+    make --jobs {{ hw.concurrency }}
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --disable-debug
+      - --enable-strip
+      - --with-pthreads
+      - --enable-ipv6
+      - --enable-64bit
+    darwin:
+      ARGS:
+        - --enable-macos-target=$(sw_vers -productVersion)
+
+provides:
+  - bin/nspr-config
+
+test:
+  script:
+    nspr-config --version | grep {{version}}
