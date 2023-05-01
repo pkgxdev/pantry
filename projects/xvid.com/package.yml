@@ -1,0 +1,30 @@
+distributable:
+  url: https://downloads.xvid.com/downloads/xvidcore-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://downloads.xvid.com/downloads/
+  match: /xvidcore-\d+\.\d+\.\d+.tar.gz/
+  strip:
+    - /^xvidcore-/
+    - /\.tar.gz/
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  working-directory: build/generic
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }}
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --disable-assembly
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script:
+    cc test.cpp -L {{prefix}} -lxvidcore -o test
