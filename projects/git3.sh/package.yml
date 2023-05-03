@@ -1,9 +1,10 @@
 distributable:
-   url: https://git3.sh/git3.w3q/git3-cli/archive/master.tar.gz
+   url: https://github.com/git3protocol/git3-cli/archive/refs/tags/v{{version}}.tar.gz
    strip-components: 1
 
 versions:
-  - 0.1.3 # they don't have a version yet, I took the version from package.json
+  github: git3protocol/git3-cli
+  strip: /v/
 
 dependencies:
   nodejs.org: ^18
@@ -14,8 +15,6 @@ build:
     stedolan.github.io/jq: '*'
   script: |
     mkdir -p {{prefix}}/bin
-    sed -i.bak 's|/usr/local/bin|{{prefix}}/bin|g' package.json
-    sed -i.bak 's|wait|sleep 10|g' package.json
 
     # patch git3.pkg.json to add:
     # - node18-macos-arm64
@@ -26,10 +25,13 @@ build:
     mv git3.pkg.json.tmp git3.pkg.json
     ARCH=$(uname -m | sed -e 's/x86_64/x64/' -e 's/aarch64/arm64/')
     sed -i.bak \
-      -e "s_bin/git3-macos _bin/git3-macos-${ARCH} _g" \
-      -e "s_bin/git3-linux _bin/git3-linux-${ARCH} _g" \
-      package.json
-    grep cp\ bin/git3 package.json
+        -e 's|/usr/local/bin|{{prefix}}/bin|g' \
+        -e 's|wait|sleep 10|g' \
+        -e "s_bin/git3-macos _bin/git3-macos-${ARCH} _g" \
+        -e "s_bin/git3-linux _bin/git3-linux-${ARCH} _g" \
+        package.json
+    rm package.json.bak
+
     yarn
     yarn $INSTALL
   env:
