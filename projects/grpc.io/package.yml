@@ -1,0 +1,85 @@
+distributable:
+  url: https://github.com/grpc/grpc/archive/refs/tags/v{{version}}.tar.gz
+
+versions:
+  github: grpc/grpc
+
+# provides:
+#   - bin/?
+
+dependencies:
+  abseil.io: '*'
+  c-ares.org: '*'
+  openssl.org: ^1.1
+  protobuf.dev: '*'
+  github.com/google/re2: '*'
+  zlib.net: '*'
+
+build:
+  dependencies:
+    gnu.org/autoconf: '*'
+    gnu.org/automake: '*'
+    gnu.org/libtool: '*'
+    tea.xyz/gx/cc: c99
+    cmake.org: ^3
+    tea.xyz/gx/make: '*'
+  working-directory: grpc-{{version}}
+  script: |
+    # FIXME: Need to clone submodules
+    # https://github.com/grpc/grpc/blob/master/.gitmodules
+
+    cmake $COMMON_ARGS $ARGS
+    make install
+
+    cmake $COMMON_ARGS $CLI_ARGS
+    make grpc_cli
+    # bin.install "grpc_cli"
+    # lib.install Dir[shared_library("libgrpc++_test_config", "*")]
+
+    # if OS.mac?
+    #   # These are installed manually, so need to be relocated manually as well
+    #   MachO::Tools.add_rpath(bin/"grpc_cli", rpath)
+    #   MachO::Tools.add_rpath(lib/shared_library("libgrpc++_test_config"), rpath)
+    # end
+  env:
+    COMMON_ARGS:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
+      - -DCMAKE_INSTALL_RPATH={{prefix}}
+      - -DBUILD_SHARED_LIBS=ON
+    ARGS:
+      - -DCMAKE_CXX_STANDARD=17
+      - -DCMAKE_CXX_STANDARD_REQUIRED=TRUE
+      - -DgRPC_BUILD_TESTS=OFF
+      - -DgRPC_INSTALL=ON
+      - -DgRPC_ABSL_PROVIDER=package
+      - -DgRPC_CARES_PROVIDER=package
+      - -DgRPC_PROTOBUF_PROVIDER=package
+      - -DgRPC_SSL_PROVIDER=package
+      - -DgRPC_ZLIB_PROVIDER=package
+      - -DgRPC_RE2_PROVIDER=package
+    CLI_ARGS:
+      - -DgRPC_BUILD_TESTS=ON
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    pkg-config: '*'
+  script:
+    fixture: |
+      #include <grpc/grpc.h>
+      int main() {
+        grpc_init();
+        grpc_shutdown();
+        return GRPC_STATUS_OK;
+      }
+    script: |
+      # FIXME: This is not working yet.
+      exit 1
+      # ENV.prepend_path "PKG_CONFIG_PATH", Formula["openssl@1.1"].opt_lib/"pkgconfig"
+      # pkg_config_flags = shell_output("pkg-config --cflags --libs libcares protobuf re2 grpc++").chomp.split
+      # c++ test.cpp -o test
+      # ./test
+
+      # output = shell_output("#{bin}/grpc_cli ls localhost:#{free_port} 2>&1", 1)
+      # assert_match "Received an error when querying services endpoint.", output

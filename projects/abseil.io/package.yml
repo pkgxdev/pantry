@@ -12,21 +12,10 @@ build:
     tea.xyz/gx/make: '*'
 
   script: |
-    cmake -S . -B build \
-      -DCMAKE_CXX_STANDARD=17 \
-      -DBUILD_SHARED_LIBS=ON \
-      -DCMAKE_INSTALL_RPATH={{ prefix }}/bla \
-      -DCMAKE_BINARY_DIR={{ prefix }}/bin \
-      -DABSL_PROPAGATE_CXX_STD=ON \
-      -DCMAKE_INSTALL_PREFIX={{ prefix }} \
-      -DCMAKE_INSTALL_LIBDIR={{ prefix }}/lib \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_FIND_FRAMEWORK=LAST \
-      -DCMAKE_VERBOSE_MAKEFILE=ON \
-      -Wno-dev \
-      -DBUILD_TESTING=OFF
+    cmake -S . -B build $ARGS
     cmake --build build
     cmake --install build
+
     # Remove bad flags in .pc files.
     # https://github.com/abseil/abseil-cpp/issues/1408
     if [[ "$(uname)" == "Darwin" ]]; then
@@ -44,5 +33,5 @@ test:
     tea.xyz/gx/cc: c99
   script: |
     ls -l
-    c++ -std=c++17 -I{{ prefix }}/include -L{{ prefix }}/lib -labsl_strings test.cc 
+    c++ -std=c++17 -I{{ prefix }}/include -L{{ prefix }}/lib -labsl_strings test.cc
     test "$(./a.out)" = "Joined string: foo-bar-baz\n"
