@@ -1,0 +1,40 @@
+distributable:
+  url: https://github.com/madler/zlib/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: madler/zlib
+  strip: /^v/
+
+build:
+  dependencies:
+    gnu.org/autoconf: ^2
+    gnu.org/automake: ^1
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/libtool: ^2
+  script: |
+    ./configure --prefix={{prefix}}
+    make --jobs {{ hw.concurrency }} install
+
+    cd contrib/minizip
+
+    if [[ "$(uname)" == "Darwin" ]]; then
+      # edits to statically link to libz.a
+      sed -i.bak \
+        -e "s:-L\$(zlib_top_builddir):\$(zlib_top_builddir)/libz.a:" \
+        -e "s_-version-info 1:0:0 -l_:-version-info 1:0:0_" \
+        -e "s:libminizip.la -lz:libminizip.la:" \
+        Makefile.am
+      rm Makefile.am.bak
+    fi
+
+    autoreconf -fi
+    ./configure --prefix={{prefix}}
+    make install
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script: |
+    cc test.c -o test -lminizip -lz
