@@ -1,0 +1,63 @@
+distributable:
+  url: https://github.com/Mbed-TLS/mbedtls/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: Mbed-TLS/mbedtls
+
+provides:
+  - bin/generic_sum
+
+build:
+  dependencies:
+    cmake.org: '*'
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    python.org: ^3.11
+  script: |
+    # MBEDTLS_THREADING_PTHREAD - enable pthread mutexes
+    # MBEDTLS_THREADING_C - allow use of mutexes within mbed TLS
+    # MBEDTLS_SSL_DTLS_SRTP - enable DTLS-SRTP extension
+    sed -i.bak \
+      -e "s://#define MBEDTLS_THREADING_PTHREAD:#define MBEDTLS_THREADING_PTHREAD:" \
+      -e "s://#define MBEDTLS_THREADING_C:#define MBEDTLS_THREADING_C:" \
+      -e "s://#define MBEDTLS_SSL_DTLS_SRTP:#define MBEDTLS_SSL_DTLS_SRTP:" \
+      include/mbedtls/mbedtls_config.h
+    rm include/mbedtls/mbedtls_config.h.bak
+
+    cmake -S . -B build $ARGS
+    cmake --build build
+
+    # We run CTest because this is a crypto library. Running tests in parallel causes failures.
+    # https://github.com/Mbed-TLS/mbedtls/issues/4980
+    ctest --parallel 1 --test-dir build --rerun-failed --output-on-failure
+    cmake --install build
+
+    # Why does Mbedtls ship with a "Hello World" executable. Let's remove that.
+    rm -f {{prefix}}/bin/hello
+
+    # Rename benchmark & selftest, which are awfully generic names.
+    mv {{prefix}}/bin/benchmark {{prefix}}/bin/mbedtls-benchmark
+    mv {{prefix}}/bin/selftest {{prefix}}/bin/mbedtls-selftest
+
+    # Demonstration files shouldn't be in the main bin
+    mkdir -p {{prefix}}/libexec
+    mv {{prefix}}/bin/mpi_demo {{prefix}}/libexec/mpi_demo
+  env:
+    ARGS:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DUSE_SHARED_MBEDTLS_LIBRARY=On
+      - -DPython3_EXECUTABLE=$(which python3)
+      - -DCMAKE_INSTALL_RPATH={{prefix}}
+      - -DGEN_FILES=OFF
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script: |
+    echo "This is a test file" > testfile.txt
+    # Don't remove the space between the checksum and filename. It will break.
+    expected_checksum="e2d0fe1585a63ec6009c8016ff8dda8b17719a637405a4e23c0ff81339148249  testfile.txt"
+    actual_checksum="$({{prefix}}/bin/generic_sum SHA256 testfile.txt)"
+    test "$actual_checksum" = "$expected_checksum"
