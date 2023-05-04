@@ -15,17 +15,30 @@ dependencies:
 build:
   dependencies:
     crates.io/semverator: '*'
-  script: |
-    if semverator satisfies '^8,>=9.4.2' {{ version }}; then
-      ARGS="--install-links"
-    fi
+  script:
+    - |
+      if semverator satisfies '^8,>=9.4.2' {{ version }}; then
+        ARGS="--install-links"
+      fi
 
-    node . install --global --prefix={{prefix}} $ARGS
+    - node . install --global --prefix={{prefix}} $ARGS
 
-    mv props/npmrc {{prefix}}/lib/node_modules/npm
+    # configures npm to install to ~/.local
+    - mv props/npmrc {{prefix}}/lib/node_modules/npm
 
-test: |
-  npm install --global cowsay
-  $HOME/.local/bin/cowsay xyz.tea.hi
+    # our shim fixes a bug where npx doesn’t work if ~/.local/lib doesn’t exist
+    - run: |
+        rm npx
+        mv $SRCROOT/props/npx-shim npx
+      working-directory:
+        ${{prefix}}/bin
 
-  npx -qy tldr ls
+test:
+  # doing first to test our shim works as expected
+  - npx -qy tldr ls
+
+  - npm install --global cowsay
+
+  # verify install location is as we configure it
+  - $HOME/.local/bin/cowsay xyz.tea.hi
+

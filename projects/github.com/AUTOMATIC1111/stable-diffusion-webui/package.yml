@@ -1,0 +1,75 @@
+distributable:
+  url: https://github.com/AUTOMATIC1111/stable-diffusion-webui/archive/22bcc7be.tar.gz
+  strip-components: 1
+
+versions:
+  - 2023.03.29
+
+dependencies:
+  python.org: ~3.10
+  tea.xyz: ^0  # our scripts use tea/cli
+  # we clear out all the git repos before uploading but something
+  # still tries to use git. hopefully nothing is broken because we
+  # clear out all the git repos (they were 100s of MB)
+  git-scm.org: ^2
+
+platforms: darwin
+
+build:
+  dependencies:
+    pip.pypa.io: '*'
+    gnu.org/wget: '*'
+    protobuf.dev: '>=21'
+    rust-lang.org: ^1  # docs say this is needed but I’m not convinced…
+    git-scm.org: ^2
+  script:
+    # don’t download the models RN
+    # --exit just installs deps and exits rather than boots the web server
+    - echo 'export COMMANDLINE_ARGS="
+      --no-download-sd-model
+      --exit
+      $COMMANDLINE_ARGS"' > webui-user.sh
+
+    # or it clones HEAD and uses that
+    - mkdir -p .git
+
+    # installs python virtual-env
+    - ./webui.sh
+
+    # move this installation into its prefix
+    - run: |
+        mv $OLDWD lib
+        mkdir -p bin
+        mkdir $OLDWD    # or breaks brewkit
+      working-directory: ${{prefix}}
+
+    - cd {{prefix}}  # change CWD for remainder of our execution
+
+    # install our scripts and shims
+    - |
+      cp lib/props/webui-user.sh lib
+      cp lib/props/entrypoint.sh .
+      cp lib/props/stable-diffusion-webui bin
+
+    # delete our crap
+    - rm -rf lib/props lib/xyz.tea.* lib/tea.yaml
+
+    # we set this as a symlink to ~/.local/share/models in our stub scripts
+    - rm -rf lib/models/Stable-diffusion lib/extensions lib/outputs
+
+    # we prebuilt everything, but also we must remove this so we can trim
+    # the final package from 2.3GB to ~1GB which we will do in the next steps
+    - |
+      sed -i.bak '355s|prepare_environment()||' lib/launch.py
+      rm lib/launch.py.bak
+    #FIXME ^^ please make a .patch work, I could not :/
+
+    - find . -name .git\* | xargs rm -rf
+
+provides:
+  - bin/stable-diffusion-webui
+
+entrypoint: ./entrypoint.sh
+
+test:
+  stable-diffusion-webui --help

@@ -50,6 +50,17 @@ build:
     sed -i.bak -e 's|system_lib_dirs = .*|system_lib_dirs = os.getenv("LIBRARY_PATH").split(":")|' ./setup.py
     sed -i.bak -e 's|system_include_dirs = .*|system_include_dirs = os.getenv("CPATH").split(":")|' ./setup.py
 
+    if semverator satisfies '<3.8' {{ version }}; then
+      # older versions use a different config dir
+      confdir=$(echo $confdir | sed -e 's/\(config-{{ version.marketing }}\)/\1m/')
+
+      # 3.7 and older use `python3.7m` for include dir
+      SUFFIX=m
+
+      # 3.7 aborts on linux+aarch64 with this
+      ARGS=${ARGS/--with-ensurepip/--without-ensurepip}
+    fi
+
     ./configure $ARGS
     make --jobs {{ hw.concurrency }}
     make install
@@ -67,16 +78,17 @@ build:
     # we provide the binaries in a separate package
     # but we don’t use --without-ensurepip because stuff expects python to
     # come bundled with setuptools
-    rm pip*
-
-    # older versions use a different config dir
-    if semverator satisfies '<3.8' {{ version }}; then
-      confdir=$(echo $confdir | sed -e 's/\(config-{{ version.marketing }}\)/\1m/')
-    fi
+    find . -mindepth 1 -maxdepth 1 -type f -name 'pip*' -exec rm {} \;
 
     # make relocatable
     cd {{prefix}}
     for binfile in $shebangs $confdir/python-config.py; do
+      if ! test -f $binfile; then
+        binfile=${binfile/{{version.marketing}}/{{version.marketing}}$SUFFIX}
+      fi
+      if ! test -f $binfile; then
+        continue
+      fi
       binfile=$(readlink -f $binfile)
       sed -i.bak -e 's|#!{{ prefix }}/bin/|#!/usr/bin/env |g' $binfile
       rm $binfile.bak
@@ -93,9 +105,13 @@ build:
 
     # some stuff expects python includes to be accessible without the prefix
     cd include
-    mv python{{version.marketing}}/* .
-    rmdir python{{version.marketing}}
+    mv python{{version.marketing}}$SUFFIX/* .
+    rmdir python{{version.marketing}}$SUFFIX
     ln -s . python{{version.marketing}}
+    # Keep the suffixed version if we started with one
+    if test -n "$SUFFIX"; then
+      ln -s . python{{version.marketing}}$SUFFIX
+    fi
 
   env:
     ARGS:
@@ -132,13 +148,17 @@ build:
 test:
   dependencies:
     tea.xyz/gx/cc: c99
+    crates.io/semverator: '*'
   script: |
     # Check if sqlite is ok, because we build with --enable-loadable-sqlite-extensions
     # and it can occur that building sqlite silently fails if OSX's sqlite is used.
     python -c "import sqlite3"
 
     # check to see if we can create a venv
-    python -m venv myvenv
+    # we can't ensurepip on 3.7 so, this won't work
+    if semverator satisfies '^3.8' {{ version }}; then
+      python -m venv myvenv
+    fi
 
     # Check if some other modules import. Then the linked libs are working.
     python -c "import _ctypes"

@@ -25,6 +25,11 @@ build:
     freedesktop.org/pkg-config: ^0.29
   working-directory: build
   script: |
+    # https://www.mail-archive.com/ports@freebsd.org/msg00418.html
+    # And they *force* it on
+    sed -i.bak -e 's/\(STRING_APPEND.*moutline-atomics.*\)/# \1/' ../CMakeLists.txt
+    rm ../CMakeLists.txt.bak
+
     cmake .. $ARGS
     make --jobs {{ hw.concurrency }} install
 
@@ -48,7 +53,14 @@ build:
       - -DWITH_LZ4=system
       - -DWITH_PROTOBUF=system
       - -DWITH_SSL=system
-      - -DWITH_ZLIB=system
+      # FIXME: starting with 8.0.33, mysql reports:
+      # -- Found ZLIB: /Users/jacob/.tea/zlib.net/v1.2.13/lib/libz.dylib (found version "1.2.13")  
+      # CMake Error at cmake/zlib.cmake:118 (MESSAGE):
+      #   Cannot find system zlib libraries.
+      # Call Stack (most recent call first):
+      # CMakeLists.txt:1742 (MYSQL_CHECK_ZLIB)
+      # - -DWITH_ZLIB=system
+      - -DWITH_ZLIB=bundled
       - -DWITH_ZSTD=system
       - -DWITH_UNIT_TESTS=OFF
       - -DENABLED_LOCAL_INFILE=1
@@ -67,6 +79,7 @@ build:
     linux/aarch64:
       ARGS:
       - -DCMAKE_CXX_FLAGS="-mno-outline-atomics"
+      - -DCMAKE_C_FLAGS="-mno-outline-atomics"
       #^^ https://www.mail-archive.com/ports@freebsd.org/msg00418.html
 
 provides:
