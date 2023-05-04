@@ -5,11 +5,11 @@ test -n "$VERBOSE" && set -x
 
 D="$(cd "$(dirname "$0")"/.. && pwd)"
 VERSION="$(basename "$D")"
-MODEL_DIR=""$D"/tbin/models"
+MODEL_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/models/whisper"
 
 export PATH="$D/tbin:$PATH"
 
-whisper-fetch $MODEL_DIR $VERSION
+whisper-fetch "$MODEL_DIR" $VERSION
 
 case $1 in
 stream)

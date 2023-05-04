@@ -27,20 +27,18 @@ build:
   script: |
     patch -p1 < props/illegal_instruction.patch
 
-    mkdir -p {{prefix}}/bin {{prefix}}/tbin/models {{prefix}}/share
+    mkdir -p {{prefix}}/bin {{prefix}}/tbin {{prefix}}/share
 
     make clean --jobs {{ hw.concurrency }}
     make
     make stream
     make command
 
-    mv main stream command {{prefix}}/tbin
+    mv main stream command props/whisper-fetch {{prefix}}/tbin
     chmod +x {{prefix}}/tbin/*
 
-    mv models/download-ggml-model.sh {{prefix}}/tbin/models/download-ggml-model.sh
-
+    mv models/download-ggml-model.sh {{prefix}}/tbin/download-ggml-model.sh
     mv props/whisper.cpp {{prefix}}/bin/whisper.cpp
-
     mv samples/jfk.wav {{prefix}}/share
     mv examples/command/commands.txt {{prefix}}/share
 
