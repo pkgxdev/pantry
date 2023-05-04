@@ -36,8 +36,8 @@ build:
       ((port++))
     done
     
-    sed -i '' "s/Listen 8080/Listen $port/" $HTTPD_CONF_PATH
-    sed -i.bak 's/#ServerName www.example.com:8080/ServerName localhost:'"$port"'/g' $HTTPD_CONF_PATH
+    sed -i '' "s/Listen 8080/Listen $port/" {{prefix}}/$(echo $(httpd -V | grep SERVER_CONFIG_FILE | sed 's/.*"\(.*\)"/\1/'))
+    sed -i.bak 's/#ServerName www.example.com:8080/ServerName localhost:'"$port"'/g' {{prefix}}/$(echo $(httpd -V | grep SERVER_CONFIG_FILE | sed 's/.*"\(.*\)"/\1/'))
 
   env:
     ARGS:
@@ -71,10 +71,6 @@ build:
       - --with-z={{deps.zlib.net.prefix}}
       - --disable-lua
       - --disable-luajit
-    linux:
-      HTTPD_CONF_PATH: "{{prefix}}/etc/httpd/conf/httpd.conf"
-    darwin:
-      HTTPD_CONF_PATH: "{{prefix}}/etc/httpd/httpd.conf"
 
 provides:
   - bin/ab
