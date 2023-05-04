@@ -10,9 +10,7 @@ platforms:
   - linux
 
 provides:
-  - bin/whisper.main
-  - bin/whisper.stream
-  - bin/whisper.command
+  - bin/whisper.cpp
 
 dependencies:
   gnu.org/wget: '*'
@@ -27,20 +25,21 @@ build:
   script: |
     patch -p1 < props/illegal_instruction.patch
 
+    make --jobs {{ hw.concurrency }}
+    make stream --jobs {{ hw.concurrency }}
+    make command --jobs {{ hw.concurrency }}
+
     mkdir -p {{prefix}}/bin {{prefix}}/tbin {{prefix}}/share
-
-    make clean --jobs {{ hw.concurrency }}
-    make
-    make stream
-    make command
-
-    mv main stream command props/whisper-fetch {{prefix}}/tbin
+    mv main stream command {{prefix}}/tbin
     chmod +x {{prefix}}/tbin/*
 
     mv models/download-ggml-model.sh {{prefix}}/tbin/download-ggml-model.sh
-    mv props/whisper.cpp {{prefix}}/bin/whisper.cpp
-    mv samples/jfk.wav {{prefix}}/share
+    mv props/whisper.cpp props/whisper-fetch {{prefix}}/bin
     mv examples/command/commands.txt {{prefix}}/share
 
 test:
-  whisper.cpp -f {{prefix}}/share/jfk.wav --print-colors
+  dependencies:
+    curl.se: '*'
+  script: |
+    curl -LO https://github.com/ggerganov/whisper.cpp/raw/master/samples/jfk.wav
+    whisper.cpp -f jfk.wav --print-colors
