@@ -11,7 +11,22 @@ export PATH="$D/tbin:$PATH"
 
 whisper-fetch $MODEL_DIR $VERSION
 
-exec "$D"/tbin/main \
+case $1 in
+stream)
+  shift
+  exec "$D"/tbin/stream \
     --model "$MODEL_DIR"/ggml-base.en.bin \
     "$@"
-    
+  ;;
+command)
+  shift
+  exec "$D"/tbin/command \
+    --model "$MODEL_DIR"/ggml-base.en.bin \
+    "$@"
+  ;;
+*)
+  exec "$D"/tbin/main \
+    --model "$MODEL_DIR"/ggml-base.en.bin \
+    "$@"
+  ;;
+esac

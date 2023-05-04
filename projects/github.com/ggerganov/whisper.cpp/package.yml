@@ -3,12 +3,16 @@ distributable:
   strip-components: 1
 
 versions:
-  github: ggerganov/whisper.cpp/tags
+  github: ggerganov/whisper.cpp
+
+platforms:
+  - darwin/aarch64
+  - linux
 
 provides:
   - bin/whisper.main
-  - bin/whisper.stream 
-  - bin/whisper.command 
+  - bin/whisper.stream
+  - bin/whisper.command
 
 dependencies:
   gnu.org/wget: '*'
@@ -21,39 +25,24 @@ build:
     libsdl.org: '*'
     gnu.org/patch: '*'
   script: |
-    patch -p1 < props/illegal_instruction.patch 
+    patch -p1 < props/illegal_instruction.patch
 
     mkdir -p {{prefix}}/bin {{prefix}}/tbin/models {{prefix}}/share
-    
-    make clean --jobs {{ hw.concurrency }} 
-    make 
-    make stream 
-    make command 
-    
-    mv main {{prefix}}/tbin/main
-    mv stream {{prefix}}/tbin/stream
-    mv command {{prefix}}/tbin/command 
+
+    make clean --jobs {{ hw.concurrency }}
+    make
+    make stream
+    make command
+
+    mv main stream command {{prefix}}/tbin
+    chmod +x {{prefix}}/tbin/*
 
     mv models/download-ggml-model.sh {{prefix}}/tbin/models/download-ggml-model.sh
 
-    mv props/main.sh {{prefix}}/bin/whisper.main
-    mv props/stream.sh {{prefix}}/bin/whisper.stream
-    mv props/command.sh {{prefix}}/bin/whisper.command
-    mv props/whisper-fetch.sh {{prefix}}/tbin/whisper-fetch
-    
+    mv props/whisper.cpp {{prefix}}/bin/whisper.cpp
+
     mv samples/jfk.wav {{prefix}}/share
     mv examples/command/commands.txt {{prefix}}/share
 
-    chmod +x {{prefix}}/tbin/main
-    chmod +x {{prefix}}/bin/whisper.main
-
-    chmod +x {{prefix}}/tbin/stream
-    chmod +x {{prefix}}/bin/whisper.stream
-
-    chmod +x {{prefix}}/tbin/command
-    chmod +x {{prefix}}/bin/whisper.command
-
-    chmod +x {{prefix}}/tbin/whisper-fetch
-
-test: |
-  whisper.main -f {{prefix}}/share/jfk.wav --print-colors
+test:
+  whisper.cpp -f {{prefix}}/share/jfk.wav --print-colors
