@@ -31,14 +31,6 @@ build:
     make
     make install
 
-    port=8080
-    while lsof -i:$port >/dev/null 2>&1; do
-      ((port++))
-    done
-    
-    sed -i '' "s/Listen 8080/Listen $port/" $HTTPD_CONF_PATH
-    sed -i.bak 's/#ServerName www.example.com:8080/ServerName localhost:'"$port"'/g' $HTTPD_CONF_PATH
-
   env:
     ARGS:
       - --prefix={{prefix}}
@@ -71,10 +63,6 @@ build:
       - --with-z={{deps.zlib.net.prefix}}
       - --disable-lua
       - --disable-luajit
-    linux:
-      HTTPD_CONF_PATH: "{{prefix}}/etc/httpd/conf.d/httpd.conf"
-    darwin:
-      HTTPD_CONF_PATH: "{{prefix}}/etc/httpd/httpd.conf"
 
 provides:
   - bin/ab
