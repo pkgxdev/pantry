@@ -20,6 +20,10 @@ dependencies:
   zlib.net: '*'
   libexpat.github.io: '*'
 
+runtime:
+  env:
+    HTTPD_ROOT: '{{prefix}}'
+
 build:
   dependencies:
     tea.xyz/gx/cc: c99
@@ -30,6 +34,18 @@ build:
     ./configure $ARGS
     make
     make install
+
+    cd "{{prefix}}/bin"
+    sed -i.bak \
+        -e "s_{{prefix}}_\$(cd \$(dirname \$0)/.. \&\& pwd)_g" \
+        -e "s/^HTTPD=\'\(.*\)\'$/HTTPD=\"\1\"/" \
+        apachectl envvars envvars-std
+    rm apachectl.bak envvars.bak envvars-std.bak
+    cd ../etc
+    sed -i.bak \
+        -e 's_{{prefix}}_\${HTTPD\_ROOT}_' \
+        httpd/httpd.conf
+    rm httpd/httpd.conf.bak
 
   env:
     ARGS:
@@ -79,5 +95,6 @@ provides:
   - bin/rotatelogs
   - bin/suexec
 
-test:
+test: |
   httpd -v | grep {{version}}
+  apachectl -t
