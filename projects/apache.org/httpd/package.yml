@@ -20,6 +20,11 @@ dependencies:
   zlib.net: '*'
   libexpat.github.io: '*'
 
+runtime:
+  env:
+    HTTPD_ROOT: '{{prefix}}'
+    APACHE_CONFDIR: '{{prefix}}/etc/httpd'
+
 build:
   dependencies:
     tea.xyz/gx/cc: c99
@@ -31,14 +36,26 @@ build:
     make
     make install
 
-    APACHE_CONFDIR=$(tea httpd -V | grep SERVER_CONFIG_FILE | sed 's/.*"\(.*\)"/\1/')
+    cd "{{prefix}}/bin"
+    sed -i.bak \
+        -e "s_{{prefix}}_\$(cd \$(dirname \$0)/.. \&\& pwd)_g" \
+        -e "s/^HTTPD=\'\(.*\)\'$/HTTPD=\"\1\"/" \
+        apachectl envvars envvars-std
+    rm apachectl.bak envvars.bak envvars-std.bak
+    cd ../etc
+    sed -i.bak \
+        -e 's_{{prefix}}_\${HTTPD\_ROOT}_' \
+        httpd/httpd.conf
+    rm httpd/httpd.conf.bak
+
+    HTTPD_CONF=$(tea httpd -V | grep SERVER_CONFIG_FILE | sed 's/.*"\(.*\)"/\1/')
     
     port=8080
     while lsof -i:$port >/dev/null 2>&1; do
           ((port++))
     done      
-    sed -i '' "s/Listen 8080/Listen $port/" {{prefix}}/$APACHE_CONFDIR
-    sed -i.bak 's/#ServerName www.example.com:8080/ServerName localhost:'"$port"'/g' {{prefix}}/$APACHE_CONFDIR
+    sed -i '' "s/Listen 8080/Listen $port/" {{prefix}}/$HTTPD_CONF
+    sed -i.bak 's/#ServerName www.example.com:8080/ServerName localhost:'"$port"'/g' {{prefix}}/$HTTPD_CONF
 
   env:
     ARGS:
