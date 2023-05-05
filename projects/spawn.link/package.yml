@@ -1,0 +1,35 @@
+distributable:
+  url: https://github.com/trapexit/mergerfs/archive/refs/tags/{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: trapexit/mergerfs
+
+platforms: linux
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    git-scm.org: '*'
+    python.org: ^3
+  script: |
+    # Set the version
+    sed -i.bak -e 's/^VERSION=.*/VERSION={{ version }}/' tools/update-version
+    rm tools/update-version.bak
+
+    # Don't try to chown/chmod on install
+    sed -i.bak -e '/\(chown\|chmod\)/d' libfuse/Makefile
+    rm libfuse/Makefile.bak
+
+    make --jobs {{ hw.concurrency }}
+    make install DESTDIR="{{prefix}}" PREFIX=""
+
+provides:
+  - bin/mergerfs
+  - bin/mergerfs-fusermount
+  - sbin/mount.mergerfs
+
+# FIXME: Maybe? Complicated to test something that mounts filesystems...
+test: |
+  test "$(mergerfs --version)" = "mergerfs version: {{ version }}"
