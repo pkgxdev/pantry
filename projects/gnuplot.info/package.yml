@@ -1,0 +1,44 @@
+distributable:
+  url: https://downloads.sourceforge.net/project/gnuplot/gnuplot/{{version}}/gnuplot-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://sourceforge.net/projects/gnuplot/files/gnuplot
+  match: /gnuplot\/\d+\.\d+\.\d+\//
+  strip:
+    - /gnuplot\//
+    - /\//
+
+dependencies:
+  libgd.github.io: '*'
+  lua.org: '*'
+  gnome.org/pango: '*'
+  gnu.org/readline: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/autoconf: '*'
+    gnu.org/libtool: '*'
+    freedesktop.org/pkg-config: '*'
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --disable-dependency-tracking
+      - --disable-silent-rules
+      - --prefix={{prefix}}
+      - --with-readline={{deps.gnu.org/readline.prefix}}
+      - --without-tutorial
+      - --disable-wxwidgets
+      - --without-qt
+      - --without-x
+      - --without-latex
+
+provides:
+  - bin/gnuplot
+
+test:
+  gnuplot --version | grep {{ version.marketing }}

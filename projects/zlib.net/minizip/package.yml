@@ -1,0 +1,30 @@
+distributable:
+  url: https://github.com/madler/zlib/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: madler/zlib
+  strip: /^v/
+
+# dependencies:
+#   zlib.net: '*'
+
+build:
+  dependencies:
+    gnu.org/autoconf: ^2
+    gnu.org/automake: ^1
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/libtool: ^2
+    # zlib.net: '*'
+  script: |
+    cd contrib/minizip
+    autoreconf -fi
+    ./configure --prefix={{prefix}}
+    make install
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script: |
+    cc test.c -o test -lminizip -lz

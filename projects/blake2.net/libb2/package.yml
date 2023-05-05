@@ -1,0 +1,35 @@
+distributable:
+  url: https://github.com/BLAKE2/libb2/releases/download/v{{version}}/libb2-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: BLAKE2/libb2
+  strip: /^v/
+
+build:
+  dependencies:
+    gnu.org/gcc: '*'
+    tea.xyz/gx/make: '*'
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --disable-dependency-tracking
+      - --disable-silent-rules
+    darwin/x86-64:
+      ARGS:
+        - --enable-fat
+    linux/x86-64:
+      ARGS:
+        - --enable-fat
+    linux/aarch64:
+      ARGS:
+        - --enable-native="no"
+
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script:
+    pkg-config --modversion libb2 | grep {{version.raw}}

@@ -1,0 +1,64 @@
+distributable:
+  url: https://www.openldap.org/software/download/OpenLDAP/openldap-release/openldap-{{version}}.tgz
+  strip-components: 1
+
+versions:
+  url: https://www.openldap.org/software/download/OpenLDAP/openldap-release/
+  match: /openldap-\d+\.\d+\.\d+.tgz/
+  strip:
+    - /^openldap-/
+    - /\.tgz/
+
+dependencies:
+  openssl.org: ^1.1
+  linux:
+    github.com/util-linux/util-linux: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/sed: '*' # darwin sed doesn't support \b
+  script: |
+    ./configure $ARGS
+
+    # Avoid needing groff to build the docs
+    sed -i.bak -e 's/SUBDIRS=\(.*\)\bdoc\b\(.*\)/SUBDIRS=\1\2/' Makefile
+    rm Makefile.bak
+
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --enable-accesslog
+      - --enable-auditlog
+      - --enable-constraint
+      - --enable-dds
+      - --enable-deref
+      - --enable-dyngroup
+      - --enable-dynlist
+      - --enable-memberof
+      - --enable-ppolicy
+      - --enable-proxycache
+      - --enable-refint
+      - --enable-retcode
+      - --enable-seqmod
+      - --enable-translucent
+      - --enable-unique
+      - --enable-valsort
+      - --without-systemd
+
+provides:
+  - bin/ldapcompare
+  - bin/ldapdelete
+  - bin/ldapexop
+  - bin/ldapmodify
+  - bin/ldapmodrdn
+  - bin/ldappasswd
+  - bin/ldapsearch
+  - bin/ldapurl
+  - bin/ldapvc
+  - bin/ldapwhoami
+
+test:
+  ldapcompare -VV 2>&1 | grep {{version}}

@@ -1,0 +1,47 @@
+distributable:
+  url: https://github.com/ElementsProject/elements/archive/refs/tags/elements-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: ElementsProject/elements
+  strip: /^elements-/
+
+dependencies:
+  boost.org: ^1.64
+  libevent.org: '*'
+  oracle.com/berkeley-db: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/automake: '*'
+    gnu.org/autoconf: '*'
+    gnu.org/libtool: '*'
+    freedesktop.org/pkg-config: '*'
+    linux:
+      github.com/util-linux/util-linux: '*' # hexdump
+  script: |
+    ./autogen.sh
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    CXX: c++
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --with-incompatible-bdb
+      - --enable-liquid
+      - --with-boost={{deps.boost.org.prefix}}
+
+
+provides:
+  - bin/bench_bitcoin
+  - bin/elements-cli
+  - bin/elements-tx
+  - bin/elements-util
+  - bin/elements-wallet
+  - bin/elementsd
+  - bin/test_bitcoin
+
+test:
+  elements-cli --version

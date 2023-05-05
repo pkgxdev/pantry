@@ -1,0 +1,51 @@
+distributable:
+  url: https://github.com/libsndfile/libsamplerate/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: libsndfile/libsamplerate
+
+build:
+  dependencies:
+    cmake.org: '*'
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    freedesktop.org/pkg-config: '*'
+  script: |
+    cmake -S . -B build/shared -DBUILD_SHARED_LIBS=ON $ARGS
+    cmake --build build/shared
+    cmake --build build/shared --target install
+
+    cmake -S . -B build/static -DBUILD_SHARED_LIBS=OFF $ARGS
+    cmake --build build/static
+    cmake --build build/static --target install
+  env:
+    ARGS:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DLIBSAMPLERATE_EXAMPLES=OFF
+      - -DBUILD_TESTING=OFF
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  fixture: |
+    #include <assert.h>
+    #include <samplerate.h>
+    int main() {
+      SRC_DATA src_data;
+      float input[] = {0.1, 0.9, 0.7, 0.4} ;
+      float output[2] ;
+      src_data.data_in = input ;
+      src_data.data_out = output ;
+      src_data.input_frames = 4 ;
+      src_data.output_frames = 2 ;
+      src_data.src_ratio = 0.5 ;
+      int res = src_simple (&src_data, 2, 1) ;
+      assert(res == 0);
+      return 0;
+    }
+  script: |
+    mv $FIXTURE test.c
+    cc test.c -lsamplerate -o test
+    ./test

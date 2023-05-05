@@ -1,0 +1,24 @@
+distributable:
+  url: https://github.com/ajeetdsouza/zoxide/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: ajeetdsouza/zoxide
+  strip: /^v/
+
+build:
+  dependencies:
+    rust-lang.org: ^1.60
+    rust-lang.org/cargo: ^0
+  script: cargo install --locked --path . --root "{{prefix}}"
+
+provides:
+  - bin/zoxide
+
+test: |
+  eval "$(zoxide init bash)"
+  mkdir foo
+  cd foo
+  cd ..
+  z foo
+  pwd | grep -E '/foo$'
