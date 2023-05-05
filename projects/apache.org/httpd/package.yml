@@ -47,13 +47,15 @@ build:
         -e 's_{{prefix}}_\${HTTPD\_ROOT}_' \
         httpd/httpd.conf
     rm httpd/httpd.conf.bak
+
+    HTTPD_CONF=$(tea httpd -V 2>/dev/null | grep SERVER_CONFIG_FILE | sed 's/.*"\(.*\)"/\1/')
     
     port=8080
     while lsof -i:$port >/dev/null 2>&1; do
           ((port++))
     done      
-    sed -i '' "s/Listen 8080/Listen $port/" {{prefix}}/etc/httpd/httpd.conf
-    sed -i.bak 's/#ServerName www.example.com:8080/ServerName localhost:'"$port"'/g' {{prefix}}/etc/httpd/httpd.conf
+    sed -i '' "s/Listen 8080/Listen $port/" {{prefix}}/$HTTPD_CONF
+    sed -i.bak 's/#ServerName www.example.com:8080/ServerName localhost:'"$port"'/g' {{prefix}}/$HTTPD_CONF
 
   env:
     ARGS:
