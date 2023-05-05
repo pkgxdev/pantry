@@ -6,6 +6,9 @@ versions:
   github: madler/zlib
   strip: /^v/
 
+# dependencies:
+#   zlib.net: '*'
+
 build:
   dependencies:
     gnu.org/autoconf: ^2
@@ -13,22 +16,9 @@ build:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
     gnu.org/libtool: ^2
+    # zlib.net: '*'
   script: |
-    ./configure --prefix={{prefix}}
-    make --jobs {{ hw.concurrency }} install
-
     cd contrib/minizip
-
-    if [[ "$(uname)" == "Darwin" ]]; then
-      # edits to statically link to libz.a
-      sed -i.bak \
-        -e "s:-L\$(zlib_top_builddir):\$(zlib_top_builddir)/libz.a:" \
-        -e "s_-version-info 1:0:0 -l_:-version-info 1:0:0_" \
-        -e "s:libminizip.la -lz:libminizip.la:" \
-        Makefile.am
-      rm Makefile.am.bak
-    fi
-
     autoreconf -fi
     ./configure --prefix={{prefix}}
     make install
