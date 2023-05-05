@@ -49,15 +49,21 @@ build:
 
     cd "{{prefix}}/bin"
     sed -i.bak \
-        -e 's_{{prefix}}_$(cd $(dirname $0)/.. \&\& pwd)_g' \
-        -e 's/^HTTPD=\x27\(.*\)\x27$/HTTPD="\\1"/' \
+        -e "s_{{prefix}}_\$(cd \$(dirname \$0)/.. \&\& pwd)_g" \
+        -e "s/^HTTPD=\'\(.*\)\'$/HTTPD=\"\1\"/" \
         apachectl envvars envvars-std
+    sed -i.bak \
+      -e 's_{{prefix}}_$(cd $(dirname $0)/.. && pwd)_g' \
+      -e 's/^HTTPD='\''\(.*\)'\''$/HTTPD="$(cd $(dirname $0)\/.. \&\& pwd)\/bin\/httpd"/' \
+      apachectl envvars envvars-std
+
     rm apachectl.bak envvars.bak envvars-std.bak
     cd ../etc
     sed -i.bak \
-        -e 's_{{prefix}}_\${HTTPD_ROOT}_' \
+        -e 's_{{prefix}}_\${HTTPD\_ROOT}_' \
         httpd/httpd.conf
     rm httpd/httpd.conf.bak
+
 
   env:
     ARGS:
