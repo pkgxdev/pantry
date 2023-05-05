@@ -1,12 +1,14 @@
 distributable:
   url: https://dlcdn.apache.org/httpd/httpd-2.4.57.tar.gz
   strip-components: 1
+
 versions:
   url: https://dlcdn.apache.org/httpd/
   match: /httpd-\d+\.\d+\.\d+.tar.gz/
   strip:
     - /^httpd-/
     - /\.tar\.gz$/
+
 dependencies:
   apache.org/apr: '>=1.3.0'
   apache.org/apr-util: '>=1.3.0'
@@ -17,10 +19,6 @@ dependencies:
   gnome.org/libxml2: '*'
   zlib.net: '*'
   libexpat.github.io: '*'
-runtime:
-  env:
-    HTTPD_ROOT: '{{prefix}}'
-    APACHE_CONFDIR: '{{prefix}}/etc/httpd'
 
 build:
   dependencies:
@@ -32,35 +30,33 @@ build:
     ./configure $ARGS
     make
     make install
-    cd "{{prefix}}/bin"
-    sed -i.bak \
-        -e "s_{{prefix}}_\$(cd \$(dirname \$0)/.. \&\& pwd)_g" \
-        -e "s/^HTTPD=\'\(.*\)\'$/HTTPD=\"\1\"/" \
-        apachectl envvars envvars-std
-    rm apachectl.bak envvars.bak envvars-std.bak
-    cd ../etc
-    sed -i.bak \
-        -e 's_{{prefix}}_\${HTTPD\_ROOT}_' \
-        httpd/httpd.conf
-    rm httpd/httpd.conf.bak
+
+    HTTPD_CONF=$(tea httpd -V 2>/dev/null | grep SERVER_CONFIG_FILE | sed 's/.*"\(.*\)"/\1/')
+    
+    port=8080
+    while lsof -i:$port >/dev/null 2>&1; do
+          ((port++))
+    done
+    if [[$port -ne 8080]]; then
+      sed -i '' "s/Listen 8080/Listen $port/" {{prefix}}/$HTTPD_CONF
+    fi
+    sed -i.bak 's/#ServerName www.example.com:8080/ServerName localhost:'"$port"'/g' {{prefix}}/$HTTPD_CONF
   env:
     ARGS:
-      - --prefix={{prefix}}
+      - --prefix="{{prefix}}"
       - --enable-layout=Slackware-FHS
       - --sbindir={{prefix}}/bin
       - --mandir={{prefix}}/man
       - --sysconfdir={{prefix}}/etc/httpd
       - --datadir={{prefix}}/var/www
-      - --libdir={{prefix}}/lib
       - --localstatedir={{prefix}}/var
-      - --datarootdir={{prefix}}/share
-      - --bindir={{prefix}}/bin
       - --enable-mpms-shared=all
       - --enable-mods-shared=all
       - --enable-authnz-fcgi
       - --enable-cgi
       - --enable-pie
       - --enable-suexec
+      - --with-suexec-bin={{prefix}}/suexec
       - --with-suexec-caller=_www
       - --with-port=8080
       - --with-sslport=8443
@@ -75,9 +71,9 @@ build:
       - --with-z={{deps.zlib.net.prefix}}
       - --disable-lua
       - --disable-luajit
+
 provides:
   - bin/ab
-  - bin/apachectl
   - bin/checkgid
   - bin/fcgistarter
   - bin/htcacheclean
@@ -89,6 +85,7 @@ provides:
   - bin/logresolve
   - bin/rotatelogs
   - bin/suexec
+
 test: |
   httpd -v | grep {{version}}
   apachectl -t
