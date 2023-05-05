@@ -18,6 +18,12 @@ dependencies:
   pcre.org/v2: '*'
   gnome.org/libxml2: '*'
   zlib.net: '*'
+  libexpat.github.io: '*'
+
+runtime:
+  env:
+    HTTPD_ROOT: '{{prefix}}'
+    APACHE_CONFDIR: '{{prefix}}/etc/httpd'
 
 build:
   dependencies:
@@ -29,6 +35,30 @@ build:
     ./configure $ARGS
     make
     make install
+
+    HTTPD_CONF=$(tea httpd -V 2>/dev/null | grep SERVER_CONFIG_FILE | sed 's/.*"\(.*\)"/\1/')
+    
+    port=8080
+    while lsof -i:$port >/dev/null 2>&1; do
+          ((port++))
+    done
+    if [[$port -ne 8080]]; then
+      sed -i '' "s/Listen 8080/Listen $port/" {{prefix}}/$HTTPD_CONF
+    fi
+    sed -i.bak 's/#ServerName www.example.com:8080/ServerName localhost:'"$port"'/g' {{prefix}}/$HTTPD_CONF
+
+    cd "{{prefix}}/bin"
+    sed -i.bak \
+        -e 's_{{prefix}}_$(cd $(dirname $0)/.. \&\& pwd)_g' \
+        -e 's/^HTTPD=\x27\(.*\)\x27$/HTTPD="\\1"/' \
+        apachectl envvars envvars-std
+    rm apachectl.bak envvars.bak envvars-std.bak
+    cd ../etc
+    sed -i.bak \
+        -e 's_{{prefix}}_\${HTTPD_ROOT}_' \
+        httpd/httpd.conf
+    rm httpd/httpd.conf.bak
+
   env:
     ARGS:
       - --prefix="{{prefix}}"
@@ -74,5 +104,6 @@ provides:
   - bin/rotatelogs
   - bin/suexec
 
-test:
+test: |
   httpd -v | grep {{version}}
+  apachectl -t
