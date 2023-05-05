@@ -15,14 +15,17 @@ dependencies:
 
 build:
   dependencies:
-    gnu.org/gcc: '*'
+    tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
     gnu.org/libtool: '*'
     gnu.org/automake: '*'
     gnu.org/autoconf: '>=2.71'
     freedesktop.org/pkg-config: '*'
+    gnu.org/wget: '*'
 
   script: |
+    wget -O config.guess 'https://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.guess;hb=HEAD'
+    wget -O config.sub 'https://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.sub;hb=HEAD'
     ./autogen.sh
     ./configure $ARGS
     make --jobs {{ hw.concurrency }} install
