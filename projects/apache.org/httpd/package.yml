@@ -23,7 +23,7 @@ dependencies:
 runtime:
   env:
       HTTPD_ROOT: '{{prefix}}'
-      APACHE_CONFDIR: '{{prefix}}/conf/httpd.conf'
+      APACHE_CONFDIR: '{{prefix}}/conf'
 
 build:
   dependencies:
@@ -105,6 +105,7 @@ provides:
   - bin/rotatelogs
   - bin/suexec
 
-test: |
-  httpd -v | grep {{version}}
-  apachectl -t -f "{{prefix}}/conf/httpd.conf"  
+test: 
+  script: |
+    httpd -v | grep {{version}}
+    apachectl -t -f "$APACHE_CONFDIR/httpd.conf"
