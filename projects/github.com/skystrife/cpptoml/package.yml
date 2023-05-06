@@ -1,0 +1,28 @@
+distributable:
+  url: https://github.com/skystrife/cpptoml/archive/v0.1.1.tar.gz
+  strip-components: 1
+
+versions:
+  github: skystrife/cpptoml
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    cmake.org: '*'
+  script: |
+    cmake -S . -B build $ARGS
+    cmake --build build
+    cmake --install build
+  env:
+    ARGS:
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
+      - -DENABLE_LIBCXX="ON"
+      - -DCPPTOML_BUILD_EXAMPLES=OFF
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script: |
+    g++ -std=c++11 -I {{prefix}}/include test.cc -o test
+    ./test | grep "Hello, Tea"
