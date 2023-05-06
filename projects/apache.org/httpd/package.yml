@@ -41,7 +41,7 @@ build:
     while lsof -i:$port >/dev/null 2>&1; do
       ((port++))
     done
-    if [[$port -ne 8080]]; then
+    if [ "$port" -ne 8080 ]; then
       sed -i '' "s/Listen 8080/Listen $port/" {{prefix}}/$HTTPD_CONF
     fi
     sed -i.bak 's/#ServerName www.example.com:8080/ServerName localhost:'"$port"'/g' {{prefix}}/$HTTPD_CONF
