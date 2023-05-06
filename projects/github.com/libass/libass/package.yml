@@ -1,0 +1,43 @@
+distributable:
+  url: https://github.com/libass/libass/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: libass/libass/tags
+
+dependencies:
+  freetype.org: 2
+  gnu.org/fribidi: 1
+  harfbuzz.org: '*'
+  github.com/adah1972/libunibreak: '*'
+  linux:
+    freedesktop.org/fontconfig: 2
+  x86-64:
+    nasm.us: 2
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/autoconf: 2
+    gnu.org/automake: 1
+    gnu.org/libtool: 2
+    freedesktop.org/pkg-config: '*'
+  script: |
+    ./autogen.sh
+    ./configure $ARGS
+    make install
+  env:
+    ARGS:
+      - --disable-dependency-tracking
+      - --prefix={{prefix}}
+    darwin:
+      ARGS:
+      - --disable-fontconfig # libass uses coretext on macOS, fontconfig on Linux
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script: |
+    c++ test.cpp -lass -o test
+    ./test
