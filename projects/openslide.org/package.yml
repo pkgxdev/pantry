@@ -1,0 +1,37 @@
+distributable:
+  url: https://github.com/openslide/openslide/releases/download/v3.4.1/openslide-3.4.1.tar.xz
+  strip-components: 1
+
+versions:
+  github: openslide/openslide
+
+dependencies:
+  cairographics.org: '*'
+  gnome.org/gdk-pixbuf: '*'
+  gnome.org/glib: '*'
+  libjpeg-turbo.org: '*'
+  libpng.org: '*'
+  simplesystems.org/libtiff: '*'
+  gnome.org/libxml2: '*'
+  openjpeg.org: '*'
+  sqlite.org: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    freedesktop.org/pkg-config: '*'
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+
+provides:
+  - bin/openslide-quickhash1sum
+  - bin/openslide-show-properties
+  - bin/openslide-write-png
+
+test:
+  openslide-write-png --version | grep {{version}}
