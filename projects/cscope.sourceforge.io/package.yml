@@ -1,9 +1,17 @@
 distributable:
-  url: https://downloads.sourceforge.net/project/cscope/cscope/v{{version.marketing}}/cscope-{{version.marketing}}.tar.gz
+  url: https://downloads.sourceforge.net/project/cscope/cscope/v{{version.raw}}/cscope-{{version.raw}}.tar.gz
   strip-components: 1
 
 versions:
-  - 15.9
+  # This is messy: several versions provided .bz2 rather than
+  # .gz, and the latest version is v15.9, but the earlier
+  # versions are 15.8, 15.7a, etc. This will only match v15.9,
+  # but will hopefully match future versions as well
+  url: https://sourceforge.net/projects/cscope/files/cscope/
+  match: _/projects/cscope/files/cscope/v\d+.\d+[a-z]?/_
+  strip:
+    - _^/projects/cscope/files/cscope/v_
+    - _/$_
 
 dependencies:
   invisible-island.net/ncurses: '*'
@@ -27,4 +35,4 @@ provides:
   - bin/ocs
 
 test:
-  cscope -V | grep {{version.marketing}}
+  cscope -V 2>&1 | grep {{version.marketing}}
