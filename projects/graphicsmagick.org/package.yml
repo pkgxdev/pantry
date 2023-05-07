@@ -1,0 +1,54 @@
+distributable:
+  url: https://downloads.sourceforge.net/project/graphicsmagick/graphicsmagick/{{version}}/GraphicsMagick-{{version}}.tar.xz
+  strip-components: 1
+
+versions:
+  url: https://sourceforge.net/projects/graphicsmagick/files/graphicsmagick/
+  match: _/projects/graphicsmagick/files/graphicsmagick/\d+.\d+.\d+/_
+  strip:
+    - _^/projects/graphicsmagick/files/graphicsmagick/_
+    - _/$_
+
+dependencies:
+  freetype.org: '*'
+  github.com/jasper-software/jasper: '*'
+  libjpeg-turbo.org: '*'
+  jpeg.org/jpegxl: '*'
+  libpng.org: '*'
+  simplesystems.org/libtiff: '*'
+  gnu.org/libtool: '*'
+  littlecms.com: '>=2.0'
+  google.com/webp: '*'
+  sourceware.org/bzip2: '*'
+  gnome.org/libxml2: '*'
+  zlib.net: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    freedesktop.org/pkg-config: '*'
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --disable-dependency-tracking
+      - --disable-openmp
+      - --disable-static
+      - --enable-shared
+      - --with-modules
+      - --with-quantum-depth=16
+      - --without-lzma
+      - --without-x
+      - --without-gslib
+      - --with-gs-font-dir={{prefix}}/share/ghostscript/fonts
+      - --without-wmf
+      - --with-jxl
+
+provides:
+  - bin/gm
+
+test:
+  gm -version | grep {{version}}
