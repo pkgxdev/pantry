@@ -17,8 +17,6 @@ build:
     go.dev: '*'
     tea.xyz/gx/make: '*'
   script: |
-    export GOPATH="$PWD/build"
-
     pushd sdk
     go mod download
     popd
@@ -36,10 +34,11 @@ build:
     # Install shell completions
     # TODO: Doesn't work for zsh. Should it be left up to user?
     # {{prefix}}/bin/pulumi gen-completion $SHELL
+  env:
+    GOPATH: "$PWD/build"
 
 test:
   script: |
-    export GIT_SSL_CAINFO={{deps.curl.se/ca-certs.prefix}}/ssl/cert.pem
     export PULUMI_ACCESS_TOKEN="local://"
     export PULUMI_TEMPLATE_PATH="$PWD/templates"
     pulumi new aws-typescript --generate-only --force -y
@@ -49,3 +48,6 @@ test:
         echo "Project was not created"
         exit 1
     fi
+  env:
+    PULUMI_ACCESS_TOKEN: local://
+    PULUMI_TEMPLATE_PATH: "$PWD/templates"
