@@ -1,0 +1,36 @@
+distributable:
+  url: https://code.videolan.org/jeeb/aribb24/-/archive/v{{version}}/aribb24-v{{version}}.tar.bz2
+  strip-components: 1
+
+versions:
+  url: https://code.videolan.org/jeeb/aribb24/-/tags/
+  match: /v\d+\.\d+\.\d+/
+  strip:
+    - /^v/
+
+dependencies:
+  libpng.org: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/autoconf: '*'
+    gnu.org/automake: '*'
+    gnu.org/libtool: '*'
+    freedesktop.org/pkg-config: '*'
+  script: |
+    ./bootstrap
+    ./configure $ARGS
+    make install
+  env:
+    ARGS:
+      - --disable-silent-rules
+      - --prefix="{{prefix}}"
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script: |
+    cc -o test test.c -laribb24
+    ./test
