@@ -9,6 +9,9 @@ versions:
 provides:
   - bin/pulumi
 
+dependencies:
+  curl.se/ca-certs: '*'
+
 build:
   dependencies:
     go.dev: '*'
@@ -33,12 +36,13 @@ build:
     # Install shell completions
     # TODO: Doesn't work for zsh. Should it be left up to user?
     # {{prefix}}/bin/pulumi gen-completion $SHELL
+
 test:
   script: |
+    export GIT_SSL_CAINFO={{deps.curl.se/ca-certs.prefix}}/ssl/cert.pem
     export PULUMI_ACCESS_TOKEN="local://"
     export PULUMI_TEMPLATE_PATH="$PWD/templates"
     pulumi new aws-typescript --generate-only --force -y
-    # assert_predicate testpath/"Pulumi.yaml", :exist?, "Project was not created"
     if [ -e "$PWD/Pulumi.yaml" ]; then
         echo "Project was created"
     else
