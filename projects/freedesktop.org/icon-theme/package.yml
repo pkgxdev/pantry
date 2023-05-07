@@ -1,0 +1,24 @@
+distributable:
+  url: https://icon-theme.freedesktop.org/releases/hicolor-icon-theme-{{version.marketing}}.tar.xz
+  strip-components: 1
+
+versions:
+  url: https://icon-theme.freedesktop.org/releases/
+  match: /hicolor-icon-theme-\d+\.\d+\.tar\.xz/
+  strip:
+    - /^hicolor-icon-theme-/
+    - /.tar.xz/
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+
+test:
+  test -e "{{prefix}}/share/icons/hicolor/index.theme" && exit 0 || exit 1

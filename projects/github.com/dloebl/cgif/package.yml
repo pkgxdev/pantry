@@ -1,0 +1,31 @@
+distributable:
+  url: https://github.com/dloebl/cgif/archive/refs/tags/V{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: dloebl/cgif
+  strip: /^V/
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    mesonbuild.com: '*'
+    ninja-build.org: '*'
+  script: |
+    mkdir -p build
+    cd build
+    meson $ARGS
+    ninja -v
+    ninja install -v
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - ..
+      - -Dtests=false
+
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script:
+    pkg-config --modversion cgif | grep {{version}}
