@@ -1,0 +1,30 @@
+distributable:
+  url: https://github.com/P-H-C/phc-winner-argon2/archive/refs/tags/{{version.raw}}.tar.gz
+
+versions:
+  github: P-H-C/phc-winner-argon2
+
+provides:
+  - bin/argon2
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  working-directory: phc-winner-argon2-{{version.raw}}
+  script: |
+    make $ARGS
+    make test
+    make install $ARGS
+
+    mkdir -p {{prefix}}/share/doc/argon2
+    mv argon2-specs.pdf {{prefix}}/share/doc/argon2/
+  env:
+    ARGS:
+      - PREFIX={{prefix}}
+      - ARGON2_VERSION={{version}}
+      - LIBRARY_REL=lib
+
+test: |
+  output=$(printf '%s' 'password' | argon2 somesalt -t 2 -m 16 -p 4)
+  echo "$output" | grep 'c29tZXNhbHQ$IMit9qkFULCMA/ViizL57cnTLOa5DiVM9eMwpAvPw'
