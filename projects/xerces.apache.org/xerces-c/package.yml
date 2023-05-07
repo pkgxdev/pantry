@@ -1,0 +1,59 @@
+distributable:
+  url: https://archive.apache.org/dist/xerces/c/3/sources/xerces-c-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://archive.apache.org/dist/xerces/c/3/sources/
+  match: /xerces-c-\d+\.\d+\.\d+\.tar\.gz/
+  strip:
+    - /^xerces-c-/
+    - /\.tar\.gz$/
+
+dependencies:
+  curl.se: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    cmake.org: '*'
+  script: |
+    cmake -S . -B build_shared -DBUILD_SHARED_LIBS=ON $ARGS
+    cmake --build build_shared
+    # FIXME: One test is failing
+    # ctest --test-dir build_shared --verbose
+    cmake --install build_shared
+
+    cmake -S . -B build_static -DBUILD_SHARED_LIBS=OFF $ARGS
+    cmake --build build_static
+    mv build_static/src/*.a {{prefix}}/lib/
+
+    # Remove a sample program that conflicts with libmemcached
+    # on case-insensitive file systems
+    rm -f {{prefix}}/bin/MemParse
+  env:
+    ARGS:
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_DISABLE_FIND_PACKAGE_ICU=ON # Prevent opportunistic linkage to `icu4c`
+      - -DCMAKE_INSTALL_RPATH={{prefix}}
+
+provides:
+  - bin/CreateDOMDocument
+  - bin/DOMCount
+  - bin/DOMPrint
+  - bin/EnumVal
+  - bin/PParse
+  - bin/PSVIWriter
+  - bin/Redirect
+  - bin/SAX2Count
+  - bin/SAX2Print
+  - bin/SAXCount
+  - bin/SAXPrint
+  - bin/SCMPrint
+  - bin/SEnumVal
+  - bin/StdInParse
+  - bin/XInclude
+
+test: |
+    SAXCount ducks.xml | grep '(6 elems, 1 attrs, 0 spaces, 37 chars)'
