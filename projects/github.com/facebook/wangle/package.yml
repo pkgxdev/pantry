@@ -39,17 +39,13 @@ build:
     cmake . -DBUILD_SHARED_LIBS=OFF $ARGS
     make
 
-    # lib.install "lib/libwangle.a"
-
-    # pkgshare.install Dir["example/echo/*.cpp"]
+    sed -i.bak "s:$(tea --prefix):\$\{_IMPORT_PREFIX\}/../../../..:g" "{{prefix}}"/lib/cmake/wangle/wangle-targets.cmake
+    rm "{{prefix}}"/lib/cmake/wangle/wangle-targets.cmake.bak
   env:
     ARGS:
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
       - -DCMAKE_BUILD_TYPE=Release
       - -DBUILD_TESTS=OFF
-
-provides:
-  - bin/wangle
 
 test:
   dependencies:
