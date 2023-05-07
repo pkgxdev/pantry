@@ -1,0 +1,39 @@
+distributable:
+  url: https://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/cfitsio-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://heasarc.gsfc.nasa.gov/FTP/software/fitsio/c/
+  match: /cfitsio-\d+\.\d+(\.\d+)?\.tar\.gz/
+  strip:
+    - /^cfitsio-/
+    - /\.tar\.gz$/
+
+dependencies:
+  darwin:
+    zlib.net: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    ./configure $ARGS
+    make shared
+    make install
+
+    # TODO: install testprog?
+    # (pkgshare/"testprog").install Dir["testprog*"]
+  env:
+    ARGS:
+      - --prefix="{{ prefix }}"
+      - --enable-reentrant
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script: |
+    cc testprog.c -o testprog -lcfitsio
+    ./testprog > testprog.lis
+    cmp testprog.lis testprog.out
+    cmp testprog.fit testprog.std
