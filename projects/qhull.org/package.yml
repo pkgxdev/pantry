@@ -1,0 +1,29 @@
+distributable:
+  url: https://github.com/qhull/qhull/archive/refs/tags/{{version.raw}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: qhull/qhull/tags
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    cmake.org: '*'
+  script: |
+    cmake $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
+
+provides:
+  - bin/qconvex
+  - bin/qdelaunay
+  - bin/qhalf
+  - bin/qhull
+  - bin/qvoronoi
+  - bin/rbox
+
+test:
+  qhull -V | grep {{version.marketing}}
