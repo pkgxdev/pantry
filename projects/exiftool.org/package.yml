@@ -23,7 +23,12 @@ build:
     rm lib/Image/ExifTool.pm.bak
 
     # replace the hard-coded path to the lib directory
-    sed -i.bak -e 's|unshift @INC, $incDir;|unshift @INC, \"{{prefix}}/libexec/lib\";|' exiftool
+    sed -i.bak -e 's|unshift @INC, $incDir;|unshift @INC, "$FindBin::Bin/../libexec/lib";|' exiftool
+    rm exiftool.bak
+
+    sed -i.bak '/^use strict;/i\
+    use FindBin;
+    ' exiftool
     rm exiftool.bak
 
     perl Makefile.PL
@@ -34,6 +39,7 @@ build:
 
     mkdir -p {{prefix}}/bin
     mv exiftool {{prefix}}/bin/
+    fix-shebangs.ts {{prefix}}/bin/*
 
     mkdir -p {{prefix}}/share/doc
     mv html/* {{prefix}}/share/doc/
