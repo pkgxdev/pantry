@@ -1,0 +1,29 @@
+distributable:
+  url: https://www.chiark.greenend.org.uk/~sgtatham/halibut/halibut-{{version.marketing}}/halibut-{{version.marketing}}.tar.gz
+  strip-components: 1
+  
+versions:
+  url: https://www.chiark.greenend.org.uk/~sgtatham/halibut/
+  match: /halibut-\d+\.\d+\.tar.gz/
+  strip:
+    - /^halibut-/
+    - /\.tar\.gz$/
+  
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    cmake.org: '*'
+  script: |
+    cmake -S . -B build $ARGS
+    cmake --build build
+    cmake --install build
+  env:
+    ARGS:
+      - -DCMAKE_INSTALL_PREFIX:PATH="{{prefix}}"
+  
+provides:
+  - bin/halibut
+  
+test:
+  halibut --version | grep {{version.marketing}}

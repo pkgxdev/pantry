@@ -33,11 +33,12 @@ build:
     # piss awful code.
     #TODO don’t use exotic characters in our build directories
   script: |
+    test -d xyz.tea.srcs && rm -rf xyz.tea.srcs
     mv $SRCROOT xyz.tea.srcs
     cmake $ARGS -S xyz.tea.srcs -B .
     make --jobs {{hw.concurrency}} install
 
-    sed -i.bak "s:$TEA_PREFIX:\$\{_IMPORT_PREFIX\}/../../..:g" "{{prefix}}"/lib/cmake/folly/folly-targets.cmake
+    sed -i.bak "s:$(tea --prefix):\$\{_IMPORT_PREFIX\}/../../..:g" "{{prefix}}"/lib/cmake/folly/folly-targets.cmake
     rm "{{prefix}}"/lib/cmake/folly/folly-targets.cmake.bak
 
     cd {{prefix}}/lib/pkgconfig
