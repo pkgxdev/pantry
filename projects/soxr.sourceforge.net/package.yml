@@ -1,0 +1,31 @@
+distributable:
+  url: https://downloads.sourceforge.net/project/soxr/soxr-{{version}}-Source.tar.xz
+  strip-components: 1
+
+versions:
+  url: https://sourceforge.net/projects/soxr/files/
+  match: /soxr-\d+.\d+.\d+
+  strip:
+    - /^soxr-/
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    cmake.org: '*'
+  script: |
+    cmake $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+     - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
+    darwin/aarch64:
+      ARGS:
+        # https://github.com/chirlu/soxr/issues/6
+        - -DWITH_CR32S=OFF
+
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script:
+    pkg-config --modversion soxr | grep {{version}}
