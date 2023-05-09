@@ -1,0 +1,42 @@
+distributable:
+  url: https://download.videolan.org/videolan/libbluray/{{version}}/libbluray-{{version}}.tar.bz2
+  strip-components: 1
+
+versions:
+  url: http://download.videolan.org/videolan/libbluray/
+  match: /\d+\.\d+\.\d+\//
+  strip:
+    - /\/$/
+
+dependencies:
+  freedesktop.org/fontconfig: '*'
+  freetype.org: '*'
+  darwin:
+    gnome.org/libxml2: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/automake: '*'
+    gnu.org/autoconf: '*'
+    gnu.org/libtool: '*'
+    freedesktop.org/pkg-config: '*'
+  script: |
+    ./bootstrap
+    ./configure $ARGS
+    make
+    make install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --disable-dependency-tracking
+      - --disable-silent-rules
+      - --disable-bdjava-jar
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script: |
+    cc test.c -lbluray -o test
+    ./test

@@ -1,0 +1,30 @@
+distributable:
+  url: https://github.com/terraform-linters/tflint/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: terraform-linters/tflint
+  strip: /v/
+
+provides:
+  - bin/tflint
+
+build:
+  dependencies:
+    go.dev: '*'
+    tea.xyz/gx/make: '*'
+  script: |
+    export GOPATH="$PWD/build"
+    mkdir -p dist
+    go build -v -ldflags="$LDFLAGS" -o dist/tflint
+    mkdir -p {{prefix}}/bin
+    mv dist/tflint {{prefix}}/bin/
+  env:
+    LDFLAGS:
+      [-s, -w]
+
+test:
+  script: |
+    # tflint returns exitstatus: 0 (no issues), 2 (errors occured), 3 (no errors but issues found)
+    test "" = "$(tflint test.tf)"
+    tflint --version | grep {{version}}

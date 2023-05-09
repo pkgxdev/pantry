@@ -1,0 +1,28 @@
+distributable:
+  url: https://github.com/maxmind/libmaxminddb/releases/download/{{version}}/libmaxminddb-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: maxmind/libmaxminddb
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/autoconf: '*'
+    gnu.org/libtool: '*'
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --disable-silent-rules
+
+provides:
+  - bin/mmdblookup
+
+test:
+  mmdblookup --version | grep {{version}}
