@@ -1,0 +1,22 @@
+distributable:
+  url: https://github.com/FredHucht/pstree/archive/v{{version.marketing}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: FredHucht/pstree
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    make --jobs {{ hw.concurrency }} pstree
+    mkdir -p "{{prefix}}/bin"
+    mv pstree "{{prefix}}/bin"
+    mv pstree.1 "{{prefix}}/bin"
+
+provides:
+  - bin/pstree
+
+test:
+  pstree -w
