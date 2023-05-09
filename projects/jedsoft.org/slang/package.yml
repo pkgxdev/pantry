@@ -1,0 +1,37 @@
+distributable:
+  url: https://www.jedsoft.org/releases/slang/slang-{{version}}.tar.bz2
+  strip-components: 1
+
+display-name: s-lang
+
+versions:
+  url: https://www.jedsoft.org/releases/slang/
+  match: /slang-\d+\.\d+\.\d+\.tar\.bz2/
+  strip:
+    - /^slang-/
+    - /.tar.bz2$/
+
+dependencies:
+  libpng.org: '*'
+
+  linux:
+    pcre.org: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    ./configure $ARGS
+    make install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --with-pnglib="{{deps.libpng.org.prefix}}/lib"
+      - --with-pnginc="{{deps.libpng.org.prefix}}/include"
+
+provides:
+  - bin/slsh
+
+test:
+  slsh --version | grep {{version}}
