@@ -15,8 +15,14 @@ d="$(cd "$(dirname $0)" && pwd)"
 
 "$d"/bin/stable-diffusion-webui &
 
+PID=$!
+
 # poll until a HEAD request succeeds
 while ! curl -Is http://127.0.0.1:7860 | grep -q "HTTP/1.1 200 OK"; do
+  if ! kill -0 $PID; then
+    echo "webui process died!"
+    exit 1
+  fi
   sleep 1
 done
 
