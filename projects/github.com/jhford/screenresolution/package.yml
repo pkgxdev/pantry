@@ -12,11 +12,15 @@ platforms:
 
 build:
   dependencies:
-    gnu.org/gcc: '*'
+    tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
   script: |
-    make CC=gcc
+    curl $PATCH | patch -p1 || true
+    make
     make PREFIX="{{prefix}}" install
+  env:
+    # Adds apple silicon support
+    PATCH: https://github.com/jhford/screenresolution/commit/c3c1e5c498cf2e1fbe37f90899a3d440305398bd.patch
 
 provides:
   - bin/screenresolution
