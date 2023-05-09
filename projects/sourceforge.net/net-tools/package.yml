@@ -1,0 +1,41 @@
+distributable:
+  url: https://downloads.sourceforge.net/project/net-tools/net-tools-{{version.marketing}}.tar.xz
+  strip-components: 1
+
+display-name: net-tools
+
+versions:
+  url: https://sourceforge.net/projects/net-tools/files/
+  match: /net-tools-\d+.\d+.tar.xz
+  strip:
+    - /^net-tools-/
+    - /.tar.xz
+
+platforms:
+  - linux
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    sed -i '/IFS='\''@'\'' read ans || exit 1/d' configure.sh
+    make config
+    make
+    make $ARGS install
+  env:
+    ARGS:
+      - DESTDIR="{{prefix}}"
+
+
+provides:
+  - bin/hostname
+  - bin/ifconfig
+  - bin/netstat
+  - bin/route
+
+test: |
+  hostname --version | grep {{version.marketing}}
+  ifconfig --version | grep {{version.marketing}}
+  netstat --version | grep {{version.marketing}}
+  route --version | grep {{version.marketing}}
