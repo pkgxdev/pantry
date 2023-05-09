@@ -10,11 +10,16 @@ build:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
   script: |
-    make pstree
+    make --jobs {{ hw.concurrency }} pstree
     mkdir -p "{{prefix}}/bin"
     mkdir -p "{{prefix}}/man1"
     mv pstree "{{prefix}}/bin"
     mv pstree.1 "{{prefix}}/man1"
+  
+  env:
+    linux/x86-64:
+      CFLAGS:
+        - -fPIC
 
 provides:
   - bin/pstree
