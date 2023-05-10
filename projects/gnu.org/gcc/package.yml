@@ -26,42 +26,50 @@ build:
     gnu.org/patch: '*'
     curl.se: '*'
   working-directory: build
-  script: |
-    # Remove: cleanup bootstrap version
-    if test -d {{deps.gnu.org/gcc.prefix}}/lib64; then
-      mv {{deps.gnu.org/gcc.prefix}}/lib64/* {{deps.gnu.org/gcc.prefix}}/lib/
-      rmdir {{deps.gnu.org/gcc.prefix}}/lib64
-    fi
+  script:
+    # If we have a patch, apply it
+    - |
+      if test -n "$PATCH{{version.major}}{{version.minor}}"; then
+        curl "$PATCH{{version.major}}{{version.minor}}" | patch -p1 -d..
+      fi
 
-    if test -n "$PATCH{{version.major}}"; then
-      curl "$PATCH{{version.major}}" | patch -p1 -d..
-    fi
+    # if there's no diff yet, unpack iains' source over ours
+    - |
+      if test -n "$BRANCH{{version.major}}{{version.minor}}"; then
+        curl -L "$BRANCH{{version.major}}{{version.minor}}" | tar xz --strip-components=1 -C ..
+      fi
 
-    ARGS=($ARGS --with-pkgversion="tea GCC {{version}}")
-    if test {{hw.platform}} = "linux"; then
-      export ARGS=("${ARGS[@]}" --with-boot-ldflags="-static-libstdc++ -static-libgcc $LDFLAGS")
-    fi
+    # The spaces mess things up in the env key
+    - ARGS=($ARGS --with-pkgversion="tea GCC {{version}}")
 
-    ../configure "${ARGS[@]}"
-    make --jobs {{ hw.concurrency }}
-    make install
+    # On Linux, we need to statically link libstdc++ and libgcc
+    - |
+      if test {{hw.platform}} = "linux"; then
+        export ARGS=("${ARGS[@]}" --with-boot-ldflags="-static-libstdc++ -static-libgcc $LDFLAGS")
+      fi
 
-    cd {{prefix}}/bin
+    - ../configure "${ARGS[@]}"
+    - make --jobs {{ hw.concurrency }}
+    - make install
+
     # Since we depend on ourselves, this symlink might already exist
-    test -f gc++ || ln -sf c++ gc++
+    - run: test -f gc++ || ln -sf c++ gc++
+      working-directory: ${{prefix}}/bin
 
     # On Linux, we need to move the libraries to the lib directory.
-    if test {{hw.platform}} = "linux"; then
-      cd {{prefix}}
-      mv lib64/* lib/
-      rmdir lib64
-    fi
+    - run: |
+        if test {{hw.platform}} = "linux"; then
+          mv lib64/* lib/
+          rmdir lib64
+        fi
+      working-directory: ${{prefix}}
   env:
     # Branch from the Darwin maintainer of GCC, with a few generic fixes and
     # Apple Silicon support, located at https://github.com/iains/gcc-12-branch
-    PATCH12: https://raw.githubusercontent.com/Homebrew/formula-patches/1d184289/gcc/gcc-12.2.0-arm.diff
+    PATCH122: https://raw.githubusercontent.com/Homebrew/formula-patches/1d184289/gcc/gcc-12.2.0-arm.diff
     # https://github.com/iains/gcc-darwin-arm64
-    PATCH13: https://raw.githubusercontent.com/Homebrew/formula-patches/master/gcc/gcc-13.1.0.diff
+    PATCH131: https://raw.githubusercontent.com/Homebrew/formula-patches/master/gcc/gcc-13.1.0.diff
+    BRANCH123: https://github.com/iains/gcc-12-branch/archive/refs/tags/gcc-12.3-darwin-r0.tar.gz
     ARGS:
       - --prefix={{ prefix }}
       - --libdir={{ prefix }}/lib
