@@ -64,11 +64,12 @@ build:
     tea.xyz/gx/make: '*'
     ninja-build.org: '*'
     freedesktop.org/pkg-config: '*'
-  script: |
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }} install
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
 
-    xattr -cr {{prefix}}/bin/*
+    # Without this, `codesign` complains about resource forks in the binary
+    - xattr -cr {{prefix}}/bin/*
   env:
     ARGS:
       - --prefix="{{prefix}}"
