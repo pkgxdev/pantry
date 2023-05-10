@@ -24,9 +24,8 @@ build:
       - PREFIX={{prefix}}
       - ARGON2_VERSION={{version}}
       - LIBRARY_REL=lib
-    linux/x86-64:
-      CFLAGS: $CFLAGS -fPIC
 
 test: |
+  printf '%s' 'password' | argon2 somesalt -t 2 -m 16 -p 4
   output=$(printf '%s' 'password' | argon2 somesalt -t 2 -m 16 -p 4)
   echo "$output" | grep 'c29tZXNhbHQ$IMit9qkFULCMA/ViizL57cnTLOa5DiVM9eMwpAvPw'
