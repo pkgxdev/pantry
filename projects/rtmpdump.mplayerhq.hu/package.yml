@@ -12,26 +12,24 @@ versions:
     - /.tgz$/
 
 dependencies:
-  openssl.org: '*'
+  openssl.org: 3.1.0
 
 build:
   dependencies:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
-  darwin:
-    dependencies:
-      zlib.net: '*'
+    zlib.net: '*'
   script: |
     curl $PATCH | patch -p0 || true
     make $ARGS install
   env:
     PATCH: 'https://raw.githubusercontent.com/Homebrew/formula-patches/85fa66a9/rtmpdump/openssl-1.1.diff'
     ARGS:
-      - XCFLAGS="$CFLAGS"
-      - XLDFLAGS="$DFLAGS"
-      - MANDIR="{{prefix}}/man"
-      - prefix="{{prefix}}"
-      - sbindir="{{prefix}}/bin"
+      - CC=cc
+      - XCFLAGS=$CFLAGS
+      - XLDFLAGS=$LDFLAGS
+      - prefix={{prefix}}
+      - SHARED=no
     darwin:
       ARGS:
         - SYS="darwin"
