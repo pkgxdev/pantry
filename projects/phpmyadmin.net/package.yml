@@ -1,0 +1,26 @@
+distributable:
+  url: https://files.phpmyadmin.net/phpMyAdmin/{{version}}/phpMyAdmin-{{version}}-all-languages.tar.gz
+  strip-components: 1
+
+display-name: phpMyAdmin
+
+versions:
+  url: https://www.phpmyadmin.net/files/
+  match: /phpMyAdmin-\d+\.\d+\.\d+\-all-languages.zip/
+  strip:
+    - /^phpMyAdmin-/
+    - /-all-languages.zip$/
+
+dependencies:
+  php.net: '*'
+
+build:
+  script: |
+    mkdir -p {{prefix}}/share
+    mv ./* {{prefix}}/share
+
+test:
+  dependencies:
+    php.net: '*'
+  script:
+    php {{prefix}}/share/index.php
