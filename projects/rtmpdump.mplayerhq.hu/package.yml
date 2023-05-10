@@ -24,13 +24,12 @@ build:
   script:
     - curl $PATCH | patch -p0 || true
     
-    # need to make XCFLAGS in the script for quoting reasons
-    - make XCFLAGS="$CFLAGS" $ARGS install
+    # need to make XCFLAGS/XLDFLAGS in the script for quoting reasons
+    - make XCFLAGS="$CFLAGS" XLDFLAGS="$LDFLAGS" $ARGS install
   env:
     PATCH: 'https://raw.githubusercontent.com/Homebrew/formula-patches/85fa66a9/rtmpdump/openssl-1.1.diff'
     ARGS:
       - CC=cc
-      - XLDFLAGS=$LDFLAGS
       - prefix={{prefix}}
       - SHARED=no
     darwin:
