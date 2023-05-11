@@ -19,6 +19,10 @@ build:
     tea.xyz/gx/make: '*'
     go.dev: ^1.18
   script: |
+    if test "{{hw.platform}}" = "linux"; then
+      sed -i.bak 's/go build/go build -buildmode=pie/g' Makefile
+    fi
+
     make --jobs {{ hw.concurrency }}
     mkdir -p "{{ prefix }}"/bin
     mv bin/* "{{ prefix }}"/bin
