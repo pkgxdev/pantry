@@ -1,5 +1,6 @@
 distributable:
   url: https://github.com/grpc/grpc/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
 
 versions:
   github: grpc/grpc
@@ -23,24 +24,23 @@ build:
     tea.xyz/gx/cc: c99
     cmake.org: ^3
     tea.xyz/gx/make: '*'
-  working-directory: grpc-{{version}}
-  script: |
-    # FIXME: Need to clone submodules
-    # https://github.com/grpc/grpc/blob/master/.gitmodules
+    gnu.org/patch: '*'
+  working-directory: cmake/build
+  script:
+    # https://github.com/grpc/grpc/issues/32775
+    - run: patch -p1 -i props/patch-grpc-1.54.0-for-protobuf-22.3.patch
+      working-directory: ../..
 
-    cmake $COMMON_ARGS $ARGS
-    make install
+    - cmake $COMMON_ARGS $ARGS ../..
+    - make install
 
-    cmake $COMMON_ARGS $CLI_ARGS
-    make grpc_cli
-    # bin.install "grpc_cli"
+    # Build the cli
+    - cmake $COMMON_ARGS $CLI_ARGS ../..
+    - make grpc_cli
+
+    - cp grpc_cli "{{prefix}}/bin"
     # lib.install Dir[shared_library("libgrpc++_test_config", "*")]
 
-    # if OS.mac?
-    #   # These are installed manually, so need to be relocated manually as well
-    #   MachO::Tools.add_rpath(bin/"grpc_cli", rpath)
-    #   MachO::Tools.add_rpath(lib/shared_library("libgrpc++_test_config"), rpath)
-    # end
   env:
     COMMON_ARGS:
       - -DCMAKE_BUILD_TYPE=Release

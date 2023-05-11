@@ -1,0 +1,63 @@
+diff -ruN unpatched-grpc-1.54.0/include/grpcpp/impl/codegen/config_protobuf.h patched/grpc-1.54.0/include/grpcpp/impl/codegen/config_protobuf.h
+--- unpatched-grpc-1.54.0/include/grpcpp/impl/codegen/config_protobuf.h	2023-04-13 08:26:28.000000000 +0800
++++ patched/grpc-1.54.0/include/grpcpp/impl/codegen/config_protobuf.h	2023-04-20 13:59:11.870547000 +0800
+@@ -68,8 +68,9 @@
+ #ifndef GRPC_CUSTOM_JSONUTIL
+ #include <google/protobuf/util/json_util.h>
+ #include <google/protobuf/util/type_resolver_util.h>
++#include <google/protobuf/stubs/status_macros.h>
+ #define GRPC_CUSTOM_JSONUTIL ::google::protobuf::util
+-#define GRPC_CUSTOM_UTIL_STATUS ::google::protobuf::util::Status
++#define GRPC_CUSTOM_UTIL_STATUS ::absl::Status
+ #endif
+ 
+ namespace grpc {
+diff -ruN unpatched-grpc-1.54.0/src/compiler/config_protobuf.h patched/grpc-1.54.0/src/compiler/config_protobuf.h
+--- unpatched-grpc-1.54.0/src/compiler/config_protobuf.h	2023-04-13 08:26:28.000000000 +0800
++++ patched/grpc-1.54.0/src/compiler/config_protobuf.h	2023-04-20 13:30:21.025145900 +0800
+@@ -50,7 +50,7 @@
+ #endif
+ 
+ #ifndef GRPC_CUSTOM_CSHARP_GETCLASSNAME
+-#include <google/protobuf/compiler/csharp/csharp_names.h>
++#include <google/protobuf/compiler/csharp/names.h>
+ #define GRPC_CUSTOM_CSHARP_GETCLASSNAME \
+   ::google::protobuf::compiler::csharp::GetClassName
+ #define GRPC_CUSTOM_CSHARP_GETFILENAMESPACE \
+diff -ruN unpatched-grpc-1.54.0/src/compiler/objective_c_generator.cc patched/grpc-1.54.0/src/compiler/objective_c_generator.cc
+--- unpatched-grpc-1.54.0/src/compiler/objective_c_generator.cc	2023-04-13 08:26:28.000000000 +0800
++++ patched/grpc-1.54.0/src/compiler/objective_c_generator.cc	2023-04-20 15:33:19.489151400 +0800
+@@ -22,8 +22,6 @@
+ #include <set>
+ #include <sstream>
+ 
+-#include <google/protobuf/compiler/objectivec/objectivec_helpers.h>
+-
+ #include "src/compiler/config.h"
+ #include "src/compiler/objective_c_generator_helpers.h"
+ 
+diff -ruN unpatched-grpc-1.54.0/src/compiler/objective_c_generator_helpers.h patched/grpc-1.54.0/src/compiler/objective_c_generator_helpers.h
+--- unpatched-grpc-1.54.0/src/compiler/objective_c_generator_helpers.h	2023-04-13 08:26:28.000000000 +0800
++++ patched/grpc-1.54.0/src/compiler/objective_c_generator_helpers.h	2023-04-20 15:07:12.233818600 +0800
+@@ -21,7 +21,8 @@
+ 
+ #include <map>
+ 
+-#include <google/protobuf/compiler/objectivec/objectivec_helpers.h>
++#include <google/protobuf/compiler/objectivec/helpers.h>
++#include <google/protobuf/compiler/objectivec/names.h>
+ 
+ #include "src/compiler/config.h"
+ #include "src/compiler/generator_helpers.h"
+diff -ruN unpatched-grpc-1.54.0/src/compiler/objective_c_plugin.cc patched/grpc-1.54.0/src/compiler/objective_c_plugin.cc
+--- unpatched-grpc-1.54.0/src/compiler/objective_c_plugin.cc	2023-04-13 08:26:28.000000000 +0800
++++ patched/grpc-1.54.0/src/compiler/objective_c_plugin.cc	2023-04-20 15:33:25.266485800 +0800
+@@ -20,7 +20,7 @@
+ 
+ #include <memory>
+ 
+-#include <google/protobuf/compiler/objectivec/objectivec_helpers.h>
++#include <google/protobuf/compiler/objectivec/helpers.h>
+ 
+ #include "src/compiler/config.h"
+ #include "src/compiler/objective_c_generator.h"
