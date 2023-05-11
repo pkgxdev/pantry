@@ -3,8 +3,11 @@ distributable:
   strip-components: 1
 
 versions:
-  github: php/php-src/tags
-  strip: /^php-/
+  url: https://www.php.net/downloads.php
+  match: /php-\d+\.\d+\.\d+.tar.gz/
+  strip:
+    - /^php-/
+    - /\.tar\.gz$/
 
 dependencies:
   gnu.org/bison: '*'
@@ -48,8 +51,13 @@ build:
   script: |
     ./configure $ARGS
     make --jobs {{ hw.concurrency }} install
-
   env:
+    # FIXME: this appears to be a regression related to
+    # https://github.com/teaxyz/brewkit/pull/99
+    # It's breaking certain ld invocations, due to:
+    # TEA_PREFIX mysteriously unset
+    # collect2: error: ld returned 1 exit status
+    TEA_PREFIX: $(tea --prefix)
     ARGS:
       - --prefix={{prefix}}
       - --enable-bcmath
