@@ -22,7 +22,7 @@ dependencies:
   libsodium.org: '*'
   libzip.org: '*'
   github.com/kkos/oniguruma: '*'
-  openssl.org: ^1.1
+  openssl.org: '*'
   pcre.org/v2: '>=10.30'
   sqlite.org: '*'
   unicode.org: '*'
@@ -32,6 +32,7 @@ dependencies:
   thrysoee.dk/editline: '*'
   sourceware.org/libffi: '>=3.0.11'
   gnome.org/libxslt: '>=1.1.0'
+  gnu.org/gcc: '*'
   libpng.org: '*'
   google.com/webp: '*'
   ijg.org: '*'
@@ -41,7 +42,6 @@ dependencies:
 
 build:
   dependencies:
-    tea.xyz/gx/cc: c99
     freedesktop.org/pkg-config: '*'
     tea.xyz/gx/make: '*'
     freetype.org: '*'
@@ -51,8 +51,13 @@ build:
   script: |
     ./configure $ARGS
     make --jobs {{ hw.concurrency }} install
-
   env:
+    # FIXME: this appears to be a regression related to
+    # https://github.com/teaxyz/brewkit/pull/99
+    # It's breaking certain ld invocations, due to:
+    # TEA_PREFIX mysteriously unset
+    # collect2: error: ld returned 1 exit status
+    TEA_PREFIX: $(tea --prefix)
     ARGS:
       - --prefix={{prefix}}
       - --enable-bcmath
@@ -67,6 +72,8 @@ build:
       - --enable-mbstring
       - --enable-mysqlnd
       - --enable-pcntl
+      - --enable-phpdbg
+      - --enable-phpdbg-readline
       - --enable-shmop
       - --enable-soap
       - --enable-sockets
@@ -98,23 +105,11 @@ build:
       - PKG_CONFIG_PATH=$PKG_CONFIG_PATH:{{deps.gnu.org/gettext.prefix}}
       - PKG_CONFIG_PATH=$PKG_CONFIG_PATH:{{deps.gnome.org/libxml2.prefix}}
       - PKG_CONFIG_PATH=$PKG_CONFIG_PATH:{{deps.github.com/kkos/oniguruma.prefix}}
+      - CC=gcc
     darwin:
       ARGS:
         - --enable-dtrace
         - --with-ldap-sasl
-    linux:
-      ARGS:
-        - --enable-phpdbg
-        - --enable-phpdbg-readline
-    darwin/aarch64:
-      ARGS:
-        - --enable-phpdbg
-        - --enable-phpdbg-readline
-    darwin/x86-64:
-      ARGS:
-        # FIXME: has a linker error in newer versions with clang
-        - --disable-phpdbg
-        - --disable-phpdbg-readline
 
 provides:
   - bin/phar
