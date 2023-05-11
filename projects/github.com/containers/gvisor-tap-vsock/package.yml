@@ -1,0 +1,29 @@
+distributable:
+  url: https://github.com/containers/gvisor-tap-vsock/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: containers/gvisor-tap-vsock/releases/tags
+
+platforms:
+  - darwin
+  - linux/x86-64
+
+provides:
+  - bin/gvproxy
+  - bin/qemu-wrapper
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    go.dev: ^1.18
+  script: |
+    make --jobs {{ hw.concurrency }}
+    mkdir -p "{{ prefix }}"/bin
+    mv bin/* "{{ prefix }}"/bin
+
+test:
+  script:
+    gvproxy -help 2>&1 | grep "Usage of gvproxy:"
+    
