@@ -22,17 +22,28 @@ build:
     go.dev: ^1.18
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
-  script: |
-    sed -i.bak \
-      '\#var defaultHelperBinariesDir#a\'$'\n\"$BINDIR/../../../github.com/containers/gvisor-tap-vsock/v0/bin\",'$'\n' \
-      vendor/github.com/containers/common/pkg/config/config_darwin.go    
+  script:
+    # podman searches a compile-time configured set of paths for helper binaries
+    # so we add a relative lookup for the major version of gvproxy we require
+    - run: |
+        sed -i.bak -f $PROP config_{darwin,linux}.go
+        rm config_{darwin,linux}.go.bak
+      working-directory: vendor/github.com/containers/common/pkg/config
+      prop: |-
+        s_\(^var defaultHelperBinariesDir.*\)_\
+        \1\n        "\$BINDIR/../../../$GVISOR_MAJOR/bin",_
 
-    make --jobs {{ hw.concurrency }} podman-remote
-    make --jobs {{ hw.concurrency }} podman-mac-helper
-    mkdir -p "{{ prefix }}"/bin
-    mv bin/"{{ hw.platform }}"/* "{{ prefix }}"/bin
-    ln -s podman "{{ prefix }}"/bin/podman-remote
+    - make --jobs {{ hw.concurrency }} podman-remote
+    - make --jobs {{ hw.concurrency }} podman-mac-helper
+    - mkdir -p "{{ prefix }}"/bin
+    - mv bin/"{{ hw.platform }}"/* "{{ prefix }}"/bin
+    - ln -s podman "{{ prefix }}"/bin/podman-remote
   env:
+    # path for gvproxy to add to platform config
+    GVISOR_MAJOR: |-
+      $(cd "{{deps.github.com/containers/gvisor-tap-vsock.prefix}}/../\
+      /v{{deps.github.com/containers/gvisor-tap-vsock.version.major}}" \
+      && pwd | sed -e "s_$TEA_PREFIX/__")
     CGO_ENABLED: 1
 
 test:
