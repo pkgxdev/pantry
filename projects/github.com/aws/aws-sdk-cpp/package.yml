@@ -1,18 +1,9 @@
-# https://github.com/Homebrew/homebrew-core/blob/4dd41236ab23102e91457f9f48962dbe93232f86/Formula/aws-sdk-cpp.rb
-
 distributable:
-  url: https://github.com/aws/aws-sdk-cpp/archive/refs/tags/{{version}}.tar.gz
-
-# https://github.com/aws/aws-sdk-cpp/blob/main/.gitmodules
-# https://github.com/aws/aws-sdk-cpp/tree/main/crt
-# https://github.com/awslabs/aws-crt-cpp/blob/cb474daeeaf5c025bd3408103adf61b97b74e600/.gitmodules
+  git: git+https://github.com/aws/aws-sdk-cpp
+  ref: ${{version}}
 
 versions:
   github: aws/aws-sdk-cpp/tags
-
-# provides:
-#   - bin/aomenc
-#   - bin/aomdec
 
 dependencies:
   curl.se: '*'
@@ -23,22 +14,20 @@ build:
     cmake.org: '*'
     tea.xyz/gx/make: '*'
     git-scm.org: '*'
-  working-directory: aws-sdk-cpp-{{version}}
-  script: |
-    # ENV.append "LDFLAGS -Wl,-rpath,#{rpath}
-    # Avoid OOM failure on Github runner
-    # ENV.deparallelize if OS.linux? && ENV["HOMEBREW_GITHUB_ACTIONS"]
+  script:
+    # required or cmake fails with an unhelpful error
+    # this is why we need to build from a git checkout
+    - git submodule update --init --recursive
 
-    rm -rf crt/aws-crt-cpp
-    git clone --recurse-submodules https://github.com/awslabs/aws-crt-cpp.git crt/aws-crt-cpp
+    - cmake -S . -B build $ARGS
+    - cmake --build build
+    - cmake --install build
 
-    # git submodule update --init --recursive
-
-    cmake -S . -B build $ARGS
-    cmake --build build
-    cmake --install build
-
-    # lib.install Dir[lib/"mac/Release/*"].select { |f| File.file? f }
+    - run: |
+        mv aws/* .
+        rmdir aws
+        ln -s . aws
+      working_directory: "{{prefix}}/include"
   env:
     LDFLAGS: -Wl,-rpath,{{prefix}}
     ARGS:
