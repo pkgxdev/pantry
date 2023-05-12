@@ -12,16 +12,19 @@ build:
     tea.xyz/gx/make: '*'
     cmake.org: '*'
   working-directory: build
-  script: |
-    cmake .. -DCMAKE_INSTALL_PREFIX="{{prefix}}" -DCMAKE_BUILD_TYPE=Release
-    make --jobs {{ hw.concurrency }} 
-    make install
+  script:
+    - cmake .. -DCMAKE_INSTALL_PREFIX="{{prefix}}" -DCMAKE_BUILD_TYPE=Release
+    - make --jobs {{ hw.concurrency }}
+    - make install
 
-    cd {{prefix}}/include
-    rm -r openblas/openblas ## removing a redundant directory with a duplicate file 
-    mv openblas/* .
-    rmdir openblas 
-    ln -s . openblas
+    ## removing a redundant directory with a duplicate file
+    - run: rm -r openblas/openblas
+      working-directory: ${{prefix}}/include
+    - run: |
+        mv openblas/* .
+        rmdir openblas
+        ln -s . openblas
+      working-directory: ${{prefix}}/include
 
 test:
   fixture: |
@@ -48,5 +51,5 @@ test:
     tea.xyz/gx/cc: c99
   script: |
     mv $FIXTURE test.c
-    cc test.c -lopenblas
+    cc test.c -lopenblas -pthread
     ./a.out
