@@ -22,7 +22,7 @@ build:
     gnu.org/wget: '*'
     protobuf.dev: '>=21'
     rust-lang.org: ^1  # docs say this is needed but I’m not convinced…
-    git-scm.org: ^2
+    gnu.org/patch: '*'
   script:
     # don’t download the models RN
     # --exit just installs deps and exits rather than boots the web server
@@ -52,19 +52,28 @@ build:
       cp lib/props/entrypoint.sh .
       cp lib/props/stable-diffusion-webui bin
 
+    # prepare for our patch
+    # file has windows line-endings. our patch is unix line-endings
+    - run: |
+        sed -i.bak 's/\r//' launch.py
+        rm launch.py.bak
+      working-directory:
+        lib
+
+    # removes the prepare_environment() step since we have already done that
+    - run:
+        patch -p1 < props/launch.py.diff
+      working-directory:
+        lib
+
     # delete our crap
     - rm -rf lib/props lib/xyz.tea.* lib/tea.yaml
 
     # we set this as a symlink to ~/.local/share/models in our stub scripts
     - rm -rf lib/models/Stable-diffusion lib/extensions lib/outputs
 
-    # we prebuilt everything, but also we must remove this so we can trim
-    # the final package from 2.3GB to ~1GB which we will do in the next steps
-    - |
-      sed -i.bak 's|^    prepare_environment()||' lib/launch.py
-      rm lib/launch.py.bak
-    #FIXME ^^ please make a .patch work, I could not :/
-
+    # delete all the .git stuff to save >1GB
+    # NOTE that this would cause the prepare_environment() step to fail
     - find . -name .git\* | xargs rm -rf
 
 provides:
