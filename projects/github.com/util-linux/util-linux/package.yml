@@ -107,8 +107,10 @@ build:
     gnu.org/bison: '*'
     freedesktop.org/pkg-config: '*'
     gnu.org/patch: '*'
+    crates.io/semverator: '*'
   script: |
-    if test darwin = {{hw.platform}}; then
+    if test darwin = {{hw.platform}} -a \
+      semverator satisfies '<2.39' {{version}}; then
       patch -p0 <props/macports.patch  # thanks to MacPorts
     fi
     ./configure $ARGS
