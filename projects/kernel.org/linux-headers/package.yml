@@ -22,7 +22,9 @@ build:
     mkdir -p "{{prefix}}"
     cp -a usr/include "{{prefix}}/"
 
-test: |
-  grep "LINUX_VERSION_MAJOR {{version.major}}" "{{prefix}}/include/linux/version.h"
-  grep "LINUX_VERSION_PATCHLEVEL {{version.minor}}" "{{prefix}}/include/linux/version.h"
-  grep "LINUX_VERSION_SUBLEVEL {{version.patch}}" "{{prefix}}/include/linux/version.h"
+test:
+  script:
+    grep "LINUX_VERSION_CODE $V" "{{prefix}}/include/linux/version.h"
+  env:
+    #define KERNEL_VERSION(a,b,c) (((a) << 16) + ((b) << 8) + ((c) > 255 ? 255 : (c)))
+    V: $(({{version.major}} * 65536 + {{version.minor}} * 256 + {{version.patch}}))
