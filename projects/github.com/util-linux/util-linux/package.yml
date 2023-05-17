@@ -108,19 +108,22 @@ build:
     freedesktop.org/pkg-config: '*'
     gnu.org/patch: '*'
     crates.io/semverator: '*'
-  script: |
-    if test darwin = {{hw.platform}} -a \
-      semverator satisfies '<2.39' {{version}}; then
-      patch -p0 <props/macports.patch  # thanks to MacPorts
-    fi
-    ./configure $ARGS
-    make --jobs {{hw.concurrency}} install
+  script:
+    # thanks to MacPorts
+    - |
+      if test darwin = {{hw.platform}} && \
+        semverator satisfies '<2.39' {{version}}; then
+        patch -p0 <props/macports.patch
+      fi
+    - ./configure $ARGS
+    - make --jobs {{hw.concurrency}} install
 
-    cd "{{prefix}}/include"
-    for x in $HEADERS; do
-      mv "$x/$x.h" .
-      ln -s "../$x.h" "$x/"
-    done
+    - |
+      cd "{{prefix}}/include"
+      for x in $HEADERS; do
+        mv "$x/$x.h" .
+        ln -s "../$x.h" "$x/"
+      done
   env:
     ARGS:
       - --prefix={{prefix}}
