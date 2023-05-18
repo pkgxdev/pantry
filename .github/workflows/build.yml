@@ -21,7 +21,7 @@ jobs:
       cache-set: ${{ steps.platform.outputs.cache-set }}
       available: ${{ steps.platform.outputs.available }}
     steps:
-      - uses: teaxyz/brewkit/actions/get-platform@v0
+      - uses: teaxyz/brewkit/actions/get-platform@d823d4a8f3b409068c947eefabccfe0d77f07a32
         id: platform
         with:
           platform: ${{ inputs.platform }}
@@ -48,14 +48,14 @@ jobs:
       - uses: teaxyz/brewkit/actions/setup-codesign@v0
         if: startsWith(inputs.platform, 'darwin+') && github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name
         with:
-            p12-file-base64: ${{ secrets.APPLE_CERTIFICATE_P12 }}
-            p12-password: ${{ secrets.APPLE_CERTIFICATE_P12_PASSWORD }}
+          p12-file-base64: ${{ secrets.APPLE_CERTIFICATE_P12 }}
+          p12-password: ${{ secrets.APPLE_CERTIFICATE_P12_PASSWORD }}
 
       - run: pkg build ${{ needs.get-platform.outputs.available }}
         id: build
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          FORCE_UNSAFE_CONFIGURE: 1  # some configure scripts refuse to run as root
+          FORCE_UNSAFE_CONFIGURE: 1 # some configure scripts refuse to run as root
           APPLE_IDENTITY: ${{ secrets.APPLE_IDENTITY || '-' }}
 
       - run: |
@@ -77,11 +77,10 @@ jobs:
       # tarring ourselves ∵ GHA-artifacts (ludicrously) lose permissions
       # /ref https://github.com/actions/upload-artifact/issues/38
       - name: create artifacts.tgz
-        run:
-          tar czvf $GITHUB_WORKSPACE/artifacts.tgz
-            ${{ steps.build.outputs.relative-paths }}
-            ${{ steps.build.outputs.srcs-relative-paths }}
-            built srcs
+        run: tar czvf $GITHUB_WORKSPACE/artifacts.tgz
+          ${{ steps.build.outputs.relative-paths }}
+          ${{ steps.build.outputs.srcs-relative-paths }}
+          built srcs
         working-directory: ${{ steps.tea.outputs.prefix }}
 
       - name: upload artifacts
@@ -98,8 +97,7 @@ jobs:
     strategy:
       matrix:
         platform: ${{ fromJson(needs.get-platform.outputs.test-matrix) }}
-    name:
-      test ${{ matrix.platform.name-extra }}
+    name: test ${{ matrix.platform.name-extra }}
     outputs:
       HAS_SECRETS: ${{ env.HAS_SECRETS }}
     container: ${{ matrix.platform.container }}
@@ -136,9 +134,8 @@ jobs:
           # ubuntu+container test matrix entries. :/
           TEA_PANTRY_PATH: ${{ github.workspace }}
 
-      - name: '[post]'
-        run:
-          echo "HAS_SECRETS=$HAS_SECRETS" >>$GITHUB_ENV
+      - name: "[post]"
+        run: echo "HAS_SECRETS=$HAS_SECRETS" >>$GITHUB_ENV
         env:
           HAS_SECRETS: ${{ secrets.AWS_S3_CACHE != null }}
 
