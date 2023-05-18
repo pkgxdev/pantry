@@ -10,6 +10,9 @@ on:
       platform:
         required: true
         type: string
+      projects:
+        required: false
+        type: string
     outputs:
       pr:
         description: 'The PR number'
@@ -21,14 +24,17 @@ jobs:
     outputs:
       os: ${{ steps.platform.outputs.os }}
       cache-set: ${{ steps.platform.outputs.cache-set }}
+      available: ${{ steps.platform.outputs.available }}
     steps:
       - uses: teaxyz/brewkit/actions/get-platform@v0
         id: platform
         with:
           platform: ${{ inputs.platform }}
+          projects: ${{ inputs.projects }}
 
   bottle:
     needs: [get-platform]
+    if: ${{ !inputs.new-version || needs.get-platform.outputs.available != '' }}
     runs-on: ${{ fromJson(needs.get-platform.outputs.os) }}
     outputs:
       srcs: ${{ env.srcs }}
@@ -118,7 +124,8 @@ jobs:
           if-no-files-found: error
 
   upload:
-    needs: [bottle]
+    needs: [get-platform, bottle]
+    if: ${{ !inputs.new-version || needs.get-platform.outputs.available != '' }}
     runs-on: ubuntu-latest
     steps:
       - uses: teaxyz/brewkit/actions/setup-brewkit@v0

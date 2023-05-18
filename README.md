@@ -23,7 +23,7 @@ other sources as much as possible, eg. versions are taken from the
 
 # Contributing
 
-Assuming you have tea (/w magic) installed:
+Assuming you have tea (w/magic) installed:
 
 ```sh
 $ git clone https://github.com/teaxyz/pantry
@@ -64,6 +64,18 @@ $ gh pr create
 While inside a pantry dev-env you can run commands from any built packages
 provided you specified their `provides:` key.
 
+## Providers
+
+If the package you want to add to tea can be executed simply eg. you want
+`foo` to run `npx foo`, then you can add a one-line entry to
+[`npmjs.com/provider.yml`].
+
+We currently also support this for `pipx`. Adding support for other such
+dependency manager execution handlers is easy and welcome.
+
+At this time, if the package has tea dependencies or requires compilation,
+it should be packaged as a `package.yml`.
+
 ## Packaging Guide
 
 Packaging can be cumbersome.
@@ -98,3 +110,4 @@ $ pkg edit
 [wiki]: https://github.com/teaxyz/pantry/wiki
 [discussion]: https://github.com/orgs/teaxyz/discussions
 [IPFS]: https://ipfs.tech
+[`npmjs.com/provider.yml`]: ./projects/npmjs.com/provider.yml

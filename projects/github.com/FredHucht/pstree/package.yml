@@ -1,0 +1,28 @@
+distributable:
+  url: https://github.com/FredHucht/pstree/archive/v{{version.marketing}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: FredHucht/pstree
+
+build:
+  dependencies:
+    gnu.org/gcc: '*'
+    tea.xyz/gx/make: '*'
+  script: |
+    make --jobs {{ hw.concurrency }} pstree CC=gcc
+    mkdir -p "{{prefix}}/bin"
+    mkdir -p "{{prefix}}/man1"
+    mv pstree "{{prefix}}/bin"
+    mv pstree.1 "{{prefix}}/man1"
+  
+  env:
+    linux/x86-64:
+      CFLAGS:
+        - -fPIC
+
+provides:
+  - bin/pstree
+
+test:
+  pstree -w

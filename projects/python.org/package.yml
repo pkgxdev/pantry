@@ -45,57 +45,93 @@ build:
     freedesktop.org/pkg-config: ^0.29
     crates.io/semverator: '*'
 
-  #TODO $libdir/_sysconfigdata__darwin_darwin.py contains non-relocatable paths
-  script: |
-    sed -i.bak -e 's|system_lib_dirs = .*|system_lib_dirs = os.getenv("LIBRARY_PATH").split(":")|' ./setup.py
-    sed -i.bak -e 's|system_include_dirs = .*|system_include_dirs = os.getenv("CPATH").split(":")|' ./setup.py
+  script:
+    # fixes the build scripts so they use the standard environment variables we set
+    - |
+      sed -i.bak -e 's|system_lib_dirs = .*|system_lib_dirs = os.getenv("LIBRARY_PATH").split(":")|' ./setup.py
+      sed -i.bak -e 's|system_include_dirs = .*|system_include_dirs = os.getenv("CPATH").split(":")|' ./setup.py
 
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }}
-    make install
+    # older versions use a different config dir
+    - |
+      if semverator satisfies '<3.8' {{ version }}; then
+        # older versions use a different config dir
+        confdir=$(echo $confdir | sed -e 's/\(config-{{ version.marketing }}\)/\1m/')
+
+        # 3.7 and older use `python3.7m` for include dir
+        SUFFIX=m
+
+        # 3.7 aborts on linux+aarch64 with this
+        ARGS=${ARGS/--with-ensurepip/--without-ensurepip}
+      fi
+
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
 
     # customize `pip install` locations to tea defaults
-    cp props/sitecustomize.py {{prefix}}/lib/python{{version.marketing}}
+    - cp props/sitecustomize.py {{prefix}}/lib/python{{version.marketing}}
 
     # provide unversioned symlinks
-    cd {{prefix}}/bin
-    for x in python idle pydoc; do
-      ln -sf ${x}{{ version.marketing }} $x
-    done
-    ln -sf python{{ version.marketing }}-config python-config
+    - run: |
+        for x in python idle pydoc; do
+          ln -sf ${x}{{ version.marketing }} $x
+        done
+        ln -sf python{{ version.marketing }}-config python-config
+      working-directory: ${{prefix}}/bin
 
     # we provide the binaries in a separate package
     # but we don’t use --without-ensurepip because stuff expects python to
     # come bundled with setuptools
-    rm pip*
-
-    # older versions use a different config dir
-    if semverator satisfies '<3.8' {{ version }}; then
-      confdir=$(echo $confdir | sed -e 's/\(config-{{ version.marketing }}\)/\1m/')
-    fi
+    - run: find . -mindepth 1 -maxdepth 1 -type f -name 'pip*' -exec rm {} \;
+      working-directory: ${{prefix}}/bin
 
     # make relocatable
-    cd {{prefix}}
-    for binfile in $shebangs $confdir/python-config.py; do
-      binfile=$(readlink -f $binfile)
-      sed -i.bak -e 's|#!{{ prefix }}/bin/|#!/usr/bin/env |g' $binfile
-      rm $binfile.bak
-    done
+    - run: |
+        for binfile in $shebangs $confdir/python-config.py; do
+          if ! test -f $binfile; then
+            binfile=${binfile/{{version.marketing}}/{{version.marketing}}$SUFFIX}
+          fi
+          if ! test -f $binfile; then
+            continue
+          fi
+          binfile=$(readlink -f $binfile)
+          sed -i.bak -e 's|#!{{ prefix }}/bin/|#!/usr/bin/env |g' $binfile
+          rm $binfile.bak
+        done
 
-    sed -i.bak -e 's|{{ prefix }}|\\$(shell tea --prefix)/python.org/v{{version.major}}|g' $confdir/Makefile
-    rm $confdir/Makefile.bak
+        sed -i.bak -e 's|{{ prefix }}|\\$(shell tea --prefix)/python.org/v{{version.major}}|g' $confdir/Makefile
+        rm $confdir/Makefile.bak
+      working-directory: ${{prefix}}
+
+    - run:
+        cat $PROP >> _sysconfigdata__*.py
+      working-directory:
+        ${{prefix}}/lib/python{{version.marketing}}
+      prop: |
+        import os
+        import re
+
+        tea_prefix = os.path.normpath(os.path.join(os.path.dirname(__file__), '../../../../'))
+        for key in build_time_vars:
+          if isinstance(build_time_vars[key], str):
+            build_time_vars[key] = re.sub(r'(\s|^)/opt/', r'\g<1>{}/'.format(tea_prefix), build_time_vars[key])
 
     # force pip to user-install mode without sudo
-    ln -s /dev {{prefix}}/lib/python{{version.marketing}}/site-packages
+    - ln -s /dev {{prefix}}/lib/python{{version.marketing}}/site-packages
     # ^^ probs nuts lol, but the below has repurcussions
     # chmod -w {{prefix}}/lib/python{{version.marketing}}
     # ^^ makes rm -rf ~/.tea/python.org on macOS fail
 
     # some stuff expects python includes to be accessible without the prefix
-    cd include
-    mv python{{version.marketing}}/* .
-    rmdir python{{version.marketing}}
-    ln -s . python{{version.marketing}}
+    - run: |
+        mv python{{version.marketing}}$SUFFIX/* .
+        rmdir python{{version.marketing}}$SUFFIX
+        ln -s . python{{version.marketing}}
+        # Keep the suffixed version if we started with one
+        if test -n "$SUFFIX"; then
+          ln -s . python{{version.marketing}}$SUFFIX
+        fi
+      working-directory: ${{prefix}}/include
 
   env:
     ARGS:
@@ -132,36 +168,54 @@ build:
 test:
   dependencies:
     tea.xyz/gx/cc: c99
-  script: |
+    crates.io/semverator: '*'
+  script:
     # Check if sqlite is ok, because we build with --enable-loadable-sqlite-extensions
     # and it can occur that building sqlite silently fails if OSX's sqlite is used.
-    python -c "import sqlite3"
+    - python -c "import sqlite3"
 
     # check to see if we can create a venv
-    python -m venv myvenv
+    # we can't ensurepip on 3.7 so, this won't work
+    - |
+      if semverator satisfies '^3.8' {{ version }}; then
+        python -m venv myvenv
+      fi
 
     # Check if some other modules import. Then the linked libs are working.
-    python -c "import _ctypes"
-    # python -c "import _decimal" #FIXME
-    python -c "import pyexpat"
-    python -c "import zlib"
+    - |
+      python -c "import _ctypes"
+      # python -c "import _decimal" #FIXME
+      python -c "import pyexpat"
+      python -c "import zlib"
 
     # Verify that the selected DBM interface works
     # FIXME: doen't work
-    # python $FIXTURE
+    # - run:
+    #     python $FIXTURE
+    #   fixture: |
+    #     import dbm
+    #     with dbm.ndbm.open("test", "c") as db:
+    #       db[b"foo \\xbd"] = b"bar \\xbd"
+    #     with dbm.ndbm.open("test", "r") as db:
+    #       assert list(db.keys()) == [b"foo \\xbd"]
+    #       assert b"foo \\xbd" in db
+    #       assert db[b"foo \\xbd"] == b"bar \\xbd"
 
-    if which -a pip | grep '{{ prefix }}'; then
-      exit 1
-    fi
+    - |
+      if which -a pip | grep '{{ prefix }}'; then
+        exit 1
+      fi
 
-    echo '#include <Python.h>' > fixture.c
-    echo '#include <python{{version.major}}.{{version.minor}}/Python.h>' >> fixture.c
-    cc -c fixture.c
-  fixture: |
-    import dbm
-    with dbm.ndbm.open("test", "c") as db:
-        db[b"foo \\xbd"] = b"bar \\xbd"
-    with dbm.ndbm.open("test", "r") as db:
-        assert list(db.keys()) == [b"foo \\xbd"]
-        assert b"foo \\xbd" in db
-        assert db[b"foo \\xbd"] == b"bar \\xbd"
+    - run: |
+        mv $FIXTURE b.c
+        cc -c b.c
+      fixture: |
+        #include <Python.h>
+        #include <python{{version.major}}.{{version.minor}}/Python.h>
+
+    - run:
+        test $(python $FIXTURE) = {{prefix}}/include/python{{version.marketing}}
+      fixture: |
+        import sysconfig
+        include_path = sysconfig.get_paths()['include']
+        print(include_path)

@@ -3,7 +3,8 @@ distributable:
   strip-components: 1
 
 versions:
-  - 9.0.1294
+  # FIXME: so slow. 16k tags.
+  github: vim/vim/tags
 
 provides:
   - bin/vim
@@ -35,10 +36,9 @@ build:
       --enable-luainterp
     make
     make install prefix={{prefix}}
-    if test "{{hw.platform}}+{{hw.arch}}" = "linux+x86-64"; then
-      cd {{prefix}}/bin
-      ln -s vim vi
-    fi
+
+    cd {{prefix}}/bin
+    ln -s vim vi
 test:
   script: |
     vim --version

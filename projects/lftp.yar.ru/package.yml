@@ -1,0 +1,40 @@
+distributable:
+  # Primary mirror seems to 404 a lot...
+  # url: https://lftp.yar.ru/ftp/lftp-{{ version }}.tar.xz
+  url: http://ftp.st.ryukoku.ac.jp/pub/network/ftp/lftp/lftp-{{ version }}.tar.xz
+  strip-components: 1
+
+versions:
+  github: lavv17/lftp
+
+dependencies:
+  gnu.org/libidn2: '*'
+  gnu.org/gettext: '*'
+  gnu.org/readline: '*'
+  openssl.org: ^1.1
+  zlib.net: '*'
+  invisible-island.net/ncurses: '*'
+  libexpat.github.io: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    darwin:
+      # https://github.com/lavv17/lftp/issues/611
+      CFLAGS: "$CFLAGS -Wno-implicit-function-declaration"
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --with-openssl="{{deps.openssl.org.prefix}}"
+      - --with-readline="{{deps.gnu.org/readline.prefix}}"
+      - --with-libidn2="{{deps.gnu.org/libidn2.prefix}}"
+
+provides:
+  - bin/lftp
+  - bin/lftpget
+
+test: lftp -c "open ftp.gnu.org; ls"

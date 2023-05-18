@@ -1,0 +1,28 @@
+distributable:
+  url: https://github.com/redis/hiredis/archive/v{{version}}.tar.gz
+  strip-components: 1
+
+display-name: hiredis
+
+versions:
+  github: redis/hiredis
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    make install $ARGS
+  
+  env:
+    ARGS:
+      - PREFIX="{{prefix}}"
+      - INSTALL_INCLUDE_PATH="{{prefix}}/include"
+      - INSTALL_LIBRARY_PATH="{{prefix}}/lib"
+      - INSTALL_PKGCONF_PATH="{{prefix}}/lib/pkgconfig"
+
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script:
+    pkg-config --modversion hiredis | grep {{version}}
