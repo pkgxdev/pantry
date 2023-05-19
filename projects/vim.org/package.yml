@@ -20,25 +20,33 @@ build:
   dependencies:
     gnu.org/make: ^4.3
     tea.xyz/gx/cc: ^0.1
-  script: |
-    ./configure \
-      --prefix={{prefix}} \
-      --enable-multibyte \
-      --with-tlib=ncurses \
-      --with-compiledby=tea.xyz \
-      --enable-cscope \
-      --enable-terminal \
-      --enable-perlinterp \
-      --enable-rubyinterp \
-      --enable-python3interp \
-      --disable-gui \
-      --without-x \
-      --enable-luainterp
-    make
-    make install prefix={{prefix}}
+  script:
+    # With both CLT and Xcode installed, vim compiles can struggle
+    # https://github.com/Homebrew/homebrew-core/pull/1046
+    - unset SDKROOT
 
-    cd {{prefix}}/bin
-    ln -s vim vi
+    - ./configure $ARGS
+    - make
+    - make install prefix={{prefix}}
+
+    - |
+      cd {{prefix}}/bin
+      ln -s vim vi
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --enable-multibyte
+      - --with-tlib=ncurses
+      - --with-compiledby=tea.xyz
+      - --enable-cscope
+      - --enable-terminal
+      - --enable-perlinterp
+      - --enable-rubyinterp
+      - --enable-python3interp
+      - --disable-gui
+      - --without-x
+      - --enable-luainterp
+
 test:
   script: |
     vim --version
