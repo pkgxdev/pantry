@@ -1,0 +1,29 @@
+distributable:
+  url: https://github.com/thom311/libnl/archive/refs/tags/libnl{{version.major}}_{{version.minor}}_{{version.patch}}.tar.gz
+  strip-components: 1
+
+display-name: libnl
+
+versions:
+  github: thom311/libnl
+  strip: /^libnl/
+
+platforms:
+ - linux
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    chmod +x ./configure.ac
+    make --jobs {{ hw.concurrency }} install
+  # ./configure.ac $ARGS 
+  env:
+    ARGS:
+      - DESTDIR="{{prefix}}"
+      - --disable-silent-rules
+
+test: 
+  dependencies:
+    freedesktop.org/pkg-config: '*'
