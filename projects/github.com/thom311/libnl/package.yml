@@ -30,8 +30,10 @@ test:
     freedesktop.org/pkg-config: '*'
     tea.xyz/gx/cc: c99
   script: |
+    pwd 
+    ls -al
     pkg_config_flags=$(pkg-config --cflags --libs libnl-3.0 libnl-route-3.0)
-    gcc ./props/test.c $pkg_config_flags -o test
+    gcc test.c $pkg_config_flags -o test
     result=$(./props/test.c 2>&1)
     expected_output="Unable to delete link: Operation not permitted"
     if [[ $result == *"$expected_output"* ]]; then
