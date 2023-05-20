@@ -5,19 +5,19 @@ distributable:
 versions:
   github: zsh-users/zsh-syntax-highlighting/tags
 
+provides:
+  # Made an executable to give the user installation instructions, in case they forgot :-)
+  - bin/zsh-syntax-highlighting
+
 build:
   dependencies:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
+    charm.sh/gum: '*'
   script: |
     make --jobs {{ hw.concurrency }} install
-    chmod +w /Users/sanch/.zshrc 
-    echo "source {{prefix}}/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" >> /Users/sanch/.zshrc
-  # TODO fix the /Users/sanch
+    export ZSH_HIGHLIGHTING={{prefix}}/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+    gum format "# *Finish the install by running*"  '## `echo "source '$ZSH_HIGHLIGHTING'" >> $HOME/.zshrc`' | gum format
   env:
     ARGS:
       - --prefix="{{prefix}}"
-
-test:
-  script:
-    source {{prefix}}/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
