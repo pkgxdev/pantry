@@ -8,8 +8,8 @@ versions:
   github: thom311/libnl
   strip: /^libnl/
 
-# platforms:
-#  - linux
+platforms:
+ - linux
 
 build:
   dependencies:
@@ -28,3 +28,22 @@ build:
 test: 
   dependencies:
     freedesktop.org/pkg-config: '*'
+    tea.xyz/gx/cc: c99
+  script: |
+    pkg_config_flags=$(pkg-config --cflags --libs libnl-3.0 libnl-route-3.0)
+    gcc test.c $pkg_config_flags -o test
+    result=$(./test 2>&1)
+    expected_output="Unable to delete link: Operation not permitted"
+    if [[ $result == *"$expected_output"* ]]; then
+        echo "Matched: $expected_output"
+    else
+        echo "No match found"
+    fi
+
+    nl_route_list_output=$(nl-route-list)
+    expected_output="inet 127.0.0.1"
+    if [[ $nl_route_list_output == *"$expected_output"* ]]; then
+        echo "Matched: $expected_output"
+    else
+        echo "No match found"
+    fi
