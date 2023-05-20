@@ -8,8 +8,8 @@ versions:
   github: thom311/libnl
   strip: /^libnl/
 
-platforms:
- - linux
+# platforms:
+#  - linux
 
 build:
   dependencies:
@@ -18,12 +18,11 @@ build:
     gnu.org/bison: '*'
     github.com/westes/flex: '*'
   script: |
-    chmod +w /usr/local/include/*
     ./configure $ARGS 
     make --jobs {{ hw.concurrency }} install
   env:
     ARGS:
-      - DESTDIR="{{prefix}}"
+      - --prefix="{{prefix}}"
       - --disable-silent-rules
 
 test: 
