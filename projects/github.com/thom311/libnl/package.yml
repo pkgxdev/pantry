@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/thom311/libnl/archive/refs/tags/libnl{{version.major}}_{{version.minor}}_{{version.patch}}.tar.gz
+  url: https://github.com/thom311/libnl/releases/download/libnl{{version.major}}_{{version.minor}}_{{version.patch}}/libnl-{{version}}.tar.gz
   strip-components: 1
 
 display-name: libnl
@@ -8,17 +8,16 @@ versions:
   github: thom311/libnl
   strip: /^libnl/
 
-platforms:
- - linux
+# platforms:
+#  - linux
 
 build:
   dependencies:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
   script: |
-    chmod +x ./configure.ac
-    ./configure.ac $ARGS 
-    make --jobs {{ hw.concurrency }} install -f Makefile.am 
+    ./configure $ARGS 
+    make --jobs {{ hw.concurrency }} install
   env:
     ARGS:
       - DESTDIR="{{prefix}}"
