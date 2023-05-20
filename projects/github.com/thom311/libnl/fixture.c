@@ -3,8 +3,7 @@
 
 #include <linux/netlink.h>
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
   struct rtnl_link *link;
   struct nl_sock *sk;
   int err;
