@@ -17,34 +17,28 @@ build:
     tea.xyz/gx/make: '*'
     gnu.org/bison: '*'
     github.com/westes/flex: '*'
-  script: |
-    ./configure $ARGS 
-    make --jobs {{ hw.concurrency }} install
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+
+    - |
+      cd "{{prefix}}/include"
+      mv libnl3/* .
+      rmdir libnl3
+      ln -s . linl3
   env:
     ARGS:
       - --prefix="{{prefix}}"
       - --disable-silent-rules
 
-test: 
+test:
   dependencies:
-    freedesktop.org/pkg-config: '*'
     tea.xyz/gx/cc: c99
-  script: |
-    chmod +x ./fixture.c
-    pkg_config_flags=$(pkg-config --cflags --libs libnl-3.0 libnl-route-3.0)
-    gcc ./fixture.c $pkg_config_flags -o test
-    result=$(./fixture.c 2>&1)
-    expected_output="Unable to delete link: Operation not permitted"
-    if [[ $result == *"$expected_output"* ]]; then
-        echo "Matched: $expected_output"
-    else
-        echo "No match found"
-    fi
+  script:
+    - gcc ./fixture.c -lnl-3 -lnl-route-3 -o test
+    - (./test 2>&1 || true) | grep "$OUT"
 
-    nl_route_list_output=$(nl-route-list)
-    expected_output="inet 127.0.0.1"
-    if [[ $nl_route_list_output == *"$expected_output"* ]]; then
-        echo "Matched: $expected_output"
-    else
-        echo "No match found"
-    fi
+    - nl-route-list | grep "$OUT2"
+  env:
+    OUT: "Unable to delete link: Operation not permitted"
+    OUT2: inet 127.0.0.1
