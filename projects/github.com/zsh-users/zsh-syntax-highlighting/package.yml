@@ -14,10 +14,19 @@ build:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
     charm.sh/gum: '*'
-  script: |
-    make --jobs {{ hw.concurrency }} install
-    export ZSH_HIGHLIGHTING={{prefix}}/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-    gum format "# *Finish the install by running*"  '## `echo "source '$ZSH_HIGHLIGHTING'" >> $HOME/.zshrc`' | gum format
+  script: 
+    - make --jobs {{ hw.concurrency }} install
+    - export ZSH_HIGHLIGHTING={{prefix}}/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+    - gum format "# *Finish the install by running*"  '## `echo "source '$ZSH_HIGHLIGHTING'" >> $HOME/.zshrc`' | gum format
+
+    - |
+      mkdir {{prefix}}/share/zsh-syntax-highlighting/tests {{prefix}}/share/zsh-syntax-highlighting/highlighters/main/test-data
+      cp -r ./tests/* {{prefix}}/share/zsh-syntax-highlighting/tests 
+      cp ./highlighters/main/test-data/alias-basic.zsh {{prefix}}/share/zsh-syntax-highlighting/highlighters/main/test-data
   env:
     ARGS:
       - --prefix="{{prefix}}"
+
+test: |
+  chmod +x ./fixture.sh
+  ./fixture.sh {{prefix}}/share/zsh-syntax-highlighting
