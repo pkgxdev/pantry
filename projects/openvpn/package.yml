@@ -1,8 +1,5 @@
 distributable:
   url: https://swupdate.openvpn.org/community/releases/openvpn-{{version}}.tar.gz
-  # this obscure option dictates how many components are removed from the
-  # extracted tarball. It only works with tarballs. You almost always want
-  # `1`. If after extraction the src-directory is funky try `0` or `2`.
   strip-components: 1
 
 versions:
@@ -14,13 +11,18 @@ dependencies:
   openssl.org: ^1.1
   linux:
     sourceforge.net/net-tools: '*'
-  # TODO: brew has pkcs11-helper: ~1.29, libcap-ng, linux-pam, libnl
+    github.com/thom311/libnl: '*'
+  
 
 build:
   dependencies:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
     freedesktop.org/pkg-config: ^0.29
+    linux:
+      sourceforge.net/net-tools: '*'
+      github.com/thom311/libnl: '*'
+    # TODO: brew has pkcs11-helper: ~1.29, libcap-ng, linux-pam
   script: |
     ./configure $ARGS
     make --jobs {{ hw.concurrency }} install
