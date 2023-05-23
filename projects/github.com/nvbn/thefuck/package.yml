@@ -8,12 +8,6 @@ versions:
 dependencies:
   python.org: '>=3.11'
   tea.xyz/gx/cc: c99
-  # Add other python dependencies here. For example:
-  # pip:colorama: '*'
-  # pip:decorator: '*'
-  # pip:psutil: '*'
-  # pip:pyte: '*'
-  # pip:wcwidth: '*'
 
 build:
   python-venv.sh {{prefix}}/bin/thefuck
@@ -22,5 +16,9 @@ provides:
   - bin/thefuck
 
 test:
-  script: |
-    thefuck --version
+  dependencies:
+    python.org: ^3
+  script: >
+    thefuck -y ptyhon --version 2>&1 |
+      grep -E '^The Fuck {{version.marketing}} using
+        Python {{deps.python.org.version}} and'
