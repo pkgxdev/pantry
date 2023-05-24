@@ -3,7 +3,11 @@ distributable:
   strip-components: 1
 
 versions:
-  - 2.6.2
+  url: https://openvpn.net/community-downloads/
+  match: _/community/releases/openvpn-\d+\.\d+\.\d+\.tar\.gz/
+  strip:
+    - _/community/releases/openvpn-_
+    - /.tar.gz/
 
 dependencies:
   lz4.org: ^1.9
@@ -12,6 +16,11 @@ dependencies:
   linux:
     sourceforge.net/net-tools: '*'
     github.com/thom311/libnl: '*'
+    # libnsl
+    # libprelude
+    # libtirpc
+    # libxcrypt
+    # pkcs11-helper
 
 platforms:
   - darwin
@@ -23,9 +32,6 @@ build:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
     freedesktop.org/pkg-config: ^0.29
-    linux:
-      sourceforge.net/net-tools: '*'
-      github.com/thom311/libnl: '*'
   script: |
     ./configure $ARGS
     make --jobs {{ hw.concurrency }} install
@@ -39,8 +45,6 @@ build:
       - --disable-pkcs11
 
 provides:
-  - bin/openvpn 
+  - bin/openvpn
 
-test:
-  script:
-    openvpn --show-ciphers
+test: openvpn --show-ciphers
