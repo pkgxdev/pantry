@@ -10,21 +10,19 @@ if [ -z "$directory" ]; then
 fi
 
 # Change to the specified directory
-cd "$directory"
+cd "$directory" || { echo "Failed to change to the specified directory."; exit 1; }
 
+# Run the test & read the lines
 output=$(zsh tests/test-highlighting.zsh main)
 lines=()
-
-# Read the lines of the test
 while IFS= read -r line; do
   lines+=("$line")
 done <<< "$output"
 
-# If line has not ok, with no TODO --> fail
+# If line has 'not ok', with no '#TODO' --> fail & exit
 for line in "${lines[@]}"; do
   if [[ $line =~ ^(.*\bnot ok\b)(.*)$ && ! $line =~ "#TODO" ]]; then
     echo "Fail"
-    # Exit the loop if a failure is found (optional)
     exit 1
   fi
 done
