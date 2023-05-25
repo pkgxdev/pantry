@@ -3,7 +3,7 @@ distributable:
   strip-components: 1
 
 versions:
-  github: linux-test-project/lcov/releases/tags  
+  github: linux-test-project/lcov
   strip: /^v/
 
 provides:
@@ -27,19 +27,33 @@ build:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
     cpanmin.us: ^1
-  script: |
-    cpanm -l {{prefix}} $PKGS
-    make --jobs {{ hw.concurrency }} $ARGS install
-    fix-shebangs.ts {{prefix}}/bin/*
+  script:
+    - cpanm -l {{prefix}} $PKGS
+    - make --jobs {{ hw.concurrency }} $ARGS install
+    - fix-shebangs.ts {{prefix}}/bin/*
 
     # v2 installs to lib/lcov
-    if test -d "{{prefix}}/lib/lcov"; then
-      cd "{{prefix}}/lib"
-      test -d perl5 || mkdir perl5
-      mv lcov/* perl5
-      rmdir lcov
-      ln -s perl5 lcov
-    fi
+    - |
+      if test -d "{{prefix}}/lib/lcov"; then
+        cd "{{prefix}}/lib"
+        test -d perl5 || mkdir perl5
+        mv lcov/* perl5
+        rmdir lcov
+        ln -s perl5 lcov
+      fi
+
+    # cpanm installs without write perms
+    - chmod -R +w "{{prefix}}/lib/perl5"
+
+    # need to clean up paths in the scripts
+    - |
+      cd "{{prefix}}/bin"
+
+      sed -i.bak \
+          -e '2i use File::Basename qw(dirname);' \
+          -e 's|"{{prefix}}|dirname($0) . "|g' \
+          *
+      rm *.bak
   env:
     PKGS:
       - Capture::Tiny
