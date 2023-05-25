@@ -1,0 +1,54 @@
+distributable:
+  url: https://github.com/systemd/systemd/archive/refs/tags/v{{version.raw}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: systemd/systemd
+  strip: /v/
+
+platforms:
+  - linux
+
+dependencies:
+  libexpat.github.io: '*'
+  google.com/fullycapable: '*'
+  lz4.org: '*'
+  openssl.org: ^1.1
+  github.com/util-linux/util-linux: '*'
+  tukaani.org/xz: '*'
+  facebook.com/zstd: '*'
+
+build:
+  dependencies:
+    gnu.org/coreutils: '*'
+    docbook.org: '*'
+    gnu.org/gettext: '*'
+    gnu.org/gperf: '*'
+    github.com/mattrobenolt/jinja2-cli: '*'
+    gnupg.org/libgpg-error: '*'
+    gnu.org/libtool: '*'
+    gnome.org/libxslt: '*'
+    gnu.org/m4: '*'
+    mesonbuild.com: '*'
+    ninja-build.org: '*'
+    freedesktop.org/pkg-config: '*'
+    python.org: ^3
+    rsync.samba.org: '*'
+  script:
+    - meson setup $ARGS build
+    - meson compile -C build
+    - meson install -C build
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - -Drootprefix={{prefix}}
+      - -Dcreate-log-dirs=false
+      - -Dhwdb=false
+      - -Dlz4=true
+      - -Dgcrypt=false
+
+provides:
+  - bin/systemd
+
+test: |
+  systemd-path | grep 'temporary: /tmp'
