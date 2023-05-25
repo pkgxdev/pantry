@@ -26,10 +26,29 @@ build:
     tea.xyz/gx/make: '*'
     cpanmin.us: ^1
   script: |
-    cpanm -l {{prefix}} File::Find
+    cpanm -l {{prefix}} $PKGS
     make --jobs {{ hw.concurrency }} $ARGS install
     fix-shebangs.ts {{prefix}}/bin/*
+
+    # v2 installs to lib/lcov
+    if test -d "{{prefix}}/lib/lcov"; then
+      cd "{{prefix}}/lib"
+      test -d perl5 || mkdir perl5
+      mv lcov/* perl5
+      rmdir lcov
+      ln -s perl5 lcov
+    fi
   env:
+    PKGS:
+      - Capture::Tiny
+      - DateTime
+      - Devel::Cover
+      - Digest::MD5
+      - File::Find
+      - File::Spec
+      - JSON::XS
+      - Memory::Process
+      - Time::HiRes
     ARGS:
       - PREFIX="{{prefix}}"
       - BIN_DR="{{prefix}}/bin"
