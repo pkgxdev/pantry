@@ -1,18 +1,27 @@
-#!/usr/bin/python
-import os
+#!/bin/sh
 
-# Get the XDG base directory path
-xdg_base_dir = os.environ.get('XDG_DATA_HOME') or os.path.expanduser(os.path.join('~', '.local', 'share'))
-shared_data_dir = os.path.join(xdg_base_dir, 'agpt.co')
+set -e
+
+WD="${XDG_DATA_HOME:-$HOME/.local/share}/auto-gpt"
 
 # if the data directory doesn’t exist auto-gpt bails
-os.makedirs(os.path.join(shared_data_dir, "data"), exist_ok=True)
+mkdir -p "$WD"/data
+
+PREFIX="$(cd "$(dirname "$0")/../.." && pwd)"
 
 # change to this directory because auto-gpt assumes it is running
 # in its own checkout and is not suitable to be run from anywhere
-os.chdir(shared_data_dir)
+cd "$WD"
 
-print(f"tea: OUTPUT WILL BE HERE: {shared_data_dir}")
+if ! test -f .env; then
+  cp "$PREFIX"/share/env.template .env
+fi
 
-import autogpt.cli
-autogpt.cli.main()
+
+echo "tea: auto-gpt output goes here: $WD"
+echo "tea: auto-gpt config is here: $WD/.env"
+echo "tea: You need to set \`OPENAI_API_KEY\` before running auto-gpt or add it to the above config"
+echo "tea: unless you have access to GPT4 you need to run \`--gpt3only\`"
+echo
+
+exec "$VIRTUAL_ENV"/bin/python -m autogpt --workspace-directory="$WD" "$@"
