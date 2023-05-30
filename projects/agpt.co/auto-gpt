@@ -1,4 +1,18 @@
 #!/usr/bin/python
+import os
+
+# Get the XDG base directory path
+xdg_base_dir = os.environ.get('XDG_DATA_HOME') or os.path.expanduser(os.path.join('~', '.local', 'share'))
+shared_data_dir = os.path.join(xdg_base_dir, 'agpt.co')
+
+# if the data directory doesn’t exist auto-gpt bails
+os.makedirs(os.path.join(shared_data_dir, "data"), exist_ok=True)
+
+# change to this directory because auto-gpt assumes it is running
+# in its own checkout and is not suitable to be run from anywhere
+os.chdir(shared_data_dir)
+
+print(f"tea: OUTPUT WILL BE HERE: {shared_data_dir}")
 
 import autogpt.cli
 autogpt.cli.main()
