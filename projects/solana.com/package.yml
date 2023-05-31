@@ -28,7 +28,10 @@ build:
       tokens \
       watchtower
     do
-      cargo install --locked --root {{prefix}} --path $x
+      # sys-tuner removed in v1.16
+      if test -d $x; then
+        cargo install --locked --root {{prefix}} --path $x
+      fi
     done
   env:
     # TODO this should be fixed in brewkit
