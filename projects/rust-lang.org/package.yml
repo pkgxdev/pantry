@@ -75,10 +75,15 @@ build:
       - rust-analyzer
 
 test:
-  script: |
-    mv $FIXTURE hello.rs
-    rustc hello.rs
-    ./hello
+  dependencies:
+    darwinsys.com/file: '*'
+    gnu.org/binutils: '*'
+  script:
+    - find "{{prefix}}" -name libLLVM-16-rust-1.70.0-stable.so -exec file {} \;
+    - find "{{prefix}}" -name libLLVM-16-rust-1.70.0-stable.so -exec objdump -D {} \;
+    - mv $FIXTURE hello.rs
+    - rustc hello.rs
+    - ./hello
   fixture: |
     fn main() {
       println!("Hello World!");
