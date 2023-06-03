@@ -73,14 +73,14 @@ build:
       - clippy
       - rustfmt
       - rust-analyzer
+    linux/x86-64:
+      LDFLAGS: -w
 
 test:
   dependencies:
     darwinsys.com/file: '*'
-    gnu.org/binutils: '*'
   script:
     - find "{{prefix}}" -name libLLVM-16-rust-1.70.0-stable.so -exec file {} \;
-    - find "{{prefix}}" -name libLLVM-16-rust-1.70.0-stable.so -exec objdump -D {} \;
     - mv $FIXTURE hello.rs
     - rustc hello.rs
     - ./hello
