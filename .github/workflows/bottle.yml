@@ -17,6 +17,9 @@ on:
       pr:
         description: "The PR number"
         value: ${{ jobs.bottle.outputs.pr }}
+      qa-required:
+        description: "Whether QA is required"
+        value: ${{ jobs.upload.outputs.qa-required }}
 
 jobs:
   get-platform:
@@ -127,6 +130,8 @@ jobs:
     needs: [get-platform, bottle]
     if: ${{ !inputs.new-version || needs.get-platform.outputs.available != '' }}
     runs-on: ubuntu-latest
+    outputs:
+      qa-required: ${{ steps.upload.outputs.qa-required }}
     steps:
       - uses: teaxyz/brewkit/actions/setup-brewkit@v0
         with:
@@ -152,10 +157,12 @@ jobs:
           checksums: ${{ env.checksums }}
           signatures: ${{ env.signatures }}
           AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+          AWS_S3_STAGING_BUCKET: ${{ secrets.AWS_S3_CACHE }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
       - uses: chetan/invalidate-cloudfront-action@v2
+        if: ${{ steps.upload.outputs.cf-invalidation-paths != '' }}
         env:
           PATHS: ${{ steps.upload.outputs.cf-invalidation-paths }}
           DISTRIBUTION: ${{ secrets.AWS_CF_DISTRIBUTION_ID }}

@@ -1,0 +1,22 @@
+name: tea/pantry/request-qa
+description: Requests QA for a new version of a project
+
+inputs:
+  project:
+    description: projects to request QA for
+    required: true
+  slack-webhook:
+    description: slack webhook to send message to
+    required: false
+
+runs:
+  using: composite
+  steps:
+    - uses: slackapi/slack-github-action@v1
+      with:
+        payload: |
+          {
+            "text": "# QA requested for ${{ inputs.project }}\n\n${{ inputs.project }} has a new version available. Please test it out and let us know if there are any issues.\n\n- `qa.ts ${{ inputs.project }} --test` to test it out\n- `qa.ts ${{ inputs.project }} --approve` to approve it for production.\n- `qa.ts ${{ inputs.project }} --reject` will reject it and delete the artifacts."
+          }
+      env:
+        SLACK_WEBHOOK_URL: ${{ inputs.slack-webhook }}
