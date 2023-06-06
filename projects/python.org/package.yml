@@ -214,7 +214,10 @@ test:
         #include <python{{version.major}}.{{version.minor}}/Python.h>
 
     - run:
-        test $(python $FIXTURE) = {{prefix}}/include/python{{version.marketing}}
+        if semverator satisfies '<3.8' {{ version }}; then
+          SUFFIX=m
+        fi
+        test $(python $FIXTURE) = {{prefix}}/include/python{{version.marketing}}$SUFFIX
       fixture: |
         import sysconfig
         include_path = sysconfig.get_paths()['include']
