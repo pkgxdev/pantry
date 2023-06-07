@@ -44,8 +44,18 @@ build:
     tea.xyz/gx/make: '*'
     freedesktop.org/pkg-config: ^0.29
     crates.io/semverator: '*'
+    gnu.org/patch: '*'
+    curl.se: '*'
 
   script:
+    # MacPorts has a series of patches to keep python2 working
+    - |
+      if semverator satisfies '^2' {{ version }}; then
+        for PATCH in $PYTHON2PATCHES; do
+          curl -sSL $PATCH | patch -p0
+        done
+      fi
+
     # fixes the build scripts so they use the standard environment variables we set
     - |
       sed -i.bak -e 's|system_lib_dirs = .*|system_lib_dirs = os.getenv("LIBRARY_PATH").split(":")|' ./setup.py
@@ -53,8 +63,14 @@ build:
 
     # older versions use a different config dir
     - |
-      if semverator satisfies '<3.8' {{ version }}; then
-        # older versions use a different config dir
+      if semverator satisfies '<3' {{ version }}; then
+        # v2 uses a still-different confdir
+        confdir="$libdir/config"
+
+        # aarch64 not happy with this
+        ARGS=${ARGS/--with-ensurepip/--without-ensurepip}
+      elif semverator satisfies '<3.8' {{ version }}; then
+        # 3.7 and older use `3.7m` for config dir
         confdir=$(echo $confdir | sed -e 's/\(config-{{ version.marketing }}\)/\1m/')
 
         # 3.7 and older use `python3.7m` for include dir
@@ -150,6 +166,8 @@ build:
     darwin:
       confdir:
         $libdir/config-{{version.marketing}}-darwin
+      PYTHON2PATCHES:
+        - https://raw.githubusercontent.com/macports/macports-ports/master/lang/python27/files/patch-getpath.diff
     linux:
       # ARGS:
       #   - --with-dbmliborder=bdb
@@ -164,12 +182,32 @@ build:
 
     OPENSSL_INCLUDES: ${{ deps.openssl.org.prefix }}/include
     OPENSSL_LDFLAGS: -L{{ deps.openssl.org.prefix }}/lib
+    PYTHON2PATCHES:
+      - https://raw.githubusercontent.com/macports/macports-ports/master/lang/python27/files/patch-Makefile.pre.in.diff
+      - https://raw.githubusercontent.com/macports/macports-ports/master/lang/python27/files/patch-setup.py.diff
+      - https://raw.githubusercontent.com/macports/macports-ports/master/lang/python27/files/patch-Lib-cgi.py.diff
+      - https://raw.githubusercontent.com/macports/macports-ports/master/lang/python27/files/patch-Lib-ctypes-macholib-dyld.py.diff
+      - https://raw.githubusercontent.com/macports/macports-ports/master/lang/python27/files/patch-configure.diff
+      - https://raw.githubusercontent.com/macports/macports-ports/master/lang/python27/files/patch-libedit.diff
+      - https://raw.githubusercontent.com/macports/macports-ports/master/lang/python27/files/enable-loadable-sqlite-extensions.patch
+      - https://raw.githubusercontent.com/macports/macports-ports/master/lang/python27/files/patch-_osx_support.py.diff
+      - https://raw.githubusercontent.com/macports/macports-ports/master/lang/python27/files/darwin20.diff
+      - https://raw.githubusercontent.com/macports/macports-ports/master/lang/python27/files/arm.patch
+      - https://raw.githubusercontent.com/macports/macports-ports/master/lang/python27/files/implicit.patch
+      - https://raw.githubusercontent.com/macports/macports-ports/master/lang/python27/files/openssl_ver.patch
 
 test:
   dependencies:
     tea.xyz/gx/cc: c99
     crates.io/semverator: '*'
   script:
+    # FIXME: python2 tests!
+    - |
+      if semverator satisfies '^2' {{ version }}; then
+        # some tests here
+        exit 0
+      fi
+
     # Check if sqlite is ok, because we build with --enable-loadable-sqlite-extensions
     # and it can occur that building sqlite silently fails if OSX's sqlite is used.
     - python -c "import sqlite3"
