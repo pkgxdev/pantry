@@ -1,0 +1,31 @@
+distributable:
+  url: https://github.com/hashicorp/vault/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: hashicorp/vault
+
+platforms:
+  - darwin
+  - linux/x86-64
+
+build:
+  dependencies:
+    go.dev: '*'
+    nodejs.org: ^18
+    python.org: ^3.11
+    npmjs.com: '*'
+    classic.yarnpkg.com: '*'
+    # TODO: gox
+  script: |
+    make bootstrap static-dist dev-ui --prefix={{prefix}}
+
+    mkdir {{prefix}}/bin
+    mv bin/vault {{prefix}}/bin/vault 
+
+provides:
+  - bin/vault
+
+test:
+  script:
+    vault --version 
