@@ -1,0 +1,42 @@
+distributable:
+  url: https://deb.debian.org/debian/pool/main/m/mecab/mecab_{{version.raw}}.orig.tar.gz
+  # Canonical URL = https://drive.google.com/uc?export=download&id=0B4y35FiV1wh7cENtOXlicTFaRUE
+  # homepage = https://taku910.github.io/mecab/
+  strip-components: 1
+
+versions:
+  - 0.996
+  # Do not think they have versions on the site, homebrew picks it up from deb.debian.org
+
+platforms:
+  - darwin
+  - linux/x86-64
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --disable-dependency-tracking
+      # - ---sysconfdir=etc/ was in homebrew
+
+provides:
+  - bin/mecab
+  - bin/mecab-config
+
+test:
+  script: |
+    expected_output="{{prefix}}/lib/mecab/dic"
+    actual_output=$(mecab-config --dicdir)
+
+    if [ "$expected_output" = "$actual_output" ]; then
+        echo "Test passed: Output matches expected value."
+    else
+        echo "Test failed: Output does not match expected value."
+    fi
+
