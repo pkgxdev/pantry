@@ -34,6 +34,15 @@ build:
     cd contrib/subtree
     make
     make install
+
+    if [[ "$(uname)" == "Darwin" ]]; then
+      cd "$SRCROOT/contrib/credential/osxkeychain"
+      make
+      mv git-credential-osxkeychain "{{prefix}}"/bin
+      make clean
+      cd "$SRCROOT/contrib/subtree"
+    fi
+
     mv git-subtree "{{prefix}}"/libexec
 
     cd "{{prefix}}"
