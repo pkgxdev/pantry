@@ -1,0 +1,22 @@
+distributable:
+  url: https://github.com/arduino/arduino-cli/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: arduino/arduino-cli
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    go.dev: '*'
+  script: |
+    ./install.sh
+    mkdir -p {{prefix}}/bin
+    mv ./bin/* {{prefix}}/bin
+
+provides:
+  - bin/arduino-cli
+
+test: |
+  arduino-cli version | grep {{version}}

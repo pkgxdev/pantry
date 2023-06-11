@@ -1,0 +1,27 @@
+#!/bin/sh
+
+set -e
+
+WD="${XDG_DATA_HOME:-$HOME/.local/share}/auto-gpt"
+
+# if the data directory doesn’t exist auto-gpt bails
+mkdir -p "$WD"/data
+
+PREFIX="$(cd "$(dirname "$0")/../.." && pwd)"
+
+# change to this directory because auto-gpt assumes it is running
+# in its own checkout and is not suitable to be run from anywhere
+cd "$WD"
+
+if ! test -f .env; then
+  cp "$PREFIX"/share/env.template .env
+fi
+
+
+echo "tea: auto-gpt output goes here: $WD"
+echo "tea: auto-gpt config is here: $WD/.env"
+echo "tea: You need to set \`OPENAI_API_KEY\` before running auto-gpt or add it to the above config"
+echo "tea: unless you have access to GPT4 you need to run \`--gpt3only\`"
+echo
+
+exec "$VIRTUAL_ENV"/bin/python -m autogpt --workspace-directory="$WD" "$@"

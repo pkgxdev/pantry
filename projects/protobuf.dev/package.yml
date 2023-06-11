@@ -1,14 +1,13 @@
 distributable:
-   url: https://github.com/protocolbuffers/protobuf/releases/download/v{{version.raw}}/protobuf-all-{{version.raw}}.tar.gz
+   url: https://github.com/protocolbuffers/protobuf/archive/refs/tags/v{{version.raw}}.tar.gz
    strip-components: 1
 
 versions:
-  github: protocolbuffers/protobuf/tags
-  # v22 requires bazel for builds and is quite different
-  ignore: v22.x
+  github: protocolbuffers/protobuf
 
 dependencies:
   zlib.net: ^1
+  abseil.io: '*'
 
 build:
   dependencies:
@@ -27,6 +26,8 @@ build:
       - -Dprotobuf_BUILD_TESTS=OFF
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
       - -DCMAKE_BUILD_TYPE=Release
+      - -Dprotobuf_ABSL_PROVIDER=package
+      - -DCMAKE_PREFIX_PATH={{deps.abseil.io.prefix}}
 
 provides:
   - bin/protoc

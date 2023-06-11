@@ -1,0 +1,31 @@
+distributable:
+  url: https://download.gnome.org/sources/libgsf/{{version.marketing}}/libgsf-{{version}}.tar.xz
+  strip-components: 1
+
+versions:
+  github: GNOME/libgsf/tags
+  strip: /^LIBGSF_/
+
+dependencies:
+  gnome.org/glib: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    freedesktop.org/pkg-config: '*'
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --disable-silent-rules
+
+provides:
+  - bin/gsf
+  - bin/gsf-office-thumbnailer
+  - bin/gsf-vba-dump
+
+test:
+  gsf --version | grep {{version}}

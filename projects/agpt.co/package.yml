@@ -1,0 +1,44 @@
+distributable:
+  url: https://github.com/Significant-Gravitas/Auto-GPT/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: Significant-Gravitas/Auto-GPT
+
+platforms:
+  - darwin
+
+dependencies:
+  python.org: ^3.10
+  redis.io: ^7
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script:
+    # `pip install` seems to miss some vital .json files, so we must manually copy
+    # we copy everything as we're not 100% sure which files are missing
+    # we do this first so any file movements from `pip install` takes precedence
+    - run:
+        cp -R $SRCROOT/autogpt .
+      working-directory:
+        ${{prefix}}/venv/lib/python{{deps.python.org.version.marketing}}/site-packages
+
+    - python-venv.py {{prefix}}/bin/auto-gpt --requirements-txt
+
+    # still pretty new and thus provides no executable, so we made one
+    - cp props/auto-gpt {{prefix}}/venv/bin
+
+    # this is broken and means any environment variable that is set is ignored
+    - sed -i.bak s/^OPENAI_API_KEY=your-openai-api-key$//g .env.template
+
+    - |
+      mkdir {{prefix}}/share
+      cp .env.template {{prefix}}/share/env.template
+
+provides:
+  - bin/auto-gpt
+
+test:
+  qa-required: true
+  script: auto-gpt --help

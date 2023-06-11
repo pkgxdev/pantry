@@ -39,7 +39,21 @@ jobs:
     with:
       new-version: true
       platform: ${{ matrix.platform }}
+      projects: ${{ inputs.projects }}
     secrets: inherit
+
+  request-qa:
+    needs: [bottle]
+    if: ${{ needs.bottle.outputs.qa-required != '[]' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        project: ${{ fromJson(needs.bottle.outputs.qa-required) }}
+    steps:
+      - uses: teaxyz/pantry/.github/actions/request-qa@v0
+        with:
+          project: ${{ matrix.project }}
+          slack-webhook: ${{ secrets.SLACK_QA_WEBHOOK }}
 
   complain:
     needs: [build, bottle]

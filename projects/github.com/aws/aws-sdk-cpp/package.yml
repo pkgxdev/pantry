@@ -1,0 +1,53 @@
+distributable:
+  git: git+https://github.com/aws/aws-sdk-cpp
+  ref: ${{version}}
+
+versions:
+  github: aws/aws-sdk-cpp/tags
+
+dependencies:
+  curl.se: '*'
+  zlib.net: 1
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    cmake.org: '*'
+    tea.xyz/gx/make: '*'
+    git-scm.org: '*'
+  script:
+    # required or cmake fails with an unhelpful error
+    # this is why we need to build from a git checkout
+    - git submodule update --init --recursive
+
+    - cmake -S . -B build $ARGS
+    - cmake --build build
+    - cmake --install build
+
+    - |
+        cd {{prefix}}/include
+        mv aws/* .
+        rmdir aws
+        ln -s . aws
+  env:
+    LDFLAGS: -Wl,-rpath,{{prefix}}
+    ARGS:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
+      - -DENABLE_TESTING=OFF
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  fixture: |
+    #include <aws/core/Version.h>
+    #include <iostream>
+
+    int main() {
+      std::cout << Aws::Version::GetVersionString() << std::endl;
+      return 0;
+    }
+  script: |
+    mv $FIXTURE test.cpp
+    c++ -std=c++11 test.cpp -laws-cpp-sdk-core -o test
+    ./test
