@@ -1,0 +1,38 @@
+distributable:
+  url: https://github.com/LunarVim/LunarVim/archive/{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: LunarVim/LunarVim
+
+dependencies:
+  gnu.org/bash: '*'
+  tea.xyz/gx/cc: c99
+  crates.io/fd-find: '*'
+  pip.pypa.io: '*'
+  nodejs.org: '*'
+  rust-lang.org/cargo: '*'
+  neovim.io: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/make: '*'
+    cmake.org: '*'
+    gnu.org/bash: '*'
+  script: |
+    ./utils/installer/install.sh -y -l
+    ./utils/installer/install_bin.sh
+    ./utils/installer/install-neovim-from-release
+  env:
+    INSTALL_PREFIX: '{{ prefix }}'
+    LV_INSTALL_PREFIX: '{{ prefix }}'
+    XDG_DATA_HOME: '{{ prefix }}/share'
+    XDG_CACHE_HOME: '{{ prefix }}/.cache'
+    XDG_CONFIG_HOME: '{{ prefix }}/.config'
+
+provides:
+  - bin/lvim
+  - bin/nvim
+
+test:
+    lvim -v | grep "NVIM"
