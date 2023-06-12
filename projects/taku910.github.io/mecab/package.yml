@@ -18,9 +18,13 @@ build:
   dependencies:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
-  script: |
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }} install
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+    - run: |
+        cd "{{prefix}}/bin"
+        sed -i.bak 's|{{prefix}}|"$(cd "$(dirname "$0")/.." \&\& pwd)"|' mecab-config
+        rm mecab-config.bak
   env:
     ARGS:
       - --prefix="{{prefix}}"
