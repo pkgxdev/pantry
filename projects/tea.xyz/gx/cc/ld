@@ -1,4 +1,6 @@
-#!/bin/sh
+#!/bin/bash
+
+set -e
 
 if test -z "$TEA_PREFIX"
 then
@@ -6,22 +8,37 @@ then
   exit 1
 fi
 
-dir=$(dirname "$0")
-exe=$(basename "$0")
+DIR=$(dirname "$0")
+IFS=: read -r -a PATHS <<< "$PATH"
 
-# Remove us from our path
-PATH=$(echo "$PATH" | tr ":" "\n" | grep -v "$dir" | tr "\n" ":")
-PATH=$(echo "$PATH" | tr ":" "\n" | grep -v "$TEA_PREFIX/.local/bin" | tr "\n" ":")
+__which() {
+  for dir in "${PATHS[@]}"; do
+    if test "$dir" == "$DIR"; then
+      :  # no fork bombs thanks
+    elif [ -L "$dir/$1" ]; then
+      # no fork bombs thanks
+      foo="$(realpath "$dir/$1")"
+      foo="$(basename "$foo")"
+      if [ "$foo" != "tea" ]; then
+        exe="$dir/$1"
+        return 0
+      fi
+    elif [ -x "$dir/$1" ]; then
+      exe="$dir/$1"
+      return 0
+    fi
+  done
+
+  return 1
+}
 
 # If we can find our specific name, e.g. `lld`,
 # passthrough to that
-if which "$exe" >/dev/null 2>&1; then
-  exe=$(which "$exe")
 # Otherwise, fallback to `ld`
 # NB: this might not have the right invocations, sometimes;
 # (invoking `ld` as `lld64.ld`) watch for those potential cases
-elif which ld >/dev/null 2>&1; then
-  exe=$(which ld)
+if __which $(basename "$0") || __which ld; then
+  :
 else
   echo 'ld not found in PATH' >&2
   exit 127
@@ -35,4 +52,5 @@ for word in "$@"; do
     exec "$exe" "$@"
   fi
 done
+
 exec "$exe" "$@" -rpath "$TEA_PREFIX"
