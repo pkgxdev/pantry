@@ -3,7 +3,7 @@
 import { usePantry } from "hooks"
 import * as ARGV from "./utils/args.ts"
 import { SQSClient, SendMessageCommand } from "npm:@aws-sdk/client-sqs@^3"
-import { SNSClient, PublishCommand } from "npm:@aws-sdk/client-sns"
+import { SNSClient, PublishCommand } from "npm:@aws-sdk/client-sns@^3"
 import { panic } from "utils"
 
 const region = Deno.env.get("AWS_REGION") ?? panic("No region specified")
