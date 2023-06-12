@@ -10,6 +10,7 @@ build:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
     gnu.org/autoconf: '*'
+    gnu.org/automake: '*'
   script: |
     ./configure $ARGS
     make --jobs {{ hw.concurrency }} install
@@ -36,4 +37,7 @@ provides:
   - bin/yuv-distortion
 
 test:
-  dec265 -v | grep {{ version }}
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script:
+    pkg-config --modversion libde265 | grep {{ version }}
