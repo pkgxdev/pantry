@@ -1,0 +1,28 @@
+distributable:
+  url: https://github.com/tfutils/tfenv/archive/v{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: tfutils/tfenv
+
+dependencies:
+  gnu.org/grep: '*'
+
+build:
+  script: |
+    mkdir -p {{ prefix }}/bin
+    cp -R bin/* {{ prefix }}/bin
+    mkdir -p {{ prefix }}/lib
+    cp -R lib/* {{ prefix }}/lib
+    mkdir -p {{ prefix }}/libexec
+    cp -R libexec/* {{ prefix }}/libexec
+    mkdir -p {{ prefix }}/share
+    cp -R share/* {{ prefix }}/share
+    cp -R CHANGELOG.md {{ prefix }}/CHANGELOG.md
+
+provides:
+  - bin/terraform
+  - bin/tfenv
+
+test:
+  tfenv --version | grep {{ version }}
