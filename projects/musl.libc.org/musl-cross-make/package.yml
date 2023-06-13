@@ -1,0 +1,87 @@
+distributable:
+  url: https://github.com/richfelker/musl-cross-make/archive/fe915821b652a7fa37b34a596f47d8e20bc72338.tar.gz
+  strip-components: 1
+
+versions:
+  - 1.2.3
+
+relocatable: true
+
+provides:
+  - bin/gcc
+  - bin/g++
+  - bin/ld
+
+build:
+  dependencies:
+    tea.xyz/gx/make: '*'
+    tea.xyz/gx/cc: c99
+    gnu.org/wget: '*'
+    tukaani.org/xz: '*'
+  script: |
+    # musl is linux only, so just make passthrough scripts on Darwin
+    if test {{ hw.platform }} != "linux"
+    then
+      mkdir {{ prefix }}/bin
+      cat > {{ prefix }}/ld <<EOF
+    #!/bin/sh
+    exec ld "$@"
+    EOF
+    cat > {{ prefix }}/gcc <<EOF
+    #!/bin/sh
+    exec cc "$@"
+    EOF
+    cat > {{ prefix }}/g++ <<EOF
+    #!/bin/sh
+    exec c++ "$@"
+    EOF
+      chmod +x {{ prefix }}/*
+      exit
+    fi
+
+    # setup
+    cat > config.mak <<EOF
+    STATIC = -static --static
+    FLAGS = -g0 -Os
+    DL_CMD = wget -c -nv -O
+    COMMON_CONFIG += CC="${CC} ${STATIC}"
+    COMMON_CONFIG += CXX="${CXX} ${STATIC}"
+    COMMON_CONFIG += CFLAGS="${FLAGS}"
+    COMMON_CONFIG += CXXFLAGS="${FLAGS}"
+    COMMON_CONFIG += LDFLAGS="-s ${STATIC}"
+    GCC_CONFIG += --enable-default-pie --enable-static-pie --disable-cet
+    EOF
+
+    # stage 1, cross
+    make --jobs {{ hw.concurrency }} install
+
+    # stage 2, native
+    export PATH=$(pwd)/output/bin:$PATH
+    export CC=${TARGET}-gcc
+    export CXX=${TARGET}-g++
+    export NATIVE=1
+    export OUTPUT={{ prefix }}
+    make --jobs {{ hw.concurrency }} install
+  env:
+    CC: clang
+    CXX: clang++
+    TARGET: ${{ hw.arch }}-linux-musl
+
+test:
+  fixture: |
+    #include <stdio.h>
+    int main() {
+      printf("Hello World!");
+      return 0;
+    }
+  script: |
+    # musl is linux only
+    #FIXME? We don't sub our tokens in test scripts
+    if test $(uname) != "Linux"
+    then
+      exit
+    fi
+
+    mv $FIXTURE $FIXTURE.c
+    gcc $FIXTURE.c
+    test "$(./a.out)" = "Hello World!"
