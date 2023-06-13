@@ -73,6 +73,11 @@ build:
     mv lib/*-{{hw.platform}}*/* lib
     rmdir lib/*-{{hw.platform}}*
 
+    sed -i.bak \
+      -e 's|$(DESTDIR){{prefix}}|$(topdir)|g' \
+      -e 's|CONFIG\["topdir"\] = .*|CONFIG\["topdir"\] = TOPDIR|g' \
+      {{prefix}}/lib/ruby/{{version.marketing}}.0/rbconfig.rb
+
 test:
   dependencies:
     tea.xyz/gx/cc: c99  # for native extensions
