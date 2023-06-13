@@ -73,7 +73,10 @@ build:
     mv lib/*-{{hw.platform}}*/* lib
     rmdir lib/*-{{hw.platform}}*
 
-    sed -i.bak 's|$(DESTDIR){{prefix}}|$(kegdir)|g' {{prefix}}/lib/ruby/{{version.marketing}}.0/rbconfig.rb
+    sed -i.bak \
+      -e 's|$(DESTDIR){{prefix}}|$(topdir)|g' \
+      -e 's|CONFIG\["topdir"\] = .*|CONFIG\["topdir"\] = TOPDIR|g' \
+      {{prefix}}/lib/ruby/{{version.marketing}}.0/rbconfig.rb
 
 test:
   dependencies:
