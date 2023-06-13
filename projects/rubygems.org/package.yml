@@ -41,15 +41,16 @@ test:
     tea.xyz/gx/make: '*'
   env:
     HOME: $PWD
+    vRUBY: ${{deps.ruby-lang.org.version.marketing}}.0
   script: |
     gem install awesome_print
     ruby -e 'require "rubygems"' -e 'require "awesome_print"' -e'ap $LOAD_PATH'
     gem install hexapdf
     v="$(~/.local/bin/hexapdf version | cut -d' ' -f2)"
-    test -d ~/.gem/ruby/3.2.0/gems/hexapdf-$v  #FIXME ruby version
+    test -d ~/.gem/ruby/$vRUBY/gems/hexapdf-$v  #FIXME ruby version
 
     gem install bundle
-    test -d ~/.gem/ruby/{{version.marketing}}.0/gems/bundle-0.0.1
+    test -d ~/.gem/ruby/{{deps.ruby-lang.org.version.marketing}}.0/gems/bundle-0.0.1
     test -f ~/.local/bin/bundle
     ~/.local/bin/bundle --version
 
@@ -57,7 +58,3 @@ provides:
   - bin/bundle
   - bin/bundler
   - bin/gem
-  - bin/rake
-  - bin/rbs
-  - bin/rdbg
-  - bin/typeprof
