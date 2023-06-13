@@ -1,0 +1,20 @@
+distributable:
+  url: https://github.com/so-fancy/diff-so-fancy/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: so-fancy/diff-so-fancy
+  strip: /^v/
+
+build:
+  script: |
+    curl -Lfo diff-so-fancy https://github.com/so-fancy/diff-so-fancy/releases/download/v{{version}}/diff-so-fancy
+    chmod +x diff-so-fancy
+    mkdir -p {{prefix}}/bin
+    mv diff-so-fancy {{prefix}}/bin
+
+provides:
+  - bin/diff-so-fancy
+
+test:
+  script: diff-so-fancy --help
