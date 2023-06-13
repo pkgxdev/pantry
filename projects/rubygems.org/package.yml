@@ -11,29 +11,30 @@ dependencies:
 build:
   dependencies:
     gnu.org/patch: '*'
-  script: |
-    ruby setup.rb --prefix={{prefix}} --env-shebang --no-ri --no-rdoc
+  script:
+    - ruby setup.rb --prefix={{prefix}} --env-shebang --no-ri --no-rdoc
 
-    mkdir {{prefix}}/shim
-    cp props/proxy {{prefix}}/shim
+    - working-directory: ${{prefix}}/shim
+      run: cp $SRCROOT/props/proxy .
 
-    cd "{{prefix}}"
-    patch -p1 < "$SRCROOT"/props/fit-n-finish.patch
+    - working-directory: ${{prefix}}
+      run: patch -p1 < "$SRCROOT"/props/fit-n-finish.patch
 
-    # these are provided by ruby-lang.org
-    # we don’t know why they turn up here too…
-    for x in rake rbs rdbg typeprof; do
-      rm {{prefix}}/bin/$x
-    done
+    - working-directory: ${{prefix}}/bin
+      # these are provided by ruby-lang.org
+      # we don’t know why they turn up here too…
+      run: rm rake rbs rdbg typeprof
 
-    # We’re not a “GEMHOME” since we *are* gem, so yeah instead
-    # we have a RUBYLIB hack via our proxy script
-    for x in bin/*; do
-      mv $x shim
-      ln shim/proxy $x
-    done
+    - working-directory: ${{prefix}}/bin
+      # We’re not a “GEMHOME” since we *are* gem, so yeah instead
+      # we have a RUBYLIB hack via our proxy script
+      run: |
+        for x in *; do
+          mv $x ../shim
+          ln -s ../shim/proxy $x
+        done
 
-    rmdir {{prefix}}/plugins
+    - rmdir {{prefix}}/plugins
 
 test:
   dependencies:
