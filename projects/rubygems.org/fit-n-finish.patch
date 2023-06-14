@@ -17,7 +17,7 @@ index 4aa8b4d..8354c08 100644
    # :startdoc:
 
 diff --git a/lib/rubygems/defaults.rb b/lib/rubygems/defaults.rb
-index b186375..3835559 100644
+index b186375..de168c4 100644
 --- a/lib/rubygems/defaults.rb
 +++ b/lib/rubygems/defaults.rb
 @@ -20,13 +20,7 @@ def self.default_sources
@@ -99,7 +99,15 @@ index b186375..3835559 100644
    end
 
    ##
-@@ -197,7 +193,7 @@ def self.default_exec_format
+@@ -176,6 +172,7 @@ def self.default_path
+     path << user_dir if user_home && File.exist?(user_home)
+     path << default_dir
+     path << vendor_dir if vendor_dir && File.directory?(vendor_dir)
++    path << File.expand_path(File.join(__FILE__, "../../../../../ruby-lang.org", "v#{RbConfig::CONFIG["RUBY_PROGRAM_VERSION"]}", "lib/ruby/gems", RbConfig::CONFIG["ruby_version"]))
+     path
+   end
+
+@@ -197,7 +194,7 @@ def self.default_exec_format
    # The default directory for binaries
 
    def self.default_bindir
@@ -108,7 +116,7 @@ index b186375..3835559 100644
    end
 
    def self.ruby_engine
-@@ -208,26 +204,14 @@ def self.ruby_engine
+@@ -208,26 +205,14 @@ def self.ruby_engine
    # The default signing key path
 
    def self.default_key_path
@@ -137,7 +145,7 @@ index b186375..3835559 100644
    end
 
    ##
-@@ -267,7 +251,10 @@ def self.vendor_dir # :nodoc:
+@@ -267,7 +252,10 @@ def self.vendor_dir # :nodoc:
    # end
 
    def self.operating_system_defaults
@@ -150,7 +158,7 @@ index b186375..3835559 100644
 
    ##
 diff --git a/lib/rubygems/installer.rb b/lib/rubygems/installer.rb
-index 9fbb282..3be62a6 100644
+index 8fef455..3ef4e30 100644
 --- a/lib/rubygems/installer.rb
 +++ b/lib/rubygems/installer.rb
 @@ -188,9 +188,9 @@ def initialize(package, options={})
@@ -165,7 +173,7 @@ index 9fbb282..3be62a6 100644
        @plugins_dir = Gem.plugindir(gem_home)
        check_that_user_bin_dir_is_in_path
      end
-@@ -953,7 +953,7 @@ def write_cache_file
+@@ -955,7 +955,7 @@ def write_cache_file
 
    def ensure_writable_dir(dir) # :nodoc:
      begin

@@ -12,27 +12,35 @@ build:
   dependencies:
     gnu.org/patch: '*'
   script:
-    - ruby setup.rb --prefix={{prefix}} --env-shebang --no-ri --no-rdoc
+    # FIXME otherwise the build fails! probs only applies when building as root
+    - run: mkdir -p /usr/local/lib/ruby/gems/3.2.0
+      if: linux
 
-    - working-directory: ${{prefix}}/shim
-      run: cp $SRCROOT/props/proxy .
+    - ruby setup.rb
+        --prefix={{prefix}}
+        --env-shebang
+        --no-ri
+        --no-rdoc
 
-    - working-directory: ${{prefix}}
-      run: patch -p1 < "$SRCROOT"/props/fit-n-finish.patch
+    - run: cp $SRCROOT/props/proxy .
+      working-directory: ${{prefix}}/shim
 
-    - working-directory: ${{prefix}}/bin
-      # these are provided by ruby-lang.org
-      # we don’t know why they turn up here too…
-      run: rm rake rbs rdbg typeprof
+    - run: patch -p1 < "$SRCROOT"/props/fit-n-finish.patch
+      working-directory: ${{prefix}}
 
-    - working-directory: ${{prefix}}/bin
-      # We’re not a “GEMHOME” since we *are* gem, so yeah instead
-      # we have a RUBYLIB hack via our proxy script
-      run: |
+    # these are provided by ruby-lang.org
+    # we don’t know why they turn up here too…
+    - run: rm rake rbs rdbg typeprof
+      working-directory: ${{prefix}}/bin
+
+    # We’re not a “GEMHOME” since we *are* gem, so yeah instead
+    # we have a RUBYLIB hack via our proxy script
+    - run: |
         for x in *; do
           mv $x ../shim
           ln -s ../shim/proxy $x
         done
+      working-directory: ${{prefix}}/bin
 
     - rmdir {{prefix}}/plugins
 
@@ -43,17 +51,18 @@ test:
   env:
     HOME: $PWD
     vRUBY: ${{deps.ruby-lang.org.version.marketing}}.0
-  script: |
-    gem install awesome_print
-    ruby -e 'require "rubygems"' -e 'require "awesome_print"' -e'ap $LOAD_PATH'
-    gem install hexapdf
-    v="$(~/.local/bin/hexapdf version | cut -d' ' -f2)"
-    test -d ~/.gem/ruby/$vRUBY/gems/hexapdf-$v  #FIXME ruby version
+  script:
+    # for debug
+    - gem env
 
-    gem install bundle
-    test -d ~/.gem/ruby/{{deps.ruby-lang.org.version.marketing}}.0/gems/bundle-0.0.1
-    test -f ~/.local/bin/bundle
-    ~/.local/bin/bundle --version
+    - |
+      gem install awesome_print --verbose
+      ruby -e 'require "rubygems"' -e 'require "awesome_print"' -e'ap $LOAD_PATH'
+
+    - |
+      gem install hexapdf
+      v="$(~/.local/bin/hexapdf version | cut -d' ' -f2)"
+      test -d ~/.gem/ruby/$vRUBY/gems/hexapdf-$v
 
 provides:
   - bin/bundle

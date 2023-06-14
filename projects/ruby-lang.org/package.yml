@@ -3,6 +3,8 @@ distributable:
   strip-components: 1
 
 versions:
+  # ruby have *some* releases, but historically only have tags
+  # so if we want to build older releases we can only scan tags
   github: ruby/ruby/tags
 
 dependencies:
@@ -26,7 +28,6 @@ build:
     ARGS:
     - --prefix="{{prefix}}"
     - --enable-load-relative  # makes us relocatable
-    - --disable-rubygems      # we provide rubygems.org
     - --without-gmp
     - --with-rubyarchprefix={{prefix}}/lib/ruby  # no need for architecture specific crap
     - --with-rubyhdrdir={{prefix}}/include       # ^^
@@ -47,6 +48,20 @@ build:
       working-directory: ${{prefix}}/bin
 
     - fix-shebangs.ts ${{prefix}}/bin/*
+
+    # ruby itself provides the gems for these and we don’t want that
+    # we want to pkg them ourselves as part of rubygems.org
+    - working-directory:
+        ${{prefix}}/lib/ruby/{{version.marketing}}.0
+      run: |
+        for x in bundler rubygems bundler.rb rubygems.rb; do
+          if test -d $x; then
+            rm -rf $x
+          else
+            rm $x
+          fi
+          ln -s ../../../../../rubygems.org/v\*/lib/$x
+        done
 
     - run: |
         rm -rf share/ri
@@ -74,9 +89,31 @@ test:
   dependencies:
     tea.xyz/gx/cc: c99  # for native extensions
     tea.xyz/gx/make: '*'
-  script: |
-    ruby -e 'puts "Hello World!"'
-    echo 'puts 1' | irb
+  script:
+    # - |
+    #   ruby -e 'puts "Hello World!"'
+    #   echo 'puts 1' | irb
+
+    # tests the libraries that come with Ruby can be utilized
+    - run: |
+        mv $FIXTURE a.rb
+        ruby a.rb
+      fixture: |
+        require 'date'
+        puts Date.today
+
+    # tests the gems that come with Ruby can be utilized
+    - run: |
+        mv $FIXTURE a.rb
+        ruby a.rb
+      fixture: |
+        require 'matrix'
+        matrix = Matrix[[1, 2], [3, 4]]
+        transpose_matrix = matrix.transpose
+        determinant = matrix.determinant
+        puts "Original matrix:\n#{matrix}"
+        puts "Transposed matrix:\n#{transpose_matrix}"
+        puts "Determinant of the matrix: #{determinant}"
 
 provides:
   - bin/erb
