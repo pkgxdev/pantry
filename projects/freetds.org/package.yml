@@ -1,0 +1,53 @@
+distributable:
+  url: https://www.freetds.org/files/stable/freetds-{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://www.freetds.org/files/stable/
+  match: /freetds-\d+\.\d+\.\d+\.tar\.gz/
+  strip:
+    - /^freetds-/
+    - /.tar\.gz$/
+
+dependencies:
+  openssl.org: ^1.1
+  unixodbc.org: '*'
+  kerberos.org: '*'
+  gnu.org/readline: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/autoconf: '*'
+    gnu.org/gettext: '*'
+    gnu.org/libtool: '*'
+    freedesktop.org/pkg-config: '*'
+    gnu.org/automake: '*'
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install -i
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --mandir="{{prefix}}/man"
+      - --sysconfdir="{{prefix}}/etc"
+      - --with-unixodbc={{deps.unixodbc.org.prefix}}
+      - --with-openssl={{deps.openssl.org.prefix}}
+      - --enable-sybase-compat
+      - --enable-krb5
+      - --enable-odbc-wide
+
+provides:
+  - bin/bsqldb
+  - bin/bsqlodbc
+  - bin/datacopy
+  - bin/defncopy
+  - bin/fisql
+  - bin/freebcp
+  - bin/osql
+  - bin/tdspool
+  - bin/tsql
+
+test:
+  tsql -C | grep {{version}}
