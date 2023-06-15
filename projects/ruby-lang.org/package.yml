@@ -23,7 +23,7 @@ build:
     gnu.org/autoconf: '*'
     linux:
       ruby-lang.org: ~3.1  # ruby requires ruby to build
-      # ^^ only linux because we got issues on darwin currently
+      # ^^ only linux because we got issues on darwin currently and darwin provides ruby (for now)
   env:
     ARGS:
     - --prefix="{{prefix}}"
@@ -51,6 +51,10 @@ build:
 
     # ruby itself provides the gems for these and we don’t want that
     # we want to pkg them ourselves as part of rubygems.org
+    # to ensure the user gets a good ruby experience rubygems is marked as
+    # a companion which in most use means gems are automatically added to the
+    # pkgenv. Ruby behaves well if gems isn't around but the user may get
+    # unexpected errors in scenarios where they constructed an pkgenv manually
     - working-directory:
         ${{prefix}}/lib/ruby/{{version.marketing}}.0
       run: |
@@ -87,12 +91,13 @@ build:
 
 test:
   dependencies:
-    tea.xyz/gx/cc: c99  # for native extensions
+    tea.xyz/gx/cc: c99    # for native extensions
     tea.xyz/gx/make: '*'
+    rubygems.org: '*'     # is a companion __however__ brewkit doesn’t add companions to the env automatically
   script:
-    # - |
-    #   ruby -e 'puts "Hello World!"'
-    #   echo 'puts 1' | irb
+    - |
+      ruby -e 'puts "Hello World!"'
+      echo 'puts 1' | irb
 
     # tests the libraries that come with Ruby can be utilized
     - run: |
