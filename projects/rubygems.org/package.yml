@@ -64,7 +64,12 @@ test:
     - |
       gem install hexapdf
       v="$(~/.local/bin/hexapdf version | cut -d' ' -f2)"
-      test -d ~/.gem/ruby/$vRUBY/gems/hexapdf-$v
+
+      if test id -u != 0; then
+        test -d ~/.gem/ruby/$vRUBY/gems/hexapdf-$v
+      else
+        test -d /usr/local/lib/ruby/gems/$vRUBY/hexapdf-$
+      fi
 
 provides:
   - bin/bundle
