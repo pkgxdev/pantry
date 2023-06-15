@@ -14,32 +14,33 @@ build:
     tea.xyz/gx/make: '*'
     cmake.org: '*'
     nasm.us: '*'
-  script: |
-    mkdir -p ./8bit
-    mkdir -p ./10bit
-    mkdir -p ./12bit
+  working-directory: 8bit
+  script:
+    - run: |
+        cmake ../source -DENABLE_HDR10_PLUS=ON $ARGS_DEFAULT $HIGHBITARGS
+        make
+        mv libx265.a ../8bit/libx265_main10.a
+      working-directory: ../10bit
 
-    cd ./10bit
-    cmake ../source -DENABLE_HDR10_PLUS=ON $ARGS_DEFAULT $HIGHBITARGS
-    make
-    mv ./libx265.a ../8bit/libx265_main10.a
-    cd ../
-    
-    cd ./12bit
-    cmake ../source -DMAIN12=ON $ARGS_DEFAULT $HIGHBITARGS
-    make
-    mv ./libx265.a ../8bit/libx265_main12.a
-    cd ../
+    - run: |
+        cmake ../source -DMAIN12=ON $ARGS_DEFAULT $HIGHBITARGS
+        make
+        mv libx265.a ../8bit/libx265_main12.a
+      working-directory: ../12bit
 
-    cd ./8bit
-    cmake ../source $ARGS_DEFAULT $ARGS
-    make
-    mv ./libx265.a ./libx265_main.a
+    - run: |
+        cmake ../source $ARGS_DEFAULT $ARGS
+        make
+        mv libx265.a libx265_main.a
 
-    $COMMAND
+    - run: libtool -static -o $LIB_ARGS
+      if: darwin
 
-    make install
-  
+    - run: ar crs $LIB_ARGS
+      if: linux
+
+    - run: make install
+
   env:
     ARGS_DEFAULT:
       - -Wno-dev
@@ -60,10 +61,11 @@ build:
       - -DEXPORT_C_API=OFF
       - -DENABLE_SHARED=OFF
       - -DENABLE_CLI=OFF
-    darwin:
-      COMMAND: libtool -static -o libx265.a libx265_main.a libx265_main10.a libx265_main12.a
-    linux:
-      COMMAND: ar crs libx265.a libx265_main.a libx265_main10.a libx265_main12.a
+    LIB_ARGS:
+      - libx265.a
+      - libx265_main.a
+      - libx265_main10.a
+      - libx265_main12.a
 
 provides:
   - bin/x265
