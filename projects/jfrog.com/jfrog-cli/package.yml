@@ -1,0 +1,27 @@
+distributable:
+  url: https://github.com/jfrog/jfrog-cli/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: jfrog/jfrog-cli
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    go.dev: '*'
+  script: |
+    go build $ARGS
+    mkdir -p {{prefix}}/bin
+    mv ./bin/jf {{prefix}}/bin
+    ln -s {{prefix}}/bin/jf {{prefix}}/bin/jfrog
+  env:
+    ARGS:
+      - -trimpath
+      - -o=bin/jf
+
+provides:
+  - bin/jf
+  - bin/jfrog
+
+test: jfrog -v | grep {{version}}
