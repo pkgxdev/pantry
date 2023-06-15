@@ -1,0 +1,27 @@
+distributable:
+  url: https://github.com/Cyan4973/xxHash/archive/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: Cyan4973/xxHash
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    make --jobs {{ hw.concurrency }}
+    make --jobs {{ hw.concurrency }} install $ARGS
+
+  env:
+    ARGS:
+      - PREFIX="{{prefix}}"
+
+provides:
+  - bin/xxhsum
+  - bin/xxh32sum
+  - bin/xxh64sum
+  - bin/xxh128sum
+
+test:
+  xxhsum --version | grep {{version}}
