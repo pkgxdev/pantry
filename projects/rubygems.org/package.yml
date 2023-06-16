@@ -62,13 +62,14 @@ test:
       ruby -e 'require "rubygems"' -e 'require "awesome_print"' -e'ap $LOAD_PATH'
 
     - |
-      gem install hexapdf
-      v="$(~/.local/bin/hexapdf version | cut -d' ' -f2)"
+      gem install hexapdf  --verbose
 
-      if test $(id -u) != 0; then
-        test -d ~/.gem/ruby/$vRUBY/gems/hexapdf-$v
-      else
+      if [ -w /usr/local/lib/ruby/ ]; then
+        v="$(/usr/local/bin/hexapdf version | cut -d' ' -f2)"
         test -d /usr/local/lib/ruby/gems/$vRUBY/hexapdf-$v
+      else
+        v="$(~/.local/bin/hexapdf version | cut -d' ' -f2)"
+        test -d ~/.gem/ruby/$vRUBY/gems/hexapdf-$v
       fi
 
 provides:
