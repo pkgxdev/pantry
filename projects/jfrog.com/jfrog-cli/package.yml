@@ -5,6 +5,9 @@ distributable:
 versions:
   github: jfrog/jfrog-cli
 
+platforms:
+  - darwin
+
 build:
   dependencies:
     tea.xyz/gx/cc: c99
@@ -14,7 +17,8 @@ build:
     go build $ARGS
     mkdir -p {{prefix}}/bin
     mv ./bin/jf {{prefix}}/bin
-    ln -s jf {{prefix}}/bin/jfrog
+    test ! -e {{prefix}}/bin/jfrog && ln -s ./jf {{prefix}}/bin/jfrog
+    
   env:
     ARGS:
       - -trimpath
@@ -25,5 +29,5 @@ provides:
   - bin/jfrog
 
 test: |
-  jf -v | grep {{version}}
+  {{prefix}}/bin/jf -v | grep {{version}}
   jfrog -v | grep {{version}}
