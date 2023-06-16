@@ -11,20 +11,21 @@ dependencies:
 
 build:
   dependencies:
-    gnu.org/wget: '*'
+    curl.se: '*'
   script: |
-    wget https://getcomposer.org/download/{{version}}/composer.phar
-    mv ./composer.phar ./composer
+    curl -sS https://getcomposer.org/installer | php
     mkdir -p {{prefix}}/bin
-    mv ./composer {{prefix}}/bin
+    mv ./composer.phar {{prefix}}/bin
+    test ! -e {{prefix}}/bin/composer && ln -s {{prefix}}/bin/composer.phar {{prefix}}/bin/composer
 
 env:
   ARGS:
-    - --install-dir={{prefix}}/bin
+    - --install-dir=bin
     - --filename=composer
+    - --version={{version}}
 
 provides:
   - bin/composer
+  - bin/composer.phar
 
-test: |
-  composer -V | grep {{version}}
+test: composer -V | grep {{version}}
