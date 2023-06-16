@@ -1,0 +1,30 @@
+distributable:
+  # We are downloading a .tar.gz archive from GitHub because we are unable to download a .phar archive.
+  url: https://github.com/composer/composer/archive/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: composer/composer
+
+dependencies:
+  php.net: '*'
+
+build:
+  dependencies:
+    gnu.org/wget: '*'
+  script: |
+    wget https://getcomposer.org/download/{{version}}/composer.phar
+    mv ./composer.phar ./composer
+    mkdir -p {{prefix}}/bin
+    mv ./composer {{prefix}}/bin
+
+env:
+  ARGS:
+    - --install-dir={{prefix}}/bin
+    - --filename=composer
+
+provides:
+  - bin/composer
+
+test: |
+  composer -V | grep {{version}}
