@@ -1,4 +1,15 @@
-#!/usr/bin/env -S tea -E deno run --allow-read --allow-env --allow-net --allow-sys
+#!/usr/bin/env -S tea -E
+/*---
+args:
+  - deno
+  - run
+  - --allow-read
+  - --allow-net
+  - --allow-env
+  - --allow-sys
+dependencies:
+  deno.land: =1.34.2
+---*/
 
 import { usePantry } from "hooks"
 import * as ARGV from "./utils/args.ts"
