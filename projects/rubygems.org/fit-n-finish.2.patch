@@ -1,0 +1,41 @@
+diff --git a/lib/rubygems.rb b/lib/rubygems.rb
+index 29552d9..814c4f4 100644
+--- a/lib/rubygems.rb
++++ b/lib/rubygems.rb
+@@ -299,7 +299,7 @@ module Gem
+
+   def self.bindir(install_dir=Gem.dir)
+     return File.join install_dir, "bin" unless
+-      install_dir.to_s == Gem.default_dir.to_s
++      install_dir.to_s == Gem.default_system_dir.to_s
+     Gem.default_bindir
+   end
+
+diff --git a/lib/rubygems/defaults.rb b/lib/rubygems/defaults.rb
+index 8e0182f..aa53e4c 100644
+--- a/lib/rubygems/defaults.rb
++++ b/lib/rubygems/defaults.rb
+@@ -31,6 +31,10 @@ module Gem
+     @default_dir ||= File.join(RbConfig::CONFIG["rubylibprefix"], "gems", RbConfig::CONFIG["ruby_version"])
+   end
+
++  def self.default_system_dir
++    File.join("/usr/local/lib/ruby/gems", RbConfig::CONFIG["ruby_version"])
++  end
++
+   ##
+   # Returns binary extensions dir for specified RubyGems base dir or nil
+   # if such directory cannot be determined.
+diff --git a/lib/rubygems/path_support.rb b/lib/rubygems/path_support.rb
+index d601e65..0c78dba 100644
+--- a/lib/rubygems/path_support.rb
++++ b/lib/rubygems/path_support.rb
+@@ -23,7 +23,7 @@ class Gem::PathSupport
+   # hashtable, or defaults to ENV, the system environment.
+   #
+   def initialize(env)
+-    @home = env["GEM_HOME"] || Gem.default_dir
++    @home = env["GEM_HOME"] || Gem.default_system_dir
+
+     if File::ALT_SEPARATOR
+       @home = @home.gsub(File::ALT_SEPARATOR, File::SEPARATOR)
