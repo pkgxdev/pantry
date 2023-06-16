@@ -1,0 +1,65 @@
+distributable:
+  url: https://wimlib.net/downloads/wimlib-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://wimlib.net/downloads/
+  match: /wimlib-\d+\.\d+\.\d+\.tar\.gz/
+  strip:
+    - /^wimlib-/
+    - /\.tar\.gz$/
+
+dependencies:
+  openssl.org: '^3.1.0'
+  gnome.org/libxml2: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    freedesktop.org/pkg-config: '*'
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --disable-silent-rules
+      - --prefix={{prefix}}
+      - --without-fuse
+      - --without-ntfs-3g
+
+provides:
+  - bin/mkwinpeimg
+  - bin/wimappend
+  - bin/wimapply
+  - bin/wimapply
+  - bin/wimdelete
+  - bin/wimdir
+  - bin/wimexport
+  - bin/wimextract
+  - bin/wiminfo
+  - bin/wimjoin
+  - bin/wimlib-imagex
+  - bin/wimmount
+  - bin/wimmountrw
+  - bin/wimoptimize
+  - bin/wimsplit
+  - bin/wimunmount
+  - bin/wimupdate
+  - bin/wimverify
+
+test:
+  env:
+    WIMLIB_IMAGEX_USE_UTF8: 1
+    darwin:
+      SIZE: "1m"
+    linux:
+      SIZE: "1M"
+  script:
+    - run: dd if=/dev/random of=bar bs=$SIZE count=1
+      working-directory: foo
+    - wimcapture foo bar.wim
+    - test bar.wim
+    - wiminfo bar.wim
