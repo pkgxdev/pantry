@@ -18,12 +18,9 @@ build:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
     freedesktop.org/pkg-config: '*'
-    gnu.org/autoconf: '*'
-    gnu.org/automake: '*'
   script: |
     ./configure $ARGS
     make --jobs {{ hw.concurrency }} install
-  
   env:
     ARGS:
       - --disable-debug
@@ -55,14 +52,14 @@ provides:
 
 test:
   env:
+    WIMLIB_IMAGEX_USE_UTF8: 1
     darwin:
       SIZE: "1m"
     linux:
       SIZE: "1M"
-  script: |
-    mkdir "foo"
-    dd if=/dev/random of=foo/bar bs=$SIZE count=1
-    export WIMLIB_IMAGEX_USE_UTF8=1
-    wimcapture foo bar.wim
-    test bar.wim
-    wiminfo bar.wim
+  script:
+    - run: dd if=/dev/random of=bar bs=$SIZE count=1
+      working-directory: foo
+    - wimcapture foo bar.wim
+    - test bar.wim
+    - wiminfo bar.wim
