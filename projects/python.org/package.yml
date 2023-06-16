@@ -43,18 +43,15 @@ build:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
     freedesktop.org/pkg-config: ^0.29
-    crates.io/semverator: '*'
     gnu.org/patch: '*'
     curl.se: '*'
-
   script:
     # MacPorts has a series of patches to keep python2 working
-    - |
-      if semverator satisfies '^2' {{ version }}; then
+    - run: |
         for PATCH in $PYTHON2PATCHES; do
           curl -sSL $PATCH | patch -p0
         done
-      fi
+      if: ^2
 
     # fixes the build scripts so they use the standard environment variables we set
     - |
@@ -62,15 +59,15 @@ build:
       sed -i.bak -e 's|system_include_dirs = .*|system_include_dirs = os.getenv("CPATH").split(":")|' ./setup.py
 
     # older versions use a different config dir
-    - |
-      if semverator satisfies '<3' {{ version }}; then
-        # v2 uses a still-different confdir
+    - run: |
         confdir="$libdir/config"
 
         # aarch64 not happy with this
         ARGS=${ARGS/--with-ensurepip/--without-ensurepip}
-      elif semverator satisfies '<3.8' {{ version }}; then
-        # 3.7 and older use `3.7m` for config dir
+      if: ^2
+
+    # 3.7 and older use `3.7m` for config dir
+    - run: |
         confdir=$(echo $confdir | sed -e 's/\(config-{{ version.marketing }}\)/\1m/')
 
         # 3.7 and older use `python3.7m` for include dir
@@ -78,7 +75,7 @@ build:
 
         # 3.7 aborts on linux+aarch64 with this
         ARGS=${ARGS/--with-ensurepip/--without-ensurepip}
-      fi
+      if: '>=3<3.8'
 
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }}
