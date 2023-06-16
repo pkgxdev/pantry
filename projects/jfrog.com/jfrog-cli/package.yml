@@ -17,7 +17,7 @@ build:
     go build $ARGS
     mkdir -p {{prefix}}/bin
     mv ./bin/jf {{prefix}}/bin
-    test ! -e {{prefix}}/bin/jfrog && ln -s ./jf {{prefix}}/bin/jfrog
+    ln -sf jf {{prefix}}/bin/jfrog
     
   env:
     ARGS:
@@ -29,5 +29,5 @@ provides:
   - bin/jfrog
 
 test: |
-  {{prefix}}/bin/jf -v | grep {{version}}
+  jf -v | grep {{version}}
   jfrog -v | grep {{version}}
