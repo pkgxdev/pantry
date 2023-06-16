@@ -9,8 +9,12 @@ versions:
 build:
   script:
     - chmod +x diff-so-fancy
+    - run: |
+        sed -i.bak -e 's| \. "/lib";| \. "/../lib";|' diff-so-fancy
+        rm diff-so-fancy.bak
     - mkdir -p "{{prefix}}/bin"
     - mv diff-so-fancy "{{prefix}}/bin"
+    - cp -a lib "{{prefix}}"
 
 provides:
   - bin/diff-so-fancy
