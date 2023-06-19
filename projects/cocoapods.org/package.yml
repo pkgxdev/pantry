@@ -13,9 +13,13 @@ dependencies:
 build:
   dependencies:
     tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
   env:
     GEM_HOME: ${{prefix}}
     GEM_PATH: ${{prefix}}
+
+    # FIXME ruby’s mkmf needs patching to check CPATH
+    CFLAGS: -I{{deps.sourceware.org/libffi.prefix}}/include
   script:
     - gem build cocoapods.gemspec
     - gem install cocoapods-{{version}}.gem
