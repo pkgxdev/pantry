@@ -13,7 +13,8 @@ build:
   dependencies:
     go.dev: '*'
     nodejs.org: ^18
-    python.org: ^3.11
+    # python 3.11 removes 'rU' mode which breaks node-gyp
+    python.org: ~3.10
     npmjs.com: '*'
     classic.yarnpkg.com: '*'
     tea.xyz/gx/cc: c99
@@ -22,13 +23,11 @@ build:
     # TODO: gox
   script: |
     make bootstrap static-dist dev-ui
-    
+
     mkdir -p {{prefix}}/bin
-    mv bin/vault {{prefix}}/bin/vault 
+    mv bin/vault {{prefix}}/bin/vault
 
 provides:
   - bin/vault
 
-test:
-  script:
-    vault --version 
+test: vault --version
