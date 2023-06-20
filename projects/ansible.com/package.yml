@@ -10,26 +10,29 @@ dependencies:
   python.org: '>=3.7'
 
 build:
-  script: |
-    python-venv.sh {{prefix}}/bin/ansible
+  script:
+    - python-venv.sh {{prefix}}/bin/ansible
 
     # manually register all the ansible-* executables with tea
     #FIXME dirty hack, replace with a proper solution
-    for _EXEC in {{prefix}}/venv/bin/ansible-*; do
-      CMD_NAME="${_EXEC##*/}" # get text after the last slash (the command name)
-      TRG_BIN_NAME="{{prefix}}/bin/$CMD_NAME"
-      cp -v  {{prefix}}/bin/ansible $TRG_BIN_NAME # copy the tea-configured executable with the correct name
-      # replace the original 'ansible' with the correct $CMD_NAME
-      sed -i.bak -e \
-        "s|/bin/ansible|/bin/$CMD_NAME|" \
-        $TRG_BIN_NAME
-    done
+    - run: |
+        for _EXEC in {{prefix}}/venv/bin/ansible-*; do
+          CMD_NAME="${_EXEC##*/}" # get text after the last slash (the command name)
+          TRG_BIN_NAME="{{prefix}}/bin/$CMD_NAME"
+          cp -v  {{prefix}}/bin/ansible $TRG_BIN_NAME # copy the tea-configured executable with the correct name
+          # replace the original 'ansible' with the correct $CMD_NAME
+          sed -i.bak -e \
+            "s|/bin/ansible|/bin/$CMD_NAME|" \
+            $TRG_BIN_NAME
+        done
 
     # install paramiko, a python ssh library sometimes used with ansible
-    {{prefix}}/venv/bin/pip install paramiko #FIXME should we pin a version?
+    - run: ./bin/pip install paramiko #FIXME should we pin a version?
+      working-directory: ${{prefix}}/venv
 
-    rm -v {{prefix}}/bin/ansible-*.bak
+    - rm -v {{prefix}}/bin/ansible-*.bak
 
+    - fix-shebangs.ts {{prefix}}/venv/bin/ansible*
 
 test:
   script: |
