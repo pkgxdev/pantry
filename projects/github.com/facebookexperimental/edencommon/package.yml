@@ -1,0 +1,37 @@
+distributable:
+  url: https://github.com/facebookexperimental/edencommon/archive/v2023.06.19.00.tar.gz
+  strip-components: 1
+
+versions:
+  github: facebookexperimental/edencommon/tags
+
+dependencies:
+  facebook.com/folly: '*'
+  gflags.github.io: '*'
+  google.com/glog: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    cmake.org: '*'
+    google.com/googletest: '*'
+  script: |
+    cmake -S . -B _build $ARGS
+    cmake --build _build
+    cmake --install _build
+  env:
+    ARGS:
+      - -DBUILD_SHARED_LIBS=ON
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_VERBOSE_MAKEFILE=ON
+      - -Wno-dev
+      - -DBUILD_TESTING=OFF
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script: |
+    g++ -std=c++17 test.cc -o test -ledencommon_utils -lfolly
+    ./test | grep test
