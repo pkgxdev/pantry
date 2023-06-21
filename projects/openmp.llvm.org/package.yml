@@ -1,0 +1,51 @@
+distributable:
+  url: https://github.com/llvm/llvm-project/releases/download/llvmorg-{{version}}/openmp-{{version}}.src.tar.xz
+  strip-components: 1
+
+versions:
+  github: llvm/llvm-project
+  strip: /^llvmorg-/
+
+dependencies:
+  linux:
+    python.org: ^3.11
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    cmake.org: '*'
+    llvm.org: '*'
+    gnu.org/wget: '*'
+  script: |
+    mkdir -p src
+    find . -maxdepth 1 ! -name 'src' -exec mv {} ./src/ \;
+    mkdir -p cmake
+    wget $CMAKE_URL && tar -xf cmake-{{version}}.src.tar.xz -C ./cmake --strip-components=1
+    rm cmake-{{version}}.src.tar.xz
+    cmake -S src -B build/shared $ARGS
+    cmake --build build/shared
+    cmake --install build/shared
+    cmake -S src -B build/static -DLIBOMP_ENABLE_SHARED=OFF $ARGS
+    cmake --build build/static
+    cmake --install build/static
+
+  env:
+    CMAKE_URL: 'https://github.com/llvm/llvm-project/releases/download/llvmorg-{{version}}/cmake-{{version}}.src.tar.xz'
+    ARGS:
+      - -DLIBOMP_INSTALL_ALIASES=OFF
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_VERBOSE_MAKEFILE=ON
+      - -Wno-dev
+      - -DBUILD_TESTING=OFF
+    linux:
+      ARGS:
+        - -DOPENMP_ENABLE_LIBOMPTARGET=OFF
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script:
+    - g++ -Werror -Xpreprocessor -fopenmp test.cpp -std=c++11 -lomp -o test
+    - ./test
