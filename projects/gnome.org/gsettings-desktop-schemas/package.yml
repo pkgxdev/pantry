@@ -1,0 +1,40 @@
+distributable:
+  url: https://download.gnome.org/sources/gsettings-desktop-schemas/{{version.major}}/gsettings-desktop-schemas-{{version.marketing}}.tar.xz
+  strip-components: 1
+
+versions:
+  gitlab: gitlab.gnome.org:GNOME/gsettings-desktop-schemas/tags
+
+dependencies:
+  gnome.org/glib: '*'
+  libexpat.github.io: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnome.org/gobject-introspection: '*'
+    mesonbuild.com: '*'
+    ninja-build.org: '*'
+    freedesktop.org/pkg-config: '*'
+    python.org: '^3.11'
+  script: |
+    meson setup build $ARGS
+    meson compile -C build --verbose
+    meson install -C build
+  env:
+    DESTDIR: '/'
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --libdir="{{prefix}}/lib"
+      - --buildtype=release
+      - --wrap-mode=nofallback
+
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+    tea.xyz/gx/cc: c99
+  script: |
+    pkg-config --modversion gsettings-desktop-schemas | grep {{version.marketing}}
+    cc test.c -I{{prefix}}/include/gsettings-desktop-schemas -o test
+    ./test

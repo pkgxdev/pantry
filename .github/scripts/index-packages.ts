@@ -1,4 +1,5 @@
 #!/usr/bin/env -S tea -E
+
 /*---
 args:
   - deno
@@ -11,13 +12,13 @@ dependencies:
   deno.land: =1.34.2
 ---*/
 
-import { usePantry } from "hooks"
-import * as ARGV from "./utils/args.ts"
 import { SQSClient, SendMessageCommand } from "npm:@aws-sdk/client-sqs@^3"
 import { SNSClient, PublishCommand } from "npm:@aws-sdk/client-sns@^3"
-import { panic } from "utils"
+import * as ARGV from "./utils/args.ts"
+import { hooks, utils } from "tea"
+const { usePantry } = hooks
 
-const region = Deno.env.get("AWS_REGION") ?? panic("No region specified")
+const region = Deno.env.get("AWS_REGION") ?? utils.panic("No region specified")
 const sqsClient = new SQSClient({ region })
 const snsClient = new SNSClient({ region })
 
@@ -26,7 +27,7 @@ const pantry = usePantry()
 const pkgs = await ARGV.toArray(ARGV.pkgs())
 for(const pkg of pkgs) {
   try {
-    const yml = await pantry.getYAML(pkg).parse()
+    const yml = await pantry.project(pkg).yaml()
 
     const project = pkg.project
 

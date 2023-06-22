@@ -1,6 +1,5 @@
-import { Installation, Package, PackageRequirement } from "types"
-import { useCellar } from "hooks"
-import { parse } from "utils/pkg.ts"
+import { Installation, Package, PackageRequirement, hooks, utils } from "tea"
+const { useCellar } = hooks
 
 /// processes Deno.args unless STDIN is not a TTY and has input
 export async function *args(): AsyncGenerator<string> {
@@ -39,7 +38,7 @@ export async function *pkgs(): AsyncGenerator<Package | PackageRequirement> {
   for await (const arg of args()) {
     const match = arg.match(/projects\/(.*)\/package.yml/)
     const project = match ? match[1] : arg
-    yield parse(project)
+    yield utils.pkg.parse(project)
   }
 }
 

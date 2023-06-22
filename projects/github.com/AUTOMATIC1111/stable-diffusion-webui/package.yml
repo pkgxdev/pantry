@@ -5,6 +5,9 @@ distributable:
 versions:
   github: AUTOMATIC1111/stable-diffusion-webui
 
+#TODO there's inefficient duplication we can overcome
+# eg. pytorch-vision bundles its own libpng and libjpeg, which we could provide
+
 dependencies:
   python.org: ~3.10
   tea.xyz: ^0  # our scripts use tea/cli
@@ -36,14 +39,22 @@ build:
     # installs python virtual-env
     - ./webui.sh
 
+    # torchvision .whl dylibs are broken out the box :/
+    - run:
+        install_name_tool
+          -add_rpath @loader_path/../torch/lib
+          venv/lib/python3.10/site-packages/torchvision/image.so
+      if: darwin
+
+    # change CWD for remainder of our execution
+    - |
+      mkdir -p {{prefix}}
+      cd {{prefix}}
+
     # move this installation into its prefix
     - run: |
-        mv $OLDWD lib
+        cp -a $SRCROOT lib
         mkdir -p bin
-        mkdir $OLDWD    # or breaks brewkit
-      working-directory: ${{prefix}}
-
-    - cd {{prefix}}  # change CWD for remainder of our execution
 
     # install our scripts and shims
     - |
