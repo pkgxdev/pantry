@@ -1,0 +1,28 @@
+distributable:
+  url: https://github.com/lima-vm/lima/archive/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: lima-vm/lima
+
+platforms:
+  # https://github.com/teaxyz/pantry/blob/main/projects/qemu.org/package.yml only darwin
+  - darwin
+
+dependencies:
+  qemu.org: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    go.dev: '*'
+  script:
+    - make VERSION={{version}} clean all
+    - mv ./_output/* {{prefix}}
+
+provides:
+  - bin/limactl
+
+test:
+  limactl --version | grep {{version}}
