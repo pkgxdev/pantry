@@ -1,0 +1,28 @@
+distributable:
+  url: https://www.x.org/releases/individual/xcb/libpthread-stubs-{{version.marketing}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://www.x.org/releases/individual/xcb/
+  match: /libpthread-stubs-\d+\.\d+\.tar\.gz/
+  strip:
+    - /^libpthread-stubs-/
+    - /\.tar\.gz$/
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    freedesktop.org/pkg-config: '*'
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script:
+    pkg-config --modversion pthread-stubs | grep {{version.marketing}}
