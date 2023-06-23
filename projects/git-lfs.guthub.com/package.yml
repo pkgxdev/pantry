@@ -1,0 +1,37 @@
+distributable:
+  url: https://github.com/git-lfs/git-lfs/releases/download/v{{version}}/git-lfs-v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: git-lfs/git-lfs
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    asciidoctor.org: '*'
+    go.dev: '*'
+    rtomayko.github.io/ronn: '*'
+    ruby-lang.org: '*'
+  
+  script:
+    - make
+    - make man RONN={{deps.rtomayko.github.io/ronn.prefix}}/bin/ronn
+    - mkdir -p {{prefix}}
+    - mv ./bin/ {{prefix}}/
+    - mv ./man/ {{prefix}}/
+
+  env:
+    GIT_LFS_SHA:
+    VERSION: "{{version}}"
+    ARGS:
+      - --prefix="{{prefix}}"
+
+provides:
+  - bin/git-lfs
+
+test:
+  - git-lfs install
+  - git init
+  - git lfs track test
+  - grep 'test filter=lfs' .gitattributes
