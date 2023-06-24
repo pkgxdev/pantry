@@ -7,7 +7,6 @@ versions:
 
 dependencies:
   git-scm.org: '*'
-  go.dev: '*'
 
 build:
   dependencies:
@@ -24,12 +23,7 @@ build:
     - mkdir -p {{prefix}}/bin
     - install ./bin/git-lfs "{{prefix}}/bin/git-lfs"
     - mkdir -p {{prefix}}/man
-    - mv ./man/* {{prefix}}/man/
-    # Update your git config to finish installation:
-    #   Update global git config
-    #     $ git lfs install
-    #   Update system git config
-    #     $ git lfs install --system
+    - install ./man/* "{{prefix}}/man/"
 
   env:
     VERSION: "{{version}}"
@@ -40,7 +34,6 @@ provides:
 test:
   working-directory: test
   script:
-    - git lfs install --force
     - git init
     - git lfs track test
     - grep 'test filter=lfs' .gitattributes
