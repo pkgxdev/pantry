@@ -1,0 +1,31 @@
+distributable:
+  url: https://github.com/abiosoft/colima/archive/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: abiosoft/colima
+
+dependencies:
+  lima-vm.io: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    go.dev: '*'
+
+  script:
+    - go build $ARGS -ldflags="$LDFLAGS" ./cmd/colima
+  env:
+    LDFLAGS:
+      - -s
+      - -w
+      - -X github.com/abiosoft/colima/config.appVersion={{version}}
+    ARGS:
+      - -trimpath
+      - -o={{prefix}}/bin/colima
+
+provides:
+  - bin/colima
+
+test: colima version | grep {{version}}
