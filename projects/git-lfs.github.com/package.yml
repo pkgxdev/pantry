@@ -4,10 +4,7 @@ distributable:
 
 versions:
   github: git-lfs/git-lfs
-  
-dependencies:
-  git-scm.org: '*'
-  
+
 build:
   dependencies:
     tea.xyz/gx/cc: c99
@@ -16,19 +13,23 @@ build:
     go.dev: '*'
     rtomayko.github.io/ronn: '*'
     ruby-lang.org: '*'
+    git-scm.org: '*'
   
   script:
     - make
     - make man RONN={{deps.rtomayko.github.io/ronn.prefix}}/bin/ronn
     - mkdir -p {{prefix}}/bin
-    - mv ./bin/* {{prefix}}/bin/
+    - install ./bin/git-lfs "{{prefix}}/bin/git-lfs"
     - mkdir -p {{prefix}}/man
     - mv ./man/* {{prefix}}/man/
+    # Update your git config to finish installation:
+    #   Update global git config
+    #     $ git lfs install
+    #   Update system git config
+    #     $ git lfs install --system
 
   env:
     VERSION: "{{version}}"
-    ARGS:
-      - --prefix="{{prefix}}"
 
 provides:
   - bin/git-lfs
@@ -36,7 +37,7 @@ provides:
 test:
   working-directory: test
   script:
+    - git lfs install --force
     - git init
-    - git lfs install
     - git lfs track test
     - grep 'test filter=lfs' .gitattributes
