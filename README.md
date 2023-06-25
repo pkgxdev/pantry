@@ -64,6 +64,13 @@ $ gh pr create
 While inside a pantry dev-env you can run commands from any built packages
 provided you specified their `provides:` key.
 
+## GitHub Codespaces
+
+`pantry` also works in GitHub Codespaces. The default configuration
+provides with the repository will install/update `tea` at the time
+you attach, so you should be able to quickly work on or test packages
+in a remote linux environment (or work from a device with just a web browser).
+
 ## Providers
 
 If the package you want to add to tea can be executed simply eg. you want
