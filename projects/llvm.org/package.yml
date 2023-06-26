@@ -59,7 +59,13 @@ build:
       - -DCLANG_DEFAULT_CXX_STDLIB=libstdc++
       - -DCLANG_DEFAULT_RTLIB=libgcc
       - -DCOMPILER_RT_INCLUDE_TESTS=OFF
-      - -DCOMPILER_RT_USE_LIBCXX=OFF"
+      - -DCOMPILER_RT_USE_LIBCXX=OFF
+      # otherwise compiler-rt fails to build
+      - -DLLVM_TARGET_TRIPLE=x86_64-unknown-linux-gnu
+    linux/aarch64:
+      ARGS:
+      # otherwise compiler-rt fails to build
+      - -DLLVM_TARGET_TRIPLE=aarch64-unknown-linux-gnu
 test:
   fixture: |
     #include <stdio.h>
