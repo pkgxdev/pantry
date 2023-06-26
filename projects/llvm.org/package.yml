@@ -47,6 +47,9 @@ build:
       #NOTE only wanted on linux because on macOS we actually *need* the Apple
       # provided `ld` or things *also* break 😆
       - -DCLANG_DEFAULT_LINKER=lld
+      # Needed with the CMAKE_C_COMPILER_TARGET to compile compiler-rt on linux
+      # https://reviews.llvm.org/D147598
+      - -DCOMPILER_RT_DEFAULT_TARGET_ONLY=ON
     darwin:
       ARGS:
       #FIXME shouldn’t *have to* require the command line tools package
@@ -61,11 +64,14 @@ build:
       - -DCOMPILER_RT_INCLUDE_TESTS=OFF
       - -DCOMPILER_RT_USE_LIBCXX=OFF
       # otherwise compiler-rt fails to build
-      - -DLLVM_TARGET_TRIPLE=x86_64-unknown-linux-gnu
+      # https://reviews.llvm.org/D147598
+      - -DCMAKE_C_COMPILER_TARGET="x86_64-unknown-linux-gnu"
     linux/aarch64:
       ARGS:
       # otherwise compiler-rt fails to build
-      - -DLLVM_TARGET_TRIPLE=aarch64-unknown-linux-gnu
+      # https://reviews.llvm.org/D147598
+      - -DCMAKE_C_COMPILER_TARGET="aarch64-unknown-linux-gnu"
+
 test:
   fixture: |
     #include <stdio.h>
