@@ -37,6 +37,7 @@ build:
       - -DCMAKE_INSTALL_PREFIX="{{ prefix }}"
       - -DCMAKE_BUILD_TYPE=Release
       - -DLLVM_ENABLE_PROJECTS='lld;clang'
+      - -DLLVM_ENABLE_RUNTIMES='compiler-rt'
       - -DLLVM_INCLUDE_DOCS=OFF
       - -DLLVM_INCLUDE_TESTS=OFF
     linux:
@@ -66,7 +67,11 @@ test:
       printf("Hello World!\n");
       return 0;
     }
-  script: |
-    mv $FIXTURE $FIXTURE.c
-    clang $FIXTURE.c
-    ./a.out
+  script:
+    - mv $FIXTURE $FIXTURE.c
+    - clang $ARGS $FIXTURE.c
+    - ./a.out
+  env:
+    ARGS:
+      - -fsanitize=address,undefined
+      - -Wl,-rpath,$TEA_PREFIX
