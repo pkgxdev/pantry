@@ -1,0 +1,33 @@
+distributable:
+  url: https://gstreamer.freedesktop.org/src/orc/orc-{{version}}.tar.xz
+  strip-components: 1
+
+versions:
+  url: https://gstreamer.freedesktop.org/src/orc/
+  match: /orc-\d+\.\d+\.\d+\.tar\.xz/ 
+  strip:
+    - /^orc-/
+    - /\.tar\.xz$/
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    mesonbuild.com: '*'
+    ninja-build.org: '*'
+  working-directory: build
+  script:
+    - meson $ARGS -Dgtk_doc=disabled ..
+    - ninja -v
+    - ninja install -v
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --libdir="{{prefix}}/lib"
+      - --buildtype=release
+      - --wrap-mode=nofallback
+
+provides:
+  - bin/orcc
+  - bin/orc-bugreport
+
+test: orcc --version | grep {{version}}
