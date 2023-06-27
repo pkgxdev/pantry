@@ -54,4 +54,11 @@ provides:
   - bin/orterun
   - bin/orte-server
 
-test: mpirun --version | grep {{version}}
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script:
+    - pkg-config --modversion ompi | grep {{version}}
+    - mpicc hello.c -o hello
+    - ./hello
+    - mpirun ./hello
