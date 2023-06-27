@@ -1,0 +1,22 @@
+distributable:
+  url: https://github.com/jenv/jenv/archive/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: jenv/jenv
+
+build:
+  script:
+    - mkdir -p {{prefix}}/bin
+    - mv ./bin/* {{prefix}}/bin/
+    - mkdir -p {{prefix}}/libexec
+    - mv ./libexec/* {{prefix}}/libexec/
+    - mkdir -p {{prefix}}/fish
+    - mv ./fish/* {{prefix}}/fish/
+    - mkdir -p {{prefix}}/available-plugins
+    - mv ./available-plugins/* {{prefix}}/available-plugins/
+
+provides:
+  - bin/jenv
+
+test: jenv --version | grep {{version}}
