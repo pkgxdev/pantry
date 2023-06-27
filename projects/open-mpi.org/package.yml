@@ -1,0 +1,57 @@
+distributable:
+  url: https://download.open-mpi.org/release/open-mpi/v{{version.marketing}}/openmpi-{{version}}.tar.bz2
+  strip-components: 1
+
+versions:
+  github: open-mpi/ompi/tags
+
+dependencies:
+  gnu.org/gcc: '*'
+  open-mpi.org/hwloc: '*'
+  libevent.org: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/make: '*'
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} all
+    - make --jobs {{ hw.concurrency }} check
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    linux:
+      CXX: g++
+      CC: gcc
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --disable-silent-rules
+      - --enable-ipv6
+      - --enable-mca-no-build=reachable-netlink
+      - --sysconfdir={{prefix}}/etc
+      - --with-libevent={{deps.libevent.org.prefix}}
+      - --with-sge
+      - --disable-debug
+      - --disable-dependency-tracking
+
+provides:
+  - bin/mpic++
+  - bin/mpiCC
+  - bin/mpicc
+  - bin/mpicxx
+  - bin/mpiexec
+  - bin/mpif77
+  - bin/mpif90
+  - bin/mpifort
+  - bin/mpirun
+  - bin/ompi-clean
+  - bin/ompi_info
+  - bin/ompi-server
+  - bin/opal_wrapper
+  - bin/ortecc
+  - bin/orte-clean
+  - bin/orted
+  - bin/orte-info
+  - bin/orterun
+  - bin/orte-server
+
+test: mpirun --version | grep {{version}}
