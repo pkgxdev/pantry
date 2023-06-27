@@ -13,6 +13,10 @@ dependencies:
 build:
   dependencies:
     tea.xyz/gx/make: '*'
+
+    darwin:
+      gnu.org/autoconf: '*'
+      
   script:
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} all
@@ -22,6 +26,8 @@ build:
     linux:
       CXX: g++
       CC: gcc
+    darwin:
+      MACOSX_DEPLOYMENT_TARGET: "$(sw_vers -productVersion)"
     ARGS:
       - --prefix="{{prefix}}"
       - --disable-silent-rules
