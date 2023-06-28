@@ -20,19 +20,12 @@ build:
     google.com/googletest: '*'
 
   script:
-    - run: |
-        cat << EOF >> CMakeLists.txt
-        set(Boost_INCLUDE_DIR {{deps.boost.org.prefix}})
-        set(Boost_LIBRARY_DIR {{deps.boost.org.prefix}}/lib)
-        include_directories(\${Boost_INCLUDE_DIR})
-        link_directories(\${Boost_LIBRARY_DIR})
-        EOF
     - cmake -S . -B _build $ARGS
     - cmake --build _build
     - cmake --install _build
   env:
     ARGS:
-      - -DBUILD_SHARED_LIBS=ON
+      - -DBUILD_SHARED_LIBS=OFF
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
       - -DCMAKE_BUILD_TYPE=Release
       - -DCMAKE_VERBOSE_MAKEFILE=ON
