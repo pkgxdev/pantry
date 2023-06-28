@@ -13,6 +13,11 @@ dependencies:
   lua.org: '*'
   info-zip.org/unzip: '*'
 
+runtime:
+  env:
+    LUAROCKS_ROOT: "{{prefix}}"
+    LUA_ROOT: "{{deps.lua.org.prefix}}"
+
 build:
   dependencies:
     tea.xyz/gx/cc: c99
@@ -20,6 +25,8 @@ build:
   script:
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
+    - find '{{prefix}}/etc/luarocks/' -name 'config-*.lua' -exec sed -i'' -e 's|{{prefix}}|${LUAROCKS_ROOT}|g' {} +
+    - find '{{prefix}}/etc/luarocks/' -name 'config-*.lua' -exec sed -i'' -e 's|{{deps.lua.org.prefix}}|${LUA_ROOT}|g' {} +
   env:
     ARGS:
       - --prefix="{{prefix}}"
