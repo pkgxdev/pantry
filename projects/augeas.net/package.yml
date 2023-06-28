@@ -8,8 +8,7 @@ versions:
 
 dependencies:
   gnu.org/readline: '*'
-  linux:
-    gnome.org/libxml2: '*'
+  gnome.org/libxml2: '*'
 
 build:
   dependencies:
@@ -20,8 +19,12 @@ build:
     gnu.org/bison: '*'
     gnu.org/libtool: '*'
     freedesktop.org/pkg-config: '*'
+    curl.se: '*'
   
   script:
+    # Remove `#include <malloc.h>`, add `#include <libgen.h>`.
+    # Remove on next release.
+    - curl -L https://github.com/hercules-team/augeas/commit/7b26cbb74ed634d886ed842e3d5495361d8fd9b1.patch?full_index=1 | patch -p1
     - autoreconf --force --install
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
@@ -32,15 +35,10 @@ build:
       - --disable-dependency-tracking
 
 provides:
-  - bin/foo
-  # ^^ specify the binaries or tea magic won’t work
+  - bin/augmatch
+  - bin/augparse
+  - bin/augprint
+  - bin/augtool
+  - bin/fadot
 
-test:
-  dependencies:
-    foo.com: '*'  # asterisk means “any version, usually the latest”
-  script:
-    test "$(foo --version)" = {{version}}
-    # if it’s a tool check the version matches
-    # you should run the tool to check it works!
-    # if it's a library then you should *use* the library
-    # don’t forget to check other package.ymls in the pantry for examples!
+test: augtool --version 2>&1 | grep {{version}}
