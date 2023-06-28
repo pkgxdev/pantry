@@ -26,8 +26,8 @@ build:
     - autoreconf --force --install --verbose
     - ./configure $ARGS
     - make --jobs {{hw.concurrency}} install
-    - cd {{prefix}}/bin
-    - find h5cc h5c++ h5fc -type f -exec sed -i 's|prefix="{{prefix}}"|prefix="${HDF5_ROOT}"|g' {} +
+    - sed -i 's|prefix="{{prefix}}"|prefix="${HDF5_ROOT}"|g' {{prefix}}/bin/h5cc {{prefix}}/bin/h5c++ {{prefix}}/bin/h5fc
+
   env:
     HDF5_ROOT: '{{prefix}}'
     ARGS:
