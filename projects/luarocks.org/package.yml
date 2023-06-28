@@ -1,0 +1,29 @@
+distributable:
+  url: https://luarocks.org/releases/luarocks-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://luarocks.org/releases/
+  match: /luarocks-\d+\.\d+\.\d+\.tar\.gz/
+  strip:
+    - /^luarocks-/
+    - /\.tar\.gz$/
+
+dependencies:
+  lua.org: '*'
+
+build:
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --sysconfdir="{{prefix}}/etc"
+      - --rocks-tree="{{prefix}}"
+
+provides:
+  - bin/luarocks
+  - bin/luarocks-admin
+
+test: luarocks --version | grep {{version}}
