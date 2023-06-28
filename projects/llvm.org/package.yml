@@ -84,11 +84,20 @@ test:
       printf("Hello World!\n");
       return 0;
     }
+  dependencies:
+    crates.io/semverator: '*'
   script:
+    # Building compiler-rt on darwin+aarch64 fails for versions less than
+    # 14 with the below configuration. FIXME if possible, of course.
+    - run: |
+        if test "{{hw.platform}}" = "linux" || \
+           test "{{hw.arch}}" = "x86-64" || \
+           semverator satisies '>=14'; then
+             ARGS="$ARGS -fsanitize=address,undefined"
+        fi
     - mv $FIXTURE $FIXTURE.c
     - clang $ARGS $FIXTURE.c
     - ./a.out
   env:
     ARGS:
-      - -fsanitize=address,undefined
       - -Wl,-rpath,$TEA_PREFIX
