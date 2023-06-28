@@ -25,14 +25,17 @@ build:
   script:
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
-    - find '{{prefix}}/etc/luarocks/' -name 'config-*.lua' -exec sed -i'' -e 's|{{prefix}}|${LUAROCKS_ROOT}|g' {} +
-    - find '{{prefix}}/etc/luarocks/' -name 'config-*.lua' -exec sed -i'' -e 's|{{deps.lua.org.prefix}}|${LUA_ROOT}|g' {} +
+    - find '{{prefix}}/etc/luarocks/' -name 'config-*.lua' -execdir sed -i '' -e 's|{{prefix}}|${LUAROCKS_ROOT}|g' {} +
+    - find '{{prefix}}/bin/' -name 'luarocks' -execdir sed -i '' -e 's|{{prefix}}|${LUAROCKS_ROOT}|g' {} +
+    - find '{{prefix}}/bin/' -name 'luarocks-admin' -execdir sed -i '' -e 's|{{prefix}}|${LUAROCKS_ROOT}|g' {} +
+    - find '{{prefix}}/etc/luarocks/' -name 'config-*.lua' -execdir sed -i '' -e 's|{{deps.lua.org.prefix}}|${LUA_ROOT}|g' {} +
   env:
     ARGS:
       - --prefix="{{prefix}}"
       - --sysconfdir="{{prefix}}/etc"
       - --rocks-tree="{{prefix}}"
       - --force-config
+      - --disable-incdir-check
 
 provides:
   - bin/luarocks
