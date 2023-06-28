@@ -11,6 +11,10 @@ dependencies:
   linux:
     zlib.net: '*'
 
+runtime:
+  env:
+      HDF5_ROOT: '{{prefix}}'
+
 build:
   dependencies:
     tea.xyz/gx/make: '*'
@@ -19,14 +23,15 @@ build:
     gnu.org/libtool: '*'
 
   script:
-    - sed -i 's|${libdir}/libhdf5.settings|{{prefix}}/lib/libhdf5.settings|g' c++/src/h5c++.in fortran/src/h5fc.in bin/h5cc.in
-    - sed -i 's|settingsdir=$(libdir)|settingsdir={{prefix}}/lib|g' src/Makefile.am
     - autoreconf --force --install --verbose
     - ./configure $ARGS
     - make --jobs {{hw.concurrency}} install
+    - cd {{prefix}}/bin
+    - find h5cc h5c++ h5fc -type f -exec sed -i 's|prefix="{{prefix}}"|prefix="${HDF5_ROOT}"|g' {} +
   env:
+    HDF5_ROOT: '{{prefix}}'
     ARGS:
-      - --prefix="{{prefix}}"
+      - --prefix="$HDF5_ROOT"
       - --disable-dependency-tracking
       - --disable-silent-rules
       - --enable-build-mode=production
@@ -62,4 +67,6 @@ provides:
 
 test:
   - h5cc test.c
+  - ./a.out | grep {{version}}
+  - h5fc test.f90
   - ./a.out | grep {{version}}
