@@ -1,0 +1,23 @@
+distributable:
+  url: https://github.com/sindresorhus/macos-term-size/archive/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: sindresorhus/macos-term-size
+
+platforms:
+  - darwin
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+
+  script:
+    - cc term-size.c -o term-size
+    - mkdir -p {{prefix}}/bin
+    - install term-size {{prefix}}/bin/term-size
+
+provides:
+  - bin/term-size
+
+test: term-size | grep -o '[[:digit:]]*'
