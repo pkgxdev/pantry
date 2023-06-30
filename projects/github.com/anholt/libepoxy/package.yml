@@ -1,0 +1,31 @@
+distributable:
+  url: https://github.com/anholt/libepoxy/archive/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: anholt/libepoxy
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    mesonbuild.com: '*'
+    ninja-build.org: '*'
+    freedesktop.org/pkg-config: '*'
+    python.org: ^3.1
+    
+  working-directory: build
+  script:
+    - meson setup $ARGS ..
+    - ninja
+    - ninja install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --buildtype=release
+      - --wrap-mode=nofallback
+
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script:
+    - pkg-config --modversion epoxy | grep {{version}}
