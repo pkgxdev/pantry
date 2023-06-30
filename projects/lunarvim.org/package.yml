@@ -23,6 +23,13 @@ build:
     - ./utils/installer/install.sh -y -l
     - ./utils/installer/install_bin.sh
     - ./utils/installer/install-neovim-from-release
+
+    # {{prefix}}/share/lunarvim/lvim is a symlink to $SRCROOT
+    - run: |
+        rm lvim
+        mkdir lvim
+        cp -a "$SRCROOT"/* lvim/
+      working-directory: ${{prefix}}/share/lunarvim
     - run: |
         sed -i.bak "s_{{prefix}}_\$(cd \$(dirname \$0)/.. \&\& pwd)_g" lvim
         rm lvim.bak
