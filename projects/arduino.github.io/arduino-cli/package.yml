@@ -5,18 +5,16 @@ distributable:
 versions:
   github: arduino/arduino-cli
 
+warnings:
+ - vendored
+
 build:
   dependencies:
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
-    go.dev: '*'
-  script: |
-    ./install.sh
-    mkdir -p {{prefix}}/bin
-    mv ./bin/* {{prefix}}/bin
+    curl.se: '*'
+  working-directory: ${{prefix}}
+  script: '"$SRCROOT"/install.sh {{version}}'
 
 provides:
   - bin/arduino-cli
 
-test: |
-  arduino-cli version | grep {{version}}
+test: arduino-cli version | grep {{version}}
