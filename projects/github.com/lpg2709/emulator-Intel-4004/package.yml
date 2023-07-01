@@ -10,13 +10,13 @@ build:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
     cmake.org: '*'
-  script: |
-    mkdir build && cd build
-    cmake ..
-    make --jobs {{ hw.concurrency }}
-    mkdir -p {{prefix}}/bin
-    mv 4004-emulator {{prefix}}/bin
-    mv roms {{prefix}}
+  working-directory: build
+  script:
+    - cmake ..
+    - make --jobs {{ hw.concurrency }}
+    - mkdir -p {{prefix}}/bin
+    - mv 4004-emulator {{prefix}}/bin
+    - mv roms {{prefix}}
 
 provides:
   - bin/4004-emulator
