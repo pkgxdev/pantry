@@ -1,0 +1,26 @@
+distributable:
+  url: https://github.com/lpg2709/emulator-Intel-4004/archive/559429f9f6f9ee46f0da1658e91a3d56c48632a0.tar.gz
+  strip-components: 1
+
+versions:
+  - 2023.07.01
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    cmake.org: '*'
+  working-directory: build
+  script:
+    - cmake ..
+    - make --jobs {{ hw.concurrency }}
+    - mkdir -p {{prefix}}/bin
+    - mv 4004-emulator {{prefix}}/bin
+    - mv roms {{prefix}}
+
+provides:
+  - bin/4004-emulator
+
+test:
+  script:
+    test "$(4004-emulator --version)" = "4004-emulator 0.0.1/beta"
