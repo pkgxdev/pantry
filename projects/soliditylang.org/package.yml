@@ -20,6 +20,9 @@ build:
   dependencies:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
+    linux/aarch64:
+      # Prevents ld.lld: error: relocation R_AARCH64_ABS64 cannot be used against local symbol; recompile with -fPIC
+      llvm.org: '<16'
     cmake.org: 3
     freedesktop.org/pkg-config: ^0.29
     gnu.org/patch: '*'
@@ -45,10 +48,5 @@ build:
     - -DCMAKE_INSTALL_PREFIX={{prefix}}
     - -DPEDANTIC=OFF  # otherwise fails due to deprecations in boost ^1.81
     - -DSTRICT_Z3_VERSION=OFF # otherwise complains about Z3 version in cmake
-    linux/aarch64:
-      ARGS:
-        - -DCMAKE_C_FLAGS=-fPIC
-        - -DCMAKE_CXX_FLAGS=-fPIC
-        - -DCMAKE_EXE_LINKER_FLAGS=-pie
 
 test: solc --bin fixture.sol
