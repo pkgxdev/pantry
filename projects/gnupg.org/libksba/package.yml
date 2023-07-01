@@ -3,10 +3,11 @@ distributable:
   strip-components: 1
 
 versions:
-  - 1.6.1
-
-provides:
-  - bin/ksba-config
+  url: https://gnupg.org/ftp/gcrypt/libksba/
+  match: /libksba-(\d+\.\d+(\.\d+)?)\.tar\.bz2/
+  strip:
+    - /libksba-/
+    - /.tar.bz2/
 
 build:
   script: |
@@ -20,4 +21,6 @@ build:
     gnupg.org/libgpg-error: 1
 
 test:
-  script: test "$(ksba-config --version)" = "{{version}}"
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script: test "$(pkg-config --modversion ksba)" = "{{version}}"

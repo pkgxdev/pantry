@@ -1,0 +1,44 @@
+distributable:
+  url: https://github.com/thom311/libnl/releases/download/libnl{{version.major}}_{{version.minor}}_{{version.patch}}/libnl-{{version}}.tar.gz
+  strip-components: 1
+
+display-name: libnl
+
+versions:
+  github: thom311/libnl
+  strip: /^libnl/
+
+platforms:
+ - linux
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/bison: '*'
+    github.com/westes/flex: '*'
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+
+    - |
+      cd "{{prefix}}/include"
+      mv libnl3/* .
+      rmdir libnl3
+      ln -s . linl3
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --disable-silent-rules
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script:
+    - gcc ./fixture.c -lnl-3 -lnl-route-3 -o test
+    - (./test 2>&1 || true) | grep "$OUT"
+
+    - nl-route-list | grep "$OUT2"
+  env:
+    OUT: "Unable to delete link: Operation not permitted"
+    OUT2: inet 127.0.0.1

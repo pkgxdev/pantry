@@ -3,13 +3,13 @@ distributable:
   strip-components: 1
 
 versions:
-  github: nodejs/node/tags
+  github: nodejs/node/releases/tags
 
 companions:
   npmjs.com: '*'
 
 dependencies:
-  unicode.org: '>=71'
+  unicode.org: ^71
   openssl.org: 1.1
   zlib.net: 1
 
@@ -27,9 +27,11 @@ build:
     python.org: '>=3.7 <3.11'
     freedesktop.org/pkg-config: ^0.29
   script: |
-    if test "{{ hw.platform }}" = "darwin"; then
-      # nodejs wants `dtrace` in the path.
-      export PATH="$PATH:/usr/sbin"
+    # This is hacky, but it works.
+    # Knowing the precise versions to test is difficult, since
+    # nodejs develops multiple majors in sync.
+    if ./configure --help | grep -- --without-corepack; then
+      ARGS="$ARGS --without-corepack"
     fi
 
     ./configure $ARGS
@@ -39,7 +41,6 @@ build:
     - --without-npm
     - --prefix={{ prefix }}
     # like, maybe we should include this?
-    - --without-corepack
     - --with-intl=system-icu
     - --shared-openssl
     - --shared-zlib

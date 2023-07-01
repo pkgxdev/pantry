@@ -1,0 +1,26 @@
+distributable:
+  url: https://github.com/libusb/libusb/releases/download/v{{ version }}/libusb-{{ version }}.tar.bz2
+  strip-components: 1
+
+versions:
+  github: libusb/libusb
+  strip: '/^v/'
+
+build:
+  dependencies:
+    gnu.org/autoconf: '*'
+    gnu.org/libtool: '*'
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    ./configure $ARGS
+    make install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script:
+    pkg-config --modversion libusb-1.0 | grep {{ version }}

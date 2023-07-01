@@ -1,0 +1,67 @@
+#!/bin/bash
+
+set -eo pipefail
+
+export install_dir="$(cd "$(dirname "$0")"/.. && pwd)"
+export clone_dir=lib
+
+cd "$install_dir"/"$clone_dir"
+
+source ./webui-macos-env.sh
+source ./webui-user.sh
+
+XDG="${XDG_DATA_HOME:-$HOME/.local/share}"
+
+mkdir -p "$XDG"/models/stable-diffusion "$XDG"/stable-diffusion-webui "$HOME/Documents/Stable Diffusion WEBUI"
+
+# store models somewhere shared
+if ! test -d "$install_dir"/lib/models/Stable-diffusion; then
+  ln -sf "$XDG"/models/stable-diffusion "$install_dir"/lib/models/Stable-diffusion
+fi
+
+# make extensions easily available and shared
+if ! test -d "$install_dir"/lib/extensions; then
+  ln -sf "$XDG"/stable-diffusion-webui "$install_dir"/lib/extensions
+fi
+
+# output files somewhere public
+if ! test -d "$install_dir"/lib/outputs; then
+  ln -sf "$HOME/Documents/Stable Diffusion WEBUI" "$install_dir"/lib/outputs
+fi
+
+CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}"/stable-diffusion-webui/config.json
+
+if ! test -f "$CONFIG"; then
+  mkdir -p "$(dirname "$CONFIG")"
+  cat << EoJSON > "$CONFIG"
+{
+  "img2img/Output directory/visible": true,
+  "img2img/Output directory/value": ""
+}
+EoJSON
+fi
+
+#NOTE sourced from brewkit python-venv.sh results
+export VIRTUAL_ENV="$PWD"/venv
+
+TEA_PYTHON="$(which python)"
+TEA_PYHOME="$(dirname "$TEA_PYTHON")"
+
+cat <<EOSH > "$VIRTUAL_ENV"/pyvenv.cfg
+home = $TEA_PYHOME
+include-system-site-packages = false
+executable = $TEA_PYTHON
+EOSH
+
+find "$VIRTUAL_ENV"/bin -maxdepth 1 -type f | xargs \
+  sed -i.bak "1s|.*|#!$VIRTUAL_ENV/bin/python|"
+
+rm "$VIRTUAL_ENV"/bin/*.bak
+
+ln -sf "$TEA_PYTHON" "$VIRTUAL_ENV"/bin/python
+#NOTE.END
+
+# this is all `activate` in the venv does
+export PATH="$VIRTUAL_ENV/bin":$PATH
+
+exec python ./launch.py "$@" --ui-config-file="$CONFIG"

@@ -1,0 +1,46 @@
+distributable:
+  url: https://github.com/strukturag/libde265/releases/download/v{{ version }}/libde265-{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: strukturag/libde265
+
+# FIXME: linux/aarch64 build fails; suspect config scripts out of date
+platforms:
+  - darwin
+  - linux/x86-64
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/autoconf: '*'
+    gnu.org/automake: '*'
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --disable-dependency-tracking
+      - --disable-silent-rules
+      - --disable-sherlock265
+      - --disable-dec265
+    darwin/aarch64:
+      ARGS:
+        - --build="aarch64-apple-darwin$(uname -r)"
+
+provides:
+  - bin/acceleration_speed
+  - bin/bjoentegaard
+  - bin/block-rate-estim
+  - bin/gen-enc-table
+  - bin/rd-curves
+  - bin/tests
+  - bin/yuv-distortion
+
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script:
+    pkg-config --modversion libde265 | grep {{ version }}

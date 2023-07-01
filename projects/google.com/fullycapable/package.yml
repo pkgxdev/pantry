@@ -3,19 +3,19 @@ distributable:
   strip-components: 1
 
 versions:
-  - 2.66
+  url: https://mirrors.edge.kernel.org/pub/linux/libs/security/linux-privs/libcap2
+  match: /libcap-\d+\.\d+\.tar\.xz/
+  strip:
+    - /libcap-/
+    - /\.tar\.xz/
+
+platforms: linux
 
 build:
   dependencies:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
-  script: |
-    if test "{{ hw.platform }}" = "darwin"; then
-      mkdir -p "{{ prefix }}"
-      touch "{{ prefix }}/linux-only"
-      exit 0
-    fi
-    make $ARGS --jobs {{ hw.concurrency }} install
+  script: make $ARGS --jobs {{ hw.concurrency }} install
   env:
     ARGS:
       - prefix="{{prefix}}"
@@ -23,14 +23,9 @@ build:
       - RAISE_SETFCAP=no
 
 provides:
-  darwin: []
-  linux:
-    - sbin/capsh
-    - sbin/getcap
-    - sbin/getpcaps
-    - sbin/setcap
+  - sbin/capsh
+  - sbin/getcap
+  - sbin/getpcaps
+  - sbin/setcap
 
-test: |
-  if test "{{ hw.platform }}" = "linux"; then
-    getcap "{{ prefix }}/sbin/capsh"
-  fi
+test: getcap "{{ prefix }}/sbin/capsh"

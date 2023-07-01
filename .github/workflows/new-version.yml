@@ -1,5 +1,6 @@
 name: new-version
 run-name: building ${{ inputs.projects }}
+
 on:
   workflow_dispatch:
     inputs:
@@ -14,21 +15,56 @@ jobs:
       fail-fast: false
       matrix:
         platform:
-        - darwin+x86-64
-        - linux+x86-64
-        - darwin+aarch64
-        - linux+aarch64
+          - darwin+x86-64
+          - linux+x86-64
+          - darwin+aarch64
+          - linux+aarch64
     uses: ./.github/workflows/build.yml
     with:
-      new-version: true
       projects: ${{ inputs.projects }}
       platform: ${{ matrix.platform }}
     secrets: inherit
 
-  index_data:
+  bottle:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - darwin+x86-64
+          - linux+x86-64
+          - darwin+aarch64
+          - linux+aarch64
     needs: [build]
-    if: success()
-    uses: ./.github/workflows/index-data.yml
+    uses: ./.github/workflows/bottle.yml
     with:
+      new-version: true
+      platform: ${{ matrix.platform }}
       projects: ${{ inputs.projects }}
     secrets: inherit
+
+  request-qa:
+    needs: [bottle]
+    if: ${{ needs.bottle.outputs.qa-required != '[]' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        project: ${{ fromJson(needs.bottle.outputs.qa-required) }}
+    steps:
+      - uses: teaxyz/pantry/.github/actions/request-qa@main
+        with:
+          project: ${{ matrix.project }}
+          slack-webhook: ${{ secrets.SLACK_QA_WEBHOOK }}
+
+  complain:
+    needs: [build, bottle]
+    if: failure()
+    permissions:
+      issues: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: teaxyz/pantry/.github/actions/complain@main
+        with:
+          projects: ${{ inputs.projects }}
+          platform: ${{ inputs.platform }}
+          slack-webhook: ${{ secrets.SLACK_WEBHOOK }}
+          slack-channel: ${{ secrets.SLACK_CHANNEL }}

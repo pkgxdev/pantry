@@ -1,0 +1,54 @@
+distributable:
+  url: https://github.com/strukturag/libheif/releases/download/v{{version}}/libheif-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: strukturag/libheif
+
+# https://github.com/teaxyz/pantry/blob/7837a368509a7a838e53cc0759ec41a93ed14414/projects/github.com/strukturag/libde265/package.yml#L8
+platforms:
+  - darwin
+  - linux/x86-64
+
+dependencies:
+  aomedia.googlesource.com/aom: '*'
+  libjpeg-turbo.org: '*'
+  github.com/strukturag/libde265: '*'
+  libpng.org: '*'
+  freedesktop.org/shared-mime-info: '*'
+  videolan.org/x265: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    cmake.org: '*'
+    freedesktop.org/pkg-config: '*'
+  script: |
+    cmake -S . -B build $ARGS
+    cmake --build build
+    cmake --install build
+    mkdir -p {{prefix}}/pkgshare
+    mv ./examples/example.heic {{prefix}}/pkgshare/
+    mv ./examples/example.avif {{prefix}}/pkgshare/
+    mkdir -p {{prefix}}/share/mime/packages
+    update-mime-database {{prefix}}/share/mime
+  env:
+    ARGS:
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_VERBOSE_MAKEFILE=ON
+      - -Wno-dev
+      - -DBUILD_TESTING=OFF
+
+provides:
+  - bin/heif-convert
+  - bin/heif-enc
+  - bin/heif-info
+  - bin/heif-thumbnailer
+
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script:
+    pkg-config --modversion libheif | grep {{version}}

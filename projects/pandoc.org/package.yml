@@ -1,6 +1,7 @@
 distributable:
-  #FIXME
-  url: https://hackage.haskell.org/package/pandoc-2.18/pandoc-2.18.tar.gz
+  #FIXME: pandoc and pandoc-cli have been split :/
+  # url: https://hackage.haskell.org/package/pandoc-cli{{ version }}/pandoc-cli-{{ version }}.tar.gz
+  url: https://github.com/jgm/pandoc/archive/refs/tags/{{ version }}.tar.gz
   strip-components: 1
 
 #FIXME pandoc has 4 digit versions : /
@@ -22,7 +23,14 @@ build:
     tea.xyz/gx/cc: c99
     haskell.org: ^9
     haskell.org/cabal: ^3
+    crates.io/semverator: ^0
+  working-directory: pandoc-cli
   script: |-
+    if semverator satisfies '^2' '{{ version }}'; then
+      # pandoc 2.x - no pandoc-cli subdirectory
+      cd ..
+    fi
+
     cabal update
     mkdir -p {{prefix}}/bin
     cabal install $ARGS
@@ -31,6 +39,8 @@ build:
       - --install-method=copy
       - --installdir={{prefix}}/bin
       - --jobs={{hw.concurrency}}
+      # https://pandoc.org/installing.html#creating-a-relocatable-binary
+      - -fembed_data_files
     linux:
       ARGS:
         # else segfaults

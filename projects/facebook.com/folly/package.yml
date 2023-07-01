@@ -1,0 +1,76 @@
+distributable:
+   url: https://github.com/facebook/folly/releases/download/{{version.tag}}/folly-{{version.tag}}.tar.gz
+   strip-components: 0
+
+versions:
+  github: facebook/folly
+
+dependencies:
+  boost.org: '*'
+  gflags.github.io: '*'
+  google.com/glog: '*'
+  libevent.org: '*'
+  lz4.org: 1
+  openssl.org: ^1.1
+  tukaani.org/xz: 5
+  facebook.com/zstd: 1
+  gnu.org/coreutils: 9
+  google.github.io/snappy: '*'
+  google.com/double-conversion: ^3
+  fmt.dev: ^9
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    cmake.org: ^3.0.2
+    freedesktop.org/pkg-config: ^0.29
+  working-directory:
+    /tmp/xyz.tea.folly
+    # ^^ facebook use a shitty custom regex function to remove sources that
+    # shouldn’t be compiled from the library target. They start with *all sources*
+    # our default build directory has a `+` in it which breaks facebook’s
+    # piss awful code.
+    #TODO don’t use exotic characters in our build directories
+  script: |
+    test -d xyz.tea.srcs && rm -rf xyz.tea.srcs
+    mv $SRCROOT xyz.tea.srcs
+    cmake $ARGS -S xyz.tea.srcs -B .
+    make --jobs {{hw.concurrency}} install
+
+    sed -i.bak "s:$(tea --prefix):\$\{_IMPORT_PREFIX\}/../../..:g" "{{prefix}}"/lib/cmake/folly/folly-targets.cmake
+    rm "{{prefix}}"/lib/cmake/folly/folly-targets.cmake.bak
+
+    cd {{prefix}}/lib/pkgconfig
+    sed -i.bak -e 's/-I[^ ]* *//g' ./libfolly.pc
+    rm *.bak
+  env:
+    ARGS:
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DBUILD_TESTING=OFF
+      - -DCMAKE_VERBOSE_MAKEFILE=ON
+    linux/aarch64:
+      ARGS:
+        - -DCMAKE_C_FLAGS=-fPIC
+        - -DCMAKE_CXX_FLAGS=-fPIC
+        - -DCMAKE_EXE_LINKER_FLAGS=-pie
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  fixture: |
+    #include <folly/FBVector.h>
+    int main() {
+      folly::fbvector<int> numbers({0, 1, 2, 3});
+      numbers.reserve(10);
+      for (int i = 4; i < 10; i++) {
+        numbers.push_back(i * 2);
+      }
+      assert(numbers[6] == 12);
+      return 0;
+    }
+  script: |
+    mv $FIXTURE b.cc
+    c++ -std=c++14 b.cc -lfolly -ldl -lfmt -lglog
+    ./a.out

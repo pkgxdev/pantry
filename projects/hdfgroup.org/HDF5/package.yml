@@ -1,0 +1,72 @@
+distributable:
+  url: https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-{{version.marketing}}/hdf5-{{version}}/src/hdf5-{{version}}-2.tar.bz2
+  strip-components: 2
+
+versions:
+  - 1.14.1
+
+dependencies:
+  gnu.org/gcc: '*'
+  dkrz.de/libaec: '*'
+  linux:
+    zlib.net: '*'
+
+runtime:
+  env:
+      HDF5_ROOT: '{{prefix}}'
+
+build:
+  dependencies:
+    tea.xyz/gx/make: '*'
+    gnu.org/autoconf: '*'
+    gnu.org/automake: '*'
+    gnu.org/libtool: '*'
+
+  script:
+    - autoreconf --force --install --verbose
+    - ./configure $ARGS
+    - make --jobs {{hw.concurrency}} install
+    - sed -i'' -e 's|prefix="{{prefix}}"|prefix="${HDF5_ROOT}"|g' {{prefix}}/bin/h5cc {{prefix}}/bin/h5c++ {{prefix}}/bin/h5fc
+
+  env:
+    HDF5_ROOT: '{{prefix}}'
+    ARGS:
+      - --prefix="$HDF5_ROOT"
+      - --disable-dependency-tracking
+      - --disable-silent-rules
+      - --enable-build-mode=production
+      - --enable-fortran
+      - --enable-cxx
+      - --with-szlib={{deps.dkrz.de/libaec.prefix}}
+    linux:
+      ARGS:
+        - --with-zlib={{deps.zlib.net.prefix}}
+
+provides:
+  - bin/h5c++
+  - bin/h5cc
+  - bin/h5clear
+  - bin/h5copy
+  - bin/h5debug
+  - bin/h5delete
+  - bin/h5diff
+  - bin/h5dump
+  - bin/h5fc
+  - bin/h5format_convert
+  - bin/h5import
+  - bin/h5jam
+  - bin/h5ls
+  - bin/h5mkgrp
+  - bin/h5perf_serial
+  - bin/h5redeploy
+  - bin/h5repack
+  - bin/h5repart
+  - bin/h5stat
+  - bin/h5unjam
+  - bin/h5watch
+
+test:
+  - h5cc test.c
+  - ./a.out | grep {{version}}
+  - h5fc test.f90
+  - ./a.out | grep {{version}}
