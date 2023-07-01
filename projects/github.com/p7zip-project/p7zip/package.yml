@@ -15,6 +15,13 @@ build:
       mv makefile.macosx_llvm_64bits makefile.machine
     else
       mv makefile.linux_any_cpu makefile.machine
+      sed -i.bak -e 's/-std=gnu/-fPIC -std=gnu/' \
+        C/makefile.glb \
+        CPP/7zip/CMAKE/CMakeLists.txt \
+        makefile.glb
+      rm C/makefile.glb.bak \
+        CPP/7zip/CMAKE/CMakeLists.txt.bak \
+        makefile.glb.bak
     fi
 
     make --jobs {{ hw.concurrency }} all3

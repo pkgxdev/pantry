@@ -15,7 +15,15 @@ build:
     tea.xyz/gx/make: '*'
   script: |
     ./bootstrap.sh --prefix={{ prefix }}
-    ./b2 install --prefix={{ prefix }}
+    ./b2 $ARGS
+  env:
+    ARGS:
+      - install
+      - --prefix={{ prefix }}
+    linux/x86-64:
+      ARGS:
+        - cxxflags=-fPIC
+        - linkflags=-fPIC
 
 test:
   dependencies:

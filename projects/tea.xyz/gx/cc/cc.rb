@@ -16,10 +16,23 @@ args = ARGV.map do |arg|
   arg unless arg == "-Wl,-rpath,#$tea_prefix" or arg == "-nodefaultrpaths"
 end.compact
 
+def is_tea? path
+  path = File.realpath path while File.symlink? path
+  return File.basename(path) == "tea"
+end
+
 # find next example of ourselves
 # this will either pick the Apple provided clang or the tea one
 exe_path = ENV['PATH'].split(":").filter { |path|
-  path != File.dirname(__FILE__)
+  if path == File.dirname(__FILE__)
+    false
+  elsif path == File.join($tea_prefix, ".local/bin")
+    false
+  elsif is_tea?(path)
+    false
+  else
+    true
+  end
 }.map { |path|
   "#{path}/#{exe}"
 }.reject { |path|

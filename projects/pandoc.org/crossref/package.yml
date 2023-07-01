@@ -1,10 +1,10 @@
 distributable:
-  #FIXME
-  url: https://hackage.haskell.org/package/pandoc-crossref-0.3.13.0/pandoc-crossref-0.3.13.0.tar.gz
+  url: https://hackage.haskell.org/package/pandoc-crossref-{{ version.raw }}/pandoc-crossref-{{ version.raw }}.tar.gz
   strip-components: 1
 
 versions:
-  - 0.3.13
+  github: lierdakil/pandoc-crossref
+  ignore: /[a-z]$/
 
 dependencies:
   pandoc.org: ^2.18
@@ -16,8 +16,10 @@ build:
     tea.xyz/gx/cc: c99
     haskell.org: ^9
     haskell.org/cabal: ^3
+    openssl.org: ^1.1
   script: |-
     cabal update
+    mkdir -p "{{prefix}}/bin"
     cabal install --install-method=copy --installdir={{prefix}}/bin
 
 test: true  #FIXME

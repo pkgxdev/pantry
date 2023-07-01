@@ -1,0 +1,151 @@
+distributable:
+  url: https://ftp.gnu.org/gnu/aspell/aspell-{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://ftp.gnu.org/gnu/aspell/
+  match: /aspell-\d+\.\d+(\.\d+)*.tar.gz/
+  strip:
+    - /aspell-/
+    - /.tar.gz/
+
+provides:
+  - bin/aspell
+  - bin/aspell-import
+  - bin/precat
+  - bin/preunzip
+  - bin/prezip
+  - bin/prezip-bin
+  - bin/pspell-config
+  - bin/run-with-aspell
+  - bin/word-list-compress
+
+runtime:
+  env:
+    ASPELL_CONF: "dict-dir {{ prefix }}/lib/aspell-{{ version.marketing }}; $ASPELL_CONF"
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    curl.se: '*'
+    gnu.org/patch: '*'
+    gnu.org/sed: '*'
+    sourceware.org/bzip2: '*'
+  script: |
+    # https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=180565
+    patch -p0 < props/aspell.patch
+    ./configure --prefix="{{ prefix }}"
+    make --jobs {{ hw.concurrency }} install
+
+    urls=(
+      "af/aspell-af-0.50-0"
+      "am/aspell6-am-0.03-1"
+      "ar/aspell6-ar-1.2-0"
+      "ast/aspell6-ast-0.01"
+      "az/aspell6-az-0.02-0"
+      "be/aspell5-be-0.01"
+      "bg/aspell6-bg-4.1-0"
+      "bn/aspell6-bn-0.01.1-1"
+      "br/aspell-br-0.50-2"
+      "ca/aspell6-ca-2.1.5-1"
+      "cs/aspell6-cs-20040614-1"
+      "csb/aspell6-csb-0.02-0"
+      "cy/aspell-cy-0.50-3"
+      "da/aspell6-da-1.6.36-11-0"
+      "de-alt/aspell6-de-alt-2.1-1"
+      "de/aspell6-de-20161207-7-0"
+      "el/aspell6-el-0.08-0"
+      "en/aspell6-en-2018.04.16-0"
+      "eo/aspell6-eo-2.1.20000225a-2"
+      "es/aspell6-es-1.11-2"
+      "et/aspell6-et-0.1.21-1"
+      "fa/aspell6-fa-0.11-0"
+      "fi/aspell6-fi-0.7-0"
+      "fo/aspell5-fo-0.2.16-1"
+      "fr/aspell-fr-0.50-3"
+      "fy/aspell6-fy-0.12-0"
+      "ga/aspell5-ga-4.5-0"
+      "gd/aspell5-gd-0.1.1-1"
+      "gl/aspell6-gl-0.5a-2"
+      "grc/aspell6-grc-0.02-0"
+      "gu/aspell6-gu-0.03-0"
+      "gv/aspell-gv-0.50-0"
+      "he/aspell6-he-1.0-0"
+      "hi/aspell6-hi-0.02-0"
+      "hil/aspell5-hil-0.11-0"
+      "hr/aspell-hr-0.51-0"
+      "hsb/aspell6-hsb-0.02-0"
+      "hu/aspell6-hu-0.99.4.2-0"
+      "hus/aspell6-hus-0.03-1"
+      "hy/aspell6-hy-0.10.0-0"
+      "ia/aspell-ia-0.50-1"
+      "id/aspell5-id-1.2-0"
+      "it/aspell6-it-2.2_20050523-0"
+      "kn/aspell6-kn-0.01-1"
+      "ku/aspell5-ku-0.20-1"
+      "ky/aspell6-ky-0.01-0"
+      "la/aspell6-la-20020503-0"
+      "lt/aspell6-lt-1.2.1-0"
+      "lv/aspell6-lv-0.5.5-1"
+      "mg/aspell5-mg-0.03-0"
+      "mi/aspell-mi-0.50-0"
+      "mk/aspell-mk-0.50-0"
+      "ml/aspell6-ml-0.03-1"
+      "mn/aspell6-mn-0.06-2"
+      "mr/aspell6-mr-0.10-0"
+      "ms/aspell-ms-0.50-0"
+      "mt/aspell-mt-0.50-0"
+      "nds/aspell6-nds-0.01-0"
+      "nl/aspell-nl-0.50-2"
+      "nn/aspell-nn-0.50.1-1"
+      "ny/aspell5-ny-0.01-0"
+      "or/aspell6-or-0.03-1"
+      "pa/aspell6-pa-0.01-1"
+      "pl/aspell6-pl-6.0_20061121-0"
+      "pt_BR/aspell6-pt_BR-20131030-12-0"
+      "pt_PT/aspell6-pt_PT-20190329-1-0"
+      "qu/aspell6-qu-0.02-0"
+      "ro/aspell5-ro-3.3-2"
+      "ru/aspell6-ru-0.99f7-1"
+      "rw/aspell-rw-0.50-0"
+      "sc/aspell5-sc-1.0"
+      "sk/aspell6-sk-2.01-2"
+      "sl/aspell-sl-0.50-0"
+      "sr/aspell6-sr-0.02"
+      "sv/aspell-sv-0.51-0"
+      "sw/aspell-sw-0.50-0"
+      "ta/aspell6-ta-20040424-1"
+      "te/aspell6-te-0.01-2"
+      "tet/aspell5-tet-0.1.1"
+      "tk/aspell5-tk-0.01-0"
+      "tl/aspell5-tl-0.02-1"
+      "tn/aspell5-tn-1.0.1-0"
+      "tr/aspell-tr-0.50-0"
+      "uk/aspell6-uk-1.4.0-0"
+      "uz/aspell6-uz-0.6-0"
+      "vi/aspell6-vi-0.01.1-1"
+      "wa/aspell-wa-0.50-0"
+      "yi/aspell6-yi-0.01.1-1"
+      "zu/aspell-zu-0.50-0"
+    )
+    #  "nb/aspell-nb-0.50.1-0"
+    #  "is/aspell-is-0.51.1-0"
+    # Some of the configures below need the PATH updated.
+    PATH="$PATH:{{ prefix }}/bin"
+    for url in "${urls[@]}"; do
+      curl -O "https://ftp.gnu.org/gnu/aspell/dict/$url.tar.bz2"
+      filename=$(echo "$url" | sed 's/[^\/]*\///')
+      tar -xjf $filename.tar.bz2
+      cd $filename
+      ./configure --vars \
+        ASPELL={{ prefix }}/bin/aspell \
+        PREZIP={{ prefix }}/bin/prezip
+      make install
+      cd ..
+      rm -r $filename $filename.tar.bz2
+    done
+
+test:
+  script: |
+    test "$(echo 'misspell worrd' | "aspell" list -d en_US)" = "worrd"

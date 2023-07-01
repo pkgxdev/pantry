@@ -1,0 +1,66 @@
+distributable:
+  url: https://github.com/g-truc/glm/releases/download/{{version}}/glm-{{version}}.zip
+
+versions:
+  github: g-truc/glm
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    cmake.org: ^3
+  working-directory: glm/build
+  script:
+    - cmake .. $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - run: |
+        mkdir -p {{prefix}}/include {{prefix}}/lib/pkgconfig
+        rm glm/CMakeLists.txt
+        mv glm {{prefix}}/include
+        mv cmake/glm {{prefix}}/lib/cmake
+
+        cp $SRCROOT/props/glm.pc {{prefix}}/lib/pkgconfig
+        echo 'Version: {{version}}' >> {{prefix}}/lib/pkgconfig/glm.pc
+      working-directory: ..
+  env:
+    ARGS:
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_VERBOSE_MAKEFILE=ON
+    CXXFLAGS:
+      - -std=c++17
+      # or fails to build with clang 15
+      - -Wno-error=implicit-int-conversion
+      - -Wno-error=unused-but-set-variable
+      - -Wno-error=deprecated-declarations
+    linux:
+      CXXFLAGS:
+      - -Wno-error=implicit-int-float-conversion
+    linux/x86-64:
+      CXXFLAGS:
+      - -fPIC
+
+# runtime:
+#   env:
+#     CPATH: /usr/include/c++
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  fixture: |
+    #include <glm/vec2.hpp>// glm::vec2
+    int main() {
+      std::size_t const VertexCount = 4;
+      std::size_t const PositionSizeF32 = VertexCount * sizeof(glm::vec2);
+      glm::vec2 const PositionDataF32[VertexCount] = {
+        glm::vec2(-1.0f,-1.0f),
+        glm::vec2( 1.0f,-1.0f),
+        glm::vec2( 1.0f, 1.0f),
+        glm::vec2(-1.0f, 1.0f)
+      };
+      return 0;
+    }
+  script: |
+    mv $FIXTURE b.cpp
+    c++ b.cpp
+    ./a.out

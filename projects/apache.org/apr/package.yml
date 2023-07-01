@@ -18,6 +18,17 @@ build:
     mv apr-{{version.major}}/* .
     rmdir apr-{{version.major}}
     ln -s . apr-{{version.major}}
+
+    cd ../bin
+    sed -i.bak "s_{{prefix}}_\$(cd \$(dirname \$0)/.. \&\& pwd)_g" apr-{{version.major}}-config
+    rm apr-{{version.major}}-config.bak
+
+    cd ../build-1
+    sed -i.bak \
+      -e "s_{{prefix}}_\$(subst /bin/apr-{{version.major}}-config,,\$(shell command -v apr-{{version.major}}-config))_g" \
+      -e "s_${TEA_PREFIX}_\$(subst /apache.org/apr/v{{version}}/bin/apr-{{version.major}}-config,,\$(shell command -v apr-{{version.major}}-config))_g" \
+      apr_rules.mk
+    rm apr_rules.mk.bak
   env:
     # add any environment variables here
     ARGS:

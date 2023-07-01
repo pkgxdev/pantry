@@ -1,0 +1,29 @@
+distributable:
+  url: https://github.com/saagarjha/unxip/archive/refs/tags/v{{version.raw}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: saagarjha/unxip/releases/tags
+  strip: /^v/
+
+platforms:
+  - darwin
+
+provides:
+  - bin/unxip
+
+warnings:
+  - vendored
+
+build:
+  script: |
+    curl -Lfo unxip "https://github.com/saagarjha/unxip/releases/download/v{{version.raw}}/unxip"
+    chmod +x unxip
+    mkdir -p "{{prefix}}/bin"
+    mv unxip "{{prefix}}/bin"
+
+test:
+  script:
+    # FIXME: Won't test on macos-11, which is our test runner for darwin+x86-64
+    - if test "{{ hw.platform }}+{{ hw.arch }}" = "darwin+x86-64"; then exit 0; fi
+    - unxip --help

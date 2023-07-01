@@ -3,7 +3,11 @@ distributable:
   strip-components: 1
 
 versions:
-  - 2.5.1
+  url: https://www.bytereef.org/mpdecimal/download.html
+  match: /mpdecimal-\d+\.\d+\.\d+\.tar\.gz/
+  strip:
+    - /mpdecimal-/
+    - /.tar.gz/
 
 build:
   dependencies:
@@ -11,16 +15,14 @@ build:
     tea.xyz/gx/make: '*'
   script: |
     ./configure --prefix={{ prefix }}
-    make --jobs {{hw.concurrency}} install
+    make --jobs {{hw.concurrency}}
+    make install
     rm -rf {{prefix}}/share  # docs are online
-
-    if test {{hw.platform}} = darwin; then
-      install_name_tool -change \
-        @rpath/libmpdec.3.dylib \
-        @loader_path/libmpdec.3.dylib \
-        {{prefix}}/lib/libmpdec++.dylib
-    fi
-
+  env:
+    darwin:
+      # fixes a ruby-machos error
+      LDFLAGS: -headerpad_max_install_names $LDFLAGS
+      LDXXFLAGS: -headerpad_max_install_names $LDXXFLAGS
 test:
   dependencies:
     tea.xyz/gx/cc: c99

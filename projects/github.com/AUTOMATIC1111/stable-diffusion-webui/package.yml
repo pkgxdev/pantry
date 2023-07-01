@@ -1,0 +1,92 @@
+distributable:
+  url: https://github.com/AUTOMATIC1111/stable-diffusion-webui/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: AUTOMATIC1111/stable-diffusion-webui
+
+#TODO there's inefficient duplication we can overcome
+# eg. pytorch-vision bundles its own libpng and libjpeg, which we could provide
+
+dependencies:
+  python.org: ~3.10
+  tea.xyz: ^0  # our scripts use tea/cli
+  # we clear out all the git repos before uploading but something
+  # still tries to use git. hopefully nothing is broken because we
+  # clear out all the git repos (they were 100s of MB)
+  git-scm.org: ^2
+
+#FIXME pls make this work on Linux thanks
+platforms: darwin
+
+build:
+  dependencies:
+    pip.pypa.io: '*'
+    gnu.org/wget: '*'
+    protobuf.dev: '>=21'
+    rust-lang.org: ^1  # docs say this is needed but I’m not convinced…
+  script:
+    # don’t download the models RN
+    # --exit just installs deps and exits rather than boots the web server
+    - echo 'export COMMANDLINE_ARGS="
+      --no-download-sd-model
+      --exit
+      $COMMANDLINE_ARGS"' > webui-user.sh
+
+    # or it clones HEAD and uses that
+    - mkdir -p .git
+
+    # installs python virtual-env
+    - ./webui.sh
+
+    # torchvision .whl dylibs are broken out the box :/
+    - run:
+        install_name_tool
+          -add_rpath @loader_path/../torch/lib
+          venv/lib/python3.10/site-packages/torchvision/image.so
+      if: darwin
+
+    # change CWD for remainder of our execution
+    - |
+      mkdir -p {{prefix}}
+      cd {{prefix}}
+
+    # move this installation into its prefix
+    - run: |
+        cp -a $SRCROOT lib
+        mkdir -p bin
+
+    # install our scripts and shims
+    - |
+      cp lib/props/webui-user.sh lib
+      cp lib/props/entrypoint.sh .
+      cp lib/props/stable-diffusion-webui bin
+
+    # removes the prepare_environment() step since we have already done that
+    - run: |
+        sed -i.bak \
+          -e '/if not args\.skip_prepare_environment:/{N;N;d;}' \
+          -e '/prepare_environment()/d' \
+          launch.py
+        rm launch.py.bak
+      working-directory:
+        lib
+
+    # delete our crap
+    - rm -rf lib/props lib/xyz.tea.* lib/tea.yaml
+
+    # we set this as a symlink to ~/.local/share/models in our stub scripts
+    - rm -rf lib/models/Stable-diffusion lib/extensions lib/outputs
+
+    # delete all the .git stuff to save >1GB
+    # NOTE that this would cause the prepare_environment() step to fail
+    - find . -name .git\* | xargs rm -rf
+
+provides:
+  - bin/stable-diffusion-webui
+
+entrypoint: ./entrypoint.sh
+
+test:
+  qa-required: true
+  script: stable-diffusion-webui --help

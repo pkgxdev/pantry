@@ -1,9 +1,13 @@
 distributable:
-  url: https://cytranet.dl.sourceforge.net/project/expect/Expect/{{ version }}/expect{{ version }}.tar.gz
+  url: https://cytranet.dl.sourceforge.net/project/expect/Expect/{{ version.raw }}/expect{{ version.raw }}.tar.gz
   strip-components: 1
 
 versions:
-  - 5.45.4
+  url: https://sourceforge.net/projects/expect/files/Expect/
+  match: /Expect\/\d+(\.\d+)+\//
+  strip:
+    - /Expect\//
+    - /\//
 
 dependencies:
   tcl.tk/tcl: ^8
@@ -32,8 +36,8 @@ build:
     make install
 
     cd {{prefix}}/lib
-    mv expect{{version}}/* .
-    rmdir expect{{version}}
+    mv expect{{version.raw}}/* .
+    rmdir expect{{version.raw}}
   env:
     ARGS:
       - --prefix={{ prefix }}

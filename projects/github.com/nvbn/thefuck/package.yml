@@ -1,0 +1,24 @@
+distributable:
+  url: https://github.com/nvbn/thefuck/archive/refs/tags/{{version.raw}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: nvbn/thefuck/releases/tags
+
+dependencies:
+  python.org: '>=3.11'
+  tea.xyz/gx/cc: c99
+
+build:
+  python-venv.sh {{prefix}}/bin/thefuck
+
+provides:
+  - bin/thefuck
+
+test:
+  dependencies:
+    python.org: ^3
+  script: >
+    thefuck -y ptyhon --version 2>&1 |
+      grep -E '^The Fuck {{version.marketing}} using
+        Python {{deps.python.org.version}} and'

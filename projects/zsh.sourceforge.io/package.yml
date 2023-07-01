@@ -3,8 +3,11 @@ distributable:
   strip-components: 1
 
 versions:
-  #TODO https://sourceforge.net/projects/zsh/rss?path=/zsh
-  - 5.9
+  url: https://sourceforge.net/projects/zsh/files/zsh/
+  match: /files\/zsh\/\d+\.\d+(\.\d+)?\//
+  strip:
+    - /files\/zsh\//
+    - /\//
 
 provides:
   - bin/zsh
@@ -14,19 +17,25 @@ dependencies:
   invisible-island.net/ncurses: '*'
   pcre.org: '*'
 
+runtime:
+  env:
+    FPATH: ${{prefix}}/functions:$FPATH
+    MODULE_PATH: ${{prefix}}/lib/zsh/{{version.marketing}}
+
 build:
   dependencies:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
-  script: |
-    SHARE="{{tea.prefix}}/zsh.sourceforge.io"
+  script:
+    # We need to be able to set MODULE_PATH to the correct location, so we have
+    # to break a small piece of zsh security
+    - run: |
+        sed -i.bak -e 's/^\(IPDEF8("MODULE_PATH",.*\)PM_DONTIMPORT|\(.*\)$/\1\2/' params.c
+        rm params.c.bak
+      working-directory: Src
 
-    ./configure $ARGS \
-       --enable-site-fndir="$SHARE/share/zsh/site-functions" \
-      --enable-site-scriptdir="$SHARE/share/zsh/site-scripts"
-
-    make --jobs {{ hw.concurrency }} install
-
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
   env:
     ARGS:
       - --prefix={{prefix}}
@@ -43,6 +52,7 @@ build:
       - --with-tcsetpgrp
       - DL_EXT=bundle
 
-test: |
-  test "$(zsh -c echo\ fancy-a-cuppa)" = 'fancy-a-cuppa'
-  zsh -c "printf -v hello -- '%s'"
+test:
+  - test "$(zsh -c echo\ fancy-a-cuppa)" = 'fancy-a-cuppa'
+  - zsh -c "printf -v hello -- '%s'"
+  - zsh -c "autoload -Uz compinit && compinit"
