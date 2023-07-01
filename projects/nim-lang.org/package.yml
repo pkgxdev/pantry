@@ -1,0 +1,47 @@
+distributable:
+  url: https://nim-lang.org/download/nim-{{ version }}.tar.xz
+  strip-components: 1
+
+
+# FIXME: test more versions
+versions:
+  - v1.6.14
+
+provides:
+  - bin/nim
+  - bin/nim_dbg
+  - bin/testament
+  - bin/nimsuggest
+  - bin/nimgrep
+  - bin/nim-gdb
+  - bin/atlas
+  - bin/nimpretty
+  - bin/nimble
+
+
+dependencies:
+  llvm.org: '*'
+  pcre.org: '*'
+  openssl.org: '*'
+
+build:
+  dependencies:
+    llvm.org: '*'
+    pcre.org: '*'
+    openssl.org: '*'
+  script: |-
+    sh build.sh
+    bin/nim c koch
+    ./koch boot -d:release
+    ./koch tools
+    ./install.sh {{ prefix }}
+    cp -r {{ prefix }}/nim/* {{ prefix }}
+    rm -rf {{ prefix }}/nim
+    for fn in atlas nim nim-gdb nim_dbg nimble nimgrep nimpretty nimsuggest testament; do cp ./bin/$fn {{ prefix }}/bin/; done
+
+test:
+  script: |
+    mv $FIXTURE hello.nim
+    nim r hello.nim
+  fixture: |
+    echo "Hello World"
