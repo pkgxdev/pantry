@@ -1,0 +1,62 @@
+distributable:
+  url: https://cpan.metacpan.org/authors/id/E/EX/EXIFTOOL/Image-ExifTool-{{version.raw}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://cpan.metacpan.org/authors/id/E/EX/EXIFTOOL
+  match: /Image-ExifTool-\d+\.\d+\.tar.gz
+  strip:
+    - /^Image-ExifTool-/
+    - /.tar.gz
+
+dependencies:
+  perl.org: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/make: '*'
+    perl.org: '*'
+  script: |
+    # Enable large file support
+    # https://exiftool.org/forum/index.php?topic=3916.msg18182#msg18182
+    sed -i.bak -e "s/LargeFileSupport => undef/LargeFileSupport => 1/" lib/Image/ExifTool.pm
+    rm lib/Image/ExifTool.pm.bak
+
+    # replace the hard-coded path to the lib directory
+    sed -i.bak -e 's|unshift @INC, $incDir;|unshift @INC, "$FindBin::Bin/../libexec/lib";|' exiftool
+    rm exiftool.bak
+
+    sed -i.bak '/^use strict;/i\
+    use FindBin;
+    ' exiftool
+    rm exiftool.bak
+
+    perl Makefile.PL
+    make all
+
+    mkdir -p {{prefix}}/libexec
+    mv lib {{prefix}}/libexec/
+
+    mkdir -p {{prefix}}/bin
+    mv exiftool {{prefix}}/bin/
+    fix-shebangs.ts {{prefix}}/bin/*
+
+    mkdir -p {{prefix}}/share/doc
+    mv html/* {{prefix}}/share/doc/
+
+    if [ -f blib/man1/exiftool.1 ]; then
+      mkdir -p {{prefix}}/share/man/man1
+      mv blib/man1/exiftool.1 {{prefix}}/share/man/man1/
+    fi
+
+    if [ -f blib/man3/File::RandomAccess.3 ]; then
+      mkdir -p {{prefix}}/share/man/man3
+      mv blib/man3/* {{prefix}}/share/man/man3/
+    fi
+
+provides:
+  - bin/exiftool
+
+test:
+  script: |
+    exiftool 'test.jpg' | grep 'MIME Type                       : image/jpeg'

@@ -1,0 +1,64 @@
+distributable:
+  url: https://dlcdn.apache.org/thrift/{{version}}/thrift-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: apache/thrift
+
+dependencies:
+  openssl.org: '1.1'
+  zlib.net: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/automake: '*'
+    gnu.org/autoconf: '*'
+    gnu.org/libtool: '*'
+    freedesktop.org/pkg-config: '*'
+    gnu.org/bison: '*'
+    boost.org: '*'
+
+  script: |
+    ./bootstrap.sh
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --disable-debug
+      - --disable-tests
+      - --prefix={{prefix}}
+      - --libdir={{prefix}}/lib
+      - --with-openssl={{deps.openssl.org.prefix}}
+      - --with-boost={{deps.boost.org.prefix}}
+      - --without-java
+      - --without-kotlin
+      - --without-python
+      - --without-py3
+      - --without-ruby
+      - --without-haxe
+      - --without-netstd
+      - --without-perl
+      - --without-php
+      - --without-php_extension
+      - --without-dart
+      - --without-erlang
+      - --without-go
+      - --without-d
+      - --without-nodejs
+      - --without-nodets
+      - --without-lua
+      - --without-rs
+      - --without-swift
+    PY_PREFIX: "{{prefix}}"
+    PHP_PREFIX: "{{prefix}}"
+
+provides:
+  - bin/thrift
+
+test:
+  script:
+    thrift --version | grep {{version}}

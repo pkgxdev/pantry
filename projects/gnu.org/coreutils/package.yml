@@ -3,7 +3,11 @@ distributable:
   strip-components: 1
 
 versions:
-  - 9.1
+  url: https://ftp.gnu.org/gnu/coreutils/
+  match: /coreutils-(\d+\.\d+(\.\d+)?)\.tar\.gz/
+  strip:
+    - /coreutils-/
+    - /.tar.gz/
 
 provides:
 - bin/[
@@ -121,6 +125,4 @@ build:
     ./configure --prefix={{ prefix }}
     make --jobs {{ hw.concurrency }} install
 
-test:
-  script: |
-    test "$(ls -1 | wc -l)" -eq 0
+test: test "$(ls -1)" = "xyz.tea.test.sh"

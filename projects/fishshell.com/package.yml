@@ -3,7 +3,7 @@ distributable:
   strip-components: 1
 
 versions:
-  github: fish-shell/fish-shell/tags
+  github: fish-shell/fish-shell/releases/tags
 
 dependencies:
   gnu.org/gettext: '*'
@@ -15,34 +15,36 @@ build:
     tea.xyz/gx/make: '*'
     cmake.org: '>=3.5'
     freedesktop.org/pkg-config: '*'
-    git-scm.org: '*'
-  script: |
+    gnu.org/patch: '*'
+    git-scm.org: ^2 # needed for fish's pcre
+  script:
     # By default, fish's fish_command_not_found handler will redirect to stderr,
     # return an exit code of 127. Always. This patch fixes it. Hopefully, it will
     # be merged upstream soon. https://github.com/fish-shell/fish-shell/pull/9517
+    - patch -p1 <props/command_not_found_handler.diff
 
-    git apply props/command_not_found_handler.diff
+    - echo {{version}} >version
 
-    echo {{version}} >version
+    - run: |
+        cmake .. $ARGS
+        make install
+      working-directory: build
 
-    mkdir build
-    cd build
-
-    cmake .. $ARGS
-    make install
-
-    cd {{prefix}}/share/fish
-    sed -i.bak -e "s| $TEA_PREFIX/| (tea --prefix)/|g" __fish_build_paths.fish
-    rm __fish_build_paths.fish.bak
+    - run: |
+        sed -i.bak -e "s| $TEA_PREFIX/| \$TEA_PREFIX/|g" __fish_build_paths.fish
+        rm __fish_build_paths.fish.bak
+      working-directory: ${{prefix}}/share/fish
   env:
     ARGS:
       - -DCMAKE_BUILD_TYPE=Release
       - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
-      - -DCURSES_INCLUDE_PATH="{{deps.invisible-island.net/ncurses.prefix}}/include/ncursesw"
 
 test:
-  script:
-    fish $FIXTURE | grep "variable1variable2variable3variable4variable5variable6variable7variable8variable9variable10go version go"
+  dependencies:
+    tea.xyz: '*'
+  script: |
+    fish $FIXTURE
+    fish $FIXTURE | grep "variable1variable2variable3variable4variable5variable6variable7variable8variable9variable10semverator "
   fixture: |
     #!/usr/bin/env fish
 
@@ -52,9 +54,19 @@ test:
     end
 
     begin
-      set -lx SHELL fish
-      tea --magic | source
-      go version
+      if which semverator
+        exit 2
+      end
+
+      tea --magic=fish | source
+      semverator --version
+
+      #FIXME https://github.com/teaxyz/pantry/issues/861
+      # semverator --version > semverator.out
+
+      # if ! grep semverator semverator.out
+      #   exit 3
+      # end
     end
 
 provides:

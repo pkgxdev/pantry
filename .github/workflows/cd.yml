@@ -10,8 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       has-artifacts: ${{ steps.has-artifacts.outputs.has-artifacts }}
+      platforms: ${{ steps.has-artifacts.outputs.platforms }}
     steps:
       - uses: actions/checkout@v3
+      # ^^ NOTE probably no longer required but I don’t dare try to remove it
 
       - uses: teaxyz/brewkit/actions/setup-brewkit@v0
 
@@ -29,11 +31,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform:
-        - darwin+x86-64
-        - linux+x86-64
-        - darwin+aarch64
-        - linux+aarch64
+        platform: ${{ fromJson(needs.cd.outputs.platforms) }}
     needs: [cd]
     if: ${{ needs.cd.outputs.has-artifacts == 'true' }}
     uses: ./.github/workflows/bottle.yml

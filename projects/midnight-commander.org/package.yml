@@ -23,12 +23,12 @@ runtime:
 
 build:
   dependencies:
-    tea.xyz/gx/cc: '*'
+    tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
     gnu.org/autoconf: '>=2.64'
     gnu.org/automake: '>=1.12'
     gnu.org/libtool: '*'
-    freedesktop.org/pkg-config: '^0.29'
+    freedesktop.org/pkg-config: ~0.29
   script: |
     ./configure $ARGS
     make -j {{hw.concurrency}}
@@ -42,15 +42,13 @@ build:
       rm $x.bak
     done
 
-    sed -i.bak 's|{{tea.prefix}}|%p/../|g' etc/mc/mc.ext
-    rm etc/mc/mc.ext.bak
+    sed -i.bak 's|{{tea.prefix}}|%p/../|g' etc/mc/mc.ext*
+    rm etc/mc/mc.ext*.bak
 
   env:
     ARGS:
       - --prefix={{prefix}}
       - --with-screen=ncurses
-    # Needed for the compiler to `#include <term.h>`
-    CPATH: $CPATH:{{deps.invisible-island.net/ncurses.prefix}}/include/ncursesw
 
 # FIXME: hard to test interactive tools
 test:

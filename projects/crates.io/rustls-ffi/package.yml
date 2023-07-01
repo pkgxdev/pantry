@@ -19,7 +19,7 @@ build:
 test:
   dependencies:
     tea.xyz/gx/cc: c99
-    openssl.org: '*'  # needed for SSL_CERT_FILE
+    curl.se: '*'
   env:
     ARGS:
       - -lrustls
@@ -33,6 +33,13 @@ test:
         - -Wl,-dead_strip
         - -framework Security
         - -framework Foundation
+    TESTFILES:
+      - client.c
+      - common.c
+      - common.h
   script: |
+    for file in $TESTFILES; do
+      curl -O https://raw.githubusercontent.com/rustls/rustls-ffi/v{{ version }}/tests/$file
+    done
     cc client.c common.c -o client $ARGS
     CA_FILE=$SSL_CERT_FILE ./client tea.xyz 443 /

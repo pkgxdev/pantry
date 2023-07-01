@@ -107,18 +107,29 @@ build:
     gnu.org/bison: '*'
     freedesktop.org/pkg-config: '*'
     gnu.org/patch: '*'
-  script: |
-    if test darwin = {{hw.platform}}; then
-      patch -p0 <props/macports.patch  # thanks to MacPorts
-    fi
-    ./configure $ARGS
-    make --jobs {{hw.concurrency}} install
+    crates.io/semverator: '*'
+  script:
+    # thanks to MacPorts
+    - |
+      if test darwin = {{hw.platform}} && \
+        semverator satisfies '<2.39' {{version}}; then
+        patch -p0 <props/macports.patch
+      fi
 
-    cd "{{prefix}}/include"
-    for x in $HEADERS; do
-      mv "$x/$x.h" .
-      ln -s "../$x.h" "$x/"
-    done
+    # FIXME: waitpid (new in 2.39) fails to build
+    - sed -i.bak 's/build_waitpid=yes ;;/build_waitpid=no ;;/g' configure
+    - rm configure.bak
+
+    - ./configure $ARGS
+
+    - make --jobs {{hw.concurrency}} install
+
+    - |
+      cd "{{prefix}}/include"
+      for x in $HEADERS; do
+        mv "$x/$x.h" .
+        ln -s "../$x.h" "$x/"
+      done
   env:
     ARGS:
       - --prefix={{prefix}}

@@ -1,0 +1,30 @@
+distributable:
+  url: https://downloads.sourceforge.net/project/glew/glew/{{version}}/glew-{{version}}.tgz
+  strip-components: 1
+
+versions:
+  url: https://sourceforge.net/projects/glew/files/glew/
+  match: /tr title="\d+\.\d+\.\d+" class="folder/
+  strip:
+    - /tr title="/
+    - /" class="folder/
+
+#FIXME it will work on other platforms, but we couldn't get it to work
+platforms: darwin/aarch64
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    cmake.org: ^3
+  working-directory: _build
+  script: |
+    cmake ../build/cmake -DCMAKE_INSTALL_PREFIX="{{prefix}}" -DCMAKE_BUILD_TYPE=Release
+    make --jobs {{ hw.concurrency }} install
+
+provides:
+  - bin/glewinfo
+  - bin/visualinfo
+
+test:
+  visualinfo | grep "OpenGL vendor string:"

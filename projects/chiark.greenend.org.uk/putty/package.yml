@@ -1,0 +1,39 @@
+distributable:
+  url: https://the.earth.li/~sgtatham/putty/latest/putty-{{version.marketing}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://www.chiark.greenend.org.uk/~sgtatham/putty/latest.html
+  match: /putty-\d+\.\d+\.tar.gz
+  strip:
+    - /^putty-/
+    - /.tar.gz
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    cmake.org: '*'
+    chiark.greenend.org.uk/halibut: '*'
+    freedesktop.org/pkg-config: '*'
+    perl.org: '*'
+  script: |
+    cmake -S . -B build $ARGS
+    cmake --build build
+    cmake --install build
+  env:
+    ARGS:
+      - -DCMAKE_INSTALL_PREFIX:PATH="{{prefix}}"
+      - -DRELEASE=svn-{{version.marketing}}
+      - -DPUTTY_GTK_VERSION=NONE
+
+provides:
+  - bin/pageant
+  - bin/plink
+  - bin/pscp
+  - bin/psftp
+  - bin/psusan
+  - bin/puttygen
+
+test:
+  puttygen --version | grep {{version.marketing}}

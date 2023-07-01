@@ -1,0 +1,51 @@
+distributable:
+  url: https://github.com/pulumi/pulumi/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: pulumi/pulumi
+  strip: /v/
+
+provides:
+  - bin/pulumi
+
+dependencies:
+  curl.se/ca-certs: '*'
+
+build:
+  dependencies:
+    go.dev: '*'
+    tea.xyz/gx/make: '*'
+  script: |
+    pushd sdk
+    go mod download
+    popd
+
+    pushd pkg
+    go mod download
+    popd
+
+    make build
+    make install
+
+    mkdir -p {{prefix}}/bin
+    mv build/bin/pulumi* {{prefix}}/bin/
+
+    # Install shell completions
+    # TODO: Doesn't work for zsh. Should it be left up to user?
+    # {{prefix}}/bin/pulumi gen-completion $SHELL
+  env:
+    GOPATH: "$PWD/build"
+
+test:
+  script: |
+    pulumi new aws-typescript --generate-only --force -y
+    if [ -e "$PWD/Pulumi.yaml" ]; then
+        echo "Project was created"
+    else
+        echo "Project was not created"
+        exit 1
+    fi
+  env:
+    PULUMI_ACCESS_TOKEN: local://
+    PULUMI_TEMPLATE_PATH: "$PWD/templates"

@@ -1,0 +1,29 @@
+distributable:
+  url: https://invisible-mirror.net/archives/dialog/dialog-1.3-20230209.tgz
+  strip-components: 1
+
+versions:
+  #FIXME: versions are of the format major.minor-YYYYMMDD
+  - 1.3.20230209
+
+dependencies:
+  invisible-island.net/ncurses: '*'
+  
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install-full
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --with-ncurses
+
+provides:
+  - bin/dialog
+  - bin/dialog-config
+
+test:
+  dialog --version | grep {{version.marketing}}

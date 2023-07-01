@@ -1,0 +1,45 @@
+distributable:
+  url: https://github.com/libgd/libgd/releases/download/gd-{{ version }}/libgd-{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: libgd/libgd
+  strip: /^gd-/
+
+dependencies:
+  freedesktop.org/fontconfig: '*'
+  freetype.org: '*'
+  libjpeg-turbo.org: '*'
+  github.com/AOMediaCodec/libavif: '*'
+  libpng.org: '*'
+  simplesystems.org/libtiff: '*'
+  google.com/webp: '*'
+  zlib.net: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/autoconf: '*'
+    gnu.org/libtool: '*'
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --disable-dependency-tracking
+      - --prefix="{{prefix}}"
+      - --with-zlib
+
+provides:
+  - bin/bdftogd
+  - bin/gd2copypal
+  - bin/gd2togif
+  - bin/gdcmpgif
+  - bin/giftogd2
+
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script:
+    pkg-config --modversion gdlib | grep {{version.raw}}

@@ -1,0 +1,34 @@
+distributable:
+  url: https://github.com/zeux/pugixml/releases/download/v{{version.marketing}}/pugixml-{{version.marketing}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: zeux/pugixml
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    cmake.org: '*'
+  script: |
+    cmake -S . -B build $ARGS
+    cmake --build build
+    cmake --install build
+  env:
+    ARGS:
+      - -DBUILD_SHARED_LIBS=ON
+      - -DPUGIXML_BUILD_SHARED_AND_STATIC_LIBS=ON
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_VERBOSE_MAKEFILE=ON
+      - -Wno-dev
+      - -DBUILD_TESTING=OFF
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    freedesktop.org/pkg-config: '*'
+  script: |
+    pkg-config --modversion pugixml | grep {{version.marketing}}
+    g++ test.cpp -o test -lpugixml
+    ./test

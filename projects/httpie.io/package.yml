@@ -1,0 +1,26 @@
+distributable:
+  url: https://github.com/httpie/httpie/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: httpie/httpie/releases/tags
+
+dependencies:
+  python.org: ^3
+
+build: |
+  python-venv.sh {{prefix}}/bin/http
+  cp {{prefix}}/bin/http {{prefix}}/bin/https
+  cp {{prefix}}/bin/http {{prefix}}/bin/httpie
+
+provides:
+  - bin/http
+  - bin/httpie
+  - bin/https
+
+test:
+  script: |
+    test "$(http --version)" = {{version}}
+    test "$(https --version)" = {{version}}
+    test "$(httpie --version)" = {{version}}
+    http tea.xyz

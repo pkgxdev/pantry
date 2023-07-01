@@ -1,0 +1,28 @@
+distributable:
+  url: https://github.com/sekrit-twc/zimg/archive/release-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: sekrit-twc/zimg
+  strip: /^release-/
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/autoconf: '*'
+    gnu.org/automake: '*'
+    gnu.org/libtool: '*'
+  script: |
+    ./autogen.sh
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script:
+    cc test.c -lzimg -o test

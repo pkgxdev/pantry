@@ -3,23 +3,30 @@ distributable:
   strip-components: 1
 
 versions:
-  - 7.93
+  url: https://nmap.org/dist/
+  match: /nmap-\d+\.\d+(\.\d+)?\.tgz/
+  strip:
+    - /nmap-/
+    - /.tgz/
 
 dependencies:
-  openssl.org: '*'
+  openssl.org: ^1.1
 
 build:
   dependencies:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
     gnu.org/patch: '*'
-  script: |
+    crates.io/semverator: '*'
+  script:
     # https://github.com/openresty/openresty/issues/372
-    patch -p1 <props/openssl-1.1.1.patch
+    - >
+      semverator satisfies '<7.94.0' {{version}} &&
+      patch -p1 <props/openssl-1.1.1.patch
 
-    ./configure --prefix={{prefix}}
-    make -j {{hw.concurrency}}
-    make install
+    - ./configure --prefix={{prefix}}
+    - make -j {{hw.concurrency}}
+    - make install
   test:
     make test
 

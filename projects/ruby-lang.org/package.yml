@@ -3,7 +3,9 @@ distributable:
   strip-components: 1
 
 versions:
-  github: ruby/ruby
+  # ruby have *some* releases, but historically only have tags
+  # so if we want to build older releases we can only scan tags
+  github: ruby/ruby/tags
 
 dependencies:
   openssl.org: ^1.1
@@ -17,63 +19,107 @@ build:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
     gnu.org/patch: '*'
-  script: |
-    patch -p1 < props/mkconfig.rb.diff
+    gnu.org/bison: ^3
+    gnu.org/autoconf: '*'
+    linux:
+      ruby-lang.org: ~3.1  # ruby requires ruby to build
+      # ^^ only linux because we got issues on darwin currently and darwin provides ruby (for now)
+  env:
+    ARGS:
+    - --prefix="{{prefix}}"
+    - --enable-load-relative  # makes us relocatable
+    - --without-gmp
+    - --with-rubyarchprefix={{prefix}}/lib/ruby  # no need for architecture specific crap
+    - --with-rubyhdrdir={{prefix}}/include       # ^^
+    - --with-rubyarchhdrdir={{prefix}}/include   # ^^
+    - --disable-multiarch                        # ^^
+    - --with-vendordir=no      # is empty so don’t pollute
+    - --with-vendorarchdir=no  # ^^
+    - --with-sitedir=no        # ^^
+    - --with-sitearchdir=no    # ^^
+  script:
+    - patch -p1 < props/mkconfig.rb.diff
 
-    ./configure \
-      --prefix="{{prefix}}" \
-      --enable-load-relative \
-      --disable-rubygems \
-      --without-gmp \
-      --with-rubyarchprefix={{prefix}}/lib/ruby \
-      --with-rubyhdrdir={{prefix}}/include \
-      --with-rubyarchhdrdir={{prefix}}/include \
-      --with-vendordir=no \
-      --with-vendorarchdir=no \
-      --with-sitedir=no \
-      --with-sitearchdir=no \
-      --disable-multiarch
-
-    make --jobs {{hw.concurrency}} install
-
-    cd "{{prefix}}/bin"
+    - ./configure $ARGS
+    - make --jobs {{hw.concurrency}} install
 
     # we provide these as `rubygems.org`
-    for x in bundle bundler gem; do
-      test -f $x && rm $x
-    done
+    - run: rm bundle bundler gem
+      working-directory: ${{prefix}}/bin
 
-    fix-shebangs.ts *
-
-    cd ../lib/ruby/{{version.marketing}}.0
+    - fix-shebangs.ts ${{prefix}}/bin/*
 
     # ruby itself provides the gems for these and we don’t want that
     # we want to pkg them ourselves as part of rubygems.org
-    for x in bundler rubygems bundler.rb rubygems.rb; do
-      if test -d $x; then
-        rm -rf $x
-      else
-        rm $x
-      fi
-      ln -s ../../../../../rubygems.org/v\*/lib/$x
-    done
+    # to ensure the user gets a good ruby experience rubygems is marked as
+    # a companion which in most use means gems are automatically added to the
+    # pkgenv. Ruby behaves well if gems isn't around but the user may get
+    # unexpected errors in scenarios where they constructed an pkgenv manually
+    - working-directory:
+        ${{prefix}}/lib/ruby/{{version.marketing}}.0
+      run: |
+        for x in bundler rubygems bundler.rb rubygems.rb; do
+          if test -d $x; then
+            rm -rf $x
+          else
+            rm $x
+          fi
+        done
+        rm -rf ../gems/3.2.0/gems/bundler-*.*.*
 
-    cd {{prefix}}
-    rm -rf share/ri
-    rm -rf share/doc
-    rm -rf lib/ruby/site_ruby
-    rm -rf lib/ruby/vendor_ruby
+    - run: |
+        rm -rf share/ri
+        rm -rf share/doc
+        rm -rf lib/ruby/site_ruby
+        rm -rf lib/ruby/vendor_ruby
+      working-directory:
+        ${{prefix}}
 
     # weirdly files get put here and we can't figure out how to stop it
-    mv lib/*-{{hw.platform}}*/* lib
-    rmdir lib/*-{{hw.platform}}*
+    - run: |
+        mv *-{{hw.platform}}*/* .
+        rmdir *-{{hw.platform}}*
+      working-directory:
+        ${{prefix}}/lib
+
+    - run: sed -i.bak
+        -e 's|$(DESTDIR){{prefix}}|$(topdir)|g'
+        -e 's|CONFIG\["topdir"\] = .*|CONFIG\["topdir"\] = TOPDIR|g'
+        rbconfig.rb
+      working-directory:
+        ${{prefix}}/lib/ruby/{{version.marketing}}.0
 
 test:
   dependencies:
-    tea.xyz/gx/cc: c99  # for native extensions
+    tea.xyz/gx/cc: c99    # for native extensions
     tea.xyz/gx/make: '*'
-  script: |
-    ruby -e 'puts "Hello World!"'
+    rubygems.org: '*'     # is a companion __however__ brewkit doesn’t add companions to the env automatically
+  script:
+    - |
+      ruby -e 'puts "Hello World!"'
+    # echo 'puts 1' | irb
+    # ^^ FIXME `The terminfo database could not be found`
+
+    # tests the libraries that come with Ruby can be utilized
+    - run: |
+        mv $FIXTURE a.rb
+        ruby a.rb
+      fixture: |
+        require 'date'
+        puts Date.today
+
+    # tests the gems that come with Ruby can be utilized
+    - run: |
+        mv $FIXTURE a.rb
+        ruby a.rb
+      fixture: |
+        require 'matrix'
+        matrix = Matrix[[1, 2], [3, 4]]
+        transpose_matrix = matrix.transpose
+        determinant = matrix.determinant
+        puts "Original matrix:\n#{matrix}"
+        puts "Transposed matrix:\n#{transpose_matrix}"
+        puts "Determinant of the matrix: #{determinant}"
 
 provides:
   - bin/erb
@@ -81,7 +127,6 @@ provides:
   - bin/racc
   - bin/rake
   - bin/rbs
-  - bin/rdbg
   - bin/rdoc
   - bin/ri
   - bin/ruby
