@@ -2,7 +2,6 @@ distributable:
   url: https://nim-lang.org/download/nim-{{ version }}.tar.xz
   strip-components: 1
 
-
 # FIXME: test more versions
 versions:
   - v1.6.14
@@ -17,7 +16,6 @@ provides:
   - bin/atlas
   - bin/nimpretty
   - bin/nimble
-
 
 dependencies:
   gnu.org/gcc: '*'
@@ -35,6 +33,7 @@ build:
     ./koch boot -d:release
     ./koch tools
     ./install.sh {{ prefix }}
+    rm -rf {{ prefix }}/nim/compiler
     cp -r {{ prefix }}/nim/* {{ prefix }}
     rm -rf {{ prefix }}/nim
     for fn in atlas nim nim-gdb nim_dbg nimble nimgrep nimpretty nimsuggest testament; do cp ./bin/$fn {{ prefix }}/bin/; done
