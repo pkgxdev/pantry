@@ -1,0 +1,35 @@
+distributable:
+  url: https://github.com/coqui-ai/TTS/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: coqui-ai/TTS/releases
+  strip: /^v/
+
+# FIXME: inherited from taku910.github.io/mecab
+platforms:
+  - darwin
+  - linux/x86-64
+
+provides:
+  - bin/tts
+  - bin/tts-server
+  - bin/ttx
+
+dependencies:
+  python.org: '>=3.7 <3.11'
+  taku910.github.io/mecab: '*'
+
+build:
+  script: |
+    python_venv=$(which python-venv.py)
+    env python $python_venv {{prefix}}/bin/tts
+    cp {{prefix}}/bin/tts {{prefix}}/bin/tts-server
+    cp {{prefix}}/bin/tts {{prefix}}/bin/ttx
+  dependencies:
+    tea.xyz/gx/cc: c99
+    pip.pypa.io: '*'
+    git-scm.org: '*'
+
+test: |
+  tts -h

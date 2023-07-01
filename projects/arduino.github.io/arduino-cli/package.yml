@@ -1,0 +1,20 @@
+distributable:
+  url: https://github.com/arduino/arduino-cli/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: arduino/arduino-cli
+
+warnings:
+ - vendored
+
+build:
+  dependencies:
+    curl.se: '*'
+  working-directory: ${{prefix}}
+  script: '"$SRCROOT"/install.sh {{version}}'
+
+provides:
+  - bin/arduino-cli
+
+test: arduino-cli version | grep {{version}}

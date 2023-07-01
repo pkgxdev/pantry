@@ -1,11 +1,17 @@
 distributable:
-  url: https://git.musl-libc.org/cgit/musl/snapshot/{{ version }}.tar.gz
+  url: https://git.musl-libc.org/cgit/musl/snapshot/musl-{{ version }}.tar.gz
   strip-components: 1
 
 versions:
-  - 1.2.3
+  url: https://git.musl-libc.org/cgit/musl/refs/tags
+  match: /musl-\d+\.\d+\.\d+\.tar\.gz/
+  strip:
+    - /musl-/
+    - /.tar.gz/
 
 relocatable: true
+
+platforms: linux
 
 provides:
   - bin/ld.musl-clang
@@ -18,22 +24,6 @@ build:
   dependencies:
     tea.xyz/gx/make: '*'
   script: |
-    # musl is linux only, so just make passthrough scripts on Darwin
-    if test {{ hw.platform }} != "linux"
-    then
-      mkdir -p "{{ prefix }}/bin"
-      cat > {{ prefix }}/bin/ld.musl-clang <<EOF
-    #!/bin/sh
-    exec ld "$@"
-    EOF
-    cat > {{ prefix }}/bin/musl-clang <<EOF
-    #!/bin/sh
-    exec cc "$@"
-    EOF
-      chmod +x {{ prefix }}/bin/ld.musl-clang {{ prefix }}/bin/musl-clang
-      exit
-    fi
-
     ./configure --prefix={{ prefix }} --syslibdir={{ prefix }}/lib
 
     make --jobs {{ hw.concurrency }}
@@ -62,13 +52,6 @@ test:
       return 0;
     }
   script: |
-    # musl is linux only
-    #FIXME? We don't sub our tokens in test scripts
-    if test $(uname) != "Linux"
-    then
-      exit
-    fi
-
     mv $FIXTURE $FIXTURE.c
     musl-clang $FIXTURE.c
     test "$(./a.out)" = "Hello World!"

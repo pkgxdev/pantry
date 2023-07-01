@@ -7,29 +7,50 @@ versions:
   strip: /^v/
 
 dependencies:
-  python.org: '>=3.7'
+  python.org: ^3.7
+  pip.pypa.io: '*'
 
 build:
-  python-venv.sh {{prefix}}/bin/pipenv
+  dependencies:
+    crates.io/semverator: '*'
+  script:
+    - python-venv.sh {{prefix}}/bin/pipenv
+
+    # create symlinks for pipenv so it can auto install and use pythons it wants
+    - working-directory:
+        ${{prefix}}/bin
+      run: |
+        v=3.6
+        while semverator lt $v {{deps.python.org.version.marketing}}; do
+          v=$(semverator bump $v minor | cut -d. -f1,2)
+          ln -s "../../../tea.xyz/v*/bin/tea" python$v
+        done
 
 runtime:
   env:
     PIPENV_IGNORE_VIRTUALENVS: 1
 
 test:
-  script: |
-    test "$(pipenv --version)" = "pipenv, version {{version}}"
-    mkdir -p tmp_test
-    cd tmp_test
+  - test "$(pipenv --version)" = "pipenv, version {{version}}"
 
-    # delete old venv if it exists (relevant for self-hosted testing rigs)
-    # otherwise pipenv fails (https://github.com/pypa/pipenv/issues/5052#issuecomment-1108872335)
-    if pipenv --venv; then
-        rm -rf $(pipenv --venv)
-    fi
+  - run: |
+      pipenv --python 3.7
+      pipenv install pycowsay
+      pipenv run pycowsay "Hello World"
+    working-directory:
+      a
 
-    pipenv install pycowsay
-    pipenv run pycowsay "Hello World"
+  - run: |
+      pipenv --python 3.10
+      pipenv install pycowsay
+      pipenv run pycowsay "Hello World"
+    working-directory:
+      b
 
 provides:
   - bin/pipenv
+
+marker-files:
+  - Pipfile
+  - Pipfile.lock
+  # TODO python version can be obtained from the Pipfile

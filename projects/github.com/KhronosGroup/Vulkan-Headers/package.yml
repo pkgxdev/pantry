@@ -1,0 +1,35 @@
+distributable:
+  url: https://github.com/KhronosGroup/Vulkan-Headers/archive/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: KhronosGroup/Vulkan-Headers/tags
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    cmake.org: '*'
+  script: |
+    cmake -S . -B build/ $ARGS
+    cmake --install build 
+  env:
+    ARGS:
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  fixture: |
+    #include <stdio.h>
+    #include <vulkan/vulkan_core.h>
+
+    int main() {
+      printf("vulkan version %d", VK_VERSION_1_0);
+      return 0;
+    }
+  script: |
+    mv $FIXTURE test.cpp
+    g++ test.cpp -o test
+    out=$(./test)
+    echo $out

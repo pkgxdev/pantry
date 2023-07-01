@@ -1,0 +1,121 @@
+distributable:
+  url: https://www.php.net/distributions/php-{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: php/php-src/tags
+  strip: /^php-/
+
+dependencies:
+  gnu.org/bison: '*'
+  re2c.org: '*'
+  apache.org/apr: '*'
+  apache.org/apr-util: '*'
+  bcrypt.sourceforge.net: '*'
+  gnu.org/autoconf: '*'
+  curl.se: '*'
+  gnu.org/gettext: '*'
+  gnu.org/gmp: '*'
+  libsodium.org: '*'
+  libzip.org: '*'
+  github.com/kkos/oniguruma: '*'
+  openssl.org: '*'
+  pcre.org/v2: '>=10.30'
+  sqlite.org: '*'
+  unicode.org: ^71
+  gnu.org/libiconv: '*'
+  kerberos.org: '*'
+  gnome.org/libxml2: '>=2.9.0'
+  thrysoee.dk/editline: '*'
+  sourceware.org/libffi: '>=3.0.11'
+  gnome.org/libxslt: '>=1.1.0'
+  gnu.org/gcc: '*'
+  libpng.org: '*'
+  google.com/webp: '*'
+  ijg.org: '*'
+  darwin:
+    sourceware.org/bzip2: '*'
+    zlib.net: '*'
+
+build:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+    tea.xyz/gx/make: '*'
+    freetype.org: '*'
+    darwin:
+      tukaani.org/xz: '*'
+
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    # FIXME: this appears to be a regression related to
+    # https://github.com/teaxyz/brewkit/pull/99
+    # It's breaking certain ld invocations, due to:
+    # TEA_PREFIX mysteriously unset
+    # collect2: error: ld returned 1 exit status
+    TEA_PREFIX: $(tea --prefix)
+    ARGS:
+      - --prefix={{prefix}}
+      - --enable-bcmath
+      - --enable-calendar
+      - --enable-dba
+      - --enable-exif
+      - --enable-ftp
+      - --enable-fpm
+      - --enable-gd
+      - --enable-intl
+      - --enable-mbregex
+      - --enable-mbstring
+      - --enable-mysqlnd
+      - --enable-pcntl
+      - --enable-phpdbg
+      - --enable-phpdbg-readline
+      - --enable-shmop
+      - --enable-soap
+      - --enable-sockets
+      - --enable-sysvmsg
+      - --enable-sysvsem
+      - --enable-sysvshm
+      - --with-curl
+      - --with-external-pcre
+      - --with-ffi
+      - --with-gettext={{deps.gnu.org/gettext.prefix}}
+      - --with-gmp={{deps.gnu.org/gmp.prefix}}
+      - --with-iconv={{deps.gnu.org/libiconv.prefix}}
+      - --with-kerberos
+      - --with-layout=GNU
+      - --with-libxml
+      - --with-libedit
+      - --with-openssl
+      - --with-pdo-sqlite
+      - --with-pic
+      - --with-sodium
+      - --with-sqlite3
+      - --with-xsl
+      - --with-zip
+      - --with-zlib
+      - --disable-dtrace
+      - --without-ldap-sasl
+      - --without-ndbm
+      - --without-gdbm
+      - PKG_CONFIG_PATH=$PKG_CONFIG_PATH:{{deps.gnu.org/gettext.prefix}}
+      - PKG_CONFIG_PATH=$PKG_CONFIG_PATH:{{deps.gnome.org/libxml2.prefix}}
+      - PKG_CONFIG_PATH=$PKG_CONFIG_PATH:{{deps.github.com/kkos/oniguruma.prefix}}
+      - CC=gcc
+    darwin:
+      ARGS:
+        - --enable-dtrace
+        - --with-ldap-sasl
+
+provides:
+  - bin/phar
+  - bin/php
+  - bin/php-cgi
+  - bin/php-config
+  - bin/phpdbg
+  - bin/phpize
+
+test: |
+  php --version | grep {{ version }}
+  php -r 'echo "Hello World!\n";'

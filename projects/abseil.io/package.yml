@@ -15,7 +15,7 @@ build:
     cmake -S . -B build \
       -DCMAKE_CXX_STANDARD=17 \
       -DBUILD_SHARED_LIBS=ON \
-      -DCMAKE_INSTALL_RPATH={{ prefix }}/bla \
+      -DCMAKE_INSTALL_RPATH={{ prefix }}/lib \
       -DCMAKE_BINARY_DIR={{ prefix }}/bin \
       -DABSL_PROPAGATE_CXX_STD=ON \
       -DCMAKE_INSTALL_PREFIX={{ prefix }} \
@@ -32,6 +32,12 @@ build:
     if [[ "$(uname)" == "Darwin" ]]; then
       sed -i '' 's/-Xarch_x86_64 -Xarch_x86_64 -Xarch_arm64 //g' {{ prefix }}/lib/pkgconfig/absl_random_internal_randen_hwaes{_impl,}.pc
     fi
+
+    cd "{{prefix}}/lib/cmake/absl"
+    sed -i.bak \
+        -e "s:$(tea --prefix):\$\{CMAKE_CURRENT_LIST_DIR\}/../../../../..:g" \
+        abslTargets{,-release}.cmake
+    rm abslTargets{,-release}.cmake.bak
 
 test:
   dependencies:

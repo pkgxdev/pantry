@@ -1,0 +1,28 @@
+distributable:
+  url: https://github.com/danfis/libccd/archive/v{{version.marketing}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: danfis/libccd/tags
+  stripe: ^v
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    cmake.org: '*'
+  script: |
+    cmake . $ARGS
+    make --jobs {{ hw.concurrency }} install
+
+  env:
+    ARGS:
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
+      - -DENABLE_DOUBLE_PRECISION=ON
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script: |
+    cc -o test test.c -lccd
+    ./test

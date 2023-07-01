@@ -10,12 +10,17 @@ build:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
     gnu.org/patch: '*'
-  script: |
-    # Combats "error: aliases are not supported on darwin"
-    patch -p1 <props/patch-symbol-alias.diff
+    crates.io/semverator: '*'
+  script:
+    # Combats "error: aliases are not supported on darwin" on versions
+    # prior to 1.1.0.
+    - run: |
+        if semverator lt 1.1.0 {{version}}; then
+          patch -p1 <props/patch-symbol-alias.diff
+        fi
 
-    ./configure --prefix={{prefix}}
-    make --jobs {{hw.concurrency}} install
+    - ./configure --prefix={{prefix}}
+    - make --jobs {{hw.concurrency}} install
 
 test:
   dependencies:

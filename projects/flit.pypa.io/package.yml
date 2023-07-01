@@ -1,0 +1,36 @@
+distributable:
+  url: https://github.com/pypa/flit/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: pypa/flit/tags
+
+dependencies:
+  python.org: ^3
+
+build: python-venv.sh {{prefix}}/bin/flit
+
+provides:
+  - bin/flit
+
+test:
+  fixture: |
+    [build-system]
+    requires = ["flit_core"]
+    build-backend = "flit_core.buildapi"
+
+    [project]
+    name = "sample"
+    version = "0.1"
+    description = "Sample description"
+    authors = [{name = "Sample Author"}]
+
+    [tool.flit.sdist]
+    include = ["pyproject.toml", "sample.py"]
+  script: |
+    flit --version | grep {{version}}
+    mv $FIXTURE pyproject.toml
+    touch sample.py
+    flit build
+    test -f dist/sample-0.1-py2.py3-none-any.whl
+    test -f dist/sample-0.1.tar.gz

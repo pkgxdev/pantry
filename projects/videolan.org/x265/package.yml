@@ -1,0 +1,77 @@
+distributable:
+  url: http://ftp.videolan.org/pub/videolan/x265/x265_{{version.raw}}.tar.gz
+  strip-components: 1
+versions:
+  url: http://ftp.videolan.org/pub/videolan/x265/
+  match: /x265_([0-9]+\.[0-9]+(\.[0-9]+)?)\.tar\.gz/
+  strip:
+    - /^x265_/
+    - /\.tar\.gz$/
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    cmake.org: '*'
+    nasm.us: '*'
+  working-directory: 8bit
+  script:
+    - run: |
+        cmake ../source -DENABLE_HDR10_PLUS=ON $ARGS_DEFAULT $HIGHBITARGS
+        make
+        mv libx265.a ../8bit/libx265_main10.a
+      working-directory: ../10bit
+
+    - run: |
+        cmake ../source -DMAIN12=ON $ARGS_DEFAULT $HIGHBITARGS
+        make
+        mv libx265.a ../8bit/libx265_main12.a
+      working-directory: ../12bit
+
+    - run: |
+        cmake ../source $ARGS_DEFAULT $ARGS
+        make
+        mv libx265.a libx265_main.a
+
+    - run: libtool -static -o $LIB_ARGS
+      if: darwin
+
+    - run: ar crs $LIB_ARGS
+      if: linux
+
+    - run: make install
+
+  env:
+    ARGS_DEFAULT:
+      - -Wno-dev
+      - -DBUILD_TESTING=OFF
+      - -DCMAKE_FIND_FRAMEWORK="LAST"
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_INSTALL_LIBDIR="lib"
+      - -DENABLE_PIC=ON
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_VERBOSE_MAKEFILE=ON
+    ARGS:
+      - -DLINKED_10BIT=ON
+      - -DLINKED_12BIT=ON
+      - -DEXTRA_LINK_FLAGS=-L.
+      - -DEXTRA_LIB=x265_main10.a;x265_main12.a
+    HIGHBITARGS:
+      - -DHIGH_BIT_DEPTH=ON
+      - -DEXPORT_C_API=OFF
+      - -DENABLE_SHARED=OFF
+      - -DENABLE_CLI=OFF
+    LIB_ARGS:
+      - libx265.a
+      - libx265_main.a
+      - libx265_main10.a
+      - libx265_main12.a
+
+provides:
+  - bin/x265
+
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script:
+    pkg-config --modversion x265 | grep {{version.raw}}

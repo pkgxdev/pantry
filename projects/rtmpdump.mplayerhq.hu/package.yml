@@ -1,0 +1,50 @@
+distributable:
+  url: http://rtmpdump.mplayerhq.hu/download/rtmpdump-{{version.marketing}}.tgz
+  strip-components: 1
+
+display-name: rtmpdump
+
+versions:
+  url: http://rtmpdump.mplayerhq.hu/download/
+  match: /rtmpdump-\d+\.\d+\.tgz/
+  strip:
+    - /^rtmpdump-/
+    - /.tgz$/
+
+dependencies:
+  openssl.org: ^1.1
+  zlib.net: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/patch: '*'
+    curl.se: '*'
+  script:
+    - curl $PATCH | patch -p0 || true
+    
+    # need to make XCFLAGS/XLDFLAGS in the script for quoting reasons
+    - make XCFLAGS="$CFLAGS" XLDFLAGS="$LDFLAGS" $ARGS install
+  env:
+    PATCH: 'https://raw.githubusercontent.com/Homebrew/formula-patches/85fa66a9/rtmpdump/openssl-1.1.diff'
+    ARGS:
+      - CC=cc
+      - prefix={{prefix}}
+      - SHARED=no
+    darwin:
+      ARGS:
+        - SYS="darwin"
+    linux:
+      ARGS:
+        - SYS="posix"
+
+provides:
+  - bin/rtmpdump
+  - bin/rtmpgw
+  - bin/rtmpsrv
+  - bin/rtmpsuck
+
+test:
+  - rtmpdump -h
+  - rtmpdump -h 2>&1 | grep {{version.marketing}}

@@ -13,14 +13,18 @@ build:
     go.dev: ^1.18
     gnu.org/patch: '*'
     crates.io/semverator: ^0
-  script: |
-    if semverator satisfies '<3.25.0' {{ version }}; then
-      # Add go.mod on older versions
-      patch -p1 <props/patch-go-modules.diff
-    fi
+  script:
+    # Add go.mod on older versions
+    - run: patch -p1 <props/patch-go-modules.diff
+      if: <3.25
 
-    mkdir -p "{{ prefix }}"/bin
-    go build -v -ldflags="$LDFLAGS"  -o "{{ prefix }}"/bin/go-bindata ./go-bindata
+    - mkdir -p {{prefix}}/bin
+
+    - go build
+        -v
+        -ldflags="$LDFLAGS"
+        -o {{prefix}}/bin/go-bindata
+        ./go-bindata
 
   env:
     LDFLAGS:

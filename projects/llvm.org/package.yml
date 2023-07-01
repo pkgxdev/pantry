@@ -22,14 +22,20 @@ build:
     cmake.org: 3
     ninja-build.org: 1
     python.org: 3
+    crates.io/semverator: '*'
   working-directory: build
-  script: |-
-    cmake \
-      ../llvm \
-      -G Ninja \
-      $ARGS
-    ninja
-    ninja install
+  script:
+    # Building compiler-rt on darwin+aarch64 fails for versions less than
+    # 14 with the below configuration. FIXME if possible, of course.
+    - run: |
+        if test "{{hw.platform}}" = "linux" || \
+           test "{{hw.arch}}" = "x86-64" || \
+           semverator satisies '>=14'; then
+             ARGS="$ARGS -DLLVM_ENABLE_RUNTIMES='compiler-rt'"
+        fi
+    - cmake ../llvm -G Ninja $ARGS
+    - ninja
+    - ninja install
   receipt:
     - LLVMConfig.cmake
   env:
@@ -46,6 +52,9 @@ build:
       #NOTE only wanted on linux because on macOS we actually *need* the Apple
       # provided `ld` or things *also* break 😆
       - -DCLANG_DEFAULT_LINKER=lld
+      # Needed with the CMAKE_C_COMPILER_TARGET to compile compiler-rt on linux
+      # https://reviews.llvm.org/D147598
+      - -DCOMPILER_RT_DEFAULT_TARGET_ONLY=ON
     darwin:
       ARGS:
       #FIXME shouldn’t *have to* require the command line tools package
@@ -58,7 +67,16 @@ build:
       - -DCLANG_DEFAULT_CXX_STDLIB=libstdc++
       - -DCLANG_DEFAULT_RTLIB=libgcc
       - -DCOMPILER_RT_INCLUDE_TESTS=OFF
-      - -DCOMPILER_RT_USE_LIBCXX=OFF"
+      - -DCOMPILER_RT_USE_LIBCXX=OFF
+      # otherwise compiler-rt fails to build
+      # https://reviews.llvm.org/D147598
+      - -DCMAKE_C_COMPILER_TARGET="x86_64-unknown-linux-gnu"
+    linux/aarch64:
+      ARGS:
+      # otherwise compiler-rt fails to build
+      # https://reviews.llvm.org/D147598
+      - -DCMAKE_C_COMPILER_TARGET="aarch64-unknown-linux-gnu"
+
 test:
   fixture: |
     #include <stdio.h>
@@ -66,7 +84,20 @@ test:
       printf("Hello World!\n");
       return 0;
     }
-  script: |
-    mv $FIXTURE $FIXTURE.c
-    clang $FIXTURE.c
-    ./a.out
+  dependencies:
+    crates.io/semverator: '*'
+  script:
+    # Building compiler-rt on darwin+aarch64 fails for versions less than
+    # 14 with the below configuration. FIXME if possible, of course.
+    - run: |
+        if test "{{hw.platform}}" = "linux" || \
+           test "{{hw.arch}}" = "x86-64" || \
+           semverator satisies '>=14'; then
+             ARGS="$ARGS -fsanitize=address,undefined"
+        fi
+    - mv $FIXTURE $FIXTURE.c
+    - clang $ARGS $FIXTURE.c
+    - ./a.out
+  env:
+    ARGS:
+      - -Wl,-rpath,$TEA_PREFIX

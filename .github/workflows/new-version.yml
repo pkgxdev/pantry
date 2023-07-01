@@ -15,10 +15,10 @@ jobs:
       fail-fast: false
       matrix:
         platform:
-        - darwin+x86-64
-        - linux+x86-64
-        - darwin+aarch64
-        - linux+aarch64
+          - darwin+x86-64
+          - linux+x86-64
+          - darwin+aarch64
+          - linux+aarch64
     uses: ./.github/workflows/build.yml
     with:
       projects: ${{ inputs.projects }}
@@ -30,16 +30,30 @@ jobs:
       fail-fast: false
       matrix:
         platform:
-        - darwin+x86-64
-        - linux+x86-64
-        - darwin+aarch64
-        - linux+aarch64
+          - darwin+x86-64
+          - linux+x86-64
+          - darwin+aarch64
+          - linux+aarch64
     needs: [build]
     uses: ./.github/workflows/bottle.yml
     with:
       new-version: true
       platform: ${{ matrix.platform }}
+      projects: ${{ inputs.projects }}
     secrets: inherit
+
+  request-qa:
+    needs: [bottle]
+    if: ${{ needs.bottle.outputs.qa-required != '[]' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        project: ${{ fromJson(needs.bottle.outputs.qa-required) }}
+    steps:
+      - uses: teaxyz/pantry/.github/actions/request-qa@main
+        with:
+          project: ${{ matrix.project }}
+          slack-webhook: ${{ secrets.SLACK_QA_WEBHOOK }}
 
   complain:
     needs: [build, bottle]
@@ -54,20 +68,3 @@ jobs:
           platform: ${{ inputs.platform }}
           slack-webhook: ${{ secrets.SLACK_WEBHOOK }}
           slack-channel: ${{ secrets.SLACK_CHANNEL }}
-
-  index_data:
-    needs: [bottle]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: teaxyz/setup@v0
-        with:
-          srcroot: null
-      - uses: teaxyz/brewkit/actions/cache@v0
-      - run: ./.github/scripts/index-packages.ts ${{ inputs.projects }}
-        env:
-          TEA_PANTRY_PATH: ${{ github.workspace }}
-          AWS_REGION: us-east-1
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          SQS_GENERATE_PACKAGE_DETAILS_URL: ${{ secrets.SQS_GENERATE_PACKAGE_DETAILS_URL }}

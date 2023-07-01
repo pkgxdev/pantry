@@ -1,0 +1,38 @@
+distributable:
+  url: https://deb.debian.org/debian/pool/main/m/mecab/mecab_{{version.raw}}.orig.tar.gz
+  # Canonical URL = https://drive.google.com/uc?export=download&id=0B4y35FiV1wh7cENtOXlicTFaRUE
+  strip-components: 1
+
+versions:
+  url: http://ftp.debian.org/debian/pool/main/m/mecab/
+  match: /mecab_\d+\.\d+\.orig\.tar\.gz.
+  strip:
+    - /mecab_/
+    - /\.orig\.tar\.gz/
+
+platforms:
+  - darwin
+  - linux/x86-64
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+    - run: |
+        cd "{{prefix}}/bin"
+        sed -i.bak 's|{{prefix}}|"$(cd "$(dirname "$0")/.." \&\& pwd)"|' mecab-config
+        rm mecab-config.bak
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --disable-dependency-tracking
+
+provides:
+  - bin/mecab
+  - bin/mecab-config
+
+test:
+  test "$(mecab-config --dicdir)" = "{{prefix}}/lib/mecab/dic"

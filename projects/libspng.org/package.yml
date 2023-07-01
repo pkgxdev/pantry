@@ -1,0 +1,31 @@
+distributable:
+  url: https://github.com/randy408/libspng/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  gitlab: randy408/libspng
+
+dependencies:
+  darwin:
+    zlib.net: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    ninja-build.org: 1
+    freedesktop.org/pkg-config: '*'
+    mesonbuild.com: '*'
+  working-directory: build
+  script: |
+    meson .. --prefix={{prefix}} --libdir={{prefix}}/lib --buildtype=release
+    ninja -v
+    ninja install -v
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script: |
+    cc example.c -lspng -o example
+    actual_output="$(./example 'test.png')"
+    echo "$actual_output" > actual_output.txt
+    test "$(cat actual_output.txt)" = "$(cat expected_output.txt)"

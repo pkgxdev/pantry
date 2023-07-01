@@ -4,7 +4,8 @@ distributable:
    strip-components: 1
 
 versions:
-  - 1.9.6 # FIXME: the versions are "Release_1_9_6" but no idea how I can parse this without regex
+  github: doxygen/doxygen/releases
+  strip: /Doxygen release /
 
 build:
   dependencies:
@@ -17,13 +18,12 @@ build:
   working-directory: build
   script: |
     cmake $ARGS -G "Unix Makefiles" ..
-    make --jobs {{ hw.concurrency }} 
+    make --jobs {{ hw.concurrency }}
     make install
   env:
     ARGS:
       - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
       - -DCMAKE_BUILD_TYPE=Release
-    
 
 provides:
   - bin/doxygen

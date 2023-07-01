@@ -1,0 +1,33 @@
+#FIXME: we should use source if possible
+distributable: ~
+
+displayname: Task
+
+versions:
+  github: go-task/task/releases/tags
+
+provides:
+  - bin/task
+
+build:
+  dependencies:
+    go.dev: ^1.19
+  working-directory: ${{prefix}}/bin
+  script: go install -ldflags="$LDFLAGS" github.com/go-task/task/v3/cmd/task@v{{version}}
+  env:
+    GOBIN: ${{prefix}}/bin
+    LDFLAGS:
+      - -s
+      - -w
+      - -X main.Version={{version}}
+    linux:
+      # or segmentation fault
+      # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
+      LDFLAGS:
+        - -buildmode=pie
+
+test:
+  script: |
+    task --init
+    test -f Taskfile.yml
+    task --version | grep 'Task version: v{{version}}'
