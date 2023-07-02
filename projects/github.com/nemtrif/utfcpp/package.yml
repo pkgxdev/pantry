@@ -9,7 +9,7 @@ versions:
 
 build:
   dependencies:
-    gnu.org/gcc: '*'
+    gnu.org/gcc: ^13.1
     tea.xyz/gx/make: '*'
     cmake.org: '*'
 
@@ -18,8 +18,6 @@ build:
     - cmake .. $ARGS
     - make --jobs {{ hw.concurrency }} install
   env:
-    linux/aarch64:
-      LD_LIBRARY_PATH: "{{deps.gnu.org/gcc.prefix}}/lib/libstdc++.so.6:$LD_LIBRARY_PATH"
     ARGS:
       - -DUTF8_INSTALL:BOOL=ON
       - -DUTF8_SAMPLES:BOOL=OFF
@@ -33,6 +31,7 @@ build:
       - -DBUILD_TESTING=OFF
       - -DCMAKE_CXX_COMPILER={{deps.gnu.org/gcc.prefix}}/bin/g++
       - -DCMAKE_CC_COMPILER={{deps.gnu.org/gcc.prefix}}/bin/gcc
+      - -DCMAKE_CXX_FLAGS="-std=c++17"
 
 test:
   dependencies:
