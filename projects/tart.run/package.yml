@@ -36,9 +36,9 @@ provides:
 test:
   script:
     - ': >empty.ispw'
-    - tart create
+    - OUT=$(tart create
         --from-ipsw empty.ipsw
-        test 2>&1 || true |
-        grep "Unable to load restore image"
+        test 2>&1 || true)
+    - 'test "$OUT" = "Error: The restore image failed to load. Unable to create sandbox extensions."'
   env:
     TART_HOME: $PWD
