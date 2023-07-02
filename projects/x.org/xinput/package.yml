@@ -1,0 +1,41 @@
+distributable:
+  url: https://www.x.org/archive/individual/app/xinput-{{version}}.tar.xz
+  strip-components: 1
+
+versions:
+  url: https://xorg.freedesktop.org/archive/individual/app/
+  match: /xinput-\d+\.\d+(\.\d+)?\.tar\.xz/
+  strip:
+    - /xinput-/
+    - /.tar.xz/
+
+dependencies:
+  x.org/x11: '*'
+  x.org/exts: '*'
+  x.org/xi: '*'
+  x.org/xinerma: '*'
+  x.org/xrandr: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    freedesktop.org/pkg-config: '*'
+    x.org/protocol: '*'
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make --jobs {{ hw.concurrency }} install
+
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --disable-dependency-tracking
+      - --disable-silent-rules
+      - --sysconfdir={{tea.prefix}}/x.org/etc
+      - --localstatedir={{tea.prefix}}/x.org/var
+
+provides:
+  - bin/xinput
+
+test: xinput --version | grep {{version}}
