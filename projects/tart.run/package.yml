@@ -35,8 +35,10 @@ provides:
 
 test:
   script:
-    - cp $FIXTURE empty.ispw
-    - tart create --from-ipsw empty.ipsw test 2>&1 || true | grep "Unable to load restore image"
-  fixture: ""
+    - ': >empty.ispw'
+    - tart create
+        --from-ipsw empty.ipsw
+        test 2>&1 || true |
+        grep "Unable to load restore image"
   env:
-    TART_HOME: .
+    TART_HOME: $PWD
