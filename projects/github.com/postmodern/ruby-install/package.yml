@@ -12,7 +12,15 @@ build:
   dependencies:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
-  script: make --jobs {{ hw.concurrency }} install PREFIX="{{prefix}}"
+  script: 
+    - make --jobs {{ hw.concurrency }} install PREFIX="{{prefix}}"
+    - sed -i'' -e 's|usr/local|{{tea_prefix}}|g' $FILES
+  env:
+    FILES:
+      - "{{prefix}}/share/man/man1/ruby-install.1"
+      - "{{prefix}}/share/ruby-install/ruby-install.sh"
+      - "{{prefix}}/share/ruby-install/truffleruby/functions.sh"
+      - "{{prefix}}/share/ruby-install/truffleruby-graalvm/functions.sh"
 
 provides:
   - bin/ruby-install
