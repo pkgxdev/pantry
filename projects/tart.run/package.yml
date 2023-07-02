@@ -1,0 +1,39 @@
+distributable:
+  url: https://github.com/cirruslabs/tart/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: cirruslabs/tart
+
+platforms:
+  - darwin/aarch64
+
+build:
+  dependencies:
+    rust-lang.org: ^1.54
+    rust-lang.org/cargo: ^0
+    # apple.com/xcode: >=14.1
+    # swift.org: 5
+  script:
+    - run: |
+        curl -L $SOFTNET | tar -zxf - --strip-components=1
+        cargo install --locked --path . --root {{prefix}}
+      working-directory: softnet
+    - swift build --disable-sandbox -c release
+    - codesign -f -s - --entitlement Resources/tart.entitlements .build/release/tart
+    - run: cp "$SRCROOT"/.build/release/tart .
+      working-directory: ${{prefix}}/bin
+  env:
+    SOFTNET: https://github.com/cirruslabs/softnet/archive/refs/tags/0.6.1.tar.gz
+
+
+provides:
+  - bin/tart
+
+test:
+  script:
+    - cp $FIXTURE empty.ispw
+    - tart create --from-ipsw empty.ipsw test 2>&1 || true | grep "Unable to load restore image"
+  fixture: ""
+  env:
+    TART_HOME: .
