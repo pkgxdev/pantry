@@ -18,11 +18,19 @@ build:
       gnu.org/autoconf: '*'
       
   script:
+    - sed -i'' -e "s|OMPI_CXX_ABSOLUTE|$CXX|g" $FILES
+    - sed -i'' -e "s|OPAL_CC_ABSOLUTE|$CC|g" $FILES
+    - sed -i'' -e "s|PMIX_CC_ABSOLUTE|$CC|g" $FILES
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} all
     - make --jobs {{ hw.concurrency }} check
     - make --jobs {{ hw.concurrency }} install
+    - mv {{prefix}}/lib/*.mod {{prefix}}/include/
+    
   env:
+    FILES:
+      - ompi/tools/ompi_info/param.c
+      - oshmem/tools/oshmem_info/param.c
     linux:
       CXX: g++
       CC: gcc
