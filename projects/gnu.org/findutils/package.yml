@@ -1,0 +1,50 @@
+distributable:
+  url: https://ftp.gnu.org/gnu/findutils/findutils-{{version}}.tar.xz
+  strip-components: 1
+
+versions:
+  url: https://ftp.gnu.org/gnu/findutils/
+  match: /findutils-\d+\.\d+\.\d+\.tar\.xz/
+  strip:
+    - /^findutils-/
+    - /\.tar\.xz$/
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --localstatedir={{prefix}}/var/locate
+      - --disable-dependency-tracking
+      - --disable-nls
+      - --with-packager=Tea.xyz
+      - --with-packager-bug-reports=https://github.com/teaxyz/pantry/issues
+    darwin:
+      ARGS:
+        - --program-prefix=g
+
+provides:
+  darwin:
+    - bin/gfind
+    - bin/glocate
+    - bin/gupdatedb
+    - bin/gxargs
+  linux:
+    - bin/find
+    - bin/locate
+    - bin/updatedb
+    - bin/xargs
+test:
+  env:
+    darwin:
+      COMMAND: gfind
+    linux:
+      COMMAND: find
+  script: $COMMAND --version | grep {{version}}
