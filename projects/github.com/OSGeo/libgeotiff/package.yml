@@ -1,0 +1,42 @@
+distributable:
+  url: https://github.com/OSGeo/libgeotiff/releases/download/{{version}}/libgeotiff-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: OSGeo/libgeotiff
+
+dependencies:
+  libjpeg-turbo.org: '*'
+  simplesystems.org/libtiff: '*'
+  proj.org: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make --jobs {{ hw.concurrency }} install
+   
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --with-jpeg
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --disable-silent-rules
+
+provides:
+  - bin/applygeo
+  - bin/geotifcp
+  - bin/listgeo
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script:
+    - cc test.c -ltiff -lgeotiff -o test
+    - ./test test.tiff
+    - listgeo test.tiff | grep GeogInvFlatteningGeoKey
