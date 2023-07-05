@@ -15,15 +15,17 @@ build:
   dependencies:
     cmake.org: '*'
     google.com/googletest: ^1.13
-    boost.org: '*'
+    gnu.org/gcc: '*'
     linux:
-      gnu.org/gcc: '*'
+      boost.org: '*'
 
   script: |
     cmake -S . -B _build $ARGS
     cmake --build _build
     cmake --install _build
   env:
+    CMAKE_CXX_COMPILER: "{{deps.gnu.org/gcc.prefix}}/bin/g++"
+    CMAKE_CC_COMPILER: "{{deps.gnu.org/gcc.prefix}}/bin/gcc"
     ARGS:
       - -DBUILD_SHARED_LIBS=ON
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
