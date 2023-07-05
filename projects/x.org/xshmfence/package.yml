@@ -1,0 +1,36 @@
+distributable:
+  url: https://www.x.org/archive/individual/lib/libxshmfence-{{version}}.tar.xz
+  strip-components: 1
+
+versions:
+  url: https://xorg.freedesktop.org/archive/individual/lib/
+  match: /libxshmfence-\d+\.\d+(\.\d+)?\.tar\.xz/
+  strip:
+    - /libxshmfence-/
+    - /.tar.xz/
+
+dependencies:
+  x.org/protocol: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    freedesktop.org/pkg-config: '*'
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make --jobs {{ hw.concurrency }} install
+
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --disable-dependency-tracking
+      - --disable-silent-rules
+      - --sysconfdir={{tea.prefix}}/x.org/etc
+      - --localstatedir={{tea.prefix}}/x.org/var
+
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script: pkg-config --modversion xshmfence | grep {{version}}
