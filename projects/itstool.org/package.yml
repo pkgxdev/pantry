@@ -23,15 +23,13 @@ build:
     tea.xyz/gx/make: '*'
 
   script:
-    - ./configure $ARGS
+    - ./configure $ARGS PYTHON=$(which python3.11)
     - make --jobs {{ hw.concurrency }} install
-    - sed -i 's|DATADIR="[^"]*"|DATADIR="$ITSTOOL_SHARE"|g' {{prefix}}/bin/itstool
+    - sed -i'' 's|DATADIR="[^"]*"|DATADIR="$ITSTOOL_SHARE"|g' {{prefix}}/bin/itstool
 
-    
   env:
     ARGS:
       - --prefix="{{prefix}}"
-      - PYTHON="{{deps.python.org.prefix}}/bin/python3.11"
 
 provides:
   - bin/itstool
