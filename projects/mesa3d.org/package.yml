@@ -1,0 +1,101 @@
+distributable:
+  url: https://mesa.freedesktop.org/archive/mesa-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://archive.mesa3d.org/
+  match: /mesa-\d+\.\d+\.\d+\.tar\.gz/
+  strip:
+    - /^mesa-/
+    - /\.tar\.gz$/
+
+dependencies:
+  libexpat.github.io: '*'
+  x.org/x11: '*'
+  x.org/xcb: '*'
+  #x.org/xdamage: '*'
+  x.org/exts: '*'
+  invisible-island.net/ncurses: '*'
+  zlib.net: '*'
+  gnu.org/gettext: '*'
+  linux:
+    #fedorahosted.org/elfutils: '*'
+    #khronos.org/opengles/sdk/tools/Reference-Compiler: '*'
+    #gnu.org/gzip: '*'
+    #dri.freedesktop.org: '*'
+    #github.com/intel/libva: '*'
+    #freedesktop.org/wiki/Software/VDPAU: '*'
+    x.org/xfixes: '*'
+    x.org/xrandr: '*'
+    #x.org/xshmfence
+    #x.org/xv
+    x.org/xxf86vm: '*'
+    llvm.org: '*'
+    #github.com/lm-sensors/lm-sensors: '*'
+    #wayland.freedesktop.org: '*'
+    #wayland.freedesktop.org/protocols
+
+build:
+  dependencies:
+    gnu.org/gcc: '*'
+    tea.xyz/gx/make: '*'
+    gnu.org/bison: '*'
+    mesonbuild.com: '*'
+    ninja-build.org: '*'
+    freedesktop.org/pkg-config: '*'
+    pygments.org: '*'
+    python.org: =3.11
+    x.org/protocol: '*'
+    #github.com/westes/flex: '#'
+    gnu.org/wget: '*'
+    pip.pypa.io: '*'
+  
+  script:
+    - python3 -m venv venv
+    - source venv/bin/activate
+    - wget https://files.pythonhosted.org/packages/05/5f/2ba6e026d33a0e6ddc1dddf9958677f76f5f80c236bd65309d280b166d3e/Mako-1.2.4.tar.gz
+    - tar -xvf Mako-1.2.4.tar.gz
+    - wget https://files.pythonhosted.org/packages/95/7e/68018b70268fb4a2a605e2be44ab7b4dd7ce7808adae6c5ef32e34f4b55a/MarkupSafe-2.1.2.tar.gz
+    - tar -xvf MarkupSafe-2.1.2.tar.gz
+    - pip3 install Mako-1.2.4/ MarkupSafe-2.1.2/
+    - meson setup build $ARGS
+    - meson compile -C build --verbose
+    - meson install -C build
+
+  env:
+    PATH: "$PWD/venv/bin:$PATH"
+    ARGS:
+      - -Db_ndebug=true
+      - --prefix={{prefix}}
+      - --libdir=lib
+      - --buildtype=release
+      - --wrap-mode=nofallback
+    linux:
+      ARGS:
+        - -Dplatforms=x11 #,wayland
+        - -Dglx=auto
+        - -Ddri3=enabled
+        - -Dgallium-drivers=auto
+        - -Dgallium-omx=disabled
+        - -Degl=enabled
+        - -Dgbm=enabled
+        - -Dopengl=true
+        - -Dgles1=enabled
+        - -Dgles2=enabled
+        - -Dvalgrind=disabled
+        - -Dtools=drm-shim,etnaviv,freedreno,glsl,nir,nouveau,lima
+
+
+provides:
+  - bin/foo
+  # ^^ specify the binaries or tea magic won’t work
+
+test:
+  dependencies:
+    foo.com: '*'  # asterisk means “any version, usually the latest”
+  script:
+    test "$(foo --version)" = {{version}}
+    # if it’s a tool check the version matches
+    # you should run the tool to check it works!
+    # if it's a library then you should *use* the library
+    # don’t forget to check other package.ymls in the pantry for examples!
