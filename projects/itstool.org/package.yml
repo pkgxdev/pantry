@@ -1,0 +1,33 @@
+distributable:
+  url: http://files.itstool.org/itstool/itstool-{{version}}.tar.bz2
+  strip-components: 1
+
+versions:
+  url: https://itstool.org/download.html
+  match: /itstool-\d+\.\d+\.\d+\.tar\.bz2/
+  strip:
+    - /^itstool-/
+    - /\.tar\.bz2$/
+
+dependencies:
+  gnome.org/libxml2: '*'
+  python.org: =3.11
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+    
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - PYTHON="{{deps.python.org.prefix}}/bin/python3.11"
+
+provides:
+  - bin/itstool
+
+test: itstool --version | grep {{version}}
