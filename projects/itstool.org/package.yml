@@ -13,6 +13,10 @@ dependencies:
   gnome.org/libxml2: '*'
   python.org: =3.11
 
+runtime:
+  env:
+    ITSTOOL_SHARE: "{{prefix}}/share"
+
 build:
   dependencies:
     tea.xyz/gx/cc: c99
@@ -21,6 +25,8 @@ build:
   script:
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
+    - sed -i 's|DATADIR="[^"]*"|DATADIR="$ITSTOOL_SHARE"|g' {{prefix}}/bin/itstool
+
     
   env:
     ARGS:
