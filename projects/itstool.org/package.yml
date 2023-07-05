@@ -13,19 +13,15 @@ dependencies:
   gnome.org/libxml2: '*'
   python.org: =3.11
 
-runtime:
-  env:
-    ITSTOOL_SHARE: "{{prefix}}/share"
-
 build:
   dependencies:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
 
   script:
-    - ./configure $ARGS PYTHON=$(which python3.11)
+    - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
-    - sed -i'' 's|DATADIR="[^"]*"|DATADIR="$ITSTOOL_SHARE"|g' {{prefix}}/bin/itstool
+    - sed -i'' -e 's|#!/.* -s|#!/usr/bin/env python|g' {{prefix}}/bin/itstool
 
   env:
     ARGS:
