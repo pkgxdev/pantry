@@ -77,6 +77,14 @@ build:
         ARGS=${ARGS/--with-ensurepip/--without-ensurepip}
       if: '>=3<3.8'
 
+    # Older patches have a configure issue that isn't present in newer patches
+    - run: |
+        if test "{{hw.platform}}" = "darwin"; then
+          sed -i.bak -e 's/^MULTIARCH=.*$/MULTIARCH=""/' configure
+          rm configure.bak
+        fi
+      if: '=3.10.0'
+
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }}
     - make install
