@@ -77,6 +77,10 @@ build:
         ARGS=${ARGS/--with-ensurepip/--without-ensurepip}
       if: '>=3<3.8'
 
+    # 3.5 and older don't append the platform to confdir on darwin
+    - run: confdir="${confdir%-{{hw.platform}}}"
+      if: '>=3<3.6'
+
     # Older patches have configure issues that aren't present in newer patches
     - run: |
         if test "{{hw.platform}}" = "darwin"; then
@@ -101,6 +105,25 @@ build:
           curl -L https://github.com/python/cpython/commit/8ea6353.patch | patch -p1
         fi
       if: '>=3.8<3.8.4 || >=3<3.7.8'
+
+    # Versions older than 3.5.3 have an include issue on darwin
+    - run: patch -p1 -l < $PROP
+      prop: |-
+        diff --git a/Python/random.c b/Python/random.c
+        index 93d300d..396041d 100644
+        --- a/Python/random.c
+        +++ b/Python/random.c
+        @@ -3,6 +3,9 @@
+         #  include <windows.h>
+         #else
+         #  include <fcntl.h>
+        +#  if defined(HAVE_GETRANDOM) || defined(HAVE_GETENTROPY)
+        +#    include <sys/random.h>
+        +#  endif
+         #  ifdef HAVE_SYS_STAT_H
+         #    include <sys/stat.h>
+         #  endif
+      if: '>=3<3.5.3'
 
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }}
