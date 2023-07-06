@@ -86,7 +86,7 @@ build:
               configure
           rm configure.bak
         fi
-      if: '=3.9.0'
+      if: '=3.9.0, >=3.8<3.8.10'
 
     - run: |
         if test "{{hw.platform}}" = "darwin"; then
@@ -94,6 +94,13 @@ build:
           rm configure.bak
         fi
       if: '=3.10.0, >=3.9<3.9.8'
+
+      # Some old versions don't support macOS 11 and greater in their configures
+    - run: |
+        if test "{{hw.platform}}" = "darwin"; then
+          curl -L https://github.com/python/cpython/commit/8ea6353.patch | patch -p1
+        fi
+      if: '>=3.8<3.8.4'
 
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }}
