@@ -50,6 +50,9 @@ dependencies:
     linux:
       x.org/x11: '*'
 
+runtime:
+  MAGICK_ROOT: "{{prefix}}"
+
 build:
   dependencies:
     tea.xyz/gx/cc: c99
@@ -57,8 +60,12 @@ build:
     freedesktop.org/pkg-config: '*'
   script:
     - sed -i'' -e 's|${PACKAGE_NAME}-${PACKAGE_BASE_VERSION}|${PACKAGE_NAME}|g' configure
+    - find . -type f -name '*-config.in' -exec sed -i'' -e 's|@PKG_CONFIG@|pkg-config|g' {} +
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
+    - sed -i'' -e 's|^prefix=.*|prefix=${MAGICK_ROOT}|g' {{prefix}}/bin/Magick++-config
+    - sed -i'' -e 's|^prefix=.*|prefix=${MAGICK_ROOT}|g' {{prefix}}/bin/MagickCore-config
+    - sed -i'' -e 's|^prefix=.*|prefix=${MAGICK_ROOT}|g' {{prefix}}/bin/MagickWand-config
 
   env:
     # https://github.com/ImageMagick/ImageMagick/issues/1549
