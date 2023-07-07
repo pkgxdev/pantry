@@ -54,7 +54,7 @@ dependencies:
       x.org/x11: '*'
 
 runtime:
-  MAGICK_ROOT: "{{prefix}}"
+  MAGICK_HOME: "{{prefix}}"
 
 build:
   dependencies:
@@ -66,9 +66,9 @@ build:
     - find . -type f -name '*-config.in' -exec sed -i'' -e 's|@PKG_CONFIG@|pkg-config|g' {} +
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
-    - sed -i'' -e 's|^prefix=.*|prefix=${MAGICK_ROOT}|g' {{prefix}}/bin/Magick++-config
-    - sed -i'' -e 's|^prefix=.*|prefix=${MAGICK_ROOT}|g' {{prefix}}/bin/MagickCore-config
-    - sed -i'' -e 's|^prefix=.*|prefix=${MAGICK_ROOT}|g' {{prefix}}/bin/MagickWand-config
+    - sed -i'' -e 's|^prefix=.*|prefix=${MAGICK_HOME}|g' {{prefix}}/bin/Magick++-config
+    - sed -i'' -e 's|^prefix=.*|prefix=${MAGICK_HOME}|g' {{prefix}}/bin/MagickCore-config
+    - sed -i'' -e 's|^prefix=.*|prefix=${MAGICK_HOME}|g' {{prefix}}/bin/MagickWand-config
 
   env:
     # https://github.com/ImageMagick/ImageMagick/issues/1549
@@ -114,6 +114,8 @@ build:
         - --without-x
 
 test:
+  env:
+    MAGICK_HOME: "{{prefix}}"
   dependencies:
     curl.se: '*'
   script:
