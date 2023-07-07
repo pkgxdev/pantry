@@ -1,12 +1,12 @@
 distributable:
   #FIXME: they use a weird versioning scheme
-  url: https://github.com/ImageMagick/ImageMagick/archive/refs/tags/7.1.0-61.tar.gz
+  url: https://github.com/ImageMagick/ImageMagick/archive/7.1.1-12.tar.gz
   strip-components: 1
 
 versions:
   #FIXME: they use a weird versioning scheme
   # github: ImageMagick/ImageMagick
-  - 7.1.0.61
+  - 7.1.1.12
 
 provides:
   - bin/animate
@@ -27,27 +27,85 @@ provides:
   - bin/stream
 
 dependencies:
-    libpng.org: 1
-    ijg.org: 9
+    libpng.org: '*'
+    ijg.org: '*'
+    freetype.org: '*'
+    libjpeg-turbo.org: '*'
+    github.com/strukturag/libheif: '*'
+    liblqr.wikidot.com: '*'
+    simplesystems.org/libtiff: '*'
+    gnu.org/libtool: '*'
+    littlecms.com: '*'
+    openexr.com: '*'
+    openjpeg.org: '*'
+    google.com/webp: '*'
+    tukaani.org/xz: '*'
+    sourceware.org/bzip2: '*'
+    gnome.org/libxml2: '*'
+    zlib.net: '*'
+    darwin:
+      openmp.llvm.org: '*'
+    linux:
+      x.org/x11: '*'
 
 build:
   dependencies:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
     freedesktop.org/pkg-config: '*'
-  script: |-
-    # seemingly `./configure` doesn't use pkg-config for libjpeg
-    export CPPFLAGS=`pkg-config --cflags libjpeg`
-    export LDFLAGS=`pkg-config --libs libjpeg`
+  script:
+    - sed -i'' -e 's|${PACKAGE_NAME}-${PACKAGE_BASE_VERSION}|${PACKAGE_NAME}|g' configure
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
 
-    ./configure \
-      --prefix={{ prefix }} \
-      --disable-silent-rules
-    make --jobs {{ hw.concurrency }} install
+  env:
+    # https://github.com/ImageMagick/ImageMagick/issues/1549
+    LDFLAGS:
+      - -L{{deps.gnu.org/libtool.prefix}}/lib
+      - -L{{deps.liblqr.wikidot.com.prefix}}/lib
+      - -L{{deps.sourceware.org/bzip2.prefix}}/lib
+      - -L{{deps.ijg.org.prefix}}/lib
+    ARGS:
+      - --prefix={{ prefix }}
+      - --enable-osx-universal-binary=no
+      - --disable-silent-rules
+      - --disable-opencl
+      - --enable-shared
+      - --enable-static
+      - --with-png=yes
+      - --with-tiff=yes
+      - --with-freetype=yes
+      - --with-gvc=no
+      - --with-modules
+      - --with-openjp2
+      - --with-openexr
+      - --with-webp=yes
+      - --with-heic=yes
+      - --with-lqr
+      - --without-lzma
+      - --without-djvu
+      - --without-fftw
+      - --without-pango
+      - --without-wmf
+      - --enable-openmp
+
+    linux:
+      ARGS:
+        - --with-x=yes
+        - --x-includes={{deps.x.org/x11.prefix}}/include
+        - --x-libraries={{deps.x.org/x11.prefix}}/lib
+    darwin:
+      ARGS:
+        - --without-x
+        - ac_cv_prog_c_openmp=-Xpreprocessor -fopenmp
+        - ac_cv_prog_cxx_openmp=-Xpreprocessor -fopenmp
 
 test:
+  env:
+    MAGICK_HOME: "{{prefix}}"
   dependencies:
     curl.se: '*'
-  script: |
-    curl "https://upload.wikimedia.org/wikipedia/commons/6/6a/PNG_Test.png" -o a.png
-    identify a.png | grep "a.png PNG 3120x3920 3120x3920+0+0 8-bit sRGB 7.02443MiB 0.000u"
+  script:
+    - magick -version | grep {{version}}
+    - curl "https://upload.wikimedia.org/wikipedia/commons/6/6a/PNG_Test.png" -o a.png
+    - magick identify a.png | grep "a.png PNG 3120x3920 3120x3920+0+0 8-bit sRGB 7.02443MiB 0.000u"
