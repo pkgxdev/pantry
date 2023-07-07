@@ -233,7 +233,6 @@ build:
 test:
   dependencies:
     tea.xyz/gx/cc: c99
-    crates.io/semverator: '*'
   script:
     # Check if sqlite is ok, because we build with --enable-loadable-sqlite-extensions
     # and it can occur that building sqlite silently fails if OSX's sqlite is used.
@@ -251,8 +250,8 @@ test:
         python -v -c "import _ctypes"
         # python -c "import _decimal" #FIXME
         python -c "import zlib"
-      # FIXME: v2
-      if: ^3
+      # FIXME: v2, <=3.6.4
+      if: ^3.6.4
 
     - python -c "import pyexpat"
 
@@ -281,11 +280,10 @@ test:
         #include <Python.h>
         #include <python{{version.major}}.{{version.minor}}/Python.h>
 
-    - run: |
-        if semverator satisfies '>=3<3.8' {{ version }}; then
-          SUFFIX=m
-        fi
-        test $(python $FIXTURE) = {{prefix}}/include/python{{version.marketing}}$SUFFIX
+    - run: SUFFIX=m
+      if: '>=3<3.8'
+
+    - run: test $(python $FIXTURE) = {{prefix}}/include/python{{version.marketing}}$SUFFIX
       fixture: |
         import sysconfig
         include_path = sysconfig.get_paths()['include']
