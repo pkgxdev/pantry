@@ -42,6 +42,9 @@ dependencies:
     sourceware.org/bzip2: '*'
     gnome.org/libxml2: '*'
     zlib.net: '*'
+    jpeg.org/jpegxl: '*'
+    perl.org: '*'
+    libzip.org: '*'
     darwin:
       openmp.llvm.org: '*'
       github.com/strukturag/libheif: '*'
@@ -76,7 +79,6 @@ build:
       - -L{{deps.ijg.org.prefix}}/lib
     ARGS:
       - --prefix={{ prefix }}
-      - --disable-dependency-tracking
       - --libdir={{prefix}}/lib
       - --enable-osx-universal-binary=no
       - --disable-silent-rules
@@ -84,6 +86,8 @@ build:
       - --enable-shared
       - --with-png=yes
       - --with-tiff=yes
+      - --with-jxl=yes
+      - --with-perl=yes
       - --with-freetype=yes
       - --with-gvc=no
       - --with-modules
@@ -98,6 +102,7 @@ build:
       - --without-pango
       - --without-wmf
       - --enable-openmp
+      - --with-zip=yes
 
     linux:
       ARGS:
@@ -112,6 +117,6 @@ test:
   dependencies:
     curl.se: '*'
   script:
-    - magick -version | grep {{version}}
+    - magick -version | grep 7.1.1-12
     - curl "https://upload.wikimedia.org/wikipedia/commons/6/6a/PNG_Test.png" -o a.png
     - magick identify a.png | grep "a.png PNG 3120x3920 3120x3920+0+0 8-bit sRGB 7.02443MiB 0.000u"
