@@ -66,9 +66,8 @@ build:
     - find . -type f -name '*-config.in' -exec sed -i'' -e 's|@PKG_CONFIG@|pkg-config|g' {} +
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
-    - sed -i'' -e 's|^prefix=.*|prefix=${MAGICK_HOME}|g' {{prefix}}/bin/Magick++-config
-    - sed -i'' -e 's|^prefix=.*|prefix=${MAGICK_HOME}|g' {{prefix}}/bin/MagickCore-config
-    - sed -i'' -e 's|^prefix=.*|prefix=${MAGICK_HOME}|g' {{prefix}}/bin/MagickWand-config
+    - run: sed -i'' -e 's|^prefix=.*|prefix=${MAGICK_HOME}|g' Magick++-config MagickCore-config MagickWand-config
+      working-directory: ${{prefix}}/bin
 
   env:
     # https://github.com/ImageMagick/ImageMagick/issues/1549
