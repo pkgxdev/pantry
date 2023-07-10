@@ -1,0 +1,79 @@
+distributable:
+  url: https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/{{version.tag}}/ghostpdl-{{version.raw}}.tar.xz
+  strip-components: 1
+
+versions:
+  github: ArtifexSoftware/ghostpdl-downloads/releases
+  strip:
+    - /^Ghostscript\/GhostPDL /
+
+dependencies:
+  zlib.net: ^1.2
+  libpng.org: ^1.6
+  libjpeg-turbo.org: ^2
+  simplesystems.org/libtiff: ^4
+  littlecms.com: ^2.15
+  gnu.org/libidn: ^1.41
+  freedesktop.org/fontconfig: ^2.14
+  jbig2dec.com: ^0.19
+  libexpat.github.io: ^2.5
+  openjpeg.org: ^2.5
+  freetype.org: ^2.13
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    freedesktop.org/pkg-config: ^0.29
+  script:
+    - rm -rf expat freetype jbig2dec jpeg lcms2mt libpng openjpeg tiff zlib
+    # ^^ ensure our libs are used and nothing is vendored
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+    - make install-so
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --disable-compile-inits
+      - --disable-cups
+      - --disable-gtk
+      - --with-system-libtiff
+      - --without-x
+
+test:
+  ps2ascii fixture.ps | grep 'Hello World!'
+
+provides:
+  - bin/dvipdf
+  - bin/eps2eps
+  - bin/gpcl6
+  - bin/gpcl6c
+  - bin/gpdlc
+  - bin/gs
+  - bin/gsbj
+  - bin/gsc
+  - bin/gsdj
+  - bin/gsdj500
+  - bin/gslj
+  - bin/gslp
+  - bin/gsnd
+  - bin/gsx
+  - bin/gxps
+  - bin/gxpsc
+  - bin/lprsetup.sh
+  - bin/pdf2dsc
+  - bin/pdf2ps
+  - bin/pf2afm
+  - bin/pfbtopfa
+  - bin/pphs
+  - bin/printafm
+  - bin/ps2ascii
+  - bin/ps2epsi
+  - bin/ps2pdf
+  - bin/ps2pdf12
+  - bin/ps2pdf13
+  - bin/ps2pdf14
+  - bin/ps2pdfwr
+  - bin/ps2ps
+  - bin/ps2ps2
+  - bin/unix-lpr.sh
