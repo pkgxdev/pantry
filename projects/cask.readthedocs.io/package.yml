@@ -1,0 +1,30 @@
+distributable:
+  url: https://github.com/cask/cask/archive/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: cask/cask/tags
+
+dependencies:
+  gnu.org/coreutils: '*'
+  gnu.org/emacs: '*'
+
+build:
+  script:
+    - mkdir -p {{prefix}}/bin
+    - install bin/* {{prefix}}/bin
+    # Lisp files must stay here: https://github.com/cask/cask/issues/305
+    - install *.el {{prefix}}/
+    - mkdir -p {{prefix}}/package-build
+    - install ./package-build/* {{prefix}}/package-build/
+    - mkdir -p {{prefix}}/elisp
+    - ln {{prefix}}/cask.el {{prefix}}/elisp/cask.el
+    - ln {{prefix}}/cask-bootstrap.el {{prefix}}/elisp/cask-bootstrap.el
+    - touch {{prefix}}/.no-upgrade
+
+provides:
+  - bin/cask
+
+test:
+  - cask install
+  - ls .cask/*/* | grep chess
