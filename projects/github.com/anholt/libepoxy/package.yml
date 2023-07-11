@@ -32,5 +32,18 @@ build:
 test:
   dependencies:
     freedesktop.org/pkg-config: '*'
+    tea.xyz/gx/cc: c99
+  env:
+    ARGS:
+      - -lepoxy
+      - -o test
+    darwin:
+      ARGS:
+        - -framework OpenGL
+        - -DOS_MAC
   script:
     - pkg-config --modversion epoxy | grep {{version}}
+    - cc test.c $ARGS
+    - ls -lh test
+    - file test
+    - ./test
