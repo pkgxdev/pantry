@@ -1,0 +1,35 @@
+distributable:
+  url: https://deb.debian.org/debian/pool/main/m/mecab-ipadic/mecab-ipadic_2.7.0-20070801+main.orig.tar.gz
+  # Canonical URL = https://drive.google.com/uc?export=download&id=0B4y35FiV1wh7MWVlSDBCSXZMTXM
+  strip-components: 1
+
+versions:
+  - 2.7.0.20070801
+
+platforms:
+  - darwin
+  - linux/x86-64
+
+dependencies:
+  taku910.github.io/mecab: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --disable-dependency-tracking
+      - --disable-debug
+      - --with-charset=utf8
+      - --with-dicdir={{prefix}}/lib/mecab/dic/ipadic
+
+test:
+  - touch mecabrc
+  - echo 'dicdir = {{prefix}}/lib/mecab/dic/ipadic' > mecabrc
+  - echo "すもももももももものうち" | mecab --rcfile=mecabrc | grep '詞'
