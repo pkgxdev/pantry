@@ -17,7 +17,12 @@ build:
     
   working-directory: build
   script:
-    - meson setup $ARGS ..
+    - run: |
+        cd egl=false
+        meson setup $ARGS ../..
+      if: linux
+    - run: meson setup $ARGS ..
+      if: darwin
     - ninja
     - ninja install
   env:
