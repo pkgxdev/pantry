@@ -25,7 +25,7 @@ build:
   script:
     - wget $PREBUILT_SERVER_URL -O scrcpy-server
     - meson $ARGS ..
-    - ninja install
+    - ninja -j {{ hw.concurrency }} install
 
   env:
     PREBUILT_SERVER_URL: https://github.com/Genymobile/scrcpy/releases/download/v{{version.marketing}}/scrcpy-server-v{{version.marketing}}
@@ -36,8 +36,7 @@ build:
       - -Dprebuilt_server="build/scrcpy-server"
       - --strip
       - -Db_lto=true
-    linux/aarch64:
-      CFLAGS: -ldrm
+      - -Dportable=true
 
 provides:
   - bin/scrcpy
