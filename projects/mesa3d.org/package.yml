@@ -45,20 +45,21 @@ build:
     ninja-build.org: '*'
     freedesktop.org/pkg-config: '*'
     pygments.org: '*'
-    python.org: =3.11
+    python.org: 3.11
     x.org/protocol: '*'
     github.com/westes/flex: '*'
     gnu.org/wget: '*'
     pip.pypa.io: '*'
   
   script:
-    - python3 -m venv venv
-    - source venv/bin/activate
     - wget https://files.pythonhosted.org/packages/05/5f/2ba6e026d33a0e6ddc1dddf9958677f76f5f80c236bd65309d280b166d3e/Mako-1.2.4.tar.gz
     - tar -xvf Mako-1.2.4.tar.gz
-    - wget https://files.pythonhosted.org/packages/95/7e/68018b70268fb4a2a605e2be44ab7b4dd7ce7808adae6c5ef32e34f4b55a/MarkupSafe-2.1.2.tar.gz
-    - tar -xvf MarkupSafe-2.1.2.tar.gz
-    - pip3 install Mako-1.2.4/ MarkupSafe-2.1.2/
+    - run: python-venv.sh bin/Mako #$HOME/venv/bin/Mako
+      working-directory: $HOME/Mako-1.2.4
+    #- wget https://files.pythonhosted.org/packages/95/7e/68018b70268fb4a2a605e2be44ab7b4dd7ce7808adae6c5ef32e34f4b55a/MarkupSafe-2.1.2.tar.gz
+    #- tar -xvf MarkupSafe-2.1.2.tar.gz
+    #- run: python-venv.sh bin/MarkupSafe #$HOME/venv/bin/MarkupSafe
+    #  working-directory: MarkupSafe-2.1.2
     - meson setup build $ARGS
     - meson compile -C build --verbose
     - meson install -C build
