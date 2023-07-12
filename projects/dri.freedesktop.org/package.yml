@@ -1,0 +1,45 @@
+distributable:
+  url: https://dri.freedesktop.org/libdrm/libdrm-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://dri.freedesktop.org/libdrm/
+  match: /libdrm-\d+\.\d+\.\d+\.tar\.gz/
+  strip:
+    - /^libdrm-/
+    - /\.tar\.gz$/
+
+platforms:
+  - linux
+
+dependencies:
+  mesonbuild.com: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    mesonbuild.com: '*'
+    ninja-build.org: '*'
+    freedesktop.org/pkg-config: '*'
+    python.org: 3.11
+
+  working-directory: build
+  script:
+    - meson $ARGS ..
+    - ninja -j {{ hw.concurrency }}
+    - ninja -j {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --buildtype=release
+      - --wrap-mode=nofallback
+
+test:
+  dependencies:
+    foo.com: '*'  # asterisk means “any version, usually the latest”
+  script:
+    test "$(foo --version)" = {{version}}
+    # if it’s a tool check the version matches
+    # you should run the tool to check it works!
+    # if it's a library then you should *use* the library
+    # don’t forget to check other package.ymls in the pantry for examples!
