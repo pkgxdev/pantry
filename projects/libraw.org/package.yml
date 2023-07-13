@@ -18,7 +18,7 @@ dependencies:
     openmp.llvm.org: '*'
 
 build:
-  dependencies:  
+  dependencies:
     tea.xyz/gx/make: '*'
     gnu.org/autoconf: '*'
     gnu.org/automake: '*'
@@ -31,7 +31,10 @@ build:
   
   script:
     - autoreconf --force --install --verbose
-    - ./configure $ARGS
+    - run: ./configure $ARGS
+      if: linux
+    - run: ./configure $ARGS ac_cv_prog_c_openmp='-Xpreprocessor -fopenmp' ac_cv_prog_cxx_openmp='-Xpreprocessor -fopenmp' || { cat configure.log; exit 1; }
+      if: darwin
     - make --jobs {{ hw.concurrency }}
     - make --jobs {{ hw.concurrency }} install
     - mkdir -p {{prefix}}/doc
@@ -44,7 +47,6 @@ build:
     darwin:
       ARGS:
         - LDFLAGS=-lomp
-        - --enable-debug
 
 provides:
   - bin/4channels
@@ -61,6 +63,7 @@ provides:
 
 test:
   dependencies:
+    gnu.org/gcc: '*'
     gnu.org/wget: '*'
     freedesktop.org/pkg-config: '*'
   script:
