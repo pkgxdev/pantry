@@ -17,9 +17,6 @@ build:
       gnu.org/autoconf: '*'
       
   script:
-    - sed -i'' -e "s|OMPI_CXX_ABSOLUTE|$CXX|g" $FILES
-    - sed -i'' -e "s|OPAL_CC_ABSOLUTE|$CC|g" $FILES
-    - sed -i'' -e "s|PMIX_CC_ABSOLUTE|$CC|g" $FILES
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} all
     - make --jobs {{ hw.concurrency }} check
@@ -30,9 +27,6 @@ build:
     FILES:
       - ompi/tools/ompi_info/param.c
       - oshmem/tools/oshmem_info/param.c
-    linux:
-      CXX: "{{deps.gnu.org/gcc.prefix}}/bin/g++"
-      CC: "{{deps.gnu.org/gcc.prefix}}/bin/gcc"
     darwin:
       MACOSX_DEPLOYMENT_TARGET: "$(sw_vers -productVersion)"
     ARGS:
