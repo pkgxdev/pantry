@@ -31,10 +31,7 @@ build:
   
   script:
     - autoreconf --force --install --verbose
-    - run: ./configure $ARGS
-      if: linux
-    - run: ./configure $ARGS ac_cv_prog_c_openmp='-Xpreprocessor -fopenmp' ac_cv_prog_cxx_openmp='-Xpreprocessor -fopenmp'
-      if: darwin
+    - ./configure $ARGS
     - make --jobs {{ hw.concurrency }}
     - make --jobs {{ hw.concurrency }} install
     - mkdir -p {{prefix}}/doc
