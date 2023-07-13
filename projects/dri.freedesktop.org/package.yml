@@ -9,11 +9,13 @@ versions:
     - /^libdrm-/
     - /\.tar\.gz$/
 
+display-name: libdrm
+
 platforms:
   - linux
 
 dependencies:
-  mesonbuild.com: '*'
+  x.org/pciaccess: '*'
 
 build:
   dependencies:
@@ -31,15 +33,15 @@ build:
   env:
     ARGS:
       - --prefix="{{prefix}}"
+      - --libdir="{{prefix}}/lib"
       - --buildtype=release
       - --wrap-mode=nofallback
 
 test:
   dependencies:
-    foo.com: '*'  # asterisk means “any version, usually the latest”
+    tea.xyz/gx/cc: c99
+    freedesktop.org/pkg-config: '*'
   script:
-    test "$(foo --version)" = {{version}}
-    # if it’s a tool check the version matches
-    # you should run the tool to check it works!
-    # if it's a library then you should *use* the library
-    # don’t forget to check other package.ymls in the pantry for examples!
+    - pkg-config --modversion libdrm | grep {{version}}
+    - cc test.c -ldrm -o test
+    - ./test
