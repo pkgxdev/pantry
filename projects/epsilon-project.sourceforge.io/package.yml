@@ -1,0 +1,32 @@
+distributable:
+    url: https://downloads.sourceforge.net/project/epsilon-project/epsilon/{{version}}/epsilon-{{version}}.tar.gz
+    strip-components: 1
+display-name: epsilon
+versions:
+    url: https://sourceforge.net/projects/epsilon-project/files/epsilon/
+    match: /epsilon\/\d+\.\d+\.\d+/
+    strip:
+        - /^epsilon\//
+dependencies:
+    rpm.org/popt: '*'
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    gnu.org/make: '*'
+    gnu.org/autoconf: '*'
+    gnu.org/automake: '*'
+    gnu.org/libtool: '*'
+  script:
+    - autoreconf --force --install --verbose
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --disable-debug
+      - --disable-dependency-tracking
+provides:
+  - bin/epsilon
+test:
+  script:
+    - epsilon --version | grep {{version}}
