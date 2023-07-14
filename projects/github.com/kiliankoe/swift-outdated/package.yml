@@ -1,0 +1,25 @@
+distributable:
+  url: https://github.com/kiliankoe/swift-outdated/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: kiliankoe/swift-outdated/tags
+
+platforms:
+  - darwin
+
+provides:
+  - bin/swift-outdated
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    # swift.org: ^5.8
+    # apple.com/xcode: >=14
+  script:
+    - swift build --configuration release
+    - mkdir -p {{prefix}}/bin
+    - mv $(swift build --configuration release --show-bin-path)/swift-outdated {{prefix}}/bin
+
+test:
+  swift-outdated --version | grep {{version}}
