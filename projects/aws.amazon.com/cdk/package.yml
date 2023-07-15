@@ -1,0 +1,27 @@
+distributable:
+    url: https://registry.npmjs.org/aws-cdk/-/aws-cdk-{{version}}.tgz
+    strip-components: 1
+display-name: aws-cdk
+versions:
+    url: https://www.npmjs.com/package/aws-cdk?activeTab=versions
+    match: /v\/\d+\.\d+\.\d+/
+    strip:
+        - /^v\//
+dependencies:
+    nodejs.org: '*'
+build:
+  dependencies:
+    npmjs.com: '*'
+  script:
+    - npm install $ARGS
+  env:
+    ARGS:
+      - -ddd
+      - --global
+      - --build-from-source
+      - --prefix={{prefix}}
+provides:
+  - bin/cdk
+test:
+  script:
+    - cdk --version | grep {{version}}
