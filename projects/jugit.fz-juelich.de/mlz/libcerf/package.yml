@@ -6,26 +6,30 @@ versions:
   gitlab: jugit.fz-juelich.de:mlz/libcerf
 build:
   dependencies:
-    tea.xyz/gx/cc: c99
     gnu.org/make: '*'
     cmake.org: '*'
+    linux:
+      gnu.org/gcc: '*'
   working-directory: build
   script:
     - cmake .. $ARGS
     - make --jobs {{ hw.concurrency }} install
   env:
     ARGS:
-      - -DCMAKE_C_COMPILER={{deps.tea.xyz/gx/cc.prefix}}/bin/cc
-      - -DCMAKE_CXX_COMPILER={{deps.tea.xyz/gx/cc.prefix}}/bin/c++
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
       - -DCMAKE_INSTALL_LIBDIR={{prefix}}/lib
       - -DCMAKE_BUILD_TYPE=Release
       - -DCMAKE_FIND_FRAMEWORK=LAST
       - -DCMAKE_VERBOSE_MAKEFILE=ON
       - -Wno-dev
+    linux:
+      ARGS:
+        - -DCMAKE_C_COMPILER={{deps.gnu.org/gcc.prefix}}/bin/gcc
+        - -DCMAKE_CXX_COMPILER={{deps.gnu.org/gcc.prefix}}/bin/g++
 test:
   dependencies:
-    tea.xyz/gx/cc: c99
+    linux:
+      gnu.org/gcc: '*'
     freedesktop.org/pkg-config: '*'
   script:
     - cc test.c -lcerf -o test
