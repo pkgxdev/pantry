@@ -1,0 +1,30 @@
+distributable:
+  url: https://github.com/sindresorhus/macos-term-size/releases/download/v{{version}}/term-size.zip
+  strip-components: 1
+
+warnings:
+  - vendored
+
+versions:
+  github: sindresorhus/macos-term-size
+
+platforms:
+  - darwin
+
+build:
+  script:
+    - mkdir -p {{prefix}}/bin
+    - run: |
+        CODESIGN="$(codesign -dvv term-size 2>&1)"
+        echo $CODESIGN | grep "Authority=$AUTHORITY"
+        echo $CODESIGN | grep "TeamIdentifier=$TEAMIDENTIFIER"
+    - install term-size {{prefix}}/bin
+  env:
+    AUTHORITY: "Developer ID Application: Node.js Foundation (HX7739G8FX)"
+    TEAMIDENTIFIER: HX7739G8FX
+
+provides:
+  - bin/term-size
+
+# FIXME: how do we test this?
+test: ls -x {{prefix}}/bin/term-size | grep {{version}}
