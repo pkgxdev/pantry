@@ -1,0 +1,31 @@
+distributable:
+    url: https://gitlab.freedesktop.org/wayland/wayland-protocols/-/releases/1.32/downloads/wayland-protocols-1.32.tar.xz
+    strip-components: 1
+display-name: wayland-protocols
+versions:
+    gitlab: gitlab.freedesktop.org:wayland/wayland-protocols
+platforms:
+  - linux
+build:
+  dependencies:
+    mesonbuild.com: '*'
+    ninja-build.org: '*'
+    freedesktop.org/pkg-config: '*'
+    python.org: ^3.11
+    wayland.freedesktop.org: '*'
+  working-directory: build
+  script:
+    - meson $ARGS ..
+    - ninja -v
+    - ninja install -v
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --libdir={{prefix}}/lib
+      - --buildtype=release
+      - --wrap-mode=nofallback
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script:
+    - pkg-config --modversion wayland-protocols | grep {{version.marketing}}
