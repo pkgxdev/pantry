@@ -5,6 +5,7 @@ versions:
   github: schollz/croc
 build:
   dependencies:
+    tea.xyz/gx/cc: c99
     go.dev: '*'
   script:
     - go build $ARGS -ldflags="-s -w"
@@ -12,7 +13,9 @@ build:
     ARGS:
       - -trimpath
       - -o={{prefix}}/bin/croc
-      - -asan
+    linux:
+      ARGS:
+        - -asan
 provides:
   - bin/croc
 test: croc --version | grep {{version}}
