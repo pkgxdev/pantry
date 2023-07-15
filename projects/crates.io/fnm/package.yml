@@ -1,0 +1,23 @@
+distributable:
+  url: https://github.com/Schniz/fnm/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: Schniz/fnm
+
+dependencies:
+  darwin:
+    zlib.net: ^1
+
+build:
+  dependencies:
+    rust-lang.org: ">=1.60"
+    rust-lang.org/cargo: "*"
+  script: |
+    cargo install --locked --path . --root {{prefix}}
+
+provides:
+  - bin/fnm
+
+test:
+  script: test "$(fnm --version)" = "fnm {{version}}"
