@@ -1,0 +1,39 @@
+distributable:
+  url: https://www.alsa-project.org/files/pub/lib/alsa-lib-{{version}}.tar.bz2
+  strip-components: 1
+
+versions:
+  url: https://www.alsa-project.org/files/pub/lib/
+  match: /alsa-lib-\d+\.\d+\.\d+\.tar\.bz2/
+  strip:
+    - /^alsa-lib-/
+    - /\.tar\.bz2$/
+
+platforms:
+  - linux
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+    
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --disable-silent-rules
+
+provides:
+  - bin/aserver
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script:
+    - cc test.c -lasound -o test
+    - ./test

@@ -1,0 +1,25 @@
+distributable:
+  url: https://github.com/ImageOptim/libimagequant/archive/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: ImageOptim/libimagequant/tags
+
+display-name: libimagequant
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    github.com/lu-zero/cargo-c: '*'
+    rust-lang.org/cargo: '*'
+
+  working-directory: imagequant-sys
+  script: cargo cinstall --prefix {{prefix}}
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script:
+    - cc test.c -limagequant -o test
+    - ./test

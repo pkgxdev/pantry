@@ -1,0 +1,45 @@
+distributable:
+  url: https://github.com/hercules-team/augeas/releases/download/release-{{version}}/augeas-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: hercules-team/augeas
+  strip: /^release-/
+
+dependencies:
+  gnu.org/readline: '*'
+  gnome.org/libxml2: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/make: '*'
+    gnu.org/autoconf: '*'
+    gnu.org/automake: '*'
+    gnu.org/bison: '*'
+    gnu.org/libtool: '*'
+    freedesktop.org/pkg-config: '*'
+    curl.se: '*'
+    gnu.org/patch: '*'
+    linux:
+      gnu.org/gcc: '*'
+  
+  script:
+    - run: curl -L https://github.com/hercules-team/augeas/commit/7b26cbb74ed634d886ed842e3d5495361d8fd9b1.patch?full_index=1 | patch -p1
+      if: <1.14.1
+    - autoreconf --force --install
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --disable-debug
+      - --disable-dependency-tracking
+
+provides:
+  - bin/augmatch
+  - bin/augparse
+  - bin/augprint
+  - bin/augtool
+  - bin/fadot
+
+test: augtool --version 2>&1 | grep {{version}}

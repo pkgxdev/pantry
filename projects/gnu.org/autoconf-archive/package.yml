@@ -1,0 +1,38 @@
+distributable:
+  url: https://ftp.gnu.org/gnu/autoconf-archive/autoconf-archive-{{ version.raw }}.tar.xz
+  strip-components: 1
+
+versions:
+  url: https://ftp.gnu.org/gnu/autoconf-archive/
+  match: /autoconf-archive-(\d+\.\d+(\.\d+)?)\.tar\.xz/
+  strip:
+    - /autoconf-archive-/
+    - /.tar.xz/
+
+build:
+  dependencies:
+    tea.xyz/gx/make: '*'
+  script:
+    - ./configure --prefix="{{ prefix }}"
+    - make --jobs {{ hw.concurrency }} install
+
+test:
+  dependencies:
+    gnu.org/autoconf: '*'
+  script:
+    - echo $TESTM4 >test.m4
+    - autoconf test.m4
+  env:
+    TESTM4: |
+      AC_INIT(myconfig, version-0.1)
+      AC_MSG_NOTICE([Hello, world.])
+
+      m4_include([{{prefix}}/share/aclocal/ax_have_select.m4])
+
+      # from https://www.gnu.org/software/autoconf-archive/ax_have_select.html
+      AX_HAVE_SELECT(
+        [AX_CONFIG_FEATURE_ENABLE(select)],
+        [AX_CONFIG_FEATURE_DISABLE(select)])
+      AX_CONFIG_FEATURE(
+        [select], [This platform supports select(7)],
+        [HAVE_SELECT], [This platform supports select(7).])

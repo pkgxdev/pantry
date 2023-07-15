@@ -1,0 +1,35 @@
+distributable:
+  url: https://github.com/AntonOsika/gpt-engineer/archive/refs/tags/v0.0.3.tar.gz
+  strip-components: 1
+
+versions:
+  github: AntonOsika/gpt-engineer
+
+display-name: GPT Engineer
+
+dependencies:
+  python.org: ^3
+  tea.xyz: ^0
+
+entrypoint: tea {{prefix}}/entrypoint.sh
+
+build:
+  dependencies:
+    gnu.org/patch: '*'
+  script:
+    # https://github.com/AntonOsika/gpt-engineer/issues/204
+    - patch -p1 < props/main.py.patch
+
+    - python-venv.sh {{prefix}}/bin/gpt-engineer
+
+    # https://github.com/AntonOsika/gpt-engineer/issues/204
+    - cp -a identity {{prefix}}
+
+    - cp props/entrypoint.sh {{prefix}}
+
+provides:
+  - bin/gpt-engineer
+
+test:
+  qa-required: true
+  script: gpt-engineer --help

@@ -1,0 +1,37 @@
+distributable:
+  url: https://www.leonerd.org.uk/code/libtermkey/libtermkey-{{version.marketing}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://www.leonerd.org.uk/code/libtermkey
+  match: /libtermkey-\d+\.\d+\.\d+\.tar\.gz/
+  strip:
+    - /^libtermkey-/
+    - /\.tar\.gz/
+
+dependencies:
+  github.com/neovim/unibilium: '*'
+  invisible-island.net/ncurses: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/libtool: '*'
+    freedesktop.org/pkg-config: '*'
+    linux:
+      gnome.org/glib: '*'
+  
+  script:
+    - make $ARGS
+    - make $ARGS install
+
+  env:
+    ARGS:
+      - PREFIX="{{prefix}}"
+      - --jobs {{ hw.concurrency }}
+
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script: pkg-config --modversion termkey | grep {{version.marketing}}
