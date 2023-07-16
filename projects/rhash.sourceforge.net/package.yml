@@ -23,12 +23,19 @@ build:
   dependencies:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
-  script: |
-    ./configure --prefix={{ prefix }}
-    make --jobs {{ hw.concurrency }}
-    make --jobs {{ hw.concurrency }} install
-    make -C librhash install-lib-headers
-    make test
+  script:
+    - ./configure --prefix={{ prefix }}
+    # 1.4.4 tries to remove a file that doesn't exist
+    - run: |
+        sed -i.bak 's|rm -f $(LIBRHASH_SOLINK)|test -f $(LIBRHASH_SOLINK) \&\& rm -f $(LIBRHASH_SOLINK)|' Makefile
+        rm Makefile.bak
+      working-directory: librhash
+      if: =1.4.4
+
+    - make --jobs {{ hw.concurrency }}
+    - make --jobs {{ hw.concurrency }} install
+    - make -C librhash install-lib-headers
+    - make test
 
 test:
   script: |
