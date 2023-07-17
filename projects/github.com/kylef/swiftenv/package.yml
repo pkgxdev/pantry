@@ -8,11 +8,16 @@ versions:
 platforms:
   - darwin
 
+build:
+  working-directory: ${{prefix}}
+  script: cp -a "$SRCROOT"/* .
+
 provides:
   - bin/swiftenv
 
-build:
-  echo "Nothing to build"
+runtime:
+  env:
+    SWIFTENV_ROOT: ${{prefix}}
 
 test:
   swiftenv --version | grep {{version}}
