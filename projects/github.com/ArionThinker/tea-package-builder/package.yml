@@ -1,0 +1,31 @@
+distributable:
+  url: https://github.com/ArionThinker/tea-package-builder/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: ArionThinker/tea-package-builder
+
+entrypoint: bin/tea-package-builder
+
+build:
+  dependencies:
+    nodejs.org: '>=14'
+    npmjs.com: '*'
+    git-scm.org: ^2
+  script:
+    - npm install
+    - npm run package
+    - mkdir -p {{prefix}}/bin
+    - run: |
+        mkdir -p {{prefix}}/Applications
+        mv out/tea-package-builder-{{hw.platform}}-*/tea-package-builder.app {{prefix}}/Applications
+        cp props/tea-package-builder {{prefix}}/bin
+      if: darwin
+    - run: mv out/tea-package-builder-{{hw.platform}}-*/tea-package-builder {{prefix}}/bin
+      if: linux
+
+provides:
+  - bin/tea-package-builder
+
+test:
+  - tea-package-builder --version
