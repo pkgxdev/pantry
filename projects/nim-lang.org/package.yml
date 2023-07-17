@@ -22,16 +22,30 @@ dependencies:
   openssl.org: '*'
 
 build:
-  script: |-
-    sh build.sh
-    bin/nim c koch
-    ./koch boot -d:release
-    ./koch tools
-    ./install.sh {{ prefix }}
-    rm -rf {{ prefix }}/nim/compiler
-    cp -r {{ prefix }}/nim/* {{ prefix }}
-    rm -rf {{ prefix }}/nim
-    for fn in atlas nim nim-gdb nim_dbg nimble nimgrep nimpretty nimsuggest testament; do cp ./bin/$fn {{ prefix }}/bin/; done
+  script:
+    - sh build.sh
+    - ./bin/nim c koch
+    - ./koch boot -d:release
+    - ./koch tools
+    - ./install.sh {{ prefix }}
+    - run: |
+        rm -rf nim/compiler
+        cp -r nim/* .
+        rm -rf nim
+      working-directory: ${{prefix}}
+    - run: cp $BINS {{ prefix }}/bin/
+      working-directory: bin
+  env:
+    BINS:
+      - atlas
+      - nim
+      - nim-gdb
+      - nim_dbg
+      - nimble
+      - nimgrep
+      - nimpretty
+      - nimsuggest
+      - testament
 
 test:
   script: |
