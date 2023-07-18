@@ -16,12 +16,17 @@ build:
   dependencies:
     tea.xyz/gx/cc: 'c99'
     tea.xyz/gx/make: '*'
+    gnu.org/libiconv: '*'
   script: |
-    ./configure --prefix={{ prefix }} --disable-debug
-    make --jobs {{ hw.concurrency }} install
+    ./configure $ARGS
+    make -v --jobs {{ hw.concurrency }} install
   env:
     #FIXME for our docker images, but we should make a `build` user for those
     FORCE_UNSAFE_CONFIGURE: 1
+    ARGS:
+      - --prefix={{ prefix }}
+      - --disable-debug
+      - --with-libiconv-prefix={{ deps.gnu.org/libiconv.prefix }}
 
 test:
   script:
