@@ -46,6 +46,13 @@ build:
       - -DLLVM_INCLUDE_DOCS=OFF
       - -DLLVM_INCLUDE_TESTS=OFF
       - -DLLVM_LINK_LLVM_DYLIB=ON
+    linux:
+      ARGS:
+      # the default is `ld` however clang when handling linking itself
+      # internally passes flags that, in fact, expect `lld`
+      #NOTE only wanted on linux because on macOS we actually *need* the Apple
+      # provided `ld` or things *also* break 😆
+      - -DCLANG_DEFAULT_LINKER=lld
     darwin:
       ARGS:
       #FIXME shouldn’t *have to* require the command line tools package
