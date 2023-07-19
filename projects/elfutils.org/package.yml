@@ -1,0 +1,57 @@
+distributable:
+    url: https://sourceware.org/elfutils/ftp/{{version.marketing}}/elfutils-{{version.marketing}}.tar.bz2
+    strip-components: 1
+versions:
+    url: https://sourceware.org/git/?p=elfutils.git;a=tags
+    match: /elfutils-\d+\.\d+/
+    strip: /^elfutils-/
+platforms:
+  - linux
+dependencies:
+    sourceware.org/bzip2: '*'
+    tukaani.org/xz: '*'
+    zlib.net: '*'
+    facebook.com/zstd: '*'
+build:
+  dependencies:
+    tea.xyz/gx/cc: '*'
+    gnu.org/make: '*'
+    gnu.org/m4: '*'
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --prefix={{prefix}}
+      - --libdir={{prefix}}/lib
+      - --disable-silent-rules
+      - --disable-libdebuginfod
+      - --disable-debuginfod
+      - --disable-demangler
+      - --with-bzlib
+      - --with-lzma
+      - --with-zlib
+      - --with-zstd
+provides:
+  - bin/eu-addr2line
+  - bin/eu-ar
+  - bin/eu-elfclassify
+  - bin/eu-elfcmp
+  - bin/eu-elfcompress
+  - bin/eu-elflint
+  - bin/eu-findtextrel
+  - bin/eu-nm
+  - bin/eu-objdump
+  - bin/eu-ranlib
+  - bin/eu-readelf
+  - bin/eu-size
+  - bin/eu-stack
+  - bin/eu-strings
+  - bin/eu-strip
+  - bin/eu-unstrip
+test:
+  script:
+    - eu-nm --version | grep {{version.marketing}}

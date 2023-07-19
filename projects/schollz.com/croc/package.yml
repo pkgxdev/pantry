@@ -1,0 +1,21 @@
+distributable:
+  url: https://github.com/schollz/croc/archive/v{{version}}.tar.gz
+  strip-components: 1
+versions:
+  github: schollz/croc
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    go.dev: '*'
+  script:
+    - go build $ARGS -ldflags="-s -w"
+  env:
+    ARGS:
+      - -trimpath
+      - -o={{prefix}}/bin/croc
+    linux:
+      ARGS:
+        - -asan
+provides:
+  - bin/croc
+test: croc --version | grep {{version}}

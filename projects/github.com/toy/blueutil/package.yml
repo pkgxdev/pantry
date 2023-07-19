@@ -1,0 +1,20 @@
+distributable:
+  url: git+https://github.com/toy/blueutil
+  ref: v{{version}}
+  strip-components: 1
+versions:
+  github: toy/blueutil
+platforms:
+  - darwin/aarch64
+  # Set to build with SDK=macosx10.6
+  # - darwin/x86-64
+build:
+  script:
+    - xcodebuild -arch $(uname -m) SDKROOT= SYMROOT=build
+    - mkdir -p {{prefix}}/bin
+    - install build/Release/blueutil {{prefix}}/bin/
+provides:
+  - bin/blueutil
+test:
+  script:
+    - blueutil --version | grep {{version}}
