@@ -1,6 +1,5 @@
 distributable:
   url: https://github.com/yonaskolb/XcodeGen/releases/download/{{version}}/xcodegen.zip
-  strip-components: 1
 
 versions:
   github: yonaskolb/XcodeGen
@@ -15,12 +14,9 @@ warnings:
   - vendored
 
 build:
-  working-directory: vendor
-  script: |
-    curl -Lfo xcodegen.zip "https://github.com/yonaskolb/XcodeGen/releases/download/{{version}}/xcodegen.zip"
-    unzip xcodegen.zip
-    mkdir -p "{{prefix}}/bin"
-    mv xcodegen/bin/xcodegen "{{prefix}}/bin"
+  working-directory: ${{prefix}}/bin
+  script: cp "$SRCROOT"/xcodegen/bin/xcodegen .
+
 test:
   script: |
-    [[ "$(xcodegen --version)" = "Version: {{version}}"* ]]
+    [[ "$(xcodegen --version)" = "Version: {{version}}" ]]
