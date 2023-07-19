@@ -10,20 +10,13 @@ versions:
     - /\.tar\.xz/
 runtime:
   env:
-    PERL5LIB: "{{prefix}}/lib/perl5:{{prefix}}/libexec/lib/perl5"
+    PERL5LIB: "{{prefix}}/lib/perl5:{{prefix}}/libexec/lib/perl5:$PERL5LIB"
 build:
   dependencies:
     tea.xyz/gx/cc: c99
     gnu.org/make: '*'
     gnu.org/wget: '*'
   script:
-    - wget https://cpan.metacpan.org/authors/id/B/BI/BINGOS/ExtUtils-MakeMaker-7.70.tar.gz
-    - tar -xzf ExtUtils-MakeMaker-7.70.tar.gz
-    - run: |
-        perl Makefile.PL INSTALL_BASE={{prefix}}/libexec
-        make --jobs {{ hw.concurrency }}
-        make --jobs {{ hw.concurrency }} install
-      working-directory: ExtUtils-MakeMaker-7.70
     - wget https://cpan.metacpan.org/authors/id/K/KH/KHW/Pod-Simple-3.43.tar.gz
     - tar -xzf Pod-Simple-3.43.tar.gz
     - run: |
@@ -35,7 +28,7 @@ build:
     - make --jobs {{ hw.concurrency }}
     - make --jobs {{ hw.concurrency }} install
   env:
-    PERL5LIB: "{{prefix}}/libexec/lib/perl5"
+    PERL5LIB: "{{prefix}}/libexec/lib/perl5:$PERL5LIB"
     ARGS:
       - INSTALL_BASE={{prefix}}
       - INSTALLSITEMAN1DIR={{prefix}}/man/man1
