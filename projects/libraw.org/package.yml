@@ -1,0 +1,70 @@
+distributable:
+  url: https://www.libraw.org/data/LibRaw-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://www.libraw.org/download
+  match: /LibRaw-\d+\.\d+\.\d+\.tar\.gz/
+  strip:
+    - /^LibRaw-/
+    - /\.tar\.gz$/
+
+dependencies:
+  github.com/jasper-software/jasper: '*'
+  libjpeg-turbo.org: '*'
+  littlecms.com: '*'
+  zlib.net: '*'
+  darwin:
+    openmp.llvm.org: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/make: '*'
+    gnu.org/autoconf: '*'
+    gnu.org/automake: '*'
+    gnu.org/libtool: '*'
+    freedesktop.org/pkg-config: '*'
+    darwin:
+      llvm.org: '*'
+    linux:
+      gnu.org/gcc: '*'
+  
+  script:
+    - autoreconf --force --install --verbose
+    - run: ./configure $ARGS
+      if: linux
+    - run: ./configure $ARGS ac_cv_prog_c_openmp='-Xpreprocessor -fopenmp' ac_cv_prog_cxx_openmp='-Xpreprocessor -fopenmp' || { cat config.log; exit 1; }
+      if: darwin
+    - make --jobs {{ hw.concurrency }}
+    - make --jobs {{ hw.concurrency }} install
+    - mkdir -p {{prefix}}/doc
+    - install doc/* {{prefix}}/doc/
+   
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --disable-dependency-tracking
+
+provides:
+  - bin/4channels
+  - bin/dcraw_emu
+  - bin/dcraw_half
+  - bin/half_mt
+  - bin/mem_image
+  - bin/multirender_test
+  - bin/postprocessing_benchmark
+  - bin/raw-identify
+  - bin/rawtextdump
+  - bin/simple_dcraw
+  - bin/unprocessed_raw
+
+test:
+  dependencies:
+    gnu.org/gcc: '*'
+    gnu.org/wget: '*'
+    freedesktop.org/pkg-config: '*'
+  script:
+    - pkg-config --modversion libraw | grep {{version}}
+    - wget https://www.rawsamples.ch/raws/nikon/d1/RAW_NIKON_D1.NEF
+    - raw-identify -u RAW_NIKON_D1.NEF | grep 'Nikon/D1'
+    - simple_dcraw  -v -T RAW_NIKON_D1.NEF | grep 'RAW_NIKON_D1.NEF.tiff'
