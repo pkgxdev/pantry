@@ -1,0 +1,26 @@
+distributable:
+  url: https://github.com/yonaskolb/XcodeGen/releases/download/2.35.0/xcodegen.zip
+  strip-components: 1
+
+versions:
+  github: yonaskolb/XcodeGen
+
+platforms:
+  - darwin
+
+provides:
+  - bin/xcodegen
+
+warnings:
+  - vendored
+
+build:
+  working-directory: vendor
+  script: |
+    curl -Lfo xcodegen.zip "https://github.com/yonaskolb/XcodeGen/releases/download/{{version}}/xcodegen.zip"
+    unzip xcodegen.zip
+    mkdir -p "{{prefix}}/bin"
+    mv bin/xcodegen "{{prefix}}/bin"
+test:
+  script: |
+    [[ "$(xcodegen --version)" = "Version: {{version}}"* ]]
