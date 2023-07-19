@@ -1,0 +1,65 @@
+distributable:
+  url: https://github.com/ArionThinker/tea-package-builder/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: ArionThinker/tea-package-builder
+
+entrypoint: bin/tea-package-builder
+
+platforms: darwin
+
+dependencies:
+  linux:
+    ffmpeg.org: '*'
+    gnome.org/gobject-introspection: '*'
+    gnome.org/glib: ^2
+    # FIXME: we have some of these, but not all of them. yet.
+    # libgio-2.0.so.0 => not found
+    # libnss3.so => not found
+    # libnssutil3.so => not found
+    # libsmime3.so => not found
+    # libnspr4.so => not found
+    # libatk-1.0.so.0 => not found
+    # libatk-bridge-2.0.so.0 => not found
+    # libcups.so.2 => not found
+    # libdbus-1.so.3 => not found
+    # libgtk-3.so.0 => not found
+    # libpango-1.0.so.0 => not found
+    # libcairo.so.2 => not found
+    # libX11.so.6 => not found
+    # libXcomposite.so.1 => not found
+    # libXdamage.so.1 => not found
+    # libXext.so.6 => not found
+    # libXfixes.so.3 => not found
+    # libXrandr.so.2 => not found
+    # libgbm.so.1 => not found
+    # libdrm.so.2 => not found
+    # libexpat.so.1 => not found
+    # libxcb.so.1 => not found
+    # libxkbcommon.so.0 => not found
+    # libasound.so.2 => not found
+    # libatspi.so.0 => not found
+
+build:
+  dependencies:
+    nodejs.org: '>=14'
+    npmjs.com: '*'
+    git-scm.org: ^2
+  script:
+    - npm install
+    - npm run package
+    - mkdir -p {{prefix}}/bin
+    - run: |
+        mkdir -p {{prefix}}/Applications
+        mv out/tea-package-builder-{{hw.platform}}-*/tea-package-builder.app {{prefix}}/Applications
+        cp props/tea-package-builder {{prefix}}/bin
+      if: darwin
+    - run: mv out/tea-package-builder-{{hw.platform}}-*/tea-package-builder {{prefix}}/bin
+      if: linux
+
+provides:
+  - bin/tea-package-builder
+
+test:
+  - tea-package-builder --version
