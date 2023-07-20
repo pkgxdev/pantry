@@ -19,7 +19,7 @@ if [ -z "$OPENAI_API_KEY"]; then
 
     GPT 3 is ok.
 
-    Set this key in your `~/.shellrc` file.
+    Set this key in your \`~/.shellrc\` file.
 EoMD
   exit 1
 fi
