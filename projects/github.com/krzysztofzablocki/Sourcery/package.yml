@@ -1,0 +1,26 @@
+distributable:
+  url: https://github.com/krzysztofzablocki/Sourcery/releases/download/{{version}}/Sourcery-{{version}}.zip
+
+versions:
+  github: krzysztofzablocki/Sourcery
+
+platforms:
+  - darwin
+
+provides:
+  - bin/sourcery
+
+warnings:
+  - vendored
+
+build:
+  working-directory: vendor
+  script: |
+    curl -Lfo sourcery.zip "https://github.com/krzysztofzablocki/Sourcery/releases/download/{{version}}/Sourcery-{{version}}.zip"
+    unzip sourcery.zip
+    mkdir -p "{{prefix}}/bin"
+    mv sourcery/bin/sourcery "{{prefix}}/bin"
+
+test:
+  script: |
+    [[ "$(sourcery --version)" = "{{version}}" ]]
