@@ -7,50 +7,23 @@ if test -f "$1"/VERSION && test $(cat "$1"/VERSION) = $2; then
   exit
 fi
 
-if command -v git >/dev/null; then
-  GIT="tea git"
-else
-  GIT=git
-fi
-
 mkdir -p "$1"
 cd "$1"
 
-tea gum format "# preparing for model fetch"
-echo  # spacer
-
-
-if test -d trackers; then
-  $GIT -C trackers fetch origin
-  $GIT -C trackers reset --hard origin/master
-else
-  $GIT clone "https://github.com/ngosang/trackerslist" trackers
-fi
-
-TRACKERS=$(grep -v '^#' "trackers/trackers_all.txt" | tr '\n' ',')
-
 tea gum format <<EoMD
-# downloading 4b quantized LLaMA (7B) model
+# downloading OpenLLaMA 3Bv2
 models will be placed: \`$PWD\`
 > this may take a a few minutes…
 EoMD
 
-# --dir is .. coz the torrent is prefixed with a LLaMA directory
-tea aria2c \
-  --dir=.. \
-  --seed-time=0 \
-  --bt-tracker="$TRACKERS" \
-  --summary-interval=0 \
-  --check-integrity \
-  'magnet:?xt=urn:btih:FLWZABA5EDZXVC45YHEMX6W55O6S4HXK'
+tea wget \
+  --continue \
+  --output-document OpenLLaMA-3Bv2.ggml.f16.bin \
+  'https://huggingface.co/SlyEcho/open_llama_3b_v2_ggml'
 
-tea gum format "# finalizing model"
-echo  #spacer
-
-tea +google.com/sentencepiece upgrade-model.py 7B tokenizer.model
-
-rm 7B/ggml-model-q4_0.bin
-mv 7B/ggml-model-q4_0.bin.tmp 7B/ggml-model-q4_0.bin
+tea wget \
+  --continue \
+  'https://huggingface.co/openlm-research/open_llama_3b_v2/resolve/main/tokenizer.model'
 
 echo $2 > VERSION
 
