@@ -6,9 +6,10 @@ versions:
   github: open-mpi/ompi/tags
 
 dependencies:
-  gnu.org/gcc: '*'
   open-mpi.org/hwloc: '*'
   libevent.org: '*'
+  linux:
+    gnu.org/gcc: '*'
 
 build:
   dependencies:
@@ -21,14 +22,13 @@ build:
     - make --jobs {{ hw.concurrency }} all
     - make --jobs {{ hw.concurrency }} check
     - make --jobs {{ hw.concurrency }} install
-    - mv {{prefix}}/lib/*.mod {{prefix}}/include/
     
   env:
-    FILES:
-      - ompi/tools/ompi_info/param.c
-      - oshmem/tools/oshmem_info/param.c
     darwin:
       MACOSX_DEPLOYMENT_TARGET: "$(sw_vers -productVersion)"
+    linux:
+      CC: "{{deps.gnu.org/gcc.prefix}}/bin/gcc"
+      CXX: "{{deps.gnu.org/gcc.prefix}}/bin/g++"
     ARGS:
       - --prefix="{{prefix}}"
       - --disable-silent-rules
