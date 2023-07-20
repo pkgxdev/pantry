@@ -14,13 +14,7 @@ warnings:
   - vendored
 
 build:
-  working-directory: vendor
-  script: |
-    curl -Lfo sourcery.zip "https://github.com/krzysztofzablocki/Sourcery/releases/download/{{version}}/Sourcery-{{version}}.zip"
-    unzip sourcery.zip
-    mkdir -p "{{prefix}}/bin"
-    mv bin/sourcery "{{prefix}}/bin"
+  working-directory: ${{prefix}}/bin
+  script: mv "SRCROOT"/bin/sourcery .
 
-test:
-  script: |
-    [[ "$(sourcery --version)" = "{{version}}" ]]
+test: [[ "$(sourcery --version)" = "{{version}}" ]]
