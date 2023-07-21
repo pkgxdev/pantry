@@ -4,7 +4,7 @@ set -em
 
 # source <(tea +curl.se)
 
-PORT=5432 #TODO find a port!
+PORT=43873 #TODO find a port automatically!
 
 openplayground run --port $PORT &
 
