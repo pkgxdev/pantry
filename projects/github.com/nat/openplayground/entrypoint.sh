@@ -1,12 +1,12 @@
 #!/bin/bash
 
-set -ex
+set -em
 
-source <(tea --magic=bash)
+# source <(tea +curl.se)
 
 PORT=5432 #TODO find a port!
 
-"$d"/bin/openplayground run --port $PORT &
+openplayground run --port $PORT &
 
 PID=$!
 
@@ -21,7 +21,9 @@ done
 
 # open the URL once the HEAD request succeeds
 if test -n "$TEA_GUI"; then
-  echo "{\"xyz.tea\":{\"gui\":\"http://127.0.0.1:$PORT\"}}" >&2
+  echo
+  echo '{"xyz.tea":{"gui":"http://127.0.0.1:5432"}}'
+  echo
 else
   open "http://127.0.0.1:$PORT"
 fi
