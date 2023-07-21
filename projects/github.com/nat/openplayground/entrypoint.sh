@@ -22,7 +22,7 @@ done
 # open the URL once the HEAD request succeeds
 if test -n "$TEA_GUI"; then
   echo
-  echo '{"xyz.tea":{"gui":"http://127.0.0.1:5432"}}'
+  echo "{\"xyz.tea\":{\"gui\":\"http://127.0.0.1:$PORT\"}}"
   echo
 else
   open "http://127.0.0.1:$PORT"
