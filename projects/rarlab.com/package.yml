@@ -1,0 +1,32 @@
+# NOTE `unrar` is open source. `rar` is NOT ∴ we only distribute unrar
+
+distributable:
+  url: https://www.rarlab.com/rar/unrarsrc-{{version.raw}}.tar.gz
+  strip-components: 1
+
+versions:
+  # NOTE I couldn’t find a listing so this can only find the latest version :-/
+  url: https://www.rarlab.com/rar_add.htm
+  match: /unrarsrc-\d+(\.\d+)+\.tar\.gz/
+  strip:
+    - /^unrarsrc-/
+    - /\.tar\.gz$/
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/coreutils: ^9
+  script:
+    - make CXXFLAGS=-std=c++11
+    - install -D unrar {{prefix}}/bin/unrar
+
+provides:
+  - bin/unrar
+
+# cannot do a version comparison because the version the utility outputs is
+# not the same as the source tarball version… WTF
+# it seems the unrar utility matches the version from the rar utility and
+# the sources are versioned independently from that
+test:
+  unrar
