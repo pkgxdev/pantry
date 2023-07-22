@@ -8,8 +8,6 @@ platforms:
   - darwin
 dependencies:
   github.com/abiosoft/colima: '*'
-runtime:
-  DOCKER_HOST: "unix://${HOME}/.colima/default/docker.sock"
 build:
   dependencies:
     go.dev: '*'
@@ -39,7 +37,8 @@ provides:
   - bin/docker
 test:
   script:
-    - colima start
+    - colima start || cat $HOME/.lima/colima/serial.log #debug
     - docker --version | grep {{version}}
+    - docker context use colima
     - docker info
     - colima stop
