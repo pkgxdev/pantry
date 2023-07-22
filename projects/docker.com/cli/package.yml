@@ -37,12 +37,21 @@ provides:
   - bin/docker
 test:
   script:
-    - run: colima start test #|| cat $HOME/.lima/colima/serial.log #debug
-      if: x86-64
-    - run: colima start test --arch aarch64 #|| cat $HOME/.lima/colima/serial.log #debug
-      if: aarch64
+    - colima start $ARGS
     - docker --version | grep {{version}}
     - docker context list
     - docker context use colima
     - docker info
     - colima stop
+  env:
+    ARGS:
+      - --cpu 2
+      - --memory 1
+      - --disk 1
+      - --very-verbose #debug
+    aarch64:
+      ARGS:
+        - --arch aarch64
+    x86-64:
+      ARGS:
+        - --arch x86_64
