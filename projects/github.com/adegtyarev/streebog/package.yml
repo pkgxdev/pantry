@@ -1,7 +1,5 @@
-
 distributable:
   url: https://github.com/adegtyarev/streebog/archive/{{version.raw}}.tar.gz
-
 
 versions:
   github: adegtyarev/streebog/tags 
@@ -10,11 +8,16 @@ build:
   dependencies:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
-  script:
-    - cd streebog-{{version.marketing}}
-    - make
-    - mkdir -p {{prefix}}/bin
-    - mv gost3411-2012 {{prefix}}/bin/
+    linux:
+      gnu.org/patch: '*'
+  script: |
+    cd streebog-{{version.marketing}}
+    if test '{{hw.platform}}' = 'linux'; then
+      patch -p1 < ../props/32.patch
+    fi
+    make
+    mkdir -p {{prefix}}/bin
+    mv gost3411-2012 {{prefix}}/bin/
 
 provides:
   - bin/gost3411-2012
