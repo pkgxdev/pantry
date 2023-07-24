@@ -7,6 +7,7 @@ versions:
   strip: /^v/
 
 # FIXME: inherited from taku910.github.io/mecab
+# versions from 0.16.0 don't require mecab, now.
 platforms:
   - darwin
   - linux/x86-64
@@ -21,15 +22,18 @@ dependencies:
   taku910.github.io/mecab: '*'
 
 build:
-  script: |
-    python_venv=$(which python-venv.py)
-    env python $python_venv {{prefix}}/bin/tts
-    cp {{prefix}}/bin/tts {{prefix}}/bin/tts-server
-    cp {{prefix}}/bin/tts {{prefix}}/bin/ttx
   dependencies:
     tea.xyz/gx/cc: c99
     pip.pypa.io: '*'
     git-scm.org: '*'
+  script:
+    # Supposedly, requirement on MeCab was removed, but the test complains of it missing
+    - run: cat requirements.ja.txt >> requirements.txt
+      if: =0.16.0
+    - python-venv.py {{prefix}}/bin/tts --requirements-txt
+    - run: |
+        ln -sf tts tts-server
+        ln -sf tts ttx
+      working-directory: ${{prefix}}/bin
 
-test: |
-  tts -h
+test: tts -h
