@@ -1,0 +1,1118 @@
+From a70ba9ec14aeb57a14ee10dede1eac29dade3a16 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Bj=C3=B6rn=20Esser?= <besser82@fedoraproject.org>
+Date: Wed, 31 Oct 2018 12:43:00 +0100
+Subject: [PATCH 1/4] Change 'uint512_u' to be a type, not a symbol.
+
+OSX / XCode complains about duplicate symbols.
+---
+ gost3411-2012-const.h | 10 +++++-----
+ gost3411-2012-core.c  | 18 +++++++++---------
+ gost3411-2012-core.h  | 10 +++++-----
+ gost3411-2012-mmx.h   |  2 +-
+ gost3411-2012.c       |  6 +++---
+ 5 files changed, 23 insertions(+), 23 deletions(-)
+
+diff --git a/gost3411-2012-const.h b/gost3411-2012-const.h
+index aa9896c..ebefb1c 100644
+--- a/gost3411-2012-const.h
++++ b/gost3411-2012-const.h
+@@ -7,19 +7,19 @@
+  * $Id$
+  */
+ 
+-ALIGN(16) static const union uint512_u buffer0 = {{ 0x0ULL, 0x0ULL, 0x0ULL,
++ALIGN(16) static const uint512_u buffer0 = {{ 0x0ULL, 0x0ULL, 0x0ULL,
+     0x0ULL, 0x0ULL, 0x0ULL, 0x0ULL, 0x0ULL }};
+ 
+ #ifndef __GOST3411_BIG_ENDIAN__
+-ALIGN(16) static const union uint512_u buffer512 = {{ 0x0000000000000200ULL,
++ALIGN(16) static const uint512_u buffer512 = {{ 0x0000000000000200ULL,
+     0x0ULL, 0x0ULL, 0x0ULL, 0x0ULL, 0x0ULL, 0x0ULL, 0x0ULL }};
+ #else
+-ALIGN(16) static const union uint512_u buffer512 = {{ 0x0002000000000000ULL,
++ALIGN(16) static const uint512_u buffer512 = {{ 0x0002000000000000ULL,
+     0x0ULL, 0x0ULL, 0x0ULL, 0x0ULL, 0x0ULL, 0x0ULL, 0x0ULL }};
+ #endif
+ 
+ #ifndef __GOST3411_BIG_ENDIAN__
+-ALIGN(16) static const union uint512_u C[12] = {
++ALIGN(16) static const uint512_u C[12] = {
+     {{
+          0xdd806559f2a64507ULL,
+          0x05767436cc744d23ULL,
+@@ -142,7 +142,7 @@ ALIGN(16) static const union uint512_u C[12] = {
+     }}
+ };
+ #else
+-ALIGN(16) static const union uint512_u C[12] = {
++ALIGN(16) static const uint512_u C[12] = {
+     {{
+          0x0745a6f2596580ddULL,
+          0x234d74cc36747605ULL,
+diff --git a/gost3411-2012-core.c b/gost3411-2012-core.c
+index 6c4cf79..98b7155 100644
+--- a/gost3411-2012-core.c
++++ b/gost3411-2012-core.c
+@@ -55,7 +55,7 @@ pad(GOST34112012Context *CTX)
+ }
+ 
+ static inline void
+-add512(const union uint512_u *x, const union uint512_u *y, union uint512_u *r)
++add512(const uint512_u *x, const uint512_u *y, uint512_u *r)
+ {
+ #ifndef __GOST3411_BIG_ENDIAN__
+     unsigned int CF;
+@@ -92,7 +92,7 @@ add512(const union uint512_u *x, const union uint512_u *y, union uint512_u *r)
+ }
+ 
+ static void
+-g(union uint512_u *h, const union uint512_u *N, const unsigned char *m)
++g(uint512_u *h, const uint512_u *N, const unsigned char *m)
+ {
+ #ifdef __GOST3411_HAS_SSE2__
+     __m128i xmm0, xmm2, xmm4, xmm6; /* XMMR0-quadruple */
+@@ -119,14 +119,14 @@ g(union uint512_u *h, const union uint512_u *N, const unsigned char *m)
+     /* Restore the Floating-point status on the CPU */
+     _mm_empty();
+ #else
+-    union uint512_u Ki, data;
++    uint512_u Ki, data;
+     unsigned int i;
+ 
+     XLPS(h, N, (&data));
+ 
+     /* Starting E() */
+     Ki = data;
+-    XLPS((&Ki), ((const union uint512_u *) &m[0]), (&data));
++    XLPS((&Ki), ((const uint512_u *) &m[0]), (&data));
+ 
+     for (i = 0; i < 11; i++)
+         ROUND(i, (&Ki), (&data));
+@@ -136,7 +136,7 @@ g(union uint512_u *h, const union uint512_u *N, const unsigned char *m)
+     /* E() done */
+ 
+     X((&data), h, (&data));
+-    X((&data), ((const union uint512_u *) &m[0]), h);
++    X((&data), ((const uint512_u *) &m[0]), h);
+ #endif
+ }
+ 
+@@ -146,13 +146,13 @@ stage2(GOST34112012Context *CTX, const unsigned char *data)
+     g(&(CTX->h), &(CTX->N), data);
+ 
+     add512(&(CTX->N), &buffer512, &(CTX->N));
+-    add512(&(CTX->Sigma), (const union uint512_u *) data, &(CTX->Sigma));
++    add512(&(CTX->Sigma), (const uint512_u *) data, &(CTX->Sigma));
+ }
+ 
+ static inline void
+ stage3(GOST34112012Context *CTX)
+ {
+-    ALIGN(16) union uint512_u buf = {{ 0 }};
++    ALIGN(16) uint512_u buf = {{ 0 }};
+ 
+ #ifndef __GOST3411_BIG_ENDIAN__
+     buf.QWORD[0] = CTX->bufsize << 3;
+@@ -165,13 +165,13 @@ stage3(GOST34112012Context *CTX)
+     g(&(CTX->h), &(CTX->N), (const unsigned char *) &(CTX->buffer));
+ 
+     add512(&(CTX->N), &buf, &(CTX->N));
+-    add512(&(CTX->Sigma), (const union uint512_u *) &CTX->buffer[0],
++    add512(&(CTX->Sigma), (const uint512_u *) &CTX->buffer[0],
+            &(CTX->Sigma));
+ 
+     g(&(CTX->h), &buffer0, (const unsigned char *) &(CTX->N));
+ 
+     g(&(CTX->h), &buffer0, (const unsigned char *) &(CTX->Sigma));
+-    memcpy(&(CTX->hash), &(CTX->h), sizeof uint512_u);
++    memcpy(&(CTX->hash), &(CTX->h), sizeof (uint512_u));
+ }
+ 
+ void
+diff --git a/gost3411-2012-core.h b/gost3411-2012-core.h
+index 67b5d4d..72760b9 100644
+--- a/gost3411-2012-core.h
++++ b/gost3411-2012-core.h
+@@ -25,7 +25,7 @@
+ #include "gost3411-2012-ref.h"
+ #endif
+ 
+-ALIGN(16) union uint512_u
++ALIGN(16) typedef union uint512_u
+ {
+     unsigned long long QWORD[8];
+ } uint512_u;
+@@ -36,10 +36,10 @@ ALIGN(16) union uint512_u
+ ALIGN(16) typedef struct GOST34112012Context
+ {
+     ALIGN(16) unsigned char buffer[64];
+-    ALIGN(16) union uint512_u hash;
+-    ALIGN(16) union uint512_u h;
+-    ALIGN(16) union uint512_u N;
+-    ALIGN(16) union uint512_u Sigma;
++    ALIGN(16) uint512_u hash;
++    ALIGN(16) uint512_u h;
++    ALIGN(16) uint512_u N;
++    ALIGN(16) uint512_u Sigma;
+     size_t bufsize;
+     unsigned int digest_size;
+ } GOST34112012Context;
+diff --git a/gost3411-2012-mmx.h b/gost3411-2012-mmx.h
+index bdae504..7efef1f 100644
+--- a/gost3411-2012-mmx.h
++++ b/gost3411-2012-mmx.h
+@@ -62,7 +62,7 @@
+ #define XLPS32(x, y, data) { \
+     unsigned int xi; \
+     unsigned char *p; \
+-    ALIGN(16) union uint512_u buf; \
++    ALIGN(16) uint512_u buf; \
+     __m64 mm0; \
+     XTRANSPOSE(x, y, (&buf)); \
+     p = (unsigned char *) &buf; \
+diff --git a/gost3411-2012.c b/gost3411-2012.c
+index 4e3d1f5..e6cdb8c 100644
+--- a/gost3411-2012.c
++++ b/gost3411-2012.c
+@@ -42,7 +42,7 @@ unsigned char digest[64];
+ unsigned char hexdigest[129];
+ unsigned int digest_size = DEFAULT_DIGEST_SIZE;
+ 
+-const union uint512_u GOSTTestInput = {
++const uint512_u GOSTTestInput = {
+ #ifndef __GOST3411_BIG_ENDIAN__
+     {
+         0x3736353433323130ULL,
+@@ -211,7 +211,7 @@ testing(const unsigned int eflag)
+ 
+     GOST34112012Init(CTX, 512);
+ 
+-    memcpy(CTX->buffer, &GOSTTestInput, sizeof uint512_u);
++    memcpy(CTX->buffer, &GOSTTestInput, sizeof(uint512_u));
+     CTX->bufsize = 63;
+ 
+     GOST34112012Final(CTX, &digest[0]);
+@@ -223,7 +223,7 @@ testing(const unsigned int eflag)
+ 
+     GOST34112012Init(CTX, 256);
+ 
+-    memcpy(CTX->buffer, &GOSTTestInput, sizeof uint512_u);
++    memcpy(CTX->buffer, &GOSTTestInput, sizeof(uint512_u));
+     CTX->bufsize = 63;
+ 
+     GOST34112012Final(CTX, &digest[0]);
+
+From 67c321b7070f91350ee149831a2fb5071cd09003 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Bj=C3=B6rn=20Esser?= <besser82@fedoraproject.org>
+Date: Wed, 31 Oct 2018 13:40:46 +0100
+Subject: [PATCH 2/4] Rename 'uint512_u' to 'gost34112012_uint512_u' to avoid
+ clashes.
+
+---
+ gost3411-2012-const.h | 10 +++++-----
+ gost3411-2012-core.c  | 18 +++++++++---------
+ gost3411-2012-core.h  | 12 ++++++------
+ gost3411-2012-mmx.h   |  2 +-
+ gost3411-2012.c       |  6 +++---
+ 5 files changed, 24 insertions(+), 24 deletions(-)
+
+diff --git a/gost3411-2012-const.h b/gost3411-2012-const.h
+index ebefb1c..797997b 100644
+--- a/gost3411-2012-const.h
++++ b/gost3411-2012-const.h
+@@ -7,19 +7,19 @@
+  * $Id$
+  */
+ 
+-ALIGN(16) static const uint512_u buffer0 = {{ 0x0ULL, 0x0ULL, 0x0ULL,
++ALIGN(16) static const gost34112012_uint512_u buffer0 = {{ 0x0ULL, 0x0ULL, 0x0ULL,
+     0x0ULL, 0x0ULL, 0x0ULL, 0x0ULL, 0x0ULL }};
+ 
+ #ifndef __GOST3411_BIG_ENDIAN__
+-ALIGN(16) static const uint512_u buffer512 = {{ 0x0000000000000200ULL,
++ALIGN(16) static const gost34112012_uint512_u buffer512 = {{ 0x0000000000000200ULL,
+     0x0ULL, 0x0ULL, 0x0ULL, 0x0ULL, 0x0ULL, 0x0ULL, 0x0ULL }};
+ #else
+-ALIGN(16) static const uint512_u buffer512 = {{ 0x0002000000000000ULL,
++ALIGN(16) static const gost34112012_uint512_u buffer512 = {{ 0x0002000000000000ULL,
+     0x0ULL, 0x0ULL, 0x0ULL, 0x0ULL, 0x0ULL, 0x0ULL, 0x0ULL }};
+ #endif
+ 
+ #ifndef __GOST3411_BIG_ENDIAN__
+-ALIGN(16) static const uint512_u C[12] = {
++ALIGN(16) static const gost34112012_uint512_u C[12] = {
+     {{
+          0xdd806559f2a64507ULL,
+          0x05767436cc744d23ULL,
+@@ -142,7 +142,7 @@ ALIGN(16) static const uint512_u C[12] = {
+     }}
+ };
+ #else
+-ALIGN(16) static const uint512_u C[12] = {
++ALIGN(16) static const gost34112012_uint512_u C[12] = {
+     {{
+          0x0745a6f2596580ddULL,
+          0x234d74cc36747605ULL,
+diff --git a/gost3411-2012-core.c b/gost3411-2012-core.c
+index 98b7155..f2a932b 100644
+--- a/gost3411-2012-core.c
++++ b/gost3411-2012-core.c
+@@ -55,7 +55,7 @@ pad(GOST34112012Context *CTX)
+ }
+ 
+ static inline void
+-add512(const uint512_u *x, const uint512_u *y, uint512_u *r)
++add512(const gost34112012_uint512_u *x, const gost34112012_uint512_u *y, gost34112012_uint512_u *r)
+ {
+ #ifndef __GOST3411_BIG_ENDIAN__
+     unsigned int CF;
+@@ -92,7 +92,7 @@ add512(const uint512_u *x, const uint512_u *y, uint512_u *r)
+ }
+ 
+ static void
+-g(uint512_u *h, const uint512_u *N, const unsigned char *m)
++g(gost34112012_uint512_u *h, const gost34112012_uint512_u *N, const unsigned char *m)
+ {
+ #ifdef __GOST3411_HAS_SSE2__
+     __m128i xmm0, xmm2, xmm4, xmm6; /* XMMR0-quadruple */
+@@ -119,14 +119,14 @@ g(uint512_u *h, const uint512_u *N, const unsigned char *m)
+     /* Restore the Floating-point status on the CPU */
+     _mm_empty();
+ #else
+-    uint512_u Ki, data;
++    gost34112012_uint512_u Ki, data;
+     unsigned int i;
+ 
+     XLPS(h, N, (&data));
+ 
+     /* Starting E() */
+     Ki = data;
+-    XLPS((&Ki), ((const uint512_u *) &m[0]), (&data));
++    XLPS((&Ki), ((const gost34112012_uint512_u *) &m[0]), (&data));
+ 
+     for (i = 0; i < 11; i++)
+         ROUND(i, (&Ki), (&data));
+@@ -136,7 +136,7 @@ g(uint512_u *h, const uint512_u *N, const unsigned char *m)
+     /* E() done */
+ 
+     X((&data), h, (&data));
+-    X((&data), ((const uint512_u *) &m[0]), h);
++    X((&data), ((const gost34112012_uint512_u *) &m[0]), h);
+ #endif
+ }
+ 
+@@ -146,13 +146,13 @@ stage2(GOST34112012Context *CTX, const unsigned char *data)
+     g(&(CTX->h), &(CTX->N), data);
+ 
+     add512(&(CTX->N), &buffer512, &(CTX->N));
+-    add512(&(CTX->Sigma), (const uint512_u *) data, &(CTX->Sigma));
++    add512(&(CTX->Sigma), (const gost34112012_uint512_u *) data, &(CTX->Sigma));
+ }
+ 
+ static inline void
+ stage3(GOST34112012Context *CTX)
+ {
+-    ALIGN(16) uint512_u buf = {{ 0 }};
++    ALIGN(16) gost34112012_uint512_u buf = {{ 0 }};
+ 
+ #ifndef __GOST3411_BIG_ENDIAN__
+     buf.QWORD[0] = CTX->bufsize << 3;
+@@ -165,13 +165,13 @@ stage3(GOST34112012Context *CTX)
+     g(&(CTX->h), &(CTX->N), (const unsigned char *) &(CTX->buffer));
+ 
+     add512(&(CTX->N), &buf, &(CTX->N));
+-    add512(&(CTX->Sigma), (const uint512_u *) &CTX->buffer[0],
++    add512(&(CTX->Sigma), (const gost34112012_uint512_u *) &CTX->buffer[0],
+            &(CTX->Sigma));
+ 
+     g(&(CTX->h), &buffer0, (const unsigned char *) &(CTX->N));
+ 
+     g(&(CTX->h), &buffer0, (const unsigned char *) &(CTX->Sigma));
+-    memcpy(&(CTX->hash), &(CTX->h), sizeof (uint512_u));
++    memcpy(&(CTX->hash), &(CTX->h), sizeof (gost34112012_uint512_u));
+ }
+ 
+ void
+diff --git a/gost3411-2012-core.h b/gost3411-2012-core.h
+index 72760b9..cb7bf47 100644
+--- a/gost3411-2012-core.h
++++ b/gost3411-2012-core.h
+@@ -25,10 +25,10 @@
+ #include "gost3411-2012-ref.h"
+ #endif
+ 
+-ALIGN(16) typedef union uint512_u
++ALIGN(16) typedef union gost34112012_uint512_u
+ {
+     unsigned long long QWORD[8];
+-} uint512_u;
++} gost34112012_uint512_u;
+ 
+ #include "gost3411-2012-const.h"
+ #include "gost3411-2012-precalc.h"
+@@ -36,10 +36,10 @@ ALIGN(16) typedef union uint512_u
+ ALIGN(16) typedef struct GOST34112012Context
+ {
+     ALIGN(16) unsigned char buffer[64];
+-    ALIGN(16) uint512_u hash;
+-    ALIGN(16) uint512_u h;
+-    ALIGN(16) uint512_u N;
+-    ALIGN(16) uint512_u Sigma;
++    ALIGN(16) gost34112012_uint512_u hash;
++    ALIGN(16) gost34112012_uint512_u h;
++    ALIGN(16) gost34112012_uint512_u N;
++    ALIGN(16) gost34112012_uint512_u Sigma;
+     size_t bufsize;
+     unsigned int digest_size;
+ } GOST34112012Context;
+diff --git a/gost3411-2012-mmx.h b/gost3411-2012-mmx.h
+index 7efef1f..4f931cc 100644
+--- a/gost3411-2012-mmx.h
++++ b/gost3411-2012-mmx.h
+@@ -62,7 +62,7 @@
+ #define XLPS32(x, y, data) { \
+     unsigned int xi; \
+     unsigned char *p; \
+-    ALIGN(16) uint512_u buf; \
++    ALIGN(16) gost34112012_uint512_u buf; \
+     __m64 mm0; \
+     XTRANSPOSE(x, y, (&buf)); \
+     p = (unsigned char *) &buf; \
+diff --git a/gost3411-2012.c b/gost3411-2012.c
+index e6cdb8c..dc34dac 100644
+--- a/gost3411-2012.c
++++ b/gost3411-2012.c
+@@ -42,7 +42,7 @@ unsigned char digest[64];
+ unsigned char hexdigest[129];
+ unsigned int digest_size = DEFAULT_DIGEST_SIZE;
+ 
+-const uint512_u GOSTTestInput = {
++const gost34112012_uint512_u GOSTTestInput = {
+ #ifndef __GOST3411_BIG_ENDIAN__
+     {
+         0x3736353433323130ULL,
+@@ -211,7 +211,7 @@ testing(const unsigned int eflag)
+ 
+     GOST34112012Init(CTX, 512);
+ 
+-    memcpy(CTX->buffer, &GOSTTestInput, sizeof(uint512_u));
++    memcpy(CTX->buffer, &GOSTTestInput, sizeof(gost34112012_uint512_u));
+     CTX->bufsize = 63;
+ 
+     GOST34112012Final(CTX, &digest[0]);
+@@ -223,7 +223,7 @@ testing(const unsigned int eflag)
+ 
+     GOST34112012Init(CTX, 256);
+ 
+-    memcpy(CTX->buffer, &GOSTTestInput, sizeof(uint512_u));
++    memcpy(CTX->buffer, &GOSTTestInput, sizeof(gost34112012_uint512_u));
+     CTX->bufsize = 63;
+ 
+     GOST34112012Final(CTX, &digest[0]);
+
+From 0b399d0949349a4a8c14738cf4cdc88e661900dc Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Bj=C3=B6rn=20Esser?= <besser82@fedoraproject.org>
+Date: Thu, 1 Nov 2018 11:57:46 +0100
+Subject: [PATCH 3/4] Rename the 'ALIGN' macro to 'GOST3411_ALIGN'.
+
+macOS may define 'ALIGN' with a different meaning if some system
+headers are included.
+---
+ gost3411-2012-const.h   | 10 +++++-----
+ gost3411-2012-core.c    |  2 +-
+ gost3411-2012-core.h    | 18 +++++++++---------
+ gost3411-2012-mmx.h     |  2 +-
+ gost3411-2012-precalc.h |  4 ++--
+ 5 files changed, 18 insertions(+), 18 deletions(-)
+
+diff --git a/gost3411-2012-const.h b/gost3411-2012-const.h
+index 797997b..4d76877 100644
+--- a/gost3411-2012-const.h
++++ b/gost3411-2012-const.h
+@@ -7,19 +7,19 @@
+  * $Id$
+  */
+ 
+-ALIGN(16) static const gost34112012_uint512_u buffer0 = {{ 0x0ULL, 0x0ULL, 0x0ULL,
++GOST3411_ALIGN(16) static const gost34112012_uint512_u buffer0 = {{ 0x0ULL, 0x0ULL, 0x0ULL,
+     0x0ULL, 0x0ULL, 0x0ULL, 0x0ULL, 0x0ULL }};
+ 
+ #ifndef __GOST3411_BIG_ENDIAN__
+-ALIGN(16) static const gost34112012_uint512_u buffer512 = {{ 0x0000000000000200ULL,
++GOST3411_ALIGN(16) static const gost34112012_uint512_u buffer512 = {{ 0x0000000000000200ULL,
+     0x0ULL, 0x0ULL, 0x0ULL, 0x0ULL, 0x0ULL, 0x0ULL, 0x0ULL }};
+ #else
+-ALIGN(16) static const gost34112012_uint512_u buffer512 = {{ 0x0002000000000000ULL,
++GOST3411_ALIGN(16) static const gost34112012_uint512_u buffer512 = {{ 0x0002000000000000ULL,
+     0x0ULL, 0x0ULL, 0x0ULL, 0x0ULL, 0x0ULL, 0x0ULL, 0x0ULL }};
+ #endif
+ 
+ #ifndef __GOST3411_BIG_ENDIAN__
+-ALIGN(16) static const gost34112012_uint512_u C[12] = {
++GOST3411_ALIGN(16) static const gost34112012_uint512_u C[12] = {
+     {{
+          0xdd806559f2a64507ULL,
+          0x05767436cc744d23ULL,
+@@ -142,7 +142,7 @@ ALIGN(16) static const gost34112012_uint512_u C[12] = {
+     }}
+ };
+ #else
+-ALIGN(16) static const gost34112012_uint512_u C[12] = {
++GOST3411_ALIGN(16) static const gost34112012_uint512_u C[12] = {
+     {{
+          0x0745a6f2596580ddULL,
+          0x234d74cc36747605ULL,
+diff --git a/gost3411-2012-core.c b/gost3411-2012-core.c
+index f2a932b..fe08342 100644
+--- a/gost3411-2012-core.c
++++ b/gost3411-2012-core.c
+@@ -152,7 +152,7 @@ stage2(GOST34112012Context *CTX, const unsigned char *data)
+ static inline void
+ stage3(GOST34112012Context *CTX)
+ {
+-    ALIGN(16) gost34112012_uint512_u buf = {{ 0 }};
++    GOST3411_ALIGN(16) gost34112012_uint512_u buf = {{ 0 }};
+ 
+ #ifndef __GOST3411_BIG_ENDIAN__
+     buf.QWORD[0] = CTX->bufsize << 3;
+diff --git a/gost3411-2012-core.h b/gost3411-2012-core.h
+index cb7bf47..6314c54 100644
+--- a/gost3411-2012-core.h
++++ b/gost3411-2012-core.h
+@@ -10,9 +10,9 @@
+ #include "gost3411-2012-config.h"
+ 
+ #if defined _MSC_VER
+-#define ALIGN(x) __declspec(align(x))
++#define GOST3411_ALIGN(x) __declspec(align(x))
+ #else
+-#define ALIGN(x) __attribute__ ((__aligned__(x)))
++#define GOST3411_ALIGN(x) __attribute__ ((__aligned__(x)))
+ #endif
+ 
+ #if defined   __GOST3411_HAS_SSE41__
+@@ -25,7 +25,7 @@
+ #include "gost3411-2012-ref.h"
+ #endif
+ 
+-ALIGN(16) typedef union gost34112012_uint512_u
++GOST3411_ALIGN(16) typedef union gost34112012_uint512_u
+ {
+     unsigned long long QWORD[8];
+ } gost34112012_uint512_u;
+@@ -33,13 +33,13 @@ ALIGN(16) typedef union gost34112012_uint512_u
+ #include "gost3411-2012-const.h"
+ #include "gost3411-2012-precalc.h"
+ 
+-ALIGN(16) typedef struct GOST34112012Context
++GOST3411_ALIGN(16) typedef struct GOST34112012Context
+ {
+-    ALIGN(16) unsigned char buffer[64];
+-    ALIGN(16) gost34112012_uint512_u hash;
+-    ALIGN(16) gost34112012_uint512_u h;
+-    ALIGN(16) gost34112012_uint512_u N;
+-    ALIGN(16) gost34112012_uint512_u Sigma;
++    GOST3411_ALIGN(16) unsigned char buffer[64];
++    GOST3411_ALIGN(16) gost34112012_uint512_u hash;
++    GOST3411_ALIGN(16) gost34112012_uint512_u h;
++    GOST3411_ALIGN(16) gost34112012_uint512_u N;
++    GOST3411_ALIGN(16) gost34112012_uint512_u Sigma;
+     size_t bufsize;
+     unsigned int digest_size;
+ } GOST34112012Context;
+diff --git a/gost3411-2012-mmx.h b/gost3411-2012-mmx.h
+index 4f931cc..5ed2453 100644
+--- a/gost3411-2012-mmx.h
++++ b/gost3411-2012-mmx.h
+@@ -62,7 +62,7 @@
+ #define XLPS32(x, y, data) { \
+     unsigned int xi; \
+     unsigned char *p; \
+-    ALIGN(16) gost34112012_uint512_u buf; \
++    GOST3411_ALIGN(16) gost34112012_uint512_u buf; \
+     __m64 mm0; \
+     XTRANSPOSE(x, y, (&buf)); \
+     p = (unsigned char *) &buf; \
+diff --git a/gost3411-2012-precalc.h b/gost3411-2012-precalc.h
+index 30266ea..abcc2e6 100644
+--- a/gost3411-2012-precalc.h
++++ b/gost3411-2012-precalc.h
+@@ -8,7 +8,7 @@
+  */
+ 
+ #ifndef __GOST3411_BIG_ENDIAN__
+-ALIGN(16) static const unsigned long long Ax[8][256] = 
++GOST3411_ALIGN(16) static const unsigned long long Ax[8][256] = 
+ {
+     {
+         0xd01f715b5c7ef8e6ULL, 0x16fa240980778325ULL, 0xa8a42e857ee049c8ULL,
+@@ -716,7 +716,7 @@ ALIGN(16) static const unsigned long long Ax[8][256] =
+     }
+ };
+ #else
+-ALIGN(16) static const unsigned long long Ax[8][256] = 
++GOST3411_ALIGN(16) static const unsigned long long Ax[8][256] = 
+ {
+     {
+         0xe6f87e5c5b711fd0ULL, 0x258377800924fa16ULL, 0xc849e07e852ea4a8ULL,
+
+From 1874ab5471ee1cf2e38771436e2233d15d18dfc1 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Bj=C3=B6rn=20Esser?= <besser82@fedoraproject.org>
+Date: Wed, 31 Oct 2018 12:47:24 +0100
+Subject: [PATCH 4/4] Remove trailing whitespace.
+
+---
+ Changelog               | 30 ++++++++--------
+ Makefile                |  8 ++---
+ README.md               |  2 +-
+ auto/header/endianness  |  2 +-
+ auto/header/mmx         |  2 +-
+ auto/header/sse2        |  2 +-
+ auto/header/sse41       |  2 +-
+ auto/header/supercop    |  2 +-
+ auto/mk/mmx             |  2 +-
+ auto/mk/sse2            |  2 +-
+ auto/mk/sse41           |  2 +-
+ configure               |  2 +-
+ gost3411-2012-const.h   | 78 ++++++++++++++++++++---------------------
+ gost3411-2012-core.c    |  4 +--
+ gost3411-2012-core.h    |  8 ++---
+ gost3411-2012-mmx.h     |  2 +-
+ gost3411-2012-precalc.h |  8 ++---
+ gost3411-2012-ref.h     |  2 +-
+ gost3411-2012-sse2.h    |  2 +-
+ gost3411-2012-sse41.h   |  2 +-
+ gost3411-2012.c         | 10 +++---
+ 21 files changed, 87 insertions(+), 87 deletions(-)
+
+diff --git a/Changelog b/Changelog
+index 070e138..44af767 100644
+--- a/Changelog
++++ b/Changelog
+@@ -21,13 +21,13 @@ Changes with version 0.11                                           22 Feb 2013
+ 
+ 	* Bugfix: variables, structures, functions changed their names from
+ 	  *GOST3411* to fully-qualified *GOST34112012*
+-	
++
+ 	* Bugfix: API: GOST34112012Init() now operates on allocated memory.
+ 	  Previously, memory allocation for context has been done with
+ 	  GOST34112012Init() call - this guarantee proper alignment for context's
+ 	  members.  As for now, alignment is done with ALIGN keyword in object
+ 	  declaration and GOST34112012Init() does not allocate any byte of memory.
+-	
++
+ 	* Bugfix: API: GOST34112012Final() now returns digest in memory pointed by
+ 	  second argument.  Context member "hexdigest" not used anymore thus
+ 	  abandoned.  It is up to calling application to present digest in
+@@ -39,18 +39,18 @@ Changes with version 0.10                                           29 Jan 2013
+ 	  substitution by Pi[] while generating multiplication lookup table.
+ 	  Lookup table arranged in a such way totally eliminates the need to do
+ 	  whole S-cycle in LPS.
+-	
++
+ 	* Feature: use SSE4.1 instructions set in LPS if available.
+ 
+ 	* Feature: multiplication lookup table is now statically precomputed in
+ 	  header file and is in constant memory.
+-	
++
+ 	* Bugfix: rewrite GOST3411Update() function to implement streaming mode
+ 	  when processing large amount of data.
+-	
++
+ 	* Bugfix: rename round2() and round3() to stage2() and stage3()
+ 	  respectively.
+-	
++
+ 	* Bugfix: in auto configuration probes: delete temporary files.
+ 
+ Changes with version 0.09                                           22 Jan 2013
+@@ -60,10 +60,10 @@ Changes with version 0.09                                           22 Jan 2013
+ 	  quadruples.  This avoid copying of temporary key and internal state
+ 	  between rounds in g(), thus reduce instructions count per plaintext
+ 	  block.
+-	
++
+ 	* Feature: with code optimization above, performance on 32-bit systems
+ 	  greatly improved and is now about as fast as with 64-bit systems.
+-	
++
+ 	* Feature: detect MMX and SSE2 capabilities on compile time and use faster
+ 	  code when possible.  From this version onward there are at least two
+ 	  versions of implementation: portable (not using any extensions like MMX
+@@ -76,7 +76,7 @@ Changes with version 0.09                                           22 Jan 2013
+ 
+ 	* Bugfix: integer overflow incorrectly handled in addition by modulo 2.
+ 	  This could lead to incorrect results on some files.
+-	
++
+ Changes with version 0.08                                           19 Jan 2013
+ 
+ 	* Feature: boost performance on 32-bit systems by using 64-bit MMX XOR
+@@ -94,10 +94,10 @@ Changes with version 0.07                                           17 Jan 2013
+ 
+ 	* Bugfix: key generation function K replaced with XLPS macros to avoid
+ 	  inlining issues when max inline instruction limit reached.
+-	
++
+ 	* Bugfix: encryption function E inlined to compression g to avoid
+ 	  compile-time inlining issues when max inline instruction limit reached.
+-	
++
+ 	* Bugfix: use unsigned integers where possible.
+ 
+ 	* Bugfix: fix typo in update() when comparing bufsize.
+@@ -105,20 +105,20 @@ Changes with version 0.07                                           17 Jan 2013
+ 	* Bugfix: memory allocator rewritten to use posix_memalign().
+ 
+ Changes with version 0.06                                           09 Jan 2013
+-	
++
+ 	* Feature: performance optimization in LPS: hint compiler to use eight
+ 	  registers instead of union buffer.
+-	
++
+ 	* Feature: performance optimization in permutation P: rotate matrix by
+ 	  cyclic right shifting bits in source matrix columns to rows in
+ 	  destination matrix.
+-	
++
+ 	* Feature: as result of previous two optimizations: replace LPS macros
+ 	  with improved macros XLPS.
+ 
+ 	* Bugfix: improve constant table C presentation to avoid runtime
+ 	  conversion in key generator K.
+-	
++
+ 	* Bugfix: unroll key generation loop in E.
+ 
+ 	* Bugfix: rename union member names according to their natural meaning.
+diff --git a/Makefile b/Makefile
+index e0b76e7..7fb95fc 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1,5 +1,5 @@
+ #
+-# Copyright (c) 2013, Alexey Degtyarev <alexey@renatasystems.org>. 
++# Copyright (c) 2013, Alexey Degtyarev <alexey@renatasystems.org>.
+ # All rights reserved.
+ #
+ # $Id$
+@@ -69,7 +69,7 @@ clean: rmconfig
+ 
+ dist: clean man
+ 	mkdir -p $(DISTNAME)
+-	cp $(SOURCES) $(HEADERS) $(DISTNAME) 
++	cp $(SOURCES) $(HEADERS) $(DISTNAME)
+ 	cp Changelog LICENSE Makefile VERSION README.md configure $(DISTNAME)
+ 	cp gost3411-2012.1 gost3411-2012.1.h2m $(DISTNAME)
+ 	cp -R auto examples $(DISTNAME)/
+@@ -78,14 +78,14 @@ dist: clean man
+ 	tar czf $(DISTNAME).tar.gz $(DISTNAME)
+ 	rm -r $(DISTNAME)
+ 
+-distclean: 
++distclean:
+ 	-rm $(DISTNAME).tar.gz 2>/dev/null
+ 
+ test: gost3411-2012
+ 	./gost3411-2012 -t
+ 	./gost3411-2012 -t | cmp auto/test.txt
+ 
+-bench: 
++bench:
+ 	$(MAKE) remake CC=clang && ./gost3411-2012 -b
+ 	$(MAKE) remake CC=gcc46 && ./gost3411-2012 -b
+ 	$(MAKE) remake CC=gcc47 && ./gost3411-2012 -b
+diff --git a/README.md b/README.md
+index 4453389..59f5221 100644
+--- a/README.md
++++ b/README.md
+@@ -124,7 +124,7 @@ void GOST34112012Update(GOST34112012Context *CTX, const unsigned char *data, siz
+ 
+ Hash some `data` of `len` bytes size.  The best performance results are
+ achieved when `len` is multiple of 64.
+-    
++
+ Note that this call does not modify original data in memory.  If
+ security is an issue, calling application should destroy that memory
+ block right after `GOST34112012Update()`, by e.g. `memset()` to zero.
+diff --git a/auto/header/endianness b/auto/header/endianness
+index 923d161..12c53f4 100644
+--- a/auto/header/endianness
++++ b/auto/header/endianness
+@@ -1,6 +1,6 @@
+ #!/bin/sh
+ #
+-# Copyright (c) 2013, Alexey Degtyarev <alexey@renatasystems.org>. 
++# Copyright (c) 2013, Alexey Degtyarev <alexey@renatasystems.org>.
+ # All rights reserved.
+ #
+ # Detect running system endianness.
+diff --git a/auto/header/mmx b/auto/header/mmx
+index 078e982..6d264ab 100644
+--- a/auto/header/mmx
++++ b/auto/header/mmx
+@@ -1,6 +1,6 @@
+ #!/bin/sh
+ #
+-# Copyright (c) 2013, Alexey Degtyarev <alexey@renatasystems.org>. 
++# Copyright (c) 2013, Alexey Degtyarev <alexey@renatasystems.org>.
+ # All rights reserved.
+ #
+ # Detect MMX capability in processor and compiler.
+diff --git a/auto/header/sse2 b/auto/header/sse2
+index aee664e..16a2911 100644
+--- a/auto/header/sse2
++++ b/auto/header/sse2
+@@ -1,6 +1,6 @@
+ #!/bin/sh
+ #
+-# Copyright (c) 2013, Alexey Degtyarev <alexey@renatasystems.org>. 
++# Copyright (c) 2013, Alexey Degtyarev <alexey@renatasystems.org>.
+ # All rights reserved.
+ #
+ # Detect SSE2 capability in processor and compiler.
+diff --git a/auto/header/sse41 b/auto/header/sse41
+index 50ba6d5..c2c968e 100644
+--- a/auto/header/sse41
++++ b/auto/header/sse41
+@@ -1,6 +1,6 @@
+ #!/bin/sh
+ #
+-# Copyright (c) 2013, Alexey Degtyarev <alexey@renatasystems.org>. 
++# Copyright (c) 2013, Alexey Degtyarev <alexey@renatasystems.org>.
+ # All rights reserved.
+ #
+ # Detect SSE4.1 capability in processor and compiler.
+diff --git a/auto/header/supercop b/auto/header/supercop
+index 7af3887..e273a67 100644
+--- a/auto/header/supercop
++++ b/auto/header/supercop
+@@ -1,6 +1,6 @@
+ #!/bin/sh
+ #
+-# Copyright (c) 2013, Alexey Degtyarev <alexey@renatasystems.org>. 
++# Copyright (c) 2013, Alexey Degtyarev <alexey@renatasystems.org>.
+ # All rights reserved.
+ #
+ # Activate SUPERCOP stuff when SUPERCOP environment variable is set.
+diff --git a/auto/mk/mmx b/auto/mk/mmx
+index b77dfa2..2335660 100644
+--- a/auto/mk/mmx
++++ b/auto/mk/mmx
+@@ -1,6 +1,6 @@
+ #!/bin/sh
+ #
+-# Copyright (c) 2013, Alexey Degtyarev <alexey@renatasystems.org>. 
++# Copyright (c) 2013, Alexey Degtyarev <alexey@renatasystems.org>.
+ # All rights reserved.
+ #
+ # Detect MMX capability in processor and compiler.
+diff --git a/auto/mk/sse2 b/auto/mk/sse2
+index 6422279..7a82656 100644
+--- a/auto/mk/sse2
++++ b/auto/mk/sse2
+@@ -1,6 +1,6 @@
+ #!/bin/sh
+ #
+-# Copyright (c) 2013, Alexey Degtyarev <alexey@renatasystems.org>. 
++# Copyright (c) 2013, Alexey Degtyarev <alexey@renatasystems.org>.
+ # All rights reserved.
+ #
+ # Detect SSE2 capability in processor and compiler.
+diff --git a/auto/mk/sse41 b/auto/mk/sse41
+index 01080f8..1e703ef 100644
+--- a/auto/mk/sse41
++++ b/auto/mk/sse41
+@@ -1,6 +1,6 @@
+ #!/bin/sh
+ #
+-# Copyright (c) 2013, Alexey Degtyarev <alexey@renatasystems.org>. 
++# Copyright (c) 2013, Alexey Degtyarev <alexey@renatasystems.org>.
+ # All rights reserved.
+ #
+ # Detect SSE4.1 capability in processor and compiler.
+diff --git a/configure b/configure
+index e855319..de39e2f 100644
+--- a/configure
++++ b/configure
+@@ -64,7 +64,7 @@ EOF
+ 
+ cat ${AUTO_CONF_MK}.t >> ${AUTO_CONF_MK} && rm -f ${AUTO_CONF_MK}.t
+ 
+-cat >>${AUTO_CONF_MK} <<"EOF" 
++cat >>${AUTO_CONF_MK} <<"EOF"
+ 
+ compile:
+ 	$(CC) $(CFLAGS) -o gost3411-2012 $(SOURCES)
+diff --git a/gost3411-2012-const.h b/gost3411-2012-const.h
+index 4d76877..c856ce0 100644
+--- a/gost3411-2012-const.h
++++ b/gost3411-2012-const.h
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright (c) 2013, Alexey Degtyarev <alexey@renatasystems.org>. 
++ * Copyright (c) 2013, Alexey Degtyarev <alexey@renatasystems.org>.
+  * All rights reserved.
+  *
+  * Iteration constants defined in standard.
+@@ -267,47 +267,47 @@ GOST3411_ALIGN(16) static const gost34112012_uint512_u C[12] = {
+ #endif
+ 
+ static const unsigned char Tau[64] = {
+-    0,   8,  16,  24,  32,  40,  48,  56, 
+-    1,   9,  17,  25,  33,  41,  49,  57, 
+-    2,  10,  18,  26,  34,  42,  50,  58, 
+-    3,  11,  19,  27,  35,  43,  51,  59, 
+-    4,  12,  20,  28,  36,  44,  52,  60, 
+-    5,  13,  21,  29,  37,  45,  53,  61, 
+-    6,  14,  22,  30,  38,  46,  54,  62, 
++    0,   8,  16,  24,  32,  40,  48,  56,
++    1,   9,  17,  25,  33,  41,  49,  57,
++    2,  10,  18,  26,  34,  42,  50,  58,
++    3,  11,  19,  27,  35,  43,  51,  59,
++    4,  12,  20,  28,  36,  44,  52,  60,
++    5,  13,  21,  29,  37,  45,  53,  61,
++    6,  14,  22,  30,  38,  46,  54,  62,
+     7,  15,  23,  31,  39,  47,  55,  63
+ };
+ 
+ static const unsigned char Pi[256] = {
+-    252, 238, 221,  17, 207, 110,  49,  22, 
+-    251, 196, 250, 218,  35, 197,   4,  77, 
+-    233, 119, 240, 219, 147,  46, 153, 186, 
+-     23,  54, 241, 187,  20, 205,  95, 193, 
+-    249,  24, 101,  90, 226,  92, 239,  33, 
+-    129,  28,  60,  66, 139,   1, 142,  79, 
+-      5, 132,   2, 174, 227, 106, 143, 160, 
+-      6,  11, 237, 152, 127, 212, 211,  31, 
+-    235,  52,  44,  81, 234, 200,  72, 171, 
+-    242,  42, 104, 162, 253,  58, 206, 204, 
+-    181, 112,  14,  86,   8,  12, 118,  18, 
+-    191, 114,  19,  71, 156, 183,  93, 135, 
+-     21, 161, 150,  41,  16, 123, 154, 199, 
+-    243, 145, 120, 111, 157, 158, 178, 177, 
+-     50, 117,  25,  61, 255,  53, 138, 126, 
+-    109,  84, 198, 128, 195, 189,  13,  87, 
+-    223, 245,  36, 169,  62, 168,  67, 201, 
+-    215, 121, 214, 246, 124,  34, 185,   3, 
+-    224,  15, 236, 222, 122, 148, 176, 188, 
+-    220, 232,  40,  80,  78,  51,  10,  74, 
+-    167, 151,  96, 115,  30,   0,  98,  68, 
+-     26, 184,  56, 130, 100, 159,  38,  65, 
+-    173,  69,  70, 146,  39,  94,  85,  47, 
+-    140, 163, 165, 125, 105, 213, 149,  59, 
+-      7,  88, 179,  64, 134, 172,  29, 247, 
+-     48,  55, 107, 228, 136, 217, 231, 137, 
+-    225,  27, 131,  73,  76,  63, 248, 254, 
+-    141,  83, 170, 144, 202, 216, 133,  97, 
+-     32, 113, 103, 164,  45,  43,   9,  91, 
+-    203, 155,  37, 208, 190, 229, 108,  82, 
+-     89, 166, 116, 210, 230, 244, 180, 192, 
++    252, 238, 221,  17, 207, 110,  49,  22,
++    251, 196, 250, 218,  35, 197,   4,  77,
++    233, 119, 240, 219, 147,  46, 153, 186,
++     23,  54, 241, 187,  20, 205,  95, 193,
++    249,  24, 101,  90, 226,  92, 239,  33,
++    129,  28,  60,  66, 139,   1, 142,  79,
++      5, 132,   2, 174, 227, 106, 143, 160,
++      6,  11, 237, 152, 127, 212, 211,  31,
++    235,  52,  44,  81, 234, 200,  72, 171,
++    242,  42, 104, 162, 253,  58, 206, 204,
++    181, 112,  14,  86,   8,  12, 118,  18,
++    191, 114,  19,  71, 156, 183,  93, 135,
++     21, 161, 150,  41,  16, 123, 154, 199,
++    243, 145, 120, 111, 157, 158, 178, 177,
++     50, 117,  25,  61, 255,  53, 138, 126,
++    109,  84, 198, 128, 195, 189,  13,  87,
++    223, 245,  36, 169,  62, 168,  67, 201,
++    215, 121, 214, 246, 124,  34, 185,   3,
++    224,  15, 236, 222, 122, 148, 176, 188,
++    220, 232,  40,  80,  78,  51,  10,  74,
++    167, 151,  96, 115,  30,   0,  98,  68,
++     26, 184,  56, 130, 100, 159,  38,  65,
++    173,  69,  70, 146,  39,  94,  85,  47,
++    140, 163, 165, 125, 105, 213, 149,  59,
++      7,  88, 179,  64, 134, 172,  29, 247,
++     48,  55, 107, 228, 136, 217, 231, 137,
++    225,  27, 131,  73,  76,  63, 248, 254,
++    141,  83, 170, 144, 202, 216, 133,  97,
++     32, 113, 103, 164,  45,  43,   9,  91,
++    203, 155,  37, 208, 190, 229, 108,  82,
++     89, 166, 116, 210, 230, 244, 180, 192,
+     209, 102, 175, 194,  57,  75,  99, 182
+ };
+diff --git a/gost3411-2012-core.c b/gost3411-2012-core.c
+index fe08342..f33f4d8 100644
+--- a/gost3411-2012-core.c
++++ b/gost3411-2012-core.c
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright (c) 2013, Alexey Degtyarev <alexey@renatasystems.org>. 
++ * Copyright (c) 2013, Alexey Degtyarev <alexey@renatasystems.org>.
+  * All rights reserved.
+  *
+  * GOST R 34.11-2012 core and API functions.
+@@ -189,7 +189,7 @@ GOST34112012Update(GOST34112012Context *CTX, const unsigned char *data, size_t l
+         CTX->bufsize += chunksize;
+         len -= chunksize;
+         data += chunksize;
+-        
++
+         if (CTX->bufsize == 64)
+         {
+             stage2(CTX, CTX->buffer);
+diff --git a/gost3411-2012-core.h b/gost3411-2012-core.h
+index 6314c54..3e39598 100644
+--- a/gost3411-2012-core.h
++++ b/gost3411-2012-core.h
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright (c) 2013, Alexey Degtyarev <alexey@renatasystems.org>. 
++ * Copyright (c) 2013, Alexey Degtyarev <alexey@renatasystems.org>.
+  * All rights reserved.
+  *
+  * $Id$
+@@ -19,7 +19,7 @@
+ #include "gost3411-2012-sse41.h"
+ #elif defined __GOST3411_HAS_SSE2__
+ #include "gost3411-2012-sse2.h"
+-#elif defined __GOST3411_HAS_MMX__ 
++#elif defined __GOST3411_HAS_MMX__
+ #include "gost3411-2012-mmx.h"
+ #else
+ #include "gost3411-2012-ref.h"
+@@ -48,8 +48,8 @@ void GOST34112012Init(GOST34112012Context *CTX,
+         const unsigned int digest_size);
+ 
+ void GOST34112012Update(GOST34112012Context *CTX, const unsigned char *data,
+-        size_t len); 
++        size_t len);
+ 
+-void GOST34112012Final(GOST34112012Context *CTX, unsigned char *digest); 
++void GOST34112012Final(GOST34112012Context *CTX, unsigned char *digest);
+ 
+ void GOST34112012Cleanup(GOST34112012Context *CTX);
+diff --git a/gost3411-2012-mmx.h b/gost3411-2012-mmx.h
+index 5ed2453..ec3d99b 100644
+--- a/gost3411-2012-mmx.h
++++ b/gost3411-2012-mmx.h
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright (c) 2013, Alexey Degtyarev <alexey@renatasystems.org>. 
++ * Copyright (c) 2013, Alexey Degtyarev <alexey@renatasystems.org>.
+  * All rights reserved.
+  *
+  * $Id$
+diff --git a/gost3411-2012-precalc.h b/gost3411-2012-precalc.h
+index abcc2e6..ac2bae2 100644
+--- a/gost3411-2012-precalc.h
++++ b/gost3411-2012-precalc.h
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright (c) 2013, Alexey Degtyarev <alexey@renatasystems.org>. 
++ * Copyright (c) 2013, Alexey Degtyarev <alexey@renatasystems.org>.
+  * All rights reserved.
+  *
+  * Precalculation of matrix A multiplication.
+@@ -8,7 +8,7 @@
+  */
+ 
+ #ifndef __GOST3411_BIG_ENDIAN__
+-GOST3411_ALIGN(16) static const unsigned long long Ax[8][256] = 
++GOST3411_ALIGN(16) static const unsigned long long Ax[8][256] =
+ {
+     {
+         0xd01f715b5c7ef8e6ULL, 0x16fa240980778325ULL, 0xa8a42e857ee049c8ULL,
+@@ -716,7 +716,7 @@ GOST3411_ALIGN(16) static const unsigned long long Ax[8][256] =
+     }
+ };
+ #else
+-GOST3411_ALIGN(16) static const unsigned long long Ax[8][256] = 
++GOST3411_ALIGN(16) static const unsigned long long Ax[8][256] =
+ {
+     {
+         0xe6f87e5c5b711fd0ULL, 0x258377800924fa16ULL, 0xc849e07e852ea4a8ULL,
+@@ -1156,7 +1156,7 @@ GOST3411_ALIGN(16) static const unsigned long long Ax[8][256] =
+         0x45be423c2f5bb7c1ULL, 0xf71e55fefd88e55dULL, 0x6853032b59f3ee6eULL,
+         0x65b3e9c4ff073aaaULL, 0x772ac3399ae5ebecULL, 0x87816e97f842a75bULL,
+         0x110e2db2e0484a4bULL, 0x331277cb3dd8deddULL, 0xbd510cac79eb9fa5ULL,
+-        0x352179552a91f5c7ULL 
++        0x352179552a91f5c7ULL
+     },
+     {
+         0x8ab0a96846e06a6dULL, 0x43c7e80b4bf0b33aULL, 0x08c9b3546b161ee5ULL,
+diff --git a/gost3411-2012-ref.h b/gost3411-2012-ref.h
+index 9b0372a..0031b9f 100644
+--- a/gost3411-2012-ref.h
++++ b/gost3411-2012-ref.h
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright (c) 2013, Alexey Degtyarev <alexey@renatasystems.org>. 
++ * Copyright (c) 2013, Alexey Degtyarev <alexey@renatasystems.org>.
+  * All rights reserved.
+  *
+  * Portable and simple (thus sometimes slow) implementation of core functions.
+diff --git a/gost3411-2012-sse2.h b/gost3411-2012-sse2.h
+index 005491c..368d6d2 100644
+--- a/gost3411-2012-sse2.h
++++ b/gost3411-2012-sse2.h
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright (c) 2013, Alexey Degtyarev <alexey@renatasystems.org>. 
++ * Copyright (c) 2013, Alexey Degtyarev <alexey@renatasystems.org>.
+  * All rights reserved.
+  *
+  * $Id$
+diff --git a/gost3411-2012-sse41.h b/gost3411-2012-sse41.h
+index 3e7b1fe..5d4cd0d 100644
+--- a/gost3411-2012-sse41.h
++++ b/gost3411-2012-sse41.h
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright (c) 2013, Alexey Degtyarev <alexey@renatasystems.org>. 
++ * Copyright (c) 2013, Alexey Degtyarev <alexey@renatasystems.org>.
+  * All rights reserved.
+  *
+  * $Id$
+diff --git a/gost3411-2012.c b/gost3411-2012.c
+index dc34dac..7197baf 100644
+--- a/gost3411-2012.c
++++ b/gost3411-2012.c
+@@ -1,5 +1,5 @@
+-/* 
+- * Copyright (c) 2013, Alexey Degtyarev <alexey@renatasystems.org>. 
++/*
++ * Copyright (c) 2013, Alexey Degtyarev <alexey@renatasystems.org>.
+  * All rights reserved.
+  *
+  * GOST 34.11-2012 hash function with 512/256 bits digest.
+@@ -123,7 +123,7 @@ memalloc(const size_t size)
+ {
+     void *p;
+ 
+-    /* Ensure p is on a 64-bit boundary. */ 
++    /* Ensure p is on a 64-bit boundary. */
+     if (posix_memalign(&p, (size_t) 64, size))
+         err(EX_OSERR, NULL);
+ 
+@@ -274,7 +274,7 @@ benchmark(const unsigned int eflag)
+     exit(EXIT_SUCCESS);
+ }
+ 
+-static void 
++static void
+ shutdown(void)
+ {
+     if (CTX != NULL)
+@@ -299,7 +299,7 @@ crypto_hash(unsigned char *out, const unsigned char *in,
+ int
+ main(int argc, char *argv[])
+ {
+-    int ch; 
++    int ch;
+     unsigned char uflag, qflag, rflag, eflag;
+     unsigned char excode;
+     FILE *f;
