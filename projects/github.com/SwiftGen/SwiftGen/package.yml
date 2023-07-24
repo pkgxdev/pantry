@@ -1,6 +1,8 @@
 distributable:
-  url: https://github.com/SwiftGen/SwiftGen/archive/refs/tags/{{version}}.tar.gz
-  strip-components: 1
+  # FIXME: vendoring
+  #url: https://github.com/SwiftGen/SwiftGen/archive/refs/tags/{{version}}.tar.gz
+  #strip-components: 1
+  url: https://github.com/SwiftGen/SwiftGen/releases/download/{{version}}/swiftgen-{{version}}.zip
 
 versions:
   github: SwiftGen/SwiftGen/releases/tags
@@ -15,13 +17,8 @@ warnings:
   - vendored
 
 build:
-  working-directory: vendor
-  script: |
-    curl -Lfo swiftgen.zip "https://github.com/SwiftGen/SwiftGen/releases/download/{{version}}/swiftgen-{{version}}.zip"
-    unzip swiftgen.zip
-    mkdir -p "{{prefix}}/bin"
-    mv bin/swiftgen "{{prefix}}/bin"
-    mv bin/SwiftGen_SwiftGenCLI.bundle "{{prefix}}/bin"
+  working-directory: ${{prefix}}/bin
+  script: cp -a "$SRCROOT"/bin/swiftgen "$SRCROOT"/bin/SwiftGen_SwiftGenCLI.bundle .
 
 test:
   script: |
