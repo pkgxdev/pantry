@@ -28,15 +28,20 @@ build:
     git-scm.org: '*'
   script:
     # Supposedly, requirement on MeCab was removed, but the test complains of it missing
-    - run: cat $PROP >> requirements.txt
+    - run: |
+        cat $PROP >> requirements.txt
+        ARGS="$ARGS --no-binary"
       prop: |
-        mecab-python3==1.0.6 --global-option="--no-binary=mecab-python3"
+        mecab-python3==1.0.6
         unidic-lite==1.0.8
       if: =0.16.0
-    - python-venv.py {{prefix}}/bin/tts --requirements-txt
+    - python-venv.py {{prefix}}/bin/tts $ARGS
     - run: |
         ln -sf tts tts-server
         ln -sf tts ttx
       working-directory: ${{prefix}}/bin
+  env:
+    ARGS:
+      - --requirements-txt
 
 test: tts -h
