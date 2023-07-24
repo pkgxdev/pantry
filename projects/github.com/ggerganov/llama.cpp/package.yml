@@ -7,8 +7,13 @@ versions:
 
 provides:
   - bin/llama.cpp
-  # NOTE! we do not “provide” convert.py. ∵ they it is too generic
+  # NOTE! we do not “provide” convert.py. ∵ it’s too generic
   # do `tea +github.com∕ggerganov∕llama.cpp convert.py`
+
+platforms:
+  - linux
+  - darwin/aarch64
+  # Illegal instruction: 4 on darwin/x86-64
 
 dependencies:
   python.org: ^3.11
@@ -42,8 +47,8 @@ build:
       pip install -r requirements.txt
       deactivate
 
-test:
-  llama.cpp --help
+test: |
+  {{prefix}}/libexec/llama.cpp --help
   # testing more than this requires downloading the models 😬
 
 entrypoint: llama.cpp
