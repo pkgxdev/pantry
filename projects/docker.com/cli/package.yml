@@ -37,18 +37,18 @@ provides:
   - bin/docker
 test:
   script:
-    - colima start $ARGS
+    - colima stop
+    - colima start $ARGS test
     - docker --version | grep {{version}}
     - docker context list
-    - docker context use colima
+    - docker context use colima-test
     - docker info
     - colima stop
   env:
     ARGS:
-      - --cpu 2
-      - --memory 1
-      - --disk 1
-      - --very-verbose #debug
+      - --memory 2
+      - --disk 10
+      - --verbose
     aarch64:
       ARGS:
         - --arch aarch64
