@@ -1,0 +1,52 @@
+distributable:
+  # FIXME: foundry has releases named "Nightly (YYYY-MM-DD)"
+  # but their tags are "nightly-<sha>".
+  url: https://github.com/foundry-rs/foundry/archive/refs/tags/nightly-56adbe45992c4093fe23dfc3fb59eda521f90266.tar.gz
+  strip-components: 1
+versions:
+  # FIXME: we should use this, which will get us calver,
+  # but the tags are just "nightly-<sha>".
+  # github: foundry-rs/foundry/releases
+  # strip:
+  #   - /^Nightly \(/
+  #   - /\)$/
+  - 2023.7.16
+
+dependencies:
+  git-scm.org: ^2
+
+build:
+  dependencies:
+    rust-lang.org: ^1.56.0 # edition: 2021
+    rust-lang.org/cargo: '*'
+  script:
+    - cargo install --path ./cli --bins $ARGS
+    - cargo install --path ./anvil $ARGS
+    - cargo install --path ./chisel $ARGS
+  env:
+    ARGS:
+      - --root "{{prefix}}"
+      - --profile local
+      - --force
+      - --locked
+
+provides:
+  - bin/forge
+  - bin/anvil
+  - bin/cast
+  - bin/chisel
+
+test:
+  script:
+    # forge uses git which has minimum config requirements.
+    - |
+        git init
+        git config user.email "hello@tea.xyz"
+        git config user.name "teapot"
+    # And forge init requires a clean git repo.
+    - |
+        git add -A
+        git commit -m "Initial commit"
+    - forge init hello_foundry
+    - run: forge build && forge test
+      working-directory: hello_foundry
