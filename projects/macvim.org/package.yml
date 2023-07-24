@@ -1,0 +1,48 @@
+distributable:
+  url: https://github.com/macvim-dev/macvim/archive/release-{{version.raw}}.tar.gz
+  strip-components: 1
+versions:
+  github: macvim-dev/macvim
+  strip:
+    - /^release-/
+platforms:
+  - darwin
+dependencies:
+  cscope.sourceforge.io: '*'
+  lua.org: '*'
+  python.org: ^3.11
+  ruby-lang.org: '*'
+build:
+  dependencies:
+    gnu.org/gettext: '*'
+    libsodium.org: '*'
+    gnu.org/make: '*'
+    tea.xyz/gx/cc: c99
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - install -D src/MacVim/build/Release/MacVim.app {{prefix}}/
+  env:
+    SDKROOT: 
+    PYTHONPATH: 
+    CC: "{{deps.tea.xyz/gx/cc.prefix}}/bin/clang"
+    ARGS:
+      - --with-features=huge
+      - --enable-multibyte
+      - --enable-perlinterp
+      - --enable-rubyinterp
+      - --enable-tclinterp
+      - --enable-terminal
+      - --with-tlib=ncurses
+      - --with-compiledby=Tea
+      - --enable-cscope
+      - --enable-luainterp
+      - --with-lua-prefix={{deps.lua.org.prefix}}
+      - --enable-luainterp
+      - --enable-python3interp
+      - --disable-sparkle
+provides:
+  - bin/mvim
+test:
+  script:
+    - mvim --version | grep {{version.major}}
