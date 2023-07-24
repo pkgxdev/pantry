@@ -37,8 +37,7 @@ provides:
   - bin/docker
 test:
   script:
-    - colima stop
-    - colima start $ARGS test || cat $HOME/.lima/colima-test/serial.log #debug
+    - colima start $ARGS test || cat $HOME/.lima/colima/serial.log #debug
     - docker --version | grep {{version}}
     - docker context list
     - docker context use colima-test
@@ -46,9 +45,7 @@ test:
     - colima stop
   env:
     ARGS:
-      - --memory 2
-      - --disk 10
-      - --verbose
+      - --runtime docker
     aarch64:
       ARGS:
         - --arch aarch64
