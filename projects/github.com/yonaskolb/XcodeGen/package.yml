@@ -1,0 +1,22 @@
+distributable:
+  url: https://github.com/yonaskolb/XcodeGen/releases/download/{{version}}/xcodegen.zip
+
+versions:
+  github: yonaskolb/XcodeGen
+
+platforms:
+  - darwin
+
+provides:
+  - bin/xcodegen
+
+warnings:
+  - vendored
+
+build:
+  working-directory: ${{prefix}}/bin
+  script: cp "$SRCROOT"/xcodegen/bin/xcodegen .
+
+test:
+  script: |
+    [[ "$(xcodegen --version)" = "Version: {{version}}" ]]

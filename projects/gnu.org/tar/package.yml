@@ -16,12 +16,16 @@ build:
   dependencies:
     tea.xyz/gx/cc: 'c99'
     tea.xyz/gx/make: '*'
-  script: |
-    ./configure --prefix={{ prefix }} --disable-debug
-    make --jobs {{ hw.concurrency }} install
-  env:
-    #FIXME for our docker images, but we should make a `build` user for those
-    FORCE_UNSAFE_CONFIGURE: 1
+    # needed when we patch Makefile.am
+    gnu.org/patch: '*'
+    gnu.org/autoconf: '*'
+    gnu.org/automake: '*'
+  script:
+    # https://savannah.gnu.org/bugs/index.php?64441
+    - run: patch -p1 <props/iconv.patch
+      if: =1.35.0
+    - ./configure --prefix={{ prefix }} --disable-debug
+    - make --jobs {{ hw.concurrency }} install
 
 test:
   script:
