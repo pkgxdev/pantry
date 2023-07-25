@@ -1,0 +1,31 @@
+distributable:
+  url: https://github.com/dotnet/sdk/archive/v{{version}}.tar.gz
+  strip-components: 1
+versions:
+  - 7.0.306
+warnings:
+  - vendored
+build:
+  dependencies:
+    gnu.org/wget: '*'
+  working-directory: vendor
+  script:
+    - wget $LINK
+    - tar -xf $FILENAME --strip-components=1
+    - rm $FILENAME
+    - mkdir -p {{prefix}}/bin
+    - mv ./* {{prefix}}/
+    - run: ln -s ../dotnet ./dotnet
+      working-directory: "{{prefix}}/bin"
+  env:
+    aarch64:
+      LINK: https://download.visualstudio.microsoft.com/download/pr/0e57f35a-00e6-49ab-aa75-7ae6711f0a8e/f28c04285b8bfd3f975731a186e23c23/dotnet-sdk-7.0.306-osx-arm64.tar.gz
+      FILENAME: dotnet-sdk-7.0.306-osx-arm64.tar.gz
+    x86-64:
+      LINK: https://download.visualstudio.microsoft.com/download/pr/3d615bde-bfce-4ee0-a3b9-73dc4ea5a472/907ac9c03d971c7577ce60932456b3e3/dotnet-sdk-7.0.306-osx-x64.tar.gz
+      FILENAME: dotnet-sdk-7.0.306-osx-x64.tar.gz
+provides:
+  - bin/dotnet
+test:
+  script:
+    - dotnet --version | grep {{version}}
