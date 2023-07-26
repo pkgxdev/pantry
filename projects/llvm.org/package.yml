@@ -7,9 +7,93 @@ versions:
   strip: /^llvmorg-/
 
 provides:
-  - bin/lld
-  - bin/clang
-  - bin/clang++
+  - bin/FileCheck
+  - bin/UnicodeNameMappingGenerator
+  - bin/bugpoint
+  - bin/count
+  - bin/dsymutil
+  - bin/llc
+  - bin/lli
+  - bin/lli-child-target
+  - bin/llvm-PerfectShuffle
+  - bin/llvm-addr2line
+  - bin/llvm-ar
+  - bin/llvm-as
+  - bin/llvm-bcanalyzer
+  - bin/llvm-bitcode-strip
+  - bin/llvm-c-test
+  - bin/llvm-cat
+  - bin/llvm-cfi-verify
+  - bin/llvm-config
+  - bin/llvm-cov
+  - bin/llvm-cvtres
+  - bin/llvm-cxxdump
+  - bin/llvm-cxxfilt
+  - bin/llvm-cxxmap
+  - bin/llvm-debuginfo-analyzer
+  - bin/llvm-debuginfod
+  - bin/llvm-debuginfod-find
+  - bin/llvm-diff
+  - bin/llvm-dis
+  - bin/llvm-dlltool
+  - bin/llvm-dwarfdump
+  - bin/llvm-dwarfutil
+  - bin/llvm-dwp
+  - bin/llvm-extract
+  - bin/llvm-gsymutil
+  - bin/llvm-ifs
+  - bin/llvm-install-name-tool
+  - bin/llvm-jitlink
+  - bin/llvm-jitlink-executor
+  - bin/llvm-lib
+  - bin/llvm-libtool-darwin
+  - bin/llvm-link
+  - bin/llvm-lipo
+  - bin/llvm-lto
+  - bin/llvm-lto2
+  - bin/llvm-mc
+  - bin/llvm-mca
+  - bin/llvm-ml
+  - bin/llvm-modextract
+  - bin/llvm-mt
+  - bin/llvm-nm
+  - bin/llvm-objcopy
+  - bin/llvm-objdump
+  - bin/llvm-opt-report
+  - bin/llvm-otool
+  - bin/llvm-pdbutil
+  - bin/llvm-profdata
+  - bin/llvm-profgen
+  - bin/llvm-ranlib
+  - bin/llvm-rc
+  - bin/llvm-readelf
+  - bin/llvm-readobj
+  - bin/llvm-reduce
+  - bin/llvm-remark-size-diff
+  - bin/llvm-remarkutil
+  - bin/llvm-rtdyld
+  - bin/llvm-sim
+  - bin/llvm-size
+  - bin/llvm-split
+  - bin/llvm-stress
+  - bin/llvm-strings
+  - bin/llvm-strip
+  - bin/llvm-symbolizer
+  - bin/llvm-tapi-diff
+  - bin/llvm-tblgen
+  - bin/llvm-tli-checker
+  - bin/llvm-undname
+  - bin/llvm-windres
+  - bin/llvm-xray
+  - bin/not
+  - bin/obj2yaml
+  - bin/opt
+  - bin/sancov
+  - bin/sanstats
+  - bin/split-file
+  - bin/verify-uselistorder
+  - bin/yaml-bench
+  - bin/yaml2obj
 
 dependencies:
   zlib.net: 1
@@ -23,64 +107,55 @@ build:
     ninja-build.org: 1
     python.org: 3
     crates.io/semverator: '*'
+    gnu.org/grep: '*'
   working-directory: build
   script:
-    # Building compiler-rt on darwin+aarch64 fails for versions less than
-    # 14 with the below configuration. FIXME if possible, of course.
+    - cmake ../llvm $ARGS
     - run: |
-        if test "{{hw.platform}}" = "linux" || \
-           test "{{hw.arch}}" = "x86-64" || \
-           semverator satisies '>=14'; then
-             ARGS="$ARGS -DLLVM_ENABLE_RUNTIMES='compiler-rt'"
-        fi
-    - cmake ../llvm -G Ninja $ARGS
-    - ninja
-    - ninja install
+        # Generate a list of distribution targets to avoid shipping static libraries.
+        # Borrowed from Arch. We need GNU grep for the PCRE regex.
+        # rm -rf targets.txt
+        ninja -t targets | grep -Po 'install-\K.*(?=-stripped:)' | while read -r target; do
+          case $target in
+            llvm-libraries|distribution)
+              continue
+              ;;
+            LLVM|LLVMgold)
+              ;;
+            LLVMDemangle|LLVMSupport|LLVMTableGen)
+              ;;
+            LLVM*)
+              continue
+              ;;
+            llvm-exegesis)
+              continue
+              ;;
+          esac
+          echo $target
+        done > targets.txt
+    - cmake ../llvm -DLLVM_DISTRIBUTION_COMPONENTS="$(paste -sd\; targets.txt)" $ARGS
+    - ninja install-distribution
   receipt:
     - LLVMConfig.cmake
   env:
     ARGS:
+      - -G Ninja
       - -DCMAKE_INSTALL_PREFIX="{{ prefix }}"
       - -DCMAKE_BUILD_TYPE=Release
-      - -DLLVM_ENABLE_PROJECTS='lld;clang'
       - -DLLVM_INCLUDE_DOCS=OFF
       - -DLLVM_INCLUDE_TESTS=OFF
       - -DLLVM_LINK_LLVM_DYLIB=ON
-    linux:
-      ARGS:
-      # the default is `ld` however clang when handling linking itself
-      # internally passes flags that, in fact, expect `lld`
-      #NOTE only wanted on linux because on macOS we actually *need* the Apple
-      # provided `ld` or things *also* break 😆
-      - -DCLANG_DEFAULT_LINKER=lld
-    darwin:
-      ARGS:
-      #FIXME shouldn’t *have to* require the command line tools package
-      #FIXME this is no good for systems with only Xcode installed
-      #NOTE how do Apple make their LLVM find both? we want the same trick
-      - -DDEFAULT_SYSROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
+      - -DLLVM_INSTALL_UTILS=ON
+      - -DLLVM_ENABLE_BINDINGS=OFF
+      - -DLLVM_INCLUDE_BENCHMARKS=OFF
 
 test:
   fixture: |
-    #include <stdio.h>
-    int main() {
-      printf("Hello World!\n");
-      return 0;
+    @msg = internal constant [12 x i8] c"steeping...\00"
+    declare i32 @puts(i8*)
+    define i32 @main() {
+        call i32 @puts(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @msg, i32 0, i32 0))
+        ret i32 0
     }
-  dependencies:
-    crates.io/semverator: '*'
   script:
-    # Building compiler-rt on darwin+aarch64 fails for versions less than
-    # 14 with the below configuration. FIXME if possible, of course.
-    - run: |
-        if test "{{hw.platform}}" = "linux" || \
-           test "{{hw.arch}}" = "x86-64" || \
-           semverator satisies '>=14'; then
-             ARGS="$ARGS -fsanitize=address,undefined"
-        fi
-    - mv $FIXTURE $FIXTURE.c
-    - clang $ARGS $FIXTURE.c
-    - ./a.out
-  env:
-    ARGS:
-      - -Wl,-rpath,$TEA_PREFIX
+    - test $(lli $FIXTURE) = 'steeping...'
