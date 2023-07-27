@@ -1,0 +1,28 @@
+distributable:
+  url: https://github.com/unicode-org/icu/releases/download/release-{{version.major}}-{{version.minor}}/icu4c-{{version.major}}_{{version.minor}}-src.tgz
+  strip-components: 1
+versions:
+  73.2
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    gnu.org/make: '*'
+    freedesktop.org/pkg-config: '*'
+  working-directory: source
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --libdir={{prefix}}/lib
+      - --disable-samples
+      - --disable-tests
+      - --enable-static
+      - --with-library-bits=64
+provides:
+  - bin/icu
+test:
+  script:
+    - icu --version
