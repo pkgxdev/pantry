@@ -5,38 +5,26 @@ distributable:
 versions:
   github: symfony-cli/symfony-cli
 
-
-platforms:
-  - linux/x86-64
-  - linux/aarch64
-  - darwin/x86-64
-  - darwin/aarch64
-
 dependencies:
   php.net: '*'
+
+warnings:
+  - vendored
 
 build:
   dependencies:
     gnu.org/wget: '*'
   script:
-    - wget $DOWNLOAD_URL
-    - $UNARCHIVE
+    - curl https://github.com/symfony-cli/symfony-cli/releases/download/v{{version}}/symfony-cli_$TYPE.gz | tar -xzf -
     - mkdir -p {{prefix}}/bin
     - install ./symfony {{prefix}}/bin/symfony
-    
   env:
     linux/x86-64:
-      DOWNLOAD_URL: https://github.com/symfony-cli/symfony-cli/releases/download/v{{version}}/symfony-cli_linux_amd64.tar.gz
-      UNARCHIVE: tar -xz -f symfony-cli_linux_amd64.tar.gz
+      TYPE: linux_amd64
     linux/aarch64:
-      DOWNLOAD_URL: https://github.com/symfony-cli/symfony-cli/releases/download/v{{version}}/symfony-cli_linux_arm64.tar.gz
-      UNARCHIVE: tar -xz -f symfony-cli_linux_arm64.tar.gz
-    darwin/x86-64:
-      DOWNLOAD_URL: https://github.com/symfony-cli/symfony-cli/releases/download/v{{version}}/symfony-cli_darwin_all.tar.gz
-      UNARCHIVE: tar -xz -f  symfony-cli_darwin_all.tar.gz
-    darwin/aarch64:
-      DOWNLOAD_URL: https://github.com/symfony-cli/symfony-cli/releases/download/v{{version}}/symfony-cli_darwin_all.tar.gz
-      UNARCHIVE: tar -xz -f  symfony-cli_darwin_all.tar.gz
+      TYPE: linux_arm64
+    darwin:
+      TYPE: darwin_all
 
 provides:
   - bin/symfony
