@@ -22,7 +22,7 @@ EoMD
 
   echo  # spacer
 
-  OPENAI_API_KEY="$(gum input --placeholder 'key pls')"
+  export OPENAI_API_KEY="$(gum input --placeholder 'key pls')"
 fi
 
 gum format <<EoMD
