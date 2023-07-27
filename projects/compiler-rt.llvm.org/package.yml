@@ -1,0 +1,43 @@
+distributable:
+  url: https://github.com/llvm/llvm-project/releases/download/llvmorg-{{ version }}/llvm-project-{{ version }}.src.tar.xz
+  strip-components: 1
+
+versions:
+  github: llvm/llvm-project
+  strip: /^llvmorg-/
+
+dependencies:
+  darwin:
+    apple.com/xcode/clt: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    cmake.org: 3
+    ninja-build.org: 1
+    python.org: 3
+    llvm.org/core: '*'
+  working-directory: build
+  script:
+    - cmake ../compiler-rt $ARGS
+    - ninja
+    - ninja install
+  receipt:
+    - LLVMConfig.cmake
+  env:
+    ARGS:
+      - -G Ninja
+      - -DCMAKE_INSTALL_PREFIX="{{ prefix }}"
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DLLVM_CONFIG_PATH="{{ deps.llvm.org/core.prefix }}/bin/llvm-config"
+
+test:
+  fixture: |
+    @msg = internal constant [12 x i8] c"steeping...\00"
+    declare i32 @puts(i8*)
+    define i32 @main() {
+        call i32 @puts(i8* getelementptr inbounds ([12 x i8], [12 x i8]* @msg, i32 0, i32 0))
+        ret i32 0
+    }
+  script:
+    - test $(lli $FIXTURE) = 'steeping...'
