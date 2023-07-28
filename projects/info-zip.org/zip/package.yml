@@ -1,0 +1,29 @@
+distributable:
+  url: http://downloads.sourceforge.net/project/infozip/Zip%203.x%20%28latest%29/{{version.marketing}}/zip{{version.major}}{{version.minor}}.tar.gz
+  strip-components: 1
+
+versions:
+  - 3.0
+
+dependencies:
+  sourceware.org/bzip2: '*'
+
+build:
+  dependencies:
+    gnu.org/gcc: '*'
+    tea.xyz/gx/make: '*'
+  script:
+    - bash ./unix/configure --prefix="{{prefix}}"
+    - make --jobs {{ hw.concurrency }} -f unix/Makefile generic
+    - make --jobs {{ hw.concurrency }} -f unix/Makefile BINDIR={{prefix}}/bin MANDIR={{prefix}}/man/man1 install
+
+provides:
+  - bin/zip
+  - bin/zipcloak
+  - bin/zipnote
+  - bin/zipsplit
+
+test:
+  - zip --version | grep "Zip {{version.marketing}}"
+  - zip test.zip test.1.txt test.2.txt test.3.txt
+  - ls | grep 'test.zip'
