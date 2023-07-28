@@ -26,13 +26,16 @@ dependencies:
     #x.org/xtst: '*'
 build:
   dependencies:
-    tea.xyz/gx/cc: c99
+    darwin:
+      tea.xyz/gx/cc: c99
+    linux:
+      gnu.org/gcc: '*'
     gnu.org/make: '*'
     gnu.org/autoconf: '*'
     freedesktop.org/pkg-config: '*'
     gnu.org/wget: '*'
   script:
-    - run: wget -c $BOOT_JDK -O - | tar xz -C . --strip-components=2
+    - run: wget -c $BOOT_JDK -O - | tar xz -C . --strip-components=$STRIP
       working-directory: boot-jdk
     - bash configure $ARGS --with-boot-jdk="$BOOT_JDK_DIR" --with-vendor-version-string="$(tea --version | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+')"
     - make images
@@ -41,16 +44,21 @@ build:
   env:
     MAKEFLAGS: "JOBS={{ hw.concurrency }}"
     darwin:
+      STRIP: 2
       BOOT_JDK_DIR: $SRCROOT/boot-jdk/Contents/Home
+      JDK_DIR: build/*/images/jdk-bundle/jdk-*/Contents/Home/*
       ARGS:
         - --enable-dtrace
     linux:
+      STRIP: 1
       BOOT_JDK_DIR: $SRCROOT/boot-jdk
+      JDK_DIR: build/*/images/jdk-bundle/jdk-*/*
       ARGS:
         - --with-cups={{deps.openprinting.github.io/cups.prefix}}
         - --with-fontconfig={{deps.freedesktop.org/fontconfig.prefix}}
         - --with-freetype=system
         - --with-stdc++lib=dynamic
+        - --with-tools-dir={{deps.gnu.org/gcc.prefix}}/bin
     darwin/aarch64:
       BOOT_JDK: https://download.java.net/java/GA/jdk19.0.1/afdd2e245b014143b62ccb916125e3ce/10/GPL/openjdk-19.0.1_macos-aarch64_bin.tar.gz
     darwin/x86-64:
