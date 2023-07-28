@@ -1,0 +1,35 @@
+distributable:
+  url: https://www.x.org/archive/individual/lib/libXtst-{{version}}.tar.gz
+  strip-components: 1
+versions:
+  url: https://xorg.freedesktop.org/archive/individual/lib/
+  match: /libXtst-\d+\.\d+\.\d+\.tar\.gz/
+  strip:
+    - /^libXtst-/
+    - /\.tar\.gz/
+dependencies:
+  x.org/xi: '*'
+  x.org/protocol: '*'
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    gnu.org/make: '*'
+    freedesktop.org/pkg-config: '*'
+    x.org/util-macros: '*'
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --sysconfdir={{tea.prefix}}/x.org/etc
+      - --localstatedir={{tea.prefix}}/x.org/var
+      - --disable-dependency-tracking
+      - --disable-silent-rules
+      - --enable-specs=no
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script:
+    - pkg-config --modversion xtst | grep {{version}}
