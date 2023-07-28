@@ -1,0 +1,32 @@
+# this is what docs.conda.io refers to as `miniconda`
+
+distributable:
+  url: https://github.com/conda/conda/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: conda/conda
+
+dependencies:
+  python.org: ~3.11
+
+build:
+  python-venv.sh {{prefix}}/bin/conda
+
+provides:
+  - bin/conda
+
+test:
+  - conda --version | grep {{version}}
+  - |
+    source /dev/stdin <<<"$(conda shell.bash hook)"
+    conda create --yes --name snowflakes biopython
+    conda activate snowflakes
+    conda info --envs | grep snowflakes
+    conda deactivate
+
+  # check env has been restored
+  - |
+    if ! conda info --envs | grep snowflakes; then
+      exit 1
+    fi
