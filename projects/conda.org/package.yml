@@ -13,8 +13,11 @@ dependencies:
 build:
   dependencies:
     tea.xyz/gx/cc: '*'
+    gnu.org/patch: '*'
   script:
-    python-venv.sh {{prefix}}/bin/conda
+    # stops conda from installing to our versioned prefix by default
+    - patch -p1 < props/context.py.diff
+    - python-venv.sh {{prefix}}/bin/conda
 
 provides:
   - bin/conda
