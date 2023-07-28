@@ -1,0 +1,30 @@
+versions:
+  github: mamba-org/micromamba-releases
+  strip: /-\d+$/
+  #FIXME ^^ versions are eg. 1.2.3-1 where the releases are usually -0
+  #      ^^ and revisions are increments of 1 so this is actually a 4th version
+  #      ^^ number for us that we need to extract
+
+provides:
+  - bin/micromamba
+
+warnings:
+  - vendored
+
+build:
+  dependencies:
+    curl.se: '*'
+  working-directory: "{{prefix}}"
+  script: |
+    curl -L \
+      "https://github.com/mamba-org/micromamba-releases/releases/download/{{version.tag}}/micromamba-$PID.tar.bz2" \
+      | tar xJ
+    rm -rf info
+  env:
+    linux/x86-64: {PID: linux-64}
+    linux/aarch64: {PID: linux-aarch64}
+    darwin/x86-64: {PID: osx-64}
+    darwin/aarch64: {PID: osx-arm64}
+
+test:
+  micromamba | grep {{version}}
