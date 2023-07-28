@@ -1,3 +1,8 @@
+# fit & finish
+
+* pkgs are installed to `~/.conda/pkgs`
+
+
 # tips
 
 * `conda` requires a shell hook to work, however this doesn’t have to be
@@ -7,14 +12,10 @@
   source <(conda shell.$(basename $SHELL) hook)
   ```
 
-  They do not provide a way to unload these hooks however.
-
-# mods
-
-* conda has been configured to not write to its prefix
+  > There is no provided way to unload these hooks
 
 
-## potential mods
+# prospects
 
 * conda could be patched to use tea to install python and potentially other
   such kinds of dependencies
