@@ -39,7 +39,13 @@ build:
   script:
     - run: wget -c $BOOT_JDK -O - | tar xz -C . --strip-components=$STRIP
       working-directory: boot-jdk
-    - bash configure $ARGS --with-boot-jdk="$BOOT_JDK_DIR" --with-vendor-version-string="$(tea --version | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+')"
+    - run: |
+        bash configure $ARGS \
+        --with-boot-jdk="$BOOT_JDK_DIR" \
+        --with-vendor-version-string="$(tea --version | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+')" \
+        --with-extra-cflags="$CFLAGS" \
+        --with-extra-cxxflags="$CXXFLAGS" \
+        --with-extra-ldflags="$LDFLAGS"
     - make images
     - mkdir -p {{prefix}}
     - mv build/*/images/jdk-bundle/jdk-20.0.2.jdk/Contents/Home/* {{prefix}}/
