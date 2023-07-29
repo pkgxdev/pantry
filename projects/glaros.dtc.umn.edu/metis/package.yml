@@ -1,0 +1,40 @@
+distributable:
+  # original http://glaros.dtc.umn.edu/gkhome/fetch/sw/metis/metis-5.1.0.tar.gz -> no response
+  url: https://github.com/scivision/METIS/archive/v{{version}}.tar.gz
+  strip-components: 1
+display-name: metis
+versions:
+  github: scivision/METIS/tags
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    gnu.org/make: '*'
+    cmake.org: '*'
+  script:
+    - cmake -B build $ARGS
+    - cmake --build build --parallel
+    - cmake --install build
+    - mkdir -p {{prefix}}/pkgshare/graphs
+    - mv ./src/graphs/* {{prefix}}/pkgshare/graphs/
+  env:
+    ARGS:
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_INSTALL_LIBDIR={{prefix}}/lib
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_FIND_FRAMEWORK=LAST
+      - -DCMAKE_VERBOSE_MAKEFILE=ON
+      - -Wno-dev
+      - -DBUILD_TESTING=OFF
+provides:
+  - bin/cmpfillin
+  - bin/gpmetis
+  - bin/graphchk
+  - bin/m2gmetis
+  - bin/mpmetis
+  - bin/ndmetis
+test:
+  script:
+    - cp {{prefix}}/pkgshare/graphs/4elt.graph ./
+    - graphchk 4elt.graph
+    - gpmetis 4elt.graph 2
+    - ndmetis 4elt.graph
