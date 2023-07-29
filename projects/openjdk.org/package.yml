@@ -49,8 +49,6 @@ build:
     - make images
     - mkdir -p {{prefix}}
     - mv $JDK_DIR {{prefix}}/
-    - run: mv build/*/support {{prefix}}/../
-      if: linux
   env:
     MAKEFLAGS: "JOBS={{ hw.concurrency }}"
     darwin:
@@ -62,7 +60,7 @@ build:
     linux:
       STRIP: 1
       BOOT_JDK_DIR: $SRCROOT/boot-jdk
-      JDK_DIR: build/*/jdk/*
+      JDK_DIR: build/*/images/jdk/*
       ARGS:
         - --with-cups={{deps.openprinting.github.io/cups.prefix}}
         - --with-fontconfig={{deps.freedesktop.org/fontconfig.prefix}}
