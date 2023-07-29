@@ -7,15 +7,10 @@ versions:
   strip: /^llvmorg-/
 
 provides:
-  - bin/FileCheck
-  - bin/UnicodeNameMappingGenerator
   - bin/bugpoint
-  - bin/count
   - bin/dsymutil
   - bin/llc
   - bin/lli
-  - bin/lli-child-target
-  - bin/llvm-PerfectShuffle
   - bin/llvm-addr2line
   - bin/llvm-ar
   - bin/llvm-as
@@ -44,7 +39,6 @@ provides:
   - bin/llvm-ifs
   - bin/llvm-install-name-tool
   - bin/llvm-jitlink
-  - bin/llvm-jitlink-executor
   - bin/llvm-lib
   - bin/llvm-libtool-darwin
   - bin/llvm-link
@@ -85,15 +79,10 @@ provides:
   - bin/llvm-undname
   - bin/llvm-windres
   - bin/llvm-xray
-  - bin/not
-  - bin/obj2yaml
   - bin/opt
   - bin/sancov
   - bin/sanstats
-  - bin/split-file
   - bin/verify-uselistorder
-  - bin/yaml-bench
-  - bin/yaml2obj
 
 dependencies:
   zlib.net: 1
@@ -142,12 +131,14 @@ build:
       - -G Ninja
       - -DCMAKE_INSTALL_PREFIX="{{ prefix }}"
       - -DCMAKE_BUILD_TYPE=Release
-      - -DLLVM_INCLUDE_DOCS=OFF
-      - -DLLVM_INCLUDE_TESTS=OFF
-      - -DLLVM_LINK_LLVM_DYLIB=ON
-      - -DLLVM_INSTALL_UTILS=ON
       - -DLLVM_ENABLE_BINDINGS=OFF
       - -DLLVM_INCLUDE_BENCHMARKS=OFF
+      - -DLLVM_INCLUDE_DOCS=OFF
+      - -DLLVM_INCLUDE_EXAMPLES=OFF
+      - -DLLVM_INCLUDE_TESTS=OFF
+      - -DLLVM_INSTALL_UTILS=ON
+      - -DLLVM_LINK_LLVM_DYLIB=ON
+      - -DLLVM_UTILS_INSTALL_DIR=libexec
 
 test:
   fixture: |
