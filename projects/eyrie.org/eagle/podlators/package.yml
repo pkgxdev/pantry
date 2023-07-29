@@ -16,7 +16,11 @@ build:
     tea.xyz/gx/cc: c99
     gnu.org/make: '*'
     gnu.org/wget: '*'
+    linux:
+      cpanmin.us: ^1
   script:
+    - run: cpanm -l {{prefix}} $PKGS
+      if: linux
     - wget https://cpan.metacpan.org/authors/id/K/KH/KHW/Pod-Simple-3.43.tar.gz
     - tar -xzf Pod-Simple-3.43.tar.gz
     - run: |
@@ -28,11 +32,14 @@ build:
     - make --jobs {{ hw.concurrency }}
     - make --jobs {{ hw.concurrency }} install
   env:
-    PERL5LIB: "{{prefix}}/libexec/lib/perl5:$PERL5LIB"
+    PERL5LIB: "{{prefix}}/libexec/lib/perl5:{{prefix}}/lib/perl5:$PERL5LIB"
     ARGS:
       - INSTALL_BASE={{prefix}}
       - INSTALLSITEMAN1DIR={{prefix}}/man/man1
       - INSTALLSITEMAN3DIR={{prefix}}/man/man3
+    linux:
+      PKGS:
+        - ExtUtils::MakeMaker
 
 provides:
   - bin/pod2man
