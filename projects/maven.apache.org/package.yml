@@ -1,0 +1,24 @@
+distributable:
+  url: https://archive.apache.org/dist/maven/maven-{{version.major}}/{{version}}/binaries/apache-maven-{{version}}-bin.tar.gz
+  strip-components: 0
+versions:
+  github: apache/maven
+  strip: /^maven-/
+warnings:
+  - vendored
+dependencies:
+  openjdk.org: '*'
+build:
+  working-directory: apache-maven-{{version}}
+  script:
+    - rm bin/*.cmd
+    - mkdir -p {{prefix}}
+    - mv ./* {{prefix}}/
+provides:
+  - bin/mvn
+  - bin/mvnDebug
+  - bin/mvnyjp
+test:
+  script:
+    - mvn -version | grep {{version}}
+    - mvn compile -Duser.home=./
