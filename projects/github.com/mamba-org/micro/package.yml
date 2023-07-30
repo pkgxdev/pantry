@@ -11,9 +11,21 @@ provides:
 warnings:
   - vendored
 
+platforms:
+  - darwin
+  # broken on linux pending https://github.com/mamba-org/mamba/issues/2650
+
+dependencies:
+  curl.se/ca-certs: '*'
+
+runtime:
+  env:
+    REQUESTS_CA_BUNDLE: ${{deps.curl.se/ca-certs.prefix}}/ssl/cert.pem
+
 build:
   dependencies:
     curl.se: '*'
+    sourceware.org/bzip2: '*'
   working-directory: "{{prefix}}"
   script: |
     curl -L \
