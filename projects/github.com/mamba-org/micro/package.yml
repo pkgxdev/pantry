@@ -27,4 +27,10 @@ build:
     darwin/aarch64: {PID: osx-arm64}
 
 test:
-  micromamba | grep {{version}}
+  - micromamba | grep {{version}}
+
+  - |
+    eval "$(micromamba shell hook --shell bash)"
+    micromamba create numpy --channel anaconda --prefix mm-prefix --yes
+    micromamba activate
+    ./test.py
