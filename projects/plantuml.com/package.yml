@@ -6,11 +6,14 @@ versions:
 dependencies:
   graphviz.org: '*'
   openjdk.org: '*'
+  harfbuzz.org: '*'
 runtime:
   env:
     PLANTUML_JAR: "{{prefix}}/libexec/plantuml-{{version}}.jar"
     JAVA_BIN: "{{deps.openjdk.org.prefix}}/bin/java"
     DOT_BIN: "{{deps.graphviz.org.prefix}}/bin/dot"
+    darwin/aarch64:
+      DYLD_LIBRARY_PATH: "{{deps.harfbuzz.org.prefix}}/lib:$DYLD_LIBRARY_PATH" #debug
 build:
   dependencies:
     gnu.org/wget: '*'
@@ -21,13 +24,11 @@ build:
     - run: |
         cat <<EOS > plantuml
         #!/bin/bash
-
         if [[ "\$*" != *"-gui"* ]]; then
           VMARGS="-Djava.awt.headless=true"
         fi
         GRAPHVIZ_DOT="\$DOT_BIN" exec "\$JAVA_BIN" \$VMARGS -jar "\$PLANTUML_JAR" "\$@"
         EOS
-
     - mkdir -p {{prefix}}/bin
     - install plantuml {{prefix}}/bin/plantuml
 provides:
