@@ -34,9 +34,10 @@ build:
     # still pretty new and thus provides no executable, so we made one
     - cp props/auto-gpt {{prefix}}/venv/bin
 
-    - |
-      mkdir {{prefix}}/share
-      cp .env.template {{prefix}}/share/env.template
+    - working-directory: "{{prefix}}/share"
+      run: |
+        cp $SRCROOT/.env.template env.template
+        cp $SRCROOT/prompt_settings.yaml .
 
     - cp props/entrypoint.sh {{prefix}}
 

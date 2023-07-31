@@ -41,7 +41,7 @@ EoMD
 
 echo  #spacer
 
-GPT="$(gum choose {GPT3,GPT4})"
+GPT="$(gum choose {GPT4,GPT3})"
 
 docs="${XDG_DOCUMENTS_DIR:-$HOME/Documents}/Auto-GPT"
 
@@ -52,7 +52,7 @@ gum format <<EoMD
 
   # exe
 
-  running **Auto-GPT**…
+  running **Auto-GPT**… (*this might take a few minutes*)
 EoMD
 
 if test "$GPT" = GPT3
