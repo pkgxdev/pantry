@@ -20,18 +20,24 @@ build:
     cd cli
     make deps
     make build-cli-ext copy-cli-ext
-    make build
+    echo {{version}}
+    gox -ldflags '-X github.com/hasura/graphql-engine/cli/v2/version.BuildVersion={{version}} -X github.com/hasura/graphql-engine/cli/v2/plugins.IndexBranchRef=master -s -w -extldflags "-static"' \
+      -osarch="$PLATFORM" \
+      -output="_output/hasura" \
+      ./cmd/hasura/
     mkdir -p "{{ prefix }}"/bin
-    mv _output/**/cli-hasura-$PLATFORM "{{ prefix }}"/bin/hasura
+    mv _output/hasura "{{ prefix }}"/bin/hasura
   dependencies:
     go.dev: ^1.16
     github.com/mitchellh/gox: ^1.0.1
     npmjs.com: ^8.19.4
+    gnu.org/make: ^4.4.1
   env:
-    darwin/aarch64: {PLATFORM: darwin-arm64}
-    darwin/x86-64:  {PLATFORM: darwin-amd64}
-    linux/aarch64:  {PLATFORM: linux-arm64}
-    linux/x86-64:   {PLATFORM: linux-amd64}
+    darwin/aarch64: {PLATFORM: darwin/arm64}
+    darwin/x86-64:  {PLATFORM: darwin/amd64}
+    linux/aarch64:  {PLATFORM: linux/arm64}
+    linux/x86-64:   {PLATFORM: linux/amd64}
+    CGO_ENABLED: 0
     GO111MODULE: on
     LDFLAGS:
       [-s, -w, "-X=main.Version={{version}}"]
