@@ -1,0 +1,35 @@
+distributable:
+  url: https://github.com/docker/cli/archive/v{{version}}.tar.gz
+  strip-components: 1
+versions:
+  github: docker/cli/tags
+build:
+  dependencies:
+    go.dev: '*'
+    github.com/cpuguy83/go-md2man: '*'
+  script:
+    - mkdir -p ./src/github.com/docker
+    - ln -sf $GOPATH $GOPATH/src/github.com/docker/cli
+    - run: |
+        go build $ARGS -ldflags=" \
+        -X \"github.com/docker/cli/cli/version.BuildTime=$(date "+%Y-%m-%dT%H:%M:%S%z")\" \
+        -X github.com/docker/cli/cli/version.Version={{version}} \
+        -X \"github.com/docker/cli/cli/version.PlatformName=Docker Engine - Community\" \
+        " github.com/docker/cli/cmd/docker
+    - run: |
+        for md in man/*.[1-8].md; do
+          section=$(basename "$md" | sed 's/.*\.\([1-8]\)\.md/\1/')
+          mkdir -p "{{prefix}}/man/man${section}"
+          go-md2man -in="$md" -out="{{prefix}}/man/man${section}/$(basename "$md" .md)"
+        done
+  env:
+    GOPATH: $PWD
+    GO111MODULE: auto
+    ARGS:
+      - -trimpath
+      - -o={{prefix}}/bin/docker
+provides:
+  - bin/docker
+test:
+  script:
+    - docker --version | grep {{version}}
