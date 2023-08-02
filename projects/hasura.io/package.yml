@@ -10,20 +10,22 @@ provides:
 
 build:
   # I copied the brew formula here --mxcl
-  script:
-    - working-directory: cli-ext
-      # see https://github.com/hasura/graphql-engine/issues/9440
-      run: |
-        npm update pkg
-        npm install --global --build-from-source --prefix={{prefix}}
-        npm run prebuild
-        node_modules/.bin/pkg ./build/command.js --output ./bin/cli-ext-hasura -t host
+  # NOTE there is a `Makefile`, possibly not using it is asking for trouble
+  script:]
+    - cd cli-ext
+    # see https://github.com/hasura/graphql-engine/issues/9440
+    - npm update pkg
 
-    - working-directory: cli
-      run: |
-        cp ../cli-ext/bin/cli-ext-hasura ./internal/cliext/static-bin/#{os}/#{arch}/cli-ext
-        go build -v -ldflags="$LDFLAGS" ./cmd/hasura
-        install -D _output/hasura {{ prefix }}/bin/hasura
+    - |
+      npm install --global --build-from-source --prefix={{prefix}}
+      npm run prebuild
+      node_modules/.bin/pkg ./build/command.js --output ./bin/cli-ext-hasura -t host
+
+    - cp cli-ext/bin/cli-ext-hasura cli/internal/cliext/static-bin/$PLATFORM/cli-ext
+
+    - working-directory: ../cli
+      run:
+        go build -v -ldflags="$LDFLAGS" ./cmd/hasura -output={{ prefix }}/bin/hasura
 
   dependencies:
     go.dev: ^1.16
@@ -31,6 +33,10 @@ build:
     gnu.org/coreutils: '*'
     nodejs.org: ^18  # fails with ^20
   env:
+    darwin/aarch64: {PLATFORM: darwin/arm64}
+    darwin/x86-64:  {PLATFORM: darwin/amd64}
+    linux/aarch64:  {PLATFORM: linux/arm64}
+    linux/x86-64:   {PLATFORM: linux/amd64}
     LDFLAGS:
       - -s
       - -w
