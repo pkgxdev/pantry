@@ -12,20 +12,18 @@ build:
   # I copied the brew formula here --mxcl
   # NOTE there is a `Makefile`, possibly not using it is asking for trouble
   script:
-    - cd cli-ext
-    # see https://github.com/hasura/graphql-engine/issues/9440
-    - npm update pkg
-
-    - |
-      npm install --global --build-from-source --prefix={{prefix}}
-      npm run prebuild
-      node_modules/.bin/pkg ./build/command.js --output ./bin/cli-ext-hasura -t host
-
-    - cp cli-ext/bin/cli-ext-hasura cli/internal/cliext/static-bin/$PLATFORM/cli-ext
-
-    - working-directory: ../cli
+    - working-directory: cli-ext
       run:
-        go build -v -ldflags="$LDFLAGS" ./cmd/hasura -output={{ prefix }}/bin/hasura
+        - npm update pkg  # see https://github.com/hasura/graphql-engine/issues/9440
+        - |
+          npm install --global --build-from-source --prefix={{prefix}}
+          npm run prebuild
+          node_modules/.bin/pkg ./build/command.js --output ./bin/cli-ext-hasura -t host
+
+    - working-directory: cli
+      run: |
+        cp ../cli-ext/bin/cli-ext-hasura internal/cliext/static-bin/$PLATFORM/cli-ext
+        go build -v -ldflags="$LDFLAGS" -o="{{prefix}}/bin/hasura" ./cmd/hasura
 
   dependencies:
     go.dev: ^1.16
@@ -40,7 +38,7 @@ build:
     LDFLAGS:
       - -s
       - -w
-      - -X github.com/hasura/graphql-engine/cli/v2/version.BuildVersion={[version]}
+      - -X github.com/hasura/graphql-engine/cli/v2/version.BuildVersion={{version}}
       - -X github.com/hasura/graphql-engine/cli/v2/plugins.IndexBranchRef=master
     linux:
       # or segmentation fault
@@ -48,5 +46,6 @@ build:
       LDFLAGS:
       - -buildmode=pie
 
-test:
-  hasura --skip-update-check version
+test: |
+  hasura --skip-update-check version | grep {{version}}
+  hasura init testdir
