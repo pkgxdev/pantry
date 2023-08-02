@@ -8,42 +8,33 @@ versions:
 provides:
   - bin/hasura
 
-platforms:
-  - linux
-  - darwin
-
 build:
-  # The "build" Make target relied on variables that weren't present.
-  # For that reason, we're reinventing their build step with some modifications.
-  script: |
-    cd cli
-    make deps
-    cd ../cli-ext
-    npm install
-    npm run build
-    cd ../cli
-    make copy-cli-ext
-    echo {{version}}
-    gox -ldflags '-X github.com/hasura/graphql-engine/cli/v2/version.BuildVersion={{version}} -X github.com/hasura/graphql-engine/cli/v2/plugins.IndexBranchRef=master -s -w -extldflags "-static"' \
-      -osarch="$PLATFORM" \
-      -output="_output/hasura" \
-      ./cmd/hasura/
-    mkdir -p "{{ prefix }}"/bin
-    mv _output/hasura "{{ prefix }}"/bin/hasura
+  # I copied the brew formula here --mxcl
+  script:
+    - working-directory: cli-ext
+      run: |
+      npm install --global --build-from-source --prefix={{prefix}}
+      npm run prebuild
+      node_modules/.bin/pkg ./build/command.js --output ./bin/cli-ext-hasura -t host
+
+    - working-directory: cli
+      run: |
+        cp ../cli-ext/bin/cli-ext-hasura ./internal/cliext/static-bin/#{os}/#{arch}/cli-ext
+        go build -v -ldflags="$LDFLAGS" ./cmd/hasura
+        install -D _output/hasura {{ prefix }}/bin/hasura
+
   dependencies:
     go.dev: ^1.16
     github.com/mitchellh/gox: ^1.0.1
     npmjs.com: ^8.19.4
     gnu.org/make: ^4.3.0
+    gnu.org/coreutils: '*'
   env:
-    darwin/aarch64: {PLATFORM: darwin/arm64}
-    darwin/x86-64:  {PLATFORM: darwin/amd64}
-    linux/aarch64:  {PLATFORM: linux/arm64}
-    linux/x86-64:   {PLATFORM: linux/amd64}
-    CGO_ENABLED: 0
-    GO111MODULE: on
     LDFLAGS:
-      [-s, -w, "-X=main.Version={{version}}"]
+      - -s
+      - -w
+      - -X github.com/hasura/graphql-engine/cli/v2/version.BuildVersion={[version]}
+      - -X github.com/hasura/graphql-engine/cli/v2/plugins.IndexBranchRef=master
     linux:
       # or segmentation fault
       # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
