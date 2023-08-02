@@ -12,7 +12,9 @@ build:
   # I copied the brew formula here --mxcl
   script:
     - working-directory: cli-ext
+      # see https://github.com/hasura/graphql-engine/issues/9440
       run: |
+        npm update pkg
         npm install --global --build-from-source --prefix={{prefix}}
         npm run prebuild
         node_modules/.bin/pkg ./build/command.js --output ./bin/cli-ext-hasura -t host
@@ -25,9 +27,7 @@ build:
 
   dependencies:
     go.dev: ^1.16
-    github.com/mitchellh/gox: ^1.0.1
     npmjs.com: ^8.19.4
-    gnu.org/make: ^4.3.0
     gnu.org/coreutils: '*'
     nodejs.org: ^18  # fails with ^20
   env:
