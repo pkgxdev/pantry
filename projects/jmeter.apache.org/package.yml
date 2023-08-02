@@ -1,0 +1,31 @@
+distributable:
+  url: https://dlcdn.apache.org/jmeter/binaries/apache-jmeter-{{version.raw}}.tgz
+  strip-components: 1
+versions:
+  url: https://dlcdn.apache.org/jmeter/binaries/
+  match: /apache-jmeter-\d+\.\d+(\.\d+)*\.tgz/
+  strip:
+    - /^apache-jmeter-/
+    - /\.tgz/
+dependencies:
+  openjdk.org: '*'
+build:
+  dependencies:
+    gnu.org/wget: '*'
+  script:
+    - rm -r bin/*.bat
+    - mkdir -p {{prefix}}
+    - mv bin docs extras lib {{prefix}}/
+    - run: |
+        wget -O $PLUGINS_MANAGER_FILE $PLUGINS_MANAGER_URL
+        mv $PLUGINS_MANAGER_FILE {{prefix}}/lib/ext/
+      working-directory: plugins-manager
+  env:
+    PLUGINS_MANAGER_URL: https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/1.9/jmeter-plugins-manager-1.9.jar
+    PLUGINS_MANAGER_FILE: jmeter-plugins-manager-1.9.jar
+provides:
+  - bin/jmeter
+test:
+  script:
+    - jmeter -n -t test.jmx 2>&1 | grep 'end of run'
+    - jmeter --version | grep {{version}}
