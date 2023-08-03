@@ -20,7 +20,7 @@ build:
     GO111MODULE: on
     CGO_ENABLED: 0
     LDFLAGS:
-      [-s, -w, "-X=main.Version={{version}}"]
+      [-s, -w, "-X=github.com/hetznercloud/cli/internal/version.Version={{version}}"]
     linux:
       # or segmentation fault
       # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
@@ -29,7 +29,4 @@ build:
 
 test:
   script: |
-    if hcloud server-type list; then
-      echo "hcloud server-type list should have failed, due to missing context"
-      exit 1
-    fi
+    test "$(hcloud version)" = "hcloud {{version}}"
