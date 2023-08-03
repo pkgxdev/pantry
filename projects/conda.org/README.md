@@ -1,6 +1,11 @@
 # fit & finish
 
 * pkgs are installed to `~/.conda/pkgs`
+* `conda init` is called during pkging so that `conda` will work without
+  forcing you to install its shell hooks.
+
+  > obv. you still need these shell hooks for `conda`’s environment system to
+  > work, see the [#tips](#tips) section.
 
 
 # tips
