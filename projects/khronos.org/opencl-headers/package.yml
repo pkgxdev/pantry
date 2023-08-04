@@ -1,0 +1,43 @@
+distributable:
+  url: https://github.com/KhronosGroup/OpenCL-Headers/archive/refs/tags/v{{version.raw}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: KhronosGroup/OpenCL-Headers
+  strip: /^v/
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    gnu.org/make: '*'
+    cmake.org: '*'
+    python.org: ^3.11
+  script:
+    - cmake -S . -B build $ARGS
+    - cmake --build build
+    - cmake --install build
+  env:
+    ARGS:
+      - -DBUILD_EXTERNAL=OFF
+      - -DENABLE_CTEST=OFF
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_INSTALL_LIBDIR={{prefix}}/lib
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_FIND_FRAMEWORK=LAST
+      - -DCMAKE_VERBOSE_MAKEFILE=ON
+      - -Wno-dev
+      - -DBUILD_TESTING=OFF
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  fixture: |
+    #include <stdio.h>
+    #include <CL/opencl.h>
+    int main(void) {
+      return 0;
+    }
+  script: |
+    mv $FIXTURE b.c
+    cc b.c
+    ./a.out
