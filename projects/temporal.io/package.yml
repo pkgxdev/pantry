@@ -10,15 +10,15 @@ provides:
 
 build:
   script: |
-    make build
+    rm -f temporal
+    go build ./cmd/temporal
     mkdir -p "{{ prefix }}"/bin
     mv temporal "{{ prefix }}"/bin
-    find .
   dependencies:
     go.dev: ^1.19
-    gnu.org/make: '*'
   env:
     GO111MODULE: on
+    CGO_ENABLED: 0
     LDFLAGS:
       [-s, -w, "-X=main.Version={{version}}"]
     linux:
