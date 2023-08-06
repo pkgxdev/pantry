@@ -1,0 +1,129 @@
+distributable:
+  url: https://ftp.mozilla.org/pub/security/nss/releases/NSS_{{version.major}}_{{version.minor}}_RTM/src/nss-{{version.marketing}}.tar.gz
+  strip-components: 1
+versions:
+  - 3.92
+dependencies:
+  mozilla.org/nspr: '*'
+  sqlite.org: '*'
+  zlib.net: '*'
+build:
+  dependencies:
+    gnu.org/gcc: '*'
+    gnu.org/make: '*'
+  script:
+    - run: |
+        sed -i'' 's|-install_name @executable_path|-install_name {{prefix}}/lib|g' coreconf/Darwin.mk
+        sed -i'' 's|@executable_path|{{prefix}}/lib|g' lib/freebl/config.mk
+        make all $ARGS
+      working-directory: nss
+    - run: | 
+        mkdir -p bin lib/pkgconfig include/dbm include/nss
+        cat <<< "$PC_FILE" > lib/pkgconfig/nss.pc
+      working-directory: "{{prefix}}"
+    - cat <<< "$CONFIG_FILE" > ./dist/nss-config
+    - install ./dist/nss-config {{prefix}}/bin/
+    - install ./dist/$(uname)*/bin/* {{prefix}}/bin/
+    - install ./dist/$(uname)*/lib/* {{prefix}}/lib/
+    - install ./dist/public/dbm/* {{prefix}}/include/dbm/
+    - install ./dist/public/nss/* {{prefix}}/include/nss/
+  env:
+    ARGS:
+      - BUILD_OPT=1
+      - NSS_ALLOW_SSLKEYLOGFILE=1
+      - NSS_DISABLE_GTESTS=1
+      - NSS_USE_SYSTEM_SQLITE=1
+      - NSPR_INCLUDE_DIR={{deps.mozilla.org/nspr.prefix}}/include/nspr
+      - NSPR_LIB_DIR={{deps.mozilla.org/nspr.prefix}}/lib
+      - USE_64=1
+    CONFIG_FILE: |
+      #!/bin/sh
+      for opt; do :; done
+      case "\$opt" in
+        --version) opt="--modversion";;
+        --cflags|--libs) ;;
+        *) exit 1;;
+      esac
+      pkg-config "\$opt" nss
+    PC_FILE: |
+      prefix=\${pcfiledir}/../..
+      exec_prefix=\${prefix}
+      libdir=\${exec_prefix}/lib
+      includedir=\${prefix}/include/nss
+
+      Name: NSS
+      Description: Mozilla Network Security Services
+      Version: {{version}}
+      Requires: nspr >= 4.12
+      Libs: -L\${libdir} -lnss3 -lnssutil3 -lsmime3 -lssl3
+      Cflags: -I\${includedir}
+provides:
+  - bin/addbuiltin
+  - bin/certutil
+  - bin/crmftest
+  - bin/ecperf
+  - bin/listsuites
+  - bin/multinit
+  - bin/ocspresp
+  - bin/p7verify
+  - bin/pk12util
+  - bin/remtest
+  - bin/secmodtest
+  - bin/ssltap
+  - bin/vfychain
+  - bin/atob
+  - bin/chktest
+  - bin/dbtest
+  - bin/encodeinttest
+  - bin/lowhashtest
+  - bin/nonspr10
+  - bin/oidcalc
+  - bin/pk11ectest
+  - bin/pk1sign
+  - bin/rsaperf
+  - bin/selfserv
+  - bin/strsclnt
+  - bin/vfyserv
+  - bin/baddbdir
+  - bin/cmsutil
+  - bin/derdump
+  - bin/fbectest
+  - bin/makepqg
+  - bin/nss-config
+  - bin/p7content
+  - bin/pk11gcmtest
+  - bin/pkix-errcodes
+  - bin/rsapoptst
+  - bin/shlibsign
+  - bin/symkeyutil
+  - bin/bltest
+  - bin/conflict
+  - bin/dertimetest
+  - bin/fipstest
+  - bin/mangle
+  - bin/nss-policy-check
+  - bin/p7env
+  - bin/pk11importtest
+  - bin/pp
+  - bin/sdbthreadtst
+  - bin/signtool
+  - bin/tstclnt
+  - bin/btoa
+  - bin/crlutil
+  - bin/digest
+  - bin/httpserv
+  - bin/modutil
+  - bin/ocspclnt
+  - bin/p7sign
+  - bin/pk11mode
+  - bin/pwdecrypt
+  - bin/sdrtest
+  - bin/signver
+  - bin/validation
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script:
+    - pkg-config --modversion nss | grep {{version}}
+    - certutil -N -d ./ -f passwd
+    - certutil -L -d ./ | grep "Certificate Nickname"
