@@ -9,7 +9,8 @@ dependencies:
   zlib.net: '*'
 build:
   dependencies:
-    gnu.org/gcc: '*'
+    linux:
+      gnu.org/gcc: '*'
     gnu.org/make: '*'
   script:
     - run: |
@@ -28,11 +29,11 @@ build:
     - install ./dist/public/dbm/* {{prefix}}/include/dbm/
     - install ./dist/public/nss/* {{prefix}}/include/nss/
   env:
-    CC: "{{deps.gnu.org/gcc.prefix}}/bin/gcc"
     darwin:
       REPLACE: "sed -i ''"
     linux:
       REPLACE: "sed -i"
+      CC: "{{deps.gnu.org/gcc.prefix}}/bin/gcc"
     ARGS:
       - BUILD_OPT=1
       - NSS_ALLOW_SSLKEYLOGFILE=1
