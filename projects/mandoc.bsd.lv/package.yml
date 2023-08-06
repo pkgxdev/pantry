@@ -16,7 +16,8 @@ build:
   script:
     - mv cgi.h.example cgi.h # For man.cgi
     - run: |
-        cat << EOF > configure.local
+        cat $PROP >configure.local
+      prop: |
         PREFIX={{prefix}}
         INCLUDEDIR={{prefix}}/include
         LIBDIR={{prefix}}/lib
@@ -38,7 +39,6 @@ build:
         HAVE_MANPATH=0
         STATIC=
         BUILD_CGI=1
-        EOF
     - ./configure
     - make --jobs {{ hw.concurrency }}
     - make --jobs {{ hw.concurrency }} install
