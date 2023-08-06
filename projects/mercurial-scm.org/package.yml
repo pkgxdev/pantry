@@ -1,0 +1,37 @@
+distributable:
+  url: https://www.mercurial-scm.org/release/mercurial-{{version.raw}}.tar.gz
+  strip-components: 1
+versions:
+  url: https://www.mercurial-scm.org/release
+  match: /mercurial-\d+\.\d+(\.\d+)?\.tar\.gz/
+  strip:
+    - /^mercurial-/
+    - /\.tar\.gz/
+dependencies:
+  python.org: ^3.11
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    gnu.org/make: '*'
+  script:
+    - make install-bin PREFIX={{prefix}}
+    - make -C contrib/chg install PREFIX={{prefix}} HGPATH={{prefix}}/bin/hg HG={{prefix}}/bin/hg
+    - run: |
+        cat << EOF > hgrc
+        [pager]
+        pager = less -FRX
+        EOF
+    - mkdir -p {{prefix}}/etc/mercurial {{prefix}}/share/man/man1 {{prefix}}/share/man/man5
+    - install hgrc {{prefix}}/etc/mercurial/
+    - run: |
+        install hg.1 {{prefix}}/share/man/man1/
+        install hgignore.5 hgrc.5 {{prefix}}/share/man/man5/
+      working-directory: doc
+  env:
+    HGPYTHON3: 1
+provides:
+  - bin/hg
+test:
+  script:
+    - hg init
+    - hg --version | grep {{version.marketing}}
