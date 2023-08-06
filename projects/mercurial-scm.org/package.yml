@@ -22,11 +22,12 @@ build:
         pager = less -FRX
       working-directory: ${{prefix}}/etc/mercurial
     - run: |
-        install -d hg.1 {{prefix}}/share/man/man1/
-        install -d hgignore.5 hgrc.5 {{prefix}}/share/man/man5/
+        mkdir -p {{prefix}}/share/man/man{1,5}
+        install hg.1 {{prefix}}/share/man/man1/
+        install hgignore.5 hgrc.5 {{prefix}}/share/man/man5/
       working-directory: doc
     - run: |
-        sed -i.bak '1s|.*|#!/usr/bin/env python3.11|' hg
+        sed -i.bak '1s|.*|#!/usr/bin/env python3|' hg
         rm hg.bak
       working-directory: ${{prefix}}/bin
   env:
