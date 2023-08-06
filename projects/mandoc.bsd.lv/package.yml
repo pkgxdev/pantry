@@ -1,0 +1,54 @@
+distributable:
+  url: https://mandoc.bsd.lv/snapshots/mandoc-{{version}}.tar.gz
+  strip-components: 1
+versions:
+  url: https://mandoc.bsd.lv/snapshots
+  match: /mandoc-\d+\.\d+\.\d+\.tar\.gz/
+  strip:
+    - /^mandoc-/
+    - /\.tar\.gz/
+dependencies:
+  zlib.net: '*'
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    gnu.org/make: '*'
+  script:
+    - mv cgi.h.example cgi.h # For man.cgi
+    - run: |
+        cat $PROP >configure.local
+      prop: |
+        PREFIX={{prefix}}
+        INCLUDEDIR={{prefix}}/include
+        LIBDIR={{prefix}}/lib
+        MANDIR={{prefix}}/share/man
+        WWWPREFIX={{prefix}}/var/www
+        EXAMPLEDIR={{prefix}}/share/examples
+        BINM_MAN=bsdman
+        BINM_APROPOS=bsdapropos
+        BINM_WHATIS=bsdwhatis
+        BINM_MAKEWHATIS=bsdmakewhatis
+        BINM_SOELIM=bsdsoelim
+        MANM_MAN=man
+        MANM_MDOC=mdoc
+        MANM_ROFF=mandoc_roff
+        MANM_EQN=eqn
+        MANM_TBL=tbl
+        OSNAME='$(uname -a)'
+        MANPATH_DEFAULT={{prefix}}/share/man
+        HAVE_MANPATH=0
+        STATIC=
+        BUILD_CGI=1
+    - ./configure
+    - make --jobs {{ hw.concurrency }}
+    - make --jobs {{ hw.concurrency }} install
+provides:
+  - bin/bsdapropos
+  - bin/bsdman
+  - bin/bsdsoelim
+  - bin/bsdwhatis
+  - bin/demandoc
+  - bin/mandoc
+test:
+  script:
+    - mandoc -Thtml -Ostyle={{prefix}}/share/examples/example.style.css {{prefix}}/share/man/man1/mandoc.1
