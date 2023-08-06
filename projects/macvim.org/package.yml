@@ -1,8 +1,9 @@
 distributable:
-  url: https://github.com/macvim-dev/macvim/archive/release-{{version.raw}}.tar.gz
+  url: https://github.com/macvim-dev/macvim/archive/release-{{version.major}}.tar.gz
   strip-components: 1
 versions:
-  github: macvim-dev/macvim
+  github: macvim-dev/macvim/tags
+  match: /release-\d+/
   strip:
     - /^release-/
 platforms:
@@ -12,19 +13,35 @@ dependencies:
   lua.org: '*'
   python.org: ^3.11
   ruby-lang.org: '*'
+runtime:
+  env:
+    PYTHONHOME: "{{deps.python.org.prefix}}"
 build:
   dependencies:
+    tea.xyz/gx/cc: c99
+    gnu.org/make: '*'
     gnu.org/gettext: '*'
     libsodium.org: '*'
-    gnu.org/make: '*'
-    tea.xyz/gx/cc: c99
   script:
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }}
-    - install -D src/MacVim/build/Release/MacVim.app {{prefix}}/
+    - mkdir -p {{prefix}}/bin
+    - mv -f ./src/MacVim/build/Release/MacVim.app {{prefix}}/MacVim.app
+    - run: |
+        ln -s ../MacVim.app/Contents/bin/gview gview
+        ln -s ../MacVim.app/Contents/bin/gvim gvim
+        ln -s ../MacVim.app/Contents/bin/gvimdiff gvimdiff
+        ln -s ../MacVim.app/Contents/bin/gvimtutor gvimtutor
+        ln -s ../MacVim.app/Contents/bin/mview mview
+        ln -s ../MacVim.app/Contents/bin/mvim mvim
+        ln -s ../MacVim.app/Contents/bin/mvimdiff mvimdiff
+        ln -s ../MacVim.app/Contents/bin/mvimtutor mvimtutor
+        ln -s ../MacVim.app/Contents/bin/view view
+        ln -s ../MacVim.app/Contents/bin/vim vim
+        ln -s ../MacVim.app/Contents/bin/vimdiff vimdiff
+        ln -s ../MacVim.app/Contents/bin/vimtutor vimtutor
+      working-directory: "{{prefix}}/bin"
   env:
-    SDKROOT: 
-    PYTHONPATH: 
     CC: "{{deps.tea.xyz/gx/cc.prefix}}/bin/clang"
     ARGS:
       - --with-features=huge
@@ -34,15 +51,30 @@ build:
       - --enable-tclinterp
       - --enable-terminal
       - --with-tlib=ncurses
-      - --with-compiledby=Tea
+      - --with-compiledby=tea.xyz
+      - --with-local-dir="{{deps.tea.xyz.prefix}}/.local"
       - --enable-cscope
       - --enable-luainterp
       - --with-lua-prefix={{deps.lua.org.prefix}}
       - --enable-luainterp
       - --enable-python3interp
       - --disable-sparkle
+      - --with-macarchs=$(uname -m)
 provides:
+  - bin/gview
+  - bin/gvim
+  - bin/gvimdiff
+  - bin/gvimtutor
+  - bin/mview
   - bin/mvim
+  - bin/mvimdiff
+  - bin/mvimtutor
+  - bin/view
+  - bin/vim
+  - bin/vimdiff
+  - bin/vimtutor
 test:
   script:
-    - mvim --version | grep {{version.major}}
+    - mvim --version | grep VIM
+    - mvim -v -T dump  -s commands.vim test.txt <<< $'\n'
+    - cat test.txt | grep "hello python3"
