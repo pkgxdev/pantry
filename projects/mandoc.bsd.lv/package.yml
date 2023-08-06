@@ -15,48 +15,33 @@ build:
     gnu.org/make: '*'
   script:
     - mv cgi.h.example cgi.h # For man.cgi
-    - cat <<< "$LOCAl_CONFIG" > configure.local
+    - run: |
+        cat << EOF > configure.local
+        PREFIX={{prefix}}
+        INCLUDEDIR={{prefix}}/include
+        LIBDIR={{prefix}}/lib
+        MANDIR={{prefix}}/share/man
+        WWWPREFIX={{prefix}}/var/www
+        EXAMPLEDIR={{prefix}}/share/examples
+        BINM_MAN=bsdman
+        BINM_APROPOS=bsdapropos
+        BINM_WHATIS=bsdwhatis
+        BINM_MAKEWHATIS=bsdmakewhatis
+        BINM_SOELIM=bsdsoelim
+        MANM_MAN=man
+        MANM_MDOC=mdoc
+        MANM_ROFF=mandoc_roff
+        MANM_EQN=eqn
+        MANM_TBL=tbl
+        OSNAME='$(uname -a)'
+        MANPATH_DEFAULT={{prefix}}/share/man
+        HAVE_MANPATH=0
+        STATIC=
+        BUILD_CGI=1
+        EOF
     - ./configure
     - make --jobs {{ hw.concurrency }}
     - make --jobs {{ hw.concurrency }} install
-  env:
-    LOCAl_CONFIG: |
-      # Sane prefixes.
-      PREFIX={{prefix}}
-      INCLUDEDIR={{prefix}}/include
-      LIBDIR={{prefix}}/lib
-      MANDIR={{prefix}}/share/man
-      WWWPREFIX={{prefix}}/var/www
-      EXAMPLEDIR={{prefix}}/share/examples
-
-      # Executable names, where utilities would be replaced/duplicated.
-      # The mandoc versions of the utilities are definitely *not* ready
-      # for prime-time on Darwin, though some changes in HEAD are promising.
-      # The "bsd" prefix (like bsdtar, bsdmake) is more informative than "m".
-      BINM_MAN=bsdman
-      BINM_APROPOS=bsdapropos
-      BINM_WHATIS=bsdwhatis
-      BINM_MAKEWHATIS=bsdmakewhatis # default is "makewhatis".
-      BINM_SOELIM=bsdsoelim # conflicts with groff's soelim
-
-      # These are names for *section 7* pages only. Several other pages are
-      # prefixed "mandoc_ similar to the "groff_" pages.
-      MANM_MAN=man
-      MANM_MDOC=mdoc
-      MANM_ROFF=mandoc_roff # This is the only one that conflicts (groff).
-      MANM_EQN=eqn
-      MANM_TBL=tbl
-
-      OSNAME='$(uname -a)' # Bottom corner signature line.
-
-      # Not quite sure what to do here. The default ("/usr/share etc.) needs
-      # sudoer privileges, or will error. So just brew's manpages for now?
-      MANPATH_DEFAULT={{prefix}}/share/man
-
-      HAVE_MANPATH=0   # Our `manpath` is a symlink to system `man`.
-      STATIC=          # No static linking on Darwin.
-
-      BUILD_CGI=1
 provides:
   - bin/bsdapropos
   - bin/bsdman
