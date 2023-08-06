@@ -16,21 +16,19 @@ build:
   script:
     - make install-bin PREFIX={{prefix}}
     - make -C contrib/chg install PREFIX={{prefix}} HGPATH={{prefix}}/bin/hg HG={{prefix}}/bin/hg
-    - run: |
-        cat << EOF > hgrc
+    - run: cat $PROP >hgrc
+      prop: |
         [pager]
         pager = less -FRX
-        EOF
-    - mkdir -p {{prefix}}/etc/mercurial {{prefix}}/share/man/man1 {{prefix}}/share/man/man5
-    - install hgrc {{prefix}}/etc/mercurial/
+      working-directory: ${{prefix}}/etc/mercurial
     - run: |
         install hg.1 {{prefix}}/share/man/man1/
         install hgignore.5 hgrc.5 {{prefix}}/share/man/man5/
       working-directory: doc
-    - run: sed -i '' '1s|.*|#!/usr/bin/env python3.11|' {{prefix}}/bin/hg
-      if: darwin
-    - run: sed -i '1s|.*|#!/usr/bin/env python3.11|' {{prefix}}/bin/hg
-      if: linux
+    - run: |
+        sed -i.bak '1s|.*|#!/usr/bin/env python3.11|' hg
+        rm hg.bak
+      working-directory: ${{prefix}}/bin
   env:
     HGPYTHON3: 1
 provides:
