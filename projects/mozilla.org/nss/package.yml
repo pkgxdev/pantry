@@ -13,8 +13,8 @@ build:
     gnu.org/make: '*'
   script:
     - run: |
-        sed -i '' 's|-install_name @executable_path|-install_name {{prefix}}/lib|g' coreconf/Darwin.mk
-        sed -i '' 's|@executable_path|{{prefix}}/lib|g' lib/freebl/config.mk
+        $REPLACE 's|-install_name @executable_path|-install_name {{prefix}}/lib|g' coreconf/Darwin.mk
+        $REPLACE 's|@executable_path|{{prefix}}/lib|g' lib/freebl/config.mk
         make all $ARGS
       working-directory: nss
     - run: | 
@@ -28,6 +28,10 @@ build:
     - install ./dist/public/dbm/* {{prefix}}/include/dbm/
     - install ./dist/public/nss/* {{prefix}}/include/nss/
   env:
+    darwin:
+      REPLACE: "sed -i ''"
+    linux:
+      REPLACE: "sed -i"
     ARGS:
       - BUILD_OPT=1
       - NSS_ALLOW_SSLKEYLOGFILE=1
