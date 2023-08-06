@@ -1,0 +1,30 @@
+distributable:
+  url: https://downloads.sourceforge.net/project/optipng/OptiPNG/optipng-{{version}}/optipng-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://sourceforge.net/projects/optipng/files/OptiPNG/
+  match: /optipng-\d+.\d+\.\d+/
+  strip:
+    - /^optipng-/
+
+dependencies:
+  libpng.org: ^1
+  zlib.net: ^1
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script:
+    - ./configure
+        --with-system-zlib
+        --with-system-libpng
+        --prefix={{prefix}}
+    - make --jobs {{ hw.concurrency }} install
+
+provides:
+  - bin/optipng
+
+test:
+  optipng -simulate test.png
