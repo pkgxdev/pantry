@@ -27,10 +27,15 @@ build:
         install hg.1 {{prefix}}/share/man/man1/
         install hgignore.5 hgrc.5 {{prefix}}/share/man/man5/
       working-directory: doc
+    - run: sed -i '' '1s|.*|#!/usr/bin/env python3.11|' {{prefix}}/bin/hg
+      if: darwin
+    - run: sed -i '1s|.*|#!/usr/bin/env python3.11|' {{prefix}}/bin/hg
+      if: linux
   env:
     HGPYTHON3: 1
 provides:
   - bin/hg
+  - bin/chg
 test:
   script:
     - hg init
