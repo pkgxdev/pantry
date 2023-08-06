@@ -1,0 +1,21 @@
+distributable:
+  url: https://github.com/sbt/sbt/releases/download/v{{version}}/sbt-{{version}}.tgz
+  strip-components: 1
+warnings:
+  - vendored
+versions:
+  github: sbt/sbt
+dependencies:
+  openjdk.org: '*'
+build:
+  script:
+    - sed 's,/etc/sbt/,\$(pwd)/../etc/,g' bin/sbt > bin/sbt.tmp
+    - mv bin/sbt.tmp bin/sbt
+    - mkdir -p {{prefix}}/bin {{prefix}}/etc
+    - run: install sbt sbt-launch.jar {{prefix}}/bin/
+      working-directory: bin
+provides:
+  - bin/sbt
+test:
+  script:
+    - sbt --sbt-create about | grep {{version}}
