@@ -1,0 +1,32 @@
+distributable:
+  url: https://notroj.github.io/neon/neon-{{version}}.tar.gz
+  strip-components: 1
+versions:
+  github: notroj/neon/tags
+dependencies:
+  openssl.org: '*'
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    gnu.org/make: '*'
+    freedesktop.org/pkg-config: '*'
+    pagure.io/xmlto: '*'
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    CFLAGS: "-Wno-implicit-function-declaration $CFLAGS"
+    XML_CATALOG_FILES: "{{prefix}}/etc/xml/catalog"
+    ARGS:
+      - --disable-debug
+      - --prefix={{prefix}}
+      - --enable-shared
+      - --disable-static
+      - --disable-nls
+      - --with-ssl=openssl
+      - --with-libs={{deps.openssl.org.prefix}}
+provides:
+  - bin/neon-config
+test:
+  script:
+    - neon-config --version | grep {{version}}
