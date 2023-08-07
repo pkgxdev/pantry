@@ -5,15 +5,18 @@ versions:
   github: cython/cython
 dependencies:
   python.org: ^3.11
+  linux:
+    tea.xyz/gx/cc: c99
 runtime:
   env:
     PYTHONPATH: "{{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH"
 build:
-  dependencies:
-    tea.xyz/gx/cc: c99
   script:
     - python3 setup.py install $ARGS
-    - mv {{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages/*/* {{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages/
+    - run: mv -f {{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages/*/* {{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages/
+      if: linux
+    - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
+      working-directory: "{{prefix}}/lib"
   env:
     ARGS:
       - --verbose
