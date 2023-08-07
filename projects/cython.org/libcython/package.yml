@@ -1,0 +1,23 @@
+distributable:
+  url: https://github.com/cython/cython/releases/download/{{version}}/Cython-{{version}}.tar.gz
+  strip-components: 1
+versions:
+  github: cython/cython
+dependencies:
+  python.org: ^3.11
+runtime:
+  env:
+    PYTHONPATH: "{{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH"
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script:
+    - python3 setup.py install $ARGS
+    - mv {{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages/*/* {{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages/
+  env:
+    ARGS:
+      - --verbose
+      - --prefix={{prefix}}
+test:
+  script:
+    - python3 setup.py build_ext --inplace
