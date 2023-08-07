@@ -1,0 +1,28 @@
+distributable:
+  url: https://www.riverbankcomputing.com/hg/sip/archive/{{version}}.tar.gz
+  strip-components: 1
+versions:
+  url: https://www.riverbankcomputing.com/hg/sip/tags
+  match: /rev\/\d+\.\d+\.\d+/
+  strip:
+    - /^rev\//
+dependencies:
+  python.org: ^3.11
+build:
+  script:
+    - python-venv.sh {{prefix}}/bin/sip-install
+    - python-venv.sh {{prefix}}/bin/sip-build
+    - python-venv.sh {{prefix}}/bin/sip-distinfo
+    - python-venv.sh {{prefix}}/bin/sip-module
+    - python-venv.sh {{prefix}}/bin/sip-sdist
+    - python-venv.sh {{prefix}}/bin/sip-wheel
+provides:
+  - bin/sip-install
+  - bin/sip-build
+  - bin/sip-distinfo
+  - bin/sip-module
+  - bin/sip-sdist
+  - bin/sip-wheel
+test:
+  script:
+    - sip-install --target-dir .
