@@ -1,0 +1,26 @@
+distributable:
+  url: https://github.com/pygobject/pycairo/releases/download/v{{version}}/pycairo-{{version}}.tar.gz
+  strip-components: 1
+versions:
+  github: pygobject/pycairo
+dependencies:
+  cairographics.org: '*'
+runtime:
+  env:
+    PYTHONPATH: "{{prefix}}/lib/python3.11/site-packages:$PYTHONPATH"
+build:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+    python.org: ^3.11
+  script:
+    - python3 setup.py install $ARGS
+    - mv {{prefix}}/lib/python3.11/site-packages/*/* {{prefix}}/lib/python3.11/site-packages/
+  env:
+    ARGS:
+      - --verbose
+      - --prefix={{prefix}}
+test:
+  dependencies:
+    python.org: ^3.11
+  script:
+    - python3 -c "import cairo; print(cairo.version)" | grep {{version}}
