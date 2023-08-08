@@ -1,0 +1,35 @@
+distributable:
+  url: https://github.com/terraform-docs/terraform-docs/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: terraform-docs/terraform-docs
+
+provides:
+  - bin/terraform-docs
+
+build:
+  script: |
+    go mod download
+    go build -v -ldflags="$LDFLAGS" -o ./bin/$PLATFORM/terraform-docs
+    mkdir -p "{{ prefix }}"/bin
+    mv bin/$PLATFORM/terraform-docs "{{ prefix }}"/bin
+  dependencies:
+    go.dev: ^1.16
+  env:
+    darwin/aarch64: {PLATFORM: darwin-aarch64}
+    darwin/x86-64:  {PLATFORM: darwin-x64}
+    linux/aarch64:  {PLATFORM: linux-aarch64}
+    linux/x86-64:   {PLATFORM: linux-x64}
+    GO111MODULE: on
+    CGO_ENABLED: 0
+    LDFLAGS:
+      ["-X=github.com/terraform-docs/terraform-docs/internal/version.commit={{version}}"]
+    linux:
+      # or segmentation fault
+      # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
+      LDFLAGS:
+      - -buildmode=pie
+
+test:
+  terraform-docs --version | grep {{version}}
