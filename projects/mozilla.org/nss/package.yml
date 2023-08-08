@@ -7,17 +7,19 @@ dependencies:
   mozilla.org/nspr: '*'
   sqlite.org: '*'
   zlib.net: '*'
-  darwin/aarch64:
-    openssl.org: '*'
 build:
   dependencies:
+    darwin/aarch64:
+      llvm.org: '*'
     linux:
       gnu.org/gcc: '*'
     gnu.org/make: '*'
   script:
     - run: |
-        $REPLACE 's|-install_name @executable_path|-install_name {{prefix}}/lib|g' coreconf/Darwin.mk
-        $REPLACE 's|@executable_path|{{prefix}}/lib|g' lib/freebl/config.mk
+        sed -i.bak 's|-install_name @executable_path|-install_name {{prefix}}/lib|g' coreconf/Darwin.mk
+        rm coreconf/Darwin.mk.bak
+        sed -i.bak 's|@executable_path|{{prefix}}/lib|g' lib/freebl/config.mk
+        rm lib/freebl/config.mk.bak
         make all $ARGS
       working-directory: nss
     - run: | 
@@ -31,10 +33,9 @@ build:
     - install ./dist/public/dbm/* {{prefix}}/include/dbm/
     - install ./dist/public/nss/* {{prefix}}/include/nss/
   env:
-    darwin:
-      REPLACE: "sed -i ''"
+    darwin/aarch64:
+      CC: "{{deps.llvm.org.prefix}}/bin/clang"
     linux:
-      REPLACE: "sed -i"
       CC: "{{deps.gnu.org/gcc.prefix}}/bin/gcc"
     ARGS:
       - BUILD_OPT=1
