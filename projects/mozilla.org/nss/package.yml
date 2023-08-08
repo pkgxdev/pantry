@@ -8,14 +8,15 @@ versions:
   #  - /^NSS_/
   #  - /_RTM/
   - 3.92
+platforms:
+  - linux
+  - darwin/x86-64
 dependencies:
   mozilla.org/nspr: '*'
   sqlite.org: '*'
   zlib.net: '*'
 build:
   dependencies:
-    darwin/aarch64:
-      llvm.org: '*'
     linux:
       gnu.org/gcc: '*'
     gnu.org/make: '*'
@@ -40,8 +41,6 @@ build:
   env:
     linux:
       CC: "{{deps.gnu.org/gcc.prefix}}/bin/gcc"
-    darwin/aarch64:
-      CC: "{{deps.llvm.org.prefix}}/bin/clang"
     ARGS:
       - BUILD_OPT=1
       - NSS_ALLOW_SSLKEYLOGFILE=1
@@ -50,10 +49,6 @@ build:
       - NSPR_INCLUDE_DIR={{deps.mozilla.org/nspr.prefix}}/include/nspr
       - NSPR_LIB_DIR={{deps.mozilla.org/nspr.prefix}}/lib
       - USE_64=1
-    darwin/aarch64:
-      ARGS:
-        - NSS_DISABLE_ARM32_NEON=1
-        - NSS_DISABLE_CRYPTO_VSX=1
     CONFIG_FILE: |
       #!/bin/sh
       for opt; do :; done
