@@ -2,15 +2,17 @@ distributable:
   url: https://ftp.mozilla.org/pub/security/nss/releases/NSS_{{version.major}}_{{version.minor}}_RTM/src/nss-{{version.marketing}}.tar.gz
   strip-components: 1
 versions:
-  - 3.92
+  url: https://ftp.mozilla.org/pub/security/nss/releases/
+  match: /NSS_\d+_\d+_RTM/
+  strip:
+    - /^NSS_/
+    - /_RTM/
 dependencies:
   mozilla.org/nspr: '*'
   sqlite.org: '*'
   zlib.net: '*'
 build:
   dependencies:
-    darwin/aarch64:
-      llvm.org: '*'
     linux:
       gnu.org/gcc: '*'
     gnu.org/make: '*'
@@ -33,8 +35,6 @@ build:
     - install ./dist/public/dbm/* {{prefix}}/include/dbm/
     - install ./dist/public/nss/* {{prefix}}/include/nss/
   env:
-    darwin/aarch64:
-      CC: "{{deps.llvm.org.prefix}}/bin/clang"
     linux:
       CC: "{{deps.gnu.org/gcc.prefix}}/bin/gcc"
     ARGS:
@@ -45,6 +45,10 @@ build:
       - NSPR_INCLUDE_DIR={{deps.mozilla.org/nspr.prefix}}/include/nspr
       - NSPR_LIB_DIR={{deps.mozilla.org/nspr.prefix}}/lib
       - USE_64=1
+    darwin/aarch64:
+      ARGS:
+        - NSS_DISABLE_ARM32_NEON=1
+        - NSS_DISABLE_CRYPTO_VSX=1
     CONFIG_FILE: |
       #!/bin/sh
       for opt; do :; done
