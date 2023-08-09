@@ -1,0 +1,27 @@
+distributable:
+  url: https://github.com/bufbuild/buf/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: bufbuild/buf
+
+provides:
+  - bin/buf
+
+build:
+  script:
+    - make godeps build
+  dependencies:
+    go.dev: ^1.20
+    gnu.org/make: '*'
+  env:
+    GO111MODULE: on
+    CGO_ENABLED: 0
+    linux:
+      # or segmentation fault
+      # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
+      LDFLAGS:
+      - -buildmode=pie
+
+test:
+  buf --version | grep {{version}}
