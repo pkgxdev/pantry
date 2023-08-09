@@ -10,11 +10,17 @@ provides:
 
 build:
   script:
-    - make godeps build
+    - make build install
+    - mkdir -p "{{ prefix }}"/bin
+    - mv ~/.cache/buf/$PLATFORM/gobin/buf "{{ prefix }}"/bin
   dependencies:
     go.dev: ^1.20
     gnu.org/make: '*'
   env:
+    darwin/aarch64: {PLATFORM: Darwin/arm64}
+    darwin/x86-64:  {PLATFORM: Darwin/x64}
+    linux/aarch64:  {PLATFORM: Linux/arm64}
+    linux/x86-64:   {PLATFORM: Linux/x64}
     GO111MODULE: on
     CGO_ENABLED: 0
     linux:
