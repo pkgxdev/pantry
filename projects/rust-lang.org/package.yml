@@ -47,6 +47,7 @@ build:
     openssl.org: '*' # needed to build openssl-sys
     freedesktop.org/pkg-config: ^0.29
     crates.io/semverator: 0
+    rust-lang.org/rustup: '*'
   script: |-
     # --enable-optimize not available as of 1.63.0
     if semverator satisfies '<1.63' {{ version }}; then
@@ -67,14 +68,20 @@ build:
       ./x.py install $tool
     done
     
-    # place source for IDEs to use (normally installed via rustup)
-    # FIXME: this is fragile because directories can change, is there a better way?
-    mkdir -p {{prefix}}/lib/rustlib/src/rust
-    mv Cargo.lock {{prefix}}/lib/rustlib/src/rust
-    mv library {{prefix}}/lib/rustlib/src/rust
-    mkdir -p {{prefix}}/lib/rustlib/src/rust/src/llvm-project
-    mv src/llvm-project/libunwind {{prefix}}/lib/rustlib/src/rust/src/llvm-project
+#    # place source for IDEs to use (normally installed via rustup)
+#    # FIXME: this is fragile because directories can change, is there a better way?
+#    mkdir -p {{prefix}}/lib/rustlib/src/rust
+#    mv Cargo.lock {{prefix}}/lib/rustlib/src/rust
+#    mv library {{prefix}}/lib/rustlib/src/rust
+#    mkdir -p {{prefix}}/lib/rustlib/src/rust/src/llvm-project
+#    mv src/llvm-project/libunwind {{prefix}}/lib/rustlib/src/rust/src/llvm-project
 
+    # install src via rustup and copy component for IDEs to use
+    rustup default {{ version }}
+    rustup component add rust-src
+    rp -r ~/.rustup/toolchains/*/lib/rustlib/src {{prefix}}/lib/rustlib
+
+    # do cleanup
     rm -rf {{prefix}}/share/doc
   env:
     ARGS:
