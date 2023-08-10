@@ -34,6 +34,10 @@ dependencies:
   #FIXME ^^ strictly rustc only needs a linker
   zlib.net: 1
 
+runtime:
+  env:
+    RUST_SRC_PATH: ${{prefix}}/lib/rustlib/src/rust/src
+
 build:
   dependencies:
     tea.xyz/gx/make: '*'  #FIXME surely we don’t need make AND ninja
@@ -62,6 +66,14 @@ build:
     for tool in $tools; do
       ./x.py install $tool
     done
+    
+    # place source for IDEs to use (normally installed via rustup)
+    # FIXME: this is fragile because directories can change, is there a better way?
+    mkdir -p {{prefix}}/lib/rustlib/src/rust
+    mv Cargo.lock {{prefix}}/lib/rustlib/src/rust
+    mv library {{prefix}}/lib/rustlib/src/rust
+    mkdir -p {{prefix}}/lib/rustlib/src/rust/src/llvm-project
+    mv src/llvm-project/libunwind {{prefix}}/lib/rustlib/src/rust/src/llvm-project
 
     rm -rf {{prefix}}/share/doc
   env:
