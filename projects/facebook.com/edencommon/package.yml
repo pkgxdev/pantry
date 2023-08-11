@@ -9,27 +9,30 @@ dependencies:
   facebook.com/folly: ~2023.7.24.0
   gflags.github.io: '*'
   google.com/glog: '*'
-  openssl.org: ^1.1
+  openssl.org: ~1.1.1u
   boost.org: ~1.82.0
 build:
   dependencies:
     cmake.org: '*'
     google.com/googletest: ^1.13
+    gnu.org/wget: '*'
+    gnu.org/patch: '*'
     darwin:
       llvm.org: '*'
     linux:
-      gnu.org/gcc: '*'
+      tea.xyz/gx/cc: c99
       tea.xyz/gx/make: '*'
 
-  script: |
-    cmake -S . -B _build $ARGS
-    cmake --build _build
-    cmake --install _build
+  script:
+    - wget -O patchfile.patch 'https://github.com/facebookexperimental/edencommon/commit/b162c1b8d94b4ed49835da6d03b4d0a550082b47.patch?full_index=1' && patch -p1 < patchfile.patch
+    - cmake -S . -B _build $ARGS
+    - cmake --build _build
+    - cmake --install _build
   env:
     linux:
       ARGS:
-        - -DCMAKE_C_COMPILER={{deps.gnu.org/gcc.prefix}}/bin/gcc
-        - -DCMAKE_CXX_COMPILER={{deps.gnu.org/gcc.prefix}}/bin/g++
+        - -DCMAKE_C_COMPILER={{deps.tea.xyz/gx/cc.prefix}}/bin/clang
+        - -DCMAKE_CXX_COMPILER={{deps.tea.xyz/gx/cc.prefix}}/bin/c++
     ARGS:
       - -DBUILD_SHARED_LIBS=OFF
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
