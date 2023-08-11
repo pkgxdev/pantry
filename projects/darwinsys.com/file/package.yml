@@ -18,10 +18,18 @@ build:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
     git-scm.org: 2
-  script: |
-    git apply props/relocatable.diff
-    ./configure --prefix={{prefix}}
-    make --jobs {{hw.concurrency}} install
+  script:
+    - git apply props/relocatable.diff
+
+    # Our diff has old labels
+    - run: |
+        sed -i.bak -e 's/^protected const char/file_protected const char/' magic.c
+        rm magic.c.bak
+      working-directory: src
+      if: '>=5.45'
+
+    - ./configure --prefix={{prefix}}
+    - make --jobs {{hw.concurrency}} install
 
 test: |
   file {{prefix}}/bin/file

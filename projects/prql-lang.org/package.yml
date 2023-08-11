@@ -8,32 +8,26 @@ versions:
 build:
   dependencies:
     rust-lang.org/cargo: '*'
-  working-directory: prql-compiler
-  script: |
-    if test {{version.major}} -eq 0 -a {{version.minor}} -lt 4; then
-      cargo install --path . --root {{prefix}}
-    elif test "{{version}}" = "0.4.0"; then
-      cargo install --path . --root {{prefix}} --all-features
-    else
-      cargo install --path prqlc --root {{prefix}}
-    fi
-
-    cd {{prefix}}/bin
+  script:
+    - run: cargo install --path prql-compiler --root {{prefix}}
+      if: <0.4.0
+    - run: cargo install --path prql-compiler --root {{prefix}} --all-features
+      if: =0.4.0
+    - run: cargo install --path prql-compiler/prqlc --root {{prefix}}
+      if: '>=0.4.1<0.9.0'
+    - run: cargo install --path crates/prqlc --root {{prefix}} --all-features
+      if: '>=0.9.0'
 
     # Bin got renamed; this is one way to keep ourselves working
-    if test {{version.major}} -eq 0 -a {{version.minor}} -lt 4; then
-      ln -s prql-compiler prqlc
-    else
-      ln -s prqlc prql-compiler
-    fi
+    - run: ln -s prql-compiler prqlc
+      working-directory: "{{prefix}}/bin"
+      if: <0.4.0
+    - run: ln -s prqlc prql-compiler
+      working-directory: "{{prefix}}/bin"
+      if: '>=0.4.0'
 
-test: |
-  if test {{version.major}} -eq 0 -a {{version.minor}} -lt 4; then
-    COMPILER=prql-compiler
-  else
-    COMPILER=prqlc
-  fi
-  echo "from employees | filter has_dog | select salary" | $COMPILER compile
+test:
+  - echo "from employees | filter has_dog | select salary" | prqlc compile
 
 provides:
   - bin/prql-compiler
