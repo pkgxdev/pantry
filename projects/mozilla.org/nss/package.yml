@@ -8,9 +8,6 @@ versions:
   #  - /^NSS_/
   #  - /_RTM/
   - 3.92
-platforms:
-  - linux
-  - darwin/x86-64
 dependencies:
   mozilla.org/nspr: '*'
   sqlite.org: '*'
@@ -26,6 +23,10 @@ build:
         rm coreconf/Darwin.mk.bak
         sed -i.bak 's|@executable_path|{{prefix}}/lib|g' lib/freebl/config.mk
         rm lib/freebl/config.mk.bak
+        sed -i.bak 's|-march=armv8-a+crypto|-march=armv8-a|g' lib/freebl/Makefile
+        rm lib/freebl/Makefile.bak
+        sed -i.bak 's|-march=armv8-a+crypto|-march=armv8-a|g' lib/freebl/freebl.gyp
+        rm lib/freebl/freebl.gyp.bak
         make all $ARGS
       working-directory: nss
     - run: | 
