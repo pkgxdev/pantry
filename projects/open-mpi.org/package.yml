@@ -8,26 +8,35 @@ versions:
 dependencies:
   open-mpi.org/hwloc: '*'
   libevent.org: '*'
-  linux:
-    gnu.org/gcc: '*'
 
 build:
   dependencies:
     tea.xyz/gx/make: '*'
     darwin:
       gnu.org/autoconf: '*'
+      tea.xyz/gx/cc: c99
+    linux:
+      gnu.org/gcc: '*'
       
   script:
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} all
     - make --jobs {{ hw.concurrency }} check
     - make --jobs {{ hw.concurrency }} install
-    - install {{prefix}}/lib/*.mod {{prefix}}/include/
-    - sed -i.bak 's|{{prefix}}|${pcfiledir}/../..|g' {{prefix}}/lib/pkgconfig/*.pc
+    - run: |
+        install {{prefix}}/lib/*.mod {{prefix}}/include/
+        sed -i.bak 's|{{prefix}}|${pcfiledir}/../..|g' {{prefix}}/lib/pkgconfig/*.pc
+        rm {{prefix}}/lib/pkgconfig/*.bak
+      if: linux
+    - run: |
+        find {{prefix}}/lib/pkgconfig/ -type f ! -name '*.*' -exec sed -i.bak 's|{{prefix}}|${pcfiledir}/../..|g' {} +
+        rm {{prefix}}/lib/pkgconfig/*.bak
+      if: darwin
     
   env:
     darwin:
-      MACOSX_DEPLOYMENT_TARGET: "$(sw_vers -productVersion)"
+      CC: "{{deps.tea.xyz/gx/cc.prefix}}/bin/clang"
+      CXX: "{{deps.tea.xyz/gx/cc.prefix}}/bin/c++"
     linux:
       CC: "{{deps.gnu.org/gcc.prefix}}/bin/gcc"
       CXX: "{{deps.gnu.org/gcc.prefix}}/bin/g++"
