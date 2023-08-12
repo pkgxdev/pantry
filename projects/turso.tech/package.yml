@@ -10,8 +10,9 @@ provides:
 
 build:
   script: |
-    git clone https://github.com/tursodatabase/turso-cli
+    git clone --depth 1 --branch {{version}} https://github.com/tursodatabase/turso-cli || true
     cd turso-cli
+    echo "{{version}}" > internal/cmd/version.txt
     go mod download
     mkdir -p "{{ prefix }}"/bin
     go build -v -trimpath -ldflags="$LDFLAGS" -o $BUILDLOC ./cmd/turso
