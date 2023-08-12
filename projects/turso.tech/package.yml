@@ -1,0 +1,37 @@
+distributable:
+  url: https://github.com/tursodatabase/homebrew-tap/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: tursodatabase/homebrew-tap
+
+provides:
+  - bin/turso
+
+build:
+  script: |
+    git clone https://github.com/tursodatabase/turso-cli
+    cd turso-cli
+    go mod download
+    mkdir -p "{{ prefix }}"/bin
+    go build -v -trimpath -ldflags="$LDFLAGS" -o $BUILDLOC ./cmd/turso
+  dependencies:
+    go.dev: ^1.20
+    git-scm.org: '*'
+  env:
+    GO111MODULE: on
+    CGO_ENABLED: 0
+    BUILDLOC: '{{prefix}}/bin/turso'
+    LDFLAGS:
+      - -s
+      - -w
+      - -X main.version={{version}}
+      - -X main.debugMode=false
+    linux:
+      # or segmentation fault
+      # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
+      LDFLAGS:
+      - -buildmode=pie
+
+test: |
+  turso --version | grep {{version}}
