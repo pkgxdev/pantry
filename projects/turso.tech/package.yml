@@ -1,24 +1,21 @@
 distributable:
-  url: https://github.com/tursodatabase/homebrew-tap/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/tursodatabase/turso-cli/archive/refs/tags/v{{version}}.tar.gz
   strip-components: 1
 
 versions:
-  github: tursodatabase/homebrew-tap
+  github: tursodatabase/turso-cli
 
 provides:
   - bin/turso
 
 build:
   script: |
-    git clone --depth 1 --branch {{version}} https://github.com/tursodatabase/turso-cli || true
-    cd turso-cli
     echo "{{version}}" > internal/cmd/version.txt
     go mod download
     mkdir -p "{{ prefix }}"/bin
     go build -v -trimpath -ldflags="$LDFLAGS" -o $BUILDLOC ./cmd/turso
   dependencies:
     go.dev: ^1.20
-    git-scm.org: '*'
   env:
     GO111MODULE: on
     CGO_ENABLED: 0
