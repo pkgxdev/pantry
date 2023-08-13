@@ -1,0 +1,56 @@
+distributable:
+  url: https://groovy.jfrog.io/artifactory/dist-release-local/groovy-zips/apache-groovy-binary-{{version}}.zip
+  strip-components: 1
+versions:
+  url: https://groovy.jfrog.io/artifactory/dist-release-local/groovy-zips/
+  match: /apache-groovy-binary-\d+\.\d+\.\d+\.zip/
+  strip:
+    - /^apache-groovy-binary-/
+    - /\.zip/
+dependencies:
+  openjdk.org: '*'
+runtime:
+  env:
+    GROOVY_HOME: "{{prefix}}"
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    darwin:
+      gnu.org/autoconf: '*'
+      gnu.org/automake: '*'
+      gnu.org/libtool: '*'
+      maven.apache.org: '*'
+      curl.se: '*'
+  working-directory: groovy-{{version}}
+  script:
+    - run: |
+        # jansi-native is used to build native binary to support Apple Silicon.
+        curl -L https://github.com/fusesource/jansi-native/archive/refs/tags/jansi-native-1.6.tar.gz | tar -xz
+        export CFLAGS="-Wno-implicit-function-declaration $CFLAGS"
+        mvn -Dplatform=osx prepare-package
+        zip -d $SRCROOT/lib/jline-2.14.6.jar META-INF/native/*
+        jar -uvf $SRCROOT/lib/jline-2.14.6.jar -C target/generated-sources/hawtjni/lib META-INF/native/osx64/libjansi.jnilib
+      if: darwin
+    - rm bin/*.bat
+    - mkdir -p {{prefix}}/bin
+    - install bin/* {{prefix}}/bin
+    - mv conf lib {{prefix}}/
+provides:
+  - bin/grape
+  - bin/grape_completion
+  - bin/groovy
+  - bin/groovyc
+  - bin/groovyc_completion
+  - bin/groovy_completion
+  - bin/groovyConsole
+  - bin/groovyConsole_completion
+  - bin/groovydoc
+  - bin/groovydoc_completion
+  - bin/groovysh
+  - bin/groovysh_completion
+  - bin/java2groovy
+  - bin/startGroovy
+test:
+  script:
+    - groovy --version | grep {{version}}
+    - grape install org.activiti activiti-engine 5.16.4 | grep "found org.activiti#activiti-engine;5.16.4"
