@@ -1,0 +1,42 @@
+distributable:
+  url: https://cr.yp.to/daemontools/daemontools-{{version.marketing}}.tar.gz
+  strip-components: 1
+versions:
+  url: https://cr.yp.to/daemontools/install.html
+  match: /daemontools-\d+\.\d+\.tar\.gz/
+  strip:
+    - /^daemontools-/
+    - /\.tar\.gz/
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    gnu.org/make: '*'
+    kernel.org/linux-headers: '*'
+    curl.se: '*'
+    gnu.org/patch: '*'
+  working-directory: daemontools-{{version.marketing}}
+  script:
+    # Fix build failure due to missing #include <errno.h> on Linux.
+    #- run: curl -L https://raw.githubusercontent.com/Homebrew/formula-patches/212baeaf8232802cf3dfbfcc531efa5741325bfa/daemontools/errno.patch | patch -p1
+    #  working-directory: $SRCROOT
+    - sed -i.bak 's|/service|{{prefix}}/etc/service|g' package/run
+    - rm package/run.bak
+    - sed -i.bak 's|/service|{{prefix}}/etc/service|g' src/svscanboot.sh
+    - rm src/svscanboot.sh.bak
+    # Work around build error from root requirement: "Oops. Your getgroups() returned 0,
+    # and setgroups() failed; this means that I can't reliably do my shsgr test. Please
+    # either ``make'' as root or ``make'' while you're in one or more supplementary groups."
+    - run: |
+        sed -i.bak 's|( cat warn-shsgr; exit 1 )|cat warn-shsgr|g' src/Makefile
+        rm src/Makefile.bak
+      if: linux
+    - package/compile
+    - mkdir -p {{prefix}}/bin
+    - install command/* {{prefix}}/bin/
+  env:
+    CC: "{{deps.tea.xyz/gx/cc.prefix}}/bin/clang"
+provides:
+  - bin/softlimit
+test:
+  script:
+    - softlimit --version
