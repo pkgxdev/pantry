@@ -1,0 +1,31 @@
+distributable:
+  url: https://gitlab.freedesktop.org/vdpau/libvdpau/-/archive/{{version.marketing}}/libvdpau-{{version.marketing}}.tar.bz2
+  strip-components: 1
+display-name: vdpau
+versions:
+  gitlab: gitlab.freedesktop.org:vdpau/libvdpau
+dependencies:
+  x.org/x11: '*'
+  x.org/exts: '*'
+  x.org/protocol: '*'
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    mesonbuild.com: '*'
+    ninja-build.org: '*'
+    freedesktop.org/pkg-config: '*'
+  script:
+    - meson setup build $ARGS
+    - meson compile -C build --verbose
+    - meson install -C build
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --libdir={{prefix}}/lib
+      - --buildtype=release
+      - --wrap-mode=nofallback
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script:
+    - pkg-config --modversion vdpau | grep {{version.marketing}}

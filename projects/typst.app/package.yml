@@ -4,13 +4,17 @@ distributable:
 
 versions:
   github: typst/typst/releases/tags
+  strip: /^v\d\d-\d\d-\d\d(-\d)?/
 
 build:
   dependencies:
     rust-lang.org: ^1.61
     rust-lang.org/cargo: ^0.65
-  script: |
-    cargo install --path cli --locked --root {{prefix}}
+  script:
+    - run: cargo install --path cli --locked --root {{prefix}}
+      if: <0.7
+    - run: cargo install --path crates/typst-cli --locked --root {{prefix}}
+      if: '>=0.7'
   env:
     TYPST_VERSION: ${{ version }}
 

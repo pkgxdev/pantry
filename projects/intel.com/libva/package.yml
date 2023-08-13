@@ -1,0 +1,47 @@
+distributable:
+  url: https://github.com/intel/libva/releases/download/{{version}}/libva-{{version}}.tar.bz2
+  strip-components: 1
+versions:
+  github: intel/libva
+platforms:
+  - linux
+dependencies:
+  dri.freedesktop.org: '*'
+  x.org/x11: '*'
+  x.org/exts: '*'
+  x.org/xfixes: '*'
+  wayland.freedesktop.org: '*'
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    gnu.org/make: '*'
+    freedesktop.org/pkg-config: '*'
+  script:
+    - ./configure $ARGS
+    - make --jobs {{hw.concurrency}}
+    - make --jobs {{hw.concurrency}} install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --sysconfdir={{prefix}}/etc
+      - --libdir={{prefix}}/lib
+      - --localstatedir={{prefix}}/var
+      - --disable-dependency-tracking
+      - --disable-silent-rules
+      - --enable-drm
+      - --enable-x11
+      - --disable-glx
+      - --enable-wayland
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+    tea.xyz/gx/cc: '*'
+  script:
+    # we can't use --modversion becouse in *.pc files we have:
+    # libva_version=2.19.0
+    # Version: 1.19.0
+    # and --modversion return 1.19.0
+    - pkg-config --cflags libva | grep {{version}}
+    - pkg-config --cflags libva-drm | grep {{version}}
+    - pkg-config --cflags libva-x11 | grep {{version}}
+    - pkg-config --cflags libva-wayland | grep {{version}}

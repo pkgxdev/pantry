@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env -S tea bash
 
 #---
 # dependencies:
@@ -7,6 +7,11 @@
 
 set -eo pipefail
 
+# attempt to get the key from the user’s shell rc files (if set)
+if [ -z "$OPENAI_API_KEY" -a -n "$SHELL" ]; then
+  export OPENAI_API_KEY="$(env -i "$SHELL" -ic 'echo $OPENAI_API_KEY')"
+fi
+
 if [ -z "$OPENAI_API_KEY"]; then
   gum format <<EoMD
     # OpenAI API key required
@@ -14,14 +19,15 @@ if [ -z "$OPENAI_API_KEY"]; then
 
     > https://platform.openai.com/account/api-keys
 
-    GPT4 is recommended.
-    Though this requires signing up for the [waitlist](https://openai.com/waitlist/gpt-4-api)
+    GPT4 is recommended (but you gotta sign up for the
+    the [waitlist](https://openai.com/waitlist/gpt-4-api))
 
-    GPT 3 is ok.
-
-    Set this key in your `~/.shellrc` file.
+    **this key will not be persisted by tea!**
 EoMD
-  exit 1
+
+  echo  # spacer
+
+  export OPENAI_API_KEY="$(gum input --placeholder 'key pls')"
 fi
 
 gum format <<EoMD

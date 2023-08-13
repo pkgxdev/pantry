@@ -1,0 +1,29 @@
+distributable:
+  url: https://github.com/lm-sensors/lm-sensors/archive/V{{version.major}}-{{version.minor}}-{{version.patch}}.tar.gz
+  strip-components: 1
+versions:
+  github: lm-sensors/lm-sensors/tags
+  match: /V\d+-\d+-\d+/
+  strip: /^V/
+platforms:
+  - linux
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    gnu.org/bison: '*'
+    github.com/westes/flex: '*'
+    gnu.org/make: '*'
+  script:
+    - make $ARGS
+    - make $ARGS install
+  env:
+    ARGS:
+      - PREFIX={{prefix}}
+      - BUILD_STATIC_LIB=0
+      - MANDIR={{prefix}}/man
+      - ETCDIR={{prefix}}/etc
+provides:
+  - bin/sensors
+test:
+  script:
+    - sensors --version | grep {{version}}
