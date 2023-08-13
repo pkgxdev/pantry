@@ -1,0 +1,31 @@
+# cleans up our issues based on tags applied
+
+name: issue
+run-name: "closing: ${{ github.event.issue.title }}"
+
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  close-issue:
+    permissions:
+      issues: write
+    runs-on: ubuntu-latest
+    if: github.event.label.name == 'old-version' || github.event.label.name == 'gha-issue'
+    steps:
+      - name: Close reason
+        id: close-reason
+        run: |
+          if test "${{ github.event.label.name }}" = "old-version"; then
+            echo "reason=not_planned" >>$GITHUB_OUTPUT
+          else
+            echo "reason=completed" >>$GITHUB_OUTPUT
+          fi
+      - name: Close issue
+        uses: actions-cool/issues-helper@v3
+        with:
+          actions: close-issue
+          token: ${{ github.token }}
+          issue-number: ${{ github.event.issue.number }}
+          close-reason: ${{ steps.close-reason.outputs.reason }}
