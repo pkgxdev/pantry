@@ -7,30 +7,16 @@ versions:
   strip:
     - /^apache-groovy-binary-/
     - /\.zip/
+warnings:
+  - vendored
 dependencies:
   openjdk.org: '*'
 runtime:
   env:
     GROOVY_HOME: "{{prefix}}"
 build:
-  dependencies:
-    tea.xyz/gx/cc: c99
-    darwin:
-      gnu.org/autoconf: '*'
-      gnu.org/automake: '*'
-      gnu.org/libtool: '*'
-      maven.apache.org: '*'
-      curl.se: '*'
   working-directory: groovy-{{version}}
   script:
-    - run: |
-        # jansi-native is used to build native binary to support Apple Silicon.
-        curl -L https://github.com/fusesource/jansi-native/archive/refs/tags/jansi-native-1.6.tar.gz | tar -xz
-        export CFLAGS="-Wno-implicit-function-declaration $CFLAGS"
-        mvn -Dplatform=osx prepare-package
-        zip -d $SRCROOT/lib/jline-2.14.6.jar META-INF/native/*
-        jar -uvf $SRCROOT/lib/jline-2.14.6.jar -C target/generated-sources/hawtjni/lib META-INF/native/osx64/libjansi.jnilib
-      if: darwin
     - rm bin/*.bat
     - mkdir -p {{prefix}}/bin
     - install bin/* {{prefix}}/bin
