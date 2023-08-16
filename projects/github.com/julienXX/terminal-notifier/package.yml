@@ -1,0 +1,26 @@
+distributable:
+  url: https://github.com/julienXX/terminal-notifier/archive/{{version}}.tar.gz
+  strip-components: 1
+versions:
+  github: julienXX/terminal-notifier
+platforms:
+  - darwin
+build:
+  script:
+    - xcodebuild $ARGS -project 'Terminal Notifier.xcodeproj'
+    - mkdir -p {{prefix}}
+    - mv build/Release/terminal-notifier.app {{prefix}}/
+    - echo '#!/bin/bash' > terminal-notifier
+    - echo "\$(dirname \$0)/../terminal-notifier.app/Contents/MacOS/terminal-notifier \$*" >> terminal-notifier
+    - mkdir -p {{prefix}}/bin
+    - install terminal-notifier {{prefix}}/bin/
+  env:
+    ARGS:
+      - -target terminal-notifier
+      - SYMROOT=build
+      - -verbose
+provides:
+  - bin/terminal-notifier
+test:
+  script:
+    - terminal-notifier -version | grep {{version}}
