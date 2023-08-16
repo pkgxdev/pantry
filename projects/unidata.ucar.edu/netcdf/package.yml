@@ -28,14 +28,18 @@ build:
         cmake --build build_static
         cmake --install build_static
     - install build_static/liblib/libnetcdf.a {{prefix}}/lib/
-    - sed -i.bak "s|$TEA_PREFIX|\${TEA_PREFIX}|g" {{prefix}}/bin/nc-config
-    - rm {{prefix}}/bin/nc-config.bak
-    - sed -i.bak "s|$TEA_PREFIX|\${pcfiledir}/../../..|g" {{prefix}}/lib/pkgconfig/netcdf.pc
-    - rm {{prefix}}/lib/pkgconfig/netcdf.pc
-    - sed -i.bak "s|$TEA_PREFIX|\${TEA_PREFIX}|g" {{prefix}}/lib/cmake/netCDF/netCDFConfig.cmake
-    - rm {{prefix}}/lib/cmake/netCDF/netCDFConfig.cmake.bak
-    - sed -i.bak "s|$TEA_PREFIX|\${TEA_PREFIX}|g" {{prefix}}/lib/libnetcdf.settings
-    - rm {{prefix}}/lib/libnetcdf.settings.bak
+    - run: |
+        sed -i.bak \
+            -e "s|$TEA_PREFIX|\${TEA_PREFIX}|g" \
+            bin/nc-config \
+            lib/cmake/netCDF/netCDFConfig.cmake \
+            lib/libnetcdf.settings
+        rm bin/nc-config.bak lib/cmake/netCDF/netCDFConfig.cmake.bak lib/libnetcdf.settings.bak
+      working-directory: ${{prefix}}
+    - run: |
+        sed -i.bak "s|$TEA_PREFIX|\${pcfiledir}/../../..|g" netcdf.pc
+        rm netcdf.pc.bak
+      working-directory: ${{prefix}}/lib/pkgconfig
   env:
     ARGS:
       - -DENABLE_TESTS=OFF
