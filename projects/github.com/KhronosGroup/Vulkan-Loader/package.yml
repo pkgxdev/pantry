@@ -19,15 +19,12 @@ build:
     linux:
       x.org/xrandr: '*'
   script:
-    - cmake -S . -B build $ARGS $CMAKE_ARGS
+    - cmake -S . -B build $CMAKE_ARGS
     - cmake --build build
     - cmake --install build
   env:
-    ARGS:
-      - -DVULKAN_HEADERS_INSTALL_DIR={{deps.github.com/KhronosGroup/Vulkan-Headers.prefix}}
-      - -DCMAKE_INSTALL_SYSCONFDIR={{prefix}}/etc
-      - -DFALLBACK_CONFIG_DIRS={{prefix}}/etc/xdg
     CMAKE_ARGS:
+      - -DVULKAN_HEADERS_INSTALL_DIR={{deps.github.com/KhronosGroup/Vulkan-Headers.prefix}}
       - -DCMAKE_INSTALL_PREFIX="{{prefix}}
       - -DCMAKE_INSTALL_LIBDIR=lib
       - -DCMAKE_BUILD_TYPE=Release
