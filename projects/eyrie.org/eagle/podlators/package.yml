@@ -34,9 +34,9 @@ build:
     - make --jobs {{ hw.concurrency }}
     - make --jobs {{ hw.concurrency }} install
     - run: |
-        sed -i -E 's|/.*/bin/perl|/usr/bin/env perl|g' {{prefix}}/bin/pod2man
-        sed -i -E 's|/.*/bin/perl|/usr/bin/env perl|g' {{prefix}}/bin/pod2text
-      if: linux
+        sed -i.bak -E -e 's|/.*/bin/perl|/usr/bin/env perl|g' pod2man pod2text
+        rm pod2man.bak pod2text.bak
+      working-directory: ${{prefix}}/bin
   env:
     PERL5LIB: "{{prefix}}/libexec/lib/perl5:{{prefix}}/lib/perl5:$PERL5LIB"
     ARGS:
