@@ -25,42 +25,45 @@ build:
     linux:
       perl.org: '*'
   script:
-    - cp config.mk.in config.mk
-    - sed -i.bak 's|TIFFLIB = NONE|TIFFLIB = -ltiff|g' config.mk
-    - sed -i.bak 's|JPEGLIB = NONE|JPEGLIB = -ljpeg|g' config.mk
-    - sed -i.bak 's|PNGLIB = NONE|PNGLIB = -lpng|g' config.mk
-    - sed -i.bak 's|ZLIB = NONE|ZLIB = -lz|g' config.mk
-    - sed -i.bak 's|JASPERLIB = NONE|JASPERLIB = -ljasper|g' config.mk
+    - sed -e 's|TIFFLIB = NONE|TIFFLIB = -ltiff|g' \
+          -e 's|JPEGLIB = NONE|JPEGLIB = -ljpeg|g' \
+          -e 's|PNGLIB = NONE|PNGLIB = -lpng|g' \
+          -e 's|ZLIB = NONE|ZLIB = -lz|g' \
+          -e 's|JASPERLIB = NONE|JASPERLIB = -ljasper|g' \
+          config.mk.in >config.mk
     - run: |
-        sed -i.bak 's|CFLAGS_SHLIB = |CFLAGS_SHLIB = -fno-common|g' config.mk
-        sed -i.bak 's|NETPBMLIBTYPE = unixshared|NETPBMLIBTYPE = dylib|g' config.mk
-        sed -i.bak 's|NETPBMLIBSUFFIX = so|NETPBMLIBSUFFIX = dylib|g' config.mk
-        sed -i.bak 's|LDSHLIB = -shared -Wl,-soname,$(SONAME)|LDSHLIB = --shared -o $(SONAME)|g' config.mk
+        sed -i.bak \
+            -e 's|CFLAGS_SHLIB = |CFLAGS_SHLIB = -fno-common|g' \
+            -e 's|NETPBMLIBTYPE = unixshared|NETPBMLIBTYPE = dylib|g' \
+            -e 's|NETPBMLIBSUFFIX = so|NETPBMLIBSUFFIX = dylib|g' \
+            -e 's|LDSHLIB = -shared -Wl,-soname,$(SONAME)|LDSHLIB = --shared -o $(SONAME)|g' \
+            config.mk
       if: darwin
-    - run: |
-        sed -i.bak 's|CFLAGS_SHLIB = |CFLAGS_SHLIB = -fPIC|g' config.mk
+    - run: sed -i.bak 's|CFLAGS_SHLIB = |CFLAGS_SHLIB = -fPIC|g' config.mk
       if: linux
     - rm config.mk.bak
+    
     - make --jobs {{hw.concurrency}}
     - make --jobs {{hw.concurrency}} package pkgdir=$SRCROOT/stage
     - run: |
         mkdir -p {{prefix}}
         mv bin include lib misc {{prefix}}/
-        cat << EOF > netpbm.pc
-        prefix=\${pcfiledir}/../..
-        exec_prefix=\${prefix}
-        libdir=\${exec_prefix}/lib
-        includedir=\${prefix}/include/netpbm
+        cat $PROP > netpbm.pc
+
+        mkdir -p {{prefix}}/lib/pkgconfig
+        install netpbm.pc {{prefix}}/lib/pkgconfig/
+      working-directory: stage
+      prop: |
+        prefix=${pcfiledir}/../..
+        exec_prefix=${prefix}
+        libdir=${exec_prefix}/lib
+        includedir=${prefix}/include/netpbm
 
         Name: Netpbm
         Description: Graphics utilities
         Version: {{version}}
-        Libs: -L\${libdir} -lmylibrary
-        Cflags: -I\${includedir}
-        EOF
-        mkdir -p {{prefix}}/lib/pkgconfig
-        install netpbm.pc {{prefix}}/lib/pkgconfig/
-      working-directory: stage
+        Libs: -L${libdir} -lmylibrary
+        Cflags: -I${includedir}
   env:
     CFLAGS: "-Wno-implicit-function-declaration $CFLAGS"
 provides:
