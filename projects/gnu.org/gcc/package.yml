@@ -50,7 +50,7 @@ build:
     # On Linux, we need to statically link libstdc++ and libgcc
     - |
       if test {{hw.platform}} = "linux"; then
-        export ARGS=("${ARGS[@]}" --with-boot-ldflags="-static-libstdc++ -static-libgcc -pie $LDFLAGS")
+        export ARGS=("${ARGS[@]}" --with-boot-ldflags="-static-libstdc++ -static-libgcc $LDFLAGS")
       fi
 
     - ../configure "${ARGS[@]}"
@@ -90,6 +90,10 @@ build:
         - --disable-multilib
         - --enable-default-pie
         - --enable-pie-tools
+    linux/x86_64:
+      LDFLAGS: $LDFLAGS -pie
+      CFLAGS: $CFLAGS -fPIC
+      CXXFLAGS: $CXXFLAGS -fPIC
     darwin:
       ARGS:
         # Reliance on CLT hard path is yuck.
