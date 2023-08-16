@@ -50,7 +50,7 @@ build:
     # On Linux, we need to statically link libstdc++ and libgcc
     - |
       if test {{hw.platform}} = "linux"; then
-        export ARGS=("${ARGS[@]}" --with-boot-ldflags="-static-libstdc++ -static-libgcc $LDFLAGS")
+        export ARGS=("${ARGS[@]}" --with-boot-ldflags="-static-libstdc++ -static-libgcc -pie $LDFLAGS")
       fi
 
     - ../configure "${ARGS[@]}"
@@ -102,17 +102,17 @@ build:
       ARGS:
         - --build=x86_64-apple-darwin20.0.0
 
-test: |
-  gcc --version | grep -q "tea GCC {{version}}"
-  gcc -print-libgcc-file-name
-  gcc -print-multiarch
-  gcc -dumpspecs
-  gcc -o test1 test.c -lgmp
-  ./test1
-  g++ -o test2 test.cc
-  test "$(./test2)" = "Hello, world!"
-  gfortran -o test3 test.f90
-  test "$(./test3)" = "Hello, world!"
+test:
+  - gcc --version | grep -q "tea GCC {{version}}"
+  - gcc -print-libgcc-file-name
+  - gcc -print-multiarch
+  - gcc -dumpspecs
+  - gcc -o test1 test.c -lgmp
+  - ./test1
+  - g++ -o test2 test.cc
+  - test "$(./test2)" = "Hello, world!"
+  - gfortran -o test3 test.f90
+  - test "$(./test3)" = "Hello, world!"
 
 
 provides:
