@@ -11,10 +11,13 @@ dependencies:
   zlib.net: '*'
 build:
   dependencies:
-    tea.xyz/gx/cc: c99
     gnu.org/make: '*'
     cmake.org: '*'
     gnu.org/m4: '*'
+    linux:
+      gnu.org/gcc: '*'
+    darwin:
+      tea.xyz/gx/cc: c99
   script:
     - run: |
         cmake -S . -B build_shared $ARGS -DBUILD_SHARED_LIBS=ON
@@ -48,9 +51,6 @@ build:
     linux:
       ARGS:
         - -DCMAKE_POSITION_INDEPENDENT_CODE=ON
-    linux/aarch64:
-      ARGS:
-        - -DCMAKE_CXX_FLAGS=-std=c++11
 provides:
   - bin/nc-config
   - bin/nccopy
