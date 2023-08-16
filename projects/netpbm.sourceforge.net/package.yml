@@ -22,6 +22,8 @@ build:
     tea.xyz/gx/cc: c99
     gnu.org/make: '*'
     github.com/westes/flex: '*'
+    linux:
+      perl.org: '*'
   script:
     - cp config.mk.in config.mk
     - sed -i.bak 's|TIFFLIB = NONE|TIFFLIB = -ltiff|g' config.mk
@@ -40,7 +42,7 @@ build:
       if: linux
     - rm config.mk.bak
     - make --jobs {{hw.concurrency}}
-    - make package pkgdir=$SRCROOT/stage
+    - make --jobs {{hw.concurrency}} package pkgdir=$SRCROOT/stage
     - run: |
         mkdir -p {{prefix}}
         mv bin include lib misc {{prefix}}/
