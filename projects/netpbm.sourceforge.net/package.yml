@@ -25,12 +25,13 @@ build:
     linux:
       perl.org: '*'
   script:
-    - sed -e 's|TIFFLIB = NONE|TIFFLIB = -ltiff|g' \
-          -e 's|JPEGLIB = NONE|JPEGLIB = -ljpeg|g' \
-          -e 's|PNGLIB = NONE|PNGLIB = -lpng|g' \
-          -e 's|ZLIB = NONE|ZLIB = -lz|g' \
-          -e 's|JASPERLIB = NONE|JASPERLIB = -ljasper|g' \
-          config.mk.in >config.mk
+    - run: |
+        sed -e 's|TIFFLIB = NONE|TIFFLIB = -ltiff|g' \
+            -e 's|JPEGLIB = NONE|JPEGLIB = -ljpeg|g' \
+            -e 's|PNGLIB = NONE|PNGLIB = -lpng|g' \
+            -e 's|ZLIB = NONE|ZLIB = -lz|g' \
+            -e 's|JASPERLIB = NONE|JASPERLIB = -ljasper|g' \
+            config.mk.in >config.mk
     - run: |
         sed -i.bak \
             -e 's|CFLAGS_SHLIB = |CFLAGS_SHLIB = -fno-common|g' \
