@@ -1,54 +1,35 @@
 distributable:
-  url: https://download.gnome.org/sources/pygobject/{{version.marketing}}/pygobject-{{version.marketing}}.tar.xz
+  url: https://download.gnome.org/sources/pygobject/{{version.marketing}}/pygobject-{{version}}.tar.xz
   strip-components: 1
-
 versions:
   gitlab: gitlab.gnome.org:GNOME/pygobject/tags
-
 dependencies:
-  python.org: 3.11
   gnome.org/gobject-introspection: '*'
-
+  cairographics.org/pycairo: '*'
 build:
   dependencies:
     tea.xyz/gx/cc: c99
+    gnu.org/make: '*'
     mesonbuild.com: '*'
     ninja-build.org: '*'
     freedesktop.org/pkg-config: '*'
-    
-  script: |
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }} install
-  # it’s extremely common for packages to require the above
-
-  # script also supports a list of commands, which is useful for complex builds
-  # or if you want to run a command in a different directory
+    python.org: ~3.11
   script:
-    - ./configure $ARGS
-    - make --jobs {{ hw.concurrency }} install
-    - run: ls -l
-      working-directory: ${{prefix}}/bin
-    - run: cat $PROP > foo
-      working-directory: ${{prefix}}/bin
-      prop: |
-        #!/bin/sh
-        exec ./bar $@
+    - meson setup buildpy $MESON_ARGS
+    - meson compile -C buildpy --verbose
+    - meson install -C buildpy
   env:
-    # add any environment variables here
-    ARGS:
+    MESON_ARGS:
       - --prefix="{{prefix}}"
-
-
-provides:
-  - bin/foo
-  # ^^ specify the binaries or tea magic won’t work
-
+      - --libdir="{{prefix}}/lib"
+      - --buildtype=release
+      - --wrap-mode=nofallback
+      - -Dpycairo=enabled
+      #- -Dpython={{deps.python.org.prefix}}/bin/python3
+      - -Dpython.platlibdir={{prefix}}/lib/{{deps.python.org.version}}
+      - -Dpython.purelibdir={{prefix}}/lib/{{deps.python.org.version}}
 test:
   dependencies:
-    foo.com: '*'  # asterisk means “any version, usually the latest”
+    python.org: ~3.11
   script:
-    test "$(foo --version)" = {{version}}
-    # if it’s a tool check the version matches
-    # you should run the tool to check it works!
-    # if it's a library then you should *use* the library
-    # don’t forget to check other package.ymls in the pantry for examples!
+    - python test.py
