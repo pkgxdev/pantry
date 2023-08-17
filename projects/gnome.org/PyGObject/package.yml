@@ -1,0 +1,54 @@
+distributable:
+  url: https://download.gnome.org/sources/pygobject/{{version.marketing}}/pygobject-{{version.marketing}}.tar.xz
+  strip-components: 1
+
+versions:
+  gitlab: gitlab.gnome.org:GNOME/pygobject/tags
+
+dependencies:
+  python.org: 3.11
+  gnome.org/gobject-introspection: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    mesonbuild.com: '*'
+    ninja-build.org: '*'
+    freedesktop.org/pkg-config: '*'
+    
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+  # it’s extremely common for packages to require the above
+
+  # script also supports a list of commands, which is useful for complex builds
+  # or if you want to run a command in a different directory
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+    - run: ls -l
+      working-directory: ${{prefix}}/bin
+    - run: cat $PROP > foo
+      working-directory: ${{prefix}}/bin
+      prop: |
+        #!/bin/sh
+        exec ./bar $@
+  env:
+    # add any environment variables here
+    ARGS:
+      - --prefix="{{prefix}}"
+
+
+provides:
+  - bin/foo
+  # ^^ specify the binaries or tea magic won’t work
+
+test:
+  dependencies:
+    foo.com: '*'  # asterisk means “any version, usually the latest”
+  script:
+    test "$(foo --version)" = {{version}}
+    # if it’s a tool check the version matches
+    # you should run the tool to check it works!
+    # if it's a library then you should *use* the library
+    # don’t forget to check other package.ymls in the pantry for examples!
