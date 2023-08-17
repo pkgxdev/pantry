@@ -22,7 +22,10 @@ build:
     - cpanm -l {{prefix}} Locale::gettext
     - ./configure $CONFIGURE_ARGS
     - make install
-    - sed -i.bak '1s|.*|#!/usr/bin/env perl|' {{prefix}}/bin/help2man
+    - run: |
+        sed -i.bak '1s|.*|#!/usr/bin/env perl|' help2man
+        rm help2man.bak
+      working-directory: ${{prefix}}/bin
   env:
     PERL5LIB: "{{prefix}}/lib/perl5:{{prefix}}/libexec/lib/perl5:$PERL5LIB"
     CONFIGURE_ARGS:
