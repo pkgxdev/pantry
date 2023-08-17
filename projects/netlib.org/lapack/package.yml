@@ -1,0 +1,33 @@
+distributable:
+  url: https://github.com/Reference-LAPACK/lapack/archive/v{{version}}.tar.gz
+  strip-components: 1
+versions:
+  github: Reference-LAPACK/lapack
+build:
+  dependencies:
+    gnu.org/gcc: '*'
+    gnu.org/make: '*'
+    cmake.org: '*'
+  working-directory: build
+  script:
+    - cmake .. $CMAKE_ARGS
+    - make --jobs {{hw.concurrency}} install
+  env:
+    CMAKE_ARGS:
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}
+      - -DCMAKE_INSTALL_LIBDIR=lib
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_FIND_FRAMEWORK=LAST
+      - -DCMAKE_VERBOSE_MAKEFILE=ON
+      - -Wno-dev
+      - -DBUILD_TESTING=OFF
+      - -DBUILD_SHARED_LIBS:BOOL=ON
+      - -DLAPACKE:BOOL=ON
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+    gnu.org/gcc: '*'
+  script:
+    - pkg-config --modversion lapack | grep {{version}}
+    - gcc test.c -llapacke -o test
+    - ./test
