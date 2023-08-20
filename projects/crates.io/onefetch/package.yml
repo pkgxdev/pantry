@@ -9,14 +9,18 @@ versions:
   github: o2sh/onefetch
   strip: /v/
 
+# dependencies:
+#   darwin:
+#     zlib.net: ^1
+
 build:
   dependencies:
     cmake.org: ^3
     rust-lang.org: '>=1.56'
     rust-lang.org/cargo: '*'
   script:
-    make clean install
+    cargo install --locked --path . --root {{prefix}}
 
 test:
   script:
-    - onefetch --version
+    - test "$(onefetch --version)" = "onefetch {{version}}"
