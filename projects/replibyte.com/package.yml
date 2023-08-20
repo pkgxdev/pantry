@@ -1,0 +1,22 @@
+distributable:
+  url: https://github.com/Qovery/Replibyte/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/replibyte
+
+versions:
+  github: Qovery/Replibyte
+  strip: /v/
+
+build:
+  working-directory: replibyte
+  dependencies:
+    rust-lang.org: '>=1.65'
+    rust-lang.org/cargo: '*'
+  script:
+    cargo install --locked --path . --root {{prefix}}
+
+test:
+  script:
+    - test "$(replibyte --version)" = "replibyte {{version}}"
