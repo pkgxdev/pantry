@@ -34,7 +34,7 @@ else
 fi
 
 tea gum format <<EoMD
-# Stable Diffusion WEBUI
+# Stable Diffusion web UI
 
 this package has been modified for your convenience:
 

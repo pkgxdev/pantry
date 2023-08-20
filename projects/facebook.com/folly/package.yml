@@ -32,18 +32,24 @@ build:
     # our default build directory has a `+` in it which breaks facebook’s
     # piss awful code.
     #TODO don’t use exotic characters in our build directories
-  script: |
-    test -d xyz.tea.srcs && rm -rf xyz.tea.srcs
-    mv $SRCROOT xyz.tea.srcs
-    cmake $ARGS -S xyz.tea.srcs -B .
-    make --jobs {{hw.concurrency}} install
+  script:
+    - test -d xyz.tea.srcs && rm -rf xyz.tea.srcs
+    - mv $SRCROOT xyz.tea.srcs
+    - cmake $ARGS -S xyz.tea.srcs -B .
+    - make --jobs {{hw.concurrency}} install
 
-    sed -i.bak "s:$(tea --prefix):\$\{_IMPORT_PREFIX\}/../../..:g" "{{prefix}}"/lib/cmake/folly/folly-targets.cmake
-    rm "{{prefix}}"/lib/cmake/folly/folly-targets.cmake.bak
+    - run: |
+        sed -E -i.bak \
+          -e "s:$(tea --prefix):\$\{_IMPORT_PREFIX\}/../../..:g" \
+          -e '/^  INTERFACE_INCLUDE_DIRECTORIES/ s|/v([0-9]+)(\.[0-9]+)*[a-z]?/include|/v\1/include|g' \
+          folly-targets.cmake
+        rm folly-targets.cmake.bak
+      working-directory: ${{prefix}}/lib/cmake/folly
 
-    cd {{prefix}}/lib/pkgconfig
-    sed -i.bak -e 's/-I[^ ]* *//g' ./libfolly.pc
-    rm *.bak
+    - run: |
+        sed -i.bak -e 's/-I[^ ]* *//g' libfolly.pc
+        rm libfolly.pc.bak
+      working-directory: ${{prefix}}/lib/pkgconfig
   env:
     ARGS:
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
@@ -72,5 +78,5 @@ test:
     }
   script: |
     mv $FIXTURE b.cc
-    c++ -std=c++14 b.cc -lfolly -ldl -lfmt -lglog
+    c++ -std=c++17 b.cc -lfolly -ldl -lfmt -lglog
     ./a.out

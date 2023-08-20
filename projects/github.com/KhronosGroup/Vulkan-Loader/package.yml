@@ -1,0 +1,40 @@
+distributable:
+  url: https://github.com/KhronosGroup/Vulkan-Loader/archive/v{{version}}.tar.gz
+  strip-components: 1
+versions:
+  github: KhronosGroup/Vulkan-Loader/tags
+dependencies:
+  github.com/KhronosGroup/Vulkan-Headers: '*'
+  linux:
+    x.org/x11: '*'
+    x.org/xcb: '*'
+    wayland.freedesktop.org: '*'
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    gnu.org/make: '*'
+    cmake.org: '*'
+    freedesktop.org/pkg-config: '*'
+    python.org: ^3.11
+    linux:
+      x.org/xrandr: '*'
+  script:
+    - cmake -S . -B build $CMAKE_ARGS
+    - cmake --build build
+    - cmake --install build
+  env:
+    CMAKE_ARGS:
+      - -DVULKAN_HEADERS_INSTALL_DIR={{deps.github.com/KhronosGroup/Vulkan-Headers.prefix}}
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}
+      - -DCMAKE_INSTALL_LIBDIR=lib
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_FIND_FRAMEWORK=LAST
+      - -DCMAKE_VERBOSE_MAKEFILE=ON
+      - -Wno-dev
+      - -DBUILD_TESTING=OFF
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script:
+    - cc test.c -o test -lvulkan
+    - ./test

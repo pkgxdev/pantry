@@ -1,0 +1,25 @@
+distributable:
+  url: https://www.riverbankcomputing.com/hg/PyQt-builder/archive/{{version}}.tar.gz
+  strip-components: 1
+versions:
+  url: https://www.riverbankcomputing.com/hg/PyQt-builder/tags
+  match: /rev\/\d+\.\d+\.\d+/
+  strip:
+    - /^rev\//
+runtime:
+  env:
+    PYTHONPATH: "{{prefix}}/venv/lib/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH"
+dependencies:
+  python.org: ^3.11
+  riverbankcomputing.com/sip: '*'
+  linux:
+    tea.xyz/gx/cc: c99
+build:
+  script:
+    - python-venv.sh {{prefix}}/bin/pyqt-bundle
+provides:
+  - bin/pyqt-bundle
+test:
+  script:
+    - pyqt-bundle -V
+    - python3 -c "import pyqtbuild"
