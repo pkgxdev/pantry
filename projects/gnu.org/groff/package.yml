@@ -15,6 +15,10 @@ dependencies:
   perl.org: '*'
   linux:
     gnome.org/glib: '*'
+runtime:
+  env:
+    GROFF_FONT_PATH: "{{prefix}}/share/groff/current/fonts"
+    GROFF_TMAC_PATH: "{{prefix}}/share/groff/current/tmac"
 build:
   dependencies:
     darwin:
@@ -85,3 +89,5 @@ test:
     - groff --version | grep {{version}}
     - grog --version | grep {{version}}
     - neqn --version | grep {{version}}
+    - groff -Tps test.ms > test.ps
+    - cat test.ps | grep {{version}}
