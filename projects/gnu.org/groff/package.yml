@@ -1,0 +1,76 @@
+distributable:
+  url: https://ftp.gnu.org/gnu/groff/groff-{{version}}.tar.gz
+  strip-components: 1
+versions:
+  url: https://ftp.gnu.org/gnu/groff/
+  match: /groff-\d+\.\d+\.\d+\.tar\.gz/
+  strip:
+    - /^groff-/
+    - /\.tar\.gz/
+dependencies:
+  ghostscript.com: '*'
+  netpbm.sourceforge.net: '*'
+  github.com/rrthomas/psutils: '*'
+  freedesktop.org/uchardet: '*'
+  perl.org: '*'
+  gnu.org/texinfo: '*'
+  linux:
+    gnome.org/glib: '*'
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    gnu.org/make: '*'
+    freedesktop.org/pkg-config: '*'
+    gnu.org/bison: '*'
+  script:
+    - ./configure $ARGS
+    - make --jobs {{hw.concurrency}}
+    - make --jobs {{hw.concurrency}} install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --without-x
+      - --with-uchardet
+provides:
+  - bin/addftinfo
+  - bin/afmtodit
+  - bin/chem
+  - bin/eqn
+  - bin/eqn2graph
+  - bin/gdiffmk
+  - bin/glilypond
+  - bin/gperl
+  - bin/gpinyin
+  - bin/grap2graph
+  - bin/grn
+  - bin/grodvi
+  - bin/groff
+  - bin/grog
+  - bin/grolbp
+  - bin/grolj4
+  - bin/gropdf
+  - bin/grops
+  - bin/grotty
+  - bin/hpftodit
+  - bin/indxbib
+  - bin/lkbib
+  - bin/lookbib
+  - bin/mmroff
+  - bin/neqn
+  - bin/nroff
+  - bin/pdfmom
+  - bin/pdfroff
+  - bin/pfbtops
+  - bin/pic
+  - bin/pic2graph
+  - bin/post-grohtml
+  - bin/preconv
+  - bin/pre-grohtml
+  - bin/refer
+  - bin/soelim
+  - bin/tbl
+  - bin/tfmtodit
+  - bin/troff
+test:
+  script:
+    - groff --version | grep {{version}}
