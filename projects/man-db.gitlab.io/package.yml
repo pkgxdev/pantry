@@ -1,0 +1,25 @@
+distributable:
+  url: https://download.savannah.nongnu.org/releases/man-db/man-db-{{version}}.tar.xz
+  strip-components: 1
+display-name: man-db
+versions:
+  gitlab: man-db/man-db
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    gnu.org/make: '*'
+    freedesktop.org/pkg-config: '*'
+  script:
+    - ./configure $CONFIGURE_ARGS
+    - make --jobs {{hw.concurrency}} install
+  env:
+    CONFIGURE_ARGS:
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --prefix="{{prefix}}"
+      - --libdir="{{prefix}}/lib"
+provides:
+  - bin/man
+test:
+  script:
+    - man --version
