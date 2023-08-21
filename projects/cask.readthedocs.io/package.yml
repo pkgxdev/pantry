@@ -16,18 +16,19 @@ dependencies:
 
 build:
   script:
-    - mkdir -p {{prefix}}/bin
-    - install bin/* {{prefix}}/bin
+    - mkdir -p {{prefix}}
+    - cp -a bin {{prefix}}
     # Lisp files must stay here: https://github.com/cask/cask/issues/305
     - install *.el {{prefix}}/
-    - mkdir -p {{prefix}}/package-build
-    - install ./package-build/* {{prefix}}/package-build/
-    - mkdir -p {{prefix}}/elisp
-    - ln {{prefix}}/cask.el {{prefix}}/elisp/cask.el
-    - ln {{prefix}}/cask-bootstrap.el {{prefix}}/elisp/cask-bootstrap.el
+    - cp -a package-build {{prefix}}
+    - run: |
+        ln ../cask.el .
+        ln ./cask-bootstrap.el .
+      working-directory: ${{prefix}}/elisp
     - touch {{prefix}}/.no-upgrade
 
 provides:
   - bin/cask
 
+# Some of the lisp packages 404 and hang the test.
 test: timeout 60s cask --version | grep {{version}}
