@@ -57,6 +57,10 @@ build:
     - ghcup set ghc {{version}}
     - run: ln -s .ghcup/* .
       working-directory: ${{prefix}}
+    - run: |
+       sed -i.bak -e "s|$TEA_PREFIX|\$TEA_PREFIX|g" *-{{version}}
+        rm *.bak
+      working-directory: ${{prefix}}/ghc/{{version}}/bin
   env:
     BOOTSTRAP_HASKELL_NONINTERACTIVE: 1
     BOOTSTRAP_HASKELL_NO_UPGRADE: 1
@@ -66,9 +70,6 @@ build:
 
 test:
   script:
-    - ls -l {{prefix}}
-    - ls -l {{prefix}}/bin
-    - ls -l {{prefix}}/.ghcup/ghc/9.6.2/lib/ghc-9.6.2/bin
     - test "$(runghc $FIXTURE)" = "Hello World"
   fixture:
     main = putStrLn "Hello World"
