@@ -10,12 +10,17 @@ versions:
   strip: /v/
 
 build:
-  working-directory: synth
   dependencies:
     rust-lang.org: '*'
     rust-lang.org/cargo: '*'
-  script:
-    cargo install --locked --path . --root {{prefix}}
+    rust-lang.org/rustup: '*'
+  script: |
+    pwd
+    echo {{prefix}}
+    RUSTUP_HOME=./xyz.tea.home/.cargo rustup toolchain install nightly
+    cargo +nightly install --locked --path synth --root {{prefix}}
+  env:
+    RUSTUP_HOME: "./xyz.tea.home/.cargo"
 
 test:
   script:
