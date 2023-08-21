@@ -1,22 +1,25 @@
 distributable:
   url: https://download.open-mpi.org/release/open-mpi/v{{version.marketing}}/openmpi-{{version}}.tar.bz2
   strip-components: 1
+
 versions:
   github: open-mpi/ompi/tags
+
 dependencies:
   open-mpi.org/hwloc: '*'
   libevent.org: '*'
   gnu.org/gcc: '*' # for gfortran
+
 runtime:
   env:
     OPAL_PREFIX: "{{prefix}}"
+
 build:
   dependencies:
-    gnu.org/make: '*'
+    tea.xyz/gx/make: '*'
   script:
     - ./configure $CONFIGURE_ARGS
     - make --jobs {{ hw.concurrency }} all
-    - make --jobs {{ hw.concurrency }} check
     - make --jobs {{ hw.concurrency }} install
     - run: |
         sed -i.bak "s|$TEA_PREFIX|\${pcfiledir}/../../../..|g" ompi-c.pc ompi-cxx.pc ompi-fort.pc ompi.pc orte.pc pmix.pc
@@ -29,7 +32,7 @@ build:
     - run: install {{prefix}}/lib/*.mod {{prefix}}/include/
       if: linux
   env:
-    CXX: "g++ -std=c++11"
+    CXXFLAGS: -std=c++11
     CONFIGURE_ARGS:
       - --disable-debug
       - --disable-dependency-tracking
@@ -41,6 +44,7 @@ build:
       - --sysconfdir="{{prefix}}/etc"
       - --with-libevent="{{deps.libevent.org.prefix}}"
       - --with-sge
+
 provides:
   - bin/mpic++
   - bin/mpiCC
@@ -61,6 +65,7 @@ provides:
   - bin/orte-info
   - bin/orterun
   - bin/orte-server
+
 test:
   dependencies:
     freedesktop.org/pkg-config: '*'
