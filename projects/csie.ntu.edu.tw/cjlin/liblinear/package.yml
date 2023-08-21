@@ -15,14 +15,13 @@ build:
     curl.se: '*'
     gnu.org/patch: '*'
   script:
-    - export SHVER=$(grep '^SHVER =' Makefile | sed 's/[^0-9]*//')
     - curl $PATCH | patch -p0 || true
     - make --jobs {{ hw.concurrency }} all
     - run: mkdir -p bin lib include
       working-directory: "{{prefix}}"
     - install predict train {{prefix}}/bin/
     - install linear.h newton.h {{prefix}}/include/
-    - install liblinear.$SHVER* {{prefix}}/lib/
+    - install liblinear* {{prefix}}/lib/
   env:
     PATCH: https://raw.githubusercontent.com/Homebrew/formula-patches/bac35ae9140405dec00f1f700d2ecc27cf82526b/liblinear/patch-Makefile.diff
 provides:
