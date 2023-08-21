@@ -1,25 +1,41 @@
-distributable:
-  url: https://downloads.haskell.org/~ghc/{{version}}/ghc-{{version}}-src.tar.xz
-  sig: "{{url}}.sig"
-  strip-components: 1
+distributable: ~
 
 versions:
   github: ghc/ghc/tags
   strip:
     - /^ghc-/
     - /-release$/
-  ignore: [9.5.x, 9.6.x]  #FIXME help us to build these!
 
 provides:
   - bin/ghc
+  - bin/ghc-{{version.marketing}}
+  - bin/ghc-{{version}}
   - bin/ghc-pkg
+  - bin/ghc-pkg-{{version.marketing}}
+  - bin/ghc-pkg-{{version}}
   - bin/ghci
+  - bin/ghci-{{version.marketing}}
+  - bin/ghci-{{version}}
+  - bin/ghcup
   - bin/haddock
+  - bin/haddock-{{version.marketing}}
+  - bin/haddock-{{version}}
   - bin/hp2ps
+  - bin/hp2ps-{{version.marketing}}
+  - bin/hp2ps-{{version}}
   - bin/hpc
+  - bin/hpc-{{version.marketing}}
+  - bin/hpc-{{version}}
   - bin/hsc2hs
+  - bin/hsc2hs-{{version.marketing}}
+  - bin/hsc2hs-{{version}}
   - bin/runghc
+  - bin/runghc-{{version.marketing}}
+  - bin/runghc-{{version}}
   - bin/runhaskell
+  - bin/runhaskell-{{version.marketing}}
+  - bin/runhaskell-{{version}}
+
 
 dependencies:
   gnu.org/gmp: 6
@@ -27,92 +43,25 @@ dependencies:
   tea.xyz/gx/cc: 'c99'  # ghc uses this during builds
   sourceware.org/libffi: 3
 
+warnings:
+  - vendored
+
 build:
   dependencies:
-    gnu.org/autoconf: ^2
-    gnu.org/automake: ^1  # `aclocal` is used during the build for some reason
-    tea.xyz/gx/make: '*'  #FIXME specifically, gnu make is *required*
     curl.se: '*'
-    gnu.org/m4: '*'
-    git-scm.org: ^2
-    python.org: ^3
-    gnu.org/patch: '*'
-    linux:
-      github.com/numactl/numactl: ^2 # ghcup needs this
-
-  # `ghc` needs `ghc` to bootstrap `ghc`
-  # The canonical way to achieve this is with `ghcup`
-  # To that end, we capture $HOME so as to no pollute the user's life with unwanted
-  # stage0 tooling. Instead, everything is localized to $HOME, and can be
-  # cleaned up at will, and won't capture any of the user's workflow
-  script: |
-    export HOME="$(pwd)"
-
-    if test -d .ghcup; then
-      echo "ghcup already installed"
-    else
-      curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | sh
-    fi
-
-    PATH="$HOME/.ghcup/bin:$PATH"
-
-    if test -e $HOME/.cabal/bin; then
-      rm -r $HOME/.cabal/bin
-    fi
-
-    export PATH="$HOME/.cabal/bin:$PATH"
-    GHC="$HOME/.ghcup/bin/ghc"
-
-    # We need PIC on linux-x86_64 (it's already on the other
-    # platforms). This does that.
-    # https://www.hobson.space/posts/haskell-foreign-library/
-
-    sed -i.bak \
-      's/\((OSLinux,   ArchAArch64) -> \[Opt_PIC, Opt_ExternalDynamicRefs\]\)/\1\n    (OSLinux,   ArchX86_64)  -> \[Opt_PIC, Opt_ExternalDynamicRefs\]/' \
-      compiler/GHC/Driver/Session.hs
-    rm compiler/GHC/Driver/Session.hs.bak
-
-    ./configure $ARGS
-    hadrian/build $HADRIAN_ARGS install
-
-    for shim in $(find "{{prefix}}/bin" -type f); do
-      sed -i.bak -e 's_="{{prefix}}_="$(dirname $(dirname $0))_' $shim
-      rm $shim.bak
-    done
-
-    sed -i.bak 's|{{tea.prefix}}|$TEA_PREFIX|g' "{{prefix}}/bin/hsc2hs-ghc-{{version}}"
-    rm "{{prefix}}/bin/hsc2hs-ghc-{{version}}.bak"
+  script:
+    - curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | sh
+    - PATH={{prefix}}/.ghcup/bin:$PATH
+    - ghcup install ghc {{version}}
+    - ghcup set ghc {{version}}
+    - run: ln -s .ghcup/* .
+      working-directory: ${{prefix}}
   env:
     BOOTSTRAP_HASKELL_NONINTERACTIVE: 1
-    BOOTSTRAP_HASKELL_ADJUST_BASHRC: 0
-    BOOTSTRAP_HASKELL_GHC_VERSION: ${{version}}
-    CONF_CC_OPTS_STAGE0: $CFLAGS
-    CONF_CC_OPTS_STAGE1: $CFLAGS
-    CONF_CC_OPTS_STAGE2: $CFLAGS
-    CONF_GCC_LINKER_OPTS_STAGE0: $LDFLAGS
-    CONF_GCC_LINKER_OPTS_STAGE1: $LDFLAGS
-    CONF_GCC_LINKER_OPTS_STAGE2: $LDFLAGS
-    # ChatGPT
-    GHC_OPTIONS: -fPIC
-    ARGS:
-      - --prefix={{prefix}}
-      - --disable-numa
-      - --with-curses-includes={{deps.invisible-island.net/ncurses.prefix}}/include/ncursesw
-      - --with-intree-gmp
-      - --with-system-libffi
-    HADRIAN_ARGS:
-      - -j
-      - --docs=none
-      - --flavour=release
-      - --prefix="{{prefix}}"
-    linux:
-      C_INCLUDE_PATH: ${{deps.invisible-island.net/ncurses.prefix}}/include/ncursesw
-      # ^^ yep telling `./configure` about it just aint enough
-    darwin:
-      ARGS:
-      - --with-ffi-includes=$(xcrun --show-sdk-path)/usr/include/ffi
-      # workaround `fatal error: 'ffitarget_arm64.h' file not found`
-      C_INCLUDE_PATH: $(xcrun --show-sdk-path)/usr/include/ffi
+    BOOTSTRAP_HASKELL_NO_UPGRADE: 1
+    BOOTSTRAP_HASKELL_MINIMAL: 1
+    GHCUP_INSTALL_BASE_PREFIX: ${{prefix}}
+    GHCUP_SKIP_UPDATE_CHECK: 1
 
 test:
   script: |
