@@ -16,22 +16,20 @@ build:
     tea.xyz/gx/make: '*'
     cmake.org: '*'
     git-scm.org: '*'
-    # libgit2.org: '*'
+    libgit2.org: '*'
+    openssl.org: '*'
+    freedesktop.org/pkg-config: '*'
   script:
     # required or cmake fails with an unhelpful error
     # this is why we need to build from a git checkout
     - git submodule update --init --recursive
-    - ls -la git2go
-    - make
+    - make libgit2 all
+    - mkdir -p "{{ prefix }}"/bin
+    - mv .build/mergestat {{prefix}}/bin/mergestat
   env:
     GOPROXY: https://proxy.golang.org,direct
     GOSUMDB: sum.golang.org
     GO111MODULE: on
-    CGO_ENABLED: 0
-    BUILDLOC: '{{prefix}}/bin/mergestat'
-    LDFLAGS:
-      - -s
-      - -w
     linux:
       # or segmentation fault
       # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
@@ -39,4 +37,7 @@ build:
       - -buildmode=pie
 
 test:
-  mergestat --version | grep {{version}}
+  # dependencies:
+    # git-scm.org: '*'
+  script:
+    - mergestat summarize commits --json --repo "https://github.com/kelseyhightower/nocode"
