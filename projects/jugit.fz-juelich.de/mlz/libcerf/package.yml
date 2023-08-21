@@ -1,0 +1,32 @@
+distributable:
+  url: https://jugit.fz-juelich.de/mlz/libcerf/-/archive/v{{version.marketing}}/libcerf-v{{version.marketing}}.tar.gz
+  strip-components: 1
+display-name: libcerf
+versions:
+  gitlab: jugit.fz-juelich.de:mlz/libcerf
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    cmake.org: '*'
+    perl.org: ^5 # pod2man/pod2html
+  working-directory: build
+  script:
+    - cmake .. $ARGS
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_INSTALL_LIBDIR={{prefix}}/lib
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_FIND_FRAMEWORK=LAST
+      - -DCMAKE_VERBOSE_MAKEFILE=ON
+      - -Wno-dev
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    freedesktop.org/pkg-config: '*'
+  script:
+    - cc test.c -lcerf -o test
+    - ./test
+    - pkg-config --modversion libcerf | grep {{version.marketing}}

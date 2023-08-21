@@ -1,0 +1,20 @@
+distributable:
+  url: https://github.com/tree-sitter/tree-sitter/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/tree-sitter
+
+versions:
+  github: tree-sitter/tree-sitter
+  strip: /v/
+
+build:
+  dependencies:
+    rust-lang.org: ^1.65
+    rust-lang.org/cargo: '*'
+  script: cargo install --root {{prefix}} --path cli
+
+test:
+  - tree-sitter init-config
+  - tree-sitter dump-languages

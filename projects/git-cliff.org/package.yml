@@ -1,0 +1,22 @@
+distributable:
+  url: https://github.com/orhun/git-cliff/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/git-cliff
+
+versions:
+  github: orhun/git-cliff
+  strip: /v/
+
+build:
+  working-directory: git-cliff
+  dependencies:
+    rust-lang.org: '>=1.65'
+    rust-lang.org/cargo: '*'
+  script:
+    cargo install --locked --path . --root {{prefix}}
+
+test:
+  script:
+    - test "$(git-cliff --version)" = "git-cliff {{version}}"
