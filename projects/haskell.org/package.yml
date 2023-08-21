@@ -51,14 +51,14 @@ build:
     curl.se: '*'
     tea.xyz/gx/make: '*'
   script:
-    - curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | sh
-    - PATH={{prefix}}/.ghcup/bin:$PATH
-    - ghcup install ghc {{version}}
-    - ghcup set ghc {{version}}
-    - run: ln -s .ghcup/* .
-      working-directory: ${{prefix}}
+    # - curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | sh
+    # - PATH={{prefix}}/.ghcup/bin:$PATH
+    # - ghcup install ghc {{version}}
+    # - ghcup set ghc {{version}}
+    # - run: ln -s .ghcup/* .
+    #   working-directory: ${{prefix}}
     - run: |
-       sed -i.bak -e "s|$TEA_PREFIX|\$TEA_PREFIX|g" *-{{version}}
+       find . -type f -print0 | xargs -0 sed -i.bak -e "s|$TEA_PREFIX|\$TEA_PREFIX|g"
         rm *.bak
       working-directory: ${{prefix}}/ghc/{{version}}/bin
   env:
