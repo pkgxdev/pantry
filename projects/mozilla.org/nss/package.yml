@@ -18,18 +18,20 @@ build:
       tea.xyz/gx/cc: c99
     linux:
       gnu.org/gcc: '*'
-    gnu.org/make: '*'
+    tea.xyz/gx/make: '*'
+    ninja-build.org: '*'
   script:
     - run: |
-        sed -i.bak 's|-install_name @executable_path|-install_name {{prefix}}/lib|g' coreconf/Darwin.mk
-        rm coreconf/Darwin.mk.bak
-        sed -i.bak 's|@executable_path|{{prefix}}/lib|g' lib/freebl/config.mk
-        rm lib/freebl/config.mk.bak
-        sed -i.bak "s|'-march=arm.*'|'-march=native'|g" lib/freebl/freebl.gyp
-        rm lib/freebl/freebl.gyp.bak
-        make all $ARGS
+        sed -i.bak 's|-install_name @executable_path|-install_name {{prefix}}/lib|g' Darwin.mk
+        rm Darwin.mk.bak
+      working-directory: nss/coreconf
+    - run: |
+        sed -i.bak 's|@executable_path|{{prefix}}/lib|g' config.mk
+        rm config.mk.bak
+      working-directory: nss/lib/freebl
+    - run: make all $ARGS CFLAGS="$CFLAGS"
       working-directory: nss
-    - run: | 
+    - run: |
         mkdir -p bin lib/pkgconfig include/dbm include/nss
         cat <<< "$PC_FILE" > lib/pkgconfig/nss.pc
       working-directory: "{{prefix}}"
@@ -40,16 +42,17 @@ build:
     - install ./dist/public/dbm/* {{prefix}}/include/dbm/
     - install ./dist/public/nss/* {{prefix}}/include/nss/
   env:
-    linux:
-      CC: "{{deps.gnu.org/gcc.prefix}}/bin/gcc"
-    darwin:
-      CC: "{{deps.tea.xyz/gx/cc.prefix}}/bin/clang"
+    CFLAGS:
+      - -Wno-implicit-function-declaration
+      - -I../dist/public/nss
+      - -Ilib/freebl
+      - -Ilib/freebl/mpi
     ARGS:
       - BUILD_OPT=1
       - NSS_ALLOW_SSLKEYLOGFILE=1
       - NSS_DISABLE_GTESTS=1
       - NSS_USE_SYSTEM_SQLITE=1
-      - NSPR_INCLUDE_DIR={{deps.mozilla.org/nspr.prefix}}/include/nspr
+      - NSPR_INCLUDE_DIR={{deps.mozilla.org/nspr.prefix}}/include
       - NSPR_LIB_DIR={{deps.mozilla.org/nspr.prefix}}/lib
       - USE_64=1
     CONFIG_FILE: |
