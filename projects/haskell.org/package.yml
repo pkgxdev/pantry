@@ -64,6 +64,10 @@ build:
        rm *.bak
       working-directory: ${{prefix}}/ghc/{{version}}/bin
     - run: |
+       sed -i.bak -e "s|$TEA_PREFIX|\$TEA_PREFIX|g" env
+       rm env.bak
+      working-directory: ${{prefix}}/.ghcup
+    - run: |
        find . -type f -name \*.conf -print0 | xargs -0 sed -i.bak -e "s|$TEA_PREFIX|\$TEA_PREFIX|g"
        find . -type f -name \*.conf.bak -delete
       working-directory: ${{prefix}}/ghc/{{version}}/lib/ghc-{{version}}/package.conf.d
