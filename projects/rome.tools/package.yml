@@ -15,9 +15,10 @@ build:
     rust-lang.org: '>=1.65'
     rust-lang.org/cargo: '*'
   script:
-    cargo install --locked --path . --root {{prefix}}
+    - sed -i.bak 's/version = "0.0.0"/version = "{{version}}"/' Cargo.toml
+    - rm Cargo.toml.bak
+    - cargo install --locked --path . --root {{prefix}}
 
 test:
   script:
-    - rome help
-    - test "$(rome version)" = "rome {{version}}"
+    - test "$(rome help | head -n1)" = "Rome v{{version}}"
