@@ -7,12 +7,15 @@ versions:
   strip: /^v/
 
 dependencies:
+  tea.xyz: ^0
+
+companions:
   python.org: ^3.7
   pip.pypa.io: '*'
-  tea.xyz: ^0
 
 build:
   dependencies:
+    python.org: ^3.7
     crates.io/semverator: '*'
   script:
     - python-venv.sh {{prefix}}/bin/pipenv
@@ -25,9 +28,18 @@ build:
         while semverator lt $v {{deps.python.org.version.marketing}}; do
           v=$(semverator bump $v minor | cut -d. -f1,2)
           echo '#!/bin/sh' > python$v
-          echo "exec tea python~$v \"$@\"" >> python$v
+          echo "exec tea python~$v \"\$@\"" >> python$v
           chmod +x python$v
         done
+
+    # so the venv for ourselves works without adding a specific python to
+    # our runtime dependencies
+    - working-directory:
+        ${{prefix}}/bin
+      run: |
+        echo '#!/bin/sh' > python
+        echo "exec tea python~{{ deps.python.org.version.marketing }} \"\$@\"" >> python
+        chmod +x python
 
 runtime:
   env:
