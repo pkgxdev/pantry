@@ -8,30 +8,29 @@ versions:
   #  - /^NSS_/
   #  - /_RTM/
   - 3.92
+platforms:
+  - linux
+  - darwin/x86-64
+  # - darwin/aarch64
+  # FIXME error: "Compiler option is invalid"
 dependencies:
   mozilla.org/nspr: '*'
   sqlite.org: '*'
   zlib.net: '*'
 build:
   dependencies:
-    # darwin:
-    tea.xyz/gx/cc: c99
-    # linux:
-      # gnu.org/gcc: '*'
-    tea.xyz/gx/make: '*'
-    ninja-build.org: '*'
+    linux:
+      gnu.org/gcc: '*'
+    gnu.org/make: '*'
   script:
     - run: |
-        sed -i.bak 's|-install_name @executable_path|-install_name {{prefix}}/lib|g' Darwin.mk
-        rm Darwin.mk.bak
-      working-directory: nss/coreconf
-    - run: |
-        sed -i.bak 's|@executable_path|{{prefix}}/lib|g' config.mk
-        rm config.mk.bak
-      working-directory: nss/lib/freebl
-    - run: make all $ARGS CFLAGS="$CFLAGS"
+        sed -i.bak 's|-install_name @executable_path|-install_name {{prefix}}/lib|g' coreconf/Darwin.mk
+        rm coreconf/Darwin.mk.bak
+        sed -i.bak 's|@executable_path|{{prefix}}/lib|g' lib/freebl/config.mk
+        rm lib/freebl/config.mk.bak
+        make all $ARGS
       working-directory: nss
-    - run: |
+    - run: | 
         mkdir -p bin lib/pkgconfig include/dbm include/nss
         cat <<< "$PC_FILE" > lib/pkgconfig/nss.pc
       working-directory: "{{prefix}}"
@@ -42,20 +41,14 @@ build:
     - install ./dist/public/dbm/* {{prefix}}/include/dbm/
     - install ./dist/public/nss/* {{prefix}}/include/nss/
   env:
-    CFLAGS:
-      - -Wno-implicit-function-declaration
-      - -I$SRCROOT/dist/public/nss
-      - -I$SRCROOT/dist/private/nss
-      - -I$SRCROOT/nss/lib/freebl
-      - -I$SRCROOT/nss/lib/freebl/mpi
-      - -I$SRCROOT/nss/lib/util
+    linux:
+      CC: "{{deps.gnu.org/gcc.prefix}}/bin/gcc"
     ARGS:
-      - SHLIB_PREFIX=lib
       - BUILD_OPT=1
       - NSS_ALLOW_SSLKEYLOGFILE=1
       - NSS_DISABLE_GTESTS=1
       - NSS_USE_SYSTEM_SQLITE=1
-      - NSPR_INCLUDE_DIR={{deps.mozilla.org/nspr.prefix}}/include
+      - NSPR_INCLUDE_DIR={{deps.mozilla.org/nspr.prefix}}/include/nspr
       - NSPR_LIB_DIR={{deps.mozilla.org/nspr.prefix}}/lib
       - USE_64=1
     CONFIG_FILE: |
