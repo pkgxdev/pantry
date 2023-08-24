@@ -1,0 +1,24 @@
+distributable:
+  url: https://github.com/clockworklabs/SpacetimeDB/archive/refs/tags/v0.6.1-beta.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/spacetime
+
+versions:
+  - 0.6.1-beta
+  # FIXME once there has been an official release
+  # github: clockworklabs/SpacetimeDB
+  # strip: /v/
+
+build:
+  working-directory: crates/cli
+  dependencies:
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
+  script: |
+    cargo install --locked --path . --root {{prefix}}
+
+test:
+  script:
+    - test "$(spacetime --version)" = "spacetime {{version}}"
