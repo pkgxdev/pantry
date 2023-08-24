@@ -1,0 +1,32 @@
+distributable:
+  url: https://www.csie.ntu.edu.tw/~cjlin/liblinear/oldfiles/liblinear-{{version.marketing}}.tar.gz
+  strip-components: 1
+display-name: liblinear
+versions:
+  url: https://www.csie.ntu.edu.tw/~cjlin/liblinear/oldfiles
+  match: /liblinear-\d+\.\d+\.tar\.gz/
+  strip:
+    - /^liblinear-/
+    - /\.tar\.gz/
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    gnu.org/make: '*'
+    curl.se: '*'
+    gnu.org/patch: '*'
+  script:
+    - curl $PATCH | patch -p0 || true
+    - make --jobs {{ hw.concurrency }} all
+    - run: mkdir -p bin lib include
+      working-directory: "{{prefix}}"
+    - install predict train {{prefix}}/bin/
+    - install linear.h newton.h {{prefix}}/include/
+    - install liblinear* {{prefix}}/lib/
+  env:
+    PATCH: https://raw.githubusercontent.com/Homebrew/formula-patches/bac35ae9140405dec00f1f700d2ecc27cf82526b/liblinear/patch-Makefile.diff
+provides:
+  - bin/predict
+  - bin/train
+test:
+  script:
+    - train train_classification.txt | grep "nSV = 5"

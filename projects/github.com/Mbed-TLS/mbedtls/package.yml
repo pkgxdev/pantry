@@ -12,37 +12,48 @@ build:
   dependencies:
     cmake.org: '*'
     tea.xyz/gx/cc: c99
+    linux/aarch64:
+      llvm.org: <16 # otherwise we get an error from the arm_neon.h include
     tea.xyz/gx/make: '*'
     python.org: ^3.11
-  script: |
+  script:
     # MBEDTLS_THREADING_PTHREAD - enable pthread mutexes
     # MBEDTLS_THREADING_C - allow use of mutexes within mbed TLS
     # MBEDTLS_SSL_DTLS_SRTP - enable DTLS-SRTP extension
-    sed -i.bak \
-      -e "s://#define MBEDTLS_THREADING_PTHREAD:#define MBEDTLS_THREADING_PTHREAD:" \
-      -e "s://#define MBEDTLS_THREADING_C:#define MBEDTLS_THREADING_C:" \
-      -e "s://#define MBEDTLS_SSL_DTLS_SRTP:#define MBEDTLS_SSL_DTLS_SRTP:" \
-      include/mbedtls/mbedtls_config.h
-    rm include/mbedtls/mbedtls_config.h.bak
+    - run: CFG=include/mbedtls/mbedtls_config.h
+      if: '>=3'
+    - run: CFG=include/mbedtls/config.h
+      if: '<3'
 
-    cmake -S . -B build $ARGS
-    cmake --build build
+    - |
+      sed -i.bak \
+        -e "s://#define MBEDTLS_THREADING_PTHREAD:#define MBEDTLS_THREADING_PTHREAD:" \
+        -e "s://#define MBEDTLS_THREADING_C:#define MBEDTLS_THREADING_C:" \
+        -e "s://#define MBEDTLS_SSL_DTLS_SRTP:#define MBEDTLS_SSL_DTLS_SRTP:" \
+        $CFG
+      rm $CFG.bak
+
+    - cmake -S . -B build $ARGS
+    - cmake --build build
 
     # We run CTest because this is a crypto library. Running tests in parallel causes failures.
     # https://github.com/Mbed-TLS/mbedtls/issues/4980
-    ctest --parallel 1 --test-dir build --rerun-failed --output-on-failure
-    cmake --install build
+    - ctest --parallel 1 --test-dir build --rerun-failed --output-on-failure
+    - cmake --install build
 
     # Why does Mbedtls ship with a "Hello World" executable. Let's remove that.
-    rm -f {{prefix}}/bin/hello
+    - run: rm -f hello
+      working-directory: ${{prefix}}/bin/
 
     # Rename benchmark & selftest, which are awfully generic names.
-    mv {{prefix}}/bin/benchmark {{prefix}}/bin/mbedtls-benchmark
-    mv {{prefix}}/bin/selftest {{prefix}}/bin/mbedtls-selftest
+    - run: |
+        mv benchmark mbedtls-benchmark
+        mv selftest mbedtls-selftest
+      working-directory: ${{prefix}}/bin
 
     # Demonstration files shouldn't be in the main bin
-    mkdir -p {{prefix}}/libexec
-    mv {{prefix}}/bin/mpi_demo {{prefix}}/libexec/mpi_demo
+    - run: mv ../bin/mpi_demo mpi_demo
+      working-directory: ${{prefix}}/libexec
   env:
     ARGS:
       - -DCMAKE_BUILD_TYPE=Release
@@ -55,9 +66,8 @@ build:
 test:
   dependencies:
     tea.xyz/gx/cc: c99
-  script: |
-    printf '%s' 'This is a test file' > testfile.txt
-    # Don't remove the space between the checksum and filename. It will break.
-    expected_checksum="e2d0fe1585a63ec6009c8016ff8dda8b17719a637405a4e23c0ff81339148249  testfile.txt"
-    actual_checksum="$({{prefix}}/bin/generic_sum SHA256 testfile.txt)"
-    test "$actual_checksum" = "$expected_checksum"
+  script:
+    - printf '%s' 'This is a test file' > testfile.txt
+    - test "$(generic_sum SHA256 testfile.txt)" = "$SUM"
+  env:
+    SUM: e2d0fe1585a63ec6009c8016ff8dda8b17719a637405a4e23c0ff81339148249  testfile.txt
