@@ -1,0 +1,19 @@
+distributable:
+  url: https://github.com/jmorganca/ollama/archive/v{{version}}.tar.gz
+  strip-components: 1
+versions:
+  github: jmorganca/ollama
+build:
+  dependencies:
+    go.dev: '*'
+  script:
+    - go build .
+    - mkdir -p {{prefix}}/bin
+    - install ollama {{prefix}}/bin/
+provides:
+  - bin/ollama
+test:
+  script:
+    - ollama serve &
+    - ollama create mario -f ./Modelfile
+    - ollama list | grep 'mario'
