@@ -1,0 +1,22 @@
+distributable:
+  url: https://github.com/sbdchd/squawk/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/squawk
+
+versions:
+  github: sbdchd/squawk
+  strip: /v/
+
+build:
+  working-directory: cli
+  dependencies:
+    rust-lang.org: '>=1.65'
+    rust-lang.org/cargo: '*'
+  script:
+    cargo install --locked --path . --root {{prefix}}
+
+test:
+  script:
+    - test "$(squawk --version)" = "squawk {{version}}"
