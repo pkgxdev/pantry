@@ -1,0 +1,21 @@
+distributable:
+  url: https://github.com/Doctave/doctave/archive/refs/tags/{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/doctave
+
+versions:
+  github: Doctave/doctave
+  strip: /v/
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.65'
+    rust-lang.org/cargo: '*'
+  script:
+    - cargo install --locked --path . --root {{prefix}}
+
+test:
+  script:
+    - test "$(doctave --version)" = "Doctave {{version}}"
