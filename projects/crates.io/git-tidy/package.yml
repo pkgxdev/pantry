@@ -1,0 +1,28 @@
+distributable:
+  url: https://github.com/drewwyatt/git-tidy/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/git-tidy
+
+versions:
+  github: drewwyatt/git-tidy
+  strip: /v/
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
+  script: |
+    cargo install --locked --path . --root {{prefix}}
+
+test:
+  dependencies:
+    git-scm.org: '*'
+  script:
+    - git clone https://github.com/kelseyhightower/nocode
+    - cd nocode
+    - git tidy
+    - test "$(git tidy --version)" = "git-tidy {{version}}"
+    - cd ..
+    - rm -rf nocode

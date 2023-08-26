@@ -1,0 +1,38 @@
+distributable:
+  url: https://github.com/oligot/go-mod-upgrade/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: oligot/go-mod-upgrade
+
+provides:
+  - bin/go-mod-upgrade
+
+build:
+  dependencies:
+    go.dev: ^1.15
+  script: |
+    go mod download
+    mkdir -p "{{ prefix }}"/bin
+    go build -v -trimpath -ldflags="$LDFLAGS" -o $BUILDLOC .
+  env:
+    GOPROXY: https://proxy.golang.org,direct
+    GOSUMDB: sum.golang.org
+    GO111MODULE: on
+    CGO_ENABLED: 0
+    BUILDLOC: '{{prefix}}/bin/go-mod-upgrade'
+    LDFLAGS:
+      - -s
+      - -w
+      - -X main.version={{version}}
+    linux:
+      # or segmentation fault
+      # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
+      LDFLAGS:
+      - -buildmode=pie
+
+test:
+  script:
+    - test "$(go-mod-upgrade --version)" = "$OUTPUT"
+  env:
+    OUTPUT: "go-mod-upgrade version {{version}}\nmodule version: (devel)"

@@ -1,0 +1,70 @@
+distributable:
+  url: https://github.com/Unidata/netcdf-c/archive/v{{version}}.tar.gz
+  strip-components: 1
+versions:
+  github: Unidata/netcdf-c
+dependencies:
+  hdfgroup.org/HDF5: '*'
+  sourceware.org/bzip2: '*'
+  curl.se: '*'
+  gnome.org/libxml2: '*'
+  zlib.net: '*'
+build:
+  dependencies:
+    gnu.org/make: '*'
+    cmake.org: '*'
+    gnu.org/m4: '*'
+    linux:
+      gnu.org/gcc: '*'
+    darwin:
+      tea.xyz/gx/cc: c99
+  script:
+    - run: |
+        cmake -S . -B build_shared $ARGS -DBUILD_SHARED_LIBS=ON
+        cmake --build build_shared
+        cmake --install build_shared
+    - run: |
+        cmake -S . -B build_static $ARGS -DBUILD_SHARED_LIBS=OFF
+        cmake --build build_static
+        cmake --install build_static
+    - install build_static/liblib/libnetcdf.a {{prefix}}/lib/
+    - run: |
+        sed -i.bak \
+            -e "s|$TEA_PREFIX|\${TEA_PREFIX}|g" \
+            bin/nc-config \
+            lib/cmake/netCDF/netCDFConfig.cmake \
+            lib/libnetcdf.settings
+        rm bin/nc-config.bak lib/cmake/netCDF/netCDFConfig.cmake.bak lib/libnetcdf.settings.bak
+      working-directory: ${{prefix}}
+    - run: |
+        sed -i.bak "s|$TEA_PREFIX|\${pcfiledir}/../../..|g" netcdf.pc
+        rm netcdf.pc.bak
+      working-directory: ${{prefix}}/lib/pkgconfig
+  env:
+    ARGS:
+      - -DENABLE_TESTS=OFF
+      - -DENABLE_NETCDF_4=ON
+      - -DENABLE_DOXYGEN=OFF
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_INSTALL_LIBDIR=lib
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_FIND_FRAMEWORK=LAST
+      - -DCMAKE_VERBOSE_MAKEFILE=ON
+      - -Wno-dev
+      - -DBUILD_TESTING=OFF
+    linux:
+      ARGS:
+        - -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+provides:
+  - bin/nc-config
+  - bin/nccopy
+  - bin/ncdump
+  - bin/ncgen
+  - bin/ncgen3
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script:
+    - cc test.c -lnetcdf -o test
+    - ./test | grep {{version}}
+    - nc-config --version | grep {{version}}

@@ -1,0 +1,36 @@
+distributable:
+  url: https://github.com/plantuml/plantuml/archive/v{{version}}.tar.gz
+  strip-components: 1
+versions:
+  github: plantuml/plantuml
+dependencies:
+  graphviz.org: '*'
+  openjdk.org: '*'
+runtime:
+  env:
+    PLANTUML_JAR: "{{prefix}}/libexec/plantuml-{{version}}.jar"
+    JAVA_BIN: "{{deps.openjdk.org.prefix}}/bin/java"
+    DOT_BIN: "{{deps.graphviz.org.prefix}}/bin/dot"
+build:
+  dependencies:
+    gnu.org/wget: '*'
+  script:
+    - wget https://github.com/plantuml/plantuml/releases/download/v{{version}}/plantuml-{{version}}.jar
+    - mkdir -p {{prefix}}/libexec
+    - install plantuml-{{version}}.jar {{prefix}}/libexec/
+    - run: |
+        cat <<EOS > plantuml
+        #!/bin/bash
+        if [[ "\$*" != *"-gui"* ]]; then
+          VMARGS="-Djava.awt.headless=true"
+        fi
+        GRAPHVIZ_DOT="\$DOT_BIN" exec "\$JAVA_BIN" \$VMARGS -jar "\$PLANTUML_JAR" "\$@"
+        EOS
+    - mkdir -p {{prefix}}/bin
+    - install plantuml {{prefix}}/bin/plantuml
+provides:
+  - bin/plantuml
+test:
+  script:
+    - plantuml -testdot
+    - plantuml -version | grep {{version}}

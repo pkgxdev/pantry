@@ -1,0 +1,34 @@
+distributable:
+  url: https://github.com/cask/cask/archive/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: cask/cask/tags
+
+dependencies:
+  gnu.org/coreutils: '*'
+  gnu.org/emacs: '*'
+
+build:
+  script:
+    - mkdir -p {{prefix}}
+    - cp -a bin {{prefix}}
+    # Lisp files must stay here: https://github.com/cask/cask/issues/305
+    - install *.el {{prefix}}/
+    - cp -a package-build {{prefix}}
+    - run: |
+        ln ../cask.el .
+        ln ../cask-bootstrap.el .
+      working-directory: ${{prefix}}/elisp
+    - touch {{prefix}}/.no-upgrade
+
+provides:
+  - bin/cask
+
+test:
+  # Downloading lisp packages fails on GHA runners for some reason
+  - run: exit 0
+    if: linux+x86-64
+
+  # Some of the lisp packages 404 and hang the test.
+  - timeout 60s cask --version | grep {{version}}

@@ -9,12 +9,15 @@ inputs:
     description: platform key
     required: true
   token:
+    description: github token
     required: true
     default: ${{ github.token }}
-  slack-webhook:
-    required: false
-  slack-channel:
-    required: false
+  # slack-webhook:
+  #   description: slack webhook
+  #   required: false
+  # slack-channel:
+  #   description: slack channel
+  #   required: false
 
 runs:
   using: composite
@@ -54,13 +57,13 @@ runs:
 
           logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
-    - uses: martialonline/workflow-status@v3
-      id: status
+    # - uses: martialonline/workflow-status@v3
+    #   id: status
 
-    - uses: rtCamp/action-slack-notify@v2
-      if: ${{ inputs.slack-webhook != '' }}
-      env:
-        SLACK_WEBHOOK: ${{ inputs.slack-webhook }}
-        SLACK_CHANNEL: ${{ inputs.slack-channel }}
-        SLACK_MESSAGE: new-version:${{ inputs.projects }} (${{ inputs.platform }}) ${{ steps.status.outputs.status }}
-        SLACK_COLOR: ${{ steps.status.outputs.status }}
+    # - uses: rtCamp/action-slack-notify@v2
+    #   if: ${{ inputs.slack-webhook != '' }}
+    #   env:
+    #     SLACK_WEBHOOK: ${{ inputs.slack-webhook }}
+    #     SLACK_CHANNEL: ${{ inputs.slack-channel }}
+    #     SLACK_MESSAGE: new-version:${{ inputs.projects }} (${{ inputs.platform }}) ${{ steps.status.outputs.status }}
+    #     SLACK_COLOR: ${{ steps.status.outputs.status }}

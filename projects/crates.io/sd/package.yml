@@ -1,0 +1,21 @@
+distributable:
+  url: https://github.com/chmln/sd/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/sd
+
+versions:
+  github: chmln/sd
+  strip: /v/
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.65'
+    rust-lang.org/cargo: '*'
+  script:
+    cargo install --locked --path . --root {{prefix}}
+
+test:
+  script:
+    - test "$(sd --version)" = "sd {{version}}"

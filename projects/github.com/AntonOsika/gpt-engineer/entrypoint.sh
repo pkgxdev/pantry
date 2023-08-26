@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env -S tea bash
 
 #---
 # dependencies:
@@ -6,6 +6,11 @@
 #---
 
 set -eo pipefail
+
+# attempt to get the key from the user’s shell rc files (if set)
+if [ -z "$OPENAI_API_KEY" -a -n "$SHELL" ]; then
+  export OPENAI_API_KEY="$(env -i "$SHELL" -ic 'echo $OPENAI_API_KEY')"
+fi
 
 if [ -z "$OPENAI_API_KEY"]; then
   gum format <<EoMD
@@ -22,7 +27,7 @@ EoMD
 
   echo  # spacer
 
-  OPENAI_API_KEY="$(gum input --placeholder 'key pls')"
+  export OPENAI_API_KEY="$(gum input --placeholder 'key pls')"
 fi
 
 gum format <<EoMD

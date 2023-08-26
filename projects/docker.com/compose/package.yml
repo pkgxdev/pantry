@@ -1,0 +1,23 @@
+distributable:
+  url: https://github.com/docker/compose/archive/v{{version}}.tar.gz
+  strip-components: 1
+versions:
+  github: docker/compose
+build:
+  dependencies:
+    go.dev: '*'
+  script:
+    - go build $ARGS -ldflags="$LDFLAGS" ./cmd
+  env:
+    ARGS:
+      - -trimpath
+      - -o={{prefix}}/bin/docker-compose
+    LDFLAGS:
+      - -s
+      - -w
+      - -X github.com/docker/compose/v2/internal.Version={{version}}
+provides:
+  - bin/docker-compose
+test:
+  script:
+    - docker-compose --version | grep {{version}}
