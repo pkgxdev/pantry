@@ -58,7 +58,13 @@ runtime:
     # ^^ we delegate to the system first since they may apply platform specific info
 
 test:
-  script: true  #FIXME
+  dependencies:
+    freedesktop.org/pkg-config: ^0.29
+  script: |
+    ncursesw6-config --version | grep {{version.marketing}}
+    ncursesw6-config --terminfo-dirs | grep '{{prefix}}'
+    pkg-config --modversion ncursesw | grep {{version.marketing}}
+    pkg-config --libs ncursesw | grep '{{prefix}}'
 
 provides:
   - bin/captoinfo
