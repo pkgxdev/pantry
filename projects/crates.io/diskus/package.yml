@@ -1,0 +1,21 @@
+distributable:
+  url: https://github.com/sharkdp/diskus/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/diskus
+
+versions:
+  github: sharkdp/diskus
+  strip: /v/
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.65'
+    rust-lang.org/cargo: '*'
+  script:
+    - cargo install --locked --path . --root {{prefix}}
+
+test:
+  script:
+    - test "$(diskus --version)" = "diskus {{version}}"
