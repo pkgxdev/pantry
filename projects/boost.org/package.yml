@@ -13,13 +13,25 @@ build:
   dependencies:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
-  script: |
-    ./bootstrap.sh --prefix={{ prefix }}
-    ./b2 $ARGS
+  script:
+    - ./bootstrap.sh --prefix={{ prefix }}
+    - ./b2 $ARGS
+
+    # boost.org has libs that end up with name @rpath/libboost_atomic.dylib (offset 24)
+    # so we need to add @loader_path to the rpath
+    - run: |
+        for LIB in *.dylib; do
+          install_name_tool -add_rpath @loader_path $LIB
+        done
+      working-directory: ${{prefix}}/lib
+      if: darwin
   env:
     ARGS:
       - install
       - --prefix={{ prefix }}
+    darwin:
+      ARGS:
+        - linkflags=-Wl,-headerpad_max_install_names
     linux:
       ARGS:
         - cxxflags=-fPIC

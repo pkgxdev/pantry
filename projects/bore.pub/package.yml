@@ -1,0 +1,23 @@
+distributable:
+  url: https://github.com/ekzhang/bore/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/bore
+
+versions:
+  github: ekzhang/bore
+  strip: /v/
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.65'
+    rust-lang.org/cargo: '*'
+  script:
+    # The --locked flag was causing trouble:
+    # It complained about proc-macro2 (proc_macro_span_shrink)
+    - cargo install --path . --root {{prefix}}
+
+test:
+  script:
+    - test "$(bore --version)" = "bore-cli {{version}}"
