@@ -1,0 +1,24 @@
+distributable:
+  url: https://github.com/reacherhq/check-if-email-exists/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/check_if_email_exists
+
+versions:
+  github: reacherhq/check-if-email-exists
+  strip: /v/
+
+build:
+  working-directory: cli
+  dependencies:
+    rust-lang.org: '>=1.65'
+    rust-lang.org/cargo: '*'
+  script:
+    cargo install --path . --root {{prefix}}
+
+test:
+  script:
+    - which check_if_email_exists
+    # The CLI version is misalign with the repo releases/tags
+    # - test "$(check_if_email_exists --version)" = "check-if-email-exists-cli 0.8.32"
