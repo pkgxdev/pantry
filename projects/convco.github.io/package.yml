@@ -1,0 +1,22 @@
+distributable:
+  url: https://github.com/convco/convco/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/convco
+
+versions:
+  github: convco/convco
+  strip: /v/
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
+    cmake.org: ^3
+  script: |
+    cargo install --locked --path . --root {{prefix}}
+
+test:
+  script:
+    - test "$(convco --version)" = "convco {{version}}"
