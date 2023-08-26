@@ -35,7 +35,7 @@ build:
     sed -i.bak 's|{{prefix}}|\${pcfiledir}/../..|g' {{prefix}}/lib/pkgconfig/*.pc
     rm {{prefix}}/lib/pkgconfig/*.bak
 
-    sed -i.bak 's|{{prefix}}|\${NCURSES_ROOT}|g' {{prefix}}/bin/ncursesw{{version.major}}-config
+    sed -i.bak 's|{{prefix}}|\$(dirname "\$0")/..|g' {{prefix}}/bin/ncursesw{{version.major}}-config
     rm {{prefix}}/bin/ncursesw{{version.major}}-config.bak
 
   env:
@@ -53,7 +53,6 @@ build:
 
 runtime:
   env:
-    NCURSES_ROOT: "{{prefix}}"
     TERMINFO: /usr/share/terminfo:{{prefix}}/share/terminfo
     # ^^ we delegate to the system first since they may apply platform specific info
 
