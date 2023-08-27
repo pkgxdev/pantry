@@ -36,6 +36,12 @@ build:
 
 test:
   script:
-    - docker lock help
-    - docker lock version
-    - test "$(docker lock version)" = "docker-lock {{version}}"
+    - docker-lock help
+    - test "$(docker-lock lock version)" = "{{version}}"
+    - cat $FIXTURE >Dockerfile
+    - docker-lock lock generate
+    - grep \"tag\":\ \"3.6\", docker-lock.json
+  fixture: |
+    FROM ubuntu AS base
+    FROM mperel/log:v1
+    FROM python:3.6
