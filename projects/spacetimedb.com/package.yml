@@ -24,6 +24,11 @@ build:
     perl.org: "*"
     tea.xyz/gx/cc: c99
     freedesktop.org/pkg-config: ^0.29
+  env:
+    linux:
+      # See: https://docs.rs/openssl/latest/openssl/#manual
+      OPENSSL_NO_VENDOR: true # Always find OpenSSL in the system, even if the vendored feature is enabled.
+      OPENSSL_DIR: "{{ deps.openssl.org.prefix }}" # Use tea's openssl installation directory
   script: |
     cargo install --locked --path . --root {{prefix}}
 
