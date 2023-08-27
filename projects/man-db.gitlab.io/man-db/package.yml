@@ -12,19 +12,20 @@ dependencies:
 build:
   dependencies:
     tea.xyz/gx/cc: c99
-    gnu.org/make: '*'
+    tea.xyz/gx/make: '*'
     freedesktop.org/pkg-config: '*'
   script:
     - ./configure $CONFIGURE_ARGS
+    - run: |
+        sed -i.bak "s|config_file = {{prefix}}|config_file = \${prefix}|g" Makefile
+        rm Makefile.bak
     - make --jobs {{hw.concurrency}} install
   env:
     CONFIGURE_ARGS:
       - --prefix="{{prefix}}"
       - --disable-cache-owner
       - --disable-setuid
-    linux:
-      CONFIGURE_ARGS:
-        - --with-config-file="{{prefix}}/etc/man_db.conf"
+      - --with-config-file="{{prefix}}/etc/man_db.conf"
 provides:
   - bin/apropos
   - bin/catman
