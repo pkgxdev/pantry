@@ -1,0 +1,49 @@
+distributable:
+  url: https://github.com/caddyserver/caddy/archive/v{{version}}.tar.gz
+  strip-components: 1
+versions:
+  github: caddyserver/caddy
+build:
+  dependencies:
+    go.dev: '*'
+    curl.se: '*'
+  script:
+    - run: |
+        curl -L "$XCADDY" | tar zxf - --strip-components 1
+        go run cmd/xcaddy/main.go build v{{version}} --output {{prefix}}/bin/caddy
+      working-directory: xcaddy
+  env:
+    XCADDY: https://github.com/caddyserver/xcaddy/archive/refs/tags/v0.3.5.tar.gz
+provides:
+  - bin/caddy
+test:
+  script:
+    - caddy version | grep {{version}}
+    - run: |
+        port=8080
+
+        while lsof -i:$port >/dev/null 2>&1; do
+          ((port++))
+        done
+
+        port1=$port
+        port2=$((port + 1))
+
+        # Create the Caddyfile
+        cat > Caddyfile <<EOF
+        {
+          admin 127.0.0.1:$port1
+        }
+
+        http://127.0.0.1:$port2 {
+          respond "Hello, Caddy!"
+        }
+        EOF
+    # Run Caddy server in the background with its input redirected from an empty stream
+    - run: |
+        caddy run --config Caddyfile > /dev/null 2>&1 <<EOF &
+        EOF
+    # Add a 5-second pause to allow time for the server to start up.
+    - sleep 5
+    - curl -s http://127.0.0.1:$port1/config/apps/http/servers/srv0/listen/0 | grep $port2
+    - curl -s http://127.0.0.1:$port2 | grep "Hello, Caddy!"
