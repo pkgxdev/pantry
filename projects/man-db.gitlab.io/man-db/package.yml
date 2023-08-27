@@ -15,27 +15,13 @@ build:
     gnu.org/make: '*'
     freedesktop.org/pkg-config: '*'
   script:
-    - mkdir -p $TEA_PREFIX/.man-db
     - ./configure $CONFIGURE_ARGS
     - make --jobs {{hw.concurrency}} install
-    - sed -i.bak "s|/var|{{prefix}}/var|g" $TEA_PREFIX/.man-db/man_db.conf
-    - rm $TEA_PREFIX/.man-db/man_db.conf.bak
-    - sed -i.bak "s|$TEA_PREFIX|\$TEA_PREFIX|g" {{prefix}}/etc/systemd/system/man-db.service
-    - rm {{prefix}}/etc/systemd/system/man-db.service.bak
   env:
     CONFIGURE_ARGS:
-      - --disable-debug
-      - --disable-dependency-tracking
       - --prefix="{{prefix}}"
-      - --libdir="{{prefix}}/lib"
-      - --disable-silent-rules
       - --disable-cache-owner
       - --disable-setuid
-      - --disable-nls
-      - --localstatedir="{{prefix}}/var"
-      - --with-config-file="$TEA_PREFIX/.man-db/man_db.conf"
-      - --with-systemdsystemunitdir="{{prefix}}/etc/systemd/system"
-      - --with-systemdtmpfilesdir="{{prefix}}/lib/tmpfiles.d"
 provides:
   - bin/apropos
   - bin/catman
@@ -46,5 +32,11 @@ provides:
   - bin/man-recode
   - bin/whatis
 test:
+  env:
+    PAGER: cat
   script:
-    - man --version | grep {{version}}
+    # This check is specific to Linux because on darwin (macOS), the 'man' command does not display version information.
+    - run: man --version | grep {{version}}
+      if: linux
+    - which man | grep {{prefix}}
+    - man man
