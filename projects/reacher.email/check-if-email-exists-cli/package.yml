@@ -20,10 +20,18 @@ build:
     perl.org: '*'
     tea.xyz/gx/make: '*'
   script:
-    cargo install --path . --root {{prefix}}
+    # 0.9.0 forgot to bump the version
+    - run: |
+        sed -i.bak -e 's/0\.8\.32/{{version}}/' Cargo.toml
+        rm Cargo.toml.bak
+      if: =0.9.0
+    - run: |
+        sed -i.bak -e 's/0\.8\.32/{{version}}/' Cargo.toml
+        rm Cargo.toml.bak
+      working-directory: ../core
+      if: =0.9.0
+    - cargo install --path . --root {{prefix}}
 
 test:
   script:
-    - which check_if_email_exists
-    # The CLI version is misaligned with the repo releases/tags
-    # - test "$(check_if_email_exists --version)" = "check-if-email-exists-cli 0.8.32"
+    - test "$(check_if_email_exists --version)" = "check-if-email-exists-cli {{version}}"
