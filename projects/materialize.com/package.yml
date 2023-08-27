@@ -28,7 +28,8 @@ build:
     cargo install --locked --path . --root {{prefix}}
   env:
     linux:
-      CC: {{deps.gnu.org/gcc.prefix}}/bin/gcc
+      # Ensure linux picks up CC to compile with (rust deps tea.xyz/gx/cc)
+      CC: "{{ deps.gnu.org/gcc.prefix }}/bin/gcc"
       # See: https://docs.rs/openssl/latest/openssl/#manual
       OPENSSL_NO_VENDOR: true # Always find OpenSSL in the system, even if the vendored feature is enabled.
       OPENSSL_DIR: "{{ deps.openssl.org.prefix }}" # Use tea's openssl installation directory
