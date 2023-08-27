@@ -15,21 +15,16 @@ dependencies:
 build:
   working-directory: src/mz
   dependencies:
-    darwin:
-      tea.xyz/gx/cc: c99
-    linux:
-      gnu.org/gcc: '*'
+    tea.xyz/gx/cc: c99
     rust-lang.org: '>=1.56'
     rust-lang.org/cargo: '*'
     cmake.org: ^3
     perl.org: "*"
-    tea.xyz/gx/make: '*'
   script: |
     cargo install --locked --path . --root {{prefix}}
   env:
     linux:
-      # Ensure linux picks up CC to compile with (rust deps tea.xyz/gx/cc)
-      CC: "{{ deps.gnu.org/gcc.prefix }}/bin/gcc"
+      CC: clang
       # See: https://docs.rs/openssl/latest/openssl/#manual
       OPENSSL_NO_VENDOR: true # Always find OpenSSL in the system, even if the vendored feature is enabled.
       OPENSSL_DIR: "{{ deps.openssl.org.prefix }}" # Use tea's openssl installation directory
