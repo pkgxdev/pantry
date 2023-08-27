@@ -32,9 +32,8 @@ build:
       - -buildmode=pie
 
 test:
-  linux:
-    script:
-      - which steampipe
-  darwin:
-    script:
-      - test "$(steampipe --version)" = "Steampipe v{{version}}"
+  script: |
+    if test "{{hw.platform}}" != "linux"; then
+      # linux uses the root user. steampipe cannot be run as the root user.
+      test "$(steampipe --version)" = "Steampipe v{{version}}"
+    fi
