@@ -32,10 +32,12 @@ build:
       - --with-libexpat={{ deps.libexpat.github.io.prefix }}
 
 test:
-  script: |
-    OUT="$(unbound-host -C ./unbound.conf tea.xyz)"
-    grep "$TEST1" <<< "$OUT"
-    grep "$TEST2" <<< "$OUT"
+  script:
+    - run: SUDO=sudo
+      if: darwin
+    - OUT="$($SUDO unbound-host tea.xyz)"
+    - grep "$TEST1" <<< "$OUT"
+    - grep "$TEST2" <<< "$OUT"
   env:
     TEST1: "tea.xyz has address"
     TEST2: "tea.xyz mail is handled by"
