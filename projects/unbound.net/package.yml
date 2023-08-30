@@ -33,12 +33,12 @@ build:
 
 test:
   script:
-    - unbound-checkconf ./unbound.conf
+    - unbound-control-setup -d .
     # The following tests complain on our build servers due to
     # darwin-specific configuration requirement
     - run: exit 0
       if: darwin
-    - OUT="$(unbound-host -C ./unbound.conf tea.xyz)"
+    - OUT="$(unbound-host tea.xyz)"
     - grep "$TEST1" <<< "$OUT"
     - grep "$TEST2" <<< "$OUT"
   env:
