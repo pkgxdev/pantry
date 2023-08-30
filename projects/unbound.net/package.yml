@@ -14,6 +14,9 @@ build:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
     libexpat.github.io: '*'
+    github.com/westes/flex: '*'
+    gnu.org/bison: ^3
+    
   script: |
     ./configure $ARGS
     make -j {{ hw.concurrency }} install
@@ -30,7 +33,7 @@ build:
 
 test:
   script: |
-    OUT="$(unbound-host tea.xyz)"
+    OUT="$(unbound-host -4 tea.xyz)"
     grep "$TEST1" <<< "$OUT"
     grep "$TEST2" <<< "$OUT"
   env:
