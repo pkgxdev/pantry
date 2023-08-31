@@ -68,6 +68,7 @@ build:
     # removes the prepare_environment() step since we have already done that
     - run: |
         sed -i.bak \
+          -e '/with launch_utils\.startup_timer\.subcategory("prepare environment"):/{N;N;N;d;}' \
           -e '/if not args\.skip_prepare_environment:/{N;N;d;}' \
           -e '/prepare_environment()/d' \
           launch.py
@@ -84,6 +85,9 @@ build:
     # delete all the .git stuff to save >1GB
     # NOTE that this would cause the prepare_environment() step to fail
     - find . -name .git\* | xargs rm -rf
+  env:
+    darwin:
+      LDFLAGS: -headerpad_max_install_names
 
 provides:
   - bin/stable-diffusion-webui
