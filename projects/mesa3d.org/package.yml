@@ -1,14 +1,12 @@
 distributable:
-  url: https://mesa.freedesktop.org/archive/mesa-{{version}}.tar.gz
+  url: https://mesa.freedesktop.org/archive/mesa-{{version}}.tar.xz
   strip-components: 1
-
 versions:
-  url: https://archive.mesa3d.org/
-  match: /mesa-\d+\.\d+\.\d+\.tar\.gz/
+  url: https://mesa.freedesktop.org/archive
+  match: /mesa-\d+\.\d+\.\d+\.tar\.xz/
   strip:
     - /^mesa-/
-    - /\.tar\.gz$/
-
+    - /\.tar\.xz/
 dependencies:
   libexpat.github.io: '*'
   x.org/x11: '*'
@@ -17,29 +15,27 @@ dependencies:
   x.org/exts: '*'
   invisible-island.net/ncurses: '*'
   zlib.net: '*'
-  gnu.org/gettext: '*'
+  darwin:
+    gnu.org/gettext: '*'
   linux:
     elfutils.org: '*'
-    #khronos.org/opengles/sdk/tools/Reference-Compiler: '*'
-    libzip.org: '*'
+    khronos.org/glslang: '*'
+    info-zip.org/zip: '*'
     dri.freedesktop.org: '*'
-    #github.com/intel/libva: '*'
-    #freedesktop.org/wiki/Software/VDPAU: '*'
+    intel.com/libva: '*'
+    freedesktop.org/vdpau: '*'
     x.org/xfixes: '*'
     x.org/xrandr: '*'
     x.org/xshmfence: '*'
     x.org/xv: '*'
     x.org/xxf86vm: '*'
     llvm.org: '*'
-    openmp.llvm.org: '*'
-    #github.com/lm-sensors/lm-sensors: '*'
+    github.com/lm-sensors/lm-sensors: '*'
     wayland.freedesktop.org: '*'
     wayland.freedesktop.org/protocols: '*'
-
 build:
   dependencies:
-    cmake.org: '*'
-    gnu.org/gcc: '*'
+    tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
     gnu.org/bison: '*'
     mesonbuild.com: '*'
@@ -49,51 +45,36 @@ build:
     python.org: ^3.11
     x.org/protocol: '*'
     github.com/westes/flex: '*'
-    pip.pypa.io: '*'
-  
+    linux:
+      curl.se: '*'
   script:
-    - python3 -m venv {{prefix}}/venv
-    - source {{prefix}}/venv/bin/activate
-    - pip install mako
-    - deactivate
-    - export PYTHONPATH={{prefix}}/venv/lib/python3.11/site-packages:$PYTHONPATH
-    - meson setup build $ARGS
+    - run: |
+        curl -L "$Mako" | tar zxf -
+        curl -L "$MarkupSafe" | tar zxf -
+    - run: |
+        python -m venv venv
+        source venv/bin/activate
+        python setup.py install
+        deactivate
+        export PYTHONPATH=$PWD/venv/lib/python3.11/site-packages/Mako-1.2.4-py3.11.egg:$PYTHONPATH
+        export PATH=$PWD/venv/bin/mako-render:$PATH
+      working-directory: Mako-1.2.4
+    - run: |
+        python -m venv venv
+        source venv/bin/activate
+        python setup.py install
+        deactivate
+        export PYTHONPATH=$PWD/venv/lib/python3.11/site-packages:$PYTHONPATH
+      working-directory: MarkupSafe-2.1.2
+    - meson setup build $MESON_ARGS
     - meson compile -C build --verbose
     - meson install -C build
-
   env:
-    #PATH: "$PWD/venv/bin:$PATH"
-    ARGS:
+    Mako: https://files.pythonhosted.org/packages/05/5f/2ba6e026d33a0e6ddc1dddf9958677f76f5f80c236bd65309d280b166d3e/Mako-1.2.4.tar.gz
+    MarkupSafe: https://files.pythonhosted.org/packages/95/7e/68018b70268fb4a2a605e2be44ab7b4dd7ce7808adae6c5ef32e34f4b55a/MarkupSafe-2.1.2.tar.gz
+    MESON_ARGS:
       - -Db_ndebug=true
-      - --prefix={{prefix}}
-      - --libdir=lib
+      - --prefix="{{prefix}}"
+      - --libdir="{{prefix}}/lib"
       - --buildtype=release
       - --wrap-mode=nofallback
-    linux:
-      ARGS:
-        - -Dplatforms=x11,wayland
-        - -Dglx=auto
-        - -Ddri3=true
-        - -Dgallium-drivers=auto
-        - -Dgallium-omx=disabled
-        - -Degl=false
-        - -Dgbm=true
-        - -Dopengl=true
-        - -Dgles1=true
-        - -Dgles2=true
-        - -Dvalgrind=false
-        - -Dtools=etnaviv,freedreno,glsl,nir,nouveau
-
-provides:
-  - bin/foo
-  # ^^ specify the binaries or tea magic won’t work
-
-test:
-  dependencies:
-    foo.com: '*'  # asterisk means “any version, usually the latest”
-  script:
-    test "$(foo --version)" = {{version}}
-    # if it’s a tool check the version matches
-    # you should run the tool to check it works!
-    # if it's a library then you should *use* the library
-    # don’t forget to check other package.ymls in the pantry for examples!
