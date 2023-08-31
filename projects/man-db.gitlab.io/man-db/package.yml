@@ -12,20 +12,42 @@ dependencies:
 build:
   dependencies:
     tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
+    gnu.org/make: '*'
     freedesktop.org/pkg-config: '*'
   script:
+    - mkdir -p $TEA_PREFIX/.man-db
     - ./configure $CONFIGURE_ARGS
-    - run: |
-        sed -i.bak "s|config_file = {{prefix}}|config_file = \${prefix}|g" Makefile
-        rm Makefile.bak
     - make --jobs {{hw.concurrency}} install
+    - sed -i.bak "s|$TEA_PREFIX|\$TEA_PREFIX|g" {{prefix}}/etc/systemd/system/man-db.service
+    - rm {{prefix}}/etc/systemd/system/man-db.service.bak
+    - run: |
+        for name in apropos catman lexgrog man mandb manpath man-recode whatis; do
+          echo "Executing command for $name"
+          cat <<EOF >$name
+            #!/bin/bash
+            
+            config_file="\$(dirname \$0)/../../etc/man_db.conf"
+            
+            \$(dirname \$0)/../libexec/bin/$name --config-file="\$config_file" "\$@"
+          EOF
+          chmod +x $name
+        done
+      working-directory: "{{prefix}}/bin"
   env:
     CONFIGURE_ARGS:
+      - --disable-debug
+      - --disable-dependency-tracking
       - --prefix="{{prefix}}"
+      - --libdir="{{prefix}}/lib"
+      - --bindir="{{prefix}}/libexec/bin"
+      - --disable-silent-rules
       - --disable-cache-owner
       - --disable-setuid
+      - --disable-nls
+      - --localstatedir="{{prefix}}/var"
       - --with-config-file="{{prefix}}/etc/man_db.conf"
+      - --with-systemdsystemunitdir="{{prefix}}/etc/systemd/system"
+      - --with-systemdtmpfilesdir="{{prefix}}/lib/tmpfiles.d"
 provides:
   - bin/apropos
   - bin/catman
