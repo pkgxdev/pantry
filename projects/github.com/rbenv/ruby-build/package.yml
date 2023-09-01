@@ -1,0 +1,24 @@
+distributable:
+  url: https://github.com/rbenv/ruby-build/archive/v{{version.raw}}.tar.gz
+  strip-components: 1
+versions:
+  github: rbenv/ruby-build
+dependencies:
+  gnu.org/autoconf: '*'
+  pyyaml.org/libyaml: '*'
+  freedesktop.org/pkg-config: '*'
+  gnu.org/readline: '*'
+build:
+  script:
+    - run: |
+        sed -i.bak "s|/usr/local|\$TEA_PREFIX/.local|g" bin/ruby-build
+        rm bin/ruby-build.bak
+    - ./install.sh
+provides:
+  - bin/ruby-build
+  - bin/rbenv-install
+  - bin/rbenv-uninstall
+test:
+  script:
+    - ruby-build --definitions
+    - ruby-build --version | grep {{version.major}}
