@@ -1,0 +1,30 @@
+distributable:
+  url: https://downloads.sourceforge.net/project/libtirpc/libtirpc/{{version}}/libtirpc-{{version}}.tar.bz2
+  strip-components: 1
+versions:
+  url: https://sourceforge.net/projects/libtirpc/files/libtirpc/
+  match: /libtirpc\/\d+\.\d+\.\d+/
+  strip:
+    - /^libtirpc\//
+platforms:
+  - linux
+dependencies:
+  kerberos.org: '*'
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --disable-dependency-tracking
+      - --disable-silent-rules
+      - --prefix={{prefix}}
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script:
+    - cc test.c -ltirpc -o test
+    - ./test
