@@ -18,6 +18,16 @@ dependencies:
   # still tries to use git. hopefully nothing is broken because we
   # clear out all the git repos (they were 100s of MB)
   git-scm.org: ^2
+  # For rebuilding Pillow: see below.
+  darwin/x86-64:
+    libjpeg-turbo.org: '*'
+    zlib.net: ^1
+    simplesystems.org/libtiff: '*'
+    freetype.org: '*'
+    littlecms.com: '*'
+    google.com/webp: '*'
+    openjpeg.org: '*'
+    x.org/xcb: '*'
 
 #FIXME pls make this work on Linux thanks
 platforms: darwin
@@ -41,6 +51,18 @@ build:
 
     # installs python virtual-env
     - ./webui.sh
+
+    # Pillow needs to be relinked so fix-machos has room to update
+    # its headers
+    - run: |
+        source venv/bin/activate
+        pip install \
+          --force-reinstall \
+          --ignore-installed \
+          --no-binary :all: \
+          pillow
+        deactivate
+      if: darwin/x86-64
 
     # torchvision .whl dylibs are broken out the box :/
     - run:
