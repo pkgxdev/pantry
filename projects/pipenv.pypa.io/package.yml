@@ -46,7 +46,13 @@ runtime:
     PIPENV_IGNORE_VIRTUALENVS: 1
 
 test:
-  - pipenv --version | grep {{version}}
+  - run: |
+      if test {{version.major}} > 2000; then
+        VERSION=$(printf '%04d.%02d.%02d' {{version.major}} {{version.minor}} {{version.patch}})
+      else
+        VERSION={{version}}
+      fi
+  - pipenv --version | grep $VERSION
 
   - run: |
       pipenv --python 3.7
