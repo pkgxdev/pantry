@@ -1,0 +1,21 @@
+distributable:
+  url: https://github.com/rust-lang/mdBook/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/mdbook
+
+versions:
+  github: rust-lang/mdBook
+  strip: /v/
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.65'
+    rust-lang.org/cargo: '*'
+  script:
+    cargo install --locked --path . --root {{prefix}}
+
+test:
+  script:
+    - test "$(mdbook --version)" = "mdbook v{{version}}"

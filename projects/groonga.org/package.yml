@@ -1,0 +1,63 @@
+distributable:
+  url: https://github.com/groonga/groonga/releases/download/v{{version}}/groonga-{{version}}.tar.gz
+  strip-components: 1
+versions:
+  github: groonga/groonga
+dependencies:
+  darwin:
+    taku910.github.io/mecab: '*'
+    taku910.github.io/mecab-ipadic: '*'
+  linux/x86-64:
+    taku910.github.io/mecab: '*'
+    taku910.github.io/mecab-ipadic: '*'
+  msgpack.org: '*'
+  openssl.org: '*'
+  pcre.org/v2: '*'
+  github.com/besser82/libxcrypt: '*'
+  linux:
+    gnome.org/glib: '*'
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    freedesktop.org/pkg-config: '*'
+    linux:
+      curl.se: '*'
+  script:
+    - run: |
+        ../configure $CONFIGURE_ARGS
+        make --jobs {{hw.concurrency}} install
+      working-directory: builddir
+    - curl -L "$LINK" | tar zxf -
+    - run: |
+        export PATH={{prefix}}/bin:$PATH
+        export PKG_CONFIG_PATH={{prefix}}/lib/pkgconfig:$PKG_CONFIG_PATH
+        ./configure --prefix={{prefix}}
+        make --jobs {{hw.concurrency}}
+        make --jobs {{hw.concurrency}} install
+      working-directory: groonga-normalizer-mysql-1.2.1
+  env:
+    CONFIGURE_ARGS:
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --prefix="{{prefix}}"
+      - --libdir="{{prefix}}/lib"
+      - --disable-zeromq
+      - --disable-apache-arrow
+      - --with-luajit=no
+      - --with-ssl
+      - --with-zlib
+      - --without-libstemmer
+    LINK: https://packages.groonga.org/source/groonga-normalizer-mysql/groonga-normalizer-mysql-1.2.1.tar.gz
+    darwin:
+      CONFIGURE_ARGS:
+        - --with-mecab
+    linux/x86-64:
+      CONFIGURE_ARGS:
+        - --with-mecab
+provides:
+  - bin/groonga
+  - bin/groonga-suggest-create-dataset
+test:
+  script:
+    - groonga --version | grep {{version}}

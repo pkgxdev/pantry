@@ -1,0 +1,22 @@
+distributable:
+  url: https://github.com/wfxr/csview/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/csview
+
+versions:
+  github: wfxr/csview
+  strip: /v/
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.65'
+    rust-lang.org/cargo: '*'
+  script:
+    # Building with the --locked flag was complaining about proc-macro2 (proc_macro_span_shrink)
+    - cargo install --path . --root {{prefix}}
+
+test:
+  script:
+    - test "$(csview --version)" = "csview {{version}}"
