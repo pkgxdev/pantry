@@ -17,6 +17,11 @@ build:
   script:
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
+    - run: |
+        mv tirpc/* .
+        rmdir tirpc
+        ln -s . tirpc
+      working-directory: ${{prefix}}/include
   env:
     ARGS:
       - --disable-dependency-tracking
