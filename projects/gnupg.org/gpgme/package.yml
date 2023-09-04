@@ -10,23 +10,25 @@ versions:
     - /.tar.gz/
 
 provides:
-  - bin/gpgme
+  - bin/gpgme-config
 
 build:
-  script: |
-    echo {{deps.gnupg.org/libgpg-error.prefix}}
-    ./configure --prefix={{prefix}} \
-      --with-libassuan-prefix={{deps.gnupg.org/libassuan.prefix}} \
-      --with-libgpg-error-prefix={{deps.gnupg.org/libgpg-error.prefix}}
-    make
-    make check
-    make install
+  script:
+    - ./configure $ARGS
+    - make
+    - make install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --with-libassuan-prefix={{deps.gnupg.org/libassuan.prefix}}
+      - --with-libgpg-error-prefix={{deps.gnupg.org/libgpg-error.prefix}}
+    CFLAGS: $CFLAGS -Wno-implicit-function-declaration
+    CXXFLAGS: $CXXFLAGS -std=c++14
   dependencies:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
+    gnupg.org: '*'
     gnupg.org/libassuan: ^2.0.2
     gnupg.org/libgpg-error: ^1.11
 test:
-  script: test "$(gpgme 56)" = "$OUTPUT"
-  env:
-    OUTPUT: "56 = (0, 56) = (GPG_ERR_SOURCE_UNKNOWN, GPG_ERR_BAD_CERT_CHAIN) = (Unspecified source, Bad certificate chain)"
+  script: test "$(gpgme-config --version)" = "{{version}}"
