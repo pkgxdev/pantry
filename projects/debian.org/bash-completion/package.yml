@@ -1,0 +1,24 @@
+distributable:
+  url: http://deb.debian.org/debian/pool/main/b/bash-completion/bash-completion_{{version.raw}}.orig.tar.gz
+  strip-components: 1
+versions:
+  url: https://packages.debian.org/source/bullseye/bash-completion
+  match: /bash-completion_\d+\.\d+\.orig\.tar\.gz/
+  strip:
+    - /^bash-completion_/
+    - /\.orig\.tar\.gz/
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/autoconf: '*'
+    gnu.org/automake: '*'
+    gnu.org/libtool: '*'
+  script:
+    - autoreconf -i
+    - ./configure --prefix="{{prefix}}"
+    - make
+    - make install
+test:
+  script:
+    - bash -c ". {{prefix}}/etc/profile.d/bash_completion.sh"
