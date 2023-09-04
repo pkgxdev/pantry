@@ -1,0 +1,56 @@
+distributable:
+  url: https://github.com/llvm/llvm-project/releases/download/llvmorg-{{version}}/llvm-{{version}}.src.tar.xz
+  strip-components: 1
+versions:
+  github: llvm/llvm-project
+  strip:
+    - /^llvmorg-/
+dependencies:
+  gnome.org/libxml2: '*'
+  invisible-island.net/ncurses: '*'
+  python.org: '*'
+  zlib.net: '*'
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    cmake.org: '*'
+    curl.se: '*'
+  script:
+    - mkdir -p src {{prefix}}/bin {{prefix}}/share/clang
+    - cp -r ./* ./src/
+    - run: |
+        mkdir -p src/tools/clang && curl -L $RES_CLANG | tar -xzf - -C src/tools/clang --strip-components=1
+        mkdir -p cmake && curl -L $RES_CMAKE | tar -xzf - -C cmake --strip-components=1
+        mkdir -p third-party && curl -L $RES_THIRD_PARTY | tar -xzf - -C third-party --strip-components=1
+    - cmake $CMAKE_ARGS -S src -B build
+    - cmake --build build --target clang-format
+    - install -p build/bin/clang-format {{prefix}}/bin/
+    - install -p src/tools/clang/tools/clang-format/git-clang-format {{prefix}}/bin/
+    - install -p src/tools/clang/tools/clang-format/clang-format* {{prefix}}/share/clang/
+  env:
+    RES_CLANG: https://github.com/llvm/llvm-project/releases/download/llvmorg-{{version}}/clang-{{version}}.src.tar.xz
+    RES_CMAKE: https://github.com/llvm/llvm-project/releases/download/llvmorg-{{version}}/cmake-{{version}}.src.tar.xz
+    RES_THIRD_PARTY: https://github.com/llvm/llvm-project/releases/download/llvmorg-{{version}}/third-party-{{version}}.src.tar.xz
+    CMAKE_ARGS:
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}
+      - -DCMAKE_INSTALL_LIBDIR=lib
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_FIND_FRAMEWORK=LAST
+      - -DCMAKE_VERBOSE_MAKEFILE=ON
+      - -Wno-dev
+      - -DLLVM_EXTERNAL_PROJECTS=clang
+      - -DLLVM_INCLUDE_BENCHMARKS=OFF
+provides:
+  - bin/clang-format
+  - bin/git-clang-format
+test:
+  script:
+    - clang-format --version | grep {{version}}
+    - run: |
+        cat << EOF > test.c
+          int main(char *args) {
+            printf("hello");
+          } 
+        EOF
+    - clang-format -style=Google test.c
