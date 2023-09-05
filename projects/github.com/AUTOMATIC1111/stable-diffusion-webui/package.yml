@@ -18,6 +18,9 @@ dependencies:
   # still tries to use git. hopefully nothing is broken because we
   # clear out all the git repos (they were 100s of MB)
   git-scm.org: ^2
+  # For replacing Pillow's vendorized libwebp
+  darwin/x86-64:
+    google.com/webp: '*'
 
 #FIXME pls make this work on Linux thanks
 platforms: darwin
@@ -41,6 +44,12 @@ build:
 
     # installs python virtual-env
     - ./webui.sh
+
+    # Pillow ships dylibs that don't have room for our header rewrites.
+    # If we delete them, we can use ours.
+    - run: rm libwebp.7.dylib
+      working-directory: venv/lib/python3.10/site-packages/PIL/.dylibs
+      if: darwin/x86-64
 
     # torchvision .whl dylibs are broken out the box :/
     - run:
@@ -68,6 +77,7 @@ build:
     # removes the prepare_environment() step since we have already done that
     - run: |
         sed -i.bak \
+          -e '/with launch_utils\.startup_timer\.subcategory("prepare environment"):/{N;N;N;d;}' \
           -e '/if not args\.skip_prepare_environment:/{N;N;d;}' \
           -e '/prepare_environment()/d' \
           launch.py
