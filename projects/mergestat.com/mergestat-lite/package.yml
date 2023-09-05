@@ -23,6 +23,11 @@ build:
     # required or cmake fails with an unhelpful error
     # this is why we need to build from a git checkout
     - git submodule update --init --recursive
+    # Prevents segfaults
+    - run: |
+        sed -i.bak -e 's/@go build -o $@ -tags="static"/@go build -o $@ -tags="static" -buildmode=pie/' Makefile
+        rm Makefile.bak
+      if: linux
     - make libgit2 all
     - mkdir -p "{{ prefix }}"/bin
     - mv .build/mergestat {{prefix}}/bin/mergestat
