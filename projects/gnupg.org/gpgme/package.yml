@@ -1,22 +1,27 @@
 distributable:
-  url: https://gnupg.org/ftp/gcrypt/gpgme/gpgme-{{version.raw}}.tar.gz
+  url: https://gnupg.org/ftp/gcrypt/gpgme/gpgme-{{version.raw}}.tar.bz2
   strip-components: 1
 
 versions:
   url: https://gnupg.org/ftp/gcrypt/gpgme/
-  match: /gpgme-\d+\.\d+(\.\d+)?\.tar\.gz/
+  match: /gpgme-\d+\.\d+(\.\d+)?\.tar\.bz2/
   strip:
     - /gpgme-/
-    - /.tar.gz/
+    - /.tar.bz2/
 
 provides:
   - bin/gpgme-config
+  - bin/gpgme-json
+  - bin/gpgme-tool
 
 build:
   script:
+    - killall gpg-agent || true
+    - gpg-agent --daemon
     - ./configure $ARGS
-    - make
+    - make -j {{hw.concurrency}}
     - make install
+    - killall gpg-agent || true
   env:
     ARGS:
       - --prefix={{prefix}}
