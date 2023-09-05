@@ -1,10 +1,9 @@
-#include <rpc/des_crypt.h>
+// Thanks, ChatGPT!
+#include <rpc/rpc.h>
 #include <stdio.h>
-int main () {
-    char key[] = "My8digitkey1234";
-    if (sizeof(key) != 16)
-        return 1;
-    des_setparity(key);
-    printf("%lu\\n", sizeof(key));
+
+int main() {
+    printf("If you see this, the program has linked correctly.\n");
+    svc_run();
     return 0;
 }
