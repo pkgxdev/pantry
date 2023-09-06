@@ -1,23 +1,32 @@
 distributable:
-  url: https://github.com/LuaJIT/LuaJIT/archive/v{{version}}.tar.gz
+  url: https://github.com/LuaJIT/LuaJIT/archive/v{{version.raw}}.ROLLING.tar.gz
   strip-components: 1
 versions:
   github: LuaJIT/LuaJIT/tags
+  match: /v\d+\.\d+\.ROLLING/
+  strip:
+    - /^v/
+    - /\.ROLLING/
 build:
   dependencies:
-    tea.xyz/gx/cc: c99
-    gnu.org/make: '*'
+    darwin:
+      tea.xyz/gx/cc: c99
+    linux:
+      gnu.org/gcc: '*'
+    tea.xyz/gx/make: '*'
   script:
     - make --jobs {{hw.concurrency}} amalg PREFIX={{prefix}}
     - make --jobs {{hw.concurrency}} install PREFIX={{prefix}}
     - mkdir -p {{prefix}}/doc
     - mv doc/* {{prefix}}/doc/
+    - run: ln -s luajit-{{version.raw}}. luajit
+      working-directory: "{{prefix}}/bin"
 provides:
   - bin/luajit
-  - bin/luajit-{{version}}
+  - bin/luajit-{{version.marketing}}.
 test:
   script:
-    - luajit -v | grep {{version}}
+    - luajit -v | grep {{version.marketing}}
     - luajit test.lua
     - touch empty.lua
     - luajit -b -o osx -a x64 empty.lua empty.o
