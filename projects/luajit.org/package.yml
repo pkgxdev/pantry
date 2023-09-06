@@ -9,7 +9,7 @@ versions:
     - /\.ROLLING/
 runtime:
   env:
-    LUAJIT_PATH: "{{prefix}}"
+    LUA_PATH: "{{prefix}}/share/luajit-{{version.marketing}}/?.lua"
 build:
   dependencies:
     darwin:
@@ -35,5 +35,6 @@ test:
   script:
     - luajit -v | grep {{version.marketing}}
     - luajit test.lua | grep 55
+    - luajit -e "print(package.path)"
     - luajit -b test.lua test.o
     - ls . | grep "test.o"
