@@ -26,22 +26,13 @@ build:
   script:
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }}
-    - mkdir -p {{prefix}}/bin
-    - mv -f ./src/MacVim/build/Release/MacVim.app {{prefix}}/MacVim.app
+    - run: cp -a $SRCROOT/src/MacVim/build/Release/MacVim.app .
+      working-directory: ${{prefix}}/libexec
     - run: |
-        ln -s ../MacVim.app/Contents/bin/gview gview
-        ln -s ../MacVim.app/Contents/bin/gvim gvim
-        ln -s ../MacVim.app/Contents/bin/gvimdiff gvimdiff
-        ln -s ../MacVim.app/Contents/bin/gvimtutor gvimtutor
-        ln -s ../MacVim.app/Contents/bin/mview mview
-        ln -s ../MacVim.app/Contents/bin/mvim mvim
-        ln -s ../MacVim.app/Contents/bin/mvimdiff mvimdiff
-        ln -s ../MacVim.app/Contents/bin/mvimtutor mvimtutor
-        ln -s ../MacVim.app/Contents/bin/view view
-        ln -s ../MacVim.app/Contents/bin/vim vim
-        ln -s ../MacVim.app/Contents/bin/vimdiff vimdiff
-        ln -s ../MacVim.app/Contents/bin/vimtutor vimtutor
-      working-directory: "{{prefix}}/bin"
+        for file in {g,m,}{view,vim,vimdiff,vimtutor}; do
+          ln -s ../libexec/MacVim.app/Contents/bin/$file $file
+        done
+      working-directory: ${{prefix}}/bin
   env:
     CC: "{{deps.tea.xyz/gx/cc.prefix}}/bin/clang"
     ARGS:
