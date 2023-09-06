@@ -7,20 +7,26 @@ versions:
 
 provides:
   - bin/encore
+  - bin/git-remote-encore
+
+runtime:
+  env:
+    ENCORE_RUNTIME_PATH: ${{prefix}}/runtime
+
+dependencies:
+  encore.dev/go: ^1.21
 
 build:
   script:
     - go mod download
-    - go build $ARGS -ldflags="$LDFLAGS" ./cli/cmd/encore
-  dependencies:
-    go.dev: ^1.21
+    - go build $ARGS -ldflags="$LDFLAGS" -o "{{prefix}}"/bin/encore ./cli/cmd/encore
+    - go build $ARGS -ldflags="$LDFLAGS" -o "{{prefix}}"/bin/git-remote-encore ./cli/cmd/git-remote-encore
+    - cp -a runtime {{prefix}}
   env:
     GO111MODULE: on
-    CGO_ENABLED: 0
     ARGS:
       - -v
       - -trimpath
-      - -o "{{prefix}}"/bin/encore
     LDFLAGS:
       - -s
       - -w
@@ -31,5 +37,6 @@ build:
       LDFLAGS:
       - -buildmode=pie
 
-test: |
-  encore version | grep {{version}}
+test:
+  # test errors checking update api; looks like it still runs fine.
+  - (encore version || true) | grep {{version}}
