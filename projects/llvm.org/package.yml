@@ -1,103 +1,14 @@
+# metapackage for LLVM and its subprojects
+
 distributable:
   url: https://github.com/llvm/llvm-project/releases/download/llvmorg-{{ version }}/llvm-project-{{ version }}.src.tar.xz
   strip-components: 1
-
 versions:
   github: llvm/llvm-project
   strip: /^llvmorg-/
 
-provides:
-  - bin/lld
-  - bin/clang
-  - bin/clang++
-
 dependencies:
-  zlib.net: 1
-  darwin:
-    apple.com/xcode/clt: '*'
+  llvm.org/core: '*'
+  compiler-rt.llvm.org: '*'
 
-build:
-  dependencies:
-    tea.xyz/gx/cc: c99
-    cmake.org: 3
-    ninja-build.org: 1
-    python.org: 3
-    crates.io/semverator: '*'
-  working-directory: build
-  script:
-    # Building compiler-rt on darwin+aarch64 fails for versions less than
-    # 14 with the below configuration. FIXME if possible, of course.
-    - run: |
-        if test "{{hw.platform}}" = "linux" || \
-           test "{{hw.arch}}" = "x86-64" || \
-           semverator satisies '>=14'; then
-             ARGS="$ARGS -DLLVM_ENABLE_RUNTIMES='compiler-rt'"
-        fi
-    - cmake ../llvm -G Ninja $ARGS
-    - ninja
-    - ninja install
-  receipt:
-    - LLVMConfig.cmake
-  env:
-    ARGS:
-      - -DCMAKE_INSTALL_PREFIX="{{ prefix }}"
-      - -DCMAKE_BUILD_TYPE=Release
-      - -DLLVM_ENABLE_PROJECTS='lld;clang'
-      - -DLLVM_INCLUDE_DOCS=OFF
-      - -DLLVM_INCLUDE_TESTS=OFF
-    linux:
-      ARGS:
-      # the default is `ld` however clang when handling linking itself
-      # internally passes flags that, in fact, expect `lld`
-      #NOTE only wanted on linux because on macOS we actually *need* the Apple
-      # provided `ld` or things *also* break 😆
-      - -DCLANG_DEFAULT_LINKER=lld
-      # Needed with the CMAKE_C_COMPILER_TARGET to compile compiler-rt on linux
-      # https://reviews.llvm.org/D147598
-      - -DCOMPILER_RT_DEFAULT_TARGET_ONLY=ON
-    darwin:
-      ARGS:
-      #FIXME shouldn’t *have to* require the command line tools package
-      #FIXME this is no good for systems with only Xcode installed
-      #NOTE how do Apple make their LLVM find both? we want the same trick
-      - -DDEFAULT_SYSROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
-    linux/x86-64:
-      ARGS:
-      # required to build something that works on linux/x86-64
-      - -DCLANG_DEFAULT_CXX_STDLIB=libstdc++
-      - -DCLANG_DEFAULT_RTLIB=libgcc
-      - -DCOMPILER_RT_INCLUDE_TESTS=OFF
-      - -DCOMPILER_RT_USE_LIBCXX=OFF
-      # otherwise compiler-rt fails to build
-      # https://reviews.llvm.org/D147598
-      - -DCMAKE_C_COMPILER_TARGET="x86_64-unknown-linux-gnu"
-    linux/aarch64:
-      ARGS:
-      # otherwise compiler-rt fails to build
-      # https://reviews.llvm.org/D147598
-      - -DCMAKE_C_COMPILER_TARGET="aarch64-unknown-linux-gnu"
-
-test:
-  fixture: |
-    #include <stdio.h>
-    int main() {
-      printf("Hello World!\n");
-      return 0;
-    }
-  dependencies:
-    crates.io/semverator: '*'
-  script:
-    # Building compiler-rt on darwin+aarch64 fails for versions less than
-    # 14 with the below configuration. FIXME if possible, of course.
-    - run: |
-        if test "{{hw.platform}}" = "linux" || \
-           test "{{hw.arch}}" = "x86-64" || \
-           semverator satisies '>=14'; then
-             ARGS="$ARGS -fsanitize=address,undefined"
-        fi
-    - mv $FIXTURE $FIXTURE.c
-    - clang $ARGS $FIXTURE.c
-    - ./a.out
-  env:
-    ARGS:
-      - -Wl,-rpath,$TEA_PREFIX
+build: mkdir -p {{prefix}} && touch {{prefix}}/.tea-empty

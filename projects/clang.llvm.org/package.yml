@@ -1,0 +1,113 @@
+distributable:
+  url: https://github.com/llvm/llvm-project/releases/download/llvmorg-{{ version }}/llvm-project-{{ version }}.src.tar.xz
+  strip-components: 1
+
+versions:
+  github: llvm/llvm-project
+  strip: /^llvmorg-/
+
+provides:
+  - bin/clang
+  - bin/clang++
+
+dependencies:
+  llvm.org/core: '*'
+  compiler-rt.llvm.org: '*'
+  darwin:
+    apple.com/xcode/clt: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    cmake.org: 3
+    ninja-build.org: 1
+    python.org: 3
+    gnu.org/grep: '*'
+    gnu.org/patch: '*'
+  working-directory: build
+  script:
+    - run: |
+        pushd ..
+        # Set up clang-tools-extra
+        mkdir -p clang/tools/extra
+        mv clang-tools-extra/* clang/tools/extra
+        # Remove everything but clang and cmake directories
+        mkdir .tmp
+        mv build clang cmake tea.* xyz.tea.* .tmp
+        rm -rf *
+        mv .tmp/* .
+        ls
+        popd
+    - cmake ../clang $ARGS
+    - run: |
+        # Generate a list of distribution targets to avoid using static libraries.
+        # Borrowed from Arch. We need GNU grep for the PCRE regex.
+        # rm -rf targets.txt
+        ninja -t targets | grep -Po 'install-\K.*(?=-stripped:)' | while read -r target; do
+          case $target in
+          clang-libraries|distribution)
+            continue
+            ;;
+          clang-tidy-headers)
+            continue
+            ;;
+          clang|clangd|clang-*)
+            ;;
+          clang*|findAllSymbols)
+            continue
+            ;;
+          esac
+          echo $target
+        done > targets.txt
+    - cmake ../clang -DLLVM_DISTRIBUTION_COMPONENTS="$(paste -sd\; targets.txt)" $ARGS
+    - ninja install-distribution
+  env:
+    ARGS:
+      - -G Ninja
+      - -DCMAKE_INSTALL_PREFIX="{{ prefix }}"
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCLANG_DEFAULT_PIE_ON_LINUX=ON
+      - -DCLANG_LINK_CLANG_DYLIB=ON
+      - -DLLVM_INCLUDE_DOCS=OFF
+      - -DLLVM_INCLUDE_TESTS=OFF
+      - -DLLVM_LINK_LLVM_DYLIB=ON
+      - -DCLANG_BUILT_STANDALONE=TRUE
+      - -DPython3_EXECUTABLE="{{ deps.python.org.prefix }}/bin/python3"
+    darwin:
+      ARGS:
+      #FIXME shouldn’t *have to* require the command line tools package
+      #FIXME this is no good for systems with only Xcode installed
+      #NOTE how do Apple make their LLVM find both? we want the same trick
+      - -DDEFAULT_SYSROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
+    linux:
+      ARGS:
+      # the default is `ld` however clang when handling linking itself
+      # internally passes flags that, in fact, expect `lld`
+      #NOTE only wanted on linux because on macOS we actually *need* the Apple
+      # provided `ld` or things *also* break 😆
+      - -DCLANG_DEFAULT_LINKER=lld
+      # Needed with the CMAKE_C_COMPILER_TARGET to compile compiler-rt on linux
+      # https://reviews.llvm.org/D147598
+      - -DCOMPILER_RT_DEFAULT_TARGET_ONLY=ON
+    linux/x86-64:
+      ARGS:
+      # required to build something that works on linux/x86-64
+      - -DCLANG_DEFAULT_CXX_STDLIB=libstdc++
+      - -DCLANG_DEFAULT_RTLIB=libgcc
+      - -DCOMPILER_RT_INCLUDE_TESTS=OFF
+      - -DCOMPILER_RT_USE_LIBCXX=OFF
+
+test:
+  fixture: |
+    #include <stdio.h>
+    int main() {
+      printf("Hello World!\n");
+      return 0;
+    }
+  script:
+    - mv $FIXTURE $FIXTURE.c
+    - clang $ARGS $FIXTURE.c
+    - ./a.out
+  env:
+    ARGS:
+      - -Wl,-rpath,$TEA_PREFIX
