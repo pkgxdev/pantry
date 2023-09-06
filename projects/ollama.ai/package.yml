@@ -1,0 +1,25 @@
+distributable:
+  url: https://github.com/jmorganca/ollama/archive/v{{version}}.tar.gz
+  strip-components: 1
+versions:
+  github: jmorganca/ollama
+platforms:
+  - darwin # Available for macOS Windows & Linux support coming soon. <= from https://ollama.ai/
+build:
+  dependencies:
+    go.dev: '*'
+  script:
+    - go build .
+    - mkdir -p {{prefix}}/bin
+    - install ollama {{prefix}}/bin/
+provides:
+  - bin/ollama
+test:
+  qa-required: true
+  script:
+    - killall ollama || true
+    - ollama serve &
+    - sleep 5
+    - ollama create mario -f ./Modelfile
+    - ollama list | grep 'mario'
+    - killall ollama || true
