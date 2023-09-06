@@ -1,28 +1,33 @@
 distributable:
   url: https://github.com/macvim-dev/macvim/archive/release-{{version.major}}.tar.gz
   strip-components: 1
+
 versions:
   github: macvim-dev/macvim/tags
   match: /release-\d+/
   strip:
     - /^release-/
+
 platforms:
   - darwin
+
 dependencies:
   cscope.sourceforge.io: '*'
   invisible-island.net/ncurses: '*'
   lua.org: '*'
   python.org: ^3.11
   ruby-lang.org: '*'
+  libsodium.org: '*'
+
 runtime:
   env:
     PYTHONHOME: "{{deps.python.org.prefix}}"
+
 build:
   dependencies:
     tea.xyz/gx/cc: c99
     gnu.org/make: '*'
     gnu.org/gettext: '*'
-    libsodium.org: '*'
   script:
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }}
@@ -56,6 +61,7 @@ build:
       - --enable-fail-if-missing
       - --with-macarchs=$(uname -m)
       - --with-tlib=ncurses
+
 provides:
   - bin/gview
   - bin/gvim
@@ -69,6 +75,7 @@ provides:
   - bin/vim
   - bin/vimdiff
   - bin/vimtutor
+
 test:
   script:
     - mvim --version | grep VIM
