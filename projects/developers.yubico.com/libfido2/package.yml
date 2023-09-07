@@ -9,6 +9,8 @@ dependencies:
   github.com/PJK/libcbor: 0
   openssl.org: 1
   zlib.net: 1
+  linux:
+    systemd.io: '*' # libudev
 
 build:
   dependencies:
@@ -17,10 +19,10 @@ build:
     cmake.org: 3
     freedesktop.org/pkg-config: ^0.29
   working-directory: build
-  script: |
-    cmake .. $ARGS
-    make --jobs {{ hw.concurrency }}
-    make install
+  script:
+    - cmake .. $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
   env:
     ARGS:
       - -DCMAKE_BUILD_TYPE=Release
@@ -34,10 +36,10 @@ provides:
 test:
   dependencies:
     tea.xyz/gx/cc: c99
-  script: |
-    mv $FIXTURE test.c
-    cc test.c -o test -lfido2
-    ./test
+  script:
+    - mv $FIXTURE test.c
+    - cc test.c -o test -lfido2
+    - ./test
   fixture: |
     #include <stddef.h>
     #include <stdio.h>
