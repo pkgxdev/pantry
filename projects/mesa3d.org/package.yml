@@ -42,14 +42,14 @@ build:
     ninja-build.org: '*'
     freedesktop.org/pkg-config: '*'
     pygments.org: '*'
-    python.org: ^3.11
+    python.org: ~3.11
     x.org/protocol: '*'
     github.com/westes/flex: '*'
     linux:
       curl.se: '*'
   script:
-    - run: |
-        curl -L "$Mako" | tar zxf -
+    - curl -L "$Mako" | tar zxf -
+    - curl -L "$MarkupSafe" | tar zxf -
     - run: |
         python -m venv venv
         source venv/bin/activate
@@ -58,13 +58,23 @@ build:
         export PYTHONPATH=$PWD/venv/lib/python3.11/site-packages/Mako-1.2.4-py3.11.egg:$PYTHONPATH
         export PATH=$PWD/venv/bin/mako-render:$PATH
       working-directory: Mako-1.2.4
+    - run: |
+        python -m venv venv
+        source venv/bin/activate
+        python setup.py install
+        deactivate
+        cd ./venv/lib/python3.11/site-packages/MarkupSafe*
+        export PYTHONPATH=$PWD:$PYTHONPATH
+      working-directory: MarkupSafe-2.1.2
     - meson setup build $MESON_ARGS
     - ninja -C build install
     #- meson setup builddir/ $MESON_ARGS 
     #- meson compile -C builddir/ --verbose
     #- meson install -C builddir/
   env:
+    PATCH: https://raw.githubusercontent.com/Homebrew/formula-patches/f0a40cf7d70ee5a25639b91d9a8088749a2dd04e/mesa/fix-build-on-macOS.patch
     Mako: https://files.pythonhosted.org/packages/05/5f/2ba6e026d33a0e6ddc1dddf9958677f76f5f80c236bd65309d280b166d3e/Mako-1.2.4.tar.gz
+    MarkupSafe: https://files.pythonhosted.org/packages/95/7e/68018b70268fb4a2a605e2be44ab7b4dd7ce7808adae6c5ef32e34f4b55a/MarkupSafe-2.1.2.tar.gz
     PYTHONPATH: "{{deps.pygments.org.prefix}}/venv/lib/python3.11/site-packages:$PYTHONPATH"
     MESON_ARGS:
       - --libdir lib
