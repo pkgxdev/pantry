@@ -1,0 +1,44 @@
+distributable:
+  url: https://github.com/dart-lang/sdk/archive/{{version}}.tar.gz
+  strip-components: 1
+versions:
+  github: dart-lang/sdk/tags
+build:
+  dependencies:
+    tea.xyz/gx/cc: '*'
+    ninja-build.org: '*'
+    rust-lang.org: '*'
+    curl.se: '*'
+    python.org: ^3
+    tukaani.org/xz: '*'
+    git-scm.org: '*'      
+  script:
+    - run: git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
+      working-directory: $SRCROOT/resources
+    - fetch --no-history dart
+    - run: ./tools/build.py --no-goma --mode=release --arch=$ARCH create_sdk
+      working-directory: sdk
+    - mkdir -p {{prefix}}/libexec
+    - run: cp -r ./sdk/out/Release*/dart-sdk/* {{prefix}}/libexec/
+      if: linux
+    - run: cp -r ./sdk/xcodebuild/Release*/dart-sdk/* {{prefix}}/libexec/
+      if: darwin
+    - run: |
+        ln -s ./../libexec/bin/dart dart
+        ln -s ./../libexec/bin/dartaotruntime dartaotruntime
+      working-directory: "{{prefix}}/bin"
+  env:
+    PATH: $SRCROOT/resources/depot_tools:$PATH
+    aarch64:
+      ARCH: arm64
+    x86-64:
+      ARCH: x64
+provides:
+  - bin/dart
+  - bin/dartaotruntime
+test:
+  script:
+    - dart --version | grep {{version}}
+    - dart create dart-test
+    - run: dart run | grep "Hello world"
+      working-directory: dart-test
