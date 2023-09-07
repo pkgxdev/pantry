@@ -8,16 +8,23 @@ versions:
 dependencies:
   python.org: '>=3.7'
 
-build: python-venv.sh {{prefix}}/bin/jinja2
+runtime:
+  env:
+    PYTHONPATH: "{{prefix}}/lib/python3/site-packages:$PYTHONPATH"
+
+build:
+  - python-venv.sh {{prefix}}/bin/jinja2
+  - run: ln -s python{{version.marketing}} python{{version.major}}
+    working-directory: ${{prefix}}/venv/lib
 
 provides:
   - bin/jinja2
 
 test:
-  script: |
-    echo "{{ title }}" > test.tmpl
-    OUT="$(jinja2 test.tmpl $FIXTURE --format=json)"
-    test "$OUT" = "tea.xyz"
+  script:
+    - echo "{{ title }}" > test.tmpl
+    - OUT="$(jinja2 test.tmpl $FIXTURE --format=json)"
+    - test "$OUT" = "tea.xyz"
   fixture: |
     {
       "title": "tea.xyz",
