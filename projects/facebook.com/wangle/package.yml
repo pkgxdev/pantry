@@ -1,0 +1,119 @@
+distributable:
+   url: https://github.com/facebook/wangle/archive/refs/tags/v{{version.raw}}.tar.gz
+   strip-components: 1
+
+versions:
+  github: facebook/wangle
+  strip: /v/
+
+dependencies:
+  boost.org: '*'
+  google.com/double-conversion: ^3
+  github.com/facebookincubator/fizz: '*'
+  fmt.dev: ^9
+  facebook.com/folly: '*'
+  gflags.github.io: '*'
+  google.com/glog: '*'
+  libevent.org: '*'
+  libsodium.org: '*'
+  lz4.org: ^1
+  openssl.org: ^1.1
+  google.github.io/snappy: '*'
+  facebook.com/zstd: ^1
+  darwin:
+    sourceware.org/bzip2: '*'
+    zlib.net: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    cmake.org: ^3
+  working-directory: wangle
+  script:
+    - cmake . -DBUILD_SHARED_LIBS=ON $ARGS
+    - make install
+    - make clean
+
+    - cmake . -DBUILD_SHARED_LIBS=OFF $ARGS
+    - make
+    - cp lib/libwangle.a {{prefix}}/lib
+
+    - sed -i.bak "s:$(tea --prefix):\$\{_IMPORT_PREFIX\}/../../../..:g" "{{prefix}}"/lib/cmake/wangle/wangle-targets.cmake
+    - rm "{{prefix}}"/lib/cmake/wangle/wangle-targets.cmake.bak
+  env:
+    ARGS:
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DBUILD_TESTS=OFF
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    curl.se: '*'
+  script:
+    - c++ $CXXFLAGS 'EchoClient.cpp' -o EchoClient
+    - c++ $CXXFLAGS 'EchoServer.cpp' -o EchoServer
+
+    # FIXME? The socket listener doesn't seem happy in docker.
+    # But at least we know everything builds and links; that's
+    # better than just a version test.
+    - run: exit 0
+      if: linux
+
+    # Find a free port
+    - FREE_PORT=0
+    - run: |
+        FREE_PORT=49152
+        while lsof -i:$FREE_PORT >/dev/null 2>&1; do
+          ((FREE_PORT++))
+        done
+
+    # Start the EchoServer
+    - run: |
+        ./EchoServer -port "${FREE_PORT}" &
+        SERVER_PID=$!
+    - sleep 10
+
+    # Send test lines to the EchoClient
+    - run: |
+        ./EchoClient -port "${FREE_PORT}" > out << EOF &
+        Hello from tea!
+        Another test line.
+        EOF
+        CLIENT_BACKGROUND_PID=$!
+
+    - sleep 20
+
+    # Kill the EchoServer and EchoClient
+    - kill "${SERVER_PID}"
+    - kill "${CLIENT_BACKGROUND_PID}"
+
+    # Check the output for the test lines
+    - grep "Hello from tea!" out
+    - grep "Another test line." out
+
+    # Cleanup
+    - rm -f out
+  env:
+    CXXFLAGS:
+      - -std=c++17
+      - -lgflags
+      - -lglog
+      - -lfolly
+      - -lfizz
+      - -lwangle
+      - -lssl
+      - -lcrypto
+      - -lfmt
+      - -ldouble-conversion
+      - -levent
+      - -lboost_context
+    darwin:
+      CXXFLAGS:
+        - -lc++abi
+    linux:
+      CXXFLAGS:
+       - -ldl
+       - -lpthread
+       - -latomic
