@@ -1,0 +1,67 @@
+distributable:
+  url: https://github.com/facebookincubator/fizz/archive/refs/tags/v{{version.raw}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: facebookincubator/fizz/releases/tags
+  strip: /^v/
+
+dependencies:
+  boost.org: '*'
+  google.com/double-conversion: ^3
+  fmt.dev: ^9
+  facebook.com/folly: '*'
+  gflags.github.io: '*'
+  google.com/glog: '*'
+  libevent.org: '*'
+  libsodium.org: '*'
+  lz4.org: 1
+  openssl.org: ^1.1
+  google.github.io/snappy: '*'
+  facebook.com/zstd: 1
+  sourceware.org/bzip2: 1
+
+provides:
+  - bin/fizz
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    cmake.org: ^3
+    ninja-build.org: ^1
+  script: |
+    cmake -S fizz -B build $ARGS
+    cmake --build build
+    cmake --install build
+
+    sed -i.bak "s:$(tea --prefix):\$\{_IMPORT_PREFIX\}/../../../..:g" "{{prefix}}"/lib/cmake/fizz/fizz-targets.cmake
+    rm "{{prefix}}"/lib/cmake/fizz/fizz-targets.cmake.bak
+  env:
+    ARGS:
+      - -GNinja
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
+      - -DBUILD_TESTS=OFF
+      - -DBUILD_SHARED_LIBS=ON
+      - -DCMAKE_INSTALL_RPATH="{{prefix}}"
+    linux/aarch64:
+      ARGS:
+        - -DCMAKE_C_FLAGS=-fPIC
+        - -DCMAKE_CXX_FLAGS=-fPIC
+        - -DCMAKE_EXE_LINKER_FLAGS=-pie
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  fixture: |
+    #include <fizz/client/AsyncFizzClient.h>
+    #include <iostream>
+
+    int main() {
+      auto context = fizz::client::FizzClientContext();
+      std::cout << toString(context.getSupportedVersions()[0]) << std::endl;
+    }
+  script: |
+    mv $FIXTURE test.cpp
+    c++ -std=c++17 test.cpp -lfizz -lfolly -lgflags -lglog -levent -lsodium -lcrypto -lssl -o fixture
+    ./fixture | grep TLS

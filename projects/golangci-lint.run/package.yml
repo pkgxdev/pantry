@@ -2,8 +2,11 @@ distributable:
    url: https://github.com/golangci/golangci-lint/archive/refs/tags/v{{version}}.tar.gz
 
 versions:
-  github: golangci/golangci-lint/tags 
+  github: golangci/golangci-lint/tags
   strip: /^v/
+
+warnings:
+  - vendored
 
 build:
   dependencies:
@@ -17,10 +20,15 @@ build:
     darwin/x86-64:  {PLATFORM: darwin-x64}
     linux/aarch64:  {PLATFORM: linux-aarch64}
     linux/x86-64:   {PLATFORM: linux-x64}
-    
 
 provides:
   - bin/golangci-lint
 
-test: |
-  golangci-lint help linters
+test:
+  # FIXME: this works around a bug introduced in 1.53.0
+  # https://github.com/golangci/golangci-lint/issues/3862#issuecomment-1572973588
+  dependencies:
+    go.dev: ^1.17
+  script: golangci-lint help linters
+  env:
+    GOROOT: $(go env GOROOT)

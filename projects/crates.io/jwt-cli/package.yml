@@ -1,0 +1,23 @@
+distributable:
+  url: https://github.com/mike-engel/jwt-cli/archive/refs/tags/{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/jwt
+
+versions:
+  github: mike-engel/jwt-cli
+  strip: /v/
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
+    cmake.org: ^3
+  script:
+    # Avoiding --locked flag to avoid proc-macro2 errors
+    - cargo install --path . --root {{prefix}}
+
+test:
+  script:
+    - test "$(jwt --version)" = "jwt {{version}}"

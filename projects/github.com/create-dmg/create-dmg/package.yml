@@ -6,28 +6,20 @@ versions:
   github: create-dmg/create-dmg/tags
   strip: /^v/
 
+platforms: darwin
+
 provides:
   - bin/create-dmg
 
-dependencies:
-  tea.xyz/gx/cc: c99
-
 build:
   dependencies:
+    tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
-  script: |
-    if test "{{hw.platform}}" != "darwin"; then
-      mkdir -p {{prefix}}
-      echo "create-dmg is only supported on mac" >> {{prefix}}/mac-only
-      exit 0
-    fi
-    make prefix={{prefix}} install
+  script: make prefix={{prefix}} install
 test: |
-  if test "{{hw.platform}}" = "darwin"; then
-    create-dmg --version
-    touch Brew-Eula.txt
-    echo "Eula" >> Brew-Eula.txt
-    mkdir -p Test-Source
-    mkdir -p Test-Source/Brew.app
-    create-dmg --sandbox-safe --eula Brew-Eula.txt Brew-Test.dmg Test-Source
-  fi
+  create-dmg --version
+  touch Brew-Eula.txt
+  echo "Eula" >> Brew-Eula.txt
+  mkdir -p Test-Source
+  mkdir -p Test-Source/Brew.app
+  create-dmg --sandbox-safe --eula Brew-Eula.txt Brew-Test.dmg Test-Source

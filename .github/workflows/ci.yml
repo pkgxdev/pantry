@@ -4,7 +4,7 @@ run-name: 'ci: ${{ github.event.pull_request.title }}'
 on: pull_request
 
 jobs:
-  get-diff:
+  get-projects:
     runs-on: ubuntu-latest
     outputs:
       diff: ${{ steps.diff.outputs.diff }}
@@ -21,7 +21,7 @@ jobs:
             RESULT="$RESULT $y"
           done
           echo "diff=$RESULT" >> $GITHUB_OUTPUT
-  ci:
+  build:
     strategy:
       fail-fast: false
       matrix:
@@ -30,9 +30,10 @@ jobs:
         - linux+x86-64
         - darwin+aarch64
         - linux+aarch64
-    needs: [get-diff]
+    needs: [get-projects]
     uses: ./.github/workflows/build.yml
+    name: ${{ matrix.platform }}
     with:
-      projects: ${{ needs.get-diff.outputs.diff || 'zlib.net^1.2' }}
+      projects: ${{ needs.get-projects.outputs.diff || 'zlib.net^1.2' }}
       platform: ${{ matrix.platform }}
     secrets: inherit

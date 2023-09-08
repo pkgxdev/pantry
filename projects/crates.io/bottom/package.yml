@@ -1,25 +1,20 @@
 distributable:
-  url: https://codeload.github.com/ClementTsang/bottom/tar.gz/refs/tags/{{version}}
+  url: https://github.com/ClementTsang/bottom/archive/refs/tags/{{ version }}.tar.gz
   strip-components: 1
 
 provides:
   - bin/btm
 
 versions:
-  github: ClementTsang/bottom/tags
-  strip: /v/
-
-dependencies:
-  zlib.net: ^1
+  github: ClementTsang/bottom
+  strip: / Release/
 
 build:
   dependencies:
-    rust-lang.org: '>=1.60'
+    rust-lang.org: '>=1.56'
     rust-lang.org/cargo: '*'
   script:
     cargo install --locked --path . --root {{prefix}}
 
 test:
-  script: |
-    test "$(btm --version)"="bottom {{version}}"
-
+  test "$(btm --version)" = "bottom {{version}}"

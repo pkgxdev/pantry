@@ -1,0 +1,40 @@
+distributable:
+  url: https://groovy.jfrog.io/artifactory/dist-release-local/groovy-zips/apache-groovy-binary-{{version}}.zip
+versions:
+  url: https://groovy.jfrog.io/artifactory/dist-release-local/groovy-zips/
+  match: /apache-groovy-binary-\d+\.\d+\.\d+\.zip/
+  strip:
+    - /^apache-groovy-binary-/
+    - /\.zip/
+warnings:
+  - vendored
+dependencies:
+  openjdk.org: '*'
+runtime:
+  env:
+    GROOVY_HOME: "{{prefix}}"
+build:
+  working-directory: groovy-{{version}}
+  script:
+    - rm bin/*.bat
+    - mkdir -p "{{prefix}}"
+    - cp -a bin conf lib "{{prefix}}"
+provides:
+  - bin/grape
+  - bin/grape_completion
+  - bin/groovy
+  - bin/groovyc
+  - bin/groovyc_completion
+  - bin/groovy_completion
+  - bin/groovyConsole
+  - bin/groovyConsole_completion
+  - bin/groovydoc
+  - bin/groovydoc_completion
+  - bin/groovysh
+  - bin/groovysh_completion
+  - bin/java2groovy
+  - bin/startGroovy
+test:
+  script:
+    - groovy --version | grep {{version}}
+    - grape install org.activiti activiti-engine 5.16.4 | grep "found org.activiti#activiti-engine;5.16.4"

@@ -3,7 +3,7 @@ distributable:
   strip-components: 1
 
 versions:
-  github: haskell/cabal
+  github: haskell/cabal/releases
   strip:
     - /^[Cc]abal /
     - /\.0$/ #FIXME cabal uses 4 digit versioning
@@ -46,11 +46,11 @@ build:
       ADDITIONAL_CABAL_FLAGS="--with-gcc=clang"
     fi
 
-    if test ! -e ../../bootstrap/cabal; then
-      if test ! -e ../../bootstrap; then
-        mkdir ../../bootstrap
+    if test ! -e .bootstrap/cabal; then
+      if test ! -e .bootstrap; then
+        mkdir .bootstrap
       fi
-      curl -L "${BOOTSTRAP}" | tar Jxf - -C ../../bootstrap
+      curl -L "${BOOTSTRAP}" | tar Jxf - -C .bootstrap
     fi
 
     ## This seems dirty, but building is an internal-only gig atm.
@@ -61,12 +61,16 @@ build:
 
     # this is not an acceptable solution, do you know a better one? pls PR 🙏
     #FIXME also this sed line sucks but I got bored trying to make it work
-    sed -i.bak -e 's/4.15,/4.17,/' cabal-install.cabal
+    sed -i.bak \
+      -e 's/build-depends: base.*/build-depends: base >=4.10 \&\& <5/' \
+      -e 's/text.*>=.*/text       >= 1.2.3    \&\& < 3,/' \
+      cabal-install.cabal
     # ^^ SEE https://github.com/haskell/cabal/issues/8118
     rm *.bak
 
-    ../../bootstrap/cabal v2-update
-    ../../bootstrap/cabal v2-install \
+    mkdir -p "{{prefix}}/bin"
+    ./.bootstrap/cabal v2-update
+    ./.bootstrap/cabal v2-install \
       --install-method=copy \
       --installdir={{prefix}}/bin \
       $ADDITIONAL_CABAL_FLAGS

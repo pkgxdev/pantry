@@ -1,0 +1,42 @@
+distributable:
+  url: https://github.com/CocoaPods/CocoaPods/archive/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: CocoaPods/CocoaPods
+
+dependencies:
+  ruby-lang.org: ^3
+  sourceware.org/libffi: ^3
+  rubygems.org: ^3
+  git-scm.org: ^2
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  env:
+    GEM_HOME: ${{prefix}}
+    GEM_PATH: ${{prefix}}
+
+    # FIXME ruby’s mkmf needs patching to check CPATH
+    CFLAGS: -I{{deps.sourceware.org/libffi.prefix}}/include
+  script:
+    - gem build cocoapods.gemspec
+    - gem install cocoapods-{{version}}.gem
+
+    - run: |
+        mv {{prefix}}/bin/* .
+        cp $SRCROOT/props/proxy {{prefix}}/bin/pod
+      working-directory:
+        ${{prefix}}/gems/bin
+
+provides:
+  - bin/pod
+
+test:
+  env:
+    # some of our test containers are raw and thus run as root
+    COCOAPODS_ALLOW_ROOT: 1
+  script:
+    pod --version

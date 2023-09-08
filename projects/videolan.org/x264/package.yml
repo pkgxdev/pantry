@@ -1,0 +1,37 @@
+distributable:
+  url: http://deb.debian.org/debian/pool/main/x/x264/x264_0.164.3095+gitbaee400.orig.tar.gz
+  strip-components: 1
+
+versions:
+  #FIXME: every variant of x264 versions we can find has git commit shas in the version name
+  - 0.164.3095 #+gitbaee400
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    gnu.org/gcc: '*'
+    tea.xyz/gx/make: '*'
+    nasm.us: '*'
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --disable-lsmash
+      - --disable-swscale
+      - --disable-ffms
+      - --enable-shared
+      - --enable-static
+      - --enable-strip
+
+provides:
+  - bin/x264
+
+test:
+  dependencies:
+      tea.xyz/gx/cc: c99
+  script: |
+    cc test.c -lx264 -o test
+    ./test
+    x264 --version | grep {{ version.marketing }}

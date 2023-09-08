@@ -1,0 +1,36 @@
+distributable:
+  url: https://github.com/samtools/htslib/releases/download/{{version.raw}}/htslib-{{version.raw}}.tar.bz2
+  strip-components: 1
+
+versions:
+  github: samtools/htslib
+
+dependencies:
+  sourceware.org/bzip2: '*'
+  tukaani.org/xz: '*'
+  zlib.net: ^1
+  curl.se: '>=5'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: '*'
+    gnu.org/make: '*'
+    gnu.org/autoconf: '*'
+    gnu.org/automake: ^1
+  script:
+    - autoreconf -i
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+
+provides:
+  - bin/bgzip
+  - bin/htsfile
+  - bin/tabix
+
+test: |
+  htsfile test.sam
+  bgzip -c test.sam > sam.gz
+  tabix -p sam sam.gz

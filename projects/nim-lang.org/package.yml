@@ -1,0 +1,57 @@
+distributable:
+  url: https://nim-lang.org/download/nim-{{ version }}.tar.xz
+  strip-components: 1
+
+versions:
+  github: nim-lang/Nim/tags
+
+provides:
+  - bin/nim
+  - bin/nim_dbg
+  - bin/testament
+  - bin/nimsuggest
+  - bin/nimgrep
+  - bin/nim-gdb
+  - bin/atlas
+  - bin/nimpretty
+  - bin/nimble
+
+dependencies:
+  gnu.org/gcc: '*'
+  pcre.org: '*'
+  openssl.org: '*'
+
+build:
+  dependencies:
+    git-scm.org: '*' # nim-lang.org>=2 requires git to build
+  script:
+    - sh build.sh
+    - ./bin/nim c koch
+    - ./koch boot -d:release
+    - ./koch tools
+    - ./install.sh {{ prefix }}
+    - run: |
+        rm -rf nim/compiler
+        cp -r nim/* .
+        rm -rf nim
+      working-directory: ${{prefix}}
+    - run: cp $BINS {{ prefix }}/bin/
+      working-directory: bin
+  env:
+    BINS:
+      - atlas
+      - nim
+      - nim-gdb
+      - nim_dbg
+      - nimble
+      - nimgrep
+      - nimpretty
+      - nimsuggest
+      - testament
+
+test:
+  script: |
+    mv $FIXTURE hello.nim
+    nim r hello.nim
+  fixture: |
+    echo "Hello World"

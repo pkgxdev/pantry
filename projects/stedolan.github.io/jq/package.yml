@@ -3,7 +3,7 @@ distributable:
   strip-components: 1
 
 versions:
-  github: stedolan/jq
+  github: stedolan/jq/releases
   strip: /jq /
 
 dependencies:
@@ -16,13 +16,15 @@ build:
     linux:
       llvm.org: '>=12<15'
     git-scm.org: 2
-  script: |
-    if test '{{hw.platform}}' = 'darwin'; then
-      git apply props/darwin.diff
-      git apply props/lgamma_r.diff
-    fi
-    ./configure --disable-maintainer-mode --prefix={{prefix}}
-    make install
+  script:
+    - run: |
+        if test "{{hw.platform}}" = "darwin"; then
+          git apply props/darwin.diff
+          git apply props/lgamma_r.diff
+        fi
+      if: <1.7
+    - ./configure --disable-maintainer-mode --prefix={{prefix}}
+    - make install
 
 test:
   script: test $(jq .devs[1].github < test.json) = '"jhheider"'

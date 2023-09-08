@@ -1,0 +1,33 @@
+distributable:
+  url: https://github.com/tectonic-typesetting/tectonic/archive/refs/tags/tectonic@{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: tectonic-typesetting/tectonic/releases/tags
+  strip: /^tectonic@/
+
+dependencies:
+  freetype.org: "*"
+  graphite.sil.org: "*"
+  harfbuzz.org: "*"
+  libpng.org: "*"
+  openssl.org: ^1.1
+  unicode.org: ^71
+
+build:
+  dependencies:
+    freedesktop.org/pkg-config: ^0.29
+    rust-lang.org: ">=1.48.0"
+    rust-lang.org/cargo: "*"
+  env:
+    OPENSSL_DIR: "{{ deps.openssl.org.prefix }}"
+  script: cargo install --features external-harfbuzz --locked --path . --root {{prefix}}
+
+provides:
+  - bin/tectonic
+
+test:
+  script: |
+    tectonic -X new
+    tectonic -X build
+    test -f build/default/default.pdf

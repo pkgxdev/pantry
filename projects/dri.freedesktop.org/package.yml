@@ -1,0 +1,47 @@
+distributable:
+  url: https://dri.freedesktop.org/libdrm/libdrm-{{version}}.tar.xz
+  strip-components: 1
+
+versions:
+  url: https://dri.freedesktop.org/libdrm/
+  match: /libdrm-\d+\.\d+\.\d+\.tar\.xz/
+  strip:
+    - /^libdrm-/
+    - /\.tar\.xz$/
+
+display-name: libdrm
+
+platforms:
+  - linux
+
+dependencies:
+  x.org/pciaccess: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    mesonbuild.com: '*'
+    ninja-build.org: '*'
+    freedesktop.org/pkg-config: '*'
+    python.org: ^3.11
+
+  working-directory: build
+  script:
+    - meson $ARGS ..
+    - ninja -j {{ hw.concurrency }}
+    - ninja -j {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --libdir="{{prefix}}/lib"
+      - --buildtype=release
+      - --wrap-mode=nofallback
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    freedesktop.org/pkg-config: '*'
+  script:
+    - pkg-config --modversion libdrm | grep {{version}}
+    - cc test.c -ldrm -o test
+    - ./test

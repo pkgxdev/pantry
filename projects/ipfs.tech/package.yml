@@ -1,7 +1,5 @@
 distributable:
-  url: https://github.com/ipfs/kubo/releases/download/v{{version}}/kubo-source.tar.gz
-  checksum: https://github.com/ipfs/kubo/releases/download/v{{version}}/kubo-source.tar.gz.sha512
-  cid: https://github.com/ipfs/kubo/releases/download/v{{version}}/kubo-source.tar.gz.cid
+  url: https://github.com/ipfs/kubo/archive/refs/tags/v{{version}}.tar.gz
   strip-components: 1
 
 versions:
@@ -11,8 +9,7 @@ versions:
 build:
   dependencies:
     tea.xyz/gx/make: '*'
-    tea.xyz/gx/cc: c99
-    go.dev: 1
+    go.dev: '>=1.18<1.20'
     gnu.org/patch: '*'
   script: |
     if test "{{hw.platform}}" = "linux"; then
@@ -21,7 +18,7 @@ build:
       # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
       patch -p1 <props/ldflags.diff
     fi
-    make build
+    make build CGO_ENABLED=0
     mkdir -p {{prefix}}/bin
     mv cmd/ipfs/ipfs {{prefix}}/bin
 

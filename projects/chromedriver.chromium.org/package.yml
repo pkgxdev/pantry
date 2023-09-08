@@ -1,0 +1,39 @@
+warnings:
+  - vendored
+versions:
+  url: https://chromedriver.chromium.org/downloads
+  match: /ChromeDriver \d+\.\d+\.\d+\.\d+/
+  strip:
+    - /^ChromeDriver /
+platforms:
+  - darwin
+  - linux/x86-64
+  # For now supporting only linux64, mac64, mac_arm64, win32
+  # See https://chromedriver.storage.googleapis.com/index.html?path=114.0.5735.90/
+dependencies:
+  linux:
+    gnome.org/glib: ^2
+    mozilla.org/nss: '*'
+    x.org/xcb: '*'
+build:
+  dependencies:
+    gnu.org/wget: '*'
+    linux:
+      info-zip.org/unzip: '*'
+  script:
+    - wget https://chromedriver.storage.googleapis.com/{{version.raw}}/chromedriver_${SUFFIX}.zip
+    - unzip chromedriver_${SUFFIX}.zip
+    - mkdir -p {{prefix}}/bin
+    - install chromedriver {{prefix}}/bin/
+  env:
+    darwin/x86-64:
+      SUFFIX: mac64
+    darwin/aarch64:
+      SUFFIX: mac_arm64
+    linux:
+      SUFFIX: linux64
+provides:
+  - bin/chromedriver
+test:
+  script:
+    - chromedriver --version | grep {{version}}

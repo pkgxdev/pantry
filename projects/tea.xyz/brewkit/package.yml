@@ -2,13 +2,15 @@ distributable:
   url: https://github.com/teaxyz/brewkit/archive/refs/tags/v{{ version }}.tar.gz
   strip-components: 1
 
+display-name: tea/brewkit
+
 versions:
    github: teaxyz/brewkit
 
 dependencies:
-  deno.land: ^1.30
+  deno.land: '>=1.30<1.36.1'
   gnu.org/bash: '*'
-  tea.xyz: ^0.24.10
+  tea.xyz: '>=0.24.10'
 
 build: |
   mkdir -p {{prefix}}
@@ -19,6 +21,9 @@ build: |
   for x in bin libexec lib share deno.*; do
     test -e $x && mv $x "{{prefix}}"
   done
+
+provides:
+  - bin/tea-pkg
 
 test:
   dependencies:

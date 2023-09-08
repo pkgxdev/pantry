@@ -1,0 +1,27 @@
+distributable:
+  url: https://github.com/oberblastmeister/trashy/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/trash
+
+platforms: linux
+
+versions:
+  github: oberblastmeister/trashy
+  strip: /v/
+
+build:
+  dependencies:
+    rust-lang.org: ^1.62
+    rust-lang.org/cargo: '*'
+  script:
+    cargo install --locked --path . --root {{prefix}}
+
+test:
+  - touch foo
+  - trash foo
+  - trash list
+  - trash restore -f foo
+  - trash foo
+  - trash empty -f foo

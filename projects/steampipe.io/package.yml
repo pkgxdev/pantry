@@ -1,0 +1,39 @@
+distributable:
+  url: https://github.com/turbot/steampipe/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: turbot/steampipe
+
+provides:
+  - bin/steampipe
+
+build:
+  dependencies:
+    go.dev: ^1.21
+  script: |
+    go mod download
+    mkdir -p "{{ prefix }}"/bin
+    go build -v -trimpath -ldflags="$LDFLAGS" -o $BUILDLOC .
+  env:
+    GOPROXY: https://proxy.golang.org,direct
+    GOSUMDB: sum.golang.org
+    GO111MODULE: on
+    CGO_ENABLED: 0
+    BUILDLOC: '{{prefix}}/bin/steampipe'
+    LDFLAGS:
+      - -s
+      - -w
+      # They're not using LDFLAGS for the version yet -- https://github.com/turbot/steampipe/blob/08b447a26182731397a3bd599865098514281d0f/pkg/version/version.go#L13-L18
+    linux:
+      # or segmentation fault
+      # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
+      LDFLAGS:
+      - -buildmode=pie
+
+test:
+  script:
+    - run: exit 0
+    # GHA images run as root. steampipe cannot be run as the root user.
+      if: linux/x86-64
+    - test "$(steampipe --version)" = "Steampipe v{{version}}"

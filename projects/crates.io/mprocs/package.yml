@@ -1,0 +1,25 @@
+distributable:
+  url: https://github.com/pvolok/mprocs/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/mprocs
+
+versions:
+  github: pvolok/mprocs/tags
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
+    # The following dependencies are used on linux for building luajit-src https://github.com/khvzak/mlua/issues/267#issuecomment-1638636192
+    linux:
+      gnu.org/gcc: '*'
+      gnu.org/binutils: '*'
+      gnu.org/make: '*'
+  script:
+    cargo install --locked --path ./src --root {{prefix}}
+
+test:
+  script: |
+    mprocs --version

@@ -1,0 +1,36 @@
+distributable:
+  url: https://www.x.org/pub/individual/lib/libpciaccess-{{version.marketing}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://www.x.org/pub/individual/lib/
+  match: /libpciaccess-\d+\.\d+\.tar\.gz/
+  strip:
+    - /^libpciaccess-/
+    - /\.tar\.gz$/
+
+platforms:
+  - linux
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    freedesktop.org/pkg-config: '*'
+    x.org/util-macros: '*'
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --sysconfdir={{prefix}}/etc
+      - --localstatedir={{prefix}}/var
+      - --disable-dependency-tracking
+      - --disable-silent-rules
+
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script:
+    pkg-config --modversion pciaccess | grep {{version.marketing}}

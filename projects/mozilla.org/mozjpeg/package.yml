@@ -1,0 +1,40 @@
+distributable:
+  url: https://github.com/mozilla/mozjpeg/archive/v{{version}}.tar.gz
+  strip-components: 1
+
+versions: 
+  github: mozilla/mozjpeg
+
+dependencies:
+  libpng.org: ^1
+
+build:
+  dependencies:
+    tea.xyz/gx/make: '*'
+    tea.xyz/gx/cc: 'c99'
+    cmake.org: ^3
+    nasm.us: ^2
+    libpng.org: ^1
+  working-directory: build
+  script: |
+    cmake .. $ARGS
+    make install 
+  env:
+    ARGS:
+      - -DCMAKE_INSTALL_PREFIX={{ prefix }}
+    linux/x86-64:
+      ARGS:
+        - -DCMAKE_C_FLAGS=-fPIC
+        - -DCMAKE_CXX_FLAGS=-fPIC
+        - -DCMAKE_EXE_LINKER_FLAGS=-pie
+
+provides:
+  - bin/cjpeg
+  - bin/djpeg
+  - bin/jpegtran
+  - bin/rdjpgcom
+  - bin/tjbench
+  - bin/wrjpgcom
+
+test:
+  script: jpegtran -crop 1x1 -transpose -optimize -outfile out.jpg fixture.jpeg

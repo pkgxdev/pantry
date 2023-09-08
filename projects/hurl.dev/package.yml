@@ -1,0 +1,30 @@
+distributable:
+  url: https://github.com/Orange-OpenSource/hurl/archive/refs/tags/{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/hurl
+  - bin/hurlfmt
+
+versions:
+  github: Orange-OpenSource/hurl
+  strip: /v/
+
+# Hurl depends on: libssl, libcurl and libxml2 native libraries
+dependencies:
+  gnome.org/libxml2: '*'
+  curl.se: '*'
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.65'
+    rust-lang.org/cargo: '*'
+    freedesktop.org/pkg-config: '*'
+  script:
+    - cargo install --locked --path packages/hurl --root {{prefix}}
+    - cargo install --locked --path packages/hurlfmt --root {{prefix}}
+
+test:
+  script:
+    - hurl --version | grep {{version}}
+    - hurlfmt --version | grep {{version}}

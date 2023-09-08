@@ -1,0 +1,49 @@
+distributable:
+  url: https://github.com/git-lfs/git-lfs/releases/download/v{{version}}/git-lfs-v{{version}}.tar.gz
+  strip-components: 1
+  
+warnings:
+  - vendored
+
+versions:
+  github: git-lfs/git-lfs
+
+dependencies:
+  git-scm.org: '*'
+  
+build:
+  dependencies:
+    gnu.org/wget: '*'
+  
+  script:
+    # FIXME: Building from source: https://github.com/git-lfs/git-lfs#from-source
+    # results in error: git-lfs died on signal 11
+    - wget $DOWNLOAD_URL
+    - $UNARCHIVE
+    - cd git-lfs-{{version}}
+    - mkdir -p {{prefix}}/bin
+    - install ./git-lfs {{prefix}}/bin/git-lfs
+    - mkdir -p {{prefix}}/man
+    - mv ./man/* {{prefix}}/man/
+    
+  env:
+    linux/x86-64:
+      DOWNLOAD_URL: https://github.com/git-lfs/git-lfs/releases/download/v{{version}}/git-lfs-linux-amd64-v{{version}}.tar.gz
+      UNARCHIVE: tar -xz -f git-lfs-linux-amd64-v{{version}}.tar.gz
+    linux/aarch64:
+      DOWNLOAD_URL: https://github.com/git-lfs/git-lfs/releases/download/v{{version}}/git-lfs-linux-arm64-v{{version}}.tar.gz
+      UNARCHIVE: tar -xz -f git-lfs-linux-arm64-v{{version}}.tar.gz
+    darwin/x86-64:
+      DOWNLOAD_URL: https://github.com/git-lfs/git-lfs/releases/download/v{{version}}/git-lfs-darwin-amd64-v{{version}}.zip
+      UNARCHIVE: unzip git-lfs-darwin-amd64-v{{version}}.zip -d ./
+    darwin/aarch64:
+      DOWNLOAD_URL: https://github.com/git-lfs/git-lfs/releases/download/v{{version}}/git-lfs-darwin-arm64-v{{version}}.zip
+      UNARCHIVE: unzip git-lfs-darwin-arm64-v{{version}}.zip -d ./
+
+provides:
+  - bin/git-lfs
+
+test:
+  - git init
+  - git lfs track test
+  - grep 'test filter=lfs' .gitattributes

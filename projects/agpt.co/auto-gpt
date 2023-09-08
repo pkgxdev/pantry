@@ -1,0 +1,20 @@
+#!/bin/sh
+
+#FIXME a `git init` type system would be better than a single directory :/
+
+set -e
+
+workspace_directory="${XDG_DOCUMENTS_DIR:-$HOME/Documents}/Auto-GPT"
+
+# if the data|plugins directories don’t exist auto-gpt bails
+mkdir -p "$workspace_directory"/data "$workspace_directory"/plugins
+
+if ! test -f "$workspace_directory/prompt_settings.yaml"; then
+  cp "$VIRTUAL_ENV"/../share/prompt_settings.yaml "$workspace_directory"
+fi
+
+# change to this directory because auto-gpt assumes it is running
+# in its own checkout and is not suitable to be run from anywhere
+cd "$workspace_directory"
+
+exec "$VIRTUAL_ENV"/bin/python -m autogpt --workspace-directory="$workspace_directory" "$@"

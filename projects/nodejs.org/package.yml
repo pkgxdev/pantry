@@ -3,13 +3,13 @@ distributable:
   strip-components: 1
 
 versions:
-  github: nodejs/node/tags
+  github: nodejs/node/releases/tags
 
 companions:
   npmjs.com: '*'
 
 dependencies:
-  unicode.org: '>=71'
+  unicode.org: ^71
   openssl.org: 1.1
   zlib.net: 1
 
@@ -23,15 +23,13 @@ interprets:
 build:
   dependencies:
     tea.xyz/gx/cc: c99
+    # otherwise, we hit https://reviews.llvm.org/D131307
+    linux:
+      llvm.org: '<16'
     tea.xyz/gx/make: '*'
     python.org: '>=3.7 <3.11'
     freedesktop.org/pkg-config: ^0.29
   script: |
-    if test "{{ hw.platform }}" = "darwin"; then
-      # nodejs wants `dtrace` in the path.
-      export PATH="$PATH:/usr/sbin"
-    fi
-
     ./configure $ARGS
     make --jobs {{ hw.concurrency }} install
   env:
@@ -39,7 +37,6 @@ build:
     - --without-npm
     - --prefix={{ prefix }}
     # like, maybe we should include this?
-    - --without-corepack
     - --with-intl=system-icu
     - --shared-openssl
     - --shared-zlib

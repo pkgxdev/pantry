@@ -1,0 +1,27 @@
+distributable:
+  url: https://github.com/crate-ci/typos/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/typos
+
+versions:
+  github: crate-ci/typos
+  strip: /v/
+
+build:
+  working-directory: crates/typos-cli
+  dependencies:
+    rust-lang.org: '>=1.65'
+    rust-lang.org/cargo: '*'
+  script:
+    cargo install --path . --root {{prefix}}
+
+test:
+  script:
+    # Passes
+    - test "$(typos --version)" = "typos-cli {{version}}"
+    - echo "crumble" | typos -
+
+    # Fails
+    - test ! $(echo "crumlbe" | typos -)

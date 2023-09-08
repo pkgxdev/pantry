@@ -4,8 +4,11 @@ distributable:
   strip-components: 1
 
 versions:
-  - 5.43
-  #TODO github: file/file/tags (has an awful format :/)
+  url: https://astron.com/pub/file/
+  match: /file-\d+\.\d+\.tar\.gz/
+  strip:
+    - /file-/
+    - /.tar.gz/
 
 dependencies:
   zlib.net: 1  #FIXME this is actually an optional dep
@@ -15,10 +18,18 @@ build:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
     git-scm.org: 2
-  script: |
-    git apply props/relocatable.diff
-    ./configure --prefix={{prefix}}
-    make --jobs {{hw.concurrency}} install
+  script:
+    - git apply props/relocatable.diff
+
+    # Our diff has old labels
+    - run: |
+        sed -i.bak -e 's/^protected const char/file_protected const char/' magic.c
+        rm magic.c.bak
+      working-directory: src
+      if: '>=5.45'
+
+    - ./configure --prefix={{prefix}}
+    - make --jobs {{hw.concurrency}} install
 
 test: |
   file {{prefix}}/bin/file

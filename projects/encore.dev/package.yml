@@ -1,0 +1,42 @@
+distributable:
+  url: https://github.com/encoredev/encore/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: encoredev/encore
+
+provides:
+  - bin/encore
+  - bin/git-remote-encore
+
+runtime:
+  env:
+    ENCORE_RUNTIME_PATH: ${{prefix}}/runtime
+
+dependencies:
+  encore.dev/go: ^1.21
+
+build:
+  script:
+    - go mod download
+    - go build $ARGS -ldflags="$LDFLAGS" -o "{{prefix}}"/bin/encore ./cli/cmd/encore
+    - go build $ARGS -ldflags="$LDFLAGS" -o "{{prefix}}"/bin/git-remote-encore ./cli/cmd/git-remote-encore
+    - cp -a runtime {{prefix}}
+  env:
+    GO111MODULE: on
+    ARGS:
+      - -v
+      - -trimpath
+    LDFLAGS:
+      - -s
+      - -w
+      - -X 'encr.dev/internal/version.Version={{version}}'
+    linux:
+      # or segmentation fault
+      # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
+      LDFLAGS:
+      - -buildmode=pie
+
+test:
+  # test errors checking update api; looks like it still runs fine.
+  - (encore version || true) | grep {{version}}

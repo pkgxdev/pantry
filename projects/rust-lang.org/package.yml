@@ -9,6 +9,8 @@ versions:
 companions:
   rust-lang.org/cargo: '*'
 
+display-name: rust
+
 provides:
   - bin/cargo-clippy
   - bin/cargo-fmt
@@ -50,8 +52,8 @@ build:
 
     # 1.68.0 introduced a regression w.r.t. CI builds
     # https://github.com/rust-lang/rust/issues/108959
-    if semverator satisfies ^1.68 {{ version }}; then
-      sed -i.bak -e 's/if CiEnv::is_ci() {/if CiEnv::is_ci() \&\& config.rust_info.is_managed_git_subrepository() {/' src/bootstrap/native.rs
+    if semverator satisfies '>=1.68<1.70' {{ version }}; then
+      sed -i.bak -e 's/CiEnv::is_ci()/CiEnv::is_ci() \&\& config.rust_info.is_managed_git_subrepository()/' src/bootstrap/native.rs
       rm src/bootstrap/native.rs.bak
     fi
 
@@ -69,7 +71,7 @@ build:
       - --prefix={{ prefix }}
       - --enable-ninja
       - --disable-docs  # docs are online
-      - --tools=clippy,rustfmt,analysis
+      - --tools=clippy,rustdoc,rustfmt,analysis
     tools:
       - clippy
       - rustfmt

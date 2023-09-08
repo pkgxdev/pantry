@@ -1,12 +1,17 @@
 distributable:
-  url: https://www.libssh.org/files/{{ version.major }}.{{ version.minor }}/libssh-{{ version }}.tar.xz 
+  url: https://www.libssh.org/files/{{ version.major }}.{{ version.minor }}/libssh-{{ version }}.tar.xz
   strip-components: 1
 
 versions:
-  - 0.10.4
+  url: https://git.libssh.org/projects/libssh.git/refs/tags
+  match: /libssh-\d+\.\d+\.\d+\.tar\.gz/
+  strip:
+    - /libssh-/
+    - /.tar.gz/
 
 dependencies:
   openssl.org: ^1.1
+  zlib.net: ^1
 
 build:
   dependencies:
@@ -22,7 +27,7 @@ build:
     ARGS:
       - -DBUILD_STATIC_LIB=ON
       - -DWITH_SYMBOL_VERSIONING=OFF
-      - -DCMAKE_BUILD_TYPE=Release 
+      - -DCMAKE_BUILD_TYPE=Release
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
 
 test:

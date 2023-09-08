@@ -1,0 +1,45 @@
+distributable:
+  url: git+https://github.com/mergestat/mergestat-lite
+  ref: v{{version}}
+  strip-components: 1
+
+versions:
+  github: mergestat/mergestat-lite
+
+provides:
+  - bin/mergestat
+
+build:
+  dependencies:
+    go.dev: ^1.19
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    cmake.org: '*'
+    git-scm.org: '*'
+    libgit2.org: '*'
+    openssl.org: '*'
+    freedesktop.org/pkg-config: '*'
+  script:
+    # required or cmake fails with an unhelpful error
+    # this is why we need to build from a git checkout
+    - git submodule update --init --recursive
+    # Prevents segfaults
+    - run: |
+        sed -i.bak -e 's/@go build -o $@ -tags="static"/@go build -o $@ -tags="static" -buildmode=pie/' Makefile
+        rm Makefile.bak
+      if: linux
+    - make libgit2 all
+    - mkdir -p "{{ prefix }}"/bin
+    - mv .build/mergestat {{prefix}}/bin/mergestat
+  env:
+    GOPROXY: https://proxy.golang.org,direct
+    GOSUMDB: sum.golang.org
+    GO111MODULE: on
+
+test:
+  dependencies:
+    git-scm.org: '*'
+  script:
+    - git clone https://github.com/kelseyhightower/nocode
+    - run: mergestat summarize commits --json
+      working-directory: nocode

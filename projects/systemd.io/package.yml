@@ -1,0 +1,123 @@
+distributable:
+  url: https://github.com/systemd/systemd/archive/refs/tags/v{{version.raw}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: systemd/systemd
+  strip: /v/
+
+platforms:
+  - linux
+
+dependencies:
+  libexpat.github.io: '*'
+  google.com/fullycapable: '*'
+  lz4.org: '*'
+  openssl.org: ^1.1
+  github.com/util-linux/util-linux: '*'
+  tukaani.org/xz: '*'
+  facebook.com/zstd: '*'
+  github.com/besser82/libxcrypt: '*'
+  curl.se: '*'
+  gnu.org/libidn2: '*'
+  gnutls.org: '*'
+  sourceware.org/bzip2: '*'
+  pcre.org/v2: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/coreutils: '*'
+    docbook.org: '*'
+    gnu.org/gettext: '*'
+    gnu.org/gperf: '*'
+    github.com/mattrobenolt/jinja2-cli: '*'
+    gnupg.org/libgpg-error: '*'
+    gnu.org/libtool: '*'
+    gnome.org/libxslt: '*'
+    gnu.org/m4: '*'
+    mesonbuild.com: '*'
+    ninja-build.org: '*'
+    freedesktop.org/pkg-config: '*'
+    python.org: ^3
+    rsync.samba.org: '*'
+  script:
+    - meson setup $ARGS build
+    - meson compile -C build
+    - meson install -C build
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --sysconfdir={{prefix}}/etc
+      - --localstatedir={{prefix}}/var
+      - -Drootprefix={{prefix}}
+      - -Dprefix={{prefix}}
+      - -Dsysvinit-path={{prefix}}/etc/init.d
+      - -Dsysvrcnd-path={{prefix}}/etc/rc.d
+      - -Dpamconfdir={{prefix}}/etc/pam.d
+      - -Dcreate-log-dirs=false
+      - -Dhwdb=false
+      - -Dlz4=true
+      - -Dgcrypt=false
+      - -Dsplit-usr=false
+
+provides:
+  - bin/busctl
+  - bin/coredumpctl
+  - bin/hostnamectl
+  - bin/journalctl
+  - bin/kernel-install
+  - bin/localectl
+  - bin/loginctl
+  - bin/machinectl
+  - bin/networkctl
+  - bin/oomctl
+  - bin/portablectl
+  - bin/resolvectl
+  - bin/systemctl
+  - bin/systemd-ac-power
+  - bin/systemd-analyze
+  - bin/systemd-ask-password
+  - bin/systemd-cat
+  - bin/systemd-cgls
+  - bin/systemd-cgtop
+  - bin/systemd-confext
+  - bin/systemd-creds
+  - bin/systemd-delta
+  - bin/systemd-detect-virt
+  - bin/systemd-dissect
+  - bin/systemd-escape
+  - bin/systemd-firstboot
+  - bin/systemd-id128
+  - bin/systemd-inhibit
+  - bin/systemd-machine-id-setup
+  - bin/systemd-mount
+  - bin/systemd-notify
+  - bin/systemd-nspawn
+  - bin/systemd-path
+  - bin/systemd-repart
+  - bin/systemd-resolve
+  - bin/systemd-run
+  - bin/systemd-socket-activate
+  - bin/systemd-stdio-bridge
+  - bin/systemd-sysext
+  - bin/systemd-sysusers
+  - bin/systemd-tmpfiles
+  - bin/systemd-tty-ask-password-agent
+  - bin/systemd-umount
+  - bin/timedatectl
+  - bin/udevadm
+  - bin/userdbctl
+  - sbin/halt
+  - sbin/init
+  - sbin/mount.ddi
+  - sbin/poweroff
+  - sbin/reboot
+  - sbin/resolvconf
+  - sbin/runlevel
+  - sbin/shutdown
+  - sbin/telinit
+
+test: |
+  systemd-path | grep 'temporary: /tmp'

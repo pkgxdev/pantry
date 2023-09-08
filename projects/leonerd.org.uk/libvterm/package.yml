@@ -1,0 +1,28 @@
+distributable:
+  url: https://launchpad.net/libvterm/trunk/v{{version.marketing}}/+download/libvterm-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://launchpad.net/libvterm/+download
+  match: /libvterm-\d+\.\d+\.\d+.tar.gz/
+  strip:
+    - /^libvterm-/
+    - /\.tar\.gz$/
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnu.org/libtool: '*'
+  script: |
+    make --jobs {{ hw.concurrency }} install PREFIX="{{prefix}}"
+provides:
+  - bin/unterm
+  - bin/vterm-ctrl
+  - bin/vterm-dump
+
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script:
+    pkg-config --modversion vterm | grep {{version}}

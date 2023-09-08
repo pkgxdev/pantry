@@ -1,0 +1,30 @@
+distributable:
+  url: https://github.com/mity/md4c/archive/release-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: mity/md4c/tags
+  strip: /^release-/
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    cmake.org: '*'
+
+  script:
+    - cmake -S . -B build $ARGS
+    - cmake --build build
+    - cmake --install build
+  env:
+    ARGS:
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_VERBOSE_MAKEFILE=ON
+      - -Wno-dev
+      - -DBUILD_TESTING=OFF
+
+provides:
+  - bin/md2html
+
+test: md2html --version | grep {{version}}

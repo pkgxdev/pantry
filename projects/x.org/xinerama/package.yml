@@ -1,0 +1,41 @@
+distributable:
+  url: https://www.x.org/archive/individual/lib/libXinerama-{{version}}.tar.xz
+  strip-components: 1
+
+versions:
+  url: https://xorg.freedesktop.org/archive/individual/lib/
+  match: /libXinerama-\d+\.\d+(\.\d+)?\.tar\.xz/
+  strip:
+    - /libXinerama-/
+    - /.tar.xz/
+
+dependencies:
+  x.org/x11: '*'
+  x.org/protocol: '*'
+  x.org/exts: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    freedesktop.org/pkg-config: '*'
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make --jobs {{ hw.concurrency }} install
+
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --disable-dependency-tracking
+      - --disable-silent-rules
+      - --sysconfdir={{tea.prefix}}/x.org/etc
+      - --localstatedir={{tea.prefix}}/x.org/var
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    freedesktop.org/pkg-config: '*'
+  script: 
+  - cc test.c
+  - pkg-config --modversion xinerama | grep {{version}}

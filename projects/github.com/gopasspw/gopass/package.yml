@@ -1,0 +1,28 @@
+versions:
+  github: gopasspw/gopass
+
+provides:
+  - bin/gopass
+
+warnings:
+  - vendored
+
+build:
+  working-directory: ${{prefix}}
+  dependencies:
+    curl.se: '*'
+  env:
+    darwin/aarch64: {PLATFORM: darwin-arm64}
+    darwin/x86-64:  {PLATFORM: darwin-amd64}
+    linux/aarch64:  {PLATFORM: linux-arm64}
+    linux/x86-64:   {PLATFORM: linux-amd64}
+  script:
+    - rm -rf ./gopass.tar.gz ./extracted ./bin
+    - curl -Lfo gopass.tar.gz "https://github.com/gopasspw/gopass/releases/download/v{{version}}/gopass-{{version}}-$PLATFORM.tar.gz"
+    - mkdir ./extracted && tar -xf gopass.tar.gz -C ./extracted
+    - mkdir ./bin && mv ./extracted/gopass ./bin/ && chmod +x ./bin/*
+    - rm -rf ./gopass.tar.gz ./extracted
+
+test:
+  script:
+    - '[[ "$(gopass --version)" == *"{{version}}"* ]]'

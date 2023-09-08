@@ -1,0 +1,33 @@
+distributable:
+  url: git+https://github.com/hashicorp/vault
+  ref: v{{version}}
+
+versions:
+  github: hashicorp/vault
+
+platforms:
+  - darwin
+  - linux/x86-64
+
+build:
+  dependencies:
+    go.dev: '*'
+    nodejs.org: ^18
+    # python 3.11 removes 'rU' mode which breaks node-gyp
+    python.org: ~3.10
+    npmjs.com: '*'
+    classic.yarnpkg.com: '*'
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    git-scm.org: '*'
+    # TODO: gox
+  script: |
+    make bootstrap static-dist dev-ui
+
+    mkdir -p {{prefix}}/bin
+    mv bin/vault {{prefix}}/bin/vault
+
+provides:
+  - bin/vault
+
+test: vault --version

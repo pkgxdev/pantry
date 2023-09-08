@@ -1,0 +1,25 @@
+distributable:
+  # FIXME: vendoring
+  #url: https://github.com/SwiftGen/SwiftGen/archive/refs/tags/{{version}}.tar.gz
+  #strip-components: 1
+  url: https://github.com/SwiftGen/SwiftGen/releases/download/{{version}}/swiftgen-{{version}}.zip
+
+versions:
+  github: SwiftGen/SwiftGen/releases/tags
+
+platforms:
+  - darwin
+
+provides:
+  - bin/swiftgen
+
+warnings:
+  - vendored
+
+build:
+  working-directory: ${{prefix}}/bin
+  script: cp -a "$SRCROOT"/bin/swiftgen "$SRCROOT"/bin/SwiftGen_SwiftGenCLI.bundle .
+
+test:
+  script: |
+    [[ "$(swiftgen --version)" = "SwiftGen v{{version}}"* ]]

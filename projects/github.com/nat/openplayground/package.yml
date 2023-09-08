@@ -1,0 +1,42 @@
+distributable:
+  url: https://github.com/nat/openplayground/archive/7f3f790.tar.gz
+  strip-components: 1
+
+versions:
+  - 2023.06.05
+
+platforms: darwin
+
+dependencies:
+  python.org: ~3.11
+  gnu.org/bash: '*'
+  tea.xyz: ^0
+
+build:
+  dependencies:
+    npmjs.com: '*'
+    python-poetry.org: ~1.4.1
+    pip.pypa.io: '*'
+  script:
+    - python-venv.py {{prefix}}/bin/openplayground
+
+    - run: |
+        npm i
+        npx parcel build src/index.html --no-cache --no-source-maps
+      working-directory: app
+      env:
+        NODE_ENV: production
+
+    # needs to be moved inside the server pkg
+    - mv app/dist {{prefix}}/venv/lib/python{{deps.python.org.version.marketing}}/site-packages/server/static
+
+    - cp props/entrypoint.sh {{prefix}}
+
+entrypoint: ./entrypoint.sh
+
+provides:
+  - bin/openplayground
+
+test:
+  qa-required: true
+  script: openplayground --help

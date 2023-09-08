@@ -4,13 +4,17 @@ distributable:
 
 versions:
   github: pypa/pip/tags
+  # FIXME: the major prior to 18 is 10, which is ancient and doesn't currently work
+  ignore: ['<18']
 
 dependencies:
-  python.org: ^3.7
+  python.org: '*' #FIXME actually: ^3.7
+  # FIXME deps vary by version for the above and we don’t support that yet
 
 runtime:
   env:
     PIP_DISABLE_PIP_VERSION_CHECK: 1
+    PYTHONPATH: ${{prefix}}
 
 build:
   dependencies:
@@ -36,9 +40,14 @@ build:
       - bin/pip
       - bin/pip{{deps.python.org.version.major}}
 test:
-  script: |
-    pip install findtui --target .
-    test -f findtui/main.py
+  dependencies:
+    tea.xyz: '*'
+  script:
+    - run: tea +python.org~3.9 pip install findtui --target .
+      if: ~18
+    - run: pip install findtui --target .
+      if: '>=19'
+    - test -f findtui/main.py
 
 provides:
   - bin/pip

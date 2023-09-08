@@ -1,0 +1,44 @@
+distributable:
+  url: https://github.com/fmtlib/fmt/archive/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: fmtlib/fmt
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    cmake.org: ^3
+  working-directory:
+    build
+  script: |
+    cmake .. $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
+      - -DCMAKE_BUILD_TYPE=Release
+    linux/aarch64:
+      ARGS:
+        - -DCMAKE_C_FLAGS=-fPIC
+        - -DCMAKE_CXX_FLAGS=-fPIC
+        - -DCMAKE_EXE_LINKER_FLAGS=-pie
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  fixture: |
+    #include <iostream>
+    #include <string>
+    #include <fmt/format.h>
+    int main()
+    {
+      std::string str = fmt::format("The answer is {}", 42);
+      std::cout << str;
+      return 0;
+    }
+  script: |
+    mv $FIXTURE fixture.cc
+    c++ fixture.cc -lfmt -std=c++11
+    test "$(./a.out)" = "The answer is 42"

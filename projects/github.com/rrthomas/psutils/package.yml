@@ -1,0 +1,35 @@
+distributable:
+  url: https://github.com/rrthomas/psutils/releases/download/v{{version}}/pspdfutils-{{version}}.tar.gz
+  strip-components: 1
+versions:
+  github: rrthomas/psutils
+dependencies:
+  python.org: ^3.11
+  github.com/rrthomas/libpaper: '*'
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script:
+    - rm -r props
+    - python-venv.sh {{prefix}}/bin/psbook
+    - python-venv.sh {{prefix}}/bin/psjoin
+    - python-venv.sh {{prefix}}/bin/psnup
+    - python-venv.sh {{prefix}}/bin/psresize
+    - python-venv.sh {{prefix}}/bin/psselect
+    - python-venv.sh {{prefix}}/bin/pstops
+provides:
+  - bin/psbook
+  - bin/psjoin
+  - bin/psnup
+  - bin/psresize
+  - bin/psselect
+  - bin/pstops
+test:
+  dependencies:
+    gnu.org/wget: '*'
+  script:
+    - wget https://raw.githubusercontent.com/rrthomas/psutils/e00061c21e114d80fbd5073a4509164f3799cc24/tests/test-files/psbook/3/expected.ps
+    - psbook expected.ps book.ps 2>&1 | grep "Wrote 4 pages"
+    - psnup -2 expected.ps nup.ps 2>&1 | grep "Wrote 2 pages"
+    - psselect -p1 expected.ps test2.ps 2>&1 | grep "Wrote 1 pages"
+    - psbook --version | grep {{version}}
