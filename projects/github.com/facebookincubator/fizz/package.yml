@@ -33,6 +33,9 @@ build:
     cmake -S fizz -B build $ARGS
     cmake --build build
     cmake --install build
+
+    sed -i.bak "s:$(tea --prefix):\$\{_IMPORT_PREFIX\}/../../../..:g" "{{prefix}}"/lib/cmake/fizz/fizz-targets.cmake
+    rm "{{prefix}}"/lib/cmake/fizz/fizz-targets.cmake.bak
   env:
     ARGS:
       - -GNinja

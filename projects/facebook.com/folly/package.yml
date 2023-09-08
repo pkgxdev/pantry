@@ -18,6 +18,9 @@ dependencies:
   google.github.io/snappy: '*'
   google.com/double-conversion: ^3
   fmt.dev: ^9
+  darwin:
+    sourceware.org/bzip2: '*'
+    zlib.net: '*'
 
 build:
   dependencies:
@@ -35,8 +38,14 @@ build:
   script:
     - test -d xyz.tea.srcs && rm -rf xyz.tea.srcs
     - mv $SRCROOT xyz.tea.srcs
-    - cmake $ARGS -S xyz.tea.srcs -B .
-    - make --jobs {{hw.concurrency}} install
+    - cmake $ARGS -DBUILD_SHARED_LIBS=ON -S xyz.tea.srcs -B shared
+    - cmake --build shared
+    - cmake --install shared
+
+    - cmake $ARGS -DBUILD_SHARED_LIBS=OFF -S xyz.tea.srcs -B static
+    - cmake --build static
+    - run: cp /tmp/xyz.tea.folly/static/libfolly.a libfollybenchmark.a
+      working-directory: ${{prefix}}/static/folly
 
     - run: |
         sed -E -i.bak \
