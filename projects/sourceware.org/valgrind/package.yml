@@ -3,7 +3,14 @@ distributable:
   strip-components: 1
 
 versions:
-  - 3.20.0
+  url: https://sourceware.org/pub/valgrind
+  match: /valgrind-\d+\.\d+\.\d+\.tar\.bz2/
+  strip:
+    - /^valgrind-/
+    - /\.tar\.bz2$/
+
+platforms:
+  - linux
 
 build:
   dependencies:
@@ -13,15 +20,10 @@ build:
     gnu.org/automake: '*'
     gnu.org/libtool: '*'
 
-  script: |
-    if test "{{hw.platform}}" != "linux"; then
-      echo "libbsd is only supported on Linux"
-      touch {{prefix}}/linux-only
-      exit 0
-    fi
-    ./autogen.sh
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }} install
+  script:
+    - ./autogen.sh
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
   env:
     ARGS:
       - --prefix="{{prefix}}"
@@ -33,8 +35,5 @@ provides:
   - bin/valgrind
 
 test:
-  script: |
-    if test "{{hw.platform}}" = "linux"; then
-      #test "$(valgrind --version)" = {{version}}
-      valgrind --versoin
-    fi
+  script:
+    - valgrind --version
