@@ -12,18 +12,18 @@ dependencies:
   gnome.org/libxml2: '*'
   invisible-island.net/ncurses: '*'
   zlib.net: ^1
-
+  openssl.org: '*'
+  pcre.org/v2: '*'
+  facebook.com/zstd: '*'
+    
 build:
   dependencies:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
     cmake.org: '*'
-    facebook.com/zstd: '*'
     freedesktop.org/pkg-config: '*'
     gnu.org/bison: '*'
     gnu.org/coreutils: '*'
-    openssl.org: '*'
-    pcre.org/v2: '*'
     git-scm.org: '*'
     groonga.org: '*'
 
@@ -82,6 +82,9 @@ build:
           wsrep_sst_mariabackup
         rm wsrep_sst_*.bak
       working-directory: ${{ prefix }}/bin
+  env:
+    linux/aarch64:
+      CFLAGS: $CFLAGS -Wno-implicit-function-declaration
 
 provides:
   - bin/aria_chk
@@ -177,6 +180,7 @@ test:
     - run: |
         if test "$(id -u)" = "0"; then
           USER_ARG="--user=nobody"
+          chown nobody mysql tmp
         fi
     - mysql_install_db --no-defaults
         $USER_ARG
