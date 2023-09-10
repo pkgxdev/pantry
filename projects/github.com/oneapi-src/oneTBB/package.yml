@@ -1,0 +1,55 @@
+distributable:
+  url: https://github.com/oneapi-src/oneTBB/archive/v{{version}}.tar.gz
+  strip-components: 1
+versions:
+  # github: oneapi-src/oneTBB parses the version incorrectly.
+  url: https://github.com/oneapi-src/oneTBB/tags
+  match: /tag\/v\d+\.\d+\.\d+/
+  strip: /^tag\//
+dependencies:
+  python.org: ~3.11
+  linux:
+    open-mpi.org/hwloc: '*'
+runtime:
+  env:
+    PYTHONPATH: "{{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH"
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    cmake.org: '*'
+    swig.org: '*'
+    freedesktop.org/pkg-config: '*'
+  script:
+    - cmake -S . -B build/shared $CMAKE_ARGS -DBUILD_SHARED_LIBS=ON
+    - cmake --build build/shared
+    - cmake --install build/shared
+    - cmake -S . -B build/static $CMAKE_ARGS -DBUILD_SHARED_LIBS=OFF
+    - cmake --build build/static
+    - install build/static/*/libtbb*.a {{prefix}}/lib/
+    - export TBBROOT={{prefix}}
+    - python python/setup.py install --prefix="{{prefix}}"
+    - cd {{prefix}}/lib/python*/site-packages/TBB-*
+    - TMPDIR=$PWD
+    - mv ./* ../ && cd ../ && rm -r $TMPDIR
+  env:
+    CMAKE_ARGS:
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}
+      - -DCMAKE_INSTALL_LIBDIR=lib
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_FIND_FRAMEWORK=LAST
+      - -DCMAKE_VERBOSE_MAKEFILE=ON
+      - -Wno-dev
+      - -DTBB_TEST=OFF
+      - -DTBB4PY_BUILD=ON
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    freedesktop.org/pkg-config: '*'
+  script:
+    - pkg-config --modversion tbb | grep {{version}}
+    - c++ cores-types.cpp --std=c++14 -DTBB_PREVIEW_TASK_ARENA_CONSTRAINTS_EXTENSION=1 -ltbb -o core-types
+    - ./core-types
+    - c++ sum1-100.cpp --std=c++14 -DTBB_PREVIEW_TASK_ARENA_CONSTRAINTS_EXTENSION=1 -ltbb -o sum1-100
+    - ./sum1-100 | grep 5050
+    - python -c "import tbb"
