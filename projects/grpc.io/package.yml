@@ -5,8 +5,15 @@ distributable:
 versions:
   github: grpc/grpc
 
-# provides:
-#   - bin/?
+provides:
+  - bin/grpc_csharp_plugin
+  - bin/grpc_node_plugin
+  - bin/grpc_cpp_plugin
+  - bin/grpc_python_plugin
+  - bin/grpc_objective_c_plugin
+  - bin/grpc_ruby_plugin
+  - bin/grpc_php_plugin
+  - bin/grpc_cli
 
 dependencies:
   abseil.io: '*'
@@ -26,14 +33,10 @@ build:
     tea.xyz/gx/make: '*'
     freedesktop.org/pkg-config: ^0
     git-scm.org: ^2
-    #gnu.org/patch: '*'
   working-directory: cmake/build
   script:
     - run: git submodule update --init --recursive
       working-directory: ../..
-    # https://github.com/grpc/grpc/issues/32775
-    #- run: patch -p1 -i props/patch-grpc-1.54.0-for-protobuf-22.3.patch
-    #  working-directory: ../..
 
     - cmake $COMMON_ARGS $ARGS ../..
     - make install
@@ -43,8 +46,6 @@ build:
     - make grpc_cli
 
     - cp grpc_cli "{{prefix}}/bin"
-    # lib.install Dir[shared_library("libgrpc++_test_config", "*")]
-
   env:
     COMMON_ARGS:
       - -DCMAKE_BUILD_TYPE=Release
@@ -68,7 +69,6 @@ build:
 test:
   dependencies:
     tea.xyz/gx/cc: c99
-    pkg-config: '*'
   script:
     fixture: |
       #include <grpc/grpc.h>
@@ -78,13 +78,8 @@ test:
         return GRPC_STATUS_OK;
       }
     script:
-      - ls {{prefix}}/*bin
-      # FIXME: This is not working yet.
-      - exit 1
-      # ENV.prepend_path "PKG_CONFIG_PATH", Formula["openssl@1.1"].opt_lib/"pkgconfig"
-      # pkg_config_flags = shell_output("pkg-config --cflags --libs libcares protobuf re2 grpc++").chomp.split
-      # c++ test.cpp -o test
-      # ./test
+      - cp $FIXTURE test.cpp
+      - c++ -l libcares -lprotobuf -lre2 -lgrpc++ test.cpp -o test
+      - ./test
 
-      # output = shell_output("#{bin}/grpc_cli ls localhost:#{free_port} 2>&1", 1)
-      # assert_match "Received an error when querying services endpoint.", output
+      -test "$(grpc_cli ls localhost:58931 2>&1 || true)" = "Received an error when querying services endpoint."
