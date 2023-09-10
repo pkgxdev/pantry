@@ -1,0 +1,30 @@
+distributable:
+  url: https://github.com/open-source-parsers/jsoncpp/archive/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: open-source-parsers/jsoncpp
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    mesonbuild.com: '*'
+    ninja-build.org: '*'
+  script: |
+    meson setup build $ARGS
+    meson compile -C build --verbose
+    meson install -C build
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --libdir="{{prefix}}/lib"
+      - --buildtype=release
+      - --wrap-mode=nofallback
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script: |
+    g++ -std=c++11 ./test.cpp -o test -ljsoncpp
+    ./test

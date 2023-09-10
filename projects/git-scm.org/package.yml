@@ -16,10 +16,7 @@ dependencies:
 runtime:
   env:
     GIT_TEMPLATE_DIR: '{{prefix}}/share/git-core/templates'
-    # FIXME: this should work once
-    # https://github.com/teaxyz/cli/issues/497
-    # is resolved
-    # GIT_SSL_CAINFO: ${{deps.curl.se/ca-certs.prefix}}/ssl/cert.pem
+    GIT_SSL_CAINFO: ${{deps.curl.se/ca-certs.prefix}}/ssl/cert.pem
 
 build:
   dependencies:
@@ -34,6 +31,15 @@ build:
     cd contrib/subtree
     make
     make install
+
+    if test "{{ hw.platform }}" = "darwin"; then
+      cd "$SRCROOT/contrib/credential/osxkeychain"
+      make
+      mv git-credential-osxkeychain "{{prefix}}"/bin
+      make clean
+      cd "$SRCROOT/contrib/subtree"
+    fi
+
     mv git-subtree "{{prefix}}"/libexec
 
     cd "{{prefix}}"
@@ -77,10 +83,20 @@ test: |
   git subtree add --prefix teaxyz-subtree https://github.com/teaxyz/white-paper main --squash
 
 provides:
-  - bin/git
-  - bin/git-cvsserver
-  - bin/git-receive-pack
-  - bin/git-shell
-  - bin/git-upload-archive
-  - bin/git-upload-pack
-  - bin/scalar
+  linux:
+    - bin/git
+    - bin/git-cvsserver
+    - bin/git-receive-pack
+    - bin/git-shell
+    - bin/git-upload-archive
+    - bin/git-upload-pack
+    - bin/scalar
+  darwin:
+    - bin/git
+    - bin/git-cvsserver
+    - bin/git-receive-pack
+    - bin/git-shell
+    - bin/git-upload-archive
+    - bin/git-upload-pack
+    - bin/scalar
+    - bin/git-credential-osxkeychain

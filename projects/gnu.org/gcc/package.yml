@@ -30,14 +30,18 @@ build:
   script:
     # If we have a patch, apply it
     - |
-      if test -n "$PATCH{{version.major}}{{version.minor}}"; then
-        curl "$PATCH{{version.major}}{{version.minor}}" | patch -p1 -d..
+      if test "{{hw.platform}}+{{hw.arch}}" = "darwin+aarch64"; then
+        if test -n "$PATCH{{version.major}}{{version.minor}}"; then
+          curl "$PATCH{{version.major}}{{version.minor}}" | patch -p1 -d..
+        fi
       fi
 
     # if there's no diff yet, unpack iains' source over ours
     - |
-      if test -n "$BRANCH{{version.major}}{{version.minor}}"; then
-        curl -L "$BRANCH{{version.major}}{{version.minor}}" | tar xz --strip-components=1 -C ..
+      if test "{{hw.platform}}+{{hw.arch}}" = "darwin+aarch64"; then
+        if test -n "$BRANCH{{version.major}}{{version.minor}}"; then
+          curl -L "$BRANCH{{version.major}}{{version.minor}}" | tar xz --strip-components=1 -C ..
+        fi
       fi
 
     # The spaces mess things up in the env key
@@ -70,7 +74,10 @@ build:
     PATCH122: https://raw.githubusercontent.com/Homebrew/formula-patches/1d184289/gcc/gcc-12.2.0-arm.diff
     # https://github.com/iains/gcc-darwin-arm64
     PATCH131: https://raw.githubusercontent.com/Homebrew/formula-patches/master/gcc/gcc-13.1.0.diff
+    BRANCH105: https://github.com/iains/gcc-10-branch/archive/refs/heads/gcc-10-5Dr0-pre-0.tar.gz
+    BRANCH114: https://github.com/iains/gcc-11-branch/archive/refs/tags/gcc-11.4-darwin-r0.tar.gz
     BRANCH123: https://github.com/iains/gcc-12-branch/archive/refs/tags/gcc-12.3-darwin-r0.tar.gz
+    BRANCH132: https://github.com/iains/gcc-13-branch/archive/refs/heads/gcc-13-2-darwin.tar.gz
     ARGS:
       - --prefix={{ prefix }}
       - --libdir={{ prefix }}/lib
@@ -83,6 +90,10 @@ build:
         - --disable-multilib
         - --enable-default-pie
         - --enable-pie-tools
+    linux/x86-64:
+      LDFLAGS: $LDFLAGS -pie
+      CFLAGS: $CFLAGS -fPIC
+      CXXFLAGS: $CXXFLAGS -fPIC
     darwin:
       ARGS:
         # Reliance on CLT hard path is yuck.
@@ -95,17 +106,17 @@ build:
       ARGS:
         - --build=x86_64-apple-darwin20.0.0
 
-test: |
-  gcc --version | grep -q "tea GCC {{version}}"
-  gcc -print-libgcc-file-name
-  gcc -print-multiarch
-  gcc -dumpspecs
-  gcc -o test1 test.c -lgmp
-  ./test1
-  g++ -o test2 test.cc
-  test "$(./test2)" = "Hello, world!"
-  gfortran -o test3 test.f90
-  test "$(./test3)" = "Hello, world!"
+test:
+  - gcc --version | grep -q "tea GCC {{version}}"
+  - gcc -print-libgcc-file-name
+  - gcc -print-multiarch
+  - gcc -dumpspecs
+  - gcc -o test1 test.c -lgmp
+  - ./test1
+  - g++ -o test2 test.cc
+  - test "$(./test2)" = "Hello, world!"
+  - gfortran -o test3 test.f90
+  - test "$(./test3)" = "Hello, world!"
 
 
 provides:

@@ -24,7 +24,13 @@ build:
 
 test:
   script:
-    grep "LINUX_VERSION_CODE $V" "{{prefix}}/include/linux/version.h"
-  env:
     #define KERNEL_VERSION(a,b,c) (((a) << 16) + ((b) << 8) + ((c) > 255 ? 255 : (c)))
-    V: $(({{version.major}} * 65536 + {{version.minor}} * 256 + {{version.patch}}))
+    - run:
+        PATCH=$(test {{version.patch}} -gt 255
+          && echo 255
+          || echo {{version.patch}})
+    - run:
+        V=$(({{version.major}} * 65536
+          + {{version.minor}} * 256
+          + $PATCH))
+    - grep "LINUX_VERSION_CODE $V" "{{prefix}}/include/linux/version.h"

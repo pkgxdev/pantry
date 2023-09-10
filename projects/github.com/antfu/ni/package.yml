@@ -1,0 +1,32 @@
+distributable:
+  url: https://github.com/antfu/ni/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: antfu/ni
+
+dependencies:
+  nodejs.org: '>=14'
+
+build:
+  dependencies:
+    npmjs.com: '*'
+  script:
+    - npm install --include=dev
+    - npm run build
+    - npm install .
+        --global
+        --prefix={{prefix}}
+        --install-links
+
+provides:
+  - bin/na
+  - bin/nci
+  - bin/ni
+  - bin/nlx
+  - bin/nr
+  - bin/nu
+  - bin/nun
+
+test:
+  ni --version | grep {{version}}

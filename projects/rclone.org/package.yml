@@ -1,0 +1,27 @@
+distributable:
+  url: https://github.com/rclone/rclone/archive/v1.63.0.tar.gz
+  strip-components: 1
+versions:
+  github: rclone/rclone
+build:
+  dependencies:
+    go.dev: '*'
+    darwin:
+      curl.se: '*'
+      gnu.org/patch: '*'
+  script:
+    - run: curl -L https://github.com/rclone/rclone/commit/c5a6821a8f09b1ac88e246a775d99271fa12cecd.patch?full_index=1 | patch -p1
+      if: darwin
+    - go build $ARGS -ldflags='-s -w -X github.com/rclone/rclone/fs.Version=v{{version}}'
+  env:
+    ARGS:
+      - -trimpath
+      - -o={{prefix}}/bin/rclone
+provides:
+  - bin/rclone
+test:
+  script:
+    - echo "My version - {{version}}" > test.txt
+    - rclone copy test.txt dist
+    - cat dist/test.txt | grep {{version}}
+    - rclone --version | grep {{version}}

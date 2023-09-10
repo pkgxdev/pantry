@@ -15,7 +15,14 @@ dependencies:
 build:
   dependencies:
     npmjs.com: '*'
-  script: npm install . --global --prefix={{prefix}} --install-links
+    gnu.org/patch: '*'
+  script:
+    - patch -p1 < props/global-prefix.patch
+
+    - npm install .
+      --global
+      --prefix={{prefix}}
+      --install-links
 
 test:
   script: |

@@ -1,0 +1,36 @@
+distributable:
+  url: https://github.com/maxbrunsfeld/counterfeiter/archive/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: maxbrunsfeld/counterfeiter
+
+runtime:
+  env:
+    GOROOT: "{{deps.go.dev.prefix}}"
+
+dependencies:
+  go.dev: '*'
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    go.dev: '*'
+  script: go build $ARGS
+  env:
+    ARGS:
+      - -trimpath
+      - -o={{prefix}}/bin/counterfeiter
+
+provides:
+  - bin/counterfeiter
+
+test:
+  dependencies:
+    go.dev: '*'
+  env:
+    GOROOT: "{{deps.go.dev.prefix}}"
+  script: |
+    counterfeiter -p os 2>&1
+    test -e osshim

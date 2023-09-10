@@ -1,0 +1,24 @@
+diff --git a/gpt_engineer/main.py b/gpt_engineer/main.py
+index 9df1f07..3bb31c7 100644
+--- a/gpt_engineer/main.py
++++ b/gpt_engineer/main.py
+@@ -46,12 +46,18 @@ def main(
+         temperature=temperature,
+     )
+
++    script_dir = Path(os.path.dirname(os.path.abspath(__file__)))
++    up_dir = script_dir
++    for _ in range(5):
++      up_dir = up_dir.parent
++    identity_file_path = up_dir / "identity"
++
+     dbs = DBs(
+         memory=DB(memory_path),
+         logs=DB(memory_path / "logs"),
+         input=DB(input_path),
+         workspace=DB(workspace_path),
+-        identity=DB(Path(os.path.curdir) / "identity"),
++        identity=DB(identity_file_path),
+     )
+
+     for step in STEPS[steps_config]:

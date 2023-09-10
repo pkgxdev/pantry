@@ -9,7 +9,7 @@ companions:
   npmjs.com: '*'
 
 dependencies:
-  unicode.org: '>=71'
+  unicode.org: ^71
   openssl.org: 1.1
   zlib.net: 1
 
@@ -23,17 +23,13 @@ interprets:
 build:
   dependencies:
     tea.xyz/gx/cc: c99
+    # otherwise, we hit https://reviews.llvm.org/D131307
+    linux:
+      llvm.org: '<16'
     tea.xyz/gx/make: '*'
     python.org: '>=3.7 <3.11'
     freedesktop.org/pkg-config: ^0.29
   script: |
-    # This is hacky, but it works.
-    # Knowing the precise versions to test is difficult, since
-    # nodejs develops multiple majors in sync.
-    if ./configure --help | grep -- --without-corepack; then
-      ARGS="$ARGS --without-corepack"
-    fi
-
     ./configure $ARGS
     make --jobs {{ hw.concurrency }} install
   env:

@@ -24,6 +24,8 @@ build:
 
     make --jobs {{ hw.concurrency }}
     make install DESTDIR="{{prefix}}" PREFIX=""
+  env:
+    CFLAGS: -Wno-implicit-function-declaration
 
 provides:
   - bin/mergerfs
@@ -32,4 +34,4 @@ provides:
 
 # FIXME: Maybe? Complicated to test something that mounts filesystems...
 test: |
-  test "$(mergerfs --version)" = "mergerfs version: {{ version }}"
+  mergerfs --version | grep "{{ version }}"

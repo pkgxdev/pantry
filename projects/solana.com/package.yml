@@ -28,7 +28,10 @@ build:
       tokens \
       watchtower
     do
-      cargo install --locked --root {{prefix}} --path $x
+      # sys-tuner removed in v1.16
+      if test -d $x; then
+        cargo install --root {{prefix}} --path $x
+      fi
     done
   env:
     # TODO this should be fixed in brewkit
@@ -46,7 +49,6 @@ provides:
   - bin/solana-log-analyzer
   - bin/solana-net-shaper
   - bin/solana-stake-accounts
-  - bin/solana-sys-tuner
   - bin/solana-tokens
   - bin/solana-watchtower
 

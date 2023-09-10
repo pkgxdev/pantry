@@ -1,0 +1,47 @@
+distributable:
+  url: https://github.com/Genymobile/scrcpy/archive/v{{version.marketing}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: Genymobile/scrcpy
+
+platforms:
+  - darwin
+  - linux/x86-64
+
+dependencies:
+  ffmpeg.org: '*'
+  libusb.info: '*'
+  libsdl.org: '*'
+  darwin:
+    sourceware.org/bzip2: '*'
+    zlib.net: '*'
+
+build:
+  dependencies:
+    gnu.org/gcc: '*'
+    mesonbuild.com: '*'
+    ninja-build.org: '*'
+    freedesktop.org/pkg-config: '*'
+    gnu.org/wget: '*'
+
+  working-directory: build
+  script:
+    - wget $PREBUILT_SERVER_URL -O scrcpy-server
+    - meson $ARGS ..
+    - ninja -j {{ hw.concurrency }} install
+
+  env:
+    PREBUILT_SERVER_URL: https://github.com/Genymobile/scrcpy/releases/download/v{{version.marketing}}/scrcpy-server-v{{version.marketing}}
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --buildtype=release
+      - --wrap-mode=nofallback
+      - -Dprebuilt_server="build/scrcpy-server"
+      - --strip
+      - -Db_lto=true
+
+provides:
+  - bin/scrcpy
+
+test: scrcpy --version | grep {{version.marketing}}

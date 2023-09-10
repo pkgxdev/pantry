@@ -15,8 +15,11 @@ on:
         type: string
     outputs:
       pr:
-        description: 'The PR number'
+        description: "The PR number"
         value: ${{ jobs.bottle.outputs.pr }}
+      qa-required:
+        description: "Whether QA is required"
+        value: ${{ jobs.upload.outputs.qa-required }}
 
 jobs:
   get-platform:
@@ -43,6 +46,7 @@ jobs:
     steps:
       - uses: teaxyz/brewkit/actions/setup-brewkit@v0
         id: tea
+        timeout-minutes: 10
 
       - uses: actions/download-artifact@v3
         if: ${{ inputs.new-version }}
@@ -92,7 +96,6 @@ jobs:
           built: ${{ env.built }}
           compression: xz
           gpg-key-id: ${{ secrets.GPG_KEY_ID }}
-          gpg-key-passphrase: ${{ secrets.GPG_PASSPHRASE }}
 
       - uses: teaxyz/brewkit/actions/bottle@v0
         id: bottle-gz
@@ -100,7 +103,6 @@ jobs:
           built: ${{ env.built }}
           compression: gz
           gpg-key-id: ${{ secrets.GPG_KEY_ID }}
-          gpg-key-passphrase: ${{ secrets.GPG_PASSPHRASE }}
 
       - run: |
           echo ${{ steps.bottle-gz.outputs.bottles }} ${{ steps.bottle-xz.outputs.bottles }} >bottles
@@ -127,10 +129,13 @@ jobs:
     needs: [get-platform, bottle]
     if: ${{ !inputs.new-version || needs.get-platform.outputs.available != '' }}
     runs-on: ubuntu-latest
+    outputs:
+      qa-required: ${{ steps.upload.outputs.qa-required }}
     steps:
       - uses: teaxyz/brewkit/actions/setup-brewkit@v0
         with:
-          prefix: ${{ github.workspace }}
+          prefix: ${{ github.workspace }}/.tea
+        timeout-minutes: 10
 
       - uses: actions/download-artifact@v3
         with:
@@ -146,16 +151,19 @@ jobs:
       - uses: teaxyz/brewkit/actions/upload@v0
         id: upload
         with:
+          qa: ${{ inputs.new-version }}
           pkgs: ${{ needs.bottle.outputs.built }} ${{ needs.bottle.outputs.built }}
           srcs: ${{ needs.bottle.outputs.srcs }} ${{ needs.bottle.outputs.srcs }}
           bottles: ${{ env.bottles }}
           checksums: ${{ env.checksums }}
           signatures: ${{ env.signatures }}
           AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+          AWS_S3_STAGING_BUCKET: ${{ secrets.AWS_S3_CACHE }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
       - uses: chetan/invalidate-cloudfront-action@v2
+        if: ${{ steps.upload.outputs.cf-invalidation-paths != '' }}
         env:
           PATHS: ${{ steps.upload.outputs.cf-invalidation-paths }}
           DISTRIBUTION: ${{ secrets.AWS_CF_DISTRIBUTION_ID }}

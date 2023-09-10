@@ -1,0 +1,39 @@
+distributable:
+  url: https://gnupg.org/ftp/gcrypt/gpgme/gpgme-{{version.raw}}.tar.bz2
+  strip-components: 1
+
+versions:
+  url: https://gnupg.org/ftp/gcrypt/gpgme/
+  match: /gpgme-\d+\.\d+(\.\d+)?\.tar\.bz2/
+  strip:
+    - /gpgme-/
+    - /.tar.bz2/
+
+provides:
+  - bin/gpgme-config
+  - bin/gpgme-json
+  - bin/gpgme-tool
+
+build:
+  script:
+    - killall gpg-agent || true
+    - gpg-agent --daemon
+    - ./configure $ARGS
+    - make -j {{hw.concurrency}}
+    - make install
+    - killall gpg-agent || true
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --with-libassuan-prefix={{deps.gnupg.org/libassuan.prefix}}
+      - --with-libgpg-error-prefix={{deps.gnupg.org/libgpg-error.prefix}}
+    CFLAGS: $CFLAGS -Wno-implicit-function-declaration
+    CXXFLAGS: $CXXFLAGS -std=c++14
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    gnupg.org: '*'
+    gnupg.org/libassuan: ^2.0.2
+    gnupg.org/libgpg-error: ^1.11
+test:
+  script: test "$(gpgme-config --version)" = "{{version}}"

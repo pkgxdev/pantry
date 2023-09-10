@@ -1,0 +1,32 @@
+distributable:
+  url: https://github.com/symfony-cli/symfony-cli/releases/download/v{{version}}/symfony-cli-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: symfony-cli/symfony-cli
+
+dependencies:
+  php.net: '*'
+
+warnings:
+  - vendored
+
+build:
+  dependencies:
+    gnu.org/wget: '*'
+  script:
+    - curl -L https://github.com/symfony-cli/symfony-cli/releases/download/v{{version}}/symfony-cli_$TYPE.tar.gz | tar -xzf -
+    - mkdir -p {{prefix}}/bin
+    - install ./symfony {{prefix}}/bin/symfony
+  env:
+    linux/x86-64:
+      TYPE: linux_amd64
+    linux/aarch64:
+      TYPE: linux_arm64
+    darwin:
+      TYPE: darwin_all
+
+provides:
+  - bin/symfony
+
+test: symfony -V | grep {{version}}

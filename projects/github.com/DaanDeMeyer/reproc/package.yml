@@ -1,0 +1,58 @@
+distributable:
+  url: https://github.com/DaanDeMeyer/reproc/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: DaanDeMeyer/reproc
+
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    cmake.org: ^3
+  working-directory: build
+  script:
+    - cmake ..
+        -DCMAKE_INSTALL_PREFIX={{prefix}}
+        -DREPROC++=ON
+        -DBUILD_SHARED_LIBS=ON
+        -DCMAKE_BUILD_TYPE=Release
+
+    - make --jobs {{hw.concurrency}} install
+
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+  script:
+    - fixture: |
+        #include <reproc/run.h>
+
+        int main(void) {
+          const char *args[] = { "echo", "Hello, world!", NULL };
+          return reproc_run(args, (reproc_options) { 0 });
+        }
+      run: |
+        mv $FIXTURE b.c
+        cc b.c -lreproc
+        out="$(./a.out)"
+        test "$out" = "Hello, world!"
+
+    - fixture: |
+        #include <iostream>
+        #include <reproc++/run.hpp>
+
+        int main(void) {
+          int status = -1;
+          std::error_code ec;
+
+          const char *args[] = { "echo", "Hello, world!", NULL };
+          reproc::options options;
+
+          std::tie(status, ec) = reproc::run(args, options);
+          return ec ? ec.value() : status;
+        }
+      run: |
+        mv $FIXTURE b.cpp
+        c++ b.cpp -lreproc++ -std=c++11
+        out="$(./a.out)"
+        test "$out" = "Hello, world!"

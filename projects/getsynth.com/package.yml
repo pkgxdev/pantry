@@ -1,0 +1,20 @@
+distributable:
+  url: https://github.com/shuttle-hq/synth/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/synth
+
+versions:
+  github: shuttle-hq/synth
+  strip: /v/
+
+build:
+  dependencies:
+    rust-lang.org: ^1.65
+    rust-lang.org/cargo: '*'
+  script: cargo install --path synth --root {{prefix}}
+
+test:
+  script:
+    - test "$(synth version)" = "synth {{version}}"

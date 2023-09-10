@@ -33,6 +33,9 @@ build:
     cmake -S fizz -B build $ARGS
     cmake --build build
     cmake --install build
+
+    sed -i.bak "s:$(tea --prefix):\$\{_IMPORT_PREFIX\}/../../../..:g" "{{prefix}}"/lib/cmake/fizz/fizz-targets.cmake
+    rm "{{prefix}}"/lib/cmake/fizz/fizz-targets.cmake.bak
   env:
     ARGS:
       - -GNinja
@@ -60,5 +63,5 @@ test:
     }
   script: |
     mv $FIXTURE test.cpp
-    c++ -std=c++14 test.cpp -lfizz -lfolly -lgflags -lglog -levent -lsodium -lcrypto -lssl -o fixture
+    c++ -std=c++17 test.cpp -lfizz -lfolly -lgflags -lglog -levent -lsodium -lcrypto -lssl -o fixture
     ./fixture | grep TLS

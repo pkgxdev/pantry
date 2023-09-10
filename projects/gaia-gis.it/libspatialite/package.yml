@@ -1,0 +1,44 @@
+distributable:
+  url: https://www.gaia-gis.it/gaia-sins/libspatialite-sources/libspatialite-{{version}}.tar.gz
+  strip-components: 1
+versions:
+  url: https://www.gaia-gis.it/gaia-sins/libspatialite-sources/
+  match: /libspatialite-\d+\.\d+\.\d+\.tar\.gz/
+  strip:
+    - /^libspatialite-/
+    - /\.tar\.gz/
+dependencies:
+  gaia-gis.it/fossil/freexl: '*'
+  libgeos.org: '*'
+  git.osgeo.org/gitea/rttopo/librttopo: '*'
+  gnome.org/libxml2: '*'
+  zlib.net/minizip: '*'
+  proj.org: '*'
+  sqlite.org: '*'
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    gnu.org/make: '*'
+    freedesktop.org/pkg-config: '*'
+    darwin:
+      gnu.org/patch: '*'
+      curl.se: '*'
+  script:
+    # Fix -flat_namespace being used on Big Sur and later.
+    - run: curl -L https://raw.githubusercontent.com/Homebrew/formula-patches/03cf8088210822aa2c1ab544ed58ea04c897d9c4/libtool/configure-pre-0.4.2.418-big_sur.diff | patch -p1
+      if: "<5.1.0"
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --disable-dependency-tracking
+      - --prefix={{prefix}}
+      - --enable-geocallbacks
+      - --enable-rttopo=yes
+    linux/aarch64:
+      ARGS:
+        - --build=aarch64-unknown-linux-gnu
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script: pkg-config --modversion spatialite | grep {{version}}

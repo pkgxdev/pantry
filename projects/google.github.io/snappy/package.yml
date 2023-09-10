@@ -12,19 +12,24 @@ build:
     freedesktop.org/pkg-config: '*'
     cmake.org: '*'
     gnu.org/patch: '*'
-  script: |
+  script:
     # disable -Werror (because there are warnings lol)
-    patch -p1 <props/CMakeLists.txt.patch
-    cmake . $ARGS
-    make
-    make install
+    - patch -p1 <props/CMakeLists.txt.patch
+    # disable no-rtti, since it messes up folly
+    - run: |
+        sed -i.bak -e '/# Disable RTTI./{N;N;d;}' CMakeLists.txt
+        rm CMakeLists.txt.bak
+    - cmake . $ARGS
+    - make install
+    - make clean
+    - cmake . -DBUILD_SHARED_LIBS=ON $ARGS
+    - make install
   env:
     ARGS:
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
       - -DCMAKE_BUILD_TYPE=Release
       - -DSNAPPY_BUILD_TESTS=OFF
       - -DSNAPPY_BUILD_BENCHMARKS=OFF
-      - -DBUILD_SHARED_LIBS=ON
 
 test:
   dependencies:

@@ -1,0 +1,73 @@
+distributable:
+  url: https://download.savannah.nongnu.org/releases/man-db/man-db-{{version}}.tar.xz
+  strip-components: 1
+display-name: man-db
+versions:
+  gitlab: man-db/man-db
+dependencies:
+  libpipeline.gitlab.io/libpipeline: '*'
+  gnu.org/groff: '*'
+  linux:
+    gnu.org/gdbm: '*'
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    gnu.org/make: '*'
+    freedesktop.org/pkg-config: '*'
+  script:
+    - ./configure $CONFIGURE_ARGS
+    - make --jobs {{hw.concurrency}} install
+    - sed -i.bak "s|$TEA_PREFIX|\$TEA_PREFIX|g" {{prefix}}/etc/systemd/system/man-db.service
+    - rm {{prefix}}/etc/systemd/system/man-db.service.bak
+    - run: |
+        # Creating stubs
+        for name in $(ls {{prefix}}/libexec/bin)
+        do
+        cat <<EOF >$name
+        #!/bin/bash
+        
+        config_file="\$(dirname \$0)/../../etc/man_db.conf"
+        
+        \$(dirname \$0)/../libexec/bin/$name --config-file="\$config_file" "\$@"
+        EOF
+        chmod +x $name
+        done
+
+        # These binaries do not require a config file
+        rm lexgrog man-recode
+        ln -s ../libexec/bin/lexgrog lexgrog
+        ln -s ../libexec/bin/man-recode man-recode
+      working-directory: "{{prefix}}/bin"
+  env:
+    CONFIGURE_ARGS:
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --prefix="{{prefix}}"
+      - --libdir="{{prefix}}/lib"
+      - --bindir="{{prefix}}/libexec/bin"
+      - --disable-silent-rules
+      - --disable-cache-owner
+      - --disable-setuid
+      - --disable-nls
+      - --localstatedir="{{prefix}}/var"
+      - --with-config-file="{{prefix}}/etc/man_db.conf"
+      - --with-systemdsystemunitdir="{{prefix}}/etc/systemd/system"
+      - --with-systemdtmpfilesdir="{{prefix}}/lib/tmpfiles.d"
+provides:
+  - bin/apropos
+  - bin/catman
+  - bin/lexgrog
+  - bin/man
+  - bin/mandb
+  - bin/manpath
+  - bin/man-recode
+  - bin/whatis
+test:
+  env:
+    PAGER: cat
+  script:
+    # This check is specific to Linux because on darwin (macOS), the 'man' command does not display version information.
+    - run: man --version | grep {{version}}
+      if: linux
+    - which man | grep {{prefix}}
+    - man man

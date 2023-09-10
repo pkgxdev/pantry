@@ -1,0 +1,30 @@
+distributable:
+  url: https://github.com/ocrmypdf/OCRmyPDF/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: ocrmypdf/OCRmyPDF 
+  
+platforms:
+  - darwin
+  - linux/x86-64
+
+dependencies:
+  python.org: ^3.11
+
+build:
+  script: |
+    python-venv.sh {{prefix}}/bin/ocrmypdf
+  env:
+    # add any environment variables here
+    ARGS:
+      - --prefix="{{prefix}}"
+
+
+provides:
+  - bin/ocrmypdf
+
+test:
+  script:
+    test "$(ocrmypdf --version)" = {{version}}
+    

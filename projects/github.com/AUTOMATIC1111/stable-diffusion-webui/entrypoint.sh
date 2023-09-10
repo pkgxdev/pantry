@@ -27,16 +27,14 @@ while ! curl -Is http://127.0.0.1:7860 | grep -q "HTTP/1.1 200 OK"; do
 done
 
 # open the URL once the HEAD request succeeds
-# TODO open in a window controlled by the gui (see next section)
-open http://127.0.0.1:7860
-
-# tell tea/gui about it
-if test -n "$TEA_IPC_FD"; then
-  echo '{"viewer": "http://127.0.0.1:7860"}' >&$TEA_IPC_FD
+if test -n "$TEA_GUI"; then
+  echo '{"xyz.tea":{"gui":"http://127.0.0.1:7860"}}' >&2
+else
+  open "http://127.0.0.1:7860"
 fi
 
 tea gum format <<EoMD
-# Stable Diffusion WEBUI
+# Stable Diffusion web UI
 
 this package has been modified for your convenience:
 

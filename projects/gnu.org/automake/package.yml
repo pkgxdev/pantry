@@ -21,20 +21,24 @@ build:
   dependencies:
     tea.xyz/gx/cc: c99
     tea.xyz/gx/make: '*'
-    git-scm.org: 2
+    gnu.org/patch: '*'
   script: |-
     ./configure \
       --build={{ hw.target }} \
       --prefix="{{ prefix }}"
-    make --jobs {{ hw.concurrency }} install
+    make -j {{ hw.concurrency }} install
 
     cd "{{prefix}}"
 
     # fix hardcoded paths
     perl -pi -e "s|'{{prefix}}/|\\\$prefix.'/|" bin/* share/automake-{{version.marketing}}/Automake/Config.pm
-    git apply "$SRCROOT"/props/relocatable.diff
+    patch -p1 <"$SRCROOT"/props/relocatable.diff
+    ln -sf aclocal bin/aclocal-{{version.marketing}}
+    ln -sf automake bin/automake-{{version.marketing}}
 
     fix-shebangs.ts bin/*
+  env:
+    PERL5LIB: "{{prefix}}/share/automake-{{version.marketing}}"
 
 # TODO to prove automake doesn't require autoconf we should
 # use “depend” on the autoconf test to generate our `configure` separately

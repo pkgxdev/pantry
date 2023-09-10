@@ -9,9 +9,6 @@ versions:
     - /libksba-/
     - /.tar.bz2/
 
-provides:
-  - bin/ksba-config
-
 build:
   script: |
     ./configure --prefix={{prefix}}
@@ -24,4 +21,6 @@ build:
     gnupg.org/libgpg-error: 1
 
 test:
-  script: test "$(ksba-config --version)" = "{{version}}"
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script: test "$(pkg-config --modversion ksba)" = "{{version}}"

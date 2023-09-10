@@ -1,0 +1,51 @@
+distributable:
+  url: https://github.com/samtools/samtools/releases/download/{{version.raw}}/samtools-{{version.raw}}.tar.bz2
+  strip-components: 1
+
+versions:
+  github: samtools/samtools
+
+dependencies:
+  htslib.org: '*'
+  invisible-island.net/ncurses: '*'
+  zlib.net: 1
+
+build:
+  dependencies:
+    tea.xyz/gx/make: '*'
+    tea.xyz/gx/cc: c99
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --with-htslib={{deps.htslib.org.prefix}}
+
+provides:
+  - bin/ace2sam
+  - bin/blast2sam.pl
+  - bin/bowtie2sam.pl
+  - bin/export2sam.pl
+  - bin/fasta-sanitize.pl
+  - bin/interpolate_sam.pl
+  - bin/maq2sam-long
+  - bin/maq2sam-short
+  - bin/md5fa
+  - bin/md5sum-lite
+  - bin/novo2sam.pl
+  - bin/plot-ampliconstats
+  - bin/plot-bamstats
+  - bin/psl2sam.pl
+  - bin/sam2vcf.pl
+  - bin/samtools
+  - bin/samtools.pl
+  - bin/seq_cache_populate.pl
+  - bin/soap2sam.pl
+  - bin/wgsim
+  - bin/wgsim_eval.pl
+  - bin/zoom2sam.pl
+
+test: |
+  samtools faidx test.fasta
+  test "$(cat test.fasta.fai)" = "U00096.2:1-70	70	15	70	71"

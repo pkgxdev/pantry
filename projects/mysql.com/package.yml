@@ -1,5 +1,5 @@
 distributable:
-  url: https://cdn.mysql.com/Downloads/MySQL-8.0/mysql-boost-{{version}}.tar.gz
+  url: https://cdn.mysql.com/Downloads/MySQL-{{version.marketing}}/mysql-boost-{{version}}.tar.gz
   strip-components: 1
 
 versions:
@@ -7,7 +7,7 @@ versions:
   strip: /^mysql-/
 
 dependencies:
-  unicode.org: '>=71'
+  unicode.org: ^71
   libevent.org: ^2
   lz4.org: ^1
   openssl.org: ^1.1
@@ -23,6 +23,7 @@ build:
     tea.xyz/gx/make: '*'
     cmake.org: ^3
     freedesktop.org/pkg-config: ^0.29
+    gnu.org/bison: ">=3.0.4"
   working-directory: build
   script: |
     # https://www.mail-archive.com/ports@freebsd.org/msg00418.html
@@ -54,7 +55,7 @@ build:
       - -DWITH_PROTOBUF=system
       - -DWITH_SSL=system
       # FIXME: starting with 8.0.33, mysql reports:
-      # -- Found ZLIB: /Users/jacob/.tea/zlib.net/v1.2.13/lib/libz.dylib (found version "1.2.13")  
+      # -- Found ZLIB: /Users/jacob/.tea/zlib.net/v1.2.13/lib/libz.dylib (found version "1.2.13")
       # CMake Error at cmake/zlib.cmake:118 (MESSAGE):
       #   Cannot find system zlib libraries.
       # Call Stack (most recent call first):
@@ -76,6 +77,9 @@ build:
       # so that it can do both github and an array
       - -DDOWNLOAD_BOOST=1
       - -DWITH_BOOST=boost
+
+      # Now requires bison>=3.0.4
+      - -DBISON_EXECUTABLE={{deps.gnu.org/bison.prefix}}/bin/bison
     linux/aarch64:
       ARGS:
       - -DCMAKE_CXX_FLAGS="-mno-outline-atomics"

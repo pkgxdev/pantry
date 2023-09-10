@@ -1,0 +1,19 @@
+distributable:
+  url: https://github.com/yui/yuicompressor/releases/download/v{{version}}/yuicompressor-{{version}}.zip
+  strip-components: 1
+versions:
+  github: yui/yuicompressor
+warnings:
+  - vendored
+dependencies:
+  openjdk.org: '*'
+build:
+  script:
+    - mkdir -p {{prefix}}/bin
+    - echo -e '#!/bin/bash\njava -jar $(dirname "$0")/yuicompressor-{{version}}.jar $@' > ./yuicompressor
+    - install yuicompressor-{{version}}.jar yuicompressor {{prefix}}/bin/
+provides:
+  - bin/yuicompressor
+test:
+  script:
+    - yuicompressor --nomunge --preserve-semi ./test.js | grep 'var i=1;console.log(i);'

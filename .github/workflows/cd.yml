@@ -16,6 +16,7 @@ jobs:
       # ^^ NOTE probably no longer required but I don’t dare try to remove it
 
       - uses: teaxyz/brewkit/actions/setup-brewkit@v0
+        timeout-minutes: 10
 
       - uses: teaxyz/brewkit/actions/has-artifacts@v0
         id: has-artifacts
@@ -64,25 +65,6 @@ jobs:
         env:
           AWS_S3_CACHE: ${{ secrets.AWS_S3_CACHE }}
           PR: ${{ needs.bottle.outputs.pr }}
-
-  index_data:
-    needs: [bottle-pr]
-    runs-on: ubuntu-latest
-    if: ${{ needs.cd.outputs.has-artifacts == 'true' }}
-    steps:
-      - uses: actions/checkout@v3
-      - uses: teaxyz/setup@v0
-        with:
-          srcroot: null
-      - uses: teaxyz/brewkit/actions/cache@v0
-      - run: ./.github/scripts/index-packages.ts ${{ inputs.projects }}
-        env:
-          TEA_PANTRY_PATH: ${{ github.workspace }}
-          AWS_REGION: us-east-1
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          SQS_GENERATE_PACKAGE_DETAILS_URL: ${{ secrets.SQS_GENERATE_PACKAGE_DETAILS_URL }}
-
 
   bottle-standalone:
     runs-on: ubuntu-latest
