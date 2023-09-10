@@ -1,0 +1,36 @@
+distributable:
+  url: https://gitlab.freedesktop.org/mesa/glu/-/archive/glu-{{version}}/glu-glu-{{version}}.tar.gz
+  strip-components: 1
+versions:
+  url: https://gitlab.freedesktop.org/mesa/glu/-/tags
+  match: /glu-\d+\.\d+\.\d+/
+  strip:
+    - /^glu-/
+dependencies:
+  mesa3d.org: '*'
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    gnu.org/make: '*'
+    freedesktop.org/pkg-config: '*'
+    mesonbuild.com: '*'
+    ninja-build.org: '*'
+  script:
+    - meson setup $MESON_ARGS build
+    - meson compile -C build --verbose
+    - meson install -C build
+  env:
+    MESON_ARGS:
+      - --prefix="{{prefix}}"
+      - --libdir="{{prefix}}/lib"
+      - --buildtype=release
+      - --wrap-mode=nofallback
+      - -Dgl_provider=gl
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    freedesktop.org/pkg-config: '*'
+  script:
+    - pkg-config --modversion glu | grep {{version}}
+    - c++ test.cpp -lGLU -o test
+    - ./test
