@@ -12,7 +12,7 @@ dependencies:
   x.org/xxf86vm: '*'
   mesa3d.org: '*'
   linux:
-    #cgit.freedesktop.org/mesa/glu: '*'
+    freedesktop.org/mesa-glu: '*'
     x.org/xinput: '*'
 
 build:
@@ -28,8 +28,7 @@ build:
   env:
     ARGS:
       - -DFREEGLUT_BUILD_DEMOS=OFF
-      - -DOPENGL_INCLUDE_DIR={{prefix}}/include
-      - -DOPENGL_gl_LIBRARY={{prefix}}/lib/share/libGL
+      - -DOPENGL_INCLUDE_DIR={{deps.mesa3d.org.prefix}}/include
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
       - -DCMAKE_INSTALL_LIBDIR=lib
       - -DCMAKE_BUILD_TYPE=Release
@@ -37,6 +36,10 @@ build:
       - -DCMAKE_VERBOSE_MAKEFILE=ON
       - -Wno-dev
       - -DBUILD_TESTING=OFF
+    linux:
+      - -DOPENGL_gl_LIBRARY={{deps.mesa3d.org.prefix}}/lib/libGL.1.so
+    linux:
+      - -DOPENGL_gl_LIBRARY={{deps.mesa3d.org.prefix}}/lib/libGL.1.dylib
 
 test:
   dependencies:
