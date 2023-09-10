@@ -1,6 +1,6 @@
 distributable:
-  url: https://github.com/grpc/grpc/archive/refs/tags/v{{version}}.tar.gz
-  strip-components: 1
+  url: git+https://github.com/grpc/grpc
+  ref: v{{version}}
 
 versions:
   github: grpc/grpc
@@ -77,9 +77,10 @@ test:
         grpc_shutdown();
         return GRPC_STATUS_OK;
       }
-    script: |
+    script:
+      - ls {{prefix}}/*bin
       # FIXME: This is not working yet.
-      exit 1
+      - exit 1
       # ENV.prepend_path "PKG_CONFIG_PATH", Formula["openssl@1.1"].opt_lib/"pkgconfig"
       # pkg_config_flags = shell_output("pkg-config --cflags --libs libcares protobuf re2 grpc++").chomp.split
       # c++ test.cpp -o test
