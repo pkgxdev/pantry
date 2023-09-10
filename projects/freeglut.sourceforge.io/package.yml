@@ -46,4 +46,9 @@ build:
 test:
   dependencies:
     freedesktop.org/pkg-config: '*'
-  script: pkg-config --modversion glut | grep {{version}}
+    tea.xyz/gx/cc: c99
+  script: 
+    - pkg-config --modversion glut | grep {{version}}
+    - cc test.c $(pkg-config --cflags --libs glut gl xext x11) -o test
+    # - ./test
+    # We cannot run ./test due to the absence of a display.
