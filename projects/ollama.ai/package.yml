@@ -24,6 +24,9 @@ provides:
 test:
   qa-required: true
   script:
+    # 0.0.19 complains about a missing blobs directory
+    - run: mkdir -p ~/.ollama/models/blobs
+      if: =0.0.19
     - killall ollama || true
     - ollama serve &
     - sleep 5
