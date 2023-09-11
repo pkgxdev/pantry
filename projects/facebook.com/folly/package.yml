@@ -60,6 +60,15 @@ build:
         sed -i.bak -e 's/-I[^ ]* *//g' libfolly.pc
         rm libfolly.pc.bak
       working-directory: ${{prefix}}/lib/pkgconfig
+
+    # folly has libs that end up with name @rpath/libfolly.{{version}}.dylib (offset 24)
+    # so we need to add @loader_path to the rpath
+    - run: |
+        for LIB in libfolly*.*.*.*-dev.dylib; do
+          install_name_tool -add_rpath @loader_path $LIB
+        done
+      working-directory: ${{prefix}}/lib
+      if: darwin
   env:
     ARGS:
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
