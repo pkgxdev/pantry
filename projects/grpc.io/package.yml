@@ -46,6 +46,11 @@ build:
     - make grpc_cli
 
     - cp grpc_cli "{{prefix}}/bin"
+    - mv libgrpc++_test_config*.dylib "{{prefix}}/lib"
+
+    - run: install_name_tool -add_rpath @loader_path libgrpc++_test_config.dylib
+      working-directory: "{{prefix}}/lib"
+      if: darwin
   env:
     COMMON_ARGS:
       - -DCMAKE_BUILD_TYPE=Release
@@ -69,6 +74,7 @@ build:
 test:
   dependencies:
     tea.xyz/gx/cc: c99
+    freedesktop.org/pkg-config: ^0
   fixture: |
     #include <grpc/grpc.h>
     int main() {
@@ -78,7 +84,8 @@ test:
     }
   script:
     - cp $FIXTURE test.cpp
-    - c++ -lcares -lprotobuf -lre2 -lgrpc++ test.cpp -o test
+    - PKG_CONFIG=$(pkg-config --cflags --libs libcares protobuf re2 grpc++)
+    - cc $PKG_CONFIG test.cpp -o test
     - ./test
 
-    - test "$(grpc_cli ls localhost:58931 2>&1 || true)" = "Received an error when querying services endpoint."
+    - (grpc_cli ls localhost:58931 2>&1 || true) | grep "failed to connect to all addresses"
