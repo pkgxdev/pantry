@@ -69,17 +69,16 @@ build:
 test:
   dependencies:
     tea.xyz/gx/cc: c99
+  fixture: |
+    #include <grpc/grpc.h>
+    int main() {
+      grpc_init();
+      grpc_shutdown();
+      return GRPC_STATUS_OK;
+    }
   script:
-    fixture: |
-      #include <grpc/grpc.h>
-      int main() {
-        grpc_init();
-        grpc_shutdown();
-        return GRPC_STATUS_OK;
-      }
-    script:
-      - cp $FIXTURE test.cpp
-      - c++ -l libcares -lprotobuf -lre2 -lgrpc++ test.cpp -o test
-      - ./test
+    - cp $FIXTURE test.cpp
+    - c++ -l libcares -lprotobuf -lre2 -lgrpc++ test.cpp -o test
+    - ./test
 
-      - test "$(grpc_cli ls localhost:58931 2>&1 || true)" = "Received an error when querying services endpoint."
+    - test "$(grpc_cli ls localhost:58931 2>&1 || true)" = "Received an error when querying services endpoint."
