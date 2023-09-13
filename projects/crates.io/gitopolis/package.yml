@@ -1,0 +1,47 @@
+distributable:
+  url: https://github.com/rustworkshop/gitopolis/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: rustworkshop/gitopolis
+  strip: /^v/
+
+dependencies:
+
+build:
+  dependencies:
+    rust-lang.org: ^1.70
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --root {{prefix}} --path .
+
+provides:
+  - bin/gitopolis
+
+test:
+  fixture: |
+    [[repos]]
+    path = "cli"
+    tags = ["cli"]
+    [repos.remotes.origin]
+    name = "origin"
+    url = "git@github.com:teaxyz/cli.git"
+
+    [[repos]]
+    path = "lib"
+    tags = ["cli", "lib"]
+    [repos.remotes.origin]
+    name = "origin"
+    url = "git@github.com:teaxyz/lib.git"
+
+    [[repos]]
+    path = "docs"
+    tags = ["docs"]
+    [repos.remotes.origin]
+    name = "origin"
+    url = "git@github.com:teaxyz/docs.git"
+  script:
+    - cp $FIXTURE .gitopolis.toml
+    - gitopolis clone
+    - test -f cli/README.md
+    - test -f lib/README.md
+    - test -f docs/README.md
