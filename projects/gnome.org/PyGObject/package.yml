@@ -2,22 +2,30 @@ distributable:
   url: https://download.gnome.org/sources/pygobject/{{version.marketing}}/pygobject-{{version}}.tar.xz
   strip-components: 1
 versions:
-  gitlab: gitlab.gnome.org:GNOME/pygobject/tags
+  url: https://download.gnome.org/sources/pygobject/cache.json
+  match: /pygobject-\d+\.\d+\.\d+\.tar\.xz/
+  strip:
+    - /^pygobject-/
+    - /\.tar\.xz/
 dependencies:
   gnome.org/gobject-introspection: '*'
   cairographics.org/pycairo: '*'
+runtime:
+  env:
+    PYTHONPATH: "{{prefix}}/lib/python3.11/site-packages:$PYTHONPATH"
 build:
   dependencies:
     tea.xyz/gx/cc: c99
-    gnu.org/make: '*'
+    tea.xyz/gx/make: '*'
     mesonbuild.com: '*'
     ninja-build.org: '*'
     freedesktop.org/pkg-config: '*'
     python.org: ~3.11
   script:
-    - meson setup buildpy $MESON_ARGS
-    - meson compile -C buildpy --verbose
-    - meson install -C buildpy
+    - meson setup build $MESON_ARGS
+    - meson compile -C build --verbose
+    - meson install -C build
+    - rm -r {{prefix}}/lib/python3.11/site-packages/*/__pycache__
   env:
     MESON_ARGS:
       - --prefix="{{prefix}}"
@@ -25,11 +33,8 @@ build:
       - --buildtype=release
       - --wrap-mode=nofallback
       - -Dpycairo=enabled
-      #- -Dpython={{deps.python.org.prefix}}/bin/python3
-      - -Dpython.platlibdir={{prefix}}/lib/{{deps.python.org.version}}
-      - -Dpython.purelibdir={{prefix}}/lib/{{deps.python.org.version}}
 test:
   dependencies:
     python.org: ~3.11
   script:
-    - python test.py
+    - python -c 'import gi; print(gi.__version__)' | grep {{version}}
