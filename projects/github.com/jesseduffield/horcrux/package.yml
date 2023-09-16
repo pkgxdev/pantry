@@ -3,7 +3,8 @@ distributable:
   strip-components: 1
 
 versions:
-  - 2020.06.13
+  github: jesseduffield/horcrux/tags
+  strip: /^v/
 
 provides:
   - bin/horcrux
@@ -31,5 +32,9 @@ build:
       - -buildmode=pie
 
 test:
+  fixture: packages by tea
   script:
-    - horcrux --help
+    - cp $FIXTURE tea.txt
+    - horcrux -t 3 -n 5 split tea.txt
+    - rm tea.txt tea_1_of_5.horcrux tea_4_of_5.horcrux
+    - horcrux bind
