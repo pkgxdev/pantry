@@ -1,0 +1,21 @@
+distributable:
+  url: https://github.com/alt-art/commit/archive/refs/tags/{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/commit
+
+versions:
+  github: alt-art/commit
+  strip: /v/
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.65'
+    rust-lang.org/cargo: '*'
+  script:
+    cargo install --locked --path . --root {{prefix}}
+
+test:
+  script:
+    - test "$(commit --version)" = "commit {{version}}"
