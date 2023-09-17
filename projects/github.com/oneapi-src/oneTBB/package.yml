@@ -29,6 +29,10 @@ build:
     freedesktop.org/pkg-config: '*'
   working-directory: build
   script:
+    - run: |
+        sed -i.bak "s|=\"0.2\"|=\"{{version}}\"|g" ../python/setup.py
+        rm ../python/setup.py.bak
+      if: darwin
     - cmake -S .. $CMAKE_ARGS -DBUILD_SHARED_LIBS=ON
     - cmake --build .
     - cmake --install .
