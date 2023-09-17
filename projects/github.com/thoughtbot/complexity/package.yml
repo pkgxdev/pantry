@@ -1,0 +1,21 @@
+distributable:
+  url: https://github.com/thoughtbot/complexity/archive/refs/tags/{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/complexity
+
+versions:
+  github: thoughtbot/complexity
+  strip: /v/
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
+  script: |
+    cargo install --locked --path . --root {{prefix}}
+
+test:
+  script:
+    - test "$(complexity --version)" = "complexity {{version}}"

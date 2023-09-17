@@ -1,0 +1,22 @@
+distributable:
+  url: https://github.com/cocogitto/cocogitto/archive/refs/tags/{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/cog
+
+versions:
+  github: cocogitto/cocogitto
+  strip: /v/
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.65'
+    rust-lang.org/cargo: '*'
+  script:
+    # no --locked flag because it was failing on proc_macro_span_shrink
+    - cargo install --path . --root {{prefix}}
+
+test:
+  script:
+    - test "$(cog --version)" = "cog {{version}}"

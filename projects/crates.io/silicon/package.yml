@@ -1,0 +1,37 @@
+distributable:
+  url: https://github.com/Aloxaf/silicon/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/silicon
+
+# https://github.com/Aloxaf/silicon/issues/226
+platforms:
+  - darwin
+  - linux/x86-64
+
+versions:
+  github: Aloxaf/silicon
+  strip: /v/
+
+dependencies:
+  harfbuzz.org: ^5
+  linux:
+    freedesktop.org/fontconfig: '*'
+    freetype.org: '*'
+    x.org/xcb: '*'
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.65'
+    rust-lang.org/cargo: '*'
+    freedesktop.org/pkg-config: '*'
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    cmake.org: ^3
+  script:
+    cargo install --locked --path . --root {{prefix}}
+
+test:
+  script:
+    - test "$(silicon --version)" = "silicon {{version}}"

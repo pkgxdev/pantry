@@ -34,7 +34,11 @@ build:
     - rm *.{bash,bat,rc} Make.dist
     - run: find . -mindepth 1 -delete
       working-directory: ${{ prefix }}
-    - run: cp -a api bin doc lib misc pkg src test go.env "{{prefix}}"
+    - run: |
+        cp -a api bin doc lib misc pkg src test "{{prefix}}"
+        if test -f go.env; then
+          cp go.env "{{prefix}}"
+        fi
       working-directory: $SRCROOT
   env:
     # `make.bash` complains about unset GOCACHE and HOME otherwise

@@ -1,0 +1,38 @@
+distributable:
+  url: https://github.com/clockworklabs/SpacetimeDB/archive/refs/tags/v0.6.1-beta.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/spacetime
+
+versions:
+  - 2023.8.12
+  # FIXME once there has been an official release
+  # See https://github.com/orgs/teaxyz/discussions/321
+  # github: clockworklabs/SpacetimeDB
+  # strip: /v/
+
+dependencies:
+  openssl.org: ^1
+
+build:
+  working-directory: crates/cli
+  dependencies:
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
+    cmake.org: ^3
+    perl.org: "*"
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    freedesktop.org/pkg-config: ^0.29
+  env:
+    linux:
+      # See: https://docs.rs/openssl/latest/openssl/#manual
+      OPENSSL_NO_VENDOR: true # Always find OpenSSL in the system, even if the vendored feature is enabled.
+      OPENSSL_DIR: "{{ deps.openssl.org.prefix }}" # Use tea's openssl installation directory
+  script: |
+    cargo install --locked --path . --root {{prefix}}
+
+test:
+  script:
+    - spacetime --help

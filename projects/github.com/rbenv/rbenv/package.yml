@@ -1,0 +1,26 @@
+distributable:
+  url: https://github.com/rbenv/rbenv/archive/v{{version}}.tar.gz
+  strip-components: 1
+versions:
+  github: rbenv/rbenv
+dependencies:
+  ruby-lang.org: '*'
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+  script:
+    - src/configure
+    - make -C src
+    - mkdir -p {{prefix}}
+    - mv bin completions libexec rbenv.d {{prefix}}/
+provides:
+  - bin/rbenv
+test:
+  script:
+    - rbenv --version | grep {{version}}
+    - mkdir -p "$(rbenv root)/versions/1.2.3/bin"
+    - echo 'echo hello' > "$(rbenv root)/versions/1.2.3/bin/foo"
+    - chmod +x "$(rbenv root)/versions/1.2.3/bin/foo"
+    - rbenv init -
+    - rbenv versions | grep "1.2.3"

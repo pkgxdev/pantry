@@ -1,0 +1,57 @@
+distributable: ~
+
+versions:
+  github: encoredev/go
+  strip: /^encore-go/
+
+display-name: encore-go
+
+provides:
+  - bin/go
+
+interprets:
+  extensions: go
+  args: [go, run]
+
+dependencies:
+  curl.se/ca-certs: '*'
+
+companions:
+  tea.xyz/gx/cc: c99  # for `cgo`
+
+warnings:
+  - vendored
+
+runtime:
+  env:
+    ENCORE_GOROOT: ${{prefix}}
+
+build:
+  dependencies:
+    curl.se: '*'
+    gnu.org/tar: '*'
+  script:
+    - curl -L https://github.com/encoredev/go/releases/download/encore-go{{version}}/$TYPE.tar.gz | tar zxvf -
+    - run: cp -a $SRCROOT/encore-go/* .
+      working-directory: ${{prefix}}
+  env:
+    linux/x86-64:
+      TYPE: linux_x86-64
+    linux/aarch64:
+      TYPE: linux_arm64
+    darwin/x86-64:
+      TYPE: macos_x86-64
+    darwin/aarch64:
+      TYPE: macos_arm64
+
+test:
+  script: |
+    mv $FIXTURE $FIXTURE.go
+    OUTPUT=$(go run $FIXTURE.go)
+    test "Hello World" = "$OUTPUT"
+  fixture: |
+    package main
+    import "fmt"
+    func main() {
+      fmt.Println("Hello World")
+    }

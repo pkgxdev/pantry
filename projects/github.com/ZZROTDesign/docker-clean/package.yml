@@ -1,0 +1,22 @@
+distributable:
+  url: https://github.com/ZZROTDesign/docker-clean/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: ZZROTDesign/docker-clean
+
+provides:
+  - bin/docker-clean
+
+dependencies:
+  gnu.org/bash: '*'
+  docker.com/cli: "*"
+
+build:
+  script:
+    - mkdir -p "{{ prefix }}"/bin
+    - cp docker-clean {{prefix}}/bin
+
+test:
+  script:
+    - test "$(docker-clean --version)" = "{{version}}"
