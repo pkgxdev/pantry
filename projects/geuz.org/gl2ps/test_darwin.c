@@ -14,13 +14,13 @@ int main(int argc, char *argv[])
     GLint buffsize = 0, state = GL2PS_OVERFLOW;
     while( state == GL2PS_OVERFLOW ){
         buffsize += 1024*1024;
-        gl2psBeginPage ( "Test", "Homebrew", viewport,
+        gl2psBeginPage ( "Test", "Tea", viewport,
                         GL2PS_EPS, GL2PS_BSP_SORT, GL2PS_SILENT |
                         GL2PS_SIMPLE_LINE_OFFSET | GL2PS_NO_BLENDING |
                         GL2PS_OCCLUSION_CULL | GL2PS_BEST_ROOT,
                         GL_RGBA, 0, NULL, 0, 0, 0, buffsize,
                         fp, "test.eps" );
-        gl2psText("Homebrew Test", "Courier", 12);
+        gl2psText("Tea Test", "Courier", 12);
         state = gl2psEndPage();
 }
 fclose(fp);
