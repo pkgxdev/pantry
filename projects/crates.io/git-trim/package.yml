@@ -1,6 +1,9 @@
 distributable:
-  url: https://github.com/foriequal0/git-trim/archive/refs/tags/v{{ version }}.tar.gz
-  strip-components: 1
+  # vergen requires a git repo :(
+  #url: https://github.com/foriequal0/git-trim/archive/refs/tags/v{{ version }}.tar.gz
+  #strip-components: 1
+  url: git+https://github.com/foriequal0/git-trim
+  ref: v{{ version }}
 
 provides:
   - bin/git-trim
@@ -18,11 +21,7 @@ build:
     rust-lang.org/cargo: '*'
     freedesktop.org/pkg-config: '*'
   script:
-    # vergen 7.4.4 introduced some git features that don't work on non-git checkouts
-    - run: |
-        sed -i.bak -e's/vergen = "7.4.4"/vergen = "7.4.3"/' Cargo.toml
-        rm Cargo.toml.bak
-    - cargo install --path . --root {{prefix}}
+    cargo install --path . --root {{prefix}}
 
 test:
   script:
