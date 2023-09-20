@@ -37,12 +37,12 @@ build:
       llvm.org: '<15'
     tea.xyz/gx/make: '*'
     perl.org: '>=5'
-  script: |
-    export ERL_TOP=$(pwd)
-    ./configure $ARGS
-    make -j {{hw.concurrency}}
-    make install
+  script:
+    - ./configure $ARGS
+    - make -j {{hw.concurrency}}
+    - make install
   env:
+    ERL_TOP: $SRCROOT
     CC: cc
     CXX: c++
     LD: ld
@@ -62,7 +62,7 @@ build:
       ARGS:
         - --enable-darwin-64bit
         - --enable-kernel-poll
-        - --with-dynamic-trace=dtrace
+        # - --with-dynamic-trace=dtrace
 
 test:
   script:
