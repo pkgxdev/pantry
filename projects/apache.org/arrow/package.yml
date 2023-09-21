@@ -91,4 +91,16 @@ test:
         EOF
     - c++ test.cpp -std=c++17 -larrow -o test
     - ./test
+    - run: |
+        cat << EOF > version.cpp
+        #include <arrow/api.h>
+        #include <iostream>
+
+        int main() {
+            std::cout << "Apache Arrow Version: " << ARROW_VERSION_STRING << std::endl;
+            return 0;
+        }
+        EOF
+    - c++ version.cpp -std=c++17 -larrow -o version
+    - ./version | grep {{version}}
     - pkg-config --modversion arrow | grep {{version}}
