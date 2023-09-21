@@ -29,10 +29,14 @@ build:
     cmake.org: '*'
     llvm.org: ~16
     python.org: '*'
+  working-directory: cpp
   script:
-    - cmake -S cpp -B build $CMAKE_ARGS
+    - cmake -B build $CMAKE_ARGS
     - cmake --build build
     - cmake --install build
+    - run: |
+        sed -i.bak "s|$TEA_PREFIX|\${pcfiledir}/../../../..|g" ./*.pc
+      working-directory: "{{prefix}}/lib/pkgconfig"
   env:
     CMAKE_ARGS:
       - -DCMAKE_INSTALL_PREFIX="{{prefix}}
@@ -48,8 +52,6 @@ build:
       - -DARROW_CSV=ON
       - -DARROW_DATASET=ON
       - -DARROW_FILESYSTEM=ON
-      - -DARROW_FLIGHT=ON
-      - -DARROW_FLIGHT_SQL=ON
       - -DARROW_GANDIVA=ON
       - -DARROW_HDFS=ON
       - -DARROW_JSON=ON
@@ -69,9 +71,14 @@ build:
     aarch64:
       CMAKE_ARGS:
         - -DARROW_MIMALLOC=ON
+provides:
+  - bin/parquet-dump-schema
+  - bin/parquet-reader
+  - bin/parquet-scan
 test:
   dependencies:
     tea.xyz/gx/cc: c99
+    freedesktop.org/pkg-config: '*'
   script:
     - run: |
         cat << EOF > test.cpp
@@ -83,3 +90,4 @@ test:
         EOF
     - c++ test.cpp -std=c++17 -larrow -o test
     - ./test
+    - pkg-config --modversion arrow | grep {{version}}
