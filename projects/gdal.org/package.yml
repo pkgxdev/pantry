@@ -1,0 +1,76 @@
+distributable:
+  url: https://github.com/OSGeo/gdal/releases/download/v{{version}}/gdal-{{version}}.tar.gz
+  strip-components: 1
+versions:
+  github: OSGeo/gdal
+dependencies:
+  apache.org/arrow: '*'
+  heasarc.gsfc.nasa.gov/cfitsio: '*'
+  epsilon-project.sourceforge.io: '*'
+  libexpat.github.io: '*'
+  gaia-gis.it/fossil/freexl: '*'
+  libgeos.org: '*'
+  giflib.sourceforge.io: '*'
+  hdfgroup.org/HDF5: '*'
+  libjpeg-turbo.org: '*'
+  jpeg.org/jpegxl: '*'
+  github.com/json-c/json-c: '*'
+  libarchive.org: '*'
+  github.com/OSGeo/libgeotiff: '*'
+  github.com/strukturag/libheif: '*'
+  #libkml: '*'
+  github.com/Esri/lerc: '*'
+  libpng.org: '*'
+  postgresql.org/libpq: '*'
+  gaia-gis.it/libspatialite: '*'
+  simplesystems.org/libtiff: '*'
+  gnome.org/libxml2: '*'
+  unidata.ucar.edu/netcdf: '*'
+  #numpy: '*'
+  openexr.com: '*'
+  openjpeg.org: '*'
+  openssl.org: '*'
+  pcre.org/v2: '*'
+  poppler.freedesktop.org: '*'
+  proj.org: '*'
+  python.org: ^3.11
+  qhull.org: '*'
+  sqlite.org: '*'
+  unixodbc.org: '*'
+  google.com/webp: '*'
+  xerces.apache.org/xerces-c: '*'
+  tukaani.org/xz: '*'
+  facebook.com/zstd: '*'
+  darwin:
+    github.com/util-linux/util-linux: '*'
+  linux:
+    curl.se: '*'
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    boost.org: '*'
+    cmake.org: '*'
+    freedesktop.org/pkg-config: '*'
+    swig.org: '*'
+  script:
+    - cmake -S . -B build $CMAKE_ARGS
+    - cmake --build build
+    - cmake --install build
+  env:
+    CMAKE_ARGS:
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}
+      - -DCMAKE_INSTALL_LIBDIR=lib
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_FIND_FRAMEWORK=LAST
+      - -DCMAKE_VERBOSE_MAKEFILE=ON
+      - -Wno-dev
+      - -DBUILD_TESTING=OFF
+      - -DENABLE_PAM=ON
+      - -DCMAKE_CXX_STANDARD=17
+provides:
+  - bin/gdalinfo
+  - bin/ogrinfo
+test:
+  script:
+    - gdalinfo --version
