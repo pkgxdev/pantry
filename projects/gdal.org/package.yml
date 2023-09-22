@@ -63,11 +63,12 @@ build:
     - cmake --build build
     - cmake --install build
     - run: |
-        sed -i.bak "s|{{prefix}}|$(dirname $0)/.." {{prefix}}/bin/gdal-config
-        sed -i.bak "s|#!{{deps.python.org.prefix}}/bin/python{{deps.python.org.version.marketing}}|#!/usr/bin/env python|g"
+        sed -i.bak "s|{{prefix}}|\$(dirname \$0)/..|g" gdal-config
+        sed -i.bak "s|#!{{deps.python.org.prefix}}/bin/python{{deps.python.org.version.marketing}}|#!/usr/bin/env python|g" ./*.py
         rm ./*.bak
       working-directory: "{{prefix}}/bin"
     - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
+      working-directory: "{{prefix}}/lib"
   env:
     CMAKE_ARGS:
       - -DCMAKE_INSTALL_PREFIX="{{prefix}}
@@ -112,3 +113,5 @@ test:
   script:
     - gdalinfo --version | grep {{version}}
     - gdalinfo --formats
+    - ogrinfo --version | grep {{version}}
+    - ogrinfo --formats
