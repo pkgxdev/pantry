@@ -41,10 +41,15 @@ dependencies:
   xerces.apache.org/xerces-c: '*'
   tukaani.org/xz: '*'
   facebook.com/zstd: '*'
+  protobuf.dev: ^24.3.0
+  abseil.io: ^20230802
   darwin:
     github.com/util-linux/util-linux: '*'
   linux:
     curl.se: '*'
+runtime:
+  env:
+    PYTHONPATH: "{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages/osgeo:{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages/osgeo_utils:$PYTHONPATH"
 build:
   dependencies:
     tea.xyz/gx/cc: c99
@@ -57,6 +62,12 @@ build:
     - cmake -S . -B build $CMAKE_ARGS
     - cmake --build build
     - cmake --install build
+    - run: |
+        sed -i.bak "s|{{prefix}}|$(dirname $0)/.." {{prefix}}/bin/gdal-config
+        sed -i.bak "s|#!{{deps.python.org.prefix}}/bin/python{{deps.python.org.version.marketing}}|#!/usr/bin/env python|g"
+        rm ./*.bak
+      working-directory: "{{prefix}}/bin"
+    - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
   env:
     CMAKE_ARGS:
       - -DCMAKE_INSTALL_PREFIX="{{prefix}}
@@ -69,8 +80,35 @@ build:
       - -DENABLE_PAM=ON
       - -DCMAKE_CXX_STANDARD=17
 provides:
+  - bin/gdaladdo
+  - bin/gdalbuildvrt
+  - bin/gdal-config
+  - bin/gdal_contour
+  - bin/gdal_create
+  - bin/gdaldem
+  - bin/gdalenhance
+  - bin/gdal_grid
   - bin/gdalinfo
+  - bin/gdallocationinfo
+  - bin/gdalmanage
+  - bin/gdalmdiminfo
+  - bin/gdalmdimtranslate
+  - bin/gdal_rasterize
+  - bin/gdalsrsinfo
+  - bin/gdaltindex
+  - bin/gdaltransform
+  - bin/gdal_translate
+  - bin/gdal_viewshed
+  - bin/gdalwarp
+  - bin/gnmanalyse
+  - bin/gnmmanage
+  - bin/nearblack
+  - bin/ogr2ogr
   - bin/ogrinfo
+  - bin/ogrlineref
+  - bin/ogrtindex
+  - bin/sozip
 test:
   script:
-    - gdalinfo --version
+    - gdalinfo --version | grep {{version}}
+    - gdalinfo --formats
