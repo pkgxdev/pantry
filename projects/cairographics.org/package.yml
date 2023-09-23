@@ -18,6 +18,8 @@ dependencies:
   gnome.org/glib: 2
   freedesktop.org/fontconfig: 2
   sourceware.org/bzip2: 1
+  mesonbuild.com: ^1
+  ninja-build.org: ^1
 
 build:
   dependencies:
@@ -27,20 +29,39 @@ build:
     libexpat.github.io: =2.4.9
     gnome.org/gobject-introspection: 1
     gnu.org/libtool: ^2
-  script: |
-    ./configure --prefix={{ prefix }} --disable-dependency-tracking
-    make --jobs {{ hw.concurrency }}
-    make install
+  script:
+    - run: |
+        ./configure --prefix={{ prefix }} --disable-dependency-tracking
+        make --jobs {{ hw.concurrency }}
+        make install
+      if: <1.18.0
 
-    rm -rf {{prefix}}/share  # docs are online
+    - run: |
+        meson setup build --prefix={{ prefix }} --buildtype=release
+        ninja -C build
+        ninja -C build install
+      if: '>=1.18.0'
+
+    - rm -rf {{prefix}}/share # docs are online
+
+    - run: |
+        mv cairo/* .
+        rmdir cairo
+        ln -s . cairo
+      working-directory: ${{ prefix }}/include
+
+    - run: |
+        mv cairo/* .
+        rmdir cairo
+        ln -s . cairo
+      working-directory: ${{ prefix }}/lib
 
 test:
   dependencies:
     tea.xyz/gx/cc: c99
-  script: |
-    cc test.c -I{{prefix}}/include/cairo -lcairo
-    ./a.out
-  #FIXME env should add that include path via pkg-config look up
+  script:
+    - cc test.c -lcairo
+    - ./a.out
 
 provides:
   - bin/cairo-trace
