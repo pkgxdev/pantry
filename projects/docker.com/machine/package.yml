@@ -10,18 +10,18 @@ build:
     tea.xyz/gx/make: '*'
     gnu.org/automake: '*'
     go.dev: '*'
+    linux:
+      curl.se: '*'
   working-directory: src/github.com/docker/machine
   script:
-    - mkdir -p $SRCROOT/../tmp_dir
-    - cp -r $SRCROOT/* $SRCROOT/../tmp_dir
-    - mv $SRCROOT/../tmp_dir/* ./
-    - rm -r $SRCROOT/../tmp_dir
+    - curl -L "$URL" | tar -xz --strip-components=1
     - run: |
         sed -i.bak 's|GO_LDFLAGS :=|GO_LDFLAGS := -buildmode=pie|g' mk/main.mk
         rm mk/*.bak
       if: linux
     - make build
   env:
+    URL: https://gitlab.com/gitlab-org/ci-cd/docker-machine/-/archive/v{{version}}-gitlab.22/docker-machine-v{{version}}-gitlab.22.tar.gz
     GOPATH: $SRCROOT
     GO111MODULE: auto
 provides:
