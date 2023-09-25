@@ -1,0 +1,34 @@
+distributable:
+  url: https://www.x.org/archive/individual/lib/libxkbfile-{{version}}.tar.xz
+  strip-components: 1
+versions:
+  url: https://www.x.org/archive/individual/lib/
+  match: /libxkbfile-\d+\.\d+\.\d+\.tar\.xz/
+  strip:
+    - /^libxkbfile-/
+    - /\.tar\.xz/
+dependencies:
+  x.org/x11: '*'
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    freedesktop.org/pkg-config: '*'
+  script:
+    - ./configure $CONFIGURE_ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    CONFIGURE_ARGS:
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --prefix="{{prefix}}"
+      - --libdir="{{prefix}}/lib"
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    freedesktop.org/pkg-config: '*'
+  script:
+    - cc test.c -o test
+    - ./test
+    - pkg-config --modversion xkbfile | grep {{version}}
