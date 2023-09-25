@@ -1,0 +1,47 @@
+distributable:
+  url: https://github.com/DrTimothyAldenDavis/SuiteSparse/archive/v{{version}}.tar.gz
+  strip-components: 1
+display-name: suitesparse
+versions:
+  github: DrTimothyAldenDavis/SuiteSparse
+dependencies:
+  glaros.dtc.umn.edu/metis: '*'
+  openblas.net: '*'
+  gnu.org/m4: '*'
+  openmp.llvm.org: '*'
+  gnu.org/gmp: '*'
+  gnu.org/mpfr: '*'
+build:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    tea.xyz/gx/make: '*'
+    cmake.org: '*'
+    freedesktop.org/pkg-config: '*'
+  script:
+    - make library $ARGS CMAKE_OPTIONS="$CMAKE_ARGS"
+    - make install $ARGS CMAKE_OPTIONS="$CMAKE_ARGS"
+    - mkdir -p {{prefix}}/share
+    - install KLU/Demo/klu_simple.c {{prefix}}/share
+  env:
+    CMAKE_ARGS:
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}
+      - -DCMAKE_INSTALL_LIBDIR=lib
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_FIND_FRAMEWORK=LAST
+      - -DCMAKE_VERBOSE_MAKEFILE=ON
+      - -Wno-dev
+      - -DBUILD_TESTING=OFF
+      - 
+    ARGS:
+      - INSTALL={{prefix}}
+      - JOBS={{ hw.concurrency }}
+provides:
+  - bin/mongoose
+test:
+  dependencies:
+    tea.xyz/gx/cc: c99
+    freedesktop.org/pkg-config: '*'
+  script:
+    - pkg-config --modversion SuiteSparse_config | grep {{version}}
+    - cc {{prefix}}/share/klu_simple.c -lsuitesparseconfig -lklu -o test
+    - ./test
