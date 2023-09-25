@@ -11,14 +11,16 @@ build:
   dependencies:
     gnu.org/gcc: '*'
     tea.xyz/gx/make: '*'
-    kernel.org/linux-headers: '*'
-    curl.se: '*'
-    gnu.org/patch: '*'
+    linux:
+      kernel.org/linux-headers: '*'
+      curl.se: '*'
+      gnu.org/patch: '*'
   working-directory: daemontools-{{version.marketing}}
   script:
     # Fix build failure due to missing #include <errno.h> on Linux.
     - run: curl -L "$PATCH"| patch -p1
       working-directory: $SRCROOT
+      if: linux
     - sed -i.bak 's|/service|{{prefix}}/etc/service|g' package/run
     - rm package/run.bak
     - sed -i.bak 's|/service|{{prefix}}/etc/service|g' src/svscanboot.sh
@@ -30,7 +32,10 @@ build:
         sed -i.bak 's|( cat warn-shsgr; exit 1 )|cat warn-shsgr|g' src/Makefile
         rm src/Makefile.bak
       if: linux
-    - package/compile
+    - run: xcrun package/compile
+      if: darwin
+    - run: package/compile
+      if: linux
     - mkdir -p {{prefix}}/bin
     - install command/* {{prefix}}/bin/
     - run: |
