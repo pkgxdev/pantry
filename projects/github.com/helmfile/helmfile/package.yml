@@ -1,0 +1,30 @@
+distributable:
+  url: git+https://github.com/helmfile/helmfile
+  ref: v{{ version }}
+
+versions:
+  github: helmfile/helmfile/releases/tags
+
+provides:
+  - bin/helmfile
+
+dependencies:
+  helm.sh: '*'
+
+build:
+  dependencies:
+    go.dev: ^1.21
+    tea.xyz/gx/make: '*'
+  script: |
+    make build
+    mkdir -p "{{ prefix }}"/bin
+    mv ./helmfile "{{ prefix }}"/bin
+
+test:
+  fixture: |
+    releases:
+    - name: myrelease
+      chart: ./mychart
+  script: |
+    helmfile -f "${FIXTURE}" build | grep "Source: ${FIXTURE}"
+    helmfile version | grep -w "v{{ version }}"
