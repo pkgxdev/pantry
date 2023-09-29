@@ -16,6 +16,9 @@ build:
     go.dev: ^1.21
     tea.xyz/gx/make: '*'
     git-scm.org: '*'
+  env:
+    CGO_ENABLED: 0
+    GOFLAGS: -mod=readonly
   script: |
     make build
     mkdir -p "{{ prefix }}"/bin
@@ -24,10 +27,10 @@ build:
 test:
   fixture: |
     releases:
-    - name: myrelease
-      chart: ./mychart
+      - name: myrelease
+        chart: ./mychart
   env:
-    HELMFILE_UPGRADE_NOTICE_DISABLED: "true"
+    HELMFILE_UPGRADE_NOTICE_DISABLED: true # otherwise needs ca-certificates
   script: |
-    helmfile -f "${FIXTURE}" build | tee /dev/stderr | grep -q "Source: ${FIXTURE}"
+    helmfile build -f "${FIXTURE}" | tee /dev/stderr | grep -q "Source: ${FIXTURE}"
     helmfile version | tee /dev/stderr | grep -q -w "v{{ version }}"
