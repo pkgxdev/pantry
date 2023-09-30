@@ -9,8 +9,6 @@ versions:
 
 build:
   dependencies:
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
     cmake.org: '*'
 
   working-directory: build
@@ -18,7 +16,7 @@ build:
     - cmake .. $ARGS
     - make --jobs {{ hw.concurrency }}
     - make --jobs {{ hw.concurrency }} install
-  
+
   env:
     ARGS:
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
@@ -29,12 +27,10 @@ build:
       - -DWITH_STATIC_LIB=ON
       - -DWITH_CMOCKERY_SUPPORT=ON
       - -DUNIT_TESTING=ON
-      - -DCMAKE_C_COMPILER={{deps.tea.xyz/gx/cc.prefix}}/bin/cc
 
 test:
   dependencies:
     freedesktop.org/pkg-config: '*'
-    tea.xyz/gx/cc: c99
   script:
     - pkg-config --modversion cmocka | grep {{version}}
     - cc test.c -lcmocka -o test

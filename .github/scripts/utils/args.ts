@@ -1,4 +1,4 @@
-import { Installation, Package, PackageRequirement, hooks, utils } from "tea"
+import { Installation, Package, PackageRequirement, hooks, utils } from "pkgx"
 const { useCellar } = hooks
 
 /// processes Deno.args unless STDIN is not a TTY and has input

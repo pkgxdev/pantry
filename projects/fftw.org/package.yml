@@ -11,8 +11,6 @@ dependencies:
   open-mpi.org: '*'
 build:
   dependencies:
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
     freedesktop.org/pkg-config: '*'
   script:
     - ./configure --enable-single $ARGS
@@ -24,7 +22,7 @@ build:
     - ./configure --enable-long-double $ARGS
     - make --jobs {{hw.concurrency}} install
   env:
-    CC: "{{deps.tea.xyz/gx/cc.prefix}}/bin/clang"
+    CC: clang
     ARGS:
       - --enable-shared
       - --disable-debug
@@ -37,8 +35,6 @@ provides:
   - bin/fftwf-wisdom
   - bin/fftwl-wisdom
 test:
-  dependencies:
-    tea.xyz/gx/cc: c99
   script:
     - fftw-wisdom --version | grep {{version}}
     - cc -o fftw fftw.c -lfftw3
