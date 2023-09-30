@@ -10,6 +10,7 @@ provides:
 
 dependencies:
   helm.sh: '*'
+  curl.se/ca-certs: '*'
 
 build:
   dependencies:
@@ -29,8 +30,6 @@ test:
     releases:
       - name: myrelease
         chart: ./mychart
-  env:
-    HELMFILE_UPGRADE_NOTICE_DISABLED: true # otherwise needs ca-certificates
   script: |
     helmfile build -f "${FIXTURE}" | tee /dev/stderr | grep -q "Source: ${FIXTURE}"
     helmfile version | tee /dev/stderr | grep -q -w "v{{ version }}"
