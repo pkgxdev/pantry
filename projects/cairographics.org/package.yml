@@ -16,6 +16,11 @@ dependencies:
   gnome.org/glib: 2
   freedesktop.org/fontconfig: 2
   sourceware.org/bzip2: 1
+  x.org/x11: '*'
+  x.org/xcb: '*'
+  x.org/exts: '*'
+  x.org/xrender: '*'
+  oberhumer.com/lzo: '*'
 
 build:
   dependencies:
@@ -35,7 +40,7 @@ build:
       if: <1.18.0
 
     - run: |
-        meson setup build --prefix={{ prefix }} --buildtype=release
+        meson setup build --prefix={{ prefix }} --buildtype=release $ARGS
         ninja -C build
         ninja -C build install
       if: '>=1.18.0'
@@ -49,10 +54,19 @@ build:
       working-directory: ${{ prefix }}/include
 
     - run: |
-        mv cairo/* .
-        rmdir cairo
-        ln -s . cairo
+        tmp_dir=$(ls)
+        mv $tmp_dir/* .
+        rmdir $tmp_dir
       working-directory: ${{ prefix }}/lib
+  env:
+    ARGS:
+      - -Dfreetype=enabled
+      - -Dpng=enabled
+      - -Dglib=enabled
+      - -Dxcb=enabled
+      - -Dxlib=enabled
+      - -Dzlib=enabled
+      - -Dglib=enabled
 
 test:
   script:
