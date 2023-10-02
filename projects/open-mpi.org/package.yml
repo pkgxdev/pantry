@@ -22,17 +22,12 @@ runtime:
     OMPI_FCFLAGS: $FCFLAGS -I{{prefix}}/include
     OMPI_CPPFLAGS: $CPPFLAGS
     OMPI_LDFLAGS: $LDFLAGS
-    # OMPI_LIBS: $LIBRARY_PATH
     OMPI_F77FLAGS: $FCFLAGS -I{{prefix}}/include
     OMPI_F90FLAGS: $FCFLAGS -I{{prefix}}/include
-    # OMPI_FFLAGS: $OMPI_CFLAGS
-    # ORTE_CFLAGS: $OMPI_CFLAGS
-    # ORTE_CXXFLAGS: $OMPI_CFLAGS
-    # OPAL_CFLAGS: $OMPI_CFLAGS
-    # OPAL_CXXFLAGS: $OMPI_CFLAGS
-    # OMPI_LDFLAGS: "-L{{prefix}}/lib"
 
 build:
+  dependencies:
+    gnu.org/binutils: '*' # needed to compile
   script:
     - ./configure $CONFIGURE_ARGS
     - make --jobs {{ hw.concurrency }} all
