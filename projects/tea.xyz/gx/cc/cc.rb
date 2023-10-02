@@ -7,7 +7,7 @@
 # - for tea-envs the user probably won’t use tea.xyz/gx/cc even though they *should*
 #   and thus we set LDFLAGS in the hope that they will be picked up and the rpath set
 
-$pkgx_prefix = ENV['PKGX_DIR'] || `tea --prefix`.chomp
+$pkgx_prefix = ENV['PKGX_DIR'] || ENV['HOME'].chomp
 exe = File.basename($0)
 
 # remove duplicates since this in fact embeds the rpath multiple times
