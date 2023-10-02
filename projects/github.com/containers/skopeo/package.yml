@@ -15,13 +15,13 @@ build:
   dependencies:
     go.dev: "^1.18"
     curl.se: "*"
-    git-scm.org: "*"
+    gnu.org/patch: "*"
   env:
     DISABLE_DOCS: 1 # disables the generation of man pages with go-md2man
   script: |
     # bundles default-policy.json into the binary to provide a working out-of-the-box experience
     # https://github.com/containers/skopeo/pull/2014
-    curl -fsSL https://github.com/containers/skopeo/pull/2014.diff | git apply
+    curl -fsSL https://github.com/containers/skopeo/pull/2014.diff | patch -p1
 
     # https://github.com/containers/skopeo/blob/2d1ae1fdb3d88347eec8a17d4415a964ce86d54f/install.md#building-a-static-binary
     CGO_ENABLED=0 make BUILDTAGS=containers_image_openpgp GO_DYN_FLAGS=
