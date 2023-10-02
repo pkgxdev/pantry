@@ -1,0 +1,62 @@
+distributable:
+  url: https://download.gnome.org/sources/gtk+/{{version.marketing}}/gtk+-{{version}}.tar.xz
+  strip-components: 1
+versions:
+  - 3.24.38
+dependencies:
+  gnome.org/atk: '*'
+  gnome.org/gdk-pixbuf: '*'
+  gnome.org/glib: '*'
+  gnome.org/gsettings-desktop-schemas: '*'
+  freedesktop.org/icon-theme: '*'
+  github.com/anholt/libepoxy: '*'
+  gnome.org/pango: '*'
+  gnome.org/libxslt: '*'
+  linux:
+    cairographics.org: '*'
+    debian.org/iso-codes: '*'
+    xkbcommon.org: '*'
+    wayland.freedesktop.org/protocols: '*'
+    x.org/protocol: '*'
+build:
+  dependencies:
+    docbook.org: '*'
+    docbook.org/xsl: '*'
+    gnu.org/gettext: '*'
+    gnome.org/gobject-introspection: '*'
+    mesonbuild.com: '*'
+    ninja-build.org: '*'
+    freedesktop.org/pkg-config: '*'
+    linux:
+      cmake.org: '*'
+  script:
+    - meson setup build $MESON_ARGS
+    - meson compile -C build --verbose
+    - meson install -C build
+  env:
+    MESON_ARGS:
+      - --prefix="{{prefix}}"
+      - --libdir="{{prefix}}/lib"
+      - --buildtype=release
+      - --wrap-mode=nofallback
+      - -Dintrospection=true
+    DESTDIR: /
+    XML_CATALOG_FILES: "{{prefix}}/etc/xml/catalog"
+provides:
+  - bin/gtk-builder-tool
+  - bin/gtk-encode-symbolic-svg
+  - bin/gtk-launch
+  - bin/gtk-query-immodules-3.0
+  - bin/gtk-query-settings
+  - bin/gtk-update-icon-cache
+  - bin/gtk3-demo
+  - bin/gtk3-demo-application
+  - bin/gtk3-icon-browser
+  - bin/gtk3-widget-factory
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script:
+    - pkg-config --modversion gtk+-3.0 | grep {{version}}
+    - cc test.c $(pkg-config --cflags --libs gtk+-3.0) -o test
+    - ./test
