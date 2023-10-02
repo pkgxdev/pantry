@@ -1,0 +1,42 @@
+distributable:
+  url: https://download.gnome.org/sources/vala/{{version.marketing}}/vala-{{version}}.tar.xz
+  strip-components: 1
+versions:
+  url: https://download.gnome.org/sources/vala/cache.json
+  match: /vala-\d+\.\d+\.\d+\.tar\.xz/
+  strip:
+    - /^vala-/
+    - /\.tar\.xz/
+dependencies:
+  gnome.org/glib: '*'
+  graphviz.org: '*'
+  freedesktop.org/pkg-config: '*'
+  gnu.org/gettext: '*'
+build:
+  dependencies:
+    gnu.org/bison: '*'
+    github.com/westes/flex: '*'
+    gnome.org/libxslt: '*'
+  script:
+    - ./configure $CONFIGURE_ARGS
+    - make --jobs {{hw.concurrency}}
+    - make --jobs {{hw.concurrency}} install
+  env:
+    CONFIGURE_ARGS:
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --prefix="{{prefix}}"
+      - --libdir="{{prefix}}/lib"
+      - --disable-silent-rules
+provides:
+  - bin/vala
+  - bin/valac
+  - bin/valadoc
+  - bin/vala-gen-introspect
+  - bin/vapigen
+test:
+  script:
+    - valac -g --cc=cc --save-temps test.vala
+    - ls | grep "test.c"
+    - ./test | grep "Hello World!"
+    - vala --version | grep {{version}}
