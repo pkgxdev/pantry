@@ -6,9 +6,7 @@ versions:
   github: regclient/regclient/releases/tags
 
 provides:
-  - bin/regctl
   - bin/regsync
-  - bin/regbot
 
 dependencies:
   curl.se/ca-certs: '*'
@@ -18,14 +16,10 @@ build:
     go.dev: ^1.21
     git-scm.org: '*'
   script: |
-    make binaries
+    make bin/regsync
     mkdir -p '{{ prefix }}/bin'
-    mv -f ./bin/{regctl,regsync,regbot} '{{ prefix }}/bin'
+    mv -f ./bin/regsync '{{ prefix }}/bin'
 
 test:
   script: |
-    regctl version | tee /dev/stderr | grep -q -w "v{{ version }}"
     regsync version | tee /dev/stderr | grep -q -w "v{{ version }}"
-    regbot version | tee /dev/stderr | grep -q -w "v{{ version }}"
-
-    regctl image inspect hello-world --platform linux/amd64 | tee /dev/stderr | grep -q -w '"Image":'
