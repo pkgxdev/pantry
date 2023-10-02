@@ -4,7 +4,7 @@ distributable:
 
 # if there’s a github then we can parse the versions
 versions:
-  github: AcademySoftwareFoundation/Imath/tags  # reads github tags from github
+  github: AcademySoftwareFoundation/Imath/tags # reads github tags from github
   strip: /^v/
 
 build:
@@ -14,7 +14,7 @@ build:
     cmake -S . -B build $ARGS
     cmake --build build
     cmake --install build
-      
+
     mv {{ prefix}}/include/Imath/* {{prefix}}/include
     rmdir {{ prefix}}/include/Imath
     ln -s . {{ prefix }}/include/Imath
@@ -23,7 +23,6 @@ build:
     ARGS:
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
       - -DCMAKE_BUILD_TYPE=Release
-
 
 test:
   fixture: |
@@ -38,7 +37,6 @@ test:
         std::swap(x[0], x[1]);
       std::cout << n << ", " << x[0] << ", " << x[1] << "\n";
     }
-  dependencies:
   script: |
     mv $FIXTURE foo.cc
     g++ -std=c++11 -lImath foo.cc 

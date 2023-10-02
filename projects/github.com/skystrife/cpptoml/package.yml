@@ -14,14 +14,13 @@ build:
     cmake --build build
     cmake --install build
   env:
-    LD_LIBRARY_PATH: "{{deps.gnu.org/gcc.prefix}}"
+    LD_LIBRARY_PATH: '{{deps.gnu.org/gcc.prefix}}'
     ARGS:
       - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
       - -DENABLE_LIBCXX="ON"
       - -DCPPTOML_BUILD_EXAMPLES=OFF
 
 test:
-  dependencies:
   script: |
     g++ -std=c++11 -I {{prefix}}/include test.cc -o test
     ./test | grep "Hello, Tea"

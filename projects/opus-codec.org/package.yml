@@ -1,10 +1,10 @@
 distributable:
-   url: https://github.com/xiph/opus/archive/refs/tags/v{{ version.raw }}.tar.gz
-   strip-components: 1
+  url: https://github.com/xiph/opus/archive/refs/tags/v{{ version.raw }}.tar.gz
+  strip-components: 1
 
 # if there’s a github then we can parse the versions
 versions:
-  github: xiph/opus/tags  # reads github tags from github
+  github: xiph/opus/tags # reads github tags from github
   strip: /^v/
 
 build:
@@ -15,21 +15,20 @@ build:
   script: |
     ./autogen.sh
     ./configure $ARGS
-    make --jobs {{ hw.concurrency }} 
+    make --jobs {{ hw.concurrency }}
     make install
 
     mv {{ prefix}}/include/opus/* {{prefix}}/include
     rmdir {{ prefix}}/include/opus
     ln -s . {{ prefix }}/include/opus
   # it’s extremely common for packages to require the above
-  env: 
+  env:
     ARGS:
       - --prefix={{ prefix }}
       - --disable-dependency-tracking
       - --disable-doc
 
 test:
-  dependencies:
   fixture: |
     #include <opus.h>
     int main(int argc, char **argv)
@@ -52,7 +51,7 @@ test:
       }
       return err;
     }
-  script: | 
+  script: |
     mv $FIXTURE fixture.cpp
     cc fixture.cpp -lopus
     ./a.out

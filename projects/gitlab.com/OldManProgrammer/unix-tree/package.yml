@@ -8,11 +8,7 @@ versions:
 build:
   dependencies:
     linux:
-        gnu.org/gcc: "*"
-    darwin:
-
-
-
+      gnu.org/gcc: '*'
   script: |
     make
     make $ARGS install
@@ -30,20 +26,20 @@ build:
       CC: cc
       CFLAGS: -O2 -Wall -fomit-frame-pointer -no-cpp-precomp
 
-
 test:
-  script: |
+  script:
     # prepare for tests
-    mkdir -p foo/bar
-    mkdir -p foo/buzz
-    touch foo/buzz/lupus.txt
+    - mkdir -p foo/bar
+    - mkdir -p foo/buzz
+    - touch foo/buzz/lupus.txt
     # run tests
-    tree --version | grep 'tree v{{version}}'
-    out="$(tree . )"
-    echo $out | grep lupus.txt  # test for files found
-    echo $out | grep bar        # test for level 2 dirs found
-    echo $out | grep buzz       # ^
-    echo $out | grep '4 directories, 2 files'
-    tree .
+    - tree --version | grep 'tree v{{version}}'
+    - out="$(tree . )"
+    - echo $out | grep lupus.txt # test for files found
+    - echo $out | grep bar # test for level 2 dirs found
+    - echo $out | grep buzz # ^
+    - echo $out | grep '4 directories, 2 files'
+    - tree .
+
 provides:
   - bin/tree

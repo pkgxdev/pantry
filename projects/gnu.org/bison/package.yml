@@ -10,18 +10,16 @@ dependencies:
   gnu.org/m4: 1
 
 build:
-  dependencies:
   script: |
     ./configure $ARGS
     make --jobs {{ hw.concurrency }} install
   env:
-    M4: m4  # or fails on Linux
+    M4: m4 # or fails on Linux
     ARGS:
       - --prefix={{ prefix }}
       - --enable-relocatable
 
 test:
-  dependencies:
   script: |
     bison test.y
     c++ test.tab.c

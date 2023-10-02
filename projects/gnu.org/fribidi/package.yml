@@ -7,14 +7,12 @@ versions:
   strip: /^FriBidi Version /
 
 build:
-  dependencies:
   script: |
     ./configure --prefix={{prefix}} --disable-debug
     make --jobs={{ hw.concurrency }} install
 
 test:
-  fixture:
-    a _lsimple _RteST_o th_oat
+  fixture: a _lsimple _RteST_o th_oat
   script: |
     out="$(fribidi --charset=CapRTL --clean --nobreak $FIXTURE)"
     test "$out" = "a simple TSet that"
