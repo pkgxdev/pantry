@@ -26,16 +26,7 @@ build:
   dependencies:
     cmake.org: ^3.0.2
     freedesktop.org/pkg-config: ^0.29
-  working-directory:
-    /tmp/xyz.tea.folly
-    # ^^ facebook use a shitty custom regex function to remove sources that
-    # shouldn’t be compiled from the library target. They start with *all sources*
-    # our default build directory has a `+` in it which breaks facebook’s
-    # piss awful code.
-    #TODO don’t use exotic characters in our build directories
   script:
-    - test -d xyz.tea.srcs && rm -rf xyz.tea.srcs
-    - mv $SRCROOT xyz.tea.srcs
     - cmake $ARGS -DBUILD_SHARED_LIBS=ON -S xyz.tea.srcs -B shared
     - cmake --build shared
     - cmake --install shared
