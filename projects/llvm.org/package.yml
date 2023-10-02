@@ -45,35 +45,35 @@ build:
       - -DLLVM_ENABLE_RTTI=ON
     linux:
       ARGS:
-      # the default is `ld` however clang when handling linking itself
-      # internally passes flags that, in fact, expect `lld`
-      #NOTE only wanted on linux because on macOS we actually *need* the Apple
-      # provided `ld` or things *also* break 😆
-      - -DCLANG_DEFAULT_LINKER=lld
-      # Needed with the CMAKE_C_COMPILER_TARGET to compile compiler-rt on linux
-      # https://reviews.llvm.org/D147598
-      - -DCOMPILER_RT_DEFAULT_TARGET_ONLY=ON
+        # the default is `ld` however clang when handling linking itself
+        # internally passes flags that, in fact, expect `lld`
+        #NOTE only wanted on linux because on macOS we actually *need* the Apple
+        # provided `ld` or things *also* break 😆
+        - -DCLANG_DEFAULT_LINKER=lld
+        # Needed with the CMAKE_C_COMPILER_TARGET to compile compiler-rt on linux
+        # https://reviews.llvm.org/D147598
+        - -DCOMPILER_RT_DEFAULT_TARGET_ONLY=ON
     darwin:
       ARGS:
-      #FIXME shouldn’t *have to* require the command line tools package
-      #FIXME this is no good for systems with only Xcode installed
-      #NOTE how do Apple make their LLVM find both? we want the same trick
-      - -DDEFAULT_SYSROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
+        #FIXME shouldn’t *have to* require the command line tools package
+        #FIXME this is no good for systems with only Xcode installed
+        #NOTE how do Apple make their LLVM find both? we want the same trick
+        - -DDEFAULT_SYSROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
     linux/x86-64:
       ARGS:
-      # required to build something that works on linux/x86-64
-      - -DCLANG_DEFAULT_CXX_STDLIB=libstdc++
-      - -DCLANG_DEFAULT_RTLIB=libgcc
-      - -DCOMPILER_RT_INCLUDE_TESTS=OFF
-      - -DCOMPILER_RT_USE_LIBCXX=OFF
-      # otherwise compiler-rt fails to build
-      # https://reviews.llvm.org/D147598
-      - -DCMAKE_C_COMPILER_TARGET="x86_64-unknown-linux-gnu"
+        # required to build something that works on linux/x86-64
+        - -DCLANG_DEFAULT_CXX_STDLIB=libstdc++
+        - -DCLANG_DEFAULT_RTLIB=libgcc
+        - -DCOMPILER_RT_INCLUDE_TESTS=OFF
+        - -DCOMPILER_RT_USE_LIBCXX=OFF
+        # otherwise compiler-rt fails to build
+        # https://reviews.llvm.org/D147598
+        - -DCMAKE_C_COMPILER_TARGET="x86_64-unknown-linux-gnu"
     linux/aarch64:
       ARGS:
-      # otherwise compiler-rt fails to build
-      # https://reviews.llvm.org/D147598
-      - -DCMAKE_C_COMPILER_TARGET="aarch64-unknown-linux-gnu"
+        # otherwise compiler-rt fails to build
+        # https://reviews.llvm.org/D147598
+        - -DCMAKE_C_COMPILER_TARGET="aarch64-unknown-linux-gnu"
 
 test:
   fixture: |
@@ -98,4 +98,4 @@ test:
     - ./a.out
   env:
     ARGS:
-      - -Wl,-rpath,$TEA_PREFIX
+      - -Wl,-rpath,$PKGX_DIR
