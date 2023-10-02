@@ -58,6 +58,14 @@ build:
         mv $tmp_dir/* .
         rmdir $tmp_dir
       working-directory: ${{ prefix }}/lib
+      if: linux
+      
+    - run: |
+        mv cairo/* .
+        rmdir cairo
+        ln -s . cairo
+      working-directory: ${{ prefix }}/lib
+      if: darwin
   env:
     ARGS:
       - -Dfreetype=enabled
