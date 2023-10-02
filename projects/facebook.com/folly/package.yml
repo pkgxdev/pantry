@@ -27,6 +27,19 @@ build:
     cmake.org: ^3.0.2
     freedesktop.org/pkg-config: ^0.29
   script:
+    # folly uses the path to build as part of a regex, but out paths have "+"s in them.
+    # don't mess up the intentional newline
+    - run: |
+        sed -i.bak -E -f $PROP CMakelists.txt
+        rm CMakelists.txt.bak
+      prop: |
+        /^REMOVE_MATCHES_FROM_LISTS\(files hfiles/ {
+          i\\
+        string(REPLACE "+" "\\\\\\\\+" ESCAPED_FOLLY_DIR "\\\${FOLLY_DIR}")
+        }
+
+        s/\^\\\$\{FOLLY_DIR\}/^\\\$\{ESCAPED_FOLLY_DIR\}/g
+
     - cmake $ARGS -DBUILD_SHARED_LIBS=ON -S . -B shared
     - cmake --build shared
     - cmake --install shared
