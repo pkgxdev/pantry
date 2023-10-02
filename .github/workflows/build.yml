@@ -21,7 +21,7 @@ jobs:
       cache-set: ${{ steps.platform.outputs.cache-set }}
       available: ${{ steps.platform.outputs.available }}
     steps:
-      - uses: teaxyz/brewkit/actions/get-platform@v0
+      - uses: pkgxdev/brewkit/actions/get-platform@v0
         id: platform
         with:
           platform: ${{ inputs.platform }}
@@ -33,10 +33,10 @@ jobs:
     needs: [get-platform]
     if: ${{ needs.get-platform.outputs.available != '' }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - uses: teaxyz/brewkit/actions/setup-brewkit@v0
-        id: tea
+      - uses: pkgxdev/brewkit/actions/setup-brewkit@v0
+        id: pkgx
         with:
           prefix: /opt
         timeout-minutes: 10
@@ -46,7 +46,7 @@ jobs:
         run: sudo mv /usr/local/bin/* /tmp/
 
       # setup macOS codesigning
-      - uses: teaxyz/brewkit/actions/setup-codesign@v0
+      - uses: pkgxdev/brewkit/actions/setup-codesign@v0
         if: startsWith(inputs.platform, 'darwin+') && github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name
         with:
           p12-file-base64: ${{ secrets.APPLE_CERTIFICATE_P12 }}
@@ -58,22 +58,22 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           FORCE_UNSAFE_CONFIGURE: 1 # some configure scripts refuse to run as root
           APPLE_IDENTITY: ${{ secrets.APPLE_IDENTITY || '-' }}
+          SRCROOT: ${{ github.workspace }}
 
       - run: |
-          ABS_PATHS=$(echo $PATHS | tr ' ' '\n' | sed -e "s_^_$TEA_PREFIX/_" | tr '\n' ' ')
+          ABS_PATHS=$(echo $PATHS | tr ' ' '\n' | sed -e "s_^_/opt/_" | tr '\n' ' ')
           echo "paths=$ABS_PATHS" >> $GITHUB_OUTPUT
         if: startsWith(inputs.platform, 'darwin+')
         id: absolute-paths
         env:
           PATHS: ${{ steps.build.outputs.relative-paths }}
-          TEA_PREFIX: ${{ steps.tea.outputs.prefix }}
 
       # cache data we'll need in the bottling job
       - name: assemble artifact metadata
         run: |
           echo ${{ steps.build.outputs.pkgs }} >built
           echo ${{ steps.build.outputs.srcs-relative-paths }} >srcs
-        working-directory: ${{ steps.tea.outputs.prefix }}
+        working-directory: /opt
 
       # tarring ourselves ∵ GHA-artifacts (ludicrously) lose permissions
       # /ref https://github.com/actions/upload-artifact/issues/38
@@ -82,7 +82,7 @@ jobs:
           ${{ steps.build.outputs.relative-paths }}
           ${{ steps.build.outputs.srcs-relative-paths }}
           built srcs
-        working-directory: ${{ steps.tea.outputs.prefix }}
+        working-directory: /opt
 
       - name: upload artifacts
         uses: actions/upload-artifact@v3
@@ -103,8 +103,8 @@ jobs:
       HAS_SECRETS: ${{ env.HAS_SECRETS }}
     container: ${{ matrix.platform.container }}
     steps:
-      - uses: actions/checkout@v3
-      - uses: teaxyz/brewkit/actions/setup-brewkit@v0
+      - uses: actions/checkout@v4
+      - uses: pkgxdev/brewkit/actions/setup-brewkit@v0
         timeout-minutes: 10
 
       - uses: actions/download-artifact@v3
@@ -113,24 +113,24 @@ jobs:
 
       - name: clean destination
         # Note: needed when changing a directory to a symlink, for example in
-        # https://github.com/teaxyz/pantry/pull/435
+        # https://github.com/pkgxdev/pantry/pull/435
         run: |
+          cd $HOME/.pkgx
           tar tzf $GITHUB_WORKSPACE/artifacts.tgz | \
             awk '{ print length, $0 }' | \
             sort -n -s -r | \
             cut -d" " -f2- | \
             xargs rm -rf
-        working-directory: ${{ env.TEA_PREFIX }}
 
       - name: extract bottles
-        run: tar xzvf artifacts.tgz -C $TEA_PREFIX
+        run: tar xzvf artifacts.tgz -C $HOME/.pkgx
 
       - run: pkg test ${{ needs.get-platform.outputs.available }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
           # FIXME: this shouldn't be necessary, but it currently is for the
           # ubuntu+container test matrix entries. :/
-          TEA_PANTRY_PATH: ${{ github.workspace }}
+          PKGX_PANTRY_PATH: ${{ github.workspace }}
 
       - name: "[post]"
         run: echo "HAS_SECRETS=$HAS_SECRETS" >>$GITHUB_ENV
@@ -140,14 +140,14 @@ jobs:
   stage:
     needs: [get-platform, test]
     # this only works for PRs from our team to our repo (security! :( )
-    if: startsWith(github.ref, 'refs/pull/') && github.repository_owner == 'teaxyz' && needs.test.outputs.HAS_SECRETS == 'true' && needs.get-platform.outputs.available != ''
+    if: startsWith(github.ref, 'refs/pull/') && github.repository_owner == 'pkgxdev' && needs.test.outputs.HAS_SECRETS == 'true' && needs.get-platform.outputs.available != ''
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v3
         with:
           name: ${{ inputs.platform }}
 
-      - uses: teaxyz/brewkit/actions/stage-build-artifacts@v0
+      - uses: pkgxdev/brewkit/actions/stage-build-artifacts@v0
         with:
           platform: ${{ inputs.platform }}
           AWS_S3_BUCKET: ${{ secrets.AWS_S3_CACHE }}

@@ -10,9 +10,6 @@ versions:
     - /.tar.gz/
 
 build:
-  dependencies:
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
   script: |
     ./configure $ARGS
     make
@@ -25,18 +22,16 @@ build:
       - --prefix="{{prefix}}"
 
 test:
-  dependencies:
-    tea.xyz/gx/cc: c99 
   script: |
     mv $FIXTURE test.c
     gcc test.c -o test
     test "$(./test)" = 'Testing LZO v{{ version.major }}.{{ version.minor }} in tea.'
   fixture: |
-     #include <lzo/lzoconf.h>
-     #include <stdio.h>
-     int main()
-     {
-       printf("Testing LZO v%s in tea.",
-       LZO_VERSION_STRING);
-       return 0;
-     }  
+    #include <lzo/lzoconf.h>
+    #include <stdio.h>
+    int main()
+    {
+      printf("Testing LZO v%s in tea.",
+      LZO_VERSION_STRING);
+      return 0;
+    }

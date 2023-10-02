@@ -1,0 +1,66 @@
+distributable:
+  url: https://cr.yp.to/daemontools/daemontools-{{version.marketing}}.tar.gz
+  strip-components: 1
+versions:
+  url: https://cr.yp.to/daemontools/install.html
+  match: /daemontools-\d+\.\d+\.tar\.gz/
+  strip:
+    - /^daemontools-/
+    - /\.tar\.gz/
+build:
+  dependencies:
+    gnu.org/gcc: '*'
+    linux:
+      kernel.org/linux-headers: '*'
+      curl.se: '*'
+      gnu.org/patch: '*'
+  working-directory: daemontools-{{version.marketing}}
+  script:
+    # Fix build failure due to missing #include <errno.h> on Linux.
+    - run: curl -L "$PATCH"| patch -p1
+      working-directory: $SRCROOT
+      if: linux
+    - sed -i.bak 's|/service|{{prefix}}/etc/service|g' package/run
+    - rm package/run.bak
+    - sed -i.bak 's|/service|{{prefix}}/etc/service|g' src/svscanboot.sh
+    - rm src/svscanboot.sh.bak
+    # Work around build error from root requirement: "Oops. Your getgroups() returned 0,
+    # and setgroups() failed; this means that I can't reliably do my shsgr test. Please
+    # either ``make'' as root or ``make'' while you're in one or more supplementary groups."
+    - run: |
+        sed -i.bak 's|( cat warn-shsgr; exit 1 )|cat warn-shsgr|g' src/Makefile
+        rm src/Makefile.bak
+      if: linux
+    - run: xcrun package/compile
+      if: darwin
+    - run: package/compile
+      if: linux
+    - mkdir -p {{prefix}}/bin
+    - install command/* {{prefix}}/bin/
+    - run: |
+        sed -i.bak "s|{{prefix}}|\$(dirname \$0)/..|g" svscanboot
+        rm svscanboot.bak
+      working-directory: '{{prefix}}/bin'
+  env:
+    PATCH: 'https://raw.githubusercontent.com/Homebrew/formula-patches/212baeaf8232802cf3dfbfcc531efa5741325bfa/daemontools/errno.patch'
+provides:
+  - bin/envdir
+  - bin/envuidgid
+  - bin/fghack
+  - bin/multilog
+  - bin/pgrphack
+  - bin/readproctitle
+  - bin/setlock
+  - bin/setuidgid
+  - bin/softlimit
+  - bin/supervise
+  - bin/svc
+  - bin/svok
+  - bin/svscan
+  - bin/svscanboot
+  - bin/svstat
+  - bin/tai64n
+  - bin/tai64nlocal
+test:
+  script:
+    - softlimit -t 1 echo 'Tea.xyz' | grep 'Tea.xyz'

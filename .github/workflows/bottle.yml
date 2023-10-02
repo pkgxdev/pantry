@@ -29,7 +29,7 @@ jobs:
       cache-set: ${{ steps.platform.outputs.cache-set }}
       available: ${{ steps.platform.outputs.available }}
     steps:
-      - uses: teaxyz/brewkit/actions/get-platform@v0
+      - uses: pkgxdev/brewkit/actions/get-platform@v0
         id: platform
         with:
           platform: ${{ inputs.platform }}
@@ -44,16 +44,18 @@ jobs:
       built: ${{ env.built }}
       pr: ${{ env.PR }}
     steps:
-      - uses: teaxyz/brewkit/actions/setup-brewkit@v0
-        id: tea
+      - uses: pkgxdev/brewkit/actions/setup-brewkit@v0
+        id: pkgx
         timeout-minutes: 10
+        with:
+          prefix: ${{ github.workspace }}/.pkgx
 
       - uses: actions/download-artifact@v3
         if: ${{ inputs.new-version }}
         with:
           name: ${{ inputs.platform }}
 
-      - uses: teaxyz/brewkit/actions/fetch-pr-artifacts@v0
+      - uses: pkgxdev/brewkit/actions/fetch-pr-artifacts@v0
         if: ${{ !inputs.new-version }}
         with:
           platform: ${{ inputs.platform }}
@@ -64,59 +66,60 @@ jobs:
 
       - name: clean destination
         # Note: needed when changing a directory to a symlink, for example in
-        # https://github.com/teaxyz/pantry/pull/435
+        # https://github.com/pkgxdev/pantry/pull/435
         run: |
           tar tzf $GITHUB_WORKSPACE/artifacts.tgz | \
             awk '{ print length, $0 }' | \
             sort -n -s -r | \
             cut -d" " -f2- | \
             xargs rm -rf
-        working-directory: ${{ steps.tea.outputs.prefix }}
+        working-directory: ${{ github.workspace }}/.pkgx
 
       - run: tar xzvf $GITHUB_WORKSPACE/artifacts.tgz
-        working-directory: ${{ steps.tea.outputs.prefix }}
+        working-directory: ${{ github.workspace }}/.pkgx
 
       - run: |
           for file in built srcs; do
-            echo "$file=$(cat $file)" >>$GITHUB_ENV
+            echo "$file=$(cat $file)" >> $GITHUB_ENV
           done
-        working-directory: ${{ steps.tea.outputs.prefix }}
+        working-directory: ${{ github.workspace }}/.pkgx
 
       - run: |
-          tea +gnupg.org gpg-agent --daemon || true
+          pkgx +gnupg.org gpg-agent --daemon || true
           echo $GPG_PRIVATE_KEY | \
             base64 -d | \
-            tea +gnupg.org gpg --import --batch --yes
+            pkgx +gnupg.org gpg --import --batch --yes
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
 
-      - uses: teaxyz/brewkit/actions/bottle@v0
+      - uses: pkgxdev/brewkit/actions/bottle@v0
         id: bottle-xz
         with:
           built: ${{ env.built }}
           compression: xz
           gpg-key-id: ${{ secrets.GPG_KEY_ID }}
+        env:
+          XDG_CACHE_HOME: ${{ github.workspace }}/.pkgx
 
-      - uses: teaxyz/brewkit/actions/bottle@v0
+      - uses: pkgxdev/brewkit/actions/bottle@v0
         id: bottle-gz
         with:
           built: ${{ env.built }}
           compression: gz
           gpg-key-id: ${{ secrets.GPG_KEY_ID }}
+        env:
+          XDG_CACHE_HOME: ${{ github.workspace }}/.pkgx
 
       - run: |
           echo ${{ steps.bottle-gz.outputs.bottles }} ${{ steps.bottle-xz.outputs.bottles }} >bottles
           echo ${{ steps.bottle-gz.outputs.checksums }} ${{ steps.bottle-xz.outputs.checksums }} >checksums
           echo ${{ steps.bottle-gz.outputs.signatures }} ${{ steps.bottle-xz.outputs.signatures }} >signatures
 
-          SRCS=$(echo $srcs | tr -d '~')
-
           tar cf $GITHUB_WORKSPACE/artifacts.tar \
-            $SRCS \
             ${{ steps.bottle-gz.outputs.bottles }} \
             ${{ steps.bottle-xz.outputs.bottles }} \
             bottles checksums signatures
-        working-directory: ${{ steps.tea.outputs.prefix }}
+        working-directory: ${{ github.workspace }}/.pkgx
 
       - name: upload artifacts
         uses: actions/upload-artifact@v3
@@ -132,9 +135,9 @@ jobs:
     outputs:
       qa-required: ${{ steps.upload.outputs.qa-required }}
     steps:
-      - uses: teaxyz/brewkit/actions/setup-brewkit@v0
+      - uses: pkgxdev/brewkit/actions/setup-brewkit@v0
         with:
-          prefix: ${{ github.workspace }}/.tea
+          prefix: ${{ github.workspace }}/.pkgx
         timeout-minutes: 10
 
       - uses: actions/download-artifact@v3
@@ -148,12 +151,12 @@ jobs:
             echo "$file=$(cat $file)" >>$GITHUB_ENV
           done
 
-      - uses: teaxyz/brewkit/actions/upload@v0
+      - uses: pkgxdev/brewkit/actions/upload@v0
         id: upload
         with:
           qa: ${{ inputs.new-version }}
           pkgs: ${{ needs.bottle.outputs.built }} ${{ needs.bottle.outputs.built }}
-          srcs: ${{ needs.bottle.outputs.srcs }} ${{ needs.bottle.outputs.srcs }}
+          srcs: '~'
           bottles: ${{ env.bottles }}
           checksums: ${{ env.checksums }}
           signatures: ${{ env.signatures }}

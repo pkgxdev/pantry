@@ -7,17 +7,14 @@ versions:
   strip: /^POPPLER_DATA_/
 
 build:
-  dependencies:
-    tea.xyz/gx/make: '*'
-  script: |
+  script:
     # datadir is for pkgconfig files, needed by poppler itself to find its own data files
-    make install prefix={{prefix}} datadir={{prefix}}/lib pkgdatadir={{prefix}}/share/poppler
+    - make install prefix={{prefix}} datadir={{prefix}}/lib pkgdatadir={{prefix}}/share/poppler
 
     # create a symlink in case something is expecting the .pc in share
-    ln -s {{prefix}}/lib/pkgconfig {{prefix}}/share/
+    - ln -s {{prefix}}/lib/pkgconfig {{prefix}}/share/
 
 test:
   dependencies:
     freedesktop.org/pkg-config: '*'
-  script: |
-    pkg-config --cflags poppler-data
+  script: pkg-config --cflags poppler-data

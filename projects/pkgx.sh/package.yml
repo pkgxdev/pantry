@@ -1,0 +1,20 @@
+distributable:
+  url: https://github.com/pkgxdev/pkgx/releases/download/v{{ version }}/pkgx-{{ version }}.tar.xz
+  strip-components: 1
+
+display-name: pkgx
+
+versions:
+  github: pkgxdev/pkgx
+
+provides:
+  - bin/pkgx
+
+build:
+  dependencies:
+    deno.land: ^1.35
+  working-directory: ${{prefix}}/bin
+  script: |
+    deno task --config "$SRCROOT"/deno.jsonc compile
+
+test: test "$(pkgx --version)" = "pkgx {{ version }}"

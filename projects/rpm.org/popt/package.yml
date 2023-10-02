@@ -3,27 +3,22 @@ distributable:
   strip-components: 1
 
 versions:
-  github: rpm-software-management/popt/releases/tags 
-  strip: 
-    - /^popt-/ 
+  github: rpm-software-management/popt/releases/tags
+  strip:
+    - /^popt-/
     - /-release$/
 
 build:
-  dependencies:
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
   script: |
     ./configure --disable-debug --disable-dependency-tracking --prefix={{ prefix }}
     make install
 
 test:
-  dependencies:
-    tea.xyz/gx/cc: c99
   script: |
     mv $FIXTURE test.c
     gcc test.c -lpopt -o test
     test "$(./test -a 123 -b 456 -c 789 -f)" = "123::456::789::1::0"
-    test "$(./test --optiona=987 --optionb=654 --optionc=321 --flag2)" = "987::654::321::0::1" 
+    test "$(./test --optiona=987 --optionb=654 --optionc=321 --flag2)" = "987::654::321::0::1"
   fixture: |
     #include <stdio.h>
     #include <stdlib.h>
@@ -69,4 +64,3 @@ test:
       printf("%d::%d::%d::%d::%d", optiona, optionb, optionc, flag1, flag2);
       return 0;
     }
-    

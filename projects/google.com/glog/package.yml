@@ -1,7 +1,6 @@
-
 distributable:
-   url: https://github.com/google/glog/archive/refs/tags/v{{version}}.tar.gz
-   strip-components: 1
+  url: https://github.com/google/glog/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
 
 versions:
   github: google/glog/tags
@@ -12,21 +11,17 @@ dependencies:
 
 build:
   dependencies:
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
     cmake.org: '*'
   script: |
     cmake -S . -B build -G "Unix Makefiles" $ARGS
     cmake --build build
     cmake --build build --target install
   env:
-    ARGS: 
+    ARGS:
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
       - -DBUILD_SHARED_LIBS=ON
 
 test:
-  dependencies:
-    tea.xyz/gx/cc: c99
   fixture: |
     #include <glog/logging.h>
     #include <iostream>

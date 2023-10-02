@@ -10,14 +10,9 @@ versions:
     - /\.tar\.xz$/
 
 build:
-  dependencies:
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
-
   script:
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
-
   env:
     ARGS:
       - --prefix="{{prefix}}"
@@ -32,4 +27,5 @@ provides:
   - bin/locate
   - bin/updatedb
   - bin/xargs
+
 test: find --version | grep {{version}}

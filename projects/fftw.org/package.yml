@@ -1,0 +1,41 @@
+distributable:
+  url: https://fftw.org/fftw-{{version}}.tar.gz
+  strip-components: 1
+versions:
+  url: https://fftw.org/download.html
+  match: /fftw-\d+\.\d+\.\d+\.tar\.gz/
+  strip:
+    - /^fftw-/
+    - /\.tar\.gz/
+dependencies:
+  open-mpi.org: '*'
+build:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script:
+    - ./configure --enable-single $ARGS
+    - make --jobs {{hw.concurrency}} install
+    - make clean
+    - ./configure $ARGS
+    - make --jobs {{hw.concurrency}} install
+    - make clean
+    - ./configure --enable-long-double $ARGS
+    - make --jobs {{hw.concurrency}} install
+  env:
+    CC: clang
+    ARGS:
+      - --enable-shared
+      - --disable-debug
+      - --prefix={{prefix}}
+      - --enable-threads
+      - --disable-dependency-tracking
+provides:
+  - bin/fftw-wisdom
+  - bin/fftw-wisdom-to-conf
+  - bin/fftwf-wisdom
+  - bin/fftwl-wisdom
+test:
+  script:
+    - fftw-wisdom --version | grep {{version}}
+    - cc -o fftw fftw.c -lfftw3
+    - ./fftw

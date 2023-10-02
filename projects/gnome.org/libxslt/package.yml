@@ -11,8 +11,6 @@ dependencies:
 build:
   dependencies:
     freedesktop.org/pkg-config: ^0.29
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
     gnu.org/patch: '*'
   script: |
     patch -p1 < props/xslt-config.patch.in
@@ -30,12 +28,10 @@ build:
   env:
     ARGS:
       - --prefix={{prefix}}
-      - --without-python   # we don’t yet know how to support this
-      - --without-plugins  # doesn’t build and we couldn’t debug
+      - --without-python # we don’t yet know how to support this
+      - --without-plugins # doesn’t build and we couldn’t debug
 
 test:
-  dependencies:
-    tea.xyz/gx/cc: c99
   script: |
     cc `xslt-config --cflags --libs` test.c
     ./a.out

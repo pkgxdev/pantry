@@ -1,0 +1,31 @@
+distributable:
+  url: https://xcb.freedesktop.org/dist/xcb-util-renderutil-{{version}}.tar.gz
+  strip-components: 1
+versions:
+  url: https://xcb.freedesktop.org/dist/
+  match: /xcb-util-renderutil-\d+\.\d+\.\d+\.tar\.gz/
+  strip:
+    - /^xcb-util-renderutil-/
+    - /\.tar\.gz/
+dependencies:
+  x.org/xcb: '*'
+build:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script:
+    - ./configure $CONFIGURE_ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    CONFIGURE_ARGS:
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --prefix="{{prefix}}"
+      - --libdir="{{prefix}}/lib"
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script:
+    - cc test.c -o test
+    - ./test
+    - pkg-config --modversion xcb-renderutil | grep {{version}}

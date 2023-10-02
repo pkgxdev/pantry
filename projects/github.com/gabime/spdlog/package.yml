@@ -10,26 +10,22 @@ dependencies:
 
 build:
   dependencies:
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
     cmake.org: ^3
   working-directory: build
   script:
     - 'sed -i.bak "s|// #define SPDLOG_FMT_EXTERNAL|#define SPDLOG_FMT_EXTERNAL|" ../include/spdlog/tweakme.h'
 
     - cmake ..
-        -DSPDLOG_BUILD_BENCH=OFF
-        -DSPDLOG_BUILD_TESTS=OFF
-        -DSPDLOG_FMT_EXTERNAL=ON
-        -DSPDLOG_BUILD_SHARED=ON
-        -DCMAKE_INSTALL_PREFIX={{prefix}}
-        -DCMAKE_BUILD_TYPE=Release
+      -DSPDLOG_BUILD_BENCH=OFF
+      -DSPDLOG_BUILD_TESTS=OFF
+      -DSPDLOG_FMT_EXTERNAL=ON
+      -DSPDLOG_BUILD_SHARED=ON
+      -DCMAKE_INSTALL_PREFIX={{prefix}}
+      -DCMAKE_BUILD_TYPE=Release
 
     - make --jobs {{ hw.concurrency }} install
 
 test:
-  dependencies:
-    tea.xyz/gx/cc: c99
   fixture: |
     #include "spdlog/sinks/basic_file_sink.h"
     #include <iostream>

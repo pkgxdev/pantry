@@ -9,9 +9,6 @@ dependencies:
   openssl.org: ^1.1.1
 
 build:
-  dependencies:
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
   working-directory: build_unix
   script: |
     ../dist/configure $ARGS
@@ -19,19 +16,17 @@ build:
     rm -rf "{{prefix}}/docs"
   env:
     ARGS:
-    - --disable-debug
-    - --disable-static
-    - --prefix={{prefix}}
-    - --enable-cxx
-    - --enable-compat185
-    - --enable-sql
-    - --enable-sql_codegen
-    - --enable-dbm
-    - --enable-stl
+      - --disable-debug
+      - --disable-static
+      - --prefix={{prefix}}
+      - --enable-cxx
+      - --enable-compat185
+      - --enable-sql
+      - --enable-sql_codegen
+      - --enable-dbm
+      - --enable-stl
 
 test:
-  dependencies:
-    tea.xyz/gx/cc: c99
   script: |
     c++ fixture.cpp -ldb_cxx
     ./a.out

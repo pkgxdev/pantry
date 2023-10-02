@@ -10,8 +10,6 @@ versions:
 
 build:
   dependencies:
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
     gnu.org/gmp: '*'
     gnu.org/m4: '*'
   script: |
@@ -19,34 +17,32 @@ build:
     make --jobs {{ hw.concurrency }} install
 
 test:
-  dependencies:
-    tea.xyz/gx/cc: c99
   script: |
     mv $FIXTURE test.c
     cc -lnettle -o test test.c
     ./test
   fixture: |
-      #include <nettle/sha1.h>
-      #include <stdio.h>
+    #include <nettle/sha1.h>
+    #include <stdio.h>
 
-      int main()
-      {
-        struct sha1_ctx ctx;
-        uint8_t digest[SHA1_DIGEST_SIZE];
-        unsigned i;
+    int main()
+    {
+      struct sha1_ctx ctx;
+      uint8_t digest[SHA1_DIGEST_SIZE];
+      unsigned i;
 
-        sha1_init(&ctx);
-        sha1_update(&ctx, 4, "test");
-        sha1_digest(&ctx, SHA1_DIGEST_SIZE, digest);
+      sha1_init(&ctx);
+      sha1_update(&ctx, 4, "test");
+      sha1_digest(&ctx, SHA1_DIGEST_SIZE, digest);
 
-        printf("SHA1(test)=");
+      printf("SHA1(test)=");
 
-        for (i = 0; i<SHA1_DIGEST_SIZE; i++)
-          printf("%02x", digest[i]);
+      for (i = 0; i<SHA1_DIGEST_SIZE; i++)
+        printf("%02x", digest[i]);
 
-        printf("\\n");
-        return 0;
-      }
+      printf("\\n");
+      return 0;
+    }
 
 provides:
   - bin/nettle-hash

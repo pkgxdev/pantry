@@ -7,13 +7,13 @@
 # - for tea-envs the user probably won’t use tea.xyz/gx/cc even though they *should*
 #   and thus we set LDFLAGS in the hope that they will be picked up and the rpath set
 
-$tea_prefix = ENV['TEA_PREFIX'] || `tea --prefix`.chomp
+$pkgx_prefix = ENV['PKGX_DIR'] || `tea --prefix`.chomp
 exe = File.basename($0)
 
 # remove duplicates since this in fact embeds the rpath multiple times
 # and omit -nodefaultrpaths since it is not a valid flag for clang
 args = ARGV.map do |arg|
-  arg unless arg == "-Wl,-rpath,#$tea_prefix" or arg == "-nodefaultrpaths"
+  arg unless arg == "-Wl,-rpath,#$pkgx_prefix" or arg == "-nodefaultrpaths"
 end.compact
 
 def is_tea? path
@@ -26,7 +26,7 @@ end
 exe_path = ENV['PATH'].split(":").filter { |path|
   if path == File.dirname(__FILE__)
     false
-  elsif path == File.join($tea_prefix, ".local/bin")
+  elsif path == File.join($pkgx_prefix, ".local/bin")
     false
   elsif is_tea?(path)
     false
@@ -52,7 +52,7 @@ for arg in args do
   # we aren't sure what the rules are TBH, possibly it is as simple as if the output (`-o`)
   # is a .o then we don’t add the rpath
   if arg.start_with? '-l' or arg.end_with? '.dylib'
-    exec exe_path, *args, "-Wl,-rpath,#$tea_prefix"
+    exec exe_path, *args, "-Wl,-rpath,#$pkgx_prefix"
   end
 end
 

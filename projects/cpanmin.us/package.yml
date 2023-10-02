@@ -5,30 +5,23 @@ distributable:
 versions:
   github: miyagawa/cpanminus/tags
   ignore:
-    - /^1.9/   # invalid versions in the tags for some reason
-    - /^1.79/  # ^^
-    - /^1.71/  # ^^ like wtf?
+    - /^1.9/ # invalid versions in the tags for some reason
+    - /^1.79/ # ^^
+    - /^1.71/ # ^^ like wtf?
 
 dependencies:
   perl.org: '*'
 
 companions:
-  tea.xyz/gx/make: '*'
 
 provides:
   - bin/cpanm
 
 build:
-  dependencies:
-    tea.xyz/gx/make: '*'
   script: |
     perl Makefile.PL INSTALL_BASE={{prefix}}
     make install
 
     fix-shebangs.ts {{prefix}}/bin/cpanm
 
-test:
-  dependencies:
-    tea.xyz/gx/make: '*'
-  script:
-    cpanm --verbose --local-lib=./out Test::More
+test: cpanm --verbose --local-lib=./out Test::More

@@ -8,43 +8,38 @@ versions:
 build:
   dependencies:
     cmake.org: ^3
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
 
   script:
-  - |
-    cmake -S . -B build \
-      -DCMAKE_CXX_STANDARD=17 \
-      -DBUILD_SHARED_LIBS=ON \
-      -DCMAKE_INSTALL_RPATH={{ prefix }}/lib \
-      -DCMAKE_BINARY_DIR={{ prefix }}/bin \
-      -DABSL_PROPAGATE_CXX_STD=ON \
-      -DCMAKE_INSTALL_PREFIX={{ prefix }} \
-      -DCMAKE_INSTALL_LIBDIR={{ prefix }}/lib \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_FIND_FRAMEWORK=LAST \
-      -DCMAKE_VERBOSE_MAKEFILE=ON \
-      -Wno-dev \
-      -DBUILD_TESTING=OFF
-  - cmake --build build
-  - cmake --install build
-    # Remove bad flags in .pc files.
-    # https://github.com/abseil/abseil-cpp/issues/1408
-  - run: |
-      sed -i '' 's/-Xarch_x86_64 -Xarch_x86_64 -Xarch_arm64 //g' {{ prefix }}/lib/pkgconfig/absl_random_internal_randen_hwaes{_impl,}.pc
-    if: darwin
+    - |
+      cmake -S . -B build \
+        -DCMAKE_CXX_STANDARD=17 \
+        -DBUILD_SHARED_LIBS=ON \
+        -DCMAKE_INSTALL_RPATH={{ prefix }}/lib \
+        -DCMAKE_BINARY_DIR={{ prefix }}/bin \
+        -DABSL_PROPAGATE_CXX_STD=ON \
+        -DCMAKE_INSTALL_PREFIX={{ prefix }} \
+        -DCMAKE_INSTALL_LIBDIR={{ prefix }}/lib \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_FIND_FRAMEWORK=LAST \
+        -DCMAKE_VERBOSE_MAKEFILE=ON \
+        -Wno-dev \
+        -DBUILD_TESTING=OFF
+    - cmake --build build
+    - cmake --install build
+      # Remove bad flags in .pc files.
+      # https://github.com/abseil/abseil-cpp/issues/1408
+    - run: |
+        sed -i '' 's/-Xarch_x86_64 -Xarch_x86_64 -Xarch_arm64 //g' {{ prefix }}/lib/pkgconfig/absl_random_internal_randen_hwaes{_impl,}.pc
+      if: darwin
 
-  - working-directory: "{{prefix}}/lib/cmake/absl"
-    run: |
-      sed -i.bak \
-        -e "s:{{ tea.prefix }}:\$\{CMAKE_CURRENT_LIST_DIR\}/../../../../..:g" \
-        abslTargets{,-release}.cmake
-      rm abslTargets{,-release}.cmake.bak
+    - working-directory: '{{prefix}}/lib/cmake/absl'
+      run: |
+        sed -i.bak \
+          -e "s:{{ pkgx.prefix }}:\$\{CMAKE_CURRENT_LIST_DIR\}/../../../../..:g" \
+          abslTargets{,-release}.cmake
+        rm abslTargets{,-release}.cmake.bak
 
 test:
-  dependencies:
-    tea.xyz/gx/cc: c99
   script: |
-    ls -l
     c++ -std=c++17 -I{{ prefix }}/include -L{{ prefix }}/lib -labsl_strings test.cc
     test "$(./a.out)" = "Joined string: foo-bar-baz\n"

@@ -12,13 +12,13 @@ jobs:
       has-artifacts: ${{ steps.has-artifacts.outputs.has-artifacts }}
       platforms: ${{ steps.has-artifacts.outputs.platforms }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       # ^^ NOTE probably no longer required but I don’t dare try to remove it
 
-      - uses: teaxyz/brewkit/actions/setup-brewkit@v0
+      - uses: pkgxdev/brewkit/actions/setup-brewkit@v0
         timeout-minutes: 10
 
-      - uses: teaxyz/brewkit/actions/has-artifacts@v0
+      - uses: pkgxdev/brewkit/actions/has-artifacts@v0
         id: has-artifacts
         with:
           repo: ${{ github.repository }}
@@ -54,7 +54,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
       - run: |
-          REPO=$(echo ${{github.repository}} | sed -e 's_teaxyz/__')
+          REPO=$(echo ${{github.repository}} | sed -e 's_pkgxdev/__')
 
           if test -z "$PR"; then
             echo "no PR to clean up"

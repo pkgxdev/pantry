@@ -14,16 +14,11 @@ dependencies:
   invisible-island.net/ncurses: ^6
 
 build:
-  dependencies:
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
   script: |
     ./configure --prefix={{ prefix }} --with-curses
     make --jobs {{ hw.concurrency }} install
 
 test:
-  dependencies:
-    tea.xyz/gx/cc: c99
   script: |
     cc -lreadline -lncurses fixture.c
     test "$(echo "Hello, World!" | ./a.out)" = "test> Hello, World!

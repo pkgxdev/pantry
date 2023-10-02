@@ -4,15 +4,12 @@ distributable:
 
 versions:
   url: https://sourceforge.net/projects/opencore-amr/files/opencore-amr/
-  match: /opencore-amr-\d+\.\d+\.\d+\.tar\.gz/ 
+  match: /opencore-amr-\d+\.\d+\.\d+\.tar\.gz/
   strip:
     - /^opencore-amr-/
     - /.tar\.gz$/
 
 build:
-  dependencies:
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
   script: |
     ./configure $ARGS
     make --jobs {{ hw.concurrency }} install
@@ -23,7 +20,6 @@ build:
 
 test:
   dependencies:
-    tea.xyz/gx/cc: c99
     freedesktop.org/pkg-config: '*'
   script: |
     pkg-config --modversion opencore-amrnb | grep {{ version }}

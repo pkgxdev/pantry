@@ -10,19 +10,14 @@ versions:
     - /.tar.gz/
 
 build:
-  dependencies:
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
   script: |
     ./configure --prefix="{{prefix}}"
     make --jobs {{ hw.concurrency }} install
   env:
     linux/aarch64:
-      CFLAGS: "$CFLAGS -march=armv8-a+crypto"
+      CFLAGS: '$CFLAGS -march=armv8-a+crypto'
 
 test:
-  dependencies:
-    tea.xyz/gx/cc: c99
   fixture: |
     #include <assert.h>
     #include <sodium.h>

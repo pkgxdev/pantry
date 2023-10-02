@@ -11,15 +11,10 @@ dependencies:
   proj.org: '*'
 
 build:
-  dependencies:
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
-
   script:
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }}
     - make --jobs {{ hw.concurrency }} install
-   
   env:
     ARGS:
       - --prefix="{{prefix}}"
@@ -34,8 +29,6 @@ provides:
   - bin/listgeo
 
 test:
-  dependencies:
-    tea.xyz/gx/cc: c99
   script:
     - cc test.c -ltiff -lgeotiff -o test
     - ./test test.tiff

@@ -10,16 +10,11 @@ versions:
     - /.tar.gz/
 
 build:
-  dependencies:
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
   script: |
     ./configure --prefix={{ prefix }}
     make --jobs {{ hw.concurrency }} install
 
 test:
-  dependencies:
-    tea.xyz/gx/cc: c99
   script: |
     asn1Coding pkix.asn assign.asn1
     asn1Decoding pkix.asn assign.out PKIX1.Dss-Sig-Value 2>&1 | grep 'Decoding: SUCCESS'

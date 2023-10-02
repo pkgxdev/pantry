@@ -1,6 +1,6 @@
 distributable:
-   url: https://download.osgeo.org/libtiff/tiff-{{version}}.tar.gz
-   strip-components: 1
+  url: https://download.osgeo.org/libtiff/tiff-{{version}}.tar.gz
+  strip-components: 1
 
 versions:
   url: https://download.osgeo.org/libtiff/
@@ -15,22 +15,19 @@ dependencies:
   zlib.net: ^1
 
 build:
-  dependencies:
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
   script: |
     ./configure $ARGS
     make --jobs {{ hw.concurrency }} install
   env:
     ARGS:
-    - --prefix={{prefix}}
-    - --enable-zstd
-    - --disable-dependency-tracking
-    - --disable-lzma
-    - --disable-webp
-    - --with-jpeg-include-dir={{deps.libjpeg-turbo.org.prefix}}/include
-    - --with-jpeg-lib-dir={{deps.libjpeg-turbo.org.prefix}}/lib
-    - --without-x
+      - --prefix={{prefix}}
+      - --enable-zstd
+      - --disable-dependency-tracking
+      - --disable-lzma
+      - --disable-webp
+      - --with-jpeg-include-dir={{deps.libjpeg-turbo.org.prefix}}/include
+      - --with-jpeg-lib-dir={{deps.libjpeg-turbo.org.prefix}}/lib
+      - --without-x
 
 provides:
   - bin/tiffcp
@@ -40,8 +37,6 @@ provides:
   - bin/tiffsplit
 
 test:
-  dependencies:
-    tea.xyz/gx/cc: c99
   script: |
     mv $FIXTURE test.c
     cc test.c -ltiff

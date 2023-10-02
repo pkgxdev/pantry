@@ -1,6 +1,6 @@
 distributable:
-   url: https://github.com/libarchive/libarchive/releases/download/v{{version}}/libarchive-{{version}}.tar.gz
-   strip-components: 1
+  url: https://github.com/libarchive/libarchive/releases/download/v{{version}}/libarchive-{{version}}.tar.gz
+  strip-components: 1
 
 versions:
   github: libarchive/libarchive/releases
@@ -16,25 +16,22 @@ dependencies:
   zlib.net: 1
 
 build:
-  dependencies:
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
   script: |
     ./configure $ARGS
-    make --jobs {{ hw.concurrency }} 
+    make --jobs {{ hw.concurrency }}
     make install
   env:
     ARGS:
       - --prefix={{prefix}}
-      - --without-lzo2    # Use lzop binary instead of lzo2 due to GPL
-      - --without-nettle  # xar hashing option but GPLv3
-      - --without-xml2    # xar hashing option but tricky dependencies
+      - --without-lzo2 # Use lzop binary instead of lzo2 due to GPL
+      - --without-nettle # xar hashing option but GPLv3
+      - --without-xml2 # xar hashing option but tricky dependencies
       - --without-openssl # mtree hashing now possible without OpenSSL
-      - --with-expat      # best xar hashing option
+      - --with-expat # best xar hashing option
     linux/x86-64:
-      CFLAGS: "$CFLAGS -fPIC"
-      CXXFLAGS: "$CXXFLAGS -fPIC"
-      LDFLAGS: "$LDFLAGS -pie"
+      CFLAGS: '$CFLAGS -fPIC'
+      CXXFLAGS: '$CXXFLAGS -fPIC'
+      LDFLAGS: '$LDFLAGS -pie'
 
 provides:
   - bin/bsdcat
@@ -44,4 +41,3 @@ provides:
 test:
   script: |
     bsdtar -cf test.tar.gz fixture.c
-

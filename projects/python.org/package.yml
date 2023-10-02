@@ -34,7 +34,7 @@ interprets:
   args: python
 
 dependencies:
-# recommended (but none are actually required)
+  # recommended (but none are actually required)
   zlib.net: 1
   sourceware.org/bzip2: 1
   openssl.org: ^1.1
@@ -50,8 +50,6 @@ dependencies:
 
 build:
   dependencies:
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
     freedesktop.org/pkg-config: ^0.29
     gnu.org/patch: '*'
     curl.se: '*'
@@ -163,18 +161,16 @@ build:
         rm $confdir/Makefile.bak
       working-directory: ${{prefix}}
 
-    - run:
-        cat $PROP >> _sysconfigdata__*.py
-      working-directory:
-        ${{prefix}}/lib/python{{version.marketing}}
+    - run: cat $PROP >> _sysconfigdata__*.py
+      working-directory: ${{prefix}}/lib/python{{version.marketing}}
       prop: |
         import os
         import re
 
-        tea_prefix = os.path.normpath(os.path.join(os.path.dirname(__file__), '../../../../'))
+        pkgx_prefix = os.path.normpath(os.path.join(os.path.dirname(__file__), '../../../../'))
         for key in build_time_vars:
           if isinstance(build_time_vars[key], str):
-            build_time_vars[key] = re.sub(r'(\s|^)/opt/', r'\g<1>{}/'.format(tea_prefix), build_time_vars[key])
+            build_time_vars[key] = re.sub(r'(\s|^)/opt/', r'\g<1>{}/'.format(pkgx_prefix), build_time_vars[key])
 
     # force pip to user-install mode without sudo
     - ln -s /dev {{prefix}}/lib/python{{version.marketing}}/site-packages
@@ -205,19 +201,16 @@ build:
       # - --enable-optimizations  # fails due to clang/llvm pkging bug on Linux
       # - --with-lto  # fails on linux/aarch64
       - --enable-shared
-    libdir:
-      lib/python{{version.marketing}}
+    libdir: lib/python{{version.marketing}}
     darwin:
-      confdir:
-        $libdir/config-{{version.marketing}}-darwin
+      confdir: $libdir/config-{{version.marketing}}-darwin
       PYTHON2PATCHES:
         - https://raw.githubusercontent.com/macports/macports-ports/master/lang/python27/files/patch-getpath.diff
     linux:
       # ARGS:
       #   - --with-dbmliborder=bdb
       ARCH: ${{hw.arch}}
-      confdir:
-        $libdir/config-{{version.marketing}}-${ARCH/-/_}-linux-gnu
+      confdir: $libdir/config-{{version.marketing}}-${ARCH/-/_}-linux-gnu
     shebangs:
       - bin/2to3-{{version.marketing}}
       - bin/idle{{version.marketing}}
@@ -241,8 +234,6 @@ build:
       - https://raw.githubusercontent.com/macports/macports-ports/master/lang/python27/files/openssl_ver.patch
 
 test:
-  dependencies:
-    tea.xyz/gx/cc: c99
   script:
     # Check if sqlite is ok, because we build with --enable-loadable-sqlite-extensions
     # and it can occur that building sqlite silently fails if OSX's sqlite is used.

@@ -12,9 +12,6 @@ dependencies:
   git-scm.org: ^2
 
 build:
-  dependencies:
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
   env:
     GEM_HOME: ${{prefix}}
     GEM_PATH: ${{prefix}}
@@ -28,8 +25,7 @@ build:
     - run: |
         mv {{prefix}}/bin/* .
         cp $SRCROOT/props/proxy {{prefix}}/bin/pod
-      working-directory:
-        ${{prefix}}/gems/bin
+      working-directory: ${{prefix}}/gems/bin
 
 provides:
   - bin/pod
@@ -38,5 +34,4 @@ test:
   env:
     # some of our test containers are raw and thus run as root
     COCOAPODS_ALLOW_ROOT: 1
-  script:
-    pod --version
+  script: pod --version
