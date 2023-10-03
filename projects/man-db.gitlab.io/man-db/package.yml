@@ -11,13 +11,12 @@ dependencies:
     gnu.org/gdbm: '*'
 build:
   dependencies:
-    tea.xyz/gx/cc: c99
     gnu.org/make: '*'
     freedesktop.org/pkg-config: '*'
   script:
     - ./configure $CONFIGURE_ARGS
     - make --jobs {{hw.concurrency}} install
-    - sed -i.bak "s|$TEA_PREFIX|\$TEA_PREFIX|g" {{prefix}}/etc/systemd/system/man-db.service
+    - sed -i.bak "s|$PKGX_DIR|\$PKGX_DIR|g" {{prefix}}/etc/systemd/system/man-db.service
     - rm {{prefix}}/etc/systemd/system/man-db.service.bak
     - run: |
         # Creating stubs
@@ -25,9 +24,9 @@ build:
         do
         cat <<EOF >$name
         #!/bin/bash
-        
+
         config_file="\$(dirname \$0)/../../etc/man_db.conf"
-        
+
         \$(dirname \$0)/../libexec/bin/$name --config-file="\$config_file" "\$@"
         EOF
         chmod +x $name
@@ -37,7 +36,7 @@ build:
         rm lexgrog man-recode
         ln -s ../libexec/bin/lexgrog lexgrog
         ln -s ../libexec/bin/man-recode man-recode
-      working-directory: "{{prefix}}/bin"
+      working-directory: '{{prefix}}/bin'
   env:
     CONFIGURE_ARGS:
       - --disable-debug

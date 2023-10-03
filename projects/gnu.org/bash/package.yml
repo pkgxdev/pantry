@@ -18,9 +18,6 @@ interprets:
   args: [bash, -e]
 
 build:
-  dependencies:
-    tea.xyz/gx/make: '*'
-    tea.xyz/gx/cc: c99
   script: |
     ./configure --prefix={{ prefix }}
     make --jobs {{ hw.concurrency }} install
@@ -29,6 +26,4 @@ build:
     # non-interactively from sshd. macOS’s bash does this so users expect it.
     CFLAGS: $CFLAGS -DSSH_SOURCE_BASHRC
 
-test:
-  script: |
-    bash -c "set -o pipefail"
+test: bash -c "set -o pipefail"

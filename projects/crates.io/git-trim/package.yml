@@ -1,0 +1,29 @@
+distributable:
+  # vergen requires a git repo :(
+  #url: https://github.com/foriequal0/git-trim/archive/refs/tags/v{{ version }}.tar.gz
+  #strip-components: 1
+  url: git+https://github.com/foriequal0/git-trim
+  ref: v{{ version }}
+
+provides:
+  - bin/git-trim
+
+versions:
+  github: foriequal0/git-trim
+  strip: /v/
+
+dependencies:
+  openssl.org: ^1.1
+  zlib.net: ^1
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.65'
+    rust-lang.org/cargo: '*'
+    freedesktop.org/pkg-config: '*'
+  script:
+    cargo install --path . --root {{prefix}}
+
+test:
+  script:
+    - test "$(git-trim --version)" = "git-trim {{version}}"

@@ -1,0 +1,26 @@
+distributable:
+  url: https://github.com/orhun/gpg-tui/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: orhun/gpg-tui
+
+dependencies:
+  gnupg.org: '*'
+  gnupg.org/gpgme: ^1.12
+  gnupg.org/libgpg-error: '*'
+  x.org/xcb: '*'
+
+build:
+  dependencies:
+    rust-lang.org: ^1.70
+    rust-lang.org/cargo: '*'
+    freedesktop.org/pkg-config: ^0
+  script: cargo install --locked --root {{prefix}} --path .
+
+
+provides:
+  - bin/gpg-tui
+
+test:
+  - gpg-tui --version | grep "{{version}}"

@@ -1,0 +1,23 @@
+distributable:
+  url: https://github.com/zsh-users/zsh-completions/archive/{{version}}.tar.gz
+  strip-components: 1
+versions:
+  github: zsh-users/zsh-completions
+runtime:
+  env:
+    ZSH_COMPLETIONS_ROOT: "{{prefix}}"
+dependencies:
+  zsh.sourceforge.io: '*'
+build:
+  script:
+    - mkdir -p {{prefix}}/share
+    - cp -r src/_* {{prefix}}/share/
+test:
+  script:
+    - run: |
+        cat << EOF > test.zsh
+        fpath=($ZSH_COMPLETIONS_ROOT/share $fpath)
+        autoload _ack
+        which _ack
+        EOF
+    - zsh test.zsh | grep _ack

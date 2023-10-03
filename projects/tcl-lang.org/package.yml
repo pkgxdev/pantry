@@ -1,0 +1,115 @@
+distributable:
+  url: https://downloads.sourceforge.net/project/tcl/Tcl/{{version}}/tcl{{version}}-src.tar.gz
+  strip-components: 1
+versions:
+  url: https://www.tcl-lang.org/software/tcltk/download.html
+  match: /tcl\d+\.\d+\.\d+-src\.tar\.gz/
+  strip:
+    - /^tcl/
+    - /-src\.tar\.gz/
+dependencies:
+  openssl.org: '*'
+  zlib.net: '*'
+  freetype.org: '*'
+  freedesktop.org/pkg-config: '*'
+  x.org/x11: '*'
+  x.org/exts: '*'
+build:
+  dependencies:
+    gnu.org/patch: '*'
+    linux:
+      curl.se: '*'
+  script:
+    - run: |
+        ./configure $ARGS
+        make --jobs {{hw.concurrency}}
+        make --jobs {{hw.concurrency}} install
+        make --jobs {{hw.concurrency}} install-private-headers
+      working-directory: unix
+    - run: ln -s tclsh{{version.marketing}} tclsh
+      working-directory: "{{prefix}}/bin"
+    - run: |
+        curl -L "$res_tk" | tar -xz --strip-components=1
+        curl -L "$patch_1" | patch -p0
+        curl -L "$patch_2" | patch -p0
+        cd unix
+        ./configure $ARGS --without-x --with-tcl={{prefix}}/lib
+        make --jobs {{hw.concurrency}}
+        make --jobs {{hw.concurrency}} install
+        make --jobs {{hw.concurrency}} install-private-headers
+      working-directory: tk
+    - run: ln -s wish{{version.marketing}} wish
+      working-directory: "{{prefix}}/bin"
+    - run: |
+        curl -L "$res_critcl" | tar -xz --strip-components=1
+        sed -i.bak "s|package require Tcl 8.6|package require Tcl 8|g" build.tcl && rm *.bak
+        tclsh build.tcl install
+      working-directory: critcl
+    - run: |
+        curl -L "$res_tcllib" | tar -xJ --strip-components=1
+        ./configure --prefix={{prefix}} --mandir={{prefix}}/share/man
+        make --jobs {{hw.concurrency}} install
+        make --jobs {{hw.concurrency}} critcl
+        cp -r modules/tcllibc {{prefix}}/lib/
+      working-directory: tcllib
+    - run: |
+        curl -L "$res_tcltls" | tar -xz --strip-components=1
+        ./configure $TLS_ARGS
+        make --jobs {{hw.concurrency}} install
+      working-directory: tcltls
+    - run: |
+        curl -L "$res_itk4" | tar -xz --strip-components=1
+        itcl_dir=$(ls -d {{prefix}}/lib/itcl* | tail -n 1)
+        ./configure $ITK4_ARGS --with-itcl=$itcl_dir
+        make --jobs {{hw.concurrency}}
+        make --jobs {{hw.concurrency}} install
+      working-directory: itk4
+    - rm {{prefix}}/bin/sqlite3_analyzer
+  env:
+    res_critcl: https://github.com/andreas-kupries/critcl/archive/refs/tags/3.2.tar.gz
+    res_tcllib: https://downloads.sourceforge.net/project/tcllib/tcllib/1.21/tcllib-1.21.tar.xz
+    res_tcltls: https://core.tcl-lang.org/tcltls/uv/tcltls-1.7.22.tar.gz
+    res_tk: https://downloads.sourceforge.net/project/tcl/Tcl/{{version}}/tk{{version}}-src.tar.gz
+    patch_1: https://raw.githubusercontent.com/macports/macports-ports/db4f8f774193/x11/tk/files/fix-themechanged-error.patch
+    patch_2: https://raw.githubusercontent.com/macports/macports-ports/6a93695d61d3/x11/tk/files/fix-kvo-crash.diff
+    res_itk4: https://downloads.sourceforge.net/project/incrtcl/%5Bincr%20Tcl_Tk%5D-4-source/itk%204.1.0/itk4.1.0.tar.gz
+    ARGS:
+      - --prefix={{prefix}}
+      - --includedir={{prefix}}/include/tcl-tk
+      - --mandir={{prefix}}/share/man
+      - --enable-threads
+    TCL_PACKAGE_PATH: "{{prefix}}/lib"
+    PATH: "{{prefix}}/bin:$PATH"
+    TLS_ARGS:
+      - --with-ssl=openssl
+      - --with-openssl-dir={{deps.openssl.org.prefix}}
+      - --prefix={{prefix}}
+      - --mandir={{prefix}}/share/man
+    ITK4_ARGS:
+      - --prefix={{prefix}}
+      - --exec-prefix={{prefix}}
+      - --with-tcl={{prefix}}/lib
+      - --with-tclinclude={{prefix}}/include/tcl-tk
+      - --with-tk={{prefix}}/lib
+      - --with-tkinclude={{prefix}}/include/tcl-tk
+      - --with-itcl={{prefix}}/lib/itcl*
+    x86-64:
+      ARGS:
+        - --enable-64bit
+
+provides:
+  - bin/tclsh
+  - bin/wish
+  - bin/critcl
+  - bin/dtplite
+  - bin/mkdoc
+  - bin/nns
+  - bin/nnsd
+  - bin/nnslog
+  - bin/page
+  - bin/pt
+  - bin/tcldocstrip
+test:
+  script:
+    - tclsh test.tcl
+    - tclsh version.tcl | grep {{version}}

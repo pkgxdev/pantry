@@ -14,15 +14,13 @@ dependencies:
 
 build:
   dependencies:
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
     freedesktop.org/pkg-config: ~0.29
     x.org/xtrans: '*'
   script: |
     ./configure $ARGS
     make --jobs {{ hw.concurrency }} install
   env:
-    SHELF: ${{tea.prefix}}/x.org
+    SHELF: ${{pkgx.prefix}}/x.org
     ARGS:
       - --prefix="{{prefix}}"
       - --sysconfdir="$SHELF"/etc
@@ -34,7 +32,6 @@ build:
 
 test:
   dependencies:
-    tea.xyz/gx/cc: c99
     x.org/x11: '*'
   script: |
     mv $FIXTURE test.c

@@ -1,0 +1,31 @@
+distributable:
+  url: https://github.com/ebassi/graphene/archive/{{version}}.tar.gz
+  strip-components: 1
+versions:
+  github: ebassi/graphene
+dependencies:
+  gnome.org/glib: '*'
+build:
+  dependencies:
+    gnome.org/gobject-introspection: '*'
+    mesonbuild.com: '*'
+    ninja-build.org: '*'
+    freedesktop.org/pkg-config: '*'
+  working-directory: build
+  script:
+    - meson $MESON_ARGS ..
+    - ninja -v
+    - ninja install -v
+  env:
+    MESON_ARGS:
+      - --prefix="{{prefix}}"
+      - --libdir="{{prefix}}/lib"
+      - --buildtype=release
+      - --wrap-mode=nofallback
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script:
+    - pkg-config --modversion graphene-1.0 | grep {{version}}
+    - cc test.c $(pkg-config --cflags graphene-1.0 graphene-gobject-1.0) $(pkg-config --libs graphene-1.0 graphene-gobject-1.0) -o test
+    - ./test

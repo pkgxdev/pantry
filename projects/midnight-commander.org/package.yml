@@ -25,8 +25,6 @@ runtime:
 
 build:
   dependencies:
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
     gnu.org/autoconf: '>=2.64'
     gnu.org/automake: '>=1.12'
     gnu.org/libtool: '*'
@@ -40,11 +38,11 @@ build:
     fix-shebangs.ts libexec/mc/extfs.d/*
 
     for x in $(find libexec/mc -name \*sh -type f -depth 1) libexec/mc/ext.d/misc.sh; do
-      sed -i.bak 's|{{tea.prefix}}|$TEA_PREFIX|g' $x
+      sed -i.bak "s|$PKGX_DIR|\$PKGX_DIR|g" $x
       rm $x.bak
     done
 
-    sed -i.bak 's|{{tea.prefix}}|%p/../|g' etc/mc/mc.ext*
+    sed -i.bak "s|$PKGX_DIR|%p/../|g" etc/mc/mc.ext*
     rm etc/mc/mc.ext*.bak
 
   env:
@@ -53,6 +51,5 @@ build:
       - --with-screen=ncurses
 
 # FIXME: hard to test interactive tools
-test:
-  test "$(mc --datadir | cut -d ' ' -f1 | cut -d':' -f1)" = "{{prefix}}/etc/mc/"
+test: test "$(mc --datadir | cut -d ' ' -f1 | cut -d':' -f1)" = "{{prefix}}/etc/mc/"
 # ^^ tests relocatability

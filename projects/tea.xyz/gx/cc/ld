@@ -2,9 +2,9 @@
 
 set -e
 
-if test -z "$TEA_PREFIX"
+if test -z "$PKGX_DIR"
 then
-  echo 'TEA_PREFIX mysteriously unset' >&2
+  echo 'PKGX_DIR mysteriously unset' >&2
   exit 1
 fi
 
@@ -37,7 +37,7 @@ __which() {
 # Otherwise, fallback to `ld`
 # NB: this might not have the right invocations, sometimes;
 # (invoking `ld` as `lld64.ld`) watch for those potential cases
-if __which $(basename "$0") || __which ld; then
+if __which "$(basename "$0")" || __which ld; then
   :
 else
   echo 'ld not found in PATH' >&2
@@ -53,4 +53,4 @@ for word in "$@"; do
   fi
 done
 
-exec "$exe" "$@" -rpath "$TEA_PREFIX"
+exec "$exe" "$@" -rpath "$PKGX_DIR"

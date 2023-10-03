@@ -1,0 +1,27 @@
+distributable:
+  url: git+https://github.com/mitsuhiko/when
+  ref: ${{version}}
+
+provides:
+  - bin/when
+
+versions:
+  github: mitsuhiko/when/tags
+  strip: /v/
+
+build:
+  # working-directory: cli
+  dependencies:
+    rust-lang.org: '>=1.65'
+    rust-lang.org/cargo: '*'
+    freedesktop.org/pkg-config: '*'
+    git-scm.org: ^2
+  script:
+    # libwhen uses when-data submodule
+    - git submodule update --init --recursive
+    - cargo install --locked --path ./cli --root {{prefix}}
+
+test:
+  script:
+    - test "$(when --version)" = "when-cli {{version}}"
+    - when "now in vienna"

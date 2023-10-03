@@ -26,8 +26,6 @@ dependencies:
 
 build:
   dependencies:
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
     cmake.org: ^3
   working-directory: wangle
   script:
@@ -39,8 +37,14 @@ build:
     - make
     - cp lib/libwangle.a {{prefix}}/lib
 
-    - sed -i.bak "s:$(tea --prefix):\$\{_IMPORT_PREFIX\}/../../../..:g" "{{prefix}}"/lib/cmake/wangle/wangle-targets.cmake
-    - rm "{{prefix}}"/lib/cmake/wangle/wangle-targets.cmake.bak
+    - run: |
+        sed -E -i.bak \
+          -e "s:{{pkgx.prefix}}:\$\{_IMPORT_PREFIX\}/../../..:g" \
+          -e '/^  INTERFACE_INCLUDE_DIRECTORIES/ s|/v([0-9]+)(\.[0-9]+)*[a-z]?/include|/v\1/include|g' \
+          -e '/^  INTERFACE_LINK_LIBRARIES/ s|/v([0-9]+)(\.[0-9]+)*[a-z]?/lib|/v\1/lib|g' \
+        wangle-targets.cmake
+        rm wangle-targets.cmake.bak
+      working-directory: "{{prefix}}/lib/cmake/wangle"
   env:
     ARGS:
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
@@ -49,7 +53,6 @@ build:
 
 test:
   dependencies:
-    tea.xyz/gx/cc: c99
     curl.se: '*'
   script:
     - c++ $CXXFLAGS 'EchoClient.cpp' -o EchoClient

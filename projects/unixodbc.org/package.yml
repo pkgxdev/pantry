@@ -4,14 +4,11 @@ distributable:
 
 versions:
   github: lurcher/unixODBC
-  
+
 dependencies:
   gnu.org/libtool: '*'
 
 build:
-  dependencies:
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
   script: |
     ./configure $ARGS
     make --jobs {{ hw.concurrency }} install
@@ -31,6 +28,4 @@ provides:
   - bin/odbcinst
   - bin/slencheck
 
-test:
-  script:
-    odbc_config --version | grep {{version}}
+test: odbc_config --version | grep {{version}}

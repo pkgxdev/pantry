@@ -9,10 +9,13 @@ build:
   dependencies:
     rust-lang.org/cargo: '*'
   script:
-    cargo install --locked --path . --root {{prefix}}
+    - run: cargo install --locked --path . --root {{prefix}}
+      if: <0.6.0
+    - run: cargo install --locked --path . --root {{prefix}}
+      working-directory: iroh
+      if: '>=0.6.0'
 
 provides:
   - bin/iroh
 
-test:
-  iroh --help
+test: iroh --help

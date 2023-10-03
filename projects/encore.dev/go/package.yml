@@ -4,18 +4,13 @@ versions:
   github: encoredev/go
   strip: /^encore-go/
 
-provides:
-  - bin/go
+display-name: encore-go
 
-interprets:
-  extensions: go
-  args: [go, run]
+provides:
+  - bin/encore-go
 
 dependencies:
   curl.se/ca-certs: '*'
-
-companions:
-  tea.xyz/gx/cc: c99  # for `cgo`
 
 warnings:
   - vendored
@@ -32,6 +27,8 @@ build:
     - curl -L https://github.com/encoredev/go/releases/download/encore-go{{version}}/$TYPE.tar.gz | tar zxvf -
     - run: cp -a $SRCROOT/encore-go/* .
       working-directory: ${{prefix}}
+    - run: ln -s go encore-go
+      working-directory: ${{prefix}}/bin
   env:
     linux/x86-64:
       TYPE: linux_x86-64

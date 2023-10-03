@@ -1,0 +1,53 @@
+distributable:
+  url: https://dbus.freedesktop.org/releases/dbus/dbus-{{version}}.tar.xz
+  strip-components: 1
+versions:
+  url: https://dbus.freedesktop.org/releases/dbus/
+  match: /dbus-\d+\.\d+\.\d+\.tar\.xz/
+  strip:
+    - /^dbus-/
+    - /\.tar\.xz/
+build:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+    pagure.io/xmlto: '*'
+    libexpat.github.io: '*'
+    mesonbuild.com: '*'
+    ninja-build.org: '*'
+    darwin:
+      gnu.org/patch: '*'
+  script:
+    - run: curl -L "$PATCH" | patch -p1
+      if: darwin
+    - meson setup $MESON_ARGS build
+    - meson compile -C build --verbose
+    - meson install -C build
+  env:
+    PATCH: https://raw.githubusercontent.com/Homebrew/formula-patches/0a8a55872e/d-bus/org.freedesktop.dbus-session.plist.osx.diff
+    MESON_ARGS:
+      - --prefix="{{prefix}}"
+      - --libdir="{{prefix}}/lib"
+      - --buildtype=release
+      - --wrap-mode=nofallback
+    darwin:
+      MESON_ARGS:
+        - -Dlaunchd_agent_dir={{prefix}}
+provides:
+  - bin/dbus-cleanup-sockets
+  - bin/dbus-daemon
+  - bin/dbus-launch
+  - bin/dbus-monitor
+  - bin/dbus-run-session
+  - bin/dbus-send
+  - bin/dbus-test-tool
+  - bin/dbus-update-activation-environment
+  - bin/dbus-uuidgen
+test:
+  dependencies:
+    python.org: ~3.11
+    freedesktop.org/pkg-config: '*'
+  script:
+    - dbus-daemon --version | grep {{version}}
+    - uuid=$(dbus-uuidgen)
+    - python -c "import uuid; uuid.UUID('$uuid')"
+    - pkg-config --modversion dbus-{{version.major}} | grep {{version}}

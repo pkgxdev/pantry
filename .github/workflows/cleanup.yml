@@ -1,6 +1,6 @@
 # cleans up our S3 staging area if a PR is closed without merge
 
-name: teaxyz s3 cleanup
+name: pkgx/s3-cleanup
 run-name: 'cleanup: ${{ github.event.pull_request.title }}'
 
 on:
@@ -21,10 +21,10 @@ jobs:
 
       - name: remove staged artifacts
         run: |
-          REPO=$(echo ${{github.repository}} | sed -e 's_teaxyz/__')
+          REPO=$(echo ${{github.repository}} | sed -e 's_pkgxdev/__')
           PR=$(echo ${{github.ref}} | sed -e 's_refs/pull/\(.*\)/merge_\1_')
 
           aws s3 rm --recursive s3://$AWS_S3_CACHE/pull-request/$REPO/$PR
-        if: startsWith(github.ref, 'refs/pull/') && github.repository_owner == 'teaxyz'
+        if: startsWith(github.ref, 'refs/pull/') && github.repository_owner == 'pkgxdev'
         env:
           AWS_S3_CACHE: ${{ secrets.AWS_S3_CACHE }}

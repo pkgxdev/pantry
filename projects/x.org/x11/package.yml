@@ -1,4 +1,3 @@
-
 distributable:
   url: https://www.x.org/archive/individual/lib/libX11-{{version}}.tar.gz
   strip-components: 1
@@ -16,33 +15,29 @@ dependencies:
 
 build:
   dependencies:
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
     freedesktop.org/pkg-config: ~0.29
     x.org/util-macros: '*'
     x.org/xtrans: ^1
-    gnu.org/sed: '*'  # or build fails on macOS
+    gnu.org/sed: '*' # or build fails on macOS
   script: |
     ./configure $ARGS
     make --jobs {{ hw.concurrency }} install
   env:
-    SHELF: ${{tea.prefix}}/x.org
+    SHELF: ${{pkgx.prefix}}/x.org
     ARGS:
-    - --prefix="{{prefix}}"
-    - --sysconfdir="$SHELF"/etc
-    - --localstatedir="$SHELF"/var
-    - --disable-debug
-    - --enable-unix-transport
-    - --enable-tcp-transport
-    - --enable-ipv6
-    - --enable-local-transport
-    - --enable-loadable-i18n
-    - --enable-xthreads
-    - --enable-specs=no
+      - --prefix="{{prefix}}"
+      - --sysconfdir="$SHELF"/etc
+      - --localstatedir="$SHELF"/var
+      - --disable-debug
+      - --enable-unix-transport
+      - --enable-tcp-transport
+      - --enable-ipv6
+      - --enable-local-transport
+      - --enable-loadable-i18n
+      - --enable-xthreads
+      - --enable-specs=no
 
 test:
-  dependencies:
-    tea.xyz/gx/cc: c99
   script: |
     cc fixture.c -lX11
     ./a.out

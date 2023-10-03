@@ -1,0 +1,46 @@
+versions:
+  github: flutter/flutter/tags
+warnings:
+  - vendored
+platforms:
+  - darwin
+  - linux/x86-64 # no SDK for linux/aarch64
+dependencies:
+  git-scm.org: '*'
+  tukaani.org/xz: '*'
+  linux:
+    curl.se: '*'
+    info-zip.org/zip: '*'
+    info-zip.org/unzip: '*'
+build:
+  working-directory: "{{prefix}}"
+  script:
+    - run: curl -L "$DIST" | tar Jxf -
+      if: linux
+    - run: |
+        curl -o flutter_darwin.zip "$DIST"
+        unzip flutter_darwin.zip
+        rm flutter_darwin.zip
+      if: darwin
+    - run: | 
+        ln -s ../flutter/bin/flutter flutter
+        ln -s ../flutter/bin/dart dart
+      working-directory: "{{prefix}}/bin"
+  env:
+    linux:
+      DIST: https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_{{version}}-stable.tar.xz
+    darwin/aarch64:
+      DIST: https://storage.googleapis.com/flutter_infra_release/releases/stable/macos/flutter_macos_arm64_{{version}}-stable.zip
+    darwin/x86-64:
+      DIST: https://storage.googleapis.com/flutter_infra_release/releases/stable/macos/flutter_macos_{{version}}-stable.zip
+provides:
+  - bin/flutter
+  - bin/dart
+test:
+  script:
+    # GHA runners complain about git permissions
+    - run: git config --global --add safe.directory "{{ prefix }}"/flutter
+      if: linux
+    - flutter --version | grep {{version}}
+    - flutter create test_app | grep "All done!"
+    - ls test_app/lib | grep "main.dart"

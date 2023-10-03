@@ -1,0 +1,27 @@
+distributable:
+  url: git+https://github.com/regclient/regclient
+  ref: v{{ version }}
+
+versions:
+  github: regclient/regclient/releases/tags
+
+provides:
+  - bin/regctl
+
+dependencies:
+  curl.se/ca-certs: '*'
+
+build:
+  dependencies:
+    go.dev: ^1.21
+    git-scm.org: '*'
+  script: |
+    make bin/regctl
+    mkdir -p '{{ prefix }}/bin'
+    mv -f ./bin/regctl '{{ prefix }}/bin'
+
+test:
+  script: |
+    regctl version | tee /dev/stderr | grep -q -w "v{{ version }}"
+
+    regctl image inspect hello-world --platform linux/amd64 | tee /dev/stderr | grep -q -w '"Image":'

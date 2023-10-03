@@ -9,12 +9,10 @@ versions:
   strip: /^libnl/
 
 platforms:
- - linux
+  - linux
 
 build:
   dependencies:
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
     gnu.org/bison: '*'
     github.com/westes/flex: '*'
   script:
@@ -32,13 +30,11 @@ build:
       - --disable-silent-rules
 
 test:
-  dependencies:
-    tea.xyz/gx/cc: c99
   script:
     - gcc ./fixture.c -lnl-3 -lnl-route-3 -o test
     - (./test 2>&1 || true) | grep "$OUT"
 
     - nl-route-list | grep "$OUT2"
   env:
-    OUT: "Unable to delete link: Operation not permitted"
+    OUT: 'Unable to delete link: Operation not permitted'
     OUT2: inet 127.0.0.1

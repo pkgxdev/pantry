@@ -1,0 +1,35 @@
+distributable:
+  url: https://www.x.org/archive/individual/lib/libXcursor-{{version}}.tar.xz
+  strip-components: 1
+versions:
+  url: https://xorg.freedesktop.org/archive/individual/lib/
+  match: /libXcursor-\d+\.\d+\.\d+\.tar\.xz/
+  strip:
+    - /^libXcursor-/
+    - /\.tar\.xz/
+dependencies:
+  x.org/x11: '*'
+  x.org/xfixes: '*'
+  x.org/xrender: '*'
+build:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+    x.org/util-macros: '*'
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --sysconfdir={{pkgx.prefix}}/x.org/etc
+      - --localstatedir={{pkgx.prefix}}/x.org/var
+      - --disable-dependency-tracking
+      - --disable-silent-rules
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script:
+    - pkg-config --modversion xcursor | grep {{version}}
+    - cc test.c -o test
+    - ./test

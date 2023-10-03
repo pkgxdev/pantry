@@ -3,18 +3,22 @@ distributable:
   strip-components: 1
 
 versions:
-  github: nektos/act/tags  # reads github tags from github
+  github: nektos/act/tags
   strip: /^v/
 
 build:
   dependencies:
     go.dev: '*'
-    tea.xyz/gx/make: '*'
-  script: |
-    make build VERSION={{version}}
-    mkdir -p {{prefix}}/bin
-    cp dist/local/act {{prefix}}/bin/act
-    chmod 755 {{prefix}}/bin/act
+  script:
+    - run: |
+        sed -i.bak 's/-ldflags "/-ldflags "-buildmode=pie /' Makefile
+        rm Makefile.bak
+      if: linux
+    - make build VERSION={{version}}
+    - run: |
+        cp $SRCROOT/dist/local/act .
+        chmod 755 {{prefix}}/bin/act
+      working-directory: ${{prefix}}/bin
 
 provides:
   - bin/act
@@ -23,7 +27,7 @@ test:
   dependencies:
     git-scm.org: '*'
   script: |
-    git clone https://github.com/teaxyz/setup.git
+    git clone https://github.com/pkgxdev/setup.git
     cd setup
     git checkout v0.15.0
     act push --list

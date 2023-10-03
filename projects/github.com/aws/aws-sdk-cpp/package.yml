@@ -11,9 +11,7 @@ dependencies:
 
 build:
   dependencies:
-    tea.xyz/gx/cc: c99
     cmake.org: '*'
-    tea.xyz/gx/make: '*'
     git-scm.org: '*'
   script:
     # required or cmake fails with an unhelpful error
@@ -25,10 +23,10 @@ build:
     - cmake --install build
 
     - |
-        cd {{prefix}}/include
-        mv aws/* .
-        rmdir aws
-        ln -s . aws
+      cd {{prefix}}/include
+      mv aws/* .
+      rmdir aws
+      ln -s . aws
   env:
     LDFLAGS: -Wl,-rpath,{{prefix}}
     ARGS:
@@ -37,8 +35,6 @@ build:
       - -DENABLE_TESTING=OFF
 
 test:
-  dependencies:
-    tea.xyz/gx/cc: c99
   fixture: |
     #include <aws/core/Version.h>
     #include <iostream>

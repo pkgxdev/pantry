@@ -15,8 +15,6 @@ dependencies:
 build:
   working-directory: src/mz
   dependencies:
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
     rust-lang.org: '>=1.56'
     rust-lang.org/cargo: '*'
     cmake.org: ^3
@@ -35,5 +33,8 @@ build:
 
 test:
   script:
-    # The CLI is versioned independently of the repo's releases
-    - test "$(mz --version)" = "mz 0.1.3"
+    # FIXME: The CLI is versioned independently of the repo's releases
+    - run: test "$(mz --version)" = "mz 0.1.3"
+      if: <0.69.1
+    - run: test "$(mz --version)" = "mz 0.2.1"
+      if: ^0.69.1

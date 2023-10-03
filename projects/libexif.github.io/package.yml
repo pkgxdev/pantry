@@ -4,16 +4,13 @@ distributable:
 
 # if there’s a github then we can parse the versions
 versions:
-  github: libexif/libexif/tags  # reads github tags from github
+  github: libexif/libexif/tags # reads github tags from github
   strip: /^v/
 
 dependencies:
   gnu.org/gettext: '*'
 
 build:
-  dependencies:
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
   script: |
     ./configure $ARGS
     make --jobs {{ hw.concurrency }} 
@@ -38,9 +35,8 @@ test:
       }
     }
   dependencies:
-    tea.xyz/gx/cc: c99
     gnu.org/wget: '*'
-  script: | 
+  script: |
     wget https://samplelib.com/lib/preview/jpeg/sample-clouds-400x300.jpg -O sample.jpg
     mv $FIXTURE fixture.c
     cc fixture.c -lexif

@@ -1,0 +1,29 @@
+distributable:
+  url: https://gitlab.com/gitlab-org/ci-cd/docker-machine/-/archive/v{{version}}-gitlab.22/docker-machine-v{{version}}-gitlab.22.tar.gz
+  strip-components: 1
+versions:
+  #gitlab: gitlab-org/ci-cd/docker-machine <= all recent releases are 0.16.2-gitlab.X
+  - 0.16.2
+build:
+  dependencies:
+    gnu.org/automake: '*'
+    go.dev: '*'
+    linux:
+      curl.se: '*'
+  working-directory: src/github.com/docker/machine
+  script:
+    - curl -L "$URL" | tar -xz --strip-components=1
+    - run: |
+        sed -i.bak 's|GO_LDFLAGS :=|GO_LDFLAGS := -buildmode=pie|g' mk/main.mk
+        rm mk/*.bak
+      if: linux
+    - make build
+  env:
+    URL: https://gitlab.com/gitlab-org/ci-cd/docker-machine/-/archive/v{{version}}-gitlab.22/docker-machine-v{{version}}-gitlab.22.tar.gz
+    GOPATH: $SRCROOT
+    GO111MODULE: auto
+provides:
+  - bin/docker-machine
+test:
+  script:
+    - docker-machine --version | grep {{version}}

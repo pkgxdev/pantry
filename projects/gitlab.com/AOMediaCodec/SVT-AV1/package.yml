@@ -1,23 +1,21 @@
 distributable:
   url: https://gitlab.com/AOMediaCodec/SVT-AV1/-/archive/v{{version}}/SVT-AV1-v{{version}}.tar.gz
   strip-components: 1
-  
+
 versions:
   gitlab: AOMediaCodec/SVT-AV1
 
 build:
   dependencies:
-    tea.xyz/gx/cc: c99
     cmake.org: '*'
     yasm.tortall.net: '*'
     linux:
-      tea.xyz/gx/make: '*'
 
   script:
     - cmake -S . -B build $ARGS
     - cmake --build build
     - cmake --install build
-    
+
   env:
     ARGS:
       - -DBUILD_SHARED_LIBS=OFF
@@ -30,8 +28,8 @@ build:
       - -DBUILD_TESTING=OFF
     linux:
       ARGS:
-        - -DCMAKE_C_COMPILER={{deps.tea.xyz/gx/cc.prefix}}/bin/cc
-        - -DCMAKE_CXX_COMPILER={{deps.tea.xyz/gx/cc.prefix}}/bin/c++
+        - -DCMAKE_C_COMPILER=cc
+        - -DCMAKE_CXX_COMPILER=c++
 
 provides:
   - bin/SvtAv1EncApp

@@ -1,0 +1,25 @@
+distributable:
+  url: git+https://github.com/regclient/regclient
+  ref: v{{ version }}
+
+versions:
+  github: regclient/regclient/releases/tags
+
+provides:
+  - bin/regsync
+
+dependencies:
+  curl.se/ca-certs: '*'
+
+build:
+  dependencies:
+    go.dev: ^1.21
+    git-scm.org: '*'
+  script: |
+    make bin/regsync
+    mkdir -p '{{ prefix }}/bin'
+    mv -f ./bin/regsync '{{ prefix }}/bin'
+
+test:
+  script: |
+    regsync version | tee /dev/stderr | grep -q -w "v{{ version }}"

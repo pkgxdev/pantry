@@ -1,0 +1,48 @@
+distributable:
+  url: https://github.com/anholt/libepoxy/archive/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: anholt/libepoxy
+
+dependencies:
+  linux:
+    x.org/x11: '*'
+    mesa3d.org: '*'
+
+build:
+  dependencies:
+    mesonbuild.com: '*'
+    ninja-build.org: '*'
+    freedesktop.org/pkg-config: '*'
+    python.org: '>=3.1<3.12'
+  working-directory: build
+  script:
+    - run: "sed -i'' -e 's|auto|no|g' $HOME/../meson_options.txt"
+      if: linux
+    - meson setup $ARGS ..
+    - ninja
+    - ninja install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --libdir="{{prefix}}/lib"
+      - --buildtype=release
+      - --wrap-mode=nofallback
+
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  env:
+    ARGS:
+      - -lepoxy
+      - -o test
+    darwin:
+      ARGS:
+        - -framework OpenGL
+        - -DOS_MAC
+  script:
+    - pkg-config --modversion epoxy | grep {{version}}
+    - cc test.c $ARGS
+    - ls -lh test
+    - ./test

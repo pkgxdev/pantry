@@ -20,11 +20,10 @@ dependencies:
 
 build:
   dependencies:
-    tea.xyz/gx/cc: c99
     mesonbuild.com: ^0.63
     ninja-build.org: 1
     freedesktop.org/pkg-config: ^0.29
-    python.org: 3 #TODO ^3.5
+    python.org: '>=3.5<3.12'
   script: |
     meson out $ARGS
 
@@ -45,6 +44,18 @@ build:
 
     rm *.bak
 
+    cd ../../include
+
+    mv glib-{{version.major}}.0/* .
+    rmdir glib-{{version.major}}.0
+    ln -s . glib-{{version.major}}.0
+
+    mv gio-unix-{{version.major}}.0/gio/* gio/
+    rmdir -p gio-unix-{{version.major}}.0/gio
+    ln -s . gio-unix-{{version.major}}.0
+
+    ln -s ../lib/glib-{{version.major}}.0/include/* .
+
   #REF https://github.com/Homebrew/homebrew-core/blob/d0e65698ccd502335bea68ce879ae02e1735db0d/Formula/glib.rb#L66-L67
   #FIXME hardcoded paths ^^
   env:
@@ -58,7 +69,6 @@ build:
 
 test:
   dependencies:
-    tea.xyz/gx/cc: c99
     freedesktop.org/pkg-config: ^0.29
   script: |
     sh - <<EOSTDIN

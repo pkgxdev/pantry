@@ -1,0 +1,31 @@
+distributable:
+  url: https://github.com/pkgxdev/brewkit/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+display-name: brewkit
+
+versions:
+  github: pkgxdev/brewkit
+
+dependencies:
+  deno.land: '>=1.30<1.36.1'
+  gnu.org/bash: '*'
+  pkgx.sh: ^1
+
+build: |
+  mkdir -p {{prefix}}
+
+  rm -rf {{prefix}}/*
+  # ^^ because our build infra uses this pkg to build itself
+
+  for x in bin libexec lib share deno.*; do
+    test -e $x && mv $x "{{prefix}}"
+  done
+
+test:
+  dependencies:
+    zlib.net: '*'
+  script:
+    pkg test zlib.net
+    # we would like to test builds but we need a `GITHUB_TOKEN` and
+    # (currently) we can’t figure out how to set that up in CI/CD

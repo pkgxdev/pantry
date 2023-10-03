@@ -1,0 +1,51 @@
+distributable:
+  url: https://github.com/FreeGLUTProject/freeglut/releases/download/v{{version}}/freeglut-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: FreeGLUTProject/freeglut
+
+dependencies:
+  x.org/x11: '*'
+  x.org/xi: '*'
+  x.org/xrandr: '*'
+  x.org/xxf86vm: '*'
+  mesa3d.org: '*'
+  linux:
+    freedesktop.org/mesa-glu: '*'
+    x.org/xinput: '*'
+
+build:
+  dependencies:
+    cmake.org: '*'
+  script:
+    - cmake $ARGS .
+    - make --jobs {{ hw.concurrency }} all
+    - make --jobs {{ hw.concurrency }} install
+
+  env:
+    ARGS:
+      - -DFREEGLUT_BUILD_DEMOS=OFF
+      - -DOPENGL_INCLUDE_DIR={{deps.mesa3d.org.prefix}}/include
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_INSTALL_LIBDIR=lib
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_FIND_FRAMEWORK=LAST
+      - -DCMAKE_VERBOSE_MAKEFILE=ON
+      - -Wno-dev
+      - -DBUILD_TESTING=OFF
+    linux:
+      ARGS:
+        - -DOPENGL_gl_LIBRARY={{deps.mesa3d.org.prefix}}/lib/libGL.so.1
+    darwin:
+      ARGS:
+        - -DOPENGL_gl_LIBRARY={{deps.mesa3d.org.prefix}}/lib/libGL.1.dylib
+
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script: 
+    - pkg-config --modversion glut | grep {{version}}
+    - cc test.c $(pkg-config --cflags --libs glut gl xext x11) -o test
+    # - ./test
+    # We cannot run ./test due to the absence of a display.

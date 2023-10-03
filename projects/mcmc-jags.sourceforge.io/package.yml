@@ -1,0 +1,32 @@
+distributable:
+  url: https://downloads.sourceforge.net/project/mcmc-jags/JAGS/{{version.major}}.x/Source/JAGS-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://sourceforge.net/projects/mcmc-jags/files/JAGS/4.x/Source/
+  match: /JAGS-\d+\.\d+\.\d+\.tar\.gz/
+  strip:
+    - /^JAGS-/
+    - /\.tar\.gz$/
+
+dependencies:
+  gnu.org/gcc: '*' # libstdc++
+  linux:
+    netlib.org/lapack: ^3
+
+build:
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+    - run: |
+        sed -i.bak -e 's|{{prefix}}|$(dirname $0)/..|g' jags
+        rm jags.bak
+      working-directory: ${{prefix}}/bin
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+
+provides:
+  - bin/jags
+
+test: jags script

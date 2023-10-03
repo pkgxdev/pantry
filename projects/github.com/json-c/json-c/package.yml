@@ -6,21 +6,17 @@ versions:
   github: json-c/json-c/tags
   strip:
     - /^json-c-/
-    - /-\d{8}/  # calver
+    - /-\d{8}/ # calver
 
 build:
   dependencies:
     cmake.org: 3
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
   working-directory: build
   script: |
     cmake .. -DCMAKE_INSTALL_PREFIX="{{prefix}}" -DCMAKE_BUILD_TYPE=Release
     make --jobs {{ hw.concurrency }} install
 
 test:
-  dependencies:
-    tea.xyz/gx/cc: c99
   script: |
     cc fixture.c -ljson-c
     ./a.out

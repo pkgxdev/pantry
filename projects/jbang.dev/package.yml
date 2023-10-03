@@ -1,0 +1,21 @@
+distributable:
+  url: https://github.com/jbangdev/jbang/releases/download/v{{version}}/jbang-{{version}}.zip
+  strip-components: 1
+versions:
+  github: jbangdev/jbang
+dependencies:
+  openjdk.org: '*'
+build:
+  script:
+    - run: mkdir -p bin libexec
+      working-directory: "{{prefix}}"
+    - cp -r ./jbang-{{version}}/* {{prefix}}/libexec/
+    - run: ln -s ../libexec/bin/jbang jbang
+      working-directory: "{{prefix}}/bin"
+provides:
+  - bin/jbang
+test:
+  script:
+    - jbang init --template=cli hello.java
+    - cat hello.java | grep "hello made with jbang"
+    - jbang --version 2>&1 | grep {{version}}

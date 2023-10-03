@@ -1,0 +1,22 @@
+distributable:
+  url: https://github.com/ctsrc/Pgen/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/pgen
+
+versions:
+  github: ctsrc/Pgen/tags
+  strip: /v/
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.65'
+    rust-lang.org/cargo: '*'
+  script:
+    cargo install --path . --root {{prefix}}
+
+test:
+  script:
+    - test "$(pgen --version)" = "pgen {{version}}"
+    - pgen -l -n 12 -e

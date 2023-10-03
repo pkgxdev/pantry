@@ -11,18 +11,16 @@ dependencies:
 
 build:
   dependencies:
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
     libexpat.github.io: '*'
     github.com/westes/flex: '*'
     gnu.org/bison: ^3
-    
+
   script: |
     ./configure $ARGS
     make -j {{ hw.concurrency }} install
 
     cd {{prefix}}/bin
-    sed -i.bak -e "s|$TEA_PREFIX/|$(tea --prefix)/|g" unbound-control-setup
+    sed -i.bak -e "s|$PKGX_DIR/|\$PKGX_DIR/|g" unbound-control-setup
     rm unbound-control-setup.bak
   env:
     ARGS:
@@ -42,8 +40,8 @@ test:
     - grep "$TEST1" <<< "$OUT"
     - grep "$TEST2" <<< "$OUT"
   env:
-    TEST1: "tea.xyz has address"
-    TEST2: "tea.xyz mail is handled by"
+    TEST1: 'tea.xyz has address'
+    TEST2: 'tea.xyz mail is handled by'
 
 provides:
   - bin/unbound

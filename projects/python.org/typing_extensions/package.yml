@@ -1,0 +1,26 @@
+distributable:
+  url: https://github.com/python/typing_extensions/archive/{{version}}.tar.gz
+  strip-components: 1
+versions:
+  github: python/typing_extensions
+runtime:
+  env:
+    PYTHONPATH: "{{prefix}}/lib/python/site-packages:$PYTHONPATH"
+build:
+  dependencies:
+    flit.pypa.io: '*'
+    python.org: ~3.11
+  script:
+    - flit build --format wheel
+    - python -m pip install --prefix={{prefix}} dist/typing_extensions-*.whl
+    - run: |
+        ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
+        ln -s python{{deps.python.org.version.major}} python
+      working-directory: "{{prefix}}/lib"
+test:
+  dependencies:
+    python.org: ~3.11
+    mypy-lang.org: '*'
+  script:
+    - python -c "import typing_extensions"
+    - mypy test.py | grep "Success"

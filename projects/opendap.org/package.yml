@@ -1,0 +1,53 @@
+distributable:
+  url: https://www.opendap.org/pub/source/libdap-{{version}}.tar.gz
+  strip-components: 1
+versions:
+  url: https://www.opendap.org/pub/source/
+  match: /libdap-\d+\.\d+\.\d+\.tar\.gz/
+  strip:
+    - /^libdap-/
+    - /\.tar\.gz/
+dependencies:
+  gnome.org/libxml2: '*'
+  openssl.org: '*'
+  curl.se: '*'
+  linux:
+    sourceforge.net/libtirpc: '*'
+    github.com/util-linux/util-linux: '*'
+build:
+  dependencies:
+    gnu.org/bison: '*'
+    freedesktop.org/pkg-config: '*'
+    github.com/westes/flex: '*'
+    gnu.org/patch: '*'
+    linux:
+      gnu.org/autoconf: '*'
+      gnu.org/automake: '*'
+      gnu.org/libtool: '*'
+  script:
+    - curl $PATCH | patch -p1 || true
+    - run: autoreconf --force --install --verbose
+      if: linux
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make --jobs {{ hw.concurrency }} check
+    - make --jobs {{ hw.concurrency }} install
+    - sed -i.bak "s|$PKGX_DIR|\$PKGX_DIR|g" {{prefix}}/bin/dap-config
+  env:
+    darwin:
+      PATCH: https://raw.githubusercontent.com/Homebrew/formula-patches/03cf8088210822aa2c1ab544ed58ea04c897d9c4/libtool/configure-big_sur.diff
+    linux:
+      PATCH: https://github.com/OPENDAP/libdap4/commit/48b44b96faf1ed1e44f118828c3de903fff0a276.patch?full_index=1
+    ARGS:
+      - --prefix={{prefix}}
+      - --disable-dependency-tracking
+      - --disable-debug
+      - --with-included-regex
+provides:
+  - bin/dap-config
+  - bin/dap-config-pkgconfig
+  - bin/getdap
+  - bin/getdap4
+test:
+  script:
+    - dap-config --version | grep {{version}}

@@ -1,0 +1,199 @@
+distributable:
+  url: git+https://github.com/MariaDB/server
+  ref: mariadb-{{version.raw}}
+
+display-name: MariaDB
+
+versions:
+  github: MariaDB/server/tags
+  strip: /^mariadb-/
+
+platforms:
+  - darwin
+  - linux/x86-64 # should work on aarch64, but it's complaining about one of its atomic macros
+
+dependencies:
+  sourceware.org/bzip2: '*'
+  github.com/besser82/libxcrypt: '*'
+  gnome.org/libxml2: '*'
+  invisible-island.net/ncurses: '*'
+  zlib.net: ^1
+  openssl.org: ^1.1
+  pcre.org/v2: '*'
+  facebook.com/zstd: '*'
+
+build:
+  dependencies:
+    cmake.org: '*'
+    freedesktop.org/pkg-config: '*'
+    gnu.org/bison: '*'
+    gnu.org/coreutils: '*'
+    git-scm.org: '*'
+    groonga.org: '*'
+
+  script:
+    - git submodule update --init --recursive
+    # Use our groonga
+    - rm -rf storage/mroonga/vendor/groonga
+    # -DINSTALL_* are relative to prefix
+    - cmake -S . -B build
+        -DCMAKE_INSTALL_PREFIX={{ prefix }}
+        -DMYSQL_DATADIR={{ prefix }}/var/mysql
+        -DINSTALL_SYSCONFDIR=etc
+        -DINSTALL_INCLUDEDIR=include/mysql
+        -DINSTALL_MANDIR=share/man
+        -DINSTALL_DOCDIR=share/doc/mariadb
+        -DINSTALL_INFODIR=share/info
+        -DINSTALL_MYSQLSHAREDIR=share/mysql
+        -DWITH_LIBFMT=bundled
+        -DWITH_SSL=system
+        -DWITH_UNIT_TESTS=OFF
+        -DDEFAULT_CHARSET=utf8mb4
+        -DDEFAULT_COLLATION=utf8mb4_general_ci
+        -DCOMPILATION_COMMENT=made_by_tea
+        -DPLUGIN_ROCKSDB=NO
+
+    - cmake --build build
+    - cmake --install build
+
+    # Fix my.cnf to point to {{ prefix }}/etc instead of /etc
+    - run: |
+        mkdir my.cnf.d
+        sed -i.bak 's|!includedir /etc/my.cnf.d|!includedir {{ prefix }}/etc/my.cnf.d|' my.cnf
+        rm my.cnf.bak
+      working-directory: ${{ prefix }}/etc
+
+    # Link the setup script into bin
+    - run: ln -s ../scripts/mysql_install_db .
+      working-directory: ${{ prefix }}/bin
+
+    # Fix up the control script and link into {{ bin }}
+    - run: |
+        sed -i.bak 's|\(PATH="\)|\1{{ prefix }}/bin:|' mysql.server
+        rm mysql.server.bak
+        ln -s ../support-files/mysql.server ../bin/
+      working-directory: ${{ prefix }}/support-files
+
+    # Move sourced non-executable out of bin into libexec
+    - run: mv ../bin/wsrep_sst_common .
+      working-directory: ${{ prefix }}/libexec
+
+    # Fix up references to wsrep_sst_common
+    - run: |
+        sed -i.bak 's|$(dirname "$0")/wsrep_sst_common|$(dirname "$0")/../libexec/wsrep_sst_common|g' \
+          wsrep_sst_mysqldump \
+          wsrep_sst_rsync \
+          wsrep_sst_mariabackup
+        rm wsrep_sst_*.bak
+      working-directory: ${{ prefix }}/bin
+  env:
+    linux/aarch64:
+      CFLAGS: $CFLAGS -Wno-implicit-function-declaration
+
+provides:
+  - bin/aria_chk
+  - bin/aria_dump_log
+  - bin/aria_ftdump
+  - bin/aria_pack
+  - bin/aria_read_log
+  - bin/aria_s3_copy
+  - bin/innochecksum
+  - bin/mariabackup
+  - bin/mariadb
+  - bin/mariadb-access
+  - bin/mariadb-admin
+  - bin/mariadb-backup
+  - bin/mariadb-binlog
+  - bin/mariadb-check
+  - bin/mariadb-client-test
+  - bin/mariadb-config
+  - bin/mariadb-conv
+  - bin/mariadb-convert-table-format
+  - bin/mariadb-dump
+  - bin/mariadb-dumpslow
+  - bin/mariadb-find-rows
+  - bin/mariadb-fix-extensions
+  - bin/mariadb-hotcopy
+  - bin/mariadb-import
+  - bin/mariadb-plugin
+  - bin/mariadb-secure-installation
+  - bin/mariadb-setpermission
+  - bin/mariadb-show
+  - bin/mariadb-slap
+  - bin/mariadb-test
+  - bin/mariadb-tzinfo-to-sql
+  - bin/mariadb-upgrade
+  - bin/mariadb-waitpid
+  - bin/mariadb_config
+  - bin/mariadbd
+  - bin/mariadbd-multi
+  - bin/mariadbd-safe
+  - bin/mariadbd-safe-helper
+  - bin/mbstream
+  - bin/msql2mysql
+  - bin/my_print_defaults
+  - bin/myisam_ftdump
+  - bin/myisamchk
+  - bin/myisamlog
+  - bin/myisampack
+  - bin/mysql
+  - bin/mysql.server
+  - bin/mysql_client_test
+  - bin/mysql_config
+  - bin/mysql_convert_table_format
+  - bin/mysql_find_rows
+  - bin/mysql_fix_extensions
+  - bin/mysql_install_db
+  - bin/mysql_plugin
+  - bin/mysql_secure_installation
+  - bin/mysql_setpermission
+  - bin/mysql_tzinfo_to_sql
+  - bin/mysql_upgrade
+  - bin/mysql_waitpid
+  - bin/mysqlaccess
+  - bin/mysqladmin
+  - bin/mysqlbinlog
+  - bin/mysqlcheck
+  - bin/mysqld
+  - bin/mysqld_multi
+  - bin/mysqld_safe
+  - bin/mysqld_safe_helper
+  - bin/mysqldump
+  - bin/mysqldumpslow
+  - bin/mysqlhotcopy
+  - bin/mysqlimport
+  - bin/mysqlshow
+  - bin/mysqlslap
+  - bin/mysqltest
+  - bin/mytop
+  - bin/perror
+  - bin/replace
+  - bin/resolve_stack_dump
+  - bin/resolveip
+  - bin/wsrep_sst_backup
+  - bin/wsrep_sst_mariabackup
+  - bin/wsrep_sst_mysqldump
+  - bin/wsrep_sst_rsync
+  - bin/wsrep_sst_rsync_wan
+
+test:
+  script:
+    - killall mysqld || true
+    - mkdir -p mysql tmp
+    # GHA runs as root
+    - run: |
+        if test "$(id -u)" = "0"; then
+          USER_ARG="--user=root"
+        fi
+    - mysql_install_db --no-defaults
+        $USER_ARG
+        --basedir={{ prefix }}
+        --datadir=$(pwd)/mysql
+        --tmpdir=$(pwd)/tmp
+        --auth-root-authentication-method=normal
+    - mysqld --no-defaults $USER_ARG --datadir=$(pwd)/mysql --port=3306 --tmpdir=$(pwd)/tmp &
+    - sleep 5
+    - mysql --port=3306 --user=root --password= --execute='show databases;'
+    - mysqladmin --port=3306 --user=root --password= shutdown
+    - sleep 5
+    - (ps aux | grep mysqld | grep -v grep) && exit 1 || exit 0

@@ -1,0 +1,25 @@
+distributable:
+  url: https://github.com/certbot/certbot/archive/v{{version}}.tar.gz
+  strip-components: 1
+versions:
+  github: certbot/certbot
+dependencies:
+  python.org: ~3.11
+build:
+  script:
+    - python-venv.sh {{prefix}}/bin/certbot
+  env:
+    SRCROOT: $SRCROOT/certbot
+provides:
+  - bin/certbot
+test:
+  script:
+    - certbot --version | grep {{version}}
+    - mkdir certbot
+    - chmod 777 certbot
+    - certbot certificates $ARGS | grep "No certificates found."
+  env:
+    ARGS:
+      - --config-dir="certbot/config"
+      - --work-dir="certbot"
+      - --logs-dir="certbot/log"
