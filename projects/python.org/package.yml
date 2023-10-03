@@ -62,9 +62,10 @@ build:
       if: ^2
 
     # fixes the build scripts so they use the standard environment variables we set
-    - |
-      sed -i.bak -e 's|system_lib_dirs = .*|system_lib_dirs = os.getenv("LIBRARY_PATH").split(":")|' ./setup.py
-      sed -i.bak -e 's|system_include_dirs = .*|system_include_dirs = os.getenv("CPATH").split(":")|' ./setup.py
+    - run: |
+        sed -i.bak -e 's|system_lib_dirs = .*|system_lib_dirs = os.getenv("LIBRARY_PATH").split(":")|' ./setup.py
+        sed -i.bak -e 's|system_include_dirs = .*|system_include_dirs = os.getenv("CPATH").split(":")|' ./setup.py
+      if: <3.12
 
     # older versions use a different config dir
     - run: |
@@ -122,6 +123,16 @@ build:
     - run: patch -p1 < props/patch3.4.diff
       if: '~3.4.1'
 
+    # 3.12.0 needs help with mpdecimal
+    - run: |
+        sed -i.bak 's/libmpdec_machine=universal/libmpdec_machine=x64/' configure
+        rm configure.bak
+      if: darwin/x86-64
+    - run: |
+        sed -i.bak 's/libmpdec_machine=universal/libmpdec_machine=uint128/' configure
+        rm configure.bak
+      if: darwin/aarch64
+
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }}
     - make install
@@ -157,7 +168,7 @@ build:
           rm $binfile.bak
         done
 
-        sed -i.bak -e 's|{{ prefix }}|\\$(shell tea --prefix)/python.org/v{{version.major}}|g' $confdir/Makefile
+        sed -i.bak -e 's|{{ prefix }}|\\$(or $(PKGX_DIR),$(HOME)/.pkgx)/python.org/v{{version.major}}|g' $confdir/Makefile
         rm $confdir/Makefile.bak
       working-directory: ${{prefix}}
 
