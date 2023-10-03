@@ -81,6 +81,10 @@ build:
       working-directory:
         ${{prefix}}/lib
 
+    # some things want includes under lib/ruby/include
+    - run: ln -s ../../include .
+      working-directory: ${{prefix}}/lib/ruby
+
     - run: sed -i.bak
         -e 's|$(DESTDIR){{prefix}}|$(topdir)|g'
         -e 's|CONFIG\["topdir"\] = .*|CONFIG\["topdir"\] = TOPDIR|g'
