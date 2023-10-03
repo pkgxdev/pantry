@@ -24,18 +24,15 @@ provides:
 test:
   dependencies:
     git-scm.org: '*'
-  script: |
-    git-review --version | tee /dev/stderr | grep -q -w '{{version}}'
+  working-directory: test
+  script:
+    - git-review --version | tee /dev/stderr | grep -q -w '{{version}}'
 
-    git review --version | tee /dev/stderr | grep -q -w '{{version}}'
-
-    mkdir -p test
-    cd test
-    git init --initial-branch master
-    git config user.name BrewTestBot
-    git config user.email BrewTestBot@test.com
-    git remote add gerrit https://github.com/Homebrew/brew.sh
-    touch .git/hooks/commit-msg
-    chmod +x .git/hooks/commit-msg
-    git commit --message "Test commit" --allow-empty
-    git-review --dry-run | tee /dev/stderr | grep -q -w 'git push'
+    - git init --initial-branch master
+    - git config user.name PkgxTestBot
+    - git config user.email PkgxTestBot@test.com
+    - git remote add gerrit https://github.com/pkgxdev/pkgx
+    - touch .git/hooks/commit-msg
+    - chmod +x .git/hooks/commit-msg
+    - git commit --message "Test commit" --allow-empty
+    - git-review --dry-run | tee /dev/stderr | grep -q -w 'git push'
