@@ -93,17 +93,29 @@ build:
     - run: ln -s ../../include .
       working-directory: ${{prefix}}/lib/ruby
 
-    - run: sed -i.bak
-        -e 's|$(DESTDIR){{prefix}}|$(topdir)|g'
-        -e 's|CONFIG\["topdir"\] = .*|CONFIG\["topdir"\] = TOPDIR|g'
-        rbconfig.rb
+    - run: |
+        sed -i.bak \
+          -e 's|$(DESTDIR){{prefix}}|$(topdir)|g' \
+          -e 's|CONFIG\["topdir"\] = .*|CONFIG\["topdir"\] = TOPDIR|g' \
+          -e 's|"/opt|TOPDIR + "../../|g' \
+          -e 's|/opt|" + TOPDIR + "../../|g' \
+          rbconfig.rb
+        rm rbconfig.rb.bak
       working-directory:
         ${{prefix}}/lib/ruby/{{version.marketing}}.0
+
+    - run: |
+        sed -i.bak \
+          -e 's/{{prefix}}/\${pcfiledir}/../..\/.. \
+          *.pc
+        rm *.pc.bak
+      working-directory: ${{prefix}}/lib/pkgconfig
 
 test:
   dependencies:
     rubygems.org: '*'     # is a companion __however__ brewkit doesn’t add companions to the env automatically
   script:
+    - grep -R /opt/ {{prefix}}/lib/
     - |
       ruby -e 'puts "Hello World!"'
     # echo 'puts 1' | irb
