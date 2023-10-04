@@ -61,8 +61,9 @@ build:
         source venv/bin/activate
         python setup.py install
         deactivate
-        cd ./venv/lib/python3.11/site-packages/MarkupSafe*
-        export PYTHONPATH=$PWD:$PYTHONPATH
+        cd venv/lib/python3.11/site-packages
+        EGG="$(echo MarkupSafe*)"
+        export PYTHONPATH=$PWD/$EGG:$PYTHONPATH
       working-directory: MarkupSafe-2.1.2
     - meson setup build $MESON_ARGS
     - meson compile -C build --verbose
@@ -100,6 +101,8 @@ build:
 test:
   dependencies:
     freedesktop.org/pkg-config: '*'
+    linux:
+      llvm.org: '*'
   env:
     FLAGS:
       - -lX11
@@ -112,5 +115,5 @@ test:
       FLAGS:
         - "{{prefix}}/lib/libGL.so.1"
   script:
-    - cc glxgears.c -o gears $FLAGS
+    - clang glxgears.c -o gears $FLAGS
     - pkg-config --modversion gl | grep {{version}}
