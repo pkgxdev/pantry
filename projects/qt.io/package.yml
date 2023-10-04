@@ -1,0 +1,79 @@
+distributable:
+  url: https://download.qt.io/official_releases/qt/{{version.marketing}}/{{version}}/single/qt-everywhere-opensource-src-{{version}}.tar.xz
+  strip-components: 1
+versions:
+  github: qt/qt5/tags
+dependencies:
+  freetype.org: '*'
+  gnome.org/glib: '*'
+  libjpeg-turbo.org: '*'
+  libpng.org: '*'
+  pcre.org/v2: '*'
+  google.com/webp: '*'
+  gnu.org/bison: '*'
+  github.com/westes/flex: '*'
+  kerberos.org: '*'
+  gnome.org/libxslt: '*'
+  sqlite.org: '*'
+  linux:
+    alsa-project.org/alsa-lib: '*'
+    #at-spi2-core: '*'
+    freedesktop.org/fontconfig: '*'
+    harfbuzz.org: '*'
+    unicode.org: '*'
+    dri.freedesktop.org: '*'
+    libevent.org: '*'
+    x.org/ice: '*'
+    #libproxy: '*'
+    x.org/sm: '*'
+    webmproject.org/libvpx: '*'
+    #libxcomposite: '*'
+    #libxkbcommon: '*'
+    #libxkbfile: '*'
+    x.org/xrandr: '*'
+    x.org/xtst: '*'
+    mesa3d.org: '*'
+    zlib.net/minizip: '*'
+    mozilla.org/nss: '*'
+    opus-codec.org: '*'
+    #pulseaudio: '*'
+    libsdl.org: '*'
+    google.github.io/snappy: '*'
+    systemd.io: '*'
+    wayland.freedesktop.org: '*'
+    #xcb-util: '*'
+    #xcb-util-image: '*'
+    #xcb-util-keysyms: '*'
+    #xcb-util-renderutil: '*'
+    #xcb-util-wm: '*'
+    facebook.com/zstd: '*'
+build:
+  dependencies:
+    nodejs.org: '*'
+    freedesktop.org/pkg-config: '*'
+    python.org: ^3.10
+    gnu.org/gperf: '*'
+  script:
+    - make --jobs {{hw.concurrency}}
+    - make install
+  env:
+    ARGS:
+      - -verbose
+      - -prefix {{prefix}}
+      - -release
+      - -opensource -confirm-license
+      - -nomake examples
+      - -nomake tests
+      - -pkg-config
+      - -dbus-runtime
+      - -proprietary-codecs
+      - -system-freetype
+      - -system-libjpeg
+      - -system-libpng
+      - -system-pcre
+      - -system-zlib
+provides:
+  - bin/qmake
+test:
+  script:
+    - qmake
