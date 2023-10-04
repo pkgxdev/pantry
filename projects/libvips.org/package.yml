@@ -11,7 +11,7 @@ dependencies:
   freedesktop.org/fontconfig: '*'
   gnu.org/gettext: '*'
   gnome.org/glib: '*'
-  graphicsmagick.org: '*'
+  imagemagick.org: '*'
   jpeg.org/jpegxl: '*'
   libexif.github.io: '*'
   gnome.org/libgsf: '*'
@@ -22,7 +22,7 @@ dependencies:
   libspng.org: '*'
   simplesystems.org/libtiff: '*'
   littlecms.com: '*'
-  ijg.org: '*'
+  mozilla.org/mozjpeg: '*'
   openexr.com: '*'
   openjpeg.org: '*'
   openslide.org: '*'
@@ -38,20 +38,30 @@ build:
     mesonbuild.com: '*'
     ninja-build.org: '*'
     freedesktop.org/pkg-config: '*'
-    gnu.org/binutils: '*'
-  working-directory: build
+    llvm.org: '*'
   script:
-    - meson setup $MESON_ARGS ..
-    - meson compile
-    - meson install
+    - meson setup build $MESON_ARGS
+    - meson compile -C build
+    - meson install -C build
   env:
+    CC: clang
+    CXX: clang++
     MESON_ARGS:
       - --prefix="{{prefix}}"
       - --libdir="{{prefix}}/lib"
       - --buildtype=release
       - --wrap-mode=nofallback
+    PKG_CONFIG_PATH: "{{deps.mozilla.org/mozjpeg.prefix}}/lib/pkgconfig:$PKG_CONFIG_PATH" # mozjpeg needs to appear before libjpeg, otherwise it's not used
 provides:
   - bin/vips
+  - bin/vipsedit
+  - bin/vipsheader
+  - bin/vipsprofile
+  - bin/vipsthumbnail
 test:
   script:
-    - vips --version
+    - vips --version | grep {{version}}
+    - vips -l
+    - width=$(vipsheader -f width test.png)
+    - vips jpegsave test.png test.jpg --trellis-quant
+    - vipsheader -f width test.jpg | grep $width
