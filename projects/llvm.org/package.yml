@@ -33,6 +33,18 @@ build:
     - cmake ../llvm -G Ninja $ARGS
     - ninja
     - ninja install
+
+    # other tools simply expect these symlinks and often fail without them
+    - run: |
+        ln -s clang cc
+        ln -s clang++ c++
+        ln -s clang-cpp cpp
+        ln -s ld lld
+        for x in ar as nm objcopy ranlib readelf strings strip; do
+          ln -s llvm-$x $x
+        done
+      working-directory: ${{prefix}}/bin
+
   receipt:
     - LLVMConfig.cmake
   env:

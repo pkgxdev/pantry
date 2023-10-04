@@ -59,11 +59,24 @@ build:
 
     # On Linux, we need to move the libraries to the lib directory.
     - run: |
-        if test {{hw.platform}} = "linux"; then
-          mv lib64/* lib/
-          rmdir lib64
-        fi
+        mv lib64/* lib/
+        rmdir lib64
+      if: linux
       working-directory: ${{prefix}}
+
+    # weird ass files it makes
+    - run: rm aarch64-*
+      if: darwin/aarch64
+      working-directory: ${{prefix}}
+
+    # other tools simply expect these symlinks and often fail without them
+    - run: |
+        ln -s gcc cc
+        ln -s gcc-ar ar
+        ln -s gcc-nm nm
+        ln -s gcc-ranlib ranlib
+      working-directory: ${{prefix}}
+
   env:
     # Branch from the Darwin maintainer of GCC, with a few generic fixes and
     # Apple Silicon support, located at https://github.com/iains/gcc-12-branch
@@ -115,6 +128,8 @@ test:
   - test "$(./test3)" = "Hello, world!"
 
 provides:
+  - bin/ar
+  - bin/cc
   - bin/c++
   - bin/gc++
   - bin/cpp
@@ -128,3 +143,5 @@ provides:
   - bin/gcov-tool
   - bin/gfortran
   - bin/lto-dump
+  - bin/nm
+  - bin/ranlib
