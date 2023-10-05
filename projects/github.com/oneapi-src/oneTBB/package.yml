@@ -25,6 +25,8 @@ build:
     cmake.org: '*'
     swig.org: '*'
     freedesktop.org/pkg-config: '*'
+    linux:
+      gnu.org/gcc: '*'
   working-directory: build
   script:
     - run: |
@@ -44,6 +46,10 @@ build:
       working-directory: ../build-static
     - python3 -m pip install --prefix={{prefix}} ./python
   env:
+    linux:
+      CC: gcc
+      CXX: g++
+    CMAKE_PREFIX_PATH: "{{prefix}}:$CMAKE_PREFIX_PATH"
     TBBROOT: "{{prefix}}"
     CMAKE_ARGS:
       - -DCMAKE_INSTALL_PREFIX="{{prefix}}
