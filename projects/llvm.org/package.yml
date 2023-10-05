@@ -47,12 +47,14 @@ build:
     - ninja install
 
     # other tools simply expect these symlinks and often fail without them
+    # NOTE forcing symlinks because we build with ourselves and sometimes that
+    # means we're building with the exact same version FIXME
     - run: |
-        ln -s clang cc
-        ln -s clang++ c++
-        ln -s clang-cpp cpp
+        ln -sf clang cc
+        ln -sf clang++ c++
+        ln -sf clang-cpp cpp
         for x in ar as nm objcopy ranlib readelf strings strip; do
-          ln -s llvm-$x $x
+          ln -sf llvm-$x $x
         done
       working-directory: ${{prefix}}/bin
 
