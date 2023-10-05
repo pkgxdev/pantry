@@ -13,12 +13,15 @@ runtime:
     CARGO_INSTALL_ROOT: ${{home}}/.local
 
 dependencies:
-  git-scm.org: 2
+  git-scm.org: ^2
   rust-lang.org: '*'
   openssl.org: ^1 # cargo needs the certs
-  #TODO curl.se: ^8
+  curl.se: '*'
   zlib.net: ^1
-#TODO ^^ prevent vendoring by requiring these: libssh2.org & libgit2.org
+  libssh2.org: ^1
+  libgit2.org: ^1
+  linux:
+    llvm.org: '*' #FIXME only need the linker actually
 
 build:
   dependencies:
@@ -34,6 +37,8 @@ build:
       - --path=.
 
 test:
+  env:
+    CC: clang  #FIXME
   script: |
     cargo init . --name xyz_tea_fixture
     echo 'fn main() {println!("Hello World!");}' >src/main.rs
