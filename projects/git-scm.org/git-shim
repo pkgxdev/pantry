@@ -1,0 +1,26 @@
+#!/bin/sh -e
+
+find_git_command() {
+  for arg in "$@"; do
+    # ignore options
+    if [[ ! $arg =~ ^- ]]; then
+      echo $arg
+      return  # found the command!
+    fi
+  done
+}
+
+libexec="$(cd "$(dirname "$0")/.." && pwd)"/libexec
+
+# extract the git subcommand
+cmd=$(find_git_command "$@")
+
+if [ -x "$libexec/git-$_CMD" -a -f "$libexec/git-$cmd" ]; then
+  exec "$libexec/git" "$@"
+elif type "git-$cmd" >/dev/null 2>&1; then
+  exec "$libexec/git" "$@"
+elif command -v pkgx >/dev/null 2>&1 && pkg=$(pkgx --provider git-$cmd); then
+  exec pkgx +$pkg "$libexec/git" "$@"
+else
+  exec "$libexec/git" "$@"
+fi
