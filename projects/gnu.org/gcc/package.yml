@@ -65,11 +65,15 @@ build:
       working-directory: ${{prefix}}
 
     # other tools simply expect these symlinks and often fail without them
+    # NOTE cc seems to be created on linux but not on mac, we check for the rest
+    # to prevent build failures we could avoid, we don’t force symlink as we
+    # prefer that the underlying package handle it in case they do it
+    # differently (eg hardlink)
     - run: |
-        ln -s gcc cc
-        ln -s gcc-ar ar
-        ln -s gcc-nm nm
-        ln -s gcc-ranlib ranlib
+        [ -f cc ] || ln -s gcc cc
+        [ -f ar ] || ln -s gcc-ar ar
+        [ -f nm ] || ln -s gcc-nm nm
+        [ -f ranlib ] || ln -s gcc-ranlib ranlib
       working-directory: ${{prefix}}/bin
 
   env:
