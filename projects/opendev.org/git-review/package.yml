@@ -1,0 +1,38 @@
+distributable:
+  url: https://opendev.org/opendev/git-review/archive/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://opendev.org/api/v1/repos/opendev/git-review/tags
+  match: /"name":"\d+\.\d+\.\d+"/
+  strip:
+    - /^"name":"/
+    - /"$/
+
+dependencies:
+  python.org: ^3
+
+build:
+  script: |
+    python-venv.py {{prefix}}/bin/git-review
+
+    {{prefix}}/venv/bin/pip install setuptools
+
+provides:
+  - bin/git-review
+
+test:
+  dependencies:
+    git-scm.org: '*'
+  working-directory: test
+  script:
+    - git-review --version | tee /dev/stderr | grep -q -w '{{version}}'
+
+    - git init --initial-branch main
+    - git config user.name PkgxTestBot
+    - git config user.email PkgxTestBot@test.com
+    - git remote add gerrit https://github.com/pkgxdev/pkgx
+    - touch .git/hooks/commit-msg
+    - chmod +x .git/hooks/commit-msg
+    - git commit --message "Test commit" --allow-empty
+    - git-review --dry-run main | tee /dev/stderr | grep -q -w 'git push'

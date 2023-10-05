@@ -1,0 +1,117 @@
+distributable:
+  url: https://github.com/OSGeo/gdal/releases/download/v{{version}}/gdal-{{version}}.tar.gz
+  strip-components: 1
+versions:
+  github: OSGeo/gdal
+dependencies:
+  apache.org/arrow: '*'
+  heasarc.gsfc.nasa.gov/cfitsio: '*'
+  epsilon-project.sourceforge.io: '*'
+  libexpat.github.io: '*'
+  gaia-gis.it/fossil/freexl: '*'
+  libgeos.org: '*'
+  giflib.sourceforge.io: '*'
+  hdfgroup.org/HDF5: '*'
+  libjpeg-turbo.org: '*'
+  jpeg.org/jpegxl: '*'
+  github.com/json-c/json-c: '*'
+  libarchive.org: '*'
+  github.com/OSGeo/libgeotiff: '*'
+  github.com/strukturag/libheif: '*'
+  #libkml: '*'
+  github.com/Esri/lerc: '*'
+  libpng.org: '*'
+  postgresql.org/libpq: '*'
+  gaia-gis.it/libspatialite: '*'
+  simplesystems.org/libtiff: '*'
+  gnome.org/libxml2: '*'
+  unidata.ucar.edu/netcdf: '*'
+  #numpy: '*'
+  openexr.com: '*'
+  openjpeg.org: '*'
+  openssl.org: '*'
+  pcre.org/v2: '*'
+  poppler.freedesktop.org: '*'
+  proj.org: '*'
+  python.org: ^3.11
+  qhull.org: '*'
+  sqlite.org: '*'
+  unixodbc.org: '*'
+  google.com/webp: '*'
+  xerces.apache.org/xerces-c: '*'
+  tukaani.org/xz: '*'
+  facebook.com/zstd: '*'
+  protobuf.dev: '*'
+  abseil.io: '*'
+  zlib.net: '*'
+  dkrz.de/libaec: '*'
+  linux:
+    curl.se: '*'
+    github.com/util-linux/util-linux: '*'
+runtime:
+  env:
+    PYTHONPATH: "{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages/osgeo:{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages/osgeo_utils:$PYTHONPATH"
+build:
+  dependencies:
+    boost.org: '*'
+    cmake.org: '*'
+    freedesktop.org/pkg-config: '*'
+    swig.org: '*'
+    doxygen.nl: '*'
+  script:
+    - cmake -S . -B build $CMAKE_ARGS
+    - cmake --build build
+    - cmake --install build
+    - run: |
+        sed -i.bak "s|{{prefix}}|\$(dirname \$0)/..|g" gdal-config
+        sed -i.bak "s|{{pkgx.prefix}}|\$(dirname \$0)/../../..|g" gdal-config
+        rm ./*.bak
+      working-directory: "{{prefix}}/bin"
+    - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
+      working-directory: "{{prefix}}/lib"
+  env:
+    CMAKE_ARGS:
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}
+      - -DCMAKE_INSTALL_LIBDIR=lib
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_FIND_FRAMEWORK=LAST
+      - -DCMAKE_VERBOSE_MAKEFILE=ON
+      - -Wno-dev
+      - -DBUILD_TESTING=OFF
+      - -DENABLE_PAM=ON
+      - -DCMAKE_CXX_STANDARD=17
+provides:
+  - bin/gdaladdo
+  - bin/gdalbuildvrt
+  - bin/gdal-config
+  - bin/gdal_contour
+  - bin/gdal_create
+  - bin/gdaldem
+  - bin/gdalenhance
+  - bin/gdal_grid
+  - bin/gdalinfo
+  - bin/gdallocationinfo
+  - bin/gdalmanage
+  - bin/gdalmdiminfo
+  - bin/gdalmdimtranslate
+  - bin/gdal_rasterize
+  - bin/gdalsrsinfo
+  - bin/gdaltindex
+  - bin/gdaltransform
+  - bin/gdal_translate
+  - bin/gdal_viewshed
+  - bin/gdalwarp
+  - bin/gnmanalyse
+  - bin/gnmmanage
+  - bin/nearblack
+  - bin/ogr2ogr
+  - bin/ogrinfo
+  - bin/ogrlineref
+  - bin/ogrtindex
+  - bin/sozip
+test:
+  script:
+    - gdalinfo --version | grep {{version}}
+    - gdalinfo --formats
+    - ogrinfo --version | grep {{version}}
+    - ogrinfo --formats
