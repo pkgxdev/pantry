@@ -38,9 +38,10 @@ build:
     - run: |
         if test "{{hw.platform}}" = "linux" || \
            test "{{hw.arch}}" = "x86-64" || \
-           semverator satisies '>=14'; then
+           semverator satisfies '>=14' {{version}}; then
              ARGS="$ARGS -DLLVM_ENABLE_RUNTIMES='compiler-rt'"
         fi
+      # if: linux || x86-64 || >=14  ## Brewkit can't do this. Yet.
     - cmake ../llvm -G Ninja $ARGS
     - ninja
     - ninja install
