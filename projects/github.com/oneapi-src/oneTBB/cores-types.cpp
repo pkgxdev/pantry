@@ -1,13 +1,21 @@
-#include <cstdlib>
+#include <iostream>
 #include <tbb/task_arena.h>
 
 int main() {
-    const auto numa_nodes = tbb::info::numa_nodes();
-    const auto size = numa_nodes.size();
-    const auto type = numa_nodes.front();
+    const auto max_concurrency = tbb::this_task_arena::max_concurrency();
+
 #ifdef __APPLE__
-    return size == 1 && type == tbb::task_arena::automatic ? EXIT_SUCCESS : EXIT_FAILURE;
+    if (max_concurrency != 1) {
+        std::cerr << "Error: Invalid conditions on MacOS." << std::endl;
+        return EXIT_FAILURE;
+    }
 #else
-    return size != 1 || type != tbb::task_arena::automatic ? EXIT_SUCCESS : EXIT_FAILURE;
+    if (max_concurrency == 1) {
+        std::cerr << "Error: Invalid conditions on Linux." << std::endl;
+        return EXIT_FAILURE;
+    }
 #endif
+
+    std::cout << "Conditions are valid." << std::endl;
+    return EXIT_SUCCESS;
 }

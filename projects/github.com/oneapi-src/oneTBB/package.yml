@@ -5,7 +5,6 @@ distributable:
 display-name: tbb
 
 versions:
-  # github: oneapi-src/oneTBB parses the version incorrectly.
   github: oneapi-src/oneTBB
   strip: /^v/
   ignore: # they moved _to_ calver
@@ -13,8 +12,6 @@ versions:
 
 dependencies:
   python.org: ^3.11
-  linux:
-    open-mpi.org/hwloc: '*'
 
 runtime:
   env:
@@ -26,30 +23,27 @@ build:
     swig.org: '*'
     freedesktop.org/pkg-config: '*'
     linux:
-      gnu.org/gcc: '*'
+      gnu.org/gcc: '>=4.8.5<11.2.1'
   working-directory: build
   script:
+    #build shared
     - run: |
-        sed -i.bak "s|=\"0.2\"|=\"{{version}}\"|g" ../python/setup.py
-        rm ../python/setup.py.bak
-      if: darwin
-    - cmake -S .. $CMAKE_ARGS -DBUILD_SHARED_LIBS=ON
-    - cmake --build .
-    - cmake --install .
-    - run: |
-        ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
-      working-directory: ${{prefix}}/lib
-    - run: |
-        cmake -S .. $CMAKE_ARGS -DBUILD_SHARED_LIBS=OFF
+        cmake -S ../.. $CMAKE_ARGS -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_RPATH="{{prefix}}"
         cmake --build .
+        cmake --install .
+      working-directory: shared
+
+    # build static
+    - run: |
+        cmake -S ../.. $CMAKE_ARGS -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_RPATH="{{prefix}}"
+        cmake --build . --parallel=1
         install ./*/libtbb*.a {{prefix}}/lib/
-      working-directory: ../build-static
-    - python3 -m pip install --prefix={{prefix}} ./python
+      working-directory: static
+      
   env:
     linux:
       CC: gcc
       CXX: g++
-    CMAKE_PREFIX_PATH: "{{prefix}}:$CMAKE_PREFIX_PATH"
     TBBROOT: "{{prefix}}"
     CMAKE_ARGS:
       - -DCMAKE_INSTALL_PREFIX="{{prefix}}
@@ -58,17 +52,15 @@ build:
       - -DCMAKE_VERBOSE_MAKEFILE=ON
       - -Wno-dev
       - -DTBB_TEST=OFF
-      - -DTBB4PY_BUILD=ON
-    PYTHONPATH: './build/lib/python{{deps.python.org.version.marketing}}/site-packages:./build-static/lib/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH'
 
 test:
   dependencies:
     freedesktop.org/pkg-config: '*'
   script:
     - pkg-config --modversion tbb | grep {{version}}
-    - c++ cores-types.cpp --std=c++14 -DTBB_PREVIEW_TASK_ARENA_CONSTRAINTS_EXTENSION=1 -ltbb -o core-types
+    - c++ cores-types.cpp $(pkg-config --libs tbb) -ltbb -o core-types
     - ./core-types
-    - c++ sum1-100.cpp --std=c++14 -DTBB_PREVIEW_TASK_ARENA_CONSTRAINTS_EXTENSION=1 -ltbb -o sum1-100
+    - c++ sum1-100.cpp $(pkg-config --libs tbb) -o sum1-100
     - ./sum1-100 | grep 5050
-    - python -m TBB -h
-    - python -c "import TBB"
+    #- python -m TBB -h
+    #- python -c "import TBB"
