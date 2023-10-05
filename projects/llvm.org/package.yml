@@ -114,9 +114,10 @@ test:
     - run: |
         if test "{{hw.platform}}" = "linux" || \
            test "{{hw.arch}}" = "x86-64" || \
-           semverator satisies '>=14'; then
+           semverator satisfies '>=14'; then
              ARGS="$ARGS -fsanitize=address,undefined"
         fi
+      # if: linux || x86-64 || >=14  ## Brewkit can't do this. Yet.
     - mv $FIXTURE $FIXTURE.c
     - clang $ARGS $FIXTURE.c
     - ./a.out
