@@ -43,10 +43,8 @@ build:
 
     # build python
     - run: |
-        cmake -S ../.. $CMAKE_ARGS -DTBB4PY_BUILD=ON
-        cmake --build .
-        python3 -m pip install --prefix={{prefix}} ./python
-      working-directory: python
+        python3 -m pip install --prefix={{prefix}} .
+      working-directory: ../python
     
     # python 3.xx => 3 symlink
     - run: |
@@ -62,8 +60,6 @@ build:
       - -DCMAKE_VERBOSE_MAKEFILE=ON
       - -Wno-dev
       - -DTBB_TEST=OFF
-    PYTHONPATH: ./build/lib/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH
-    LDFLAGS: "-Wl,-rpath,{{prefix}},-rpath,{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages $LDFLAGS"
 
 test:
   dependencies:
