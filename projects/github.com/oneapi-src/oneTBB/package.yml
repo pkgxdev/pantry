@@ -23,6 +23,7 @@ build:
     swig.org: '*'
     freedesktop.org/pkg-config: '*'
     linux:
+      llvm.org: '*'
       gnu.org/gcc: '>=4.8.5<11.2.1'
       gnu.org/make: '*'
   working-directory: build
@@ -43,12 +44,25 @@ build:
 
     # build python
     - run: |
+        cmake -S ../.. $CMAKE_ARGS -DTBB4PY_BUILD=ON
+        make irml
+        install gnu*/* {{prefix}}/lib
+        export LDFLAGS="-L{{prefix}}/lib/libirml.so -lirml $LDFLAGS"
+        export PYTHONPATH="$PWD/build/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH"
+        export CXX=clang++
+        python ../../python/setup.py install --prefix=$PWD/build > install_log.txt 2>&1
+      working-directory: python
+      if: linux
+
+    - run: |
         python3 -m pip install --prefix={{prefix}} .
       working-directory: ../python
     
     # python 3.xx => 3 symlink
     - run: |
-        ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
+        if [ ! -L "python{{deps.python.org.version.major}}" ]; then
+          ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
+        fi
       working-directory: ${{prefix}}/lib
       
   env:
@@ -60,6 +74,7 @@ build:
       - -DCMAKE_VERBOSE_MAKEFILE=ON
       - -Wno-dev
       - -DTBB_TEST=OFF
+    PYTHONPATH: "{{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH"
 
 test:
   dependencies:
