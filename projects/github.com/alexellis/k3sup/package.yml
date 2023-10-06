@@ -18,16 +18,9 @@ build:
     linux:
       LDFLAGS:
       - -buildmode=pie
-  script: 
-    - go build -v -ldflags="${LDFLAGS}"
-    - mkdir -p "{{ prefix }}"/bin
-    - mv k3sup "{{ prefix }}"/bin
+  script: go build -v -ldflags="${LDFLAGS}" -o "{{ prefix }}"/bin/k3sup
 
 provides:
 - bin/k3sup
 
-test:
-  dependencies:
-    github.com/alexellis/k3sup: '*'  # asterisk means “any version, usually the latest”
-  script:
-    test "$(k3sup version|grep Version|cut -d' ' -f2)" = {{version}}
+test: test "$(k3sup version|grep Version|cut -d' ' -f2)" = {{version}}
