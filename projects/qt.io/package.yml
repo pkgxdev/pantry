@@ -2,7 +2,7 @@ distributable:
   url: https://download.qt.io/official_releases/qt/{{version.marketing}}/{{version}}/single/qt-everywhere-opensource-src-{{version}}.tar.xz
   strip-components: 1
 versions:
-  github: qt/qt5/tags
+  - 5.15.10
 dependencies:
   freetype.org: '*'
   gnome.org/glib: '*'
@@ -54,6 +54,7 @@ build:
     python.org: ^3.10
     gnu.org/gperf: '*'
   script:
+    - ./configure $ARGS
     - make --jobs {{hw.concurrency}}
     - make install
   env:
@@ -73,7 +74,62 @@ build:
       - -system-pcre
       - -system-zlib
 provides:
-  - bin/qmake
+  bin/assistant
+  bin/balsam
+  bin/canbusutil
+  bin/designer
+  bin/lconvert
+  bin/linguist
+  bin/lprodump
+  bin/lrelease
+  bin/lrelease-pro
+  bin/lupdate
+  bin/lupdate-pro
+  bin/meshdebug
+  bin/moc
+  bin/pixeltool
+  bin/qcollectiongenerator
+  bin/qdbus
+  bin/qdbuscpp2xml
+  bin/qdbusviewer
+  bin/qdbusxml2cpp
+  bin/qdistancefieldgenerator
+  bin/qdoc
+  bin/qgltf
+  bin/qhelpgenerator
+  bin/qlalr
+  bin/qmake
+  bin/qml
+  bin/qmlcachegen
+  bin/qmleasing
+  bin/qmlformat
+  bin/qmlimportscanner
+  bin/qmllint
+  bin/qmlmin
+  bin/qmlplugindump
+  bin/qmlpreview
+  bin/qmlprofiler
+  bin/qmlscene
+  bin/qmltestrunner
+  bin/qmltime
+  bin/qmltyperegistrar
+  bin/qscxmlc
+  bin/qtattributionsscanner
+  bin/qtdiag
+  bin/qtpaths
+  bin/qtplugininfo
+  bin/qtwaylandscanner
+  bin/qvkgen
+  bin/rcc
+  bin/repc
+  bin/tracegen
+  bin/uic
+  bin/xmlpatterns
+  bin/xmlpatternsvalidator
 test:
+  dependencies:
+    llvm.org: '*'
   script:
-    - qmake
+    - qmake hello.pro
+    - make
+    - ./hello
