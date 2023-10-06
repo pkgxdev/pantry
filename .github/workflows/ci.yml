@@ -1,7 +1,11 @@
 name: ci
-run-name: 'ci: ${{ github.event.pull_request.title }}'
+run-name: "ci: ${{ github.event.pull_request.title }}"
 
 on: pull_request
+
+concurrency:
+  group: ${{ github.event.pull_request.head.ref }}
+  cancel-in-progress: true
 
 jobs:
   get-projects:
@@ -26,10 +30,10 @@ jobs:
       fail-fast: false
       matrix:
         platform:
-        - darwin+x86-64
-        - linux+x86-64
-        - darwin+aarch64
-        - linux+aarch64
+          - darwin+x86-64
+          - linux+x86-64
+          - darwin+aarch64
+          - linux+aarch64
     needs: [get-projects]
     uses: ./.github/workflows/build.yml
     name: ${{ matrix.platform }}
