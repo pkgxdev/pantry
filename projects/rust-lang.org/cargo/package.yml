@@ -29,13 +29,15 @@ build:
     tukaani.org/xz: '*'
     freedesktop.org/pkg-config: ^0.29
     rust-lang.org/cargo: '*'
-  script: cargo $ARGS
+  script:
+  - |
+    sed -i.bak 's/^curl\s*=\s*"(.+)"$/curl = { version = "\\1", features = ["force-system-lib-on-osx"] }/' Cargo.toml
+  - cargo install
+      --root={{ prefix }}
+      --path=.
   env:
-    ARGS:
-      - install
-      - --root={{ prefix }}
-      - --path=.
-
+    LIBGIT2_SYS_USE_PKG_CONFIG: 1
+    LIBSSH2_SYS_USE_PKG_CONFIG: 1
 test:
   env:
     CC: clang  #FIXME
