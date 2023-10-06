@@ -7,7 +7,7 @@ display-name: tbb
 platforms:
   - darwin
   - linux/x86-64
-  # linux/aarch64 => undefined symbol: __aarch64_ldadd8_acq_rel
+  # FIXME: linux/aarch64 => undefined symbol: __aarch64_ldadd8_acq_rel
 
 versions:
   github: oneapi-src/oneTBB
@@ -16,7 +16,7 @@ versions:
     - /4\.4/
 
 dependencies:
-  python.org: '>=3.11<3.12'
+  python.org: ~3.11
 
 runtime:
   env:
@@ -62,16 +62,16 @@ build:
     - run: |
         python3 -m pip install --prefix={{prefix}} .
       working-directory: ../python
-    
+
     # python 3.xx => 3 symlink
     - run: |
         if [ ! -L "python{{deps.python.org.version.major}}" ]; then
           ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
         fi
       working-directory: ${{prefix}}/lib
-      
+
   env:
-    TBBROOT: "{{prefix}}"
+    TBBROOT: '{{prefix}}'
     CMAKE_ARGS:
       - -DCMAKE_INSTALL_PREFIX="{{prefix}}
       - -DCMAKE_BUILD_TYPE=Release
@@ -79,7 +79,7 @@ build:
       - -DCMAKE_VERBOSE_MAKEFILE=ON
       - -Wno-dev
       - -DTBB_TEST=OFF
-    PYTHONPATH: "{{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH"
+    PYTHONPATH: '{{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH'
     linux:
       CC: gcc
       CXX: g++
