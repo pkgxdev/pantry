@@ -50,6 +50,9 @@ build:
     freedesktop.org/pkg-config: '*'
     python.org: ^3.10
     gnu.org/gperf: '*'
+    linux:
+      gnu.org/gcc: '*'
+      gnu.org/make: '*'
   script:
     - ./configure $ARGS
     - make --jobs {{hw.concurrency}}
@@ -70,6 +73,17 @@ build:
       - -system-libpng
       - -system-pcre
       - -system-zlib
+    linux:
+      - -R{{prefix}}/lib
+      - -no-avx2
+      - -no-avx512
+      - -no-sql-mysql
+    darwin:
+      ARGS:
+        - -no-rpath
+    darwin/aarch64:
+      ARGS:
+        - -no-assimp
 provides:
   - bin/assistant
   - bin/balsam
