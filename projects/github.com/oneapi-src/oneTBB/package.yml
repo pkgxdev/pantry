@@ -37,9 +37,21 @@ build:
     # build static
     - run: |
         cmake -S ../.. $CMAKE_ARGS -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_RPATH="{{prefix}}"
-        cmake --build . --parallel=1
+        cmake --build .
         install ./*/libtbb*.a {{prefix}}/lib/
       working-directory: static
+
+    # build python
+    - run: |
+        cmake -S ../.. $CMAKE_ARGS -DTBB4PY_BUILD=ON
+        cmake --build .
+        python3 -m pip install --prefix={{prefix}} ./python
+      working-directory: python
+    
+    # python 3.xx => 3 symlink
+    - run: |
+        ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
+      working-directory: ${{prefix}}/lib
       
   env:
     TBBROOT: "{{prefix}}"
@@ -60,3 +72,5 @@ test:
     - ./core-types
     - c++ --std=c++14 sum1-100.cpp $(pkg-config --libs tbb) -o sum1-100
     - ./sum1-100 | grep 5050
+    - python -m TBB -h
+    - python -c "import TBB"
