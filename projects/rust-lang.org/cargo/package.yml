@@ -18,7 +18,6 @@ dependencies:
   openssl.org: ^1 # cargo needs the certs
   curl.se: '*'
   zlib.net: ^1
-  libssh2.org: ^1
   libgit2.org: ^1
   linux:
     llvm.org: '*' #FIXME only need the linker actually
@@ -30,11 +29,14 @@ build:
     freedesktop.org/pkg-config: ^0.29
     rust-lang.org/cargo: '*'
   script:
-  - |
-    sed -i.bak 's/^curl\s*=\s*"(.+)"$/curl = { version = "\\1", features = ["force-system-lib-on-osx"] }/' Cargo.toml
+  # otherwise we are not ABI compatible and new macOS versions may break
+  # this happened with Sonoma
+  - echo "default = ['curl/force-system-lib-on-osx']" >> Cargo.toml
   - cargo install
+      --verbose
       --root={{ prefix }}
       --path=.
+      --features
   env:
     LIBGIT2_SYS_USE_PKG_CONFIG: 1
     LIBSSH2_SYS_USE_PKG_CONFIG: 1
