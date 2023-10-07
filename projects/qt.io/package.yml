@@ -59,9 +59,6 @@ build:
     - make --jobs {{hw.concurrency}}
     - make -j1 install
   env:
-    QMAKE_CFLAGS: "$CFLAGS -Wl,-rpath,{{pkgx.prefix}}"
-    QMAKE_CXXFLAGS: "$CXXFLAGS -Wl,-rpath,{{pkgx.prefix}}"
-    QMAKE_LDFLAGS: "$LDFLAGS -Wl,-rpath,{{pkgx.prefix}}"
     ARGS:
       - -verbose
       - -prefix {{prefix}}
@@ -77,6 +74,10 @@ build:
       - -system-libpng
       - -system-pcre
       - -system-zlib
+      - CFLAGS=-Wl,-rpath,{{pkgx.prefix}}
+      - CXXFLAGS=-Wl,-rpath,{{pkgx.prefix}}
+      - LDFLAGS=-Wl,-rpath,{{pkgx.prefix}}
+
     linux:
       ARGS:
         - -R{{prefix}}/lib
