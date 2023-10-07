@@ -4,6 +4,7 @@ distributable:
 versions:
   github: libvips/libvips
 dependencies:
+  mozilla.org/mozjpeg: '*'
   cairographics.org: '*'
   heasarc.gsfc.nasa.gov/cfitsio: '*'
   github.com/dloebl/cgif: '*'
@@ -22,7 +23,6 @@ dependencies:
   libspng.org: '*'
   simplesystems.org/libtiff: '*'
   littlecms.com: '*'
-  mozilla.org/mozjpeg: '*'
   openexr.com: '*'
   openjpeg.org: '*'
   openslide.org: '*'
@@ -38,20 +38,16 @@ build:
     mesonbuild.com: '*'
     ninja-build.org: '*'
     freedesktop.org/pkg-config: '*'
-    llvm.org: '*'
   script:
     - meson setup build $MESON_ARGS
     - meson compile -C build
     - meson install -C build
   env:
-    CC: clang
-    CXX: clang++
     MESON_ARGS:
       - --prefix="{{prefix}}"
       - --libdir="{{prefix}}/lib"
       - --buildtype=release
       - --wrap-mode=nofallback
-    PKG_CONFIG_PATH: "{{deps.mozilla.org/mozjpeg.prefix}}/lib/pkgconfig:$PKG_CONFIG_PATH" # mozjpeg needs to appear before libjpeg, otherwise it's not used
 provides:
   - bin/vips
   - bin/vipsedit
