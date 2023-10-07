@@ -1,0 +1,46 @@
+distributable:
+  url: https://github.com/DrTimothyAldenDavis/SuiteSparse/archive/v{{version}}.tar.gz
+  strip-components: 1
+display-name: suite-sparse
+versions:
+  github: DrTimothyAldenDavis/SuiteSparse
+dependencies:
+  glaros.dtc.umn.edu/metis: '*'
+  gnu.org/m4: '*'
+  netlib.org/lapack: '*'
+  gnu.org/gmp: '*'
+  openmp.llvm.org: '*'
+  gnu.org/mpfr: '*'
+build:
+  dependencies:
+    cmake.org: '*'
+    freedesktop.org/pkg-config: '*'
+    linux:
+      gnu.org/gcc: '*'
+      gnu.org/make: '*'
+  script:
+    - make library $ARGS CMAKE_OPTIONS="$CMAKE_ARGS"
+    - make install $ARGS CMAKE_OPTIONS="$CMAKE_ARGS"
+  env:
+    ARGS:
+      - INSTALL={{prefix}}
+      - JOBS={{hw.concurrency}}
+    CMAKE_ARGS:
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}
+      - -DCMAKE_INSTALL_LIBDIR=lib
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_FIND_FRAMEWORK=LAST
+      - -DCMAKE_VERBOSE_MAKEFILE=ON
+      - -Wno-dev
+      - -DBUILD_TESTING=OFF
+      - -DLAPACK_LIBRARIES={{deps.netlib.org/lapack.prefix}}/lib
+      - -DBLAS_LIBRARIES={{deps.netlib.org/lapack.prefix}}/lib
+provides:
+  - bin/mongoose
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script:
+    - pkg-config --modversion SuiteSparse_config | grep {{version}}
+    - cc test.c -lsuitesparseconfig -lklu -o test
+    - ./test
