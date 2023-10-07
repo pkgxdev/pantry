@@ -51,6 +51,7 @@ build:
     python.org: ^3.10
     gnu.org/gperf: '*'
     linux:
+      perl.org: ^5
     #   gnu.org/gcc: '*'
       gnu.org/make: '*'
   script:
@@ -58,9 +59,9 @@ build:
     - make --jobs {{hw.concurrency}}
     - make -j1 install
   env:
-    CFLAGS: "$CFLAGS -Wl,-rpath,{{pkgx.prefix}}"
-    CXXFLAGS: "$CXXFLAGS -Wl,-rpath,{{pkgx.prefix}}"
-    LDFLAGS: "$LDFLAGS -Wl,-rpath,{{pkgx.prefix}}"
+    QMAKE_CFLAGS: "$CFLAGS -Wl,-rpath,{{pkgx.prefix}}"
+    QMAKE_CXXFLAGS: "$CXXFLAGS -Wl,-rpath,{{pkgx.prefix}}"
+    QMAKE_LDFLAGS: "$LDFLAGS -Wl,-rpath,{{pkgx.prefix}}"
     ARGS:
       - -verbose
       - -prefix {{prefix}}
@@ -83,9 +84,9 @@ build:
         - -no-avx512
         - -no-sql-mysql
         - -platform linux-clang
-    # darwin:
-    #   ARGS:
-    #     - -no-rpath
+    darwin:
+      ARGS:
+        - -no-rpath
     darwin/aarch64:
       ARGS:
         - -no-assimp
