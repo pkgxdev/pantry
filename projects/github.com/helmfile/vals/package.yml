@@ -1,0 +1,31 @@
+distributable:
+  url: https://github.com/helmfile/vals/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+display-name: pinniped
+
+versions:
+  github: helmfile/vals/releases/tags
+
+provides:
+  - bin/vals
+
+build:
+  dependencies:
+    go.dev: '*'
+  script:
+   - go mod download
+   - mkdir -p "{{ prefix }}"/bin
+   - go build -trimpath -ldflags="$LDFLAGS" -o "{{ prefix }}"/bin/vals ./cmd/vals
+  env:
+    CGO_ENABLED: 0
+    LDFLAGS:
+      - -w
+      - -s
+      - -X main.version=v{{version}}
+
+test:
+  - vals | grep "vals is a Helm-like configuration"
+  # Some versions of vals print had no command to print the version
+  - echo $(vals version || true) | grep "v{{version}}" || \
+    vals | grep -v "Print vals version"
