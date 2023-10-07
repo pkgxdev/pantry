@@ -25,7 +25,7 @@ dependencies:
   littlecms.com: '*'
   openexr.com: '*'
   openjpeg.org: '*'
-  openslide.org: '*'
+  # openslide.org: '*' # brings in ijg.org via gdk-pixbuf
   gstreamer.freedesktop.org/orc: '*'
   gnome.org/pango: '*'
   poppler.freedesktop.org: '*'
@@ -38,11 +38,16 @@ build:
     mesonbuild.com: '*'
     ninja-build.org: '*'
     freedesktop.org/pkg-config: '*'
+    llvm.org: '*'
+    gnu.org/make: '*'
   script:
     - meson setup build $MESON_ARGS
     - meson compile -C build
     - meson install -C build
   env:
+    CC: clang
+    CXX: clang++
+    LD: clang
     MESON_ARGS:
       - --prefix="{{prefix}}"
       - --libdir="{{prefix}}/lib"
