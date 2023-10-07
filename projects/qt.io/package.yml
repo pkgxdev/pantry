@@ -56,7 +56,7 @@ build:
   script:
     - ./configure $ARGS
     - make --jobs {{hw.concurrency}}
-    - make install
+    - make -j1 install
   env:
     ARGS:
       - -verbose
@@ -73,12 +73,14 @@ build:
       - -system-libpng
       - -system-pcre
       - -system-zlib
+      - -no-framework
     linux:
       ARGS:
         - -R{{prefix}}/lib
         - -no-avx2
         - -no-avx512
         - -no-sql-mysql
+        - -platform linux-clang
     # darwin:
     #   ARGS:
     #     - -no-rpath
