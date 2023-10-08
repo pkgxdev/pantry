@@ -11,8 +11,7 @@ dependencies:
   gnu.org/gmp: '*'
   openmp.llvm.org: '*'
   gnu.org/mpfr: '*'
-  linux:
-    gnu.org/gcc: '*' # libfortran
+  gnu.org/gcc: '*' # libfortran
 build:
   dependencies:
     cmake.org: '*'
@@ -39,6 +38,9 @@ build:
         - -DLAPACK_LIBRARIES={{deps.netlib.org/lapack.prefix}}/lib/liblapack.so.{{deps.netlib.org/lapack.version.major}}
         - -DBLAS_LIBRARIES={{deps.netlib.org/lapack.prefix}}/lib/libblas.so.{{deps.netlib.org/lapack.version.major}}
     darwin:
+      CC: clang
+      CXX: clang++
+      LD: clang
       CMAKE_ARGS:
         - -DLAPACK_LIBRARIES={{deps.netlib.org/lapack.prefix}}/lib/liblapack.{{deps.netlib.org/lapack.version.major}}.dylib
         - -DBLAS_LIBRARIES={{deps.netlib.org/lapack.prefix}}/lib/libblas.{{deps.netlib.org/lapack.version.major}}.dylib
@@ -49,5 +51,5 @@ test:
     freedesktop.org/pkg-config: '*'
   script:
     - pkg-config --modversion SuiteSparse_config | grep {{version}}
-    - cc test.c -lsuitesparseconfig -lklu -o test
+    - cc test.c -lsuitesparseconfig -lklu -o test -Wl,-rpath,{{pkgx.prefix}}
     - ./test
