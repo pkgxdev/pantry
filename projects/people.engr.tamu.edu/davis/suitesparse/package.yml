@@ -5,7 +5,6 @@ display-name: suite-sparse
 versions:
   github: DrTimothyAldenDavis/SuiteSparse
 dependencies:
-  openblas.net: '*'
   glaros.dtc.umn.edu/metis: '*'
   gnu.org/m4: '*'
   netlib.org/lapack: '*'
@@ -35,8 +34,14 @@ build:
       - -DCMAKE_VERBOSE_MAKEFILE=ON
       - -Wno-dev
       - -DBUILD_TESTING=OFF
-      - -DLAPACK_LIBRARIES={{deps.netlib.org/lapack.prefix}}/lib
-      - -DBLAS_LIBRARIES={{deps.netlib.org/lapack.prefix}}/lib
+    linux:
+      CMAKE_ARGS:
+        - -DLAPACK_LIBRARIES={{deps.netlib.org/lapack.prefix}}/lib/liblapack.so.{{deps.netlib.org/lapack.version.major}}
+        - -DBLAS_LIBRARIES={{deps.netlib.org/lapack.prefix}}/lib/libblas.so.{{deps.netlib.org/lapack.version.major}}
+    darwin:
+      CMAKE_ARGS:
+        - -DLAPACK_LIBRARIES={{deps.netlib.org/lapack.prefix}}/lib/liblapack.{{deps.netlib.org/lapack.version.major}}.dylib
+        - -DBLAS_LIBRARIES={{deps.netlib.org/lapack.prefix}}/lib/libblas.{{deps.netlib.org/lapack.version.major}}.dylib
 provides:
   - bin/mongoose
 test:
