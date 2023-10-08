@@ -28,6 +28,7 @@ runtime:
 build:
   dependencies:
     zlib.net: ^1
+    gnu.org/binutils: '*'
     linux:
       gnu.org/make: '*'
   script:
@@ -44,6 +45,7 @@ build:
       working-directory: '{{prefix}}/share/openmpi'
     - install {{prefix}}/lib/*.mod {{prefix}}/include/
   env:
+    AR: ${{deps.gnu.org/binutils.prefix}}/bin/ar
     CXXFLAGS: $CXXFLAGS -std=c++11
     darwin:
       CFLAGS: $CFLAGS -Wl,-rpath,{{pkgx.prefix}}
