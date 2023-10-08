@@ -1,0 +1,74 @@
+distributable:
+  url: http://ceres-solver.org/ceres-solver-{{version}}.tar.gz
+  strip-components: 1
+versions:
+  url: http://ceres-solver.org/installation.html
+  match: /ceres-solver-\d+\.\d+\.\d+\.tar\.gz/
+  strip:
+    - /^ceres-solver-/
+    - /\.tar\.gz/
+platforms:
+  - darwin
+  - linux/x86-64
+  # FIXME linux/aarch64 => github.com/oneapi-src/oneTBB (linux/x86-64 only)
+dependencies:
+  eigen.tuxfamily.org: '*'
+  gflags.github.io: '*'
+  google.com/glog: '*'
+  glaros.dtc.umn.edu/metis: '*'
+  netlib.org/lapack: '*'
+  people.engr.tamu.edu/davis/suitesparse: '*'
+  github.com/oneapi-src/oneTBB: '*'
+build:
+  dependencies:
+    cmake.org: '*'
+    linux:
+      gnu.org/gcc: '*'
+      gnu.org/make: '*'
+  script:
+    - cmake -S . -B _build $CMAKE_ARGS
+    - cmake --build _build
+    - cmake --install _build
+    - mkdir -p {{prefix}}/share
+    - cp -r examples data {{prefix}}/share/
+  env:
+    CMAKE_ARGS:
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}
+      - -DCMAKE_INSTALL_LIBDIR=lib
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_FIND_FRAMEWORK=LAST
+      - -DCMAKE_VERBOSE_MAKEFILE=ON
+      - -Wno-dev
+      - -DBUILD_TESTING=OFF
+      - -DBUILD_SHARED_LIBS=ON
+      - -DBUILD_EXAMPLES=OFF
+      - -DSUITESPARSE=ON
+      - -DCXSPARSE=OFF
+    darwin:
+      CC: clang
+      CXX: clang++
+      LD: clang
+test:
+  dependencies:
+    cmake.org: '*'
+    linux:
+      gnu.org/gcc: '*'
+      gnu.org/make: '*'
+  env:
+    darwin:
+      CC: clang
+      CXX: clang++
+      LD: clang
+  script:
+    - cp {{prefix}}/share/examples/helloworld.cc ./
+    - run: |
+        cat << EOS > CMakeLists.txt
+        cmake_minimum_required(VERSION 3.5)
+        project(helloworld)
+        find_package(Ceres)
+        add_executable(helloworld helloworld.cc)
+        target_link_libraries(helloworld Ceres::ceres)
+        EOS
+    - cmake .
+    - make
+    - ./helloworld
