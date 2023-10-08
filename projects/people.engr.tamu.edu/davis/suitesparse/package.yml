@@ -1,0 +1,55 @@
+distributable:
+  url: https://github.com/DrTimothyAldenDavis/SuiteSparse/archive/v{{version}}.tar.gz
+  strip-components: 1
+display-name: suite-sparse
+versions:
+  github: DrTimothyAldenDavis/SuiteSparse
+dependencies:
+  glaros.dtc.umn.edu/metis: '*'
+  gnu.org/m4: '*'
+  netlib.org/lapack: '*'
+  gnu.org/gmp: '*'
+  openmp.llvm.org: '*'
+  gnu.org/mpfr: '*'
+  gnu.org/gcc: '*' # libfortran
+build:
+  dependencies:
+    cmake.org: '*'
+    freedesktop.org/pkg-config: '*'
+    linux:
+      gnu.org/make: '*'
+  script:
+    - make library $ARGS CMAKE_OPTIONS="$CMAKE_ARGS"
+    - make install $ARGS CMAKE_OPTIONS="$CMAKE_ARGS"
+  env:
+    ARGS:
+      - INSTALL={{prefix}}
+      - JOBS={{hw.concurrency}}
+    CMAKE_ARGS:
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}
+      - -DCMAKE_INSTALL_LIBDIR=lib
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_FIND_FRAMEWORK=LAST
+      - -DCMAKE_VERBOSE_MAKEFILE=ON
+      - -Wno-dev
+      - -DBUILD_TESTING=OFF
+    linux:
+      CMAKE_ARGS:
+        - -DLAPACK_LIBRARIES={{deps.netlib.org/lapack.prefix}}/lib/liblapack.so.{{deps.netlib.org/lapack.version.major}}
+        - -DBLAS_LIBRARIES={{deps.netlib.org/lapack.prefix}}/lib/libblas.so.{{deps.netlib.org/lapack.version.major}}
+    darwin:
+      CC: clang
+      CXX: clang++
+      LD: clang
+      CMAKE_ARGS:
+        - -DLAPACK_LIBRARIES={{deps.netlib.org/lapack.prefix}}/lib/liblapack.{{deps.netlib.org/lapack.version.major}}.dylib
+        - -DBLAS_LIBRARIES={{deps.netlib.org/lapack.prefix}}/lib/libblas.{{deps.netlib.org/lapack.version.major}}.dylib
+provides:
+  - bin/mongoose
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script:
+    - pkg-config --modversion SuiteSparse_config | grep {{version}}
+    - cc test.c -lsuitesparseconfig -lklu -o test -Wl,-rpath,{{pkgx.prefix}}
+    - ./test
