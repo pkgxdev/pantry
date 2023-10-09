@@ -1,0 +1,29 @@
+distributable:
+  url: https://github.com/argoproj/argo-workflows/archive/v{{version}}.tar.gz
+  strip-components: 1
+display-name: argo-workflows
+versions:
+  github: argoproj/argo-workflows
+build:
+  dependencies:
+    go.dev: '*'
+    git-scm.org: '*'
+  script:
+    - make dist/argo-linux-amd64
+    - mkdir -p {{prefix}}/bin
+    - install dist/argo-linux-amd64 {{prefix}}/bin/argo
+  env:
+    GIT_TAG: "v{{version}}"
+    VERSION: "v{{version}}"
+    RELEASE_TAG: "true"
+    GIT_COMMIT:
+    GIT_TREE_STATE:
+    GOARGS:
+    GOOS:
+    GOARCH:
+    LDFLAGS:
+provides:
+  - bin/argo
+test:
+  script:
+    - argo --help
