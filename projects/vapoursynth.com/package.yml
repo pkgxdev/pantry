@@ -9,9 +9,13 @@ dependencies:
   python.org: ~3.11
   github.com/sekrit-twc/zimg: '*'
   linux:
+    # Fix: version `GLIBCXX_3.4.30' not found (required by vspipe)
     gnu.org/gcc: '*'
 runtime:
   env:
+    # Fix: Could not find platform independent libraries
+    #      PYTHONHOME = (not set)
+    PYTHONHOME: "{{deps.python.org.prefix}}"
     PYTHONPATH: "{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages:$PYTHONPATH"
 build:
   dependencies:
