@@ -20,8 +20,10 @@ build:
     info-zip.org/unzip: '*'
   script:
     - run: |
-        sed -i.bak "1i\
+        sed -i.bak \
+          -e "1i\
           set(RT_DIR \"$RT_DIR\")" \
+          -e 's/\(build busted [0-9]\+\.[0-9]\+\.[0-9]\+\)/\1 RT_DIR=${RT_DIR}/' \
           BuildLuarocks.cmake
         rm BuildLuarocks.cmake.bak
       working-directory: cmake.deps/cmake
@@ -40,7 +42,7 @@ test:
   script:
     - echo "$FIXTURE vim\!\!" > fixture
     - nvim --headless -i NONE -u NONE '+s/vim/neovim/g' +wq fixture
-    - test "Hello World from neovim\!\!" = "$(cat fixture) neovim\!\!"
+    - test "Hello World from neovim\!\!" = "$(cat fixture)"
   env:
     FIXTURE: 'Hello World from '
 
