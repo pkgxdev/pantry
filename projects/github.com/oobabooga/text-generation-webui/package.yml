@@ -38,6 +38,12 @@ build:
     # these requirements are separate as they vary by platform
     - pip install torch torchvision torchaudio
 
+    # requirements_apple_intel.txt links to a missing version
+    # of llama.cpp
+    - run: |
+        sed -i.bak -e's/llama_cpp_python-0.2.11-cp310-cp310-macosx_13_0_x86_64.whl/llama_cpp_python-0.2.11-cp310-cp310-macosx_12_0_x86_64.whl/' requirements_apple_intel.txt
+        rm requirements_apple_intel.txt.bak
+      if: darwin #/x86-64
     - pip install -r $REQS
 
     # pkg expects to be run with CWD set to its checkout
