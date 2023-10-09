@@ -1,0 +1,34 @@
+distributable:
+  url: https://github.com/xiph/speexdsp/archive/SpeexDSP-{{version}}.tar.gz
+  strip-components: 1
+versions:
+  github: xiph/speexdsp
+  strip: /^SpeexDSP-/
+build:
+  dependencies:
+    gnu.org/autoconf: '*'
+    gnu.org/automake: '*'
+    gnu.org/libtool: '*'
+    freedesktop.org/pkg-config: '*'
+    linux:
+      gnu.org/gcc: '*'
+      gnu.org/make: '*'
+  script:
+    - ./autogen.sh
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --prefix={{prefix}}
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+    linux:
+      gnu.org/gcc: '*'
+  script:
+    - pkg-config --modversion speexdsp | grep {{version}}
+    - cc test.c -o test
+    - ./test
