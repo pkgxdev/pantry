@@ -17,9 +17,9 @@ companions:
   rust-lang.org: '*'
 
 dependencies:
-  openssl.org: ^1 # cargo needs the certs
   zlib.net: ^1
   libgit2.org: ^1
+  curl.se/ca-certs: '*'
   linux:
     llvm.org: '*' # FIXME only need the linker actually
     curl.se: '*'
@@ -35,10 +35,10 @@ build:
     freedesktop.org/pkg-config: ^0.29
     rust-lang.org/cargo: '*'
   script:
-  # otherwise we are not ABI compatible and new macOS versions may break
-  # this happened with Sonoma
-  - echo "default = ['curl/force-system-lib-on-osx']" >> Cargo.toml
-  - cargo install
+    # otherwise we are not ABI compatible and new macOS versions may break
+    # this happened with Sonoma
+    - echo "default = ['curl/force-system-lib-on-osx']" >> Cargo.toml
+    - cargo install
       --verbose
       --root={{ prefix }}
       --path=.
@@ -47,7 +47,7 @@ build:
     LIBSSH2_SYS_USE_PKG_CONFIG: 1
 
 test:
-  dependencies:  #FIXME brewkit should add companions to the test env
+  dependencies: #FIXME brewkit should add companions to the test env
     git-scm.org: ^2
     rust-lang.org: '*'
   script: |
