@@ -18,10 +18,19 @@ build:
     gnu.org/libtool: ^2
     git-scm.org: ^2
     info-zip.org/unzip: '*'
-  script: make
-    CMAKE_BUILD_TYPE=RelWithDebInfo
-    CMAKE_INSTALL_PREFIX="{{prefix}}"
-    install
+  script:
+    - run: |
+        sed -i.bak "1i\
+          set(RT_DIR \"$RT_DIR\")" \
+          BuildLuarocks.cmake
+        rm BuildLuarocks.cmake.bak
+        false
+      working-directory: cmake.deps/cmake
+      if: linux
+    - make
+      CMAKE_BUILD_TYPE=RelWithDebInfo
+      CMAKE_INSTALL_PREFIX="{{prefix}}"
+      install
   env:
     linux/aarch64:
       RT_DIR: /usr/lib/aarch64-linux-gnu
@@ -29,10 +38,10 @@ build:
       RT_DIR: /usr/lib/x86_64-linux-gnu
 
 test:
-  script: |
-    echo "$FIXTURE vim!!" > fixture
-    nvim --headless -i NONE -u NONE '+s/vim/neovim/g' +wq fixture
-    test "Hello World from neovim!!" = "$(cat fixture) neovim!!"
+  script:
+    - echo "$FIXTURE vim\!\!" > fixture
+    - nvim --headless -i NONE -u NONE '+s/vim/neovim/g' +wq fixture
+    - test "Hello World from neovim\!\!" = "$(cat fixture) neovim\!\!"
   env:
     FIXTURE: 'Hello World from '
 
