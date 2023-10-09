@@ -7,17 +7,21 @@ versions:
   strip: /v/
 
 dependencies:
-  openssl.org: ^3.1.0
-  zlib.net: ^1.3.0
+  #openssl.org: '^3.1.3'
+  #zlib.net: '^1.3.0'
 
 build:
   dependencies:
     #
     # for the openssl build to succeed. missing dependency in the openssl package.yaml?
     #
-    freedesktop.org/pkg-config: '*'
-    rust-lang.org: ">=1.70"
+    #freedesktop.org/pkg-config: '*'
+    #openssl.org: '^3.1.3'
+    rust-lang.org: '>=1.70'
     rust-lang.org/cargo: '*'
+  env:
+    OPENSSL_STATIC: 1
+    ZLIB_STATIC: 1
   script:
   - sh version.sh
   - cargo install --locked --path . --root {{prefix}}
