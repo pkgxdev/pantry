@@ -1,0 +1,32 @@
+distributable:
+  url: https://github.com/jetporch/jetporch/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: jetporch/jetporch
+  strip: /v/
+
+    #dependencies:
+  #  openssl.org: '^3'
+  #zlib.net: '^1'
+
+build:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+    openssl.org: '^3'
+    zlib.net: '^1'
+    rust-lang.org: '>=1.70'
+    rust-lang.org/cargo: '*'
+      #env:
+      #OPENSSL_STATIC: 1
+      #ZLIB_STATIC: 1
+  script:
+  - sh version.sh
+  - cargo install --locked --path . --root {{prefix}}
+
+provides:
+- bin/jetp
+
+test:
+  script:
+  -  jetp --version
