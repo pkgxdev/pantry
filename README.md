@@ -70,8 +70,11 @@ For other assistance, start a [discussion].
 
 ## After Your Contribution
 
-We build “bottles” (tar’d binaries) and upload them to both our centralized
-bottle storage and decentralized [IPFS].
+We build “bottles” (tar’d binaries) and upload them to our CDN. Thus your
+contribution will be available at merge-time + build-time. `pkgx` should
+automatically sync the pantry to your local machine if you ask for something
+it doesn’t know about, but in the case where that fails do a `pkgx --sync`
+first.
 
 The pantry automatically builds new releases of packages *as soon as they are
 released* (usually starting the builds within seconds). There is no need to
