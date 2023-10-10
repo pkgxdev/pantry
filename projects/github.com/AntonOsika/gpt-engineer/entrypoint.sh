@@ -1,18 +1,15 @@
-#!/usr/bin/env -S tea bash
-
-#---
-# dependencies:
-#   charm.sh/gum: '*'
-#---
+#!/usr/bin/env -S pkgx +gum bash
+# shellcheck shell=bash
 
 set -eo pipefail
 
 # attempt to get the key from the user’s shell rc files (if set)
-if [ -z "$OPENAI_API_KEY" -a -n "$SHELL" ]; then
+if [ -z "$OPENAI_API_KEY" ] && [ -n "$SHELL" ]; then
+  # shellcheck disable=SC2155,2016
   export OPENAI_API_KEY="$(env -i "$SHELL" -ic 'echo $OPENAI_API_KEY')"
 fi
 
-if [ -z "$OPENAI_API_KEY"]; then
+if [ -z "$OPENAI_API_KEY" ]; then
   gum format <<EoMD
     # OpenAI API key required
     You need an OpenAI API key to use this package.
@@ -22,11 +19,12 @@ if [ -z "$OPENAI_API_KEY"]; then
     GPT4 is recommended (but you gotta sign up for the
     the [waitlist](https://openai.com/waitlist/gpt-4-api))
 
-    **this key will not be persisted by tea!**
+    **this key will not be persisted by pkgx!**
 EoMD
 
   echo  # spacer
 
+  # shellcheck disable=SC2155
   export OPENAI_API_KEY="$(gum input --placeholder 'key pls')"
 fi
 
