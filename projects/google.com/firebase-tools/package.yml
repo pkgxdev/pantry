@@ -1,0 +1,26 @@
+distributable:
+  url: https://registry.npmjs.org/firebase-tools/-/firebase-tools-{{version}}.tgz
+  strip-components: 1
+
+versions:
+  github: firebase/firebase-tools
+
+dependencies:
+  nodejs.org: '*'
+
+build:
+  dependencies:
+    npmjs.com: '*'
+  script:
+    - chmod +x lib/bin/firebase.js
+    - npm install
+    - npm install .
+      --global
+      --prefix="{{prefix}}"
+
+provides:
+  - bin/firebase
+
+test:
+  script: firebase --version | grep {{version}}
+
