@@ -26,11 +26,14 @@ build:
     linux:
       llvm.org: '<16'
       gnu.org/make: '*'
-    python.org: '>=3.7<3.11'
+    python.org: ~3.9
     freedesktop.org/pkg-config: ^0.29
-  script: |
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }} install
+  script:
+    - run: python configure.py $ARGS
+      if: <14
+    - run: ./configure $ARGS
+      if: '>=14'
+    - make --jobs {{ hw.concurrency }} install
   env:
     ARGS:
       - --without-npm
