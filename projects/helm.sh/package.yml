@@ -11,12 +11,14 @@ provides:
 build:
   dependencies:
     go.dev: ^1.19
-  script: |
-    sed -i.bak 's/unreleased//g' Makefile
-    rm Makefile.bak
-    make build VERSION={{version}}
-    mkdir -p "{{ prefix }}"/bin
-    mv bin/helm "{{ prefix }}"/bin
+  script:
+    - run: |
+        sed -i.bak \
+            -e's/unreleased//g' \
+            -e's/\(shell find . .* -print\)/\1 | grep -v dev.pkgx./' \
+            Makefile
+        rm Makefile.bak
+    - make install VERSION={{version}} INSTALL_PATH="{{prefix}}/bin"
 
 test:
   script: |
