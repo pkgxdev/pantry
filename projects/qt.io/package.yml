@@ -89,8 +89,6 @@ build:
       - -system-libpng
       - -system-pcre
       - -system-zlib
-      - QMAKE_CFLAGS=-Wl,-rpath,{{pkgx.prefix}}
-      - QMAKE_CXXFLAGS=-Wl,-rpath,{{pkgx.prefix}}
       - QMAKE_LFLAGS=-Wl,-rpath,{{pkgx.prefix}}
     linux:
       LD: clang
@@ -100,9 +98,11 @@ build:
         - -no-avx512
         - -no-sql-mysql
         - -platform linux-clang
+        - QMAKE_LFLAGS=-Wl,-rpath,{{pkgx.prefix}},-ldl
     darwin:
       ARGS:
         - -no-rpath
+        - QMAKE_LFLAGS=-Wl,-rpath,{{pkgx.prefix}}
     darwin/aarch64:
       ARGS:
         - -no-assimp
