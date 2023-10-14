@@ -15,6 +15,7 @@ dependencies:
   kerberos.org: '*'
   gnome.org/libxslt: '*'
   sqlite.org: '*'
+  unicode.org: ^71
   linux:
     alsa-project.org/alsa-lib: '*'
     freedesktop.org/fontconfig: '*'
@@ -89,7 +90,6 @@ build:
       - -system-libpng
       - -system-pcre
       - -system-zlib
-      - QMAKE_LFLAGS=-Wl,-rpath,{{pkgx.prefix}}
     linux:
       LD: clang
       ARGS:
@@ -163,4 +163,8 @@ test:
   script:
     - qmake hello.pro
     - make
+    - run: otool -l hello
+      if: darwin
+    - run: ldd hello
+      if: linux
     - ./hello
