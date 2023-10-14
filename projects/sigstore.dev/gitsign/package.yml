@@ -5,22 +5,19 @@ distributable:
 versions:
   github: sigstore/gitsign
 
-dependecies:
-  git-scm.org: ^2
-
 build:
   dependencies:
     go.dev: ^1.21
   script:
     - go mod download
     - mkdir -p "{{ prefix }}"/bin
-    - go build -v -trimpath -ldflags="$LDFLAGS" -o "$BUILDLOC"
+    - go build -v -trimpath -ldflags="$LDFLAGS" -o "{{prefix}}"/bin/gitsign
+    - go build -v -trimpath -ldflags="$LDFLAGS" -o "{{prefix}}"/bin/gitsign-credential-cache ./cmd/gitsign-credential-cache
   env:
     GOPROXY: https://proxy.golang.org,direct
     GOSUMDB: sum.golang.org
     GO111MODULE: on
     CGO_ENABLED: 0
-    BUILDLOC: "{{prefix}}/bin/gitsign"
     LDFLAGS:
       - -buildid=""
       - -X github.com/sigstore/gitsign/pkg/version.gitVersion={{version}}
@@ -31,8 +28,12 @@ build:
       - -buildmode=pie
 
 test:
+  dependencies:
+    git-scm.org: '*'
   script: |
     gitsign version | grep {{version}}
+    gitsign-credential-cache --version | grep {{version}}
 
 provides:
   - bin/gitsign
+  - bin/gitsign-credential-cache
