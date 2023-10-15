@@ -1,0 +1,38 @@
+# https://sdk.operatorframework.io/
+
+distributable: ~
+warnings:
+  - vendored
+
+versions:
+  github: operator-framework/operator-sdk
+  strip: /^v/
+
+dependencies:
+  go.dev: ^1.19
+
+build:
+  dependencies:
+    curl.se: "*"
+  working-directory: ${{prefix}}
+  script: |
+    curl -Lfo operator-sdk https://github.com/operator-framework/operator-sdk/releases/download/v{{version}}/operator-sdk_$PLATFORM
+    chmod +x operator-sdk
+    mkdir -p bin
+    mv operator-sdk bin
+  env:
+    darwin/aarch64: { PLATFORM: darwin_arm64 }
+    darwin/x86-64:  { PLATFORM: darwin_amd64 }
+    linux/aarch64:  { PLATFORM: linux_arm64 }
+    linux/x86-64:   { PLATFORM: linux_amd64 }
+
+provides:
+  - bin/operator-sdk
+
+test:
+  script: |
+    operator-sdk version | grep 'operator-sdk version: "v{{version}}"'
+    mkdir -p example-operator
+    cd example-operator
+    operator-sdk init --project-name example-operator --domain example.com --repo github.com/example/example-operator
+    test -f main.go
