@@ -1,0 +1,74 @@
+# this is a basic template for packages we strongly recommend looking at the
+# contents of both:
+#
+# * https://github.com/pkgxdev/pantry
+#
+# as a learning guide and reference. For example, if you are package a `go`
+# project, then browse the listings and find a go package.
+
+
+# this is the source tarball. Swap the version out for {{version}} or we won’t
+# be able to upgrade the package when it updates!
+distributable:
+  url: https://github.com/cosmtrek/air/archive/v{{version}}.tar.gz
+  # this obscure option dictates how many components are removed from the
+  # extracted tarball. It only works with tarballs. You almost always want
+  # `1`. If after extraction the src-directory is funky try `0` or `2`.
+  strip-components: 1
+  # alternatively, we can use direct git checkouts from refs
+  # but we should prefer official source distributions.
+  # often CI/CD will do some post-processing of the source
+  # for release, including setting version numbers, running
+  # autotools, etc.
+  # url: git+https://github.com/user/repo
+  # ref: v{{version}}}
+
+# if there’s a github then we can parse the versions
+versions:
+  github: cosmtrek/air
+
+platforms:
+  - darwin
+  - linux/x86-64
+
+dependencies:
+  # to figure out dependencies you can read the project’s README
+  # however it is often easier to read the [brew formula](https://formulae.brew.sh/formula/)
+  #
+  # see dist.pkgx.dev for the packages pkgx provides
+  # if you need a package that isn’t there, you may need to build it!
+  #
+  # see semver.org for version specifications
+  go.dev: "*"
+
+build:
+  dependencies:
+    go.dev: "*"
+
+  # script: |
+  #   ./configure $ARGS
+  #   make --jobs {{ hw.concurrency }} install
+  # # ^^ it’s extremely common for packages to require the above
+
+  # # script also supports a list of commands, which is useful for complex builds
+  # # or if you want to run a command in a different directory
+  # script:
+  #   - ./configure $ARGS
+  #   - make --jobs {{ hw.concurrency }} install
+  #   - run: ls -l
+  #     working-directory: ${{prefix}}/bin
+  #   - run: cat $PROP > foo
+  #     working-directory: ${{prefix}}/bin
+  #     prop: |
+  #       #!/bin/sh
+  #       exec ./bar $@
+  # env:
+  #   # add any environment variables here
+  #   ARGS:
+  #     - --prefix="{{prefix}}"
+
+provides:
+  - bin/air
+  # ^^ specify the binaries or pkgx shell integration won’t work
+
+test: air version | grep {{version}}
