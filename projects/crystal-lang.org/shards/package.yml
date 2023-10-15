@@ -1,0 +1,29 @@
+distributable:
+  url: https://github.com/crystal-lang/shards/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: crystal-lang/shards
+
+platforms:
+  - darwin
+  - linux/x86-64
+
+dependencies:
+  crystal-lang.org: "*"
+  pyyaml.org/libyaml: 0.2.5
+
+build:
+  dependencies:
+    curl.se: "*"
+  script: |
+    make install release=1
+
+provides:
+  - bin/shards
+
+test:
+  script: |
+    out=($(shards --version))
+    version=${out[1]}
+    test $version = {{version}}

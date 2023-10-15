@@ -1,0 +1,46 @@
+distributable:
+  url: https://github.com/crystal-lang/crystal/archive/refs/tags/{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: crystal-lang/crystal
+
+# Crystal is needed to build itself…
+# So we cannot build it from source.
+warnings:
+  - vendored
+
+platforms:
+  - darwin
+  - linux/x86-64
+
+companions:
+  crystal-lang.org/shards: "*"
+
+dependencies:
+  hboehm.info/gc: 8.2.4
+  gnu.org/gmp: 6.2.1
+  libevent.org: 2.1.12
+  pyyaml.org/libyaml: 0.2.5
+  llvm.org: 17
+  openssl.org: 1.1
+  pcre.org/v2: 10.42
+  freedesktop.org/pkg-config: 0.29.2
+
+build:
+  dependencies:
+    curl.se: "*"
+  working-directory: ${{prefix}}
+  script: |
+    curl -Lfo crystal.tar.gz "https://github.com/crystal-lang/crystal/releases/download/{{version}}/crystal-{{version}}-1-$PLATFORM.tar.gz"
+    tar --strip-components=1 -xf crystal.tar.gz
+    rm crystal.tar.gz
+  env:
+    darwin: { PLATFORM: darwin-universal }
+    linux/x86-64: { PLATFORM: linux-x86_64 }
+
+provides:
+  - bin/crystal
+
+test:
+  script: test $(crystal eval 'puts {{Crystal::VERSION}}') = {{version}}
