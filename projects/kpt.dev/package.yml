@@ -1,0 +1,31 @@
+# https://kpt.dev/
+
+distributable: ~
+warnings:
+  - vendored
+
+versions:
+  github: kptdev/kpt/tags
+dependencies:
+  git-scm.org: '*'
+build:
+  dependencies:
+    curl.se: '*'
+  working-directory: ${{prefix}}
+  script: |
+    curl -Lfo kpt https://github.com/kptdev/kpt/releases/download/v{{version}}/kpt_$PLATFORM
+    chmod +x kpt
+    mkdir -p bin
+    mv kpt bin
+  env:
+    darwin/aarch64: {PLATFORM: darwin_arm64}
+    darwin/x86-64:  {PLATFORM: darwin_amd64}
+    linux/aarch64:  {PLATFORM: linux_arm64}
+    linux/x86-64:   {PLATFORM: linux_amd64}
+
+provides:
+  - bin/kpt
+
+test:
+  script:
+    test "$(kpt version)" = {{version}}
