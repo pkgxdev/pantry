@@ -1,8 +1,8 @@
 # https://sdk.operatorframework.io/
 
-distributable: ~
-warnings:
-  - vendored
+distributable:
+  url: git+https://github.com/operator-framework/operator-sdk
+  ref: v{{version}}
 
 versions:
   github: operator-framework/operator-sdk
@@ -13,18 +13,12 @@ dependencies:
 
 build:
   dependencies:
-    curl.se: "*"
-  working-directory: ${{prefix}}
+    cmake.org: "*"
+    git-scm.org: "*"
   script: |
-    curl -Lfo operator-sdk https://github.com/operator-framework/operator-sdk/releases/download/v{{version}}/operator-sdk_$PLATFORM
-    chmod +x operator-sdk
-    mkdir -p bin
-    mv operator-sdk bin
-  env:
-    darwin/aarch64: { PLATFORM: darwin_arm64 }
-    darwin/x86-64:  { PLATFORM: darwin_amd64 }
-    linux/aarch64:  { PLATFORM: linux_arm64 }
-    linux/x86-64:   { PLATFORM: linux_amd64 }
+    make build/operator-sdk
+    mkdir -p "{{ prefix }}"/bin
+    mv build/operator-sdk "{{ prefix }}"/bin
 
 provides:
   - bin/operator-sdk
