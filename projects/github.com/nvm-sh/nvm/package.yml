@@ -12,7 +12,7 @@ build:
   script:
     - run: mkdir -p bin etc/bash_completion.d
       working-directory: "{{prefix}}"
-    - install nvm.sh nvm-exec {{prefix}}/bin/
+    - install nvm.sh nvm-exec {{prefix}}/libexec/
     - install bash_completion {{prefix}}/etc/bash_completion.d/nvm
     - run: |
         ln -s ../libexec/nvm-exec || true
@@ -33,6 +33,13 @@ test:
         EOF
         source ./.zshrc
       if: darwin
+    - run: |
+        cat << EOF > .profile
+        [ -s "\$NVM_DIR/libexec/nvm.sh" ] && \. "\$NVM_DIR/libexec/nvm.sh"  # This loads nvm
+        [ -s "\$NVM_DIR/etc/bash_completion.d/nvm" ] && \. "\$NVM_DIR/etc/bash_completion.d/nvm"  # This loads nvm bash_completion
+        EOF
+        source ./.profile
+      if: linux
     - nvm install v12.14.1
     - node -v | grep 12.14.1
    
