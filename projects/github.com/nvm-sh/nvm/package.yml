@@ -1,0 +1,48 @@
+distributable:
+  url: https://github.com/nvm-sh/nvm/archive/v{{version}}.tar.gz
+  strip-components: 1
+versions:
+  github: nvm-sh/nvm
+warnings:
+  - vendored
+runtime:
+  env:
+    NVM_DIR: "{{prefix}}"
+dependencies:
+  linux:
+    curl.se: '*'
+build:
+  script:
+    - run: mkdir -p bin libexec etc/bash_completion.d
+      working-directory: "{{prefix}}"
+    - install nvm.sh nvm-exec {{prefix}}/libexec/
+    - install bash_completion {{prefix}}/etc/bash_completion.d/nvm
+    - run: |
+        ln -s ../libexec/nvm-exec || true
+      working-directory: "{{prefix}}/bin"
+    - run: |
+        sed -i.bak "s|unset NVM_CD_FLAGS|unset NVM_CD_FLAGS \&\& DIR=\$DIR/../libexec|g" nvm-exec
+        rm *.bak
+      working-directory: "{{prefix}}/libexec"
+provides:
+  - bin/nvm-exec
+test:
+  script:
+    - NODE_VERSION=pkgx nvm-exec || echo $? | grep 127
+    - run: |
+        cat << EOF > .zshrc
+        [ -s "\$NVM_DIR/libexec/nvm.sh" ] && \. "\$NVM_DIR/libexec/nvm.sh"  # This loads nvm
+        [ -s "\$NVM_DIR/etc/bash_completion.d/nvm" ] && \. "\$NVM_DIR/etc/bash_completion.d/nvm"  # This loads nvm bash_completion
+        EOF
+        source ./.zshrc
+      if: darwin
+    - run: |
+        cat << EOF > .profile
+        [ -s "\$NVM_DIR/libexec/nvm.sh" ] && \. "\$NVM_DIR/libexec/nvm.sh"  # This loads nvm
+        [ -s "\$NVM_DIR/etc/bash_completion.d/nvm" ] && \. "\$NVM_DIR/etc/bash_completion.d/nvm"  # This loads nvm bash_completion
+        EOF
+        source ./.profile
+      if: linux
+    - nvm install v12.14.1
+    - node -v | grep 12.14.1
+   
