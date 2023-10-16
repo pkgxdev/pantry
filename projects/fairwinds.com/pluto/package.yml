@@ -1,0 +1,26 @@
+# https://pluto.docs.fairwinds.com/
+
+distributable:
+  url: git+https://github.com/FairwindsOps/pluto
+  ref: v{{version}}
+
+versions:
+  github: FairwindsOps/pluto
+  strip: /^v/
+
+build:
+  dependencies:
+    go.dev: ^1.21
+    gnu.org/make: "*"
+    git-scm.org: "*"
+  script: |
+    make build VERSION=v{{version}}
+    mkdir -p "{{ prefix }}"/bin
+    mv pluto "{{ prefix }}"/bin
+
+provides:
+  - bin/pluto
+
+test:
+  script: |
+    pluto version | grep "Version:v{{version}}"
