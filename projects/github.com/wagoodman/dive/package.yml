@@ -1,0 +1,30 @@
+distributable:
+  url: git+https://github.com/wagoodman/dive
+  ref: v{{version}}
+
+versions:
+  github: wagoodman/dive
+  strip: /^v/
+
+build:
+  dependencies:
+    go.dev: ^1.19
+    goreleaser.com: "*"
+    git-scm.org: "*"
+  script: |
+    goreleaser build --clean --single-target --skip=validate
+    mkdir -p "{{ prefix }}"/bin
+    mv dist/dive_$PLATFORM/dive "{{ prefix }}"/bin
+  env:
+    CGO_ENABLED: 0
+    darwin/aarch64: {PLATFORM: darwin_arm64}
+    darwin/x86-64:  {PLATFORM: darwin_amd64_v1}
+    linux/aarch64:  {PLATFORM: linux_arm64}
+    linux/x86-64:   {PLATFORM: linux_amd64_v1}
+
+provides:
+  - bin/dive
+
+test:
+  script:
+    test "$(dive --version)" = "dive {{version}}"
