@@ -24,6 +24,10 @@ build:
     - make prefix='{{prefix}}' release
     - make prefix='{{prefix}}' install
     - make prefix='{{prefix}}' install-shared
+    - run: |
+        sed -i.bak 's/Version: \([^\ ]*\)/Version: {{version}}/g' *.pc
+        rm *.bak
+      working-directory: "{{prefix}}/lib/pkgconfig"
 provides:
   - bin/mujs
   - bin/mujs-pp
