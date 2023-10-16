@@ -110,6 +110,12 @@ build:
     darwin/x86-64:
       ARGS:
         - --build=x86_64-apple-darwin20.0.0
+      # llvm-as generates __compact_unwind sections, even when told not to. this causes build errors
+      # for ^10 on darwin+x86-64
+      # https://stackoverflow.com/questions/52211390/trouble-building-gcc-on-mac-cant-find-system-headers
+      BOOT_CFLAGS: -Wa,-mmacos-version-min=10.5
+      CFLAGS_FOR_TARGET: -Wa,-mmacos-version-min=10.5
+      and CXXFLAGS_FOR_TARGET: -Wa,-mmacos-version-min=10.5
 
 test:
   - gcc --version | grep -q "tea GCC {{version}}"

@@ -36,12 +36,14 @@ build:
     # Building compiler-rt on darwin+aarch64 fails for versions less than
     # 14 with the below configuration. FIXME if possible, of course.
     - run: |
-        if test "{{hw.platform}}" = "linux" || \
-           test "{{hw.arch}}" = "x86-64" || \
-           semverator satisfies '>=14' {{version}}; then
-             ARGS="$ARGS -DLLVM_ENABLE_RUNTIMES='compiler-rt'"
+        if test "{{hw.platform}}" = "linux"; then
+          ARGS="$ARGS -DLLVM_ENABLE_RUNTIMES='compiler-rt'"
+        elif semverator satisfies '>=14' {{version}}; then
+          ARGS="$ARGS -DLLVM_ENABLE_RUNTIMES='compiler-rt'"
+        elif test "{{hw.arch}}" = "x86-64" && semverator satisfies '>=14' {{version}}; then
+          ARGS="$ARGS -DLLVM_ENABLE_RUNTIMES='compiler-rt'"
         fi
-      # if: linux || x86-64 || >=14  ## Brewkit can't do this. Yet.
+      # if: linux || >=14 || (x86-64 && >=13)  ## Brewkit can't do this. Yet.
     - cmake ../llvm -G Ninja $ARGS
     - ninja
     - ninja install
@@ -113,12 +115,14 @@ test:
     # Building compiler-rt on darwin+aarch64 fails for versions less than
     # 14 with the below configuration. FIXME if possible, of course.
     - run: |
-        if test "{{hw.platform}}" = "linux" || \
-           test "{{hw.arch}}" = "x86-64" || \
-           semverator satisfies '>=14' {{version}}; then
-             ARGS="$ARGS -fsanitize=address,undefined"
+        if test "{{hw.platform}}" = "linux"; then
+          ARGS="$ARGS -fsanitize=address,undefined"
+        elif semverator satisfies '>=14' {{version}}; then
+          ARGS="$ARGS -fsanitize=address,undefined"
+        elif test "{{hw.arch}}" = "x86-64" && semverator satisfies '>=14' {{version}}; then
+          ARGS="$ARGS -fsanitize=address,undefined"
         fi
-      # if: linux || x86-64 || >=14  ## Brewkit can't do this. Yet.
+      # if: linux || >=14 || (x86-64 && >=13)  ## Brewkit can't do this. Yet.
     - mv $FIXTURE $FIXTURE.c
     - clang $ARGS $FIXTURE.c
     - ./a.out
