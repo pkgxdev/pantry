@@ -1,0 +1,31 @@
+distributable:
+  url: https://github.com/thkukuk/libnsl/releases/download/v{{version}}/libnsl-{{version}}.tar.xz
+  strip-components: 1
+versions:
+  github: thkukuk/libnsl
+platforms:
+  - linux
+dependencies:
+  sourceforge.net/libtirpc: '*'
+build:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+    gnu.org/gcc: '*'
+    gnu.org/make: '*'
+  script:
+    - ./configure $CONFIGURE_ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    CONFIGURE_ARGS:
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --prefix="{{prefix}}"
+      - --libdir="{{prefix}}/lib"
+      - --disable-silent-rules
+test:
+  dependencies:
+    gnu.org/gcc: '*'
+  script:
+    - gcc test.c -lnsl -o test
+    - ./test | grep domain

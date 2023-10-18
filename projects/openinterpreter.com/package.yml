@@ -2,14 +2,26 @@ distributable:
   url: https://github.com/KillianLucas/open-interpreter/archive/refs/tags/v{{version}}.tar.gz
   strip-components: 1
 
+display-name: open-interpreter
+
 versions:
   github: KillianLucas/open-interpreter
 
 dependencies:
-  python.org: ^3.10
+  python.org: '>=3.10<3.12'
+  github.com/mattrobenolt/jinja2-cli: '*'
 
 build:
-  python-venv.sh {{prefix}}/bin/interpreter
+  - python-venv.sh {{prefix}}/bin/interpreter
+
+  # ooba calls the github api, which has frequent rate-limit failures
+  # returning the current value isn't the best, but it should fix this.
+  - run: |
+      OOBA_VERSION=$(echo ooba-*-dist.info | sed 's/ooba-\(.*\)-dist.info/\1/')
+      cd ooba/utils
+      sed -i.bak -e"s/raise Exception.*/return \"v1.7\"/" get_latest_release.py
+      rm get_latest_release.py.bak
+    working-directory: ${{prefix}}/venv/lib/python{{deps.python.org.version.marketing}}/site-packages/
 
 provides:
   - bin/interpreter

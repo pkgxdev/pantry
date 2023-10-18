@@ -25,11 +25,15 @@ build:
     # otherwise, we hit https://reviews.llvm.org/D131307
     linux:
       llvm.org: '<16'
-    python.org: '>=3.7 <3.11'
+      gnu.org/make: '*'
+    python.org: ~3.9
     freedesktop.org/pkg-config: ^0.29
-  script: |
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }} install
+  script:
+    - run: python configure.py $ARGS
+      if: <14
+    - run: ./configure $ARGS
+      if: '>=14'
+    - make --jobs {{ hw.concurrency }} install
   env:
     ARGS:
       - --without-npm
@@ -38,6 +42,10 @@ build:
       - --with-intl=system-icu
       - --shared-openssl
       - --shared-zlib
+    linux:
+      CC: clang
+      CXX: clang++
+      AS: llvm-as
     linux/x86-64:
       CFLAGS: -fPIC
       CXXFLAGS: -fPIC

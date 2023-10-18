@@ -1,0 +1,33 @@
+distributable:
+  url: https://opendev.org/openstack/python-openstackclient/archive/{{version}}.tar.gz
+  strip-components: 1
+
+# if there’s a github then we can parse the versions
+versions:
+  url: https://opendev.org/api/v1/repos/openstack/python-openstackclient/tags
+  match: /"name":"\d+\.\d+\.\d+"/
+
+  # often maintainers prepend or append junk, this can be a single or an array of regexes.
+  # almost always required with web scraping.
+  strip:
+    - /^"name":"/
+    - /"$/
+
+dependencies:
+  python.org: ^3
+
+build:
+  script: |
+    python-venv.py {{prefix}}/bin/openstack
+    python-venv.py {{prefix}}/bin/openstack-inventory
+
+provides:
+  - bin/openstack
+  - bin/openstack-inventory
+
+test:
+  env:
+    TERM: vt100
+  script:
+    - openstack help server list
+    - openstack-inventory --help

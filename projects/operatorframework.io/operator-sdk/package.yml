@@ -1,0 +1,32 @@
+# https://sdk.operatorframework.io/
+
+distributable:
+  url: git+https://github.com/operator-framework/operator-sdk
+  ref: v{{version}}
+
+versions:
+  github: operator-framework/operator-sdk
+  strip: /^v/
+
+dependencies:
+  go.dev: ^1.19
+
+build:
+  dependencies:
+    cmake.org: "*"
+    git-scm.org: "*"
+  script: |
+    make build/operator-sdk
+    mkdir -p "{{ prefix }}"/bin
+    mv build/operator-sdk "{{ prefix }}"/bin
+
+provides:
+  - bin/operator-sdk
+
+test:
+  script: |
+    operator-sdk version | grep 'operator-sdk version: "v{{version}}"'
+    mkdir -p example-operator
+    cd example-operator
+    operator-sdk init --project-name example-operator --domain example.com --repo github.com/example/example-operator
+    test -f main.go

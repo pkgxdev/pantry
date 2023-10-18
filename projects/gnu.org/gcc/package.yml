@@ -7,8 +7,7 @@ versions:
   strip: /^releases\/gcc-/
 
 dependencies:
-  linux:
-    gnu.org/binutils: '*' # linker needs `as`
+  gnu.org/binutils: '*' # linker needs `as`
   gnu.org/gmp: '>=4.2'
   gnu.org/mpfr: '>=2.4.0'
   gnu.org/mpc: '>=0.8.0'
@@ -59,11 +58,21 @@ build:
 
     # On Linux, we need to move the libraries to the lib directory.
     - run: |
-        if test {{hw.platform}} = "linux"; then
-          mv lib64/* lib/
-          rmdir lib64
-        fi
+        mv lib64/* lib/
+        rmdir lib64
+      if: linux
       working-directory: ${{prefix}}
+
+    # other tools simply expect these symlinks and often fail without them
+    # NOTE forcing symlinks because we build with ourselves and sometimes that
+    # means we're building with the exact same version FIXME
+    - run: |
+        ln -sf gcc cc
+        ln -sf ../../../binutils/v\*/bin/ar ar
+        ln -sf ../../../binutils/v\*/bin/nm nm
+        ln -sf ../../../binutils/v\*/bin/ranlib ranlib
+      working-directory: ${{prefix}}/bin
+
   env:
     # Branch from the Darwin maintainer of GCC, with a few generic fixes and
     # Apple Silicon support, located at https://github.com/iains/gcc-12-branch
@@ -101,6 +110,12 @@ build:
     darwin/x86-64:
       ARGS:
         - --build=x86_64-apple-darwin20.0.0
+      # llvm-as generates __compact_unwind sections, even when told not to. this causes build errors
+      # for ^10 on darwin+x86-64
+      # https://stackoverflow.com/questions/52211390/trouble-building-gcc-on-mac-cant-find-system-headers
+      BOOT_CFLAGS: -Wa,-mmacos-version-min=10.5
+      CFLAGS_FOR_TARGET: -Wa,-mmacos-version-min=10.5
+      and CXXFLAGS_FOR_TARGET: -Wa,-mmacos-version-min=10.5
 
 test:
   - gcc --version | grep -q "tea GCC {{version}}"
@@ -115,6 +130,8 @@ test:
   - test "$(./test3)" = "Hello, world!"
 
 provides:
+  - bin/ar
+  - bin/cc
   - bin/c++
   - bin/gc++
   - bin/cpp
@@ -128,3 +145,5 @@ provides:
   - bin/gcov-tool
   - bin/gfortran
   - bin/lto-dump
+  - bin/nm
+  - bin/ranlib

@@ -1,0 +1,20 @@
+distributable:
+  url: https://github.com/svaarala/duktape/releases/download/v{{version}}/duktape-{{version}}.tar.xz
+  strip-components: 1
+versions:
+  github: svaarala/duktape
+build:
+  script:
+    - make -f Makefile.sharedlibrary install
+    - make -f Makefile.cmdline
+    - mkdir -p {{prefix}}/bin
+    - install duk {{prefix}}/bin/
+  env:
+    INSTALL_PREFIX: "{{prefix}}"
+provides:
+  - bin/duk
+test:
+  script:
+    - duk test.js | grep "Hello World!"
+    - cc test.c -o test -lduktape -lm
+    - ./test

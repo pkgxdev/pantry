@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/AntonOsika/gpt-engineer/archive/refs/tags/v0.0.3.tar.gz
+  url: https://github.com/AntonOsika/gpt-engineer/archive/refs/tags/v{{version}}.tar.gz
   strip-components: 1
 
 versions:
@@ -8,7 +8,7 @@ versions:
 display-name: GPT Engineer
 
 dependencies:
-  python.org: ^3
+  python.org: '>=3<3.12'
   tea.xyz: ^0
 
 entrypoint: tea ./entrypoint.sh
@@ -18,12 +18,14 @@ build:
     gnu.org/patch: '*'
   script:
     # https://github.com/AntonOsika/gpt-engineer/issues/204
-    - patch -p1 < props/main.py.patch
+    - run: patch -p1 < props/main.py.patch
+      if: =0.0.3
 
     - python-venv.sh {{prefix}}/bin/gpt-engineer
 
     # https://github.com/AntonOsika/gpt-engineer/issues/204
-    - cp -a identity {{prefix}}
+    - run: cp -a identity {{prefix}}
+      if: =0.0.3
 
     - cp props/entrypoint.sh {{prefix}}
 

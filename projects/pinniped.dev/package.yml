@@ -1,0 +1,29 @@
+distributable:
+  url: https://github.com/vmware-tanzu/pinniped/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+display-name: pinniped
+
+versions:
+  github: vmware-tanzu/pinniped/releases/tags
+
+provides:
+  - bin/pinniped
+
+build:
+  dependencies:
+    go.dev: '*'
+  script:
+   - go mod download
+   - mkdir -p "{{ prefix }}"/bin
+   - go build -trimpath -ldflags="$LDFLAGS" -o "{{ prefix }}"/bin/pinniped ./cmd/pinniped
+  env:
+    CGO_ENABLED: 0
+    LDFLAGS:
+      - -w
+      - -s
+      - -X go.pinniped.dev/internal/pversion.gitVersion=v{{version}}
+
+test:
+  - pinniped | grep "Pinniped CLI is the client-side binary"
+  - echo $(pinniped version || true) | grep "v{{version}}"
