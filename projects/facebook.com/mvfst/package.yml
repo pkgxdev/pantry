@@ -11,6 +11,8 @@ dependencies:
   gflags.github.io: '*'
   google.com/glog: '*'
   openssl.org: '*'
+  linux:
+    libsodium.org: ^1.0.19
 build:
   dependencies:
     cmake.org: '*'
@@ -37,7 +39,7 @@ test:
     google.com/googletest: '*'
     cmake.org: '*'
     linux:
-      gnu.org/gcc: '*'
+      llvm.org: '*'
       gnu.org/make: '*'
       curl.se: '*'
   script:
@@ -61,13 +63,17 @@ test:
             ((current_port++))
         done
 
-        ./echo --mode server --host 127.0.0.1 --port $current_port & disown
+        ./echo --mode server --host 127.0.0.1 --port $current_port & 
         sleep 15
-        ./echo --mode client --host 127.0.0.1 --port $current_port & disown
+        ./echo --mode client --host 127.0.0.1 --port $current_port & 
         sleep 15
         killall echo || true
       working-directory: mvfst-2023.10.09.00
   env:
+    linux:
+      CC: clang
+      CXX: clang++
+      LD: clang
     CMAKE_ARGS:
       - -DCMAKE_INSTALL_PREFIX="{{prefix}}
       - -DCMAKE_INSTALL_LIBDIR=lib
