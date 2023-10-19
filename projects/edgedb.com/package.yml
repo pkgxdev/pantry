@@ -14,7 +14,9 @@ build:
   env:
     RUSTFLAGS: -A warnings -C debuginfo=0
   script: |
-    cargo install --path . --root {{prefix}}
+    mv build.rs build.rs.bak
+    rm Cargo.lock
+    cargo install --path . --locked --root {{prefix}}
 
 test:
   test "$(edgedb --version)" = "EdgeDB CLI {{version.raw}}"
