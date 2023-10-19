@@ -1,3 +1,6 @@
+distributable:
+  url: https://archive.apache.org/dist/zookeeper/zookeeper-{{version}}/apache-zookeeper-{{version}}.tar.gz
+  strip-components: 1
 versions:
   url: https://archive.apache.org/dist/zookeeper/
   match: /zookeeper-\d+\.\d+\.\d+/
@@ -14,13 +17,13 @@ build:
     gnu.org/libtool: '*'
     maven.apache.org: '*'
     freedesktop.org/pkg-config: '*'
-    curl.se: '*'
     linux:
       gnu.org/gcc: '*'
-  # Malformed input or input contains unmappable characters: ~/pantry/builds/apache.org???zookeeper-3.9.1+linux
-  working-directory: ../zookeeper
   script:
-    - curl -L "https://archive.apache.org/dist/zookeeper/zookeeper-{{version}}/apache-zookeeper-{{version}}.tar.gz" | tar -xz --strip-components=1
+    - cd ..
+    - rm -rf ./zookeeper || true
+    - mv apache.org*zookeeper* zookeeper
+    - cd zookeeper
     - run: mkdir -p etc/zookeeper var/log/zookeeper var/run/zookeeper/data
       working-directory: "{{prefix}}"
     - mvn install -Pfull-build -DskipTests
@@ -58,10 +61,10 @@ provides:
   - bin/zkSnapShotToolkit
   - bin/zkTxnLogToolkit
 test:
-  # Characters in the path cannot be recognized
-  # Starting zookeeper ... FAILED TO START
-  working-directory: "../zookeeper"
   script:
+    - cd ..
+    - mkdir -p zookeeper
+    - cd zookeeper
     - mkdir -p cfg
     - export ZOOCFGDIR=$PWD/cfg
     - export HOME=$PWD
