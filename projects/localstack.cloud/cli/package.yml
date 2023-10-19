@@ -1,0 +1,26 @@
+# https://localstack.cloud/
+
+distributable:
+  url: https://github.com/localstack/localstack-cli/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: localstack/localstack-cli
+  strip: /^v/
+
+build:
+  dependencies:
+    python.org: ^3.11
+    gnu.org/make: "*"
+  script: |
+    make venv
+    make all
+    mkdir -p "{{ prefix }}"/bin
+    mv dist-bin/localstack "{{ prefix }}"/bin
+
+provides:
+  - bin/localstack
+
+test:
+  script:
+    test "$(localstack --version)" = {{version}}
