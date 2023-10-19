@@ -1,0 +1,23 @@
+distributable:
+  strip-components: 1
+  url: https://github.com/edgedb/edgedb-cli/archive/refs/tags/v{{version.raw}}.tar.gz
+
+versions:
+  github: edgedb/edgedb-cli/tags
+  strip: /v/
+
+build:
+  dependencies:
+    rust-lang.org: ^1.61
+    rust-lang.org/cargo: ^0
+    perl.org: ^5
+  env:
+    RUSTFLAGS: -A warnings -C debuginfo=0
+  script: |
+    cargo install --path . --root {{prefix}}
+
+test:
+  test "$(edgedb --version)" = "EdgeDB CLI {{version.raw}}"
+
+provides:
+  - bin/edgedb
