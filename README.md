@@ -97,3 +97,4 @@ $ pkg edit
 [discussion]: https://github.com/orgs/pkgxdev/discussions
 [IPFS]: https://ipfs.tech
 [`npmjs.com/provider.yml`]: ./projects/npmjs.com/provider.yml
+[`brewkit`]: https://github.com/pkgxdev/brewkit
