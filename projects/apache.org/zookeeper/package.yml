@@ -1,6 +1,3 @@
-# distributable:
-#   url: https://archive.apache.org/dist/zookeeper/zookeeper-{{version}}/apache-zookeeper-{{version}}.tar.gz
-#   strip-components: 1
 versions:
   url: https://archive.apache.org/dist/zookeeper/
   match: /zookeeper-\d+\.\d+\.\d+/
@@ -24,41 +21,32 @@ build:
   working-directory: ../zookeeper
   script:
     - curl -L "https://archive.apache.org/dist/zookeeper/zookeeper-{{version}}/apache-zookeeper-{{version}}.tar.gz" | tar -xz --strip-components=1
-    - run: mkdir -p libexec etc/zookeeper var/log/zookeeper var/run/zookeeper/data
+    - run: mkdir -p etc/zookeeper var/log/zookeeper var/run/zookeeper/data
       working-directory: "{{prefix}}"
     - mvn install -Pfull-build -DskipTests
     - tar -xf zookeeper-assembly/target/apache-zookeeper-{{version}}-bin.tar.gz
     - run: |
-        rm -f bin/*.cmd
-        cp -r ./* {{prefix}}/libexec/
+        rm -f bin/*.cmd bin/*.txt
+        cp -r ./* {{prefix}}/
       working-directory: apache-zookeeper-{{version}}-bin
     - tar -xf zookeeper-assembly/target/apache-zookeeper-{{version}}-lib.tar.gz
     - run: |
         cp -r usr/include {{prefix}}/
         cp -r usr/lib {{prefix}}/
       working-directory: apache-zookeeper-{{version}}-lib
+    - run: rm -f *.txt *.md
+      working-directory: "{{prefix}}"
     - run: |
-        ln -s ../libexec/bin/zkCleanup.sh zkCleanup
-        ln -s ../libexec/bin/zkCli.sh zkCli
-        ln -s ../libexec/bin/zkEnv.sh zkEnv
-        ln -s ../libexec/bin/zkServer-initialize.sh zkServer-initialize
-        ln -s ../libexec/bin/zkServer.sh zkServer
-        ln -s ../libexec/bin/zkSnapshotComparer.sh zkSnapshotComparer
-        ln -s ../libexec/bin/zkSnapshotRecursiveSummaryToolkit.sh zkSnapshotRecursiveSummaryToolkit
-        ln -s ../libexec/bin/zkSnapShotToolkit.sh zkSnapShotToolkit
-        ln -s ../libexec/bin/zkTxnLogToolkit.sh zkTxnLogToolkit
+        ln -s zkCleanup.sh zkCleanup
+        ln -s zkCli.sh zkCli
+        ln -s zkEnv.sh zkEnv
+        ln -s zkServer-initialize.sh zkServer-initialize
+        ln -s zkServer.sh zkServer
+        ln -s zkSnapshotComparer.sh zkSnapshotComparer
+        ln -s zkSnapshotRecursiveSummaryToolkit.sh zkSnapshotRecursiveSummaryToolkit
+        ln -s zkSnapShotToolkit.sh zkSnapShotToolkit
+        ln -s zkTxnLogToolkit.sh zkTxnLogToolkit
       working-directory: "{{prefix}}/bin"
-    - run: |
-        ln -s bin/zkCleanup.sh zkCleanup.sh
-        ln -s bin/zkCli.sh zkCli.sh
-        ln -s bin/zkEnv.sh zkEnv.sh
-        ln -s bin/zkServer-initialize.sh zkServer-initialize.sh
-        ln -s bin/zkServer.sh zkServer.sh
-        ln -s bin/zkSnapshotComparer.sh zkSnapshotComparer.sh
-        ln -s bin/zkSnapshotRecursiveSummaryToolkit.sh zkSnapshotRecursiveSummaryToolkit.sh
-        ln -s bin/zkSnapShotToolkit.sh zkSnapShotToolkit.sh
-        ln -s bin/zkTxnLogToolkit.sh zkTxnLogToolkit.sh
-      working-directory: "{{prefix}}/libexec"
 provides:
   - bin/zkCleanup
   - bin/zkCli
@@ -70,9 +58,13 @@ provides:
   - bin/zkSnapShotToolkit
   - bin/zkTxnLogToolkit
 test:
+  # Characters in the path cannot be recognized
+  # Starting zookeeper ... FAILED TO START
+  working-directory: "../zookeeper"
   script:
-    - mkdir cfg
+    - mkdir -p cfg
     - export ZOOCFGDIR=$PWD/cfg
+    - export HOME=$PWD
     - run: |
         cat << EOF>cfg/zoo.cfg
         tickTime=2000
