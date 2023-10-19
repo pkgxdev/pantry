@@ -12,9 +12,15 @@ build:
     rust-lang.org/cargo: ^0
     perl.org: ^5
   env:
-    RUSTFLAGS: -A warnings -C debuginfo=0
+    RUSTFLAGS:
+    # Ignore warnings (to focus on errors)
+    - -A warnings
+    # Reduce build size by excluding debug symbols.
+    - -C debuginfo=0
   script: |
+    # Required to avoid conflicts
     mv build.rs build.rs.bak
+    # Required because of proc-macro2 version conflict
     rm Cargo.lock
     cargo install --path . --locked --root {{prefix}}
 
