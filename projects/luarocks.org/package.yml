@@ -22,6 +22,7 @@ build:
   script: |
     ./configure $ARGS
     make --jobs {{ hw.concurrency }} install
+    sed -i.bak "s_{{prefix}}_\$(cd \$(dirname \$0)/.. \&\& pwd)_g"
   env:
     ARGS:
       - --prefix="{{prefix}}"
