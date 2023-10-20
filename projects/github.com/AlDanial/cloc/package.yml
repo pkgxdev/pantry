@@ -1,0 +1,39 @@
+distributable:
+  url: https://github.com/AlDanial/cloc/archive/v{{version.marketing}}.tar.gz
+  strip-components: 1
+versions:
+  github: AlDanial/cloc
+dependencies:
+  perl.org: '*'
+runtime:
+  env:
+    PERL5LIB: $PERL5LIB:{{prefix}}/lib/perl5
+build:
+  dependencies:
+    cpanmin.us: '*'
+    linux:
+      gnu.org/gcc: '*'
+      gnu.org/make: '*'
+  script:
+    - cpanm -l {{prefix}} $PKGS
+    - make --jobs {{ hw.concurrency }} -C Unix prefix={{prefix}} install
+    - run: |
+        sed -i.bak "s|{{deps.perl.org.prefix}}/bin/|/usr/bin/env |g" ./*
+        rm -f ./*.bak
+      working-directory: "{{prefix}}/bin"
+  env:
+    PKGS:
+      - Regexp::Common
+      - Algorithm::Diff
+      - Parallel::ForkManager
+      - Sub::Quote
+      - Moo::Role
+      - Module::Runtime
+      - Role::Tiny
+      - Devel::GlobalDestruction
+      - Sub::Exporter::Progressive
+    PERL5LIB: $PERL5LIB:{{prefix}}/lib/perl5
+test:
+  script:
+    - cloc --csv . | grep 1,C,0,0,5
+    - cloc --version | grep {{version.marketing}}
