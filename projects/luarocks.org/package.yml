@@ -10,19 +10,20 @@ dependencies:
   lua.org: '*'
   info-zip.org/unzip: '*'
 
-runtime:
-  env:
-    LUA_ROOT: "{{deps.lua.org.prefix}}"
-
 build:
   dependencies:
     gnu.org/make: ^4
     gnu.org/sed: ^4
-
-  script: |
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }} install
-    sed -i.bak "s_{{prefix}}_\$(cd \$(dirname \$0)/.. \&\& pwd)_g"
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+    - run: |
+        fix-shebangs.ts luarocks-admin luarocks
+        sed -i.bak \
+            -e 's|\[\[{{prefix}}|debug.getinfo(1).source:match("@?(.*/)") .. \[\[..|g' \
+            luarocks-admin luarocks
+        rm luarocks-admin.bak luarocks.bak
+      working-directory: ${{prefix}}/bin
   env:
     ARGS:
       - --prefix="{{prefix}}"
@@ -35,6 +36,4 @@ provides:
   - bin/luarocks
   - bin/luarocks-admin
 
-test:
-  script: |
-    test "$(luarocks --version | awk 'NR==1 {print $NF}')" = "{{version.raw}}"
+test: test "$(luarocks --version | awk 'NR==1 {print $NF}')" = "{{version.raw}}"
