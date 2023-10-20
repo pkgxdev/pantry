@@ -1,0 +1,40 @@
+distributable:
+  url: https://github.com/luarocks/luarocks/archive/refs/tags/v{{version.raw}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: luarocks/luarocks/tags
+  strip: /v/
+
+dependencies:
+  lua.org: '*'
+  info-zip.org/unzip: '*'
+
+runtime:
+  env:
+    LUAROCKS_ROOT: "{{prefix}}"
+    LUA_ROOT: "{{deps.lua.org.prefix}}"
+
+build:
+  dependencies:
+    gnu.org/make: ^4
+    gnu.org/sed: ^4
+
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --sysconfdir="{{prefix}}/etc"
+      - --rocks-tree="{{prefix}}"
+      - --force-config
+      - --disable-incdir-check
+
+provides:
+  - bin/luarocks
+  - bin/luarocks-admin
+
+test:
+  script: |
+    test "$(luarocks --version | awk 'NR==1 {print $NF}')" = "{{version.raw}}"
