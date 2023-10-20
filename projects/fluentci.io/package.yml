@@ -9,21 +9,21 @@ versions:
 
 dependencies:
   dagger.io: ^0.8.8
+  deno.land: ^1.36
   charm.sh/glow: ^1.5.1
 
 build:
   dependencies:
     deno.land: ^1.37
-  working-directory: ${{prefix}}/bin
   script: |
-    deno compile -A --unstable --import-map="$SRCROOT"/import_map.json --output fluentci "$SRCROOT"/main.ts
+    pkgx --sync
+    deno compile -A --unstable --import-map="$SRCROOT"/import_map.json --output fluentci ./main.ts
     mkdir -p "{{ prefix }}"/bin
     cp fluentci "{{ prefix }}"/bin
-  # ^^^^ yes, this is a hack, but it's the only way to get the test to run, and it works
-  # the test fail if we don't copy the binary to the prefix, I don't know why
 
 provides:
   - bin/fluentci
 
 test: |
-    fluentci --version | grep {{version}}
+    fluentci --version
+    test "$(fluentci --version)" = "fluentci {{ version }}"
