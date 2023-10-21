@@ -15,29 +15,50 @@ platforms:
   - linux/x86-64
 
 companions:
-  crystal-lang.org/shards: "*"
+  crystal-lang.org/shards: '*'
 
 dependencies:
-  hboehm.info/gc: 8.2.4
-  gnu.org/gmp: 6.2.1
-  libevent.org: 2.1.12
-  pyyaml.org/libyaml: 0.2.5
-  llvm.org: 17
-  openssl.org: 1.1
-  pcre.org/v2: 10.42
-  freedesktop.org/pkg-config: 0.29.2
+  hboehm.info/gc: ^8
+  gnu.org/gmp: ^6
+  libevent.org: ^2
+  pyyaml.org/libyaml: ^0
+  llvm.org: <17
+  openssl.org: ^1.1
+  pcre.org/v2: ^10
+  freedesktop.org/pkg-config: ^0
+  sourceware.org/libffi: ^3
+
+runtime:
+  env:
+    CRYSTAL_PATH: ${{prefix}}/lib:$CRYSTAL_PATH
 
 build:
   dependencies:
-    curl.se: "*"
-  working-directory: ${{prefix}}
-  script: |
-    curl -Lfo crystal.tar.gz "https://github.com/crystal-lang/crystal/releases/download/{{version}}/crystal-{{version}}-1-$PLATFORM.tar.gz"
-    tar --strip-components=1 -xf crystal.tar.gz
-    rm crystal.tar.gz
+    curl.se: '*'
+    gnu.org/make: '*'
+  script:
+    - run: |
+        curl -Lf "https://github.com/crystal-lang/crystal/releases/download/{{version}}/crystal-{{version}}-1-$PLATFORM.tar.gz" | \
+          tar --strip-components=1 -xf -
+      working-directory: .bootstrap
+    - mkdir -p .build
+    - make deps
+    - make crystal $ARGS
+    - mkdir -p "{{prefix}}/bin"
+    - cp .build/crystal "{{prefix}}/bin/crystal.bin"
+    - cp shim "{{prefix}}/bin/crystal"
+    - cp -a src "{{prefix}}/lib"
   env:
+    CRYSTAL_LIBRARY_PATH: $LD_LIBRARY_PATH
+    PATH: $SRCROOT/.bootstrap/bin:$PATH
     darwin: { PLATFORM: darwin-universal }
     linux/x86-64: { PLATFORM: linux-x86_64 }
+    LDFLAGS: -Wl,-rpath,{{pkgx.prefix}}
+    ARGS:
+      - release=true
+      - FLAGS=--no-debug
+      - interpreter=true
+      - CRYSTAL_CONFIG_PATH=../lib
 
 provides:
   - bin/crystal
