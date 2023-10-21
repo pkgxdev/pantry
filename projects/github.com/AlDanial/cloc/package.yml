@@ -4,7 +4,7 @@ distributable:
 versions:
   github: AlDanial/cloc
 dependencies:
-  perl.org: '*'
+  perl.org: ^5
 runtime:
   env:
     PERL5LIB: $PERL5LIB:{{prefix}}/lib/perl5
@@ -17,9 +17,7 @@ build:
   script:
     - cpanm -l {{prefix}} $PKGS
     - make --jobs {{ hw.concurrency }} -C Unix prefix={{prefix}} install
-    - run: |
-        sed -i.bak "s|{{deps.perl.org.prefix}}/bin/|/usr/bin/env |g" ./*
-        rm -f ./*.bak
+    - run: fix-shebangs.ts cloc config_data
       working-directory: "{{prefix}}/bin"
   env:
     PKGS:
@@ -33,6 +31,9 @@ build:
       - Devel::GlobalDestruction
       - Sub::Exporter::Progressive
     PERL5LIB: $PERL5LIB:{{prefix}}/lib/perl5
+provides:
+  - bin/cloc
+  - bin/config_data
 test:
   script:
     - cloc --csv . | grep 1,C,0,0,5
