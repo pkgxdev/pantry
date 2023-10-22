@@ -38,6 +38,10 @@ build:
         rm -f configure.bak
       if: darwin/x86-64
     - ./configure $CONFIGURE_ARGS
+    - run: |
+        sed -i.bak "s|prefix=/usr/local|prefix={{prefix}}|g" Makefile
+        rm -f Makefile.bak
+      if: linux
     - make --jobs {{ hw.concurrency }}
     - make --jobs 1 install
     - run: ln -s ssh slogin
