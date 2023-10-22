@@ -1,0 +1,219 @@
+distributable:
+  url: https://download.qt.io/official_releases/qt/{{version.marketing}}/{{version}}/single/qt-everywhere-opensource-src-{{version}}.tar.xz
+  strip-components: 1
+versions:
+  - 5.15.10
+dependencies:
+  freetype.org: '*'
+  gnome.org/glib: '*'
+  libjpeg-turbo.org: '*'
+  libpng.org: '*'
+  pcre.org/v2: '*'
+  google.com/webp: '*'
+  gnu.org/bison: '*'
+  github.com/westes/flex: '*'
+  kerberos.org: '*'
+  gnome.org/libxslt: '*'
+  sqlite.org: '*'
+  unicode.org: ^71
+  linux:
+    alsa-project.org/alsa-lib: '*'
+    freedesktop.org/fontconfig: '*'
+    harfbuzz.org: '*'
+    unicode.org: ~71
+    dri.freedesktop.org: '*'
+    libevent.org: '*'
+    x.org/ice: '*'
+    x.org/sm: '*'
+    webmproject.org/libvpx: '*'
+    x.org/xcomposite: '*'
+    xkbcommon.org: ~1.5
+    x.org/xkbfile: '*'
+    x.org/xrandr: '*'
+    x.org/xtst: '*'
+    mesa3d.org: '*'
+    zlib.net/minizip: '*'
+    mozilla.org/nss: '*'
+    opus-codec.org: '*'
+    libsdl.org: '*'
+    google.github.io/snappy: '*'
+    systemd.io: '*'
+    wayland.freedesktop.org: '*'
+    freedesktop.org/xcb-util: '*'
+    freedesktop.org/xcb-util-image: '*'
+    freedesktop.org/xcb-util-keysyms: '*'
+    freedesktop.org/xcb-util-renderutil: '*'
+    freedesktop.org/xcb-util-wm: '*'
+    facebook.com/zstd: '*'
+build:
+  dependencies:
+    nodejs.org: '*'
+    freedesktop.org/pkg-config: '*'
+    python.org: '>=2.7'
+    gnu.org/gperf: '*'
+    perl.org: '>=5.12'
+    ruby-lang.org: '>=1.9.3'
+    linux:
+      llvm.org: '<16'
+      gnu.org/make: '*'
+  script:
+    # this is a weird one; doesn't seem to get run by the makefile
+    # https://forum.qt.io/post/640699
+    - run: |
+        mkdir -p .rcc
+        perl mimetypes/mime/generate.pl mimetypes/mime/packages/freedesktop.org.xml > .rcc/qmimeprovider_database.cpp
+      working-directory: qtbase/src/corelib
+    # MacPorts found this one:
+    # https://github.com/macports/macports-ports/pull/18656/files
+    - run: |
+        sed -i.bak -e'/#include <stdexcept>/a\
+        #include <utility> // std::move\
+        ' unique_any.hpp
+        rm unique_any.hpp.bak
+      working-directory: qtlocation/src/3rdparty/mapbox-gl-native/include/mbgl/util
+    - ./configure $ARGS
+    - make --jobs {{hw.concurrency}}
+    - make -j1 install
+  env:
+    ARGS:
+      - -verbose
+      - -prefix {{prefix}}
+      - -release
+      - -opensource -confirm-license
+      - -nomake examples
+      - -nomake tests
+      - -pkg-config
+      - -dbus-runtime
+      - -proprietary-codecs
+      - -system-freetype
+      - -system-libjpeg
+      - -system-libpng
+      - -system-pcre
+      - -system-zlib
+    linux:
+      LD: clang
+      ARGS:
+        - -R{{prefix}}/lib
+        - -no-avx2
+        - -no-avx512
+        - -no-sql-mysql
+        - -platform linux-clang
+        - QMAKE_LFLAGS=-Wl,-rpath,{{pkgx.prefix}},-ldl
+    darwin:
+      ARGS:
+        - -no-rpath
+        - QMAKE_LFLAGS=-Wl,-rpath,{{pkgx.prefix}}
+    darwin/aarch64:
+      ARGS:
+        - -no-assimp
+provides:
+  linux:
+    - bin/assistant
+    - bin/balsam
+    - bin/canbusutil
+    - bin/designer
+    - bin/lconvert
+    - bin/linguist
+    - bin/lprodump
+    - bin/lrelease
+    - bin/lrelease-pro
+    - bin/lupdate
+    - bin/lupdate-pro
+    - bin/meshdebug
+    - bin/moc
+    - bin/pixeltool
+    - bin/qcollectiongenerator
+    - bin/qdbus
+    - bin/qdbuscpp2xml
+    - bin/qdbusviewer
+    - bin/qdbusxml2cpp
+    - bin/qdistancefieldgenerator
+    - bin/qdoc
+    - bin/qgltf
+    - bin/qhelpgenerator
+    - bin/qlalr
+    - bin/qmake
+    - bin/qml
+    - bin/qmlcachegen
+    - bin/qmleasing
+    - bin/qmlformat
+    - bin/qmlimportscanner
+    - bin/qmllint
+    - bin/qmlmin
+    - bin/qmlplugindump
+    - bin/qmlpreview
+    - bin/qmlprofiler
+    - bin/qmlscene
+    - bin/qmltestrunner
+    - bin/qmltime
+    - bin/qmltyperegistrar
+    - bin/qscxmlc
+    - bin/qtattributionsscanner
+    - bin/qtdiag
+    - bin/qtpaths
+    - bin/qtplugininfo
+    - bin/qtwaylandscanner
+    - bin/qvkgen
+    - bin/rcc
+    - bin/repc
+    - bin/tracegen
+    - bin/uic
+    - bin/xmlpatterns
+    - bin/xmlpatternsvalidator
+  darwin:
+    - bin/balsam
+    - bin/canbusutil
+    - bin/lconvert
+    - bin/lprodump
+    - bin/lrelease
+    - bin/lrelease-pro
+    - bin/lupdate
+    - bin/lupdate-pro
+    - bin/meshdebug
+    - bin/moc
+    - bin/qcollectiongenerator
+    - bin/qdbus
+    - bin/qdbuscpp2xml
+    - bin/qdbusxml2cpp
+    - bin/qdistancefieldgenerator
+    - bin/qhelpgenerator
+    - bin/qlalr
+    - bin/qmake
+    - bin/qmlcachegen
+    - bin/qmleasing
+    - bin/qmlformat
+    - bin/qmlimportscanner
+    - bin/qmllint
+    - bin/qmlmin
+    - bin/qmlplugindump
+    - bin/qmlpreview
+    - bin/qmlprofiler
+    - bin/qmlscene
+    - bin/qmltestrunner
+    - bin/qmltime
+    - bin/qmltyperegistrar
+    - bin/qscxmlc
+    - bin/qtattributionsscanner
+    - bin/qtdiag
+    - bin/qtpaths
+    - bin/qtplugininfo
+    - bin/qvkgen
+    - bin/rcc
+    - bin/repc
+    - bin/tracegen
+    - bin/uic
+    - bin/xmlpatterns
+    - bin/xmlpatternsvalidator
+test:
+  dependencies:
+    linux:
+      llvm.org: '*'
+      gnu.org/make: '*'
+  script:
+    - qmake hello.pro
+    - make
+    - run: otool -l hello
+      if: darwin
+    - run: ldd hello
+      if: linux
+    - ./hello

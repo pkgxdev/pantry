@@ -1,0 +1,39 @@
+distributable:
+  url: https://github.com/rabbitmq/rabbitmq-server/releases/download/v{{version}}/rabbitmq-server-generic-unix-{{version}}.tar.xz
+  strip-components: 1
+versions:
+  github: rabbitmq/rabbitmq-server
+warnings:
+  - vendored
+dependencies:
+  erlang.org: '*'
+build:
+  script:
+    - run: |
+        cp -r $SRCROOT/* ./
+        rm -r *.pkgx.*
+        rm pkgx.yaml
+      working-directory: "{{prefix}}"
+    - run: mkdir -p lib/rabbitmq og/rabbitmq
+      working-directory: "{{prefix}}/var"
+provides:
+  - bin/rabbitmqctl
+  - bin/rabbitmq-defaults
+  - bin/rabbitmq-diagnostics
+  - bin/rabbitmq-env
+  - bin/rabbitmq-plugins
+  - bin/rabbitmq-queues
+  - bin/rabbitmq-server
+  - bin/rabbitmq-streams
+  - bin/rabbitmq-upgrade
+  - bin/vmware-rabbitmq
+test:
+  env:
+    RABBITMQ_MNESIA_BASE: $PWD/var/lib/rabbitmq/mnesia
+  script:
+    - rabbitmqctl --version | grep {{version}}
+    - killall rabbitmq-server || true
+    - rabbitmq-server -detached && sleep 15
+    # Let's give the server 15 seconds to start
+    - rabbitmqctl status | grep "Virtual host count"
+    - rabbitmqctl stop | grep "Stopping and halting node"

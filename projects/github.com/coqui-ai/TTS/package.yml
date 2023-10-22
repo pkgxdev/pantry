@@ -21,14 +21,20 @@ dependencies:
   taku910.github.io/mecab: '*'
 
 build:
-  script: |
-    python_venv=$(which python-venv.py)
-    env python $python_venv {{prefix}}/bin/tts
-    cp {{prefix}}/bin/tts {{prefix}}/bin/tts-server
-    cp {{prefix}}/bin/tts {{prefix}}/bin/ttx
   dependencies:
     pip.pypa.io: '*'
     git-scm.org: '*'
+  script:
+    - python-venv.py {{prefix}}/bin/tts
+    - run: |
+        cp {{prefix}}/bin/tts {{prefix}}/bin/tts-server
+        cp {{prefix}}/bin/tts {{prefix}}/bin/ttx
+      working-directory: ${{prefix}}/bin
 
-test: |
-  tts -h
+    # FIXME: the nvidia package is over 3GB, and OOMs the builder when trying
+    # to `tar Jcf` it. We likely need this back, but it prevents building at present.
+    - run: rm -r nvidia
+      if: linux
+      working-directory: ${{prefix}}/venv/lib/python{{deps.python.org.version.marketing}}/site-packages
+
+test: tts -h

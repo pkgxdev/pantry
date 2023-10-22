@@ -33,6 +33,8 @@ build:
       - -DBUILD_TESTING=OFF
 
 test:
-  script: |
-    g++ -std=c++17 test.cc -o test -ledencommon_utils -lfolly
-    ./test | grep test
+  dependencies:
+    llvm.org: '*'
+  script:
+  - clang++ -std=c++17 test.cc -o test -ledencommon_utils -lfolly -lglog
+  - ./test | grep test

@@ -1,0 +1,27 @@
+distributable:
+  strip-components: 1
+  url: https://github.com/JuliaLang/juliaup/archive/refs/tags/v{{version.raw}}.tar.gz
+
+versions:
+  github: JuliaLang/juliaup/tags
+  strip: /v/
+
+build:
+  dependencies:
+    rust-lang.org: ^1.61
+    rust-lang.org/cargo: ^0
+  env:
+    RUSTFLAGS:
+    # Ignore warnings (to focus on errors)
+    - -A warnings
+    # Reduce build size by excluding debug symbols.
+    - -C debuginfo=0
+  script: |
+    cargo install --path . --root {{prefix}}
+
+test:
+  script: |
+    test "$(juliaup --version)" = "Juliaup {{version.raw}}"
+
+provides:
+  - bin/juliaup

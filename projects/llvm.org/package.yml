@@ -10,6 +10,17 @@ provides:
   - bin/lld
   - bin/clang
   - bin/clang++
+  - bin/cc
+  - bin/c++
+  - bin/cpp
+  - bin/ar
+  - bin/as
+  - bin/nm
+  - bin/objcopy
+  - bin/ranlib
+  - bin/readelf
+  - bin/strings
+  - bin/strip
 
 dependencies:
   zlib.net: 1
@@ -25,14 +36,30 @@ build:
     # Building compiler-rt on darwin+aarch64 fails for versions less than
     # 14 with the below configuration. FIXME if possible, of course.
     - run: |
-        if test "{{hw.platform}}" = "linux" || \
-           test "{{hw.arch}}" = "x86-64" || \
-           semverator satisies '>=14'; then
-             ARGS="$ARGS -DLLVM_ENABLE_RUNTIMES='compiler-rt'"
+        if test "{{hw.platform}}" = "linux"; then
+          ARGS="$ARGS -DLLVM_ENABLE_RUNTIMES='compiler-rt'"
+        elif semverator satisfies '>=14' {{version}}; then
+          ARGS="$ARGS -DLLVM_ENABLE_RUNTIMES='compiler-rt'"
+        elif test "{{hw.arch}}" = "x86-64" && semverator satisfies '>=14' {{version}}; then
+          ARGS="$ARGS -DLLVM_ENABLE_RUNTIMES='compiler-rt'"
         fi
+      # if: linux || >=14 || (x86-64 && >=13)  ## Brewkit can't do this. Yet.
     - cmake ../llvm -G Ninja $ARGS
     - ninja
     - ninja install
+
+    # other tools simply expect these symlinks and often fail without them
+    # NOTE forcing symlinks because we build with ourselves and sometimes that
+    # means we're building with the exact same version FIXME
+    - run: |
+        ln -sf clang cc
+        ln -sf clang++ c++
+        ln -sf clang-cpp cpp
+        for x in ar as nm objcopy ranlib readelf strings strip; do
+          ln -sf llvm-$x $x
+        done
+      working-directory: ${{prefix}}/bin
+
   receipt:
     - LLVMConfig.cmake
   env:
@@ -88,11 +115,14 @@ test:
     # Building compiler-rt on darwin+aarch64 fails for versions less than
     # 14 with the below configuration. FIXME if possible, of course.
     - run: |
-        if test "{{hw.platform}}" = "linux" || \
-           test "{{hw.arch}}" = "x86-64" || \
-           semverator satisies '>=14'; then
-             ARGS="$ARGS -fsanitize=address,undefined"
+        if test "{{hw.platform}}" = "linux"; then
+          ARGS="$ARGS -fsanitize=address,undefined"
+        elif semverator satisfies '>=14' {{version}}; then
+          ARGS="$ARGS -fsanitize=address,undefined"
+        elif test "{{hw.arch}}" = "x86-64" && semverator satisfies '>=14' {{version}}; then
+          ARGS="$ARGS -fsanitize=address,undefined"
         fi
+      # if: linux || >=14 || (x86-64 && >=13)  ## Brewkit can't do this. Yet.
     - mv $FIXTURE $FIXTURE.c
     - clang $ARGS $FIXTURE.c
     - ./a.out

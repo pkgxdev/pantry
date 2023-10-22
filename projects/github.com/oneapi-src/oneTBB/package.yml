@@ -1,0 +1,97 @@
+distributable:
+  url: https://github.com/oneapi-src/oneTBB/archive/v{{version}}.tar.gz
+  strip-components: 1
+
+display-name: tbb
+
+platforms:
+  - darwin
+  - linux/x86-64
+  # FIXME: linux/aarch64 => undefined symbol: __aarch64_ldadd8_acq_rel
+
+versions:
+  github: oneapi-src/oneTBB
+  strip: /^v/
+  ignore: # they moved _to_ calver
+    - /4\.4/
+
+dependencies:
+  python.org: ~3.11
+
+runtime:
+  env:
+    PYTHONPATH: '{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages:$PYTHONPATH'
+
+build:
+  dependencies:
+    cmake.org: '*'
+    swig.org: '*'
+    freedesktop.org/pkg-config: '*'
+    linux:
+      llvm.org: '*'
+      gnu.org/gcc: '>=4.8.5<11.2.1'
+      gnu.org/make: '*'
+  working-directory: build
+  script:
+    #build shared
+    - run: |
+        cmake -S ../.. $CMAKE_ARGS -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_RPATH="{{prefix}}"
+        cmake --build .
+        cmake --install .
+      working-directory: shared
+
+    # build static
+    - run: |
+        cmake -S ../.. $CMAKE_ARGS -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_RPATH="{{prefix}}"
+        cmake --build .
+        install ./*/libtbb*.a {{prefix}}/lib/
+      working-directory: static
+
+    # build python
+    - run: |
+        cmake -S ../.. $CMAKE_ARGS -DTBB4PY_BUILD=ON
+        make irml
+        install gnu*/* {{prefix}}/lib
+        export LDFLAGS="-L{{prefix}}/lib/libirml.so -lirml $LDFLAGS"
+        export PYTHONPATH="$PWD/build/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH"
+        export CXX=clang++
+        python ../../python/setup.py install --prefix=$PWD/build
+      working-directory: python
+      if: linux
+
+    - run: |
+        python3 -m pip install --prefix={{prefix}} .
+      working-directory: ../python
+
+    # python 3.xx => 3 symlink
+    - run: |
+        if [ ! -L "python{{deps.python.org.version.major}}" ]; then
+          ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
+        fi
+      working-directory: ${{prefix}}/lib
+
+  env:
+    TBBROOT: '{{prefix}}'
+    CMAKE_ARGS:
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_FIND_FRAMEWORK=LAST
+      - -DCMAKE_VERBOSE_MAKEFILE=ON
+      - -Wno-dev
+      - -DTBB_TEST=OFF
+    PYTHONPATH: '{{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH'
+    linux:
+      CC: gcc
+      CXX: g++
+
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script:
+    - pkg-config --modversion tbb | grep {{version}}
+    - c++ --std=c++14 cores-types.cpp $(pkg-config --libs tbb) -ltbb -o core-types
+    - ./core-types
+    - c++ --std=c++14 sum1-100.cpp $(pkg-config --libs tbb) -o sum1-100
+    - ./sum1-100 | grep 5050
+    - python -m TBB -h
+    - python -c "import TBB"

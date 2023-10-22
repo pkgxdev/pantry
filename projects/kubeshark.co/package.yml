@@ -1,0 +1,32 @@
+# https://kubeshark.co/
+
+distributable:
+  url: git+https://github.com/kubeshark/kubeshark
+  ref: v{{version.raw}}
+
+versions:
+  github: kubeshark/kubeshark
+  strip: /^v/
+
+build:
+  dependencies:
+    go.dev: ^1.19
+    gnu.org/make: "*"
+    git-scm.org: "*"
+  script: |
+    make build
+    mkdir -p "{{ prefix }}"/bin
+    mv bin/kubeshark_$PLATFORM "{{ prefix }}"/bin/kubeshark
+  env:
+    VER: "{{version}}"
+    darwin/aarch64: {PLATFORM: darwin_arm64, GOOS: darwin, GOARCH: arm64}
+    darwin/x86-64:  {PLATFORM: darwin_amd64, GOOS: darwin, GOARCH: amd64}
+    linux/aarch64:  {PLATFORM: linux_arm64, GOOS: linux, GOARCH: arm64}
+    linux/x86-64:   {PLATFORM: linux_amd64, GOOS: linux, GOARCH: amd64}
+
+provides:
+  - bin/kubeshark
+
+test:
+  script: |
+    test "$(kubeshark version)" = "{{version}}"

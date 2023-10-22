@@ -1,0 +1,54 @@
+distributable:
+  url: https://github.com/vapoursynth/vapoursynth/archive/R{{version.major}}.tar.gz
+  strip-components: 1
+versions:
+  github: vapoursynth/vapoursynth
+  strip:
+    - /^R/
+dependencies:
+  python.org: ~3.11
+  github.com/sekrit-twc/zimg: '*'
+  linux:
+    # Fix: version `GLIBCXX_3.4.30' not found (required by vspipe)
+    gnu.org/gcc: '*'
+runtime:
+  env:
+    # Fix: Could not find platform independent libraries
+    #      PYTHONHOME = (not set)
+    PYTHONHOME: "{{deps.python.org.prefix}}"
+    PYTHONPATH: "{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages:$PYTHONPATH"
+build:
+  dependencies:
+    gnu.org/autoconf: '*'
+    gnu.org/automake: '*'
+    cython.org: '*'
+    gnu.org/libtool: '*'
+    nasm.us: '*'
+    freedesktop.org/pkg-config: '*'
+    linux:
+      gnu.org/make: '*'
+  script:
+    - ./autogen.sh
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+    - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}} || true
+      working-directory: "{{prefix}}/lib"
+    - run: |
+        sed -i.bak "s|$PKGX_DIR|\${prefix}/../..|g" *.pc
+        sed -i.bak "s|python.org/v{{deps.python.org.version}}|python.org/v{{deps.python.org.version.marketing}}|g" *.pc
+        rm *.bak
+      working-directory: "{{prefix}}/lib/pkgconfig"
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --disable-silent-rules
+      - --disable-dependency-tracking
+      - --with-cython={{deps.cython.org.prefix}}/bin/cython
+      - --with-python_prefix={{prefix}}
+      - --with-python_exec_prefix={{prefix}}
+provides:
+  - bin/vspipe
+test:
+  script:
+    - vspipe --version | grep {{version.major}}
+    - python -c 'import vapoursynth'
