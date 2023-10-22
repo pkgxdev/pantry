@@ -68,4 +68,11 @@ build:
 provides:
   - bin/crystal
 
-test: test $(crystal eval 'puts {{Crystal::VERSION}}') = {{version}}
+test:
+  fixture: puts {{Crystal::VERSION}}
+  env:
+    CRYSTAL_LINK_FLAGS: -Wl,-rpath,{{pkgx.prefix}}
+  script:
+    - cp $FIXTURE test.cr
+    - crystal build -o test test.cr
+    - test "$(./test)" = "{{version}}"
