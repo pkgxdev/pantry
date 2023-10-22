@@ -27,12 +27,12 @@ build:
       gnu.org/gcc: '*'
       gnu.org/make: '*'
   script:
-    - curl -L "$PATCH1" | patch || true
-    - curl -L "$PATCH2" | patch || true
     - run: |
-        sed -i.bak "s|@PREFIX@/share/openssh|{{prefix}}/etc/ssh|g" sandbox-darwin.c
-        rm -f sandbox-darwin.c.bak
+        curl -L "$PATCH1" | patch || true
+        curl -L "$PATCH2" | patch || true
       if: darwin
+    - sed -i.bak "s|@PREFIX@/share/openssh|{{prefix}}/etc/ssh|g" sandbox-darwin.c
+    - rm -f sandbox-darwin.c.bak
     - run: |
         sed -i.bak "s|-fzero-call-used-regs=all|-fzero-call-used-regs=used|g" configure
         rm -f configure.bak
