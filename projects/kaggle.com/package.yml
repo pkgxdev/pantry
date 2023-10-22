@@ -1,0 +1,20 @@
+distributable:
+  url: https://github.com/Kaggle/kaggle-api/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+versions:
+  github: Kaggle/kaggle-api
+dependencies:
+  python.org: ^3.12
+build:
+  dependencies:
+    linux:
+      llvm.org: '*'
+  script:
+    - python-venv.sh {{prefix}}/bin/kaggle
+provides:
+  - bin/kaggle
+test:
+  script:
+    - mkdir -p .kaggle
+    - echo '{"username":"testname","key":"testkey"}' > .kaggle/kaggle.json
+    - kaggle --version | grep {{version}}
