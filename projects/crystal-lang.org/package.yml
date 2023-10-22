@@ -32,6 +32,7 @@ dependencies:
 runtime:
   env:
     CRYSTAL_PATH: ${{prefix}}/lib:$CRYSTAL_PATH
+    CRYSTAL_LIBRARY_PATH: $LD_LIBRARY_PATH
 
 build:
   dependencies:
@@ -76,3 +77,4 @@ test:
     - cp $FIXTURE test.cr
     - crystal build -o test test.cr
     - test "$(./test)" = "{{version}}"
+    - test "$(crystal eval 'puts {{Crystal::VERSION}}')" = "{{version}}"
