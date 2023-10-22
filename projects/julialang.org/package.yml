@@ -1,0 +1,54 @@
+distributable:
+  strip-components: 1
+  url: https://github.com/JuliaLang/julia/archive/refs/tags/v{{version.raw}}.tar.gz
+
+versions:
+  github: JuliaLang/julia/tags
+  strip: /v/
+
+interprets:
+  extensions: jl
+  args: [julia]
+
+build:
+  dependencies:
+    gnu.org/wget: "*"
+    gnu.org/tar: "*"
+  script: |
+    echo "Download Julia {{version.raw}} pre-build archive for $TRIPLE..."
+    wget "https://julialang-s3.julialang.org/bin/$PLATFORM/$ARCH/{{version.major}}.{{version.minor}}/julia-{{version.raw}}-$TRIPLE.tar.gz"
+    mkdir tmp
+    echo "Extracting the archive..."
+    tar xvf julia-{{version.raw}}-$TRIPLE.tar.gz -C tmp
+    echo "Finishing up..."
+    mv -v tmp/julia-{{version.raw}}/* {{prefix}}/
+    echo "Cleaning up..."
+    rm -rf tmp
+  env:
+    linux/x86-64: {
+      PLATFORM: "linux",
+      ARCH: "x64",
+      TRIPLE: "linux-x86_64"
+    }
+    linux/aarch64: {
+      PLATFORM: "linux",
+      ARCH: "aarch64",
+      TRIPLE: "linux-aarch64"
+    }
+    darwin/x86-64: {
+      PLATFORM: "mac",
+      ARCH: "x64",
+      TRIPLE: "mac64"
+    }
+    darwin/aarch64: {
+      PLATFORM: "mac",
+      ARCH: "aarch64",
+      TRIPLE: "macaarch64"
+    }
+
+test:
+  script: |
+    test "$(julia fixture.jl)" = "Hello, World!"
+
+provides:
+  - bin/julia
