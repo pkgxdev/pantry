@@ -1,0 +1,41 @@
+distributable:
+  url: https://github.com/swift-server/swiftly/archive/{{version}}.tar.gz
+  strip-components: 1
+display-name: swiftly
+versions:
+  github: swift-server/swiftly
+platforms:
+  - linux
+runtime:
+  env:
+    SWIFTLY_BIN_DIR: "{{prefix}}/bin"
+    SWIFTLY_HOME_DIR: "{{prefix}}/share"
+dependencies:
+    curl.se: '*'
+build:
+  working-directory: install
+  script:
+    - ./swiftly-install.sh $ARGS
+    - run: |
+        sed -i.bak "s|{{prefix}}|\$(dirname \$0)|g" env.sh
+        rm -f env.sh.bak
+        chmod +x env.sh
+      working-directory: "{{prefix}}/share"
+  env:
+    ARGS:
+      - --no-modify-profile
+      - --disable-confirmation
+      - --no-install-system-deps
+    SWIFTLY_BIN_DIR: "{{prefix}}/bin"
+    SWIFTLY_HOME_DIR: "{{prefix}}/share"
+provides:
+  - bin/swiftly
+test:
+  script:
+    - swiftly --version | grep {{version}}
+    - swiftly install 5.9.1
+    - swiftly list | grep 5.9.1
+    - swift --version | grep 5.9.1
+    - swift package init --type executable
+    - swift run | grep "Hello, world!"
+
