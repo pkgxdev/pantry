@@ -54,15 +54,12 @@ test:
             local port_to_check=$1
             (echo >/dev/tcp/127.0.0.1/$port_to_check) &>/dev/null
         }
-
         # Start checking ports with 7000
         current_port=7000
-
         # Find a free port
         while is_port_free $current_port; do
             ((current_port++))
         done
-
         ./echo --mode server --host 127.0.0.1 --port $current_port & 
         sleep 15
         ./echo --mode client --host 127.0.0.1 --port $current_port & 
@@ -75,6 +72,8 @@ test:
         - -DCMAKE_LINKER={{deps.llvm.org.prefix}}/bin/clang
         - -DCMAKE_C_COMPILER={{deps.llvm.org.prefix}}/bin/clang
         - -DCMAKE_CXX_COMPILER={{deps.llvm.org.prefix}}/bin/clang++
+        - -DCMAKE_C_FLAGS="-latomic"
+        - -DCMAKE_CXX_FLAGS="-latomic"
     CMAKE_ARGS:
       - -DCMAKE_INSTALL_PREFIX="{{prefix}}
       - -DCMAKE_INSTALL_LIBDIR=lib
