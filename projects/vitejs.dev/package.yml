@@ -1,0 +1,21 @@
+distributable: ~
+
+versions:
+  github: vitejs/vite/tags
+  strip: /v/
+
+build:
+  dependencies:
+    deno.land: "*"
+  script: |
+    mkdir -p "{{prefix}}"/bin
+    deno compile npm:vite@{{version.raw}} -o {{prefix}}/bin/vite
+  # Required. Else, wouldn't work.
+  skip: fix-patchelf
+
+test:
+  script: |
+    test "$(vite --version | grep -o 'vite/[^ ]*')" = "vite/{{version.raw}}"
+
+provides:
+  - bin/vite
