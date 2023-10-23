@@ -14,26 +14,37 @@ dependencies:
 build:
   dependencies:
     cmake.org: '*'
-    tea.xyz/gx/make: '*'
-    tea.xyz/gx/cc: c99
     freedesktop.org/pkg-config: ^0.29
     gnu.org/libtool: ^2
     git-scm.org: ^2
     info-zip.org/unzip: '*'
-
   script:
-    make
+    - run: |
+        sed -i.bak \
+          -e "1i\
+          set(RT_LIBDIR \"$RT_LIBDIR\")" \
+          -e 's/\(build busted [0-9]\+\.[0-9]\+\.[0-9]\+\)/\1 RT_LIBDIR=${RT_LIBDIR}/' \
+          BuildLuarocks.cmake
+        rm BuildLuarocks.cmake.bak
+      working-directory: cmake.deps/cmake
+      if: linux
+    - make
       CMAKE_BUILD_TYPE=RelWithDebInfo
       CMAKE_INSTALL_PREFIX="{{prefix}}"
       install
+  env:
+    linux/aarch64:
+      RT_LIBDIR: /usr/lib/aarch64-linux-gnu
+    linux/x86-64:
+      RT_LIBDIR: /usr/lib/x86_64-linux-gnu
 
 test:
   script:
-    echo "$FIXTURE vim!!" > fixture
-    nvim --headless -i NONE -u NONE '+s/vim/neovim/g' +wq fixture
-    test "Hello World from neovim!!" = "$(cat fixture) neovim!!"
+    - echo "$FIXTURE vim\!\!" > fixture
+    - nvim --headless -i NONE -u NONE '+s/vim/neovim/g' +wq fixture
+    - test "Hello World from neovim\!\!" = "$(cat fixture)"
   env:
-    FIXTURE: "Hello World from "
+    FIXTURE: 'Hello World from '
 
 provides:
   - bin/nvim

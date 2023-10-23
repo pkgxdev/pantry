@@ -27,18 +27,16 @@ provides:
 dependencies:
   gnu.org/gmp: 6
   invisible-island.net/ncurses: 6
-  tea.xyz/gx/cc: 'c99'  # ghc uses this during builds
   sourceware.org/libffi: 3
 
 build:
   dependencies:
     gnu.org/autoconf: ^2
     gnu.org/automake: ^1  # `aclocal` is used during the build for some reason
-    tea.xyz/gx/make: '*'  #FIXME specifically, gnu make is *required*
     curl.se: '*'
     gnu.org/m4: '*'
     git-scm.org: ^2
-    python.org: ^3
+    python.org: '>=3<3.12'
     gnu.org/patch: '*'
     linux:
       github.com/numactl/numactl: ^2 # ghcup needs this
@@ -83,7 +81,7 @@ build:
       rm $shim.bak
     done
 
-    sed -i.bak 's|{{tea.prefix}}|$TEA_PREFIX|g' "{{prefix}}/bin/hsc2hs-ghc-{{version}}"
+    sed -i.bak "s|$PKGX_DIR|\$PKGX_DIR|g" "{{prefix}}/bin/hsc2hs-ghc-{{version}}"
     rm "{{prefix}}/bin/hsc2hs-ghc-{{version}}.bak"
   env:
     BOOTSTRAP_HASKELL_NONINTERACTIVE: 1

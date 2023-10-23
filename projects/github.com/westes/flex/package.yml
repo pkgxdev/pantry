@@ -11,9 +11,6 @@ dependencies:
   gnu.org/m4: ^1
 
 build:
-  dependencies:
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
   script: |
     ./configure $ARGS
     make --jobs {{ hw.concurrency }} install
@@ -24,14 +21,12 @@ build:
       - --disable-bootstrap
       - --enable-shared
     darwin:
-      MACOSX_DEPLOYMENT_TARGET: 10.6  #FIXME our default (11) breaks the build
+      MACOSX_DEPLOYMENT_TARGET: 10.6 #FIXME our default (11) breaks the build
     linux:
       # Fix segmentation fault during install on Ubuntu
       CPPFLAGS: -D_GNU_SOURCE
 
 test:
-  dependencies:
-    tea.xyz/gx/cc: c99
   script: |
     flex test.flex
     cc lex.yy.c -lfl

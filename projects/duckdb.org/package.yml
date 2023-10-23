@@ -2,22 +2,19 @@ distributable:
   url: https://github.com/duckdb/duckdb/archive/refs/tags/v{{version}}.tar.gz
   strip-components: 1
 
-# if there’s a github then we can parse the versions
 versions:
   github: duckdb/duckdb/releases/tags
 
 build:
   dependencies:
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
     cmake.org: ^3
     git-scm.org: '*'
   working-directory: build
   script: |
     # duckdb uses git to get its version
     git init ..
-    git config user.email "bot@tea.xyz"
-    git config user.name "teabot"
+    git config user.email "bot@pkgx.dev"
+    git config user.name "pkgxbot"
     git commit --allow-empty -mnil
     git tag v{{version}}
 
@@ -35,7 +32,6 @@ build:
 
 provides:
   - bin/duckdb
-  # ^^ specify the binaries or tea magic won’t work
 
 test:
   fixture: |

@@ -1,0 +1,27 @@
+distributable:
+  url: https://github.com/cython/cython/archive/{{version}}.tar.gz
+  strip-components: 1
+versions:
+  github: cython/cython
+dependencies:
+  python.org: ~3.11
+runtime:
+  env:
+    PYTHONPATH: "{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages"
+build:
+  script:
+    - python -m pip install --prefix={{prefix}}/libexec .
+    - run: |
+        ln -s ../libexec/lib/python{{deps.python.org.version.marketing}} python{{deps.python.org.version.marketing}}
+        ln -s ../libexec/lib/python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
+      working-directory: "{{prefix}}/lib"
+test:
+  dependencies:
+    llvm.org: '*'
+  env:
+    linux:
+      CC: clang
+      AS: llvm-as
+  script:
+    - python setup.py build_ext --inplace
+    - python -c "import package_manager" | grep "You are using tea"

@@ -1,0 +1,32 @@
+distributable:
+  url: https://github.com/sxyazi/yazi/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: sxyazi/yazi/tags
+  strip: /^v/
+
+dependencies:
+  stedolan.github.io/jq: '*'
+  poppler.freedesktop.org: '*'
+  crates.io/fd-find: '*'
+  crates.io/ripgrep: '*'
+  github.com/junegunn/fzf: '*'
+  crates.io/zoxide: '*'
+
+build:
+  dependencies:
+    rust-lang.org: ^1.70
+    rust-lang.org/cargo: '*'
+    llvm.org: <17
+    gnu.org/make: '*'
+  script: cargo install --locked --root {{prefix}} --path app
+  env:
+    CC: clang
+    LD: clang
+
+provides:
+  - bin/yazi
+
+test:
+  - yazi --version | grep "{{version}}"

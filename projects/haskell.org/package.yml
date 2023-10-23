@@ -36,11 +36,9 @@ provides:
   - bin/runhaskell-{{version.marketing}}
   - bin/runhaskell-{{version}}
 
-
 dependencies:
   gnu.org/gmp: 6
   invisible-island.net/ncurses: 6
-  tea.xyz/gx/cc: 'c99'  # ghc uses this during builds
   sourceware.org/libffi: 3
   linux:
     github.com/numactl/numactl: ^2
@@ -51,7 +49,6 @@ warnings:
 build:
   dependencies:
     curl.se: '*'
-    tea.xyz/gx/make: '*'
   script:
     - curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | sh
     - PATH={{prefix}}/.ghcup/bin:$PATH
@@ -60,16 +57,16 @@ build:
     - run: ln -s .ghcup/* .
       working-directory: ${{prefix}}
     - run: |
-       find . -type f -print0 | xargs -0 sed -i.bak -e "s|$TEA_PREFIX|\$TEA_PREFIX|g"
-       rm *.bak
+        find . -type f -print0 | xargs -0 sed -i.bak -e "s|$PKGX_DIR|\$PKGX_DIR|g"
+        rm *.bak
       working-directory: ${{prefix}}/ghc/{{version}}/bin
     - run: |
-       sed -i.bak -e "s|$TEA_PREFIX|\$TEA_PREFIX|g" env
-       rm env.bak
+        sed -i.bak -e "s|$PKGX_DIR|\$PKGX_DIR|g" env
+        rm env.bak
       working-directory: ${{prefix}}/.ghcup
     - run: |
-       find . -type f -name \*.conf -print0 | xargs -0 sed -i.bak -e 's|{{prefix}}|${pkgroot}/../../../../..|g'
-       find . -type f -name \*.conf.bak -delete
+        find . -type f -name \*.conf -print0 | xargs -0 sed -i.bak -e 's|{{prefix}}|${pkgroot}/../../../../..|g'
+        find . -type f -name \*.conf.bak -delete
       working-directory: ${{prefix}}/ghc/{{version}}/lib/ghc-{{version}}/package.conf.d
       if: <9.4
   env:
@@ -84,5 +81,4 @@ test:
     - ghc-pkg recache
     - ghc-pkg check
     - test "$(runghc $FIXTURE)" = "Hello World"
-  fixture:
-    main = putStrLn "Hello World"
+  fixture: main = putStrLn "Hello World"

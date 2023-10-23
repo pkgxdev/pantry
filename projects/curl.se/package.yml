@@ -11,28 +11,18 @@ versions:
 dependencies:
   openssl.org: ^1.1
   curl.se/ca-certs: '*'
+  zlib.net: ^1.2.11
 
 build:
-  dependencies:
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
-  script: |
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }} install
-  env:
-    ARGS:
-    - --prefix={{prefix}}
-    - --with-openssl
-    - --with-ca-fallback  # uses openssl’s certs (which we control)
-  test:
-    make test
+  - ./configure
+        --prefix={{prefix}}
+        --with-openssl
+        --with-ca-fallback  # uses openssl’s certs (which we control)
+  - make --jobs {{ hw.concurrency }} install
 
 test:
-  script: |
-    curl -i tea.xyz
-    curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org
-
-# TODO need to fix the .la file
+  curl -i tea.xyz
+  curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org
 
 provides:
   - bin/curl

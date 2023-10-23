@@ -7,10 +7,11 @@ versions:
   strip:
     - /^rev\//
 dependencies:
-  python.org: ^3.11
-  linux:
-    tea.xyz/gx/cc: c99
+  python.org: ~3.11
+  llvm.org: <17 # needs gcc to sip-install
 build:
+  dependencies:
+    gnu.org/make: '*'
   script:
     - python-venv.sh {{prefix}}/bin/sip-install
     - python-venv.sh {{prefix}}/bin/sip-build
@@ -18,6 +19,10 @@ build:
     - python-venv.sh {{prefix}}/bin/sip-module
     - python-venv.sh {{prefix}}/bin/sip-sdist
     - python-venv.sh {{prefix}}/bin/sip-wheel
+  env:
+    linux:
+      CC: clang
+      AS: llvm-as
 provides:
   - bin/sip-install
   - bin/sip-build
@@ -26,5 +31,10 @@ provides:
   - bin/sip-sdist
   - bin/sip-wheel
 test:
+  env:
+    linux:
+      CC: clang
+      CXX: clang++
+      AS: llvm-as
   script:
     - sip-install --target-dir .

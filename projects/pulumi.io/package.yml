@@ -15,21 +15,23 @@ dependencies:
 build:
   dependencies:
     go.dev: '*'
-    tea.xyz/gx/make: '*'
-  script: |
-    pushd sdk
-    go mod download
-    popd
+  script:
+    - run: go mod download
+      working-directory: sdk
 
-    pushd pkg
-    go mod download
-    popd
+    - run: go mod download
+      working-directory: pkg
 
-    make build
-    make install
+    - run: |
+        sed -i.bak -e 's/-ldflags "/-ldflags "-buildmode=pie /g' Makefile
+        rm Makefile.bak
+      if: linux
 
-    mkdir -p {{prefix}}/bin
-    mv build/bin/pulumi* {{prefix}}/bin/
+    - make build
+    - make install
+
+    - mkdir -p {{prefix}}/bin
+    - mv build/bin/pulumi* {{prefix}}/bin/
 
     # Install shell completions
     # TODO: Doesn't work for zsh. Should it be left up to user?

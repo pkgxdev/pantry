@@ -10,14 +10,17 @@ versions:
     - /.tar.xz/
 
 dependencies:
-  tea.xyz/gx/cc: c99
-  tea.xyz/gx/make: '*'
   libpng.org: 1
   pixman.org: ^0.40.0
   freetype.org: 2
   gnome.org/glib: 2
   freedesktop.org/fontconfig: 2
   sourceware.org/bzip2: 1
+  x.org/x11: '*'
+  x.org/xcb: '*'
+  x.org/exts: '*'
+  x.org/xrender: '*'
+  oberhumer.com/lzo: '*'
 
 build:
   dependencies:
@@ -27,20 +30,56 @@ build:
     libexpat.github.io: =2.4.9
     gnome.org/gobject-introspection: 1
     gnu.org/libtool: ^2
-  script: |
-    ./configure --prefix={{ prefix }} --disable-dependency-tracking
-    make --jobs {{ hw.concurrency }}
-    make install
+    mesonbuild.com: ^1
+    ninja-build.org: ^1
+  script:
+    - run: |
+        ./configure --prefix={{ prefix }} --disable-dependency-tracking
+        make --jobs {{ hw.concurrency }}
+        make install
+      if: <1.18.0
 
-    rm -rf {{prefix}}/share  # docs are online
+    - run: |
+        meson setup build --prefix={{ prefix }} --buildtype=release $ARGS
+        ninja -C build
+        ninja -C build install
+      if: '>=1.18.0'
+
+    - rm -rf {{prefix}}/share # docs are online
+
+    - run: |
+        mv cairo/* .
+        rmdir cairo
+        ln -s . cairo
+      working-directory: ${{ prefix }}/include
+
+    - run: |
+        tmp_dir=$(ls)
+        mv $tmp_dir/* .
+        rmdir $tmp_dir
+      working-directory: ${{ prefix }}/lib
+      if: linux
+      
+    - run: |
+        mv cairo/* .
+        rmdir cairo
+        ln -s . cairo
+      working-directory: ${{ prefix }}/lib
+      if: darwin
+  env:
+    ARGS:
+      - -Dfreetype=enabled
+      - -Dpng=enabled
+      - -Dglib=enabled
+      - -Dxcb=enabled
+      - -Dxlib=enabled
+      - -Dzlib=enabled
+      - -Dglib=enabled
 
 test:
-  dependencies:
-    tea.xyz/gx/cc: c99
-  script: |
-    cc test.c -I{{prefix}}/include/cairo -lcairo
-    ./a.out
-  #FIXME env should add that include path via pkg-config look up
+  script:
+    - cc test.c -lcairo
+    - ./a.out
 
 provides:
   - bin/cairo-trace

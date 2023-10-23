@@ -1,0 +1,39 @@
+distributable:
+  url: https://github.com/libsixel/libsixel/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: libsixel/libsixel/releases
+  strip:
+    - /^libsixel v/
+
+dependencies:
+  libjpeg-turbo.org: '*'
+  libpng.org: '*'
+
+build:
+  dependencies:
+    mesonbuild.com: '*'
+    ninja-build.org: 1
+  working-directory: build
+  script: |
+    meson .. $ARGS
+    ninja --verbose
+    ninja install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --libdir={{prefix}}/lib
+      - --buildtype=release
+      - -Dgdk-pixbuf2=disabled
+      - -Dtests=disabled
+
+
+provides:
+  - bin/img2sixel
+  - bin/sixel2png
+  - bin/libsixel-config
+
+test:
+  script:
+    img2sixel --version

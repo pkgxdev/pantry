@@ -1,0 +1,27 @@
+distributable:
+  url: https://gitlab.com/greut/eclint/-/archive/v{{version}}/eclint-v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  gitlab: greut/eclint
+
+build:
+  dependencies:
+    go.dev: '*'
+  script:
+    - go mod download
+    - mkdir -p {{prefix}}/bin
+    - go build -trimpath -ldflags="$LDFLAGS" -o "{{ prefix }}"/bin/eclint ./cmd/eclint
+  env:
+    LDFLAGS:
+      - -s
+      - -w
+      - -X main.version=v{{version}}
+    CGO_ENABLED: 0
+
+provides:
+  - bin/eclint
+
+test:
+  script:
+    - eclint -version | grep "v{{version}}"

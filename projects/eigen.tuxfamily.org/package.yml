@@ -8,8 +8,6 @@ versions:
 build:
   working-directory: build
   dependencies:
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
     cmake.org: '^3'
   script: |
     cmake .. -DCMAKE_INSTALL_PREFIX={{prefix}}
@@ -21,13 +19,12 @@ build:
     cd include
     rmdir eigen3
     # but work for stuff that expects the namespace too
-    ln -s eigen3 .
+    ln -s . eigen3
   test:
     make test
 
 test:
   dependencies:
-    tea.xyz/gx/cc: c99
     freedesktop.org/pkg-config: ^0.29
   env:
     cxxflags: $(pkg-config --cflags eigen3)

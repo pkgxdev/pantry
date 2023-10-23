@@ -18,12 +18,14 @@ dependencies:
 
 build:
   dependencies:
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
     freedesktop.org/pkg-config: '*'
-  script: |
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }} install
+  script:
+    # versions didn't get bumped in 4.0.0
+    - run: |
+        sed -i.bak -e 's/3\.4\.1/{{version}}/g' configure
+        rm configure.bak
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
   env:
     ARGS:
       - --prefix="{{prefix}}"
@@ -37,4 +39,5 @@ test:
   dependencies:
     freedesktop.org/pkg-config: '*'
   script:
-    pkg-config --modversion openslide | grep {{version}}
+    - pkg-config --modversion openslide
+    - pkg-config --modversion openslide | grep {{version}}

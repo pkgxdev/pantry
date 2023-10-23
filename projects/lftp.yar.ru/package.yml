@@ -17,16 +17,13 @@ dependencies:
   libexpat.github.io: '*'
 
 build:
-  dependencies:
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
   script: |
     ./configure $ARGS
     make --jobs {{ hw.concurrency }} install
   env:
     darwin:
       # https://github.com/lavv17/lftp/issues/611
-      CFLAGS: "$CFLAGS -Wno-implicit-function-declaration"
+      CFLAGS: '$CFLAGS -Wno-implicit-function-declaration'
     ARGS:
       - --prefix="{{prefix}}"
       - --with-openssl="{{deps.openssl.org.prefix}}"

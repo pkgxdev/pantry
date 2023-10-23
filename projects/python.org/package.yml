@@ -34,7 +34,7 @@ interprets:
   args: python
 
 dependencies:
-# recommended (but none are actually required)
+  # recommended (but none are actually required)
   zlib.net: 1
   sourceware.org/bzip2: 1
   openssl.org: ^1.1
@@ -45,13 +45,12 @@ dependencies:
   sqlite.org: 3
   gnu.org/readline: 8
   invisible-island.net/ncurses: 6
+  tcl-lang.org: 8
   # linux:
   #   oracle.com/berkeley-db: 18
 
 build:
   dependencies:
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
     freedesktop.org/pkg-config: ^0.29
     gnu.org/patch: '*'
     curl.se: '*'
@@ -64,9 +63,10 @@ build:
       if: ^2
 
     # fixes the build scripts so they use the standard environment variables we set
-    - |
-      sed -i.bak -e 's|system_lib_dirs = .*|system_lib_dirs = os.getenv("LIBRARY_PATH").split(":")|' ./setup.py
-      sed -i.bak -e 's|system_include_dirs = .*|system_include_dirs = os.getenv("CPATH").split(":")|' ./setup.py
+    - run: |
+        sed -i.bak -e 's|system_lib_dirs = .*|system_lib_dirs = os.getenv("LIBRARY_PATH").split(":")|' ./setup.py
+        sed -i.bak -e 's|system_include_dirs = .*|system_include_dirs = os.getenv("CPATH").split(":")|' ./setup.py
+      if: <3.12
 
     # older versions use a different config dir
     - run: |
@@ -124,6 +124,16 @@ build:
     - run: patch -p1 < props/patch3.4.diff
       if: '~3.4.1'
 
+    # 3.12.0 needs help with mpdecimal
+    - run: |
+        sed -i.bak 's/libmpdec_machine=universal/libmpdec_machine=x64/' configure
+        rm configure.bak
+      if: darwin/x86-64
+    - run: |
+        sed -i.bak 's/libmpdec_machine=universal/libmpdec_machine=uint128/' configure
+        rm configure.bak
+      if: darwin/aarch64
+
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }}
     - make install
@@ -159,22 +169,20 @@ build:
           rm $binfile.bak
         done
 
-        sed -i.bak -e 's|{{ prefix }}|\\$(shell tea --prefix)/python.org/v{{version.major}}|g' $confdir/Makefile
+        sed -i.bak -e 's|{{ prefix }}|\\$(or $(PKGX_DIR),$(HOME)/.pkgx)/python.org/v{{version.major}}|g' $confdir/Makefile
         rm $confdir/Makefile.bak
       working-directory: ${{prefix}}
 
-    - run:
-        cat $PROP >> _sysconfigdata__*.py
-      working-directory:
-        ${{prefix}}/lib/python{{version.marketing}}
+    - run: cat $PROP >> _sysconfigdata__*.py
+      working-directory: ${{prefix}}/lib/python{{version.marketing}}
       prop: |
         import os
         import re
 
-        tea_prefix = os.path.normpath(os.path.join(os.path.dirname(__file__), '../../../../'))
+        pkgx_prefix = os.path.normpath(os.path.join(os.path.dirname(__file__), '../../../../'))
         for key in build_time_vars:
           if isinstance(build_time_vars[key], str):
-            build_time_vars[key] = re.sub(r'(\s|^)/opt/', r'\g<1>{}/'.format(tea_prefix), build_time_vars[key])
+            build_time_vars[key] = re.sub(r'(\s|^)/opt/', r'\g<1>{}/'.format(pkgx_prefix), build_time_vars[key])
 
     # force pip to user-install mode without sudo
     - ln -s /dev {{prefix}}/lib/python{{version.marketing}}/site-packages
@@ -205,19 +213,16 @@ build:
       # - --enable-optimizations  # fails due to clang/llvm pkging bug on Linux
       # - --with-lto  # fails on linux/aarch64
       - --enable-shared
-    libdir:
-      lib/python{{version.marketing}}
+    libdir: lib/python{{version.marketing}}
     darwin:
-      confdir:
-        $libdir/config-{{version.marketing}}-darwin
+      confdir: $libdir/config-{{version.marketing}}-darwin
       PYTHON2PATCHES:
         - https://raw.githubusercontent.com/macports/macports-ports/master/lang/python27/files/patch-getpath.diff
     linux:
       # ARGS:
       #   - --with-dbmliborder=bdb
       ARCH: ${{hw.arch}}
-      confdir:
-        $libdir/config-{{version.marketing}}-${ARCH/-/_}-linux-gnu
+      confdir: $libdir/config-{{version.marketing}}-${ARCH/-/_}-linux-gnu
     shebangs:
       - bin/2to3-{{version.marketing}}
       - bin/idle{{version.marketing}}
@@ -241,8 +246,6 @@ build:
       - https://raw.githubusercontent.com/macports/macports-ports/master/lang/python27/files/openssl_ver.patch
 
 test:
-  dependencies:
-    tea.xyz/gx/cc: c99
   script:
     # Check if sqlite is ok, because we build with --enable-loadable-sqlite-extensions
     # and it can occur that building sqlite silently fails if OSX's sqlite is used.

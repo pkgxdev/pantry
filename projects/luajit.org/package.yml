@@ -9,25 +9,22 @@ versions:
     - /\.ROLLING/
 runtime:
   env:
-    LUA_PATH: "{{prefix}}/share/luajit-{{version.marketing}}/?.lua"
+    LUA_PATH: '{{prefix}}/share/luajit-{{version.marketing}}/?.lua'
 build:
   dependencies:
-    darwin:
-      tea.xyz/gx/cc: c99
     linux:
       gnu.org/gcc: '*'
-    tea.xyz/gx/make: '*'
   script:
     - make --jobs {{hw.concurrency}} amalg PREFIX={{prefix}}
     - make --jobs {{hw.concurrency}} install PREFIX={{prefix}}
     - mkdir -p {{prefix}}/doc
     - mv doc/* {{prefix}}/doc/
     - run: ln -s luajit-{{version.raw}}. luajit
-      working-directory: "{{prefix}}/bin"
+      working-directory: '{{prefix}}/bin'
     - run: |
         ln -s libluajit-5.1.dylib libluajit.dylib
         ln -s libluajit-5.1.a libluajit.a
-      working-directory: "{{prefix}}/lib"
+      working-directory: '{{prefix}}/lib'
 provides:
   - bin/luajit
   - bin/luajit-{{version.marketing}}.

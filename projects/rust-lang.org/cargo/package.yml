@@ -10,30 +10,46 @@ provides:
 
 runtime:
   env:
-    CARGO_INSTALL_ROOT: ${{env.HOME}}/.local
+    CARGO_INSTALL_ROOT: ${{home}}/.local
+
+companions:
+  git-scm.org: ^2
+  rust-lang.org: '*'
 
 dependencies:
-  git-scm.org: 2
-  rust-lang.org: '*'
-  openssl.org: ^1 # cargo needs the certs
-  #TODO curl.se: ^8
   zlib.net: ^1
-#TODO ^^ prevent vendoring by requiring these: libssh2.org & libgit2.org
+  libgit2.org: ^1
+  curl.se/ca-certs: '*'
+  linux:
+    llvm.org: '*' # FIXME only need the linker actually
+    curl.se: '*'
+    # ^^ Apple adds patches to curl on Darwin that prevent breakage with this pkg
+    # NOTE maybe in general we should just use darwin curl?
+    # https://github.com/pkgxdev/pantry/issues/3520
 
 build:
   dependencies:
+    rust-lang.org: '*'
     gnu.org/tar: '*'
     tukaani.org/xz: '*'
     freedesktop.org/pkg-config: ^0.29
     rust-lang.org/cargo: '*'
-  script: cargo $ARGS
+  script:
+    # otherwise we are not ABI compatible and new macOS versions may break
+    # this happened with Sonoma
+    - echo "default = ['curl/force-system-lib-on-osx']" >> Cargo.toml
+    - cargo install
+      --verbose
+      --root={{ prefix }}
+      --path=.
   env:
-    ARGS:
-      - install
-      - --root={{ prefix }}
-      - --path=.
+    LIBGIT2_SYS_USE_PKG_CONFIG: 1
+    LIBSSH2_SYS_USE_PKG_CONFIG: 1
 
 test:
+  dependencies: #FIXME brewkit should add companions to the test env
+    git-scm.org: ^2
+    rust-lang.org: '*'
   script: |
     cargo init . --name xyz_tea_fixture
     echo 'fn main() {println!("Hello World!");}' >src/main.rs

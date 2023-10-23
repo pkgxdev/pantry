@@ -17,19 +17,16 @@ dependencies:
 
 provides:
   darwin:
-  - bin/cmake
-  - bin/ccmake
-  - bin/cpack
-  - bin/ctest
+    - bin/cmake
+    - bin/ccmake
+    - bin/cpack
+    - bin/ctest
   linux:
-  - bin/cmake
-  - bin/cpack
-  - bin/ctest
+    - bin/cmake
+    - bin/cpack
+    - bin/ctest
 
 build:
-  dependencies:
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
   script: |-
     ./bootstrap $ARGS
     make --jobs {{ hw.concurrency }} install
@@ -50,24 +47,21 @@ build:
       - -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON
     darwin:
       ARGS:
-      - -DZLIB_LIBRARY={{deps.zlib.net.prefix}}/lib/libz.dylib
-      - -DZLIB_INCLUDE_DIR={{deps.zlib.net.prefix}}/include
-      - -DCURL_LIBRARY={{deps.curl.se.prefix}}/lib/libcurl.dylib
-      - -DCURL_INCLUDE_DIR={{deps.curl.se.prefix}}/include
-      - -DBZIP2_LIBRARIES={{deps.sourceware.org/bzip2.prefix}}/lib/libbz2.a
-      - -DBZIP2_INCLUDE_DIR={{deps.sourceware.org/bzip2.prefix}}/include
+        - -DZLIB_LIBRARY={{deps.zlib.net.prefix}}/lib/libz.dylib
+        - -DZLIB_INCLUDE_DIR={{deps.zlib.net.prefix}}/include
+        - -DCURL_LIBRARY={{deps.curl.se.prefix}}/lib/libcurl.dylib
+        - -DCURL_INCLUDE_DIR={{deps.curl.se.prefix}}/include
+        - -DBZIP2_LIBRARIES={{deps.sourceware.org/bzip2.prefix}}/lib/libbz2.a
+        - -DBZIP2_INCLUDE_DIR={{deps.sourceware.org/bzip2.prefix}}/include
     linux:
       ARGS:
-      - -DZLIB_LIBRARY={{deps.zlib.net.prefix}}/lib/libz.so
-      - -DZLIB_INCLUDE_DIR={{deps.zlib.net.prefix}}/include
-      - -DCURL_LIBRARY={{deps.curl.se.prefix}}/lib/libcurl.so
-      - -DCURL_INCLUDE_DIR={{deps.curl.se.prefix}}/include
-      - -DBZIP2_LIBRARIES={{deps.sourceware.org/bzip2.prefix}}/lib/libbz2.so
-      - -DBZIP2_INCLUDE_DIR={{deps.sourceware.org/bzip2.prefix}}/include
+        - -DZLIB_LIBRARY={{deps.zlib.net.prefix}}/lib/libz.so
+        - -DZLIB_INCLUDE_DIR={{deps.zlib.net.prefix}}/include
+        - -DCURL_LIBRARY={{deps.curl.se.prefix}}/lib/libcurl.so
+        - -DCURL_INCLUDE_DIR={{deps.curl.se.prefix}}/include
+        - -DBZIP2_LIBRARIES={{deps.sourceware.org/bzip2.prefix}}/lib/libbz2.so
+        - -DBZIP2_INCLUDE_DIR={{deps.sourceware.org/bzip2.prefix}}/include
 
-  error-log:
-    Bootstrap.cmk/cmake_bootstrap.log
+  error-log: Bootstrap.cmk/cmake_bootstrap.log
 
-test:
-  script:
-    cmake --version
+test: cmake --version

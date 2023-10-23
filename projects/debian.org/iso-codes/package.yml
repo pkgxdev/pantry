@@ -1,0 +1,30 @@
+distributable:
+  url: https://deb.debian.org/debian/pool/main/i/iso-codes/iso-codes_{{version}}.orig.tar.xz
+  strip-components: 1
+versions:
+  url: https://deb.debian.org/debian/pool/main/i/iso-codes/
+  match: /iso-codes_\d+\.\d+\.\d+\.orig\.tar\.xz/
+  strip:
+    - /^iso-codes_/
+    - /\.orig\.tar\.xz/
+dependencies:
+  gnu.org/gettext: '*'
+build:
+  dependencies:
+    python.org: '<3.12'
+  script:
+    - ./configure $CONFIGURE_ARGS
+    - make --jobs {{hw.concurrency}}
+    - make --jobs {{hw.concurrency}} install
+  env:
+    CONFIGURE_ARGS:
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --prefix="{{prefix}}"
+      - --libdir="{{prefix}}/lib"
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script:
+    - pkg-config --modversion iso-codes | grep {{version}}
+    - pkg-config --variable=domains iso-codes | grep "iso_639-2 iso_639-3 iso_639-5 iso_3166-1 iso_3166-2 iso_3166-3 iso_4217 iso_15924"

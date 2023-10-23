@@ -1,33 +1,27 @@
-
 distributable:
-   url: https://github.com/gflags/gflags/archive/refs/tags/v{{version}}.tar.gz
-   strip-components: 1
+  url: https://github.com/gflags/gflags/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
 
 versions:
   github: gflags/gflags/tags
   strip: /^v/
 
-
 build:
   dependencies:
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
     cmake.org: '*'
   working-directory: buildroot
   script: |
     cmake $ARGS ..
-    make --jobs {{ hw.concurrency }} 
+    make --jobs {{ hw.concurrency }}
     make install
-  env: 
-    ARGS: 
+  env:
+    ARGS:
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
       - -DBUILD_SHARED_LIBS=ON
       - -DBUILD_STATIC_LIBS=ON
       - -DCMAKE_POSITION_INDEPENDENT_CODE=ON
 
 test:
-  dependencies:
-    tea.xyz/gx/cc: c99
   fixture: |
     #include <iostream>
     #include "gflags/gflags.h"

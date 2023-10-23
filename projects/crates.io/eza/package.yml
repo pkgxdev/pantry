@@ -1,0 +1,24 @@
+distributable:
+  url: https://github.com/eza-community/eza/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/eza
+
+versions:
+  github: eza-community/eza
+  strip: /v/
+
+dependencies:
+  libgit2.org: ^1
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.65'
+    rust-lang.org/cargo: '*'
+  script:
+    cargo install --locked --path . --root {{prefix}}
+
+test:
+  script:
+    - eza --version | grep {{version}}

@@ -11,14 +11,15 @@ provides:
 build:
   dependencies:
     go.dev: ^1.19
-    tea.xyz/gx/make: '*'
-  script: |
-    sed 's/unreleased//g' Makefile > Makefile.patch
-    mv Makefile.patch Makefile
-    make build VERSION={{version}}
-    mkdir -p "{{ prefix }}"/bin
-    mv bin/helm "{{ prefix }}"/bin
-  # temporary sed hacks above until brewkit supports cloning git directly see issue: https://github.com/teaxyz/brewkit/issues/17
+  script:
+    - run: |
+        sed -i.bak \
+            -e's/unreleased//g' \
+            -e's/\(shell find . .* -print\)/\1 | grep -v dev.pkgx./' \
+            Makefile
+        rm Makefile.bak
+    - mkdir -p "{{prefix}}/bin"
+    - make install VERSION={{version}} INSTALL_PATH="{{prefix}}/bin"
 
 test:
   script: |

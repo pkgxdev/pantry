@@ -7,7 +7,6 @@ dependencies:
   zlib.net: '*'
 build:
   dependencies:
-    tea.xyz/gx/cc: c99
     gnu.org/make: '*'
     cmake.org: '*'
     ninja-build.org: '*'
@@ -16,10 +15,12 @@ build:
       gnu.org/patch: '*'
   script:
     - run: curl $PATCH | patch -p1 || true
-      if: darwin
+      if: <5.3.0
     - cmake -S . -B build -G Ninja $CMAKE_ARGS
     - cmake --build build
     - cmake --install build
+    - run: cp -a contrib {{prefix}}/include
+      if: '>=5.3.0'
   env:
     PATCH: https://github.com/assimp/assimp/commit/5a89d6fee138f8bc979b508719163a74ddc9a384.patch?full_index=1
     CMAKE_ARGS:
@@ -35,8 +36,6 @@ build:
 provides:
   - bin/assimp
 test:
-  dependencies:
-    tea.xyz/gx/cc: c99
   script:
     - cc -std=c++11 test.cpp -lassimp -o test
     - ./test

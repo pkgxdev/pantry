@@ -12,8 +12,9 @@ dependencies:
   kerberos.org: '*'
 build:
   dependencies:
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
+    linux:
+      llvm.org: ^16
+      gnu.org/make: '*'
   script:
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
@@ -23,13 +24,12 @@ build:
         ln -s . tirpc
       working-directory: ${{prefix}}/include
   env:
+    LD: ld.lld
     ARGS:
       - --disable-dependency-tracking
       - --disable-silent-rules
       - --prefix={{prefix}}
 test:
-  dependencies:
-    tea.xyz/gx/cc: c99
   script:
     - cc test.c -ltirpc -o test
     - ./test

@@ -1,0 +1,29 @@
+# https://fluxcd.io/
+
+distributable:
+  url: git+https://github.com/fluxcd/flux2
+  ref: v{{version}}
+
+versions:
+  github: fluxcd/flux2
+  strip: /^v/
+
+build:
+  dependencies:
+    go.dev: ^1.20
+    kubernetes.io/kustomize: ^5
+    gnu.org/make: "*"
+    git-scm.org: "*"
+  script: |
+    make build VERSION={{version}}
+    mkdir -p "{{ prefix }}"/bin
+    mv bin/flux "{{ prefix }}"/bin
+
+provides:
+  - bin/flux
+
+test:
+  script: |
+    test "$(flux --version)" = "flux version {{version}}"
+    flux install --export > flux-system.yml
+    test -f flux-system.yml

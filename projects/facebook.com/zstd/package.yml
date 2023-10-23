@@ -21,20 +21,24 @@ provides:
 
 build:
   dependencies:
-    tea.xyz/gx/cc: c99
     cmake.org: ^3
     ninja-build.org: ^1
   working-directory: build/out
-  script: |
-    cmake ../cmake $ARGS
-    cmake --build .
-    cmake --install .
+  script:
+    - cmake ../cmake $ARGS
+    - cmake --build .
+    - cmake --install .
+    - run: |
+        install_name_tool -add_rpath @loader_path/../lib pzstd
+        install_name_tool -add_rpath @loader_path/../lib zstd
+      if: darwin
+      working-directory: ${{prefix}}/bin
   env:
     ARGS:
       - -GNinja
       - -DCMAKE_BUILD_TYPE=Release
       - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
-      - -DZSTD_PROGRAMS_LINK_SHARED=ON   # link `zstd` to `libzstd`
+      - -DZSTD_PROGRAMS_LINK_SHARED=ON # link `zstd` to `libzstd`
       - -DZSTD_BUILD_CONTRIB=ON
       - -DZSTD_LEGACY_SUPPORT=ON
       - -DZSTD_ZLIB_SUPPORT=ON
@@ -45,8 +49,12 @@ build:
         # Otherwise we get errors from clang
         - -DCMAKE_CXX_FLAGS="-std=c++11"
 
-test: |
-  export fixture="asdf123%!*"
-  for x in zstd pzstd xz lz4 gzip; do
-    test $(echo "$fixture" | $x | zstd -d) = "$fixture"
-  done
+test:
+  env:
+    STRING: asdf123%!*
+  script:
+    - test $(echo "$STRING" | zstd  | zstd -d) = "$STRING"
+    - test $(echo "$STRING" | pzstd | zstd -d) = "$STRING"
+    - test $(echo "$STRING" | xz    | zstd -d) = "$STRING"
+    - test $(echo "$STRING" | lz4   | zstd -d) = "$STRING"
+    - test $(echo "$STRING" | gzip  | zstd -d) = "$STRING"

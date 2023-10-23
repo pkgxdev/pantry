@@ -11,18 +11,13 @@ versions:
 
 dependencies:
   gnome.org/libxml2: '*'
-  python.org: =3.11
+  python.org: ~3.11
 
 build:
-  dependencies:
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
-
   script:
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
     - sed -i'' -e 's|#!/.* -s|#!/usr/bin/env python|g' {{prefix}}/bin/itstool
-
   env:
     ARGS:
       - --prefix="{{prefix}}"

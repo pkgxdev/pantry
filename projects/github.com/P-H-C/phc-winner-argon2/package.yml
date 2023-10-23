@@ -1,5 +1,6 @@
 distributable:
   url: https://github.com/P-H-C/phc-winner-argon2/archive/refs/tags/{{version.raw}}.tar.gz
+  strip-components: 1
 
 versions:
   github: P-H-C/phc-winner-argon2
@@ -8,10 +9,6 @@ provides:
   - bin/argon2
 
 build:
-  dependencies:
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
-  working-directory: phc-winner-argon2-{{version.raw}}
   script: |
     make $ARGS
     make test
@@ -28,7 +25,6 @@ build:
       # Builds with a newer instruction set on our builder than the test container uses
       ARGS:
         - OPTTARGET=core2
-
 
 test: |
   printf '%s' 'password' | argon2 somesalt -t 2 -m 16 -p 4

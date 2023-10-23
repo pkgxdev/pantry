@@ -11,11 +11,9 @@ provides:
 build:
   dependencies:
     cmake.org: '*'
-    tea.xyz/gx/cc: c99
     linux/aarch64:
       llvm.org: <16 # otherwise we get an error from the arm_neon.h include
-    tea.xyz/gx/make: '*'
-    python.org: ^3.11
+    python.org: ~3.11
   script:
     # MBEDTLS_THREADING_PTHREAD - enable pthread mutexes
     # MBEDTLS_THREADING_C - allow use of mutexes within mbed TLS
@@ -64,8 +62,6 @@ build:
       - -DGEN_FILES=OFF
 
 test:
-  dependencies:
-    tea.xyz/gx/cc: c99
   script:
     - printf '%s' 'This is a test file' > testfile.txt
     - test "$(generic_sum SHA256 testfile.txt)" = "$SUM"

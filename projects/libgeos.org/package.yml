@@ -7,27 +7,22 @@ versions:
 
 build:
   dependencies:
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
     cmake.org: '*'
   working-directory: build
   script: |
     cmake .. $ARGS
-    make --jobs {{ hw.concurrency }} 
+    make --jobs {{ hw.concurrency }}
     make install
   env:
     ARGS:
       - -DCMAKE_BUILD_TYPE=Release
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
 
-
 provides:
   - bin/geosop
   - bin/geos-config
 
 test:
-  dependencies:
-    tea.xyz/gx/cc: c99
   fixture: |
     #include <stdio.h>
     #include <stdarg.h>

@@ -31,46 +31,49 @@ options:
   - { name: rust-demangler, default: false }
 
 dependencies:
-  tea.xyz/gx/cc: c99
+  linux:
+    llvm.org: '*'
   #FIXME ^^ strictly rustc only needs a linker
   zlib.net: 1
 
 build:
   dependencies:
-    tea.xyz/gx/make: '*'  #FIXME surely we don’t need make AND ninja
     cmake.org: ^3.20
     ninja-build.org: ^1.10
-    python.org: 3
+    python.org: '>=3<3.12'
     openssl.org: '*' # needed to build openssl-sys
     freedesktop.org/pkg-config: ^0.29
     crates.io/semverator: 0
-  script: |-
+    linux:
+      gnu.org/make: '*'
+  script:
     # --enable-optimize not available as of 1.63.0
-    if semverator satisfies '<1.63' {{ version }}; then
-      export ARGS="$ARGS --enable-optimize"
-    fi
+    - run: export ARGS="$ARGS --enable-optimize"
+      if: <1.63.0
 
     # 1.68.0 introduced a regression w.r.t. CI builds
     # https://github.com/rust-lang/rust/issues/108959
-    if semverator satisfies '>=1.68<1.70' {{ version }}; then
-      sed -i.bak -e 's/CiEnv::is_ci()/CiEnv::is_ci() \&\& config.rust_info.is_managed_git_subrepository()/' src/bootstrap/native.rs
-      rm src/bootstrap/native.rs.bak
-    fi
+    - run: |
+        sed -i.bak -e 's/CiEnv::is_ci()/CiEnv::is_ci() \&\& config.rust_info.is_managed_git_subrepository()/' native.rs
+        rm native.rs.bak
+      if: '>=1.68<1.70'
+      working-directory: src/bootstrap
 
-    ./configure $ARGS
-    make install
+    - ./configure $ARGS
+    - make install
 
-    for tool in $tools; do
-      ./x.py install $tool
-    done
+    - |
+      for tool in $tools; do
+        ./x.py install $tool
+      done
 
-    rm -rf {{prefix}}/share/doc
+    - rm -rf {{prefix}}/share/doc
   env:
     ARGS:
       - --enable-vendor
       - --prefix={{ prefix }}
       - --enable-ninja
-      - --disable-docs  # docs are online
+      - --disable-docs # docs are online
       - --tools=clippy,rustdoc,rustfmt,analysis
     tools:
       - clippy

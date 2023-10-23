@@ -13,28 +13,24 @@ platforms:
 entrypoint: tea ./entrypoint.sh
 
 dependencies:
-  python.org: ^3.10
+  python.org: '>=3.10<3.12'
   redis.io: ^7
   tea.xyz: ^0
 
 build:
-  dependencies:
-    tea.xyz/gx/cc: c99
   script:
     # `pip install` seems to miss some vital .json files, so we must manually copy
     # we copy everything as we're not 100% sure which files are missing
     # we do this first so any file movements from `pip install` takes precedence
-    - run:
-        cp -R $SRCROOT/autogpt .
-      working-directory:
-        ${{prefix}}/venv/lib/python{{deps.python.org.version.marketing}}/site-packages
+    - run: cp -R $SRCROOT/autogpt .
+      working-directory: ${{prefix}}/venv/lib/python{{deps.python.org.version.marketing}}/site-packages
 
     - python-venv.py {{prefix}}/bin/auto-gpt --requirements-txt
 
     # still pretty new and thus provides no executable, so we made one
     - cp props/auto-gpt {{prefix}}/venv/bin
 
-    - working-directory: "{{prefix}}/share"
+    - working-directory: '{{prefix}}/share'
       run: |
         cp $SRCROOT/.env.template env.template
         cp $SRCROOT/prompt_settings.yaml .

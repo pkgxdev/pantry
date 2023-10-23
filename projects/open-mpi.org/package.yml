@@ -13,7 +13,7 @@ dependencies:
 
 runtime:
   env:
-    OPAL_PREFIX: "{{prefix}}"
+    OPAL_PREFIX: '{{prefix}}'
     OMPI_CC: gcc
     OMPI_CXX: g++
     OMPI_FC: gfortran
@@ -22,34 +22,36 @@ runtime:
     OMPI_FCFLAGS: $FCFLAGS -I{{prefix}}/include
     OMPI_CPPFLAGS: $CPPFLAGS
     OMPI_LDFLAGS: $LDFLAGS
-    # OMPI_LIBS: $LIBRARY_PATH
     OMPI_F77FLAGS: $FCFLAGS -I{{prefix}}/include
     OMPI_F90FLAGS: $FCFLAGS -I{{prefix}}/include
-    # OMPI_FFLAGS: $OMPI_CFLAGS
-    # ORTE_CFLAGS: $OMPI_CFLAGS
-    # ORTE_CXXFLAGS: $OMPI_CFLAGS
-    # OPAL_CFLAGS: $OMPI_CFLAGS
-    # OPAL_CXXFLAGS: $OMPI_CFLAGS
-    # OMPI_LDFLAGS: "-L{{prefix}}/lib"
 
 build:
   dependencies:
-    tea.xyz/gx/make: '*'
+    zlib.net: ^1
+    gnu.org/binutils: '*'
+    linux:
+      gnu.org/make: '*'
   script:
     - ./configure $CONFIGURE_ARGS
     - make --jobs {{ hw.concurrency }} all
     - make --jobs {{ hw.concurrency }} install
     - run: |
-        sed -i.bak "s|$TEA_PREFIX|\${pcfiledir}/../../../..|g" ompi-c.pc ompi-cxx.pc ompi-fort.pc ompi.pc orte.pc pmix.pc
+        sed -i.bak "s|$PKGX_DIR|\${pcfiledir}/../../../..|g" ompi-c.pc ompi-cxx.pc ompi-fort.pc ompi.pc orte.pc pmix.pc
         rm ./*.bak
-      working-directory: "{{prefix}}/lib/pkgconfig"
+      working-directory: '{{prefix}}/lib/pkgconfig'
     - run: |
         sed -i.bak "s|linker_flags=.*|linker_flags=|g" mpic++-wrapper-data.txt mpicc-wrapper-data.txt mpifort-wrapper-data.txt ortecc-wrapper-data.txt
         rm ./*.bak
-      working-directory: "{{prefix}}/share/openmpi"
+      working-directory: '{{prefix}}/share/openmpi'
     - install {{prefix}}/lib/*.mod {{prefix}}/include/
   env:
-    CXXFLAGS: -std=c++11
+    AR: ${{deps.gnu.org/binutils.prefix}}/bin/ar
+    RANLIB: ${{deps.gnu.org/binutils.prefix}}/bin/ranlib
+    CXXFLAGS: $CXXFLAGS -std=c++11
+    darwin:
+      CFLAGS: $CFLAGS -Wl,-rpath,{{pkgx.prefix}}
+      CXXFLAGS: $CXXFLAGS -Wl,-rpath,{{pkgx.prefix}}
+      FCFLAGS: $FCFLAGS -Wl,-rpath,{{pkgx.prefix}}
     CONFIGURE_ARGS:
       - --disable-debug
       - --disable-dependency-tracking

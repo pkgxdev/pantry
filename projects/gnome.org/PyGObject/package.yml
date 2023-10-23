@@ -1,0 +1,39 @@
+distributable:
+  url: https://download.gnome.org/sources/pygobject/{{version.marketing}}/pygobject-{{version}}.tar.xz
+  strip-components: 1
+versions:
+  url: https://download.gnome.org/sources/pygobject/cache.json
+  match: /pygobject-\d+\.\d+\.\d+\.tar\.xz/
+  strip:
+    - /^pygobject-/
+    - /\.tar\.xz/
+dependencies:
+  gnome.org/gobject-introspection: '*'
+  cairographics.org/pycairo: '*'
+runtime:
+  env:
+    PYTHONPATH: "{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages:$PYTHONPATH"
+build:
+  dependencies:
+    mesonbuild.com: '*'
+    ninja-build.org: '*'
+    freedesktop.org/pkg-config: '*'
+    python.org: ~3.11
+  script:
+    - meson setup build $MESON_ARGS
+    - meson compile -C build --verbose
+    - meson install -C build
+    - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
+      working-directory: ${{prefix}}/lib
+  env:
+    MESON_ARGS:
+      - --prefix="{{prefix}}"
+      - --libdir="{{prefix}}/lib"
+      - --buildtype=release
+      - --wrap-mode=nofallback
+      - -Dpycairo=enabled
+test:
+  dependencies:
+    python.org: ~3.11
+  script:
+    - python -c 'import gi; print(gi.__version__)' | grep {{version}}

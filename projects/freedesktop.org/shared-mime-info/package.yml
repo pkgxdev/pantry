@@ -15,13 +15,24 @@ build:
     mesonbuild.com: ^0.63
     ninja-build.org: 1
     gnome.org/libxml2: 2
-    tea.xyz/gx/cc: c99
   working-directory: build
-  script: |
-    meson .. --prefix={{prefix}} --buildtype=release
-    ninja
-    ninja install
-    {{prefix}}/bin/update-mime-database {{prefix}}/share/mime
+  script:
+    # darwin doesn't have fdatasync like linux does, but it has an alias that
+    # gets detected wrongly.
+    - run: |
+        sed -i.bak -e '/fdatasync/d' meson.build
+        rm meson.build.bak
+      working-directory: ..
+      if: darwin
+    - meson .. --prefix={{prefix}} --buildtype=release
+    - ninja
+    - ninja install
+    - run: ./update-mime-database ../share/mime
+      working-directory: ${{prefix}}/bin
+  env:
+    CXXFLAGS: $CXXFLAGS -std=c++17 -Wno-reserved-user-defined-literal
+    linux:
+      LDFLAGS: $LDFLAGS -lstdc++fs
 
 #TODO you need a library to use this db
 #see: https://www.freedesktop.org/wiki/Specifications/shared-mime-info-spec/

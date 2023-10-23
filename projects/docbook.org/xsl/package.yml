@@ -1,0 +1,36 @@
+distributable:
+  url: https://github.com/docbook/xslt10-stylesheets/releases/download/release/{{version}}/docbook-xsl-{{version}}.zip
+  strip-components: 1
+display-name: docbook-xsl
+versions:
+  url: https://cdn.docbook.org/release/xsl/
+  match: /\d+\.\d+\.\d+/
+entrypoint: tea $DOCBOOK_XSL_ROOT="{{prefix}}" ./entrypoint.sh
+dependencies:
+  docbook.org: ^5
+  gnome.org/libxml2: '*'
+build:
+  dependencies:
+    gnu.org/wget: '*'
+    info-zip.org/unzip: '*'
+  script:
+    - run: mkdir -p libexec share/doc
+      working-directory: '{{prefix}}'
+    - cp -r docbook-xsl-{{version}} {{prefix}}/libexec/docbook-xsl
+    - wget $RES_NS && unzip docbook-xsl-nons-{{version}}.zip
+    - cp -r docbook-xsl-nons-{{version}} {{prefix}}/libexec/docbook-xsl-ns
+    - wget $RES_DOC && unzip docbook-xsl-doc-{{version}}.zip
+    - cp -r docbook-xsl-{{version}}/doc {{prefix}}/share/doc/reference
+    - run: ln -s ../libexec/docbook-xsl/epub/bin/dbtoepub dbtoepub
+      working-directory: '{{prefix}}/bin'
+  env:
+    RES_NS: https://github.com/docbook/xslt10-stylesheets/releases/download/release/{{version}}/docbook-xsl-nons-{{version}}.zip
+    RES_DOC: https://github.com/docbook/xslt10-stylesheets/releases/download/release/{{version}}/docbook-xsl-doc-{{version}}.zip
+provides:
+  - bin/dbtoepub
+test:
+  dependencies:
+    gnome.org/libxslt: '*'
+  script:
+    - xsltproc {{prefix}}/libexec/docbook-xsl/html/docbook.xsl test.xml > test.html
+    - cat test.html | grep "text/html"

@@ -15,12 +15,13 @@ runtime:
 build:
   dependencies:
     gnu.org/patch: '*'
+    ruby-lang.org: ~3.1 # testing a theory
   script:
     - ruby setup.rb
-        --prefix={{prefix}}
-        --env-shebang
-        --no-ri
-        --no-rdoc
+      --prefix={{prefix}}
+      --env-shebang
+      --no-ri
+      --no-rdoc
 
     - run: cp $SRCROOT/props/proxy .
       working-directory: ${{prefix}}/shim
@@ -29,6 +30,10 @@ build:
         patch -p1 < "$SRCROOT"/props/fit-n-finish.patch
         patch -p1 < "$SRCROOT"/props/fit-n-finish.2.patch
       working-directory: ${{prefix}}
+    - run: |
+        sed -i.bak -e 's/Dir\.mkdir dir, \*\[options\[:dir_mode\].*/FileUtils.mkdir_p dir, *[options[:dir_mode] \&\& 0o755].compact/' installer.rb
+        rm installer.rb.bak
+      working-directory: ${{prefix}}/lib/rubygems
 
     # these are provided by ruby-lang.org
     # we don’t know why they turn up here too…
@@ -47,9 +52,6 @@ build:
     - rmdir {{prefix}}/plugins
 
 test:
-  dependencies:
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
   env:
     HOME: $PWD
     vRUBY: ${{deps.ruby-lang.org.version.marketing}}.0

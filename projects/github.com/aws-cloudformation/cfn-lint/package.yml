@@ -1,0 +1,20 @@
+distributable:
+  url: https://github.com/aws-cloudformation/cfn-lint/archive/v{{version}}.tar.gz
+  strip-components: 1
+versions:
+  github: aws-cloudformation/cfn-lint
+dependencies:
+  python.org: ~3.11
+  pyyaml.org: '*'
+  github.com/benjaminp/six: '*'
+build:
+  dependencies:
+    rust-lang.org: '*'
+  script:
+    - python-venv.sh {{prefix}}/bin/cfn-lint
+provides:
+  - bin/cfn-lint
+test:
+  script:
+    - cfn-lint test.yml
+    - cfn-lint -v | grep {{version}}

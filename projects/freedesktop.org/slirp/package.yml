@@ -13,21 +13,18 @@ build:
     mesonbuild.com: ^0.63
     ninja-build.org: 1
     freedesktop.org/pkg-config: ^0.29
-    tea.xyz/gx/cc: c99
   script: |
     meson build $ARGS
     ninja -C build install all
   env:
     ARGS:
-      - -Ddefault_library=both 
+      - -Ddefault_library=both
       - --prefix={{ prefix }}
       - --libdir={{ prefix }}/lib
       - --buildtype=release
       - --wrap-mode=nofallback
 
 test:
-  dependencies:
-    tea.xyz/gx/cc: c99
   script: |
     mv $FIXTURE test.c
     gcc test.c -lslirp -o test

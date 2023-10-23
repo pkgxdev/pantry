@@ -1,0 +1,70 @@
+distributable:
+  url: https://github.com/libvips/libvips/releases/download/v{{version}}/vips-{{version}}.tar.xz
+  strip-components: 1
+versions:
+  github: libvips/libvips
+dependencies:
+  mozilla.org/mozjpeg: '*'
+  cairographics.org: '*'
+  heasarc.gsfc.nasa.gov/cfitsio: '*'
+  github.com/dloebl/cgif: '*'
+  fftw.org: '*'
+  freedesktop.org/fontconfig: '*'
+  gnu.org/gettext: '*'
+  gnome.org/glib: '*'
+  graphicsmagick.org: '*'
+  jpeg.org/jpegxl: '*'
+  libexif.github.io: '*'
+  gnome.org/libgsf: '*'
+  github.com/strukturag/libheif: '*'
+  pngquant.org/lib: '*'
+  matio.sourceforge.io: '*'
+  gnome.org/librsvg: '*'
+  libspng.org: '*'
+  simplesystems.org/libtiff: '*'
+  littlecms.com: '*'
+  openexr.com: '*'
+  openjpeg.org: '*'
+  # openslide.org: '*' # brings in ijg.org via gdk-pixbuf
+  gstreamer.freedesktop.org/orc: '*'
+  gnome.org/pango: '*'
+  poppler.freedesktop.org: '*'
+  google.com/webp: '*'
+  libexpat.github.io: '*'
+  zlib.net: '*'
+build:
+  dependencies:
+    gnome.org/gobject-introspection: '*'
+    mesonbuild.com: '*'
+    ninja-build.org: '*'
+    freedesktop.org/pkg-config: '*'
+    llvm.org: '*'
+    gnu.org/make: '*'
+  script:
+    - meson setup build $MESON_ARGS
+    - meson compile -C build
+    - meson install -C build
+  env:
+    CC: clang
+    CXX: clang++
+    LD: clang
+    MESON_ARGS:
+      - --prefix="{{prefix}}"
+      - --libdir="{{prefix}}/lib"
+      - --buildtype=release
+      - --wrap-mode=nofallback
+    darwin:
+      CFLAGS: $CFLAGS -Wno-incompatible-function-pointer-types
+provides:
+  - bin/vips
+  - bin/vipsedit
+  - bin/vipsheader
+  - bin/vipsprofile
+  - bin/vipsthumbnail
+test:
+  script:
+    - vips --version | grep {{version}}
+    - vips -l
+    - width=$(vipsheader -f width test.png)
+    - vips jpegsave test.png test.jpg --trellis-quant
+    - vipsheader -f width test.jpg | grep $width

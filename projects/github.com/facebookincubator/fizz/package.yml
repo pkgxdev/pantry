@@ -26,16 +26,21 @@ provides:
 
 build:
   dependencies:
-    tea.xyz/gx/cc: c99
     cmake.org: ^3
     ninja-build.org: ^1
-  script: |
-    cmake -S fizz -B build $ARGS
-    cmake --build build
-    cmake --install build
+  script:
+    - cmake -S fizz -B build $ARGS
+    - cmake --build build
+    - cmake --install build
 
-    sed -i.bak "s:$(tea --prefix):\$\{_IMPORT_PREFIX\}/../../../..:g" "{{prefix}}"/lib/cmake/fizz/fizz-targets.cmake
-    rm "{{prefix}}"/lib/cmake/fizz/fizz-targets.cmake.bak
+    - run: |
+        sed -E -i.bak \
+          -e "s:{{pkgx.prefix}}:\$\{_IMPORT_PREFIX\}/../../../..:g" \
+          -e '/^  INTERFACE_INCLUDE_DIRECTORIES/ s|/v([0-9]+)(\.[0-9]+)*[a-z]?/include|/v\1/include|g' \
+          -e '/^  INTERFACE_LINK_LIBRARIES/ s|/v([0-9]+)(\.[0-9]+)*[a-z]?/lib|/v\1/lib|g' \
+        fizz-targets.cmake
+        rm "{{prefix}}"/lib/cmake/fizz/fizz-targets.cmake.bak
+      working-directory: "{{prefix}}/lib/cmake/fizz"
   env:
     ARGS:
       - -GNinja
@@ -51,8 +56,6 @@ build:
         - -DCMAKE_EXE_LINKER_FLAGS=-pie
 
 test:
-  dependencies:
-    tea.xyz/gx/cc: c99
   fixture: |
     #include <fizz/client/AsyncFizzClient.h>
     #include <iostream>

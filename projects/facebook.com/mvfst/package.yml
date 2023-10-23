@@ -1,0 +1,77 @@
+distributable:
+  url: https://github.com/facebook/mvfst/archive/v{{version.raw}}.tar.gz
+  strip-components: 1
+versions:
+  github: facebook/mvfst/tags
+dependencies:
+  boost.org: '*'
+  github.com/facebookincubator/fizz: '*'
+  fmt.dev: '*'
+  facebook.com/folly: '*'
+  gflags.github.io: '*'
+  google.com/glog: '*'
+  openssl.org: '*'
+  linux:
+    libsodium.org: ^1.0.19
+build:
+  dependencies:
+    cmake.org: '*'
+    linux:
+      gnu.org/gcc: '*'
+      gnu.org/make: '*'
+  script:
+    - cmake -S . -B _build $CMAKE_ARGS
+    - cmake --build _build
+    - cmake --install _build
+  env:
+    CMAKE_ARGS:
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}
+      - -DCMAKE_INSTALL_LIBDIR=lib
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_FIND_FRAMEWORK=LAST
+      - -DCMAKE_VERBOSE_MAKEFILE=ON
+      - -Wno-dev
+      - -DBUILD_TESTING=OFF
+      - -DBUILD_TESTS=OFF
+      - -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+test:
+  dependencies:
+    google.com/googletest: '*'
+    cmake.org: '*'
+    linux:
+      gnu.org/gcc: '*'
+      gnu.org/make: '*'
+      curl.se: '*'
+  script:
+    - curl -L "https://github.com/facebook/mvfst/archive/v2023.10.09.00.tar.gz" | tar -xz
+    - install CMakeLists.txt ./mvfst-2023.10.09.00/
+    - run: |
+        cmake . $CMAKE_ARGS
+        cmake --build .
+        
+        # Function to check if the port is free
+        is_port_free() {
+            local port_to_check=$1
+            (echo >/dev/tcp/127.0.0.1/$port_to_check) &>/dev/null
+        }
+        # Start checking ports with 7000
+        current_port=7000
+        # Find a free port
+        while is_port_free $current_port; do
+            ((current_port++))
+        done
+        ./echo --mode server --host 127.0.0.1 --port $current_port & 
+        sleep 15
+        ./echo --mode client --host 127.0.0.1 --port $current_port & 
+        sleep 15
+        killall echo || true
+      working-directory: mvfst-2023.10.09.00
+  env:
+    CMAKE_ARGS:
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}
+      - -DCMAKE_INSTALL_LIBDIR=lib
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_FIND_FRAMEWORK=LAST
+      - -DCMAKE_VERBOSE_MAKEFILE=ON
+      - -Wno-dev
+      - -DBUILD_TESTING=OFF

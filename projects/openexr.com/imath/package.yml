@@ -4,19 +4,17 @@ distributable:
 
 # if there’s a github then we can parse the versions
 versions:
-  github: AcademySoftwareFoundation/Imath/tags  # reads github tags from github
+  github: AcademySoftwareFoundation/Imath/tags # reads github tags from github
   strip: /^v/
 
 build:
   dependencies:
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
     cmake.org: '*'
   script: |
     cmake -S . -B build $ARGS
     cmake --build build
     cmake --install build
-      
+
     mv {{ prefix}}/include/Imath/* {{prefix}}/include
     rmdir {{ prefix}}/include/Imath
     ln -s . {{ prefix }}/include/Imath
@@ -25,7 +23,6 @@ build:
     ARGS:
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
       - -DCMAKE_BUILD_TYPE=Release
-
 
 test:
   fixture: |
@@ -40,8 +37,6 @@ test:
         std::swap(x[0], x[1]);
       std::cout << n << ", " << x[0] << ", " << x[1] << "\n";
     }
-  dependencies:
-    tea.xyz/gx/cc: c99
   script: |
     mv $FIXTURE foo.cc
     g++ -std=c++11 -lImath foo.cc 

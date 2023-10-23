@@ -6,9 +6,6 @@ versions:
   github: apache/apr/tags
 
 build:
-  dependencies:
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
   script: |
     ./configure $ARGS
     make --jobs {{ hw.concurrency }}
@@ -26,7 +23,7 @@ build:
     cd ../build-1
     sed -i.bak \
       -e "s_{{prefix}}_\$(subst /bin/apr-{{version.major}}-config,,\$(shell command -v apr-{{version.major}}-config))_g" \
-      -e "s_${TEA_PREFIX}_\$(subst /apache.org/apr/v{{version}}/bin/apr-{{version.major}}-config,,\$(shell command -v apr-{{version.major}}-config))_g" \
+      -e "s_${PKGX_DIR}_\$(subst /apache.org/apr/v{{version}}/bin/apr-{{version.major}}-config,,\$(shell command -v apr-{{version.major}}-config))_g" \
       apr_rules.mk
     rm apr_rules.mk.bak
   env:
@@ -36,8 +33,6 @@ build:
       - --disable-debug
 
 test:
-  dependencies:
-    tea.xyz/gx/cc: c99
   fixture: |
     #include <stdio.h>
     #include <apr-1/apr_version.h>

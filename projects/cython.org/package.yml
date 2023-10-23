@@ -9,8 +9,7 @@ provides:
   - bin/cython
 
 dependencies:
-  python.org: '*'
-  tea.xyz/gx/cc: c99
+  python.org: '<3.12'
 
 build:
   script: |
@@ -19,8 +18,13 @@ build:
     pip.pypa.io: '*'
 
 test:
-  script: |
-    python setup.py build_ext --inplace
-    test "$(python -c 'import package_manager')" = "You are using tea"
+  dependencies:
+    llvm.org: '*'
   env:
     PYTHONPATH: "{{prefix}}/venv/lib/python3.11/site-packages"
+    linux:
+      CC: clang
+      AS: llvm-as
+  script:
+    - python setup.py build_ext --inplace
+    - test "$(python -c 'import package_manager')" = "You are using pkgx"

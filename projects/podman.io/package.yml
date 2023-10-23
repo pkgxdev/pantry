@@ -20,8 +20,6 @@ dependencies:
 build:
   dependencies:
     go.dev: ^1.18
-    tea.xyz/gx/cc: c99
-    tea.xyz/gx/make: '*'
   script:
     # podman searches a compile-time configured set of paths for helper binaries
     # so we add a relative lookup for the major version of gvproxy we require
@@ -43,7 +41,7 @@ build:
     GVISOR_MAJOR: |-
       $(cd "{{deps.github.com/containers/gvisor-tap-vsock.prefix}}/../\
       /v{{deps.github.com/containers/gvisor-tap-vsock.version.major}}" \
-      && pwd | sed -e "s_$TEA_PREFIX/__")
+      && pwd | sed -e "s_$PKGX_DIR/__")
     CGO_ENABLED: 1
 
 test:
@@ -51,4 +49,3 @@ test:
     podman-remote -v | grep "podman-remote version {{ version }}"
     (podman info 2>&1 || true) | grep "Cannot connect to Podman."
     (podman machine init --image-path fake-testimage fake-testvm 2>&1 || true) | grep "Error: open fake-testimage: no such file or directory"
-

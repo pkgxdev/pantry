@@ -10,16 +10,15 @@ dependencies:
   ijg.org: 9
   gnome.org/glib: 2
   libpng.org: 1
-  freedesktop.org/shared-mime-info: 2  #FIXME only on Linux
+  freedesktop.org/shared-mime-info: 2 #FIXME only on Linux
 
 build:
   dependencies:
-    tea.xyz/gx/cc: c99
     mesonbuild.com: ^0.63
     ninja-build.org: 1
     freedesktop.org/pkg-config: ^0.29
     gnome.org/gobject-introspection: 1
-    python.org: 3  #FIXME rq’d by gnome.org/gobject-introspection but should be added by tea-env
+    python.org: '>=3<3.12' #FIXME rq’d by gnome.org/gobject-introspection but should be added by tea-env
   working-directory: build
   script: |
     if test {{ hw.platform }} == linux; then
@@ -35,12 +34,16 @@ build:
       ..
     ninja
     ninja install
-  # ^^ man pages break the build due to needing some other dep
+    # ^^ man pages break the build due to needing some other dep
+
+    cd {{prefix}}/include
+    mv gdk-pixbuf-{{version.major}}.0/* .
+    rmdir gdk-pixbuf-{{version.major}}.0
+    ln -s . gdk-pixbuf-{{version.major}}.0
 
 #TODO we should read pkg config and add to the env ffs
 test:
   dependencies:
-    tea.xyz/gx/cc: c99
     freedesktop.org/pkg-config: ^0.29
   script: |
     cc test.c $CFLAGS $LDFLAGS
