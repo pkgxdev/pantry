@@ -13,21 +13,66 @@ runtime:
 dependencies:
     curl.se: '*'
 build:
-  working-directory: install
+  dependencies:
+    libarchive.org: '*'
   script:
-    - ./swiftly-install.sh $ARGS
+    # Download precompiled binary
+    - curl -L "https://github.com/swift-server/swiftly/releases/download/{{version}}/swiftly-$ARCH-unknown-linux-gnu" -o swiftly
+    - chmod +x swiftly
+
+    # Set necessary env variables
+    - export SWIFTLY_BIN_DIR=$PWD
+    - export SWIFTLY_HOME_DIR=$PWD
+    
+    # Create configuration file
     - run: |
-        sed -i.bak "s|{{prefix}}|\$(dirname \$0)|g" env.sh
-        rm -f env.sh.bak
-        chmod +x env.sh
+        cat << EOF > config.json
+        {
+          "platform": {
+            "name": "ubuntu2204",
+            "nameFull": "ubuntu22.04",
+            "namePretty": "Ubuntu 22.04.2 LTS",
+            "architecture": null
+          },
+          "installedToolchains": [],
+          "inUse": null
+        }
+        EOF
+    
+    # Install Swift
+    - mkdir -p toolchains
+    - ./swiftly install latest
+    - export PATH="$SWIFTLY_BIN_DIR:$PATH"
+    
+    # Compile Swiftly
+    - swift build
+
+    # Install compiled binary
+    - run: mkdir -p bin share/toolchains
+      working-directory: "{{prefix}}"
+    - install ./.build/debug/swiftly {{prefix}}/bin/swiftly
+    - chmod +x {{prefix}}/bin/swiftly
+
+    # Create configuration file
+    - run: |
+        cat << EOF > config.json
+        {
+          "platform": {
+            "name": "ubuntu2204",
+            "nameFull": "ubuntu22.04",
+            "namePretty": "Ubuntu 22.04.2 LTS",
+            "architecture": null
+          },
+          "installedToolchains": [],
+          "inUse": null
+        }
+        EOF
       working-directory: "{{prefix}}/share"
   env:
-    ARGS:
-      - --no-modify-profile
-      - --disable-confirmation
-      - --no-install-system-deps
-    SWIFTLY_BIN_DIR: "{{prefix}}/bin"
-    SWIFTLY_HOME_DIR: "{{prefix}}/share"
+    aarch64:
+      ARCH: aarch64
+    x86-64:
+      ARCH: x86_64
 provides:
   - bin/swiftly
 test:
@@ -38,4 +83,3 @@ test:
     - swift --version | grep 5.9.1
     - swift package init --type executable
     - swift run | grep "Hello, world!"
-
