@@ -9,12 +9,15 @@ build:
     deno.land: "*"
   script: |
     mkdir -p "{{prefix}}"/bin
-    deno compile npm:vite@{{version.raw}} -o {{prefix}}/bin/vite
+    deno compile -Ar npm:vite@{{version.raw}} -o {{prefix}}/bin/vite
   # Required. Else, wouldn't work.
   skip: fix-patchelf
 
 test:
+  dependencies:
+    vitejs.dev: "*"
   script: |
+    ls "{{prefix}}"/bin -lha
     test "$(vite --version | grep -o 'vite/[^ ]*')" = "vite/{{version.raw}}"
 
 provides:
