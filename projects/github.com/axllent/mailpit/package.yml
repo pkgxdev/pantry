@@ -1,0 +1,32 @@
+distributable:
+  url: https://github.com/axllent/mailpit/archive/v{{version}}.tar.gz
+  strip-components: 1
+versions:
+  github: axllent/mailpit
+build:
+  dependencies:
+    npmjs.com: '*'
+    go.dev: '*'
+  script:
+    - npm install $NPM_ARGS
+    - npm run build
+    - go build $GO_ARGS
+  env:
+    GO_ARGS:
+      - -trimpath
+      - -o={{prefix}}/bin/mailpit
+    linux:
+      GO_ARGS:
+        - buildmode=pie
+    LD_FLAGS:
+      - -s
+      - -w
+      - -X github.com/axllent/mailpit/config.Version={{version}}
+    NPM_ARGS:
+      - -ddd
+      - --build-from-source
+provides:
+  - bin/mailpit
+test:
+  script:
+    - mailpit version | grep {{version}}
