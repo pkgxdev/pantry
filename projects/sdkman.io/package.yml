@@ -1,0 +1,52 @@
+distributable:
+  url: https://github.com/sdkman/sdkman-cli/releases/download/{{version}}/sdkman-cli-{{version}}.zip
+  strip-components: 1
+warnings:
+  - vendored
+versions:
+  github: sdkman/sdkman-cli
+runtime:
+  env:
+    SDKMAN_DIR: "{{prefix}}"
+build:
+  dependencies:
+    curl.se: '*'
+  working-directory: sdkman-{{version}}
+  script:
+    - run: mkdir -p tmp ext etc var candidates
+      working-directory: "{{prefix}}"
+    - cp -r * {{prefix}}/
+    - curl -s https://api.sdkman.io/2/candidates/all -o {{prefix}}/var/candidates
+    - run: |
+        cat << EOF > {{prefix}}/etc/config
+        sdkman_auto_answer=false
+        sdkman_auto_complete=true
+        sdkman_auto_env=false
+        sdkman_beta_channel=false
+        sdkman_colour_enable=true
+        sdkman_curl_connect_timeout=7
+        sdkman_curl_max_time=10
+        sdkman_debug_mode=false
+        sdkman_insecure_ssl=false
+        sdkman_rosetta2_compatible=false
+        sdkman_selfupdate_feature=false
+        EOF
+    - run: chmod +x bin/* src/*
+      working-directory: "{{prefix}}"
+    - echo $PLATFORM > {{prefix}}/var/platform
+    - echo {{version}} > {{prefix}}/var/version
+  env:
+    darwin/aarch64:
+      PLATFORM: darwinarm64
+    darwin/x86-64:
+      PLATFORM: darwinx64
+    linux/aarch64:
+      PLATFORM: linuxarm64
+    linux/x86-64:
+      PLATFORM: linuxx64
+provides:
+  - bin/sdkman-init.sh
+test:
+  script:
+    - source sdkman-init.sh
+    - sdk version | grep {{version}}
