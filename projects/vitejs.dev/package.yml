@@ -9,15 +9,14 @@ build:
     deno.land: "*"
   script: |
     mkdir -p "{{prefix}}"/bin
-    deno compile -Ar npm:vite@{{version.raw}} -o {{prefix}}/bin/vite
+    deno compile -Ar npm:vite@{{version.raw}} -o vite
+    mv vite "{{prefix}}"/bin/vite # If the binay doesn't get built, the build will fail, not the tests. So, we'll know.
   # Required. Else, wouldn't work.
   skip: fix-patchelf
 
 test:
-  dependencies:
-    vitejs.dev: "*"
   script: |
-    ls "{{prefix}}"/bin -lha
+    ls -lha "{{prefix}}"/bin
     test "$(vite --version | grep -o 'vite/[^ ]*')" = "vite/{{version.raw}}"
 
 provides:
