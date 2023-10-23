@@ -7,17 +7,18 @@ versions:
 
 dependencies:
   #FIXME I don't know which versions it supports, but Node.js v18 is one of the most well-supported ones.
-  nodejs.org: ^18
+  nodejs.org: "*"
 
 build:
   dependencies:
     npmjs.com: "*"
 
   script: |
-    npm i
     npm install --global --build-from-source --prefix={{prefix}}
 
 test:
+  dependencies:
+    nodejs.org: "*"
   script: |
     test "$(pkg --version)" = "{{version.raw}}"
     pkg fixture.js -t node18-$TARGET -o fixture
