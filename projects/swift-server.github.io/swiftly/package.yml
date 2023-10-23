@@ -14,7 +14,6 @@ dependencies:
     curl.se: '*'
 build:
   dependencies:
-    llvm.org: '*'
     libarchive.org: '*'
   script:
     # Download precompiled binary
@@ -42,7 +41,7 @@ build:
     
     # Install Swift
     - mkdir -p toolchains
-    - ./swiftly install latest
+    - ./swiftly install 5.9.1
     - export PATH="$SWIFTLY_BIN_DIR:$PATH"
     
     # Compile Swiftly
@@ -70,9 +69,12 @@ build:
         EOF
       working-directory: "{{prefix}}/share"
   env:
-    LD: clang
-    CC: clang
-    CXX: clang++
+    LD: $SRCROOT/toolchains/5.9.1/usr/bin/ld.lld
+    CC: $SRCROOT/toolchains/5.9.1/usr/bin/clang
+    CXX: $SRCROOT/toolchains/5.9.1/usr/bin/clang++
+    LD_LIBRARY_PATH: $SRCROOT/toolchains/5.9.1/usr/lib:$LD_LIBRARY_PATH
+    LIBRARY_PATH: $SRCROOT/toolchains/5.9.1/usr/lib:$LIBRARY_PATH
+    CPATH: $SRCROOT/toolchains/5.9.1/usr/include:$CPATH
     aarch64:
       ARCH: aarch64
     x86-64:
