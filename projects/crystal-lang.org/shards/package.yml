@@ -1,0 +1,55 @@
+distributable:
+  url: https://github.com/crystal-lang/shards/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: crystal-lang/shards
+
+platforms:
+  - darwin
+  - linux/x86-64
+
+runtime:
+  env:
+    CRYSTAL_PATH: ${{prefix}}/lib:$CRYSTAL_PATH
+
+dependencies:
+  hboehm.info/gc: ^8
+  pyyaml.org/libyaml: ^0
+  crystal-lang.org: '*'
+
+build:
+  dependencies:
+    curl.se: '*'
+  script:
+    - run: |
+        curl -L https://github.com/crystal-lang/crystal-molinillo/archive/refs/tags/v0.2.0.tar.gz | \
+          tar --strip-components=2 -zxf -
+        mkdir -p "{{prefix}}/lib"
+        cp -a molinillo molinillo.cr "{{prefix}}/lib"
+      working-directory: .molinillo
+    - run: |
+        sed -i.bak \
+            -e 's/MOLINILLO_VERSION = .*$/MOLINILLO_VERSION = 0.2.0/' \
+            Makefile
+        rm Makefile.bak
+    - make $ARGS bin/shards
+    - mkdir -p "{{prefix}}/bin"
+    - install bin/shards "{{prefix}}/bin"
+  env:
+    CRYSTAL_LINK_FLAGS: -Wl,-rpath,{{pkgx.prefix}}
+    CRYSTAL_PATH: ${{prefix}}/lib:$CRYSTAL_PATH
+    ARGS:
+      - release=true
+      - FLAGS=--no-debug
+      - CRYSTAL={{deps.crystal-lang.org.prefix}}/bin/crystal
+      - SHARDS=false
+
+provides:
+  - bin/shards
+
+test:
+  script: |
+    out=($(shards --version))
+    version=${out[1]}
+    test $version = {{version}}
