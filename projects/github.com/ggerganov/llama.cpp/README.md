@@ -1,14 +1,12 @@
 # getting started
 
 ```sh
-$ llama.cpp
-# ^^ default chat prompt with the OpenLLaMA model
+$ pkgx +brewkit -- run llama.cpp
+# ^^ default chat prompt with an appropriate hugging face model
 ```
 
-If you want to run `llama.cpp` with your own args specify them and chat mode
-will be skipped.
-
-If you want to use a different model specify `--model`.
+If you want to run `llama.cpp` with your own args `pkgx llama.cpp $ARGS` is
+your friend.
 
 # converting your own models
 
@@ -16,5 +14,7 @@ We provide a working `convert.py` from the llama.cpp project. To use it you
 need to launch it via a tea pkgenv:
 
 ```sh
-tea +github.com/ggerganov/llama.cpp convert.py path/to/your/model
+pkgx +llama.cpp -- convert.py path/to/your/model
+# ^^ the -- is necessary since `convert.py` is a not listed in the llama.cpp
+# provides list
 ```
