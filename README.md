@@ -30,7 +30,7 @@ $ pkgx yq .provides <projects/$(pkg status | tr -d '[:space:]')/package.yml
 - bin/foo
 # ^^ purely demonstrative for the next step
 
-$ foo
+$ pkgx foo
 # ^^ anything in the `provides:` key will now run
 
 $ pkg test
@@ -45,6 +45,8 @@ $ gh pr create
 > * `pkg build` and `pkg test` take a `-L` flag to run in a Linux Docker container
 > * All commands take an optional pkg-spec eg. `pkg build node@19`
 
+> While inside the pantry `dev` environment you can run commands from any built
+> packages provided you specified their `provides:` key in the `package.yml`.
 
 > We use a special package called [`brewkit`] to build packages both here and
 > in CI/CD. `brewkit` provides the `pkg` command.
