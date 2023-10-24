@@ -30,7 +30,34 @@ build:
       LDFLAGS:
       - -buildmode=pie
 
-# test:
-#   script:
-#     - govulncheck --version
-#     - govulncheck --version | grep {{version}}
+test:
+  fixture: |
+    package main
+
+    import (
+            "fmt"
+            "os"
+
+            "golang.org/x/text/language"
+    )
+
+    func main() {
+            for _, arg := range os.Args[1:] {
+                    tag, err := language.Parse(arg)
+                    if err != nil {
+                            fmt.Printf("%s: error: %v\n", arg, err)
+                    } else if tag == language.Und {
+                            fmt.Printf("%s: undefined\n", arg)
+                    } else {
+                            fmt.Printf("%s: tag %s\n", arg, tag)
+                    }
+            }
+    }
+  dependencies:
+    go.dev: ^1.19
+  script:
+    - go mod init vuln.tutorial
+    - cp $FIXTURE main.go
+    - go mod tidy
+    - go get golang.org/x/text@v0.3.5
+    - (govulncheck ./... 2>&1 || true) | grep GO-2021-0113
