@@ -21,26 +21,35 @@ runtime:
     EMACS_ROOT: ${{prefix}}
     EMACSLOADPATH: ${{prefix}}/share/emacs/lisp
     EMACSDATA: ${{prefix}}/share/emacs/etc
+    EMACSPATH: ${{prefix}}/libexec/emacs/{{version.marketing}}
 
 build:
   dependencies:
     freedesktop.org/pkg-config: ^0.29.2
-  script: |
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }} install
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
 
     # we specify this with the env-var
-    cd {{prefix}}/share/emacs
-    mv {{version.marketing}}/lisp .
-    mv site-lisp/* lisp
-    rmdir site-lisp
+    - cd {{prefix}}/share/emacs
+    - mv {{version.marketing}}/lisp .
+    - mv site-lisp/* lisp
+    - rmdir site-lisp
 
     # doing it step by step to prove we didn’t leave anything here
-    rm {{version.marketing}}/site-lisp/subdirs.el
-    rmdir {{version.marketing}}/site-lisp
+    - rm {{version.marketing}}/site-lisp/subdirs.el
+    - rmdir {{version.marketing}}/site-lisp
 
-    mv {{version.marketing}}/etc .
-    rmdir {{version.marketing}}
+    - mv {{version.marketing}}/etc .
+    - rmdir {{version.marketing}}
+
+    # we need a stable EMACSPATH to advertise
+    - run: |
+        DIR=$(ls)
+        mv $DIR/* .
+        rmdir $DIR
+        ln -s . $DIR
+      working-directory: ${{prefix}}/libexec/emacs/{{version.marketing}}
 
   env:
     ARGS:
@@ -60,13 +69,16 @@ provides:
   - bin/emacs
 
 test:
-  script: |
-    emacs --version | grep "GNU Emacs {{version.marketing}}"
+  script:
+    - emacs --version | grep "GNU Emacs {{version.marketing}}"
 
-    four=$(emacs --batch --eval="(print (+ 2 2))")
-    test $four = 4
+    - four=$(emacs --batch --eval="(print (+ 2 2))")
+    - test $four = 4
 
-    emacs -batch -l $FIXTURE
+    - emacs -batch -l $FIXTURE
+
+    # test EMACSPATH
+    - emacs --batch --eval '(progn (package-initialize) (print (with-output-to-string (package-list-packages))) (kill-emacs))'
   fixture: |
     (require 'simple)
     (defun my-print-message ()
