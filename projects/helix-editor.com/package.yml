@@ -13,12 +13,19 @@ build:
     rust-lang.org: '>=1.60'
     rust-lang.org/cargo: '*'
     git-scm.org: ^2
-  script: |
-    cargo install --locked --path helix-term --root {{prefix}}
-    mkdir -p "{{prefix}}"/share
-    cp -a runtime "{{prefix}}"/share
-  env:
-    CFLAGS: -Wno-implicit-int -Wno-implicit-function-declaration
+  script:
+    - run: |
+        sed -i.bak \
+            -e's/const in_string/const bool in_string/' \
+            -e'|#include "tree_sitter/parser.h"|i\
+            #define _XOPEN_SOURCE' \
+            scanner.c
+        rm scanner.c.bak
+      working-directory: src
+      if: '>=23.10.0'
+    - cargo install --locked --path helix-term --root {{prefix}}
+    - mkdir -p "{{prefix}}"/share
+    - cp -a runtime "{{prefix}}"/share
 
 test: hx --health
 
