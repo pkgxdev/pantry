@@ -21,11 +21,13 @@ build:
     make --jobs {{ hw.concurrency }}
     make --jobs {{ hw.concurrency }} install
   env:
+    CC: clang
+    LD: clang
+    AR: llvm-ar
     ARGS:
       - --prefix="{{prefix}}"
 
 test:
   dependencies:
     freedesktop.org/pkg-config: '*'
-  script:
-    pkg-config --modversion rdkafka | grep {{version}}
+  script: pkg-config --modversion rdkafka | grep {{version}}
