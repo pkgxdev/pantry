@@ -15,18 +15,24 @@ if [ ! -f "$MODEL_DIR/$MODEL_FILENAME" ]; then
 EoMD
   echo #spacer
   mkdir -p "$MODEL_DIR"
-  aria2c "$MODEL_URL" --dir="$MODEL_DIR"
+  aria2c "$MODEL_URL" --dir="$MODEL_DIR" --out="$MODEL_FILENAME"
   gum format "# All done!"
   echo #spacer
 fi
 
 D="$(cd "$(dirname "$0")" && pwd)"
 
-exec "$D"/bin/llama.cpp \
+if [ $# -gt 0 ]; then
+  exec "$D"/bin/llama.cpp \
     --model "$MODEL_DIR/$MODEL_FILENAME" \
-    -n 256 \
-    --repeat_penalty 1.0 \
-    --color \
-    --interactive \
-    --reverse-prompt "User:" \
-    --file "$D"/share/prompts/chat-with-bob.txt
+    "$@"
+else
+  exec "$D"/bin/llama.cpp \
+      --model "$MODEL_DIR/$MODEL_FILENAME" \
+      -n 256 \
+      --repeat_penalty 1.0 \
+      --color \
+      --interactive \
+      --reverse-prompt "User:" \
+      --file "$D"/share/prompts/chat-with-bob.txt
+fi
