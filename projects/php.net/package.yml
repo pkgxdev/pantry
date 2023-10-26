@@ -17,7 +17,7 @@ dependencies:
   gnu.org/gettext: '*'
   gnu.org/gmp: '*'
   libsodium.org: '<1.0.19' # dylib version changed from 23 > 26
-  libzip.org: '*'
+  libzip.org: ~1.9
   github.com/kkos/oniguruma: '*'
   openssl.org: '*'
   pcre.org/v2: '>=10.30'
@@ -29,7 +29,7 @@ dependencies:
   thrysoee.dk/editline: '*'
   sourceware.org/libffi: '>=3.0.11'
   gnome.org/libxslt: '>=1.1.0'
-  gnu.org/gcc: '*'
+  gnu.org/gcc: <13
   libpng.org: '*'
   google.com/webp: '*'
   ijg.org: '*'
@@ -43,12 +43,13 @@ build:
     freetype.org: '*'
     darwin:
       tukaani.org/xz: '*'
+    linux:
+      gnu.org/make: '*'
 
   script: |
     ./configure $ARGS
     make --jobs {{ hw.concurrency }} install
   env:
-    LDFLAGS: -Wl,-rpath,{{pkgx.prefix}}
     ARGS:
       - --prefix={{prefix}}
       - --enable-bcmath
@@ -87,14 +88,21 @@ build:
       - --with-sodium
       - --with-sqlite3
       - --with-xsl
-      - --with-zip
       - --with-zlib
       - --disable-dtrace
       - --without-ldap-sasl
       - --without-ndbm
       - --without-gdbm
+      - CC=gcc
+    linux:
+      LDFLAGS: -Wl,-rpath,{{pkgx.prefix}}
     darwin:
+      # ... we need to link with headerpad...
+      LDFLAGS: -Wl,-rpath,{{pkgx.prefix}},-headerpad_max_install_names
       ARGS:
+        # FIXME: we'd like zip support for linux, but libzip's zip.h is using
+        # clang _Nullable and gcc doesn't like it.
+        - --with-zip
         - --enable-dtrace
         - --with-ldap-sasl
 
