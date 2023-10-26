@@ -1,9 +1,10 @@
 distributable:
-  url: https://github.com/ggerganov/llama.cpp/archive/refs/tags/master-fff0e0e.tar.gz
+  url: https://github.com/ggerganov/llama.cpp/archive/refs/tags/b{{version.raw}}.tar.gz
   strip-components: 1
 
 versions:
-  - 2023.07.20
+  github: ggerganov/llama.cpp/tags
+  strip: /^b/
 
 display-name:
   LLaMA.cpp
@@ -20,7 +21,7 @@ platforms:
 
 dependencies:
   python.org: ~3.11
-  tea.xyz: ^0  # the scripts use tea/cli
+  pkgx.sh: ^1
 
 build:
   dependencies:
@@ -28,28 +29,29 @@ build:
   env:
     VIRTUAL_ENV: ${{prefix}}/venv
   script:
+    - make --jobs {{hw.concurrency}}
+
     - |
-      make --jobs {{hw.concurrency}}
-      install -D main {{prefix}}/libexec/llama.cpp
-      install -D props/llama.cpp {{prefix}}/bin/llama.cpp
+      install -D main {{prefix}}/bin/llama.cpp
+      install -D props/entrypoint.sh {{prefix}}/entrypoint.sh
+      install -D ggml-metal.metal {{prefix}}/bin/ggml-metal.metal
 
     - |
       mkdir -p {{prefix}}/share
       mv prompts {{prefix}}/share
-      mv props/llama-fetch {{prefix}}/libexec
 
     - |
       install -D convert.py $VIRTUAL_ENV/bin/convert.py
       python-venv-stubber.sh convert.py
 
-    - python -m venv $VIRTUAL_ENV
     - |
+      python -m venv $VIRTUAL_ENV
       source $VIRTUAL_ENV/bin/activate
       pip install -r requirements.txt
       deactivate
 
-test: |
-  {{prefix}}/libexec/llama.cpp --help
-  # testing more than this requires downloading the models 😬
+test:
+  '{{prefix}}/bin/llama.cpp --help'
+  # ^^ testing more than this requires downloading the models 😬
 
-entrypoint: llama.cpp
+entrypoint: ./entrypoint.sh
