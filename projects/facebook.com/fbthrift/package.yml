@@ -1,0 +1,52 @@
+distributable:
+  url: https://github.com/facebook/fbthrift/archive/v{{version.raw}}.tar.gz
+  strip-components: 1
+versions:
+  github: facebook/fbthrift
+  ignore: 0.19.0
+dependencies:
+  github.com/facebookincubator/fizz: '*'
+  fmt.dev: '*'
+  facebook.com/folly: '*'
+  gflags.github.io: '*'
+  google.com/glog: '*'
+  openssl.org: '*'
+  facebook.com/wangle: '*'
+  boost.org: '*'
+  facebook.com/zstd: '*'
+  zlib.net: '*'
+  libsodium.org: '*'
+  darwin:
+    llvm.org: '*'
+build:
+  dependencies:
+    cmake.org: '*'
+    facebook.com/mvfst: '*'
+    gnu.org/bison: '*'
+    github.com/westes/flex: '*'
+    linux:
+      gnu.org/gcc: '*'
+      gnu.org/make: '*'
+  script:
+    - cmake -S . -B build/shared $CMAKE_ARGS
+    - cmake --build build/shared
+    - cmake --install build/shared
+  env:
+    CMAKE_ARGS:
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}
+      - -DCMAKE_INSTALL_LIBDIR=lib
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_FIND_FRAMEWORK=LAST
+      - -DCMAKE_VERBOSE_MAKEFILE=ON
+      - -Wno-dev
+      - -DBUILD_TESTING=OFF
+provides:
+  - bin/thrift1
+test:
+  dependencies:
+    linux:
+      gnu.org/gcc: '*'
+  script:
+    - thrift1
+  env:
+    CXXFLAGS: -std=c++17
