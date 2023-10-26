@@ -20,7 +20,7 @@ build:
     python.org: ~3.11
     git-scm.org: '*'
     linux:
-      gnu.org/gcc: '*'
+      llvm.org: '*'
   working-directory: build
   script:
     - run: |
@@ -30,11 +30,14 @@ build:
     - meson --prefix={{prefix}} --libdir={{prefix}}/lib ..
     - ninja
     - ninja install
+  env:
+    linux:
+      LD: clang
 test:
   dependencies:
     freedesktop.org/pkg-config: '*'
     linux:
-      gnu.org/gcc: '*'
+      llvm.org: '*'
   script:
     - pkg-config --modversion atk-bridge-2.0 | grep {{version}}
     - cc test.c $(pkg-config --cflags --libs atk-bridge-2.0 glib-2.0 atk) -o test
