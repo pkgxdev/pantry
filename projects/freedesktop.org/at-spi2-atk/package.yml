@@ -22,6 +22,10 @@ build:
       gnu.org/gcc: '*'
   working-directory: build
   script:
+    - run: |
+        sed -i.bak "s|revision=master|revision=main|g" at-spi2-core.wrap
+        rm at-spi2-core.wrap.bak
+      working-directory: ../subprojects
     - meson --prefix={{prefix}} --libdir={{prefix}}/lib ..
     - ninja
     - ninja install
