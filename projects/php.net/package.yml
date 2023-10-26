@@ -48,6 +48,7 @@ build:
     ./configure $ARGS
     make --jobs {{ hw.concurrency }} install
   env:
+    LDFLAGS: -Wl,-rpath,{{pkgx.prefix}}
     ARGS:
       - --prefix={{prefix}}
       - --enable-bcmath
@@ -92,10 +93,6 @@ build:
       - --without-ldap-sasl
       - --without-ndbm
       - --without-gdbm
-      - PKG_CONFIG_PATH=$PKG_CONFIG_PATH:{{deps.gnu.org/gettext.prefix}}
-      - PKG_CONFIG_PATH=$PKG_CONFIG_PATH:{{deps.gnome.org/libxml2.prefix}}
-      - PKG_CONFIG_PATH=$PKG_CONFIG_PATH:{{deps.github.com/kkos/oniguruma.prefix}}
-      - CC=gcc
     darwin:
       ARGS:
         - --enable-dtrace

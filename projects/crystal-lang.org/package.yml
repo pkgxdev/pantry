@@ -1,0 +1,80 @@
+distributable:
+  url: https://github.com/crystal-lang/crystal/archive/refs/tags/{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: crystal-lang/crystal
+
+# Crystal is needed to build itself…
+# So we cannot build it from source.
+warnings:
+  - vendored
+
+platforms:
+  - darwin
+  - linux/x86-64
+
+companions:
+  crystal-lang.org/shards: '*'
+
+dependencies:
+  hboehm.info/gc: ^8
+  gnu.org/gmp: ^6
+  libevent.org: ^2
+  pyyaml.org/libyaml: ^0
+  llvm.org: <17
+  openssl.org: ^1.1
+  pcre.org/v2: ^10
+  freedesktop.org/pkg-config: ^0
+  sourceware.org/libffi: ^3
+  invisible-island.net/ncurses: ^6
+
+runtime:
+  env:
+    CRYSTAL_LINK_FLAGS: -Wl,-rpath,{{pkgx.prefix}}
+    CRYSTAL_PATH: ${{prefix}}/lib:$CRYSTAL_PATH
+
+build:
+  dependencies:
+    curl.se: '*'
+    gnu.org/make: '*'
+  script:
+    - run: |
+        curl -Lf "https://github.com/crystal-lang/crystal/releases/download/{{version}}/crystal-{{version}}-1-$PLATFORM.tar.gz" | \
+          tar --strip-components=1 -zxf -
+      working-directory: .bootstrap
+    - mkdir -p .build
+    - make deps
+    - make crystal $ARGS
+    - mkdir -p "{{prefix}}/bin"
+    - cp .build/crystal "{{prefix}}/bin/crystal.bin"
+    - cp props/shim "{{prefix}}/bin/crystal"
+    - cp -a src "{{prefix}}/lib"
+  env:
+    CRYSTAL_LIBRARY_PATH: $LD_LIBRARY_PATH
+    PATH: $SRCROOT/.bootstrap/bin:$PATH
+    darwin: { PLATFORM: darwin-universal }
+    linux/x86-64: { PLATFORM: linux-x86_64 }
+    LDFLAGS: -Wl,-rpath,{{pkgx.prefix}}
+    ARGS:
+      - release=true
+      - FLAGS=--no-debug
+      - interpreter=true
+      - CRYSTAL_CONFIG_PATH=../lib
+    linux:
+      CC: clang
+      CXX: clang++
+      LD: clang
+
+provides:
+  - bin/crystal
+
+test:
+  fixture: puts {{Crystal::VERSION}}
+  env:
+  script:
+    - cp $FIXTURE test.cr
+    - crystal build -o test test.cr
+    - test "$(./test)" = "{{version}}"
+    - test "$(crystal eval 'puts {{Crystal::VERSION}}')" = "{{version}}"
+    - test "$(cat $FIXTURE | crystal eval)" = "{{version}}"

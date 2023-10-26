@@ -1,0 +1,48 @@
+distributable: ~
+
+warnings:
+  - vendored
+
+versions:
+  github: JuliaLang/julia/tags
+  strip: /v/
+
+interprets:
+  extensions: jl
+  args: [julia]
+
+build:
+  dependencies:
+    curl.se: '*'
+    gnu.org/tar: '*'
+  working-directory: tmp
+  script:
+    - curl -L "https://julialang-s3.julialang.org/bin/$PLATFORM/$ARCH/{{version.major}}.{{version.minor}}/julia-{{version.raw}}-$TRIPLE.tar.gz" |
+      tar zxvf - --strip-components=1
+    - mkdir -p "{{prefix}}"
+    - cp -av ./* {{prefix}}/
+    - run: rm -rf sys.dylib.dSYM
+      if: darwin
+      working-directory: ${{prefix}}/lib/julia
+  env:
+    linux/x86-64:
+      PLATFORM: 'linux'
+      ARCH: 'x64'
+      TRIPLE: 'linux-x86_64'
+    linux/aarch64:
+      PLATFORM: 'linux'
+      ARCH: 'aarch64'
+      TRIPLE: 'linux-aarch64'
+    darwin/x86-64:
+      PLATFORM: 'mac'
+      ARCH: 'x64'
+      TRIPLE: 'mac64'
+    darwin/aarch64:
+      PLATFORM: 'mac'
+      ARCH: 'aarch64'
+      TRIPLE: 'macaarch64'
+
+test: test "$(julia fixture.jl)" = "Hello, World!"
+
+provides:
+  - bin/julia
