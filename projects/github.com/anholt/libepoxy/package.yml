@@ -28,6 +28,12 @@ build:
         rmdir epoxy
         ln -s . epoxy
       working-directory: ${{prefix}}/include
+    # this seems to mess up pkg-config detection on darwin.
+    - run: |
+        sed -i.bak "s|Requires.private: x11, |Requires.private: x11|g" epoxy.pc
+        rm -f epoxy.pc.bak
+      working-directory: "{{prefix}}/lib/pkgconfig"
+      if: darwin
   env:
     ARGS:
       - --prefix="{{prefix}}"
