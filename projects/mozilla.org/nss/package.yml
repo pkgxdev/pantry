@@ -8,11 +8,6 @@ versions:
   #  - /^NSS_/
   #  - /_RTM/
   - 3.92
-platforms:
-  - linux
-  - darwin/x86-64
-  # - darwin/aarch64
-  # FIXME error: "Compiler option is invalid"
 dependencies:
   mozilla.org/nspr: '*'
   sqlite.org: '*'
@@ -21,7 +16,9 @@ build:
   dependencies:
     linux:
       gnu.org/gcc: '*'
-    gnu.org/make: '*'
+      gnu.org/make: '*'
+    darwin/aarch64:
+      llvm.org: '*'
   script:
     - run: |
         sed -i.bak 's|-install_name @executable_path|-install_name {{prefix}}/lib|g' coreconf/Darwin.mk
@@ -43,6 +40,8 @@ build:
   env:
     linux:
       CC: "{{deps.gnu.org/gcc.prefix}}/bin/gcc"
+    darwin/aarch64:
+      CC: "{{deps.llvm.org.prefix}}/bin/clang"
     ARGS:
       - BUILD_OPT=1
       - NSS_ALLOW_SSLKEYLOGFILE=1
