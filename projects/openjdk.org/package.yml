@@ -40,21 +40,26 @@ runtime:
 build:
   dependencies:
     linux:
-      gnu.org/gcc: '*'
-    gnu.org/make: '*'
+      llvm.org: <17
+      gnu.org/make: '*'
     gnu.org/autoconf: '*'
     freedesktop.org/pkg-config: '*'
     gnu.org/wget: '*'
   script:
     - run: wget -c $BOOT_JDK -O - | tar xz -C . --strip-components=$STRIP
       working-directory: boot-jdk
+    # autoconf won't find llvm-cxxfilt for c++filt, and won't take an envvar
     - run: |
-        bash configure $ARGS \
-        --with-boot-jdk="$BOOT_JDK_DIR" \
-        --with-vendor-version-string="$(tea --version | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+')" \
-        --with-extra-cflags="$CFLAGS" \
-        --with-extra-cxxflags="$CXXFLAGS" \
-        --with-extra-ldflags="$LDFLAGS"
+        sed -i.bak -e's/c..filt/llvm-cxxfilt/' toolchain.m4
+        rm toolchain.m4.bak
+      working-directory: make/autoconf
+      if: linux
+    - bash configure $ARGS
+      --with-boot-jdk="$BOOT_JDK_DIR"
+      --with-vendor-version-string="$(tea --version | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+')"
+      --with-extra-cflags="$CFLAGS"
+      --with-extra-cxxflags="$CXXFLAGS"
+      --with-extra-ldflags="$LDFLAGS"
     - make images
     - mkdir -p {{prefix}}
     - mv $JDK_DIR {{prefix}}/
