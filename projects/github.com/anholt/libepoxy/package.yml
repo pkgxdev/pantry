@@ -28,6 +28,11 @@ build:
         rmdir epoxy
         ln -s . epoxy
       working-directory: ${{prefix}}/include
+    - run: |
+        sed -i.bak "s|Requires.private: x11, |Requires.private: x11|g" epoxy.pc
+        rm -f epoxy.pc.bak
+      working-directory: "{{prefix}}/lib/pkgconfig"
+      if: darwin
   env:
     ARGS:
       - --prefix="{{prefix}}"
