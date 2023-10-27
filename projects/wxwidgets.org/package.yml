@@ -18,7 +18,7 @@ build:
   dependencies:
     freedesktop.org/pkg-config: '*'
     linux:
-      gnu.org/gcc: '*'
+      llvm.org: '*'
       gnu.org/make: '*'
   script:
     - run: rm -r catch pcre
@@ -28,6 +28,10 @@ build:
     - ./configure $CONFIGURE_ARGS
     - make --jobs {{ hw.concurrency }} install
   env:
+    linux:
+      CC: clang
+      CXX: clang++
+      LD: clang
     CONFIGURE_ARGS:
       - --prefix={{prefix}}
       - --enable-clipboard
