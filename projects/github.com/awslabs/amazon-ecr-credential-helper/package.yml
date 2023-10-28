@@ -1,0 +1,27 @@
+distributable:
+  url: git+https://github.com/awslabs/amazon-ecr-credential-helper
+  ref: v{{version}}
+
+versions:
+  github: awslabs/amazon-ecr-credential-helper/tags
+  strip: /^v/
+
+build:
+  dependencies:
+    gnu.org/bash: '*'
+    gnu.org/make: '*'
+    git-scm.org: '*'
+    go.dev: ^1.21
+  script: |
+    make build
+    mkdir -p {{prefix}}/bin
+    cp bin/local/docker-credential-ecr-login {{prefix}}/bin/docker-credential-ecr-login
+
+provides:
+  - bin/docker-credential-ecr-login
+
+test:
+  dependencies:
+    gnu.org/grep: '*'
+  script: |
+    docker-credential-ecr-login -v | grep Version | grep {{version}}
