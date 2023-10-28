@@ -1,0 +1,18 @@
+distributable:
+  url: https://github.com/bjorn/raccoin/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/raccoin
+
+versions:
+  github: bjorn/raccoin
+  strip: /v/
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path . --root {{prefix}}
+
+test: raccoin --version | grep {{version}}
