@@ -5,6 +5,10 @@ distributable:
 provides:
   - bin/raccoin
 
+dependencies:
+  gnu.org/libiconv: ^1
+  openssl.org: ^1.1
+
 versions:
   github: bjorn/raccoin
   strip: /v/
@@ -15,9 +19,24 @@ build:
     rust-lang.org/cargo: '*'
     linux:
      gnu.org/make: '*'
-  script: cargo install --locked --path . --root {{prefix}}
+  script:
+    # raccoin doesn't provide any testability without
+    # a UI, so we add some
+    - run: |
+        sed -i.bak \
+            -e'1a\
+        const VERSION: &str = "{{version}}";' \
+            -e'/let portfolio_file: PathBuf = portfolio_file.into();/i\
+                if portfolio_file == "--version" {\
+                    println!("raccoin v{VERSION}");\
+                    return Ok(());\
+                }' \
+        main.rs
+        rm main.rs.bak
+      working-directory: src
+    - cargo install --locked --path . --root {{prefix}}
   env:
     linux:
       LD: clang
 
-test: raccoin --version | grep {{version}}
+test: test "$(raccoin --version)" = "raccoin v{{version}}"
