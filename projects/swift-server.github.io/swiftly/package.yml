@@ -12,7 +12,6 @@ runtime:
     SWIFTLY_HOME_DIR: "{{prefix}}/share"
 dependencies:
     curl.se: '*'
-    gnu.org/gcc: '*' # for GLIBC & LIBCXX
 build:
   dependencies:
     libarchive.org: '*'
@@ -44,12 +43,9 @@ build:
     - mkdir -p toolchains
     - ./swiftly install 5.9.1
     - export PATH="$SWIFTLY_BIN_DIR:$PATH"
-    - export CC=$SWIFTLY_BIN_DIR/clang
-    - export CXX=$SWIFTLY_BIN_DIR/clang++
-    - export LD=$SWIFTLY_BIN_DIR/clang
     
     # Compile Swiftly
-    - swift build
+    - swift build --static-swift-stdlib
 
     # Install compiled binary
     - run: mkdir -p bin share/toolchains
