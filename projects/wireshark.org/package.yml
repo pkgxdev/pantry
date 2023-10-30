@@ -1,0 +1,55 @@
+distributable:
+  url: https://www.wireshark.org/download/src/all-versions/wireshark-{{version}}.tar.xz
+  strip-components: 1
+versions:
+  url: https://www.wireshark.org/download/src/all-versions/
+  match: /wireshark-\d+\.\d+\.\d+\.tar\.xz/
+  strip:
+    - /^wireshark-/
+    - /\.tar\.xz/
+dependencies:
+  c-ares.org: '*'
+  gnome.org/glib: '*'
+  gnutls.org: '*'
+  gnupg.org/libgcrypt: '*'
+  github.com/maxmind/libmaxminddb: '*'
+  nghttp2.org: '*'
+  ibr.cs.tu-bs.de/libsmi: '*'
+  libssh.org: '*'
+  lua.org: '*'
+  github.com/xiph/speexdsp: '*'
+  tcpdump.org: '*'
+  gnome.org/libxml2: '*'
+build:
+  dependencies:
+    cmake.org: '*'
+    gnu.org/bison: '*'
+    github.com/westes/flex: '*'
+    python.org: ^3.11
+    freedesktop.org/pkg-config: '*'
+    linux:
+      gnu.org/gcc: '*'
+      gnu.org/make: '*'
+  script:
+    - cmake -S . -B build $CMAKE_ARGS
+    - cmake --build build
+    - cmake --install build
+    - cmake --install build --component Development
+  env:
+    CMAKE_ARGS:
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}
+      - -DCMAKE_INSTALL_LIBDIR=lib
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_FIND_FRAMEWORK=LAST
+      - -DCMAKE_VERBOSE_MAKEFILE=ON
+      - -Wno-dev
+      - -DBUILD_wireshark=OFF
+provides:
+  - bin/randpkt
+test:
+  dependencies:
+    linux:
+      gnu.org/gcc: '*'
+  script:
+    - c++ -std=c++11 -o test test.cpp
+    - ./test
