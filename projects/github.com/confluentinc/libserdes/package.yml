@@ -1,0 +1,26 @@
+distributable:
+  url: https://github.com/confluentinc/libserdes/archive/refs/tags/v7.5.2-rc231027084844.tar.gz
+  strip-components: 1
+versions:
+  # v7.5.2-rc231027084844
+  - 7.5.2.231027084844
+dependencies:
+  apache.org/avro: '*'
+  digip.org/jansson: '*'
+  curl.se: '*'
+build:
+  dependencies:
+    linux:
+      gnu.org/gcc: '*'
+      gnu.org/make: '*'
+  script:
+    - ./configure --prefix={{prefix}}
+    - make --jobs {{ hw.concurrency }}
+    - make --jobs {{ hw.concurrency }} install
+test:
+  dependencies:
+    linux:
+      gnu.org/gcc: '*'
+  script:
+    - cc test.c -lserdes -o test
+    - ./test
