@@ -2,6 +2,8 @@ distributable:
   url: https://github.com/swift-server/swiftly/archive/{{version}}.tar.gz
   strip-components: 1
 display-name: swiftly
+warnings:
+  - wendored
 versions:
   github: swift-server/swiftly
 platforms:
@@ -13,44 +15,9 @@ runtime:
 dependencies:
     curl.se: '*'
 build:
-  dependencies:
-    libarchive.org: '*'
   script:
-    # Download precompiled binary
     - curl -L "https://github.com/swift-server/swiftly/releases/download/{{version}}/swiftly-$ARCH-unknown-linux-gnu" -o swiftly
-    - chmod +x swiftly
-
-    # Set necessary env variables
-    - export SWIFTLY_BIN_DIR=$PWD
-    - export SWIFTLY_HOME_DIR=$PWD
-    
-    # Create configuration file
-    - run: |
-        cat << EOF > config.json
-        {
-          "platform": {
-            "name": "ubuntu2204",
-            "nameFull": "ubuntu22.04",
-            "namePretty": "Ubuntu 22.04.2 LTS",
-            "architecture": null
-          },
-          "installedToolchains": [],
-          "inUse": null
-        }
-        EOF
-    
-    # Install Swift
-    - mkdir -p toolchains
-    - ./swiftly install 5.9.1
-    - export PATH="$SWIFTLY_BIN_DIR:$PATH"
-    
-    # Compile Swiftly
-    - swift build -c release
-
-    # Install compiled binary
-    - run: mkdir -p bin share/toolchains
-      working-directory: "{{prefix}}"
-    - install ./.build/release/swiftly {{prefix}}/bin/swiftly
+    - install ./swiftly {{prefix}}/bin/swiftly
     - chmod +x {{prefix}}/bin/swiftly
 
     # Create configuration file
