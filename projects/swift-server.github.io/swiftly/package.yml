@@ -15,7 +15,6 @@ dependencies:
 build:
   dependencies:
     libarchive.org: '*'
-    gnu.org/gcc: '*'
   script:
     # Download precompiled binary
     - curl -L "https://github.com/swift-server/swiftly/releases/download/{{version}}/swiftly-$ARCH-unknown-linux-gnu" -o swiftly
@@ -46,6 +45,9 @@ build:
     - export PATH="$SWIFTLY_BIN_DIR:$PATH"
     
     # Compile Swiftly
+    - export CC=$SWIFTLY_BIN_DIR/clang
+    - export CXX=$SWIFTLY_BIN_DIR/clang++
+    - export LD=$SWIFTLY_BIN_DIR/ld.lld
     - swift build
 
     # Install compiled binary
@@ -70,9 +72,6 @@ build:
         EOF
       working-directory: "{{prefix}}/share"
   env:
-    LD: gcc
-    CC: gcc
-    CXX: g++
     aarch64:
       ARCH: aarch64
     x86-64:
