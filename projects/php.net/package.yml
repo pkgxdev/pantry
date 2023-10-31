@@ -33,6 +33,7 @@ dependencies:
   libpng.org: '*'
   google.com/webp: '*'
   ijg.org: '*'
+  gnu.org/sed: ^4 # phpize requires this
   darwin:
     sourceware.org/bzip2: '*'
     zlib.net: '*'
@@ -46,9 +47,22 @@ build:
     linux:
       gnu.org/make: '*'
 
-  script: |
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }} install
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+    - run: |
+        sed -i.bak \
+            -e's|^prefix=.*|prefix="$(dirname "$(dirname "$0")")"|g' \
+            -e's|^datarootdir=.*|datarootdir="${prefix}/share"|g' \
+            -e's|^ini_path=.*|ini_path="${prefix}/etc"|g' \
+            -e's|^extension_dir='\''{{prefix}}\(.*\)'\''|extension_dir="${prefix}\1"|g' \
+            -e's|^SED=.*|SED="$(dirname "$(dirname "$(dirname "$(dirname "$0")")")")/gnu.org/sed/v4/bin/sed"|g' \
+            -e's|#{{prefix}}#|#$(dirname "$(dirname "$0")")#|g' \
+            -e's|{{pkgx.prefix}}|${prefix}/../..|g' \
+            php-config \
+            phpize
+        rm php-config.bak phpize.bak
+      working-directory: ${{prefix}}/bin
   env:
     ARGS:
       - --prefix={{prefix}}
@@ -72,6 +86,7 @@ build:
       - --enable-sysvmsg
       - --enable-sysvsem
       - --enable-sysvshm
+      - --with-pear
       - --with-curl
       - --with-external-pcre
       - --with-ffi
