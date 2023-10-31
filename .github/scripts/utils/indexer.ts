@@ -111,7 +111,9 @@ async function get_labels(path: string) {
     }
   }))
 
-  for (const dep of parse_pkgs_node(yml.build.dependencies)) {
+  console.error(path)
+
+  if (yml.build?.dependencies) for (const dep of parse_pkgs_node(yml.build.dependencies)) {
     switch (dep.project) {
     case 'rust-lang.org':
     case 'rust-lang.org/cargo':
