@@ -1,4 +1,10 @@
+name: indexer
+
 on:
+  pull_request:
+    paths:
+      - .github/scripts/utils/indexer.ts
+      - .github/workflows/indexer.yml
   push:
     branches: main
     paths:
@@ -7,8 +13,11 @@ on:
       - .github/workflows/indexer.yml
 
 concurrency:
-  group: indexer
+  group: indexer/${{ github.ref || 'main' }}
   cancel-in-progress: true
+
+permissions:
+  contents: write
 
 jobs:
   new-pkgs:
