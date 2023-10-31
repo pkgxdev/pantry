@@ -1,0 +1,29 @@
+distributable:
+  url: https://github.com/edenhill/kcat/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+versions:
+  github: edenhill/kcat
+dependencies:
+  apache.org/avro: '*'
+  github.com/confluentinc/librdkafka: '*'
+  github.com/confluentinc/libserdes: '*'
+  lloyd.github.io/yajl: '*'
+build:
+  dependencies:
+    linux:
+      gnu.org/gcc: '*'
+      gnu.org/make: '*'
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --enable-json
+      - --enable-avro
+provides:
+  - bin/kcat
+test:
+  script:
+    - kcat -X list
