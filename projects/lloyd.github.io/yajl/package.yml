@@ -1,0 +1,34 @@
+distributable:
+  url: https://github.com/lloyd/yajl/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+versions:
+  github: lloyd/yajl/tags
+build:
+  dependencies:
+    cmake.org: '*'
+    linux:
+      gnu.org/gcc: '*'
+      gnu.org/make: '*'
+  script:
+    - cmake . $CMAKE_ARGS
+    - make install
+    - mkdir -p {{prefix}}/include/yajl
+    - cp src/api/*.h {{prefix}}/include/yajl/
+  env:
+    CMAKE_ARGS:
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}
+      - -DCMAKE_INSTALL_LIBDIR=lib
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_FIND_FRAMEWORK=LAST
+      - -DCMAKE_VERBOSE_MAKEFILE=ON
+      - -Wno-dev
+      - -DBUILD_TESTING=OFF
+provides:
+  - bin/json_reformat
+  - bin/json_verify
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script:
+    - pkg-config --modversion yajl | grep {{version}}
+    - json_verify < test.json | grep "JSON is valid"

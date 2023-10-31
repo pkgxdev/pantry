@@ -1,0 +1,24 @@
+distributable: ~
+
+versions:
+  github: vitejs/vite/tags
+  strip: /v/
+
+build:
+  dependencies:
+    deno.land: "*"
+  script: |
+    {{pkgx.prefix}}/pkgx.sh/brewkit/v0/bin/pkg --version
+    mkdir -p "{{prefix}}"/bin
+    deno compile -Ar npm:vite@{{version.raw}} -o vite
+    mv vite "{{prefix}}"/bin/vite # If the binay doesn't get built, the build will fail, not the tests. So, we'll know.
+  # Required. Else, wouldn't work.
+  skip: fix-patchelf
+
+test:
+  script: |
+    vite --version
+    test "$(vite --version | grep -o 'vite/[^ ]*')" = "vite/{{version.raw}}"
+
+provides:
+  - bin/vite

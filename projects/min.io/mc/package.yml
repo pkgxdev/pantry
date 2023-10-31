@@ -1,0 +1,27 @@
+distributable:
+  url: https://github.com/minio/mc/archive/RELEASE.2023-10-24T21-42-22Z.tar.gz
+  strip-components: 1
+versions:
+  - 2023.10.24.21.42.22
+build:
+  dependencies:
+    go.dev: '*'
+  script:
+    - go build $GO_ARGS -ldflags="$LD_FLAGS"
+  env:
+    GO_ARGS:
+      - -trimpath
+      - -o="{{prefix}}/bin/mc"
+    linux:
+      GO_ARGS:
+        - -buildmode=pie
+    LD_FLAGS:
+      - -s
+      - -w
+      - "-X github.com/minio/mc/cmd.ReleaseTag=2023-10-24T21-42-22Z"
+provides:
+  - bin/mc
+test:
+  script: |
+    mc --version | grep "2023-10-24T21-42-22Z"
+    mc mb test

@@ -38,7 +38,7 @@ jobs:
   bottle:
     needs: [get-platform]
     if: ${{ !inputs.new-version || needs.get-platform.outputs.available != '' }}
-    runs-on: ${{ fromJson(needs.get-platform.outputs.os) }}
+    runs-on: ubuntu-latest
     outputs:
       srcs: ${{ env.srcs }}
       built: ${{ env.built }}
@@ -96,6 +96,7 @@ jobs:
         id: bottle-xz
         with:
           built: ${{ env.built }}
+          platform: ${{ inputs.platform }}
           compression: xz
           gpg-key-id: ${{ secrets.GPG_KEY_ID }}
         env:
@@ -105,6 +106,7 @@ jobs:
         id: bottle-gz
         with:
           built: ${{ env.built }}
+          platform: ${{ inputs.platform }}
           compression: gz
           gpg-key-id: ${{ secrets.GPG_KEY_ID }}
         env:

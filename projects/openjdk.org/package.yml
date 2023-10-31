@@ -1,9 +1,15 @@
 distributable:
   url: https://github.com/openjdk/jdk20u/archive/jdk-20.0.2+9.tar.gz
   strip-components: 1
+
 versions:
   - 20.0.2.9
   #FIXME
+
+interprets:
+  extensions: java
+  args: java
+
 dependencies:
   giflib.sourceforge.io: '*'
   harfbuzz.org: ^8
@@ -26,27 +32,34 @@ dependencies:
     x.org/xtst: '*'
     info-zip.org/zip: '*'
     darwinsys.com/file: '*'
+
 runtime:
   env:
     JAVA_HOME: '{{prefix}}'
+
 build:
   dependencies:
     linux:
-      gnu.org/gcc: '*'
-    gnu.org/make: '*'
+      llvm.org: <17
+      gnu.org/make: '*'
     gnu.org/autoconf: '*'
     freedesktop.org/pkg-config: '*'
     gnu.org/wget: '*'
   script:
     - run: wget -c $BOOT_JDK -O - | tar xz -C . --strip-components=$STRIP
       working-directory: boot-jdk
+    # autoconf won't find llvm-cxxfilt for c++filt, and won't take an envvar
     - run: |
-        bash configure $ARGS \
-        --with-boot-jdk="$BOOT_JDK_DIR" \
-        --with-vendor-version-string="$(tea --version | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+')" \
-        --with-extra-cflags="$CFLAGS" \
-        --with-extra-cxxflags="$CXXFLAGS" \
-        --with-extra-ldflags="$LDFLAGS"
+        sed -i.bak -e's/c..filt/llvm-cxxfilt/' toolchain.m4
+        rm toolchain.m4.bak
+      working-directory: make/autoconf
+      if: linux
+    - bash configure $ARGS
+      --with-boot-jdk="$BOOT_JDK_DIR"
+      --with-vendor-version-string="$(tea --version | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+')"
+      --with-extra-cflags="$CFLAGS"
+      --with-extra-cxxflags="$CXXFLAGS"
+      --with-extra-ldflags="$LDFLAGS"
     - make images
     - mkdir -p {{prefix}}
     - mv $JDK_DIR {{prefix}}/
@@ -94,6 +107,7 @@ build:
       - --with-libjpeg=system
       - --with-libpng=system
       - --with-zlib=system
+
 provides:
   - bin/jar
   - bin/jarsigner
@@ -124,6 +138,7 @@ provides:
   - bin/keytool
   - bin/rmiregistry
   - bin/serialver
+
 test:
   script:
     - java --version | grep {{version.marketing}}

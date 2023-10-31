@@ -8,10 +8,17 @@ versions:
 
 build:
   working-directory: source
-  script: |
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }}
-    make install
+  dependencies:
+    curl.se: '*'
+  script:
+    # v74.1 replaced LICENSE with a broken symlink
+    - run: |
+        rm ../LICENSE
+        curl -L https://raw.githubusercontent.com/unicode-org/icu/main/LICENSE -o ../LICENSE
+      if: =74.1
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
   env:
     ARGS:
       - --prefix={{prefix}}
