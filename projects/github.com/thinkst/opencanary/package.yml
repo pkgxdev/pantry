@@ -6,24 +6,28 @@ versions:
   github: thinkst/opencanary
 
 dependencies:
-  python.org: ~3.10
+  python.org: ~3.7
   tcpdump.org: '*'
   openssl.org: '*'
 
 runtime:
   env:
-    PYTHONPATH: "$PYTHONPATH:{{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages"
+    PYTHONPATH: "$PYTHONPATH:{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages"
 
 build:
   dependencies:
     pip.pypa.io: '*'
 
-  script: |
-    pip install setuptools
-    cat setup.py | sed -e 's/requirements = \[/requirements = \["scapy","pcapy-ng",/' > setup.py.mod
-    mv setup.py.mod setup.py
-    python setup.py sdist
-    python -m pip install --prefix={{prefix}} dist/opencanary-{{version}}.tar.gz
+  script: 
+    - run: |
+        pip install setuptools
+        cat setup.py | sed -e 's/requirements = \[/requirements = \["scapy","pcapy-ng",/' > setup.py.mod
+        mv setup.py.mod setup.py
+        python setup.py sdist
+        python -m pip install --prefix={{prefix}} dist/opencanary-{{version}}.tar.gz
+
+    - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
+      working-directory: ${{prefix}}/lib/
 
 provides:
   - bin/opencanaryd
