@@ -1,7 +1,10 @@
 on:
   push:
     branches: main
-    paths: projects/**/package.yml
+    paths:
+      - projects/**/package.yml
+      - .github/scripts/utils/indexer.ts
+      - .github/workflows/indexer.yml
 
 concurrency:
   group: indexer
@@ -20,7 +23,7 @@ jobs:
           +: deno
 
       - run: mkdir out
-      - run: .github/scripts/utils/indexed.ts > out/pkgs.json
+      - run: .github/scripts/utils/indexer.ts > out/pkgs.json
 
       - uses: JamesIves/github-pages-deploy-action@v4
         with:
