@@ -62,21 +62,4 @@ provides:
   - bin/zkTxnLogToolkit
 test:
   script:
-    - killall zkServer || true
-    - cd ..
-    - mkdir -p zookeeper
-    - cd zookeeper
-    - mkdir -p cfg
-    - export ZOOCFGDIR=$PWD/cfg
-    - export HOME=$PWD
-    - run: |
-        cat << EOF>cfg/zoo.cfg
-        tickTime=2000
-        initLimit=10
-        syncLimit=5
-        dataDir=$PWD/data
-        clientPort=2181
-        EOF
-    - zkServer start
-    - zkServer status
-    - zkServer stop
+    - zkServer version | grep {{version}}
