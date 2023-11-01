@@ -9,6 +9,9 @@ versions:
 dependencies:
   openjdk.org: '*'
   openssl.org: '*'
+runtime:
+  env:
+    ZOODIR: "{{prefix}}"
 build:
   dependencies:
     gnu.org/autoconf: '*'
@@ -50,6 +53,11 @@ build:
         ln -s zkSnapShotToolkit.sh zkSnapShotToolkit
         ln -s zkTxnLogToolkit.sh zkTxnLogToolkit
       working-directory: "{{prefix}}/bin"
+    - run: |
+        cp zoo_sample.cfg zoo.cfg
+        sed -i.bak 's|dataDir=/tmp/zookeeper|dataDir=\$ZOODIR/var/run/zookeper|' zoo.cfg
+        rm -f zoo.cfg.bak
+      working-directory: "{{prefix}}/conf"
 provides:
   - bin/zkCleanup
   - bin/zkCli
