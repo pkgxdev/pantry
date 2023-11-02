@@ -11,6 +11,7 @@ dependencies:
   npmjs.com: "*"
   linux:
     gnu.org/gcc: "*"
+    gtk.org/gtk3: "*"
     freedesktop.org/pkg-config: "*"
     # we are missing dependencies for:
     #   - libgtk-3
@@ -36,11 +37,15 @@ provides:
   - bin/wails
 
 test:
+  depdendencies:
+    gnu.org/coreutils: "*"
+    gnu.org/grep: "*"
   script:
     - wails version | grep "v{{version}}"
-    # - test "$(wails doctor | grep "Your system has missing dependencies!" | wc -l)" != "1"
+    - wails doctor -nocolour | tee doctor.txt
+    - test "$(cat doctor.txt | grep "Your system has missing dependencies!" | wc -l)" != "1"
     # ^^ only works as soon as all dependencies are fulfilled
     - wails init -n example -t vanilla
-    # - cd example
-    # - wails build
+    - cd example
+    - wails build
     # ^^ only works as soon as all dependencies are fulfilled
