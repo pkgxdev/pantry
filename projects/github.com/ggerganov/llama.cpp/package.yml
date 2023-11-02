@@ -26,9 +26,18 @@ dependencies:
 build:
   dependencies:
     gnu.org/coreutils: '*'
+    git-scm.org: '*'
   env:
     VIRTUAL_ENV: ${{prefix}}/venv
+    CC: clang
+    CXX: clang++
+    LD: clang
   script:
+    # segfaults on some GHA runners
+    - run: |
+        sed -i.bak -e's/\(MK_.* -march=native -mtune=native\)/#\1/g' Makefile
+        rm Makefile.bak
+      if: linux/x86-64
     - make --jobs {{hw.concurrency}}
 
     - |
