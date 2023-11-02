@@ -19,7 +19,6 @@ dependencies:
 
 build:
   dependencies:
-    gnu.org/gcc: '*'
     mesonbuild.com: '*'
     ninja-build.org: '*'
     freedesktop.org/pkg-config: '*'
@@ -28,8 +27,9 @@ build:
   working-directory: build
   script:
     - wget $PREBUILT_SERVER_URL -O scrcpy-server
-    - meson $ARGS ..
-    - ninja -j {{ hw.concurrency }} install
+    - meson setup $ARGS ..
+    - meson compile --verbose
+    - meson install
 
   env:
     PREBUILT_SERVER_URL: https://github.com/Genymobile/scrcpy/releases/download/v{{version.marketing}}/scrcpy-server-v{{version.marketing}}
