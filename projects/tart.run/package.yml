@@ -1,34 +1,34 @@
 distributable:
   url: https://github.com/cirruslabs/tart/archive/refs/tags/{{version}}.tar.gz
-  strip-components: 1
+
+warnings:
+  - vendored
 
 versions:
-  github: cirruslabs/tart
-  # NOTE: 1.x uses non-open source license
-  # https://tart.run/blog/2023/02/11/changing-tart-license/
-  ignore: /^[1-9]/
+  github: cirruslabs/tart/releases
 
 platforms:
   - darwin/aarch64
 
+#FIXME proper system for re-using pre-built binaries
+# we must require the vendor to provide signatures against a published public
+# key. If they don’t then really we should build ourselves or warn the user
+# about the fact.
+# The thing is, we trust the sources implicitly currently because signing is
+# so rare. The only way wide spread signing will occur is via our protocol.
+
+# This only works on macOS, arm64, monterey and above. It requires xcode 14.1 to build
+
 build:
   dependencies:
-    rust-lang.org: ^1.54
-    rust-lang.org/cargo: ^0
-    # apple.com/xcode: >=14.1
-    # swift.org: 5
-  script:
-    - run: |
-        curl -L $SOFTNET | tar -zxf - --strip-components=1
-        cargo install --locked --path . --root {{prefix}}
-      working-directory: softnet
-    - swift build --disable-sandbox -c release
-    - codesign -f -s - --entitlement Resources/tart.entitlements .build/release/tart
-    - run: cp "$SRCROOT"/.build/release/tart .
-      working-directory: ${{prefix}}/bin
-  env:
-    SOFTNET: https://github.com/cirruslabs/softnet/archive/refs/tags/0.6.2.tar.gz
-
+    curl.se: '*'
+  working-directory: ${{prefix}}
+  script: |
+    curl -Lfo tart.tar.gz "https://github.com/cirruslabs/tart/releases/download/{{version}}/tart.tar.gz"    
+    tar -zxf tart.tar.gz
+    rm tart.tar.gz
+    mkdir bin
+    cp $SRCROOT/props/tart-shim bin/tart
 
 provides:
   - bin/tart
