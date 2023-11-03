@@ -14,13 +14,15 @@ dependencies:
     facebook.com/zstd: '*'
 build:
   dependencies:
-    gnu.org/make: '*'
     gnu.org/m4: '*'
   script:
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }}
     - make --jobs {{ hw.concurrency }} install
   env:
+    CC: clang
+    CXX: clang++
+    LD: clang
     ARGS:
       - --disable-debug
       - --disable-dependency-tracking
