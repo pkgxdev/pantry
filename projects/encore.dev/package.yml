@@ -12,6 +12,8 @@ provides:
 runtime:
   env:
     ENCORE_RUNTIME_PATH: ${{prefix}}/runtime
+    # https://github.com/encoredev/encore/pull/894
+    ENCORE_RUNTIMES_PATH: ${{prefix}}/runtimes
 
 dependencies:
   encore.dev/go: ^1.21
@@ -21,7 +23,12 @@ build:
     - go mod download
     - go build $ARGS -ldflags="$LDFLAGS" -o "{{prefix}}"/bin/encore ./cli/cmd/encore
     - go build $ARGS -ldflags="$LDFLAGS" -o "{{prefix}}"/bin/git-remote-encore ./cli/cmd/git-remote-encore
-    - cp -a runtime {{prefix}}
+    - run: cp -a runtime "{{prefix}}"
+      if: <1.28.0
+    - run: |
+        cp -a runtimes "{{prefix}}"
+        ln -s runtimes/go "{{prefix}}/runtime"
+      if: '>=1.28.0'
   env:
     GO111MODULE: on
     ARGS:

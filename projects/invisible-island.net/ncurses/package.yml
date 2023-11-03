@@ -6,30 +6,42 @@ versions:
   github: mirror/ncurses/tags
   strip: /v/
 
+
 build:
   dependencies:
     freedesktop.org/pkg-config: ^0.29
-  script: |
+  script:
+
+  #FIXME because our build infra is recursive
+  - |
+    if [ -d {{prefix}}/include ]; then
+      rm -rf {{prefix}}/include
+    fi
+
+  - |
     mkdir -p $PCDIR
     ./configure $ARGS
     make --jobs {{ hw.concurrency }} install
 
-    # fix up symlinks
-    cd {{prefix}}/lib
-    for lib in form menu ncurses panel curses++; do
-      for ii in $(find . -name lib${lib}w\*); do
-        # hopefully no new w's will be introduced
-        ln -sf $ii $(echo $ii | tr -d w)
+  # fix up symlinks
+  - run: |
+      for lib in form menu ncurses panel curses++; do
+        for ii in $(find . -name lib${lib}w\*); do
+          # hopefully no new w's will be introduced
+          ln -sf $ii $(echo $ii | tr -d w)
+        done
       done
-    done
+    working-directory: ${{prefix}}/lib
 
-    # things often expect either no namespace or namespace
-    cd ../include
-    mv ncursesw/* .
-    rmdir ncursesw
-    ln -sf . ncursesw
+  # things often expect either no namespace or namespace
+  - run: |
+      mv ncursesw/* .
+      rmdir ncursesw
+      ln -sf . ncursesw
+    working-directory: ${{prefix}}/include
 
-    # fix hardcoded paths
+  # fix hardcoded paths
+  - |
     sed -i.bak 's|{{prefix}}|\${pcfiledir}/../..|g' {{prefix}}/lib/pkgconfig/*.pc
     rm {{prefix}}/lib/pkgconfig/*.bak
 
@@ -51,17 +63,22 @@ build:
 
 runtime:
   env:
-    TERMINFO: /usr/share/terminfo:{{prefix}}/share/terminfo
+    TERMINFO_DIRS: /usr/share/terminfo:{{prefix}}/share/terminfo
     # ^^ we delegate to the system first since they may apply platform specific info
 
 test:
   dependencies:
+    github.com/tmux/tmux: ^3
     freedesktop.org/pkg-config: ^0.29
-  script: |
+  script:
+  - |
     ncursesw6-config --version | grep {{version.marketing}}
     ncursesw6-config --terminfo-dirs | grep '{{prefix}}'
     pkg-config --modversion ncursesw | grep {{version.marketing}}
     pkg-config --libs ncursesw | grep '{{prefix}}'
+
+  # https://github.com/pkgxdev/pantry/issues/1658
+  - tmux -c ls
 
 provides:
   - bin/captoinfo

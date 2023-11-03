@@ -12,10 +12,14 @@ build:
   dependencies:
     rust-lang.org: '>=1.60'
     rust-lang.org/cargo: '*'
-  script: |
-    cargo install --locked --path helix-term --root {{prefix}}
-    mkdir -p "{{prefix}}"/share
-    cp -a runtime "{{prefix}}"/share
+    git-scm.org: ^2
+  script:
+    # https://github.com/helix-editor/helix/discussions/8440
+    - run: patch -p1 <props/v23.10.0.patch
+      if: 23.10.0
+    - cargo install --locked --path helix-term --root {{prefix}}
+    - mkdir -p "{{prefix}}"/share
+    - cp -a runtime "{{prefix}}"/share
 
 test: hx --health
 

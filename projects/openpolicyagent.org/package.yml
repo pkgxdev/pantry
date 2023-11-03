@@ -1,0 +1,28 @@
+distributable:
+  url: https://github.com/open-policy-agent/opa/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: open-policy-agent/opa
+
+build:
+  dependencies:
+    go.dev: ^1.21
+  script: |
+    go build -ldflags="$LDFLAGS" -o $BUILDLOC .
+  env:
+    CGO_ENABLED: 0
+    LDFLAGS:
+      - -s
+      - -w
+      - -X github.com/open-policy-agent/opa/version.Version={{version}}
+    BUILDLOC: '{{prefix}}/bin/opa'
+
+provides:
+  - bin/opa
+
+test:
+  dependencies:
+    gnu.org/grep: '*'
+  script: |
+    test "$(opa version | grep -E '^Version:')" = "Version: {{version}}"

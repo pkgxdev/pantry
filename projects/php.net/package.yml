@@ -17,7 +17,7 @@ dependencies:
   gnu.org/gettext: '*'
   gnu.org/gmp: '*'
   libsodium.org: '<1.0.19' # dylib version changed from 23 > 26
-  libzip.org: '*'
+  libzip.org: ~1.9
   github.com/kkos/oniguruma: '*'
   openssl.org: '*'
   pcre.org/v2: '>=10.30'
@@ -29,10 +29,11 @@ dependencies:
   thrysoee.dk/editline: '*'
   sourceware.org/libffi: '>=3.0.11'
   gnome.org/libxslt: '>=1.1.0'
-  gnu.org/gcc: '*'
+  gnu.org/gcc: <13
   libpng.org: '*'
   google.com/webp: '*'
   ijg.org: '*'
+  gnu.org/sed: ^4 # phpize requires this
   darwin:
     sourceware.org/bzip2: '*'
     zlib.net: '*'
@@ -43,10 +44,32 @@ build:
     freetype.org: '*'
     darwin:
       tukaani.org/xz: '*'
+    linux:
+      gnu.org/make: '*'
 
-  script: |
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }} install
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+    - run: |
+        sed -i.bak \
+            -e's|^prefix=.*|prefix="$(dirname "$(dirname "$0")")"|g' \
+            -e's|^datarootdir=.*|datarootdir="${prefix}/share"|g' \
+            -e's|^ini_path=.*|ini_path="${prefix}/etc"|g' \
+            -e's|^extension_dir='\''{{prefix}}\(.*\)'\''|extension_dir="${prefix}\1"|g' \
+            -e's|^SED=.*|SED="$(dirname "$(dirname "$(dirname "$(dirname "$0")")")")/gnu.org/sed/v4/bin/sed"|g' \
+            -e's|#{{prefix}}#|#$(dirname "$(dirname "$0")")#|g' \
+            -e's|{{pkgx.prefix}}|${prefix}/../..|g' \
+            php-config \
+            phpize
+        rm php-config.bak phpize.bak
+
+        fix-shebangs.ts "{{prefix}}/bin/phar"
+
+        sed -i.bak \
+            -e's|{{prefix}}|$(dirname "$(dirname "$0")")|g' \
+            pear peardev pecl
+        rm pear.bak peardev.bak pecl.bak
+      working-directory: ${{prefix}}/bin
   env:
     ARGS:
       - --prefix={{prefix}}
@@ -70,6 +93,7 @@ build:
       - --enable-sysvmsg
       - --enable-sysvsem
       - --enable-sysvshm
+      - --with-pear
       - --with-curl
       - --with-external-pcre
       - --with-ffi
@@ -86,22 +110,27 @@ build:
       - --with-sodium
       - --with-sqlite3
       - --with-xsl
-      - --with-zip
       - --with-zlib
       - --disable-dtrace
       - --without-ldap-sasl
       - --without-ndbm
       - --without-gdbm
-      - PKG_CONFIG_PATH=$PKG_CONFIG_PATH:{{deps.gnu.org/gettext.prefix}}
-      - PKG_CONFIG_PATH=$PKG_CONFIG_PATH:{{deps.gnome.org/libxml2.prefix}}
-      - PKG_CONFIG_PATH=$PKG_CONFIG_PATH:{{deps.github.com/kkos/oniguruma.prefix}}
       - CC=gcc
+    linux:
+      LDFLAGS: -Wl,-rpath,{{pkgx.prefix}}
     darwin:
+      # ... we need to link with headerpad...
+      LDFLAGS: -Wl,-rpath,{{pkgx.prefix}},-headerpad_max_install_names
       ARGS:
+        # FIXME: we'd like zip support for linux, but libzip's zip.h is using
+        # clang _Nullable and gcc doesn't like it.
+        - --with-zip
         - --enable-dtrace
         - --with-ldap-sasl
 
 provides:
+  - bin/pear
+  - bin/pecl
   - bin/phar
   - bin/php
   - bin/php-cgi

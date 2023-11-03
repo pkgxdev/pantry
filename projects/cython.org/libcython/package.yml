@@ -16,6 +16,12 @@ build:
         ln -s ../libexec/lib/python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
       working-directory: "{{prefix}}/lib"
 test:
+  dependencies:
+    llvm.org: '*'
+  env:
+    linux:
+      CC: clang
+      AS: llvm-as
   script:
     - python setup.py build_ext --inplace
     - python -c "import package_manager" | grep "You are using tea"

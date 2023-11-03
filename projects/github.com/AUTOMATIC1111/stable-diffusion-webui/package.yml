@@ -64,7 +64,7 @@ build:
       cd {{prefix}}
 
     # move this installation into its prefix
-    - run: |
+    - |
         cp -a $SRCROOT lib
         mkdir -p bin
 
@@ -84,6 +84,15 @@ build:
         rm launch.py.bak
       working-directory:
         lib
+
+    # gradio 3.41.2 fails to load anything if any part in the install path has a `.` prefix 🤦‍♂️
+    # https://github.com/AUTOMATIC1111/stable-diffusion-webui/issues/13292
+    # FIXME should stop doing this when fixed
+    # https://github.com/gradio-app/gradio/pull/4303
+    - run:
+        sed -i '/is_dotfile =/s/= .*/= False/' routes.py
+      working-directory:
+        lib/venv/lib/python3.10/site-packages/gradio
 
     # delete our crap
     - rm -rf lib/props lib/xyz.tea.* lib/tea.yaml

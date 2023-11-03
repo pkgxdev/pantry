@@ -18,9 +18,8 @@ dependencies:
 build:
   dependencies:
     perl.org: 5
-    git-scm.org: 2  # to apply our patch
   script: |
-    git apply props/x509_def.c.diff
+    patch -p1 <props/x509_def.c.diff
 
     ./Configure --prefix={{ prefix }} $ARCH no-tests $ARGS --openssldir={{prefix}}/ssl
     make --jobs {{ hw.concurrency }}
@@ -48,19 +47,20 @@ build:
 
 test:
   dependencies:
-    gnu.org/wget: '*'
-  script: |
-    echo "This is a test file" > in
-    openssl dgst -sha256 -out out ./in
-    if test {{version.major}} = 3; then
-      test "$(cat ./out)" = "SHA2-256(./in)= $SAMPLE"
-    else
-      test "$(cat ./out)" = "SHA256(./in)= $SAMPLE"
-    fi
+    pkgx.sh: ^1
+  script:
+    - echo "This is a test file" > in
+    - openssl dgst -sha256 -out out ./in
 
-    if test {{version.major}} = 1; then
-      wget tea.xyz  # test the certs work
-    fi
+    - run: test "$(cat ./out)" = "SHA2-256(./in)= $SAMPLE"
+      if: ^3
+    - run: test "$(cat ./out)" = "SHA256(./in)= $SAMPLE"
+      if: ^1
+
+    # test the certs work
+    - run: pkgx wget tea.xyz
+      if: ^1
     # ^^ can't test openssl 3 yet since like, what uses it even?!
+    # especially since our curl and wget are hard-locked to ^1.1 for now
   env:
     SAMPLE: c87e2ca771bab6024c269b933389d2a92d4941c848c52f155b9b84e1f109fe35

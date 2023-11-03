@@ -1,0 +1,71 @@
+distributable:
+  url: https://github.com/wxWidgets/wxWidgets/releases/download/v{{version}}/wxWidgets-{{version}}.tar.bz2
+  strip-components: 1
+versions:
+  github: wxWidgets/wxWidgets
+dependencies:
+  libjpeg-turbo.org: '*'
+  libpng.org: '*'
+  simplesystems.org/libtiff: '*'
+  pcre.org/v2: '*'
+  libexpat.github.io: '*'
+  zlib.net: '*'
+  linux:
+    x.org/sm: '*'
+    freedesktop.org/mesa-glu: '*'
+    gtk.org/gtk3: '*'
+build:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+    linux:
+      llvm.org: <17 # still gets unassigned label errors
+      gnu.org/make: '*'
+  script:
+    - run: rm -r catch pcre
+      working-directory: 3rdparty
+    - run: rm -r expat jpeg png tiff zlib
+      working-directory: src
+    - ./configure $CONFIGURE_ARGS
+    - make --jobs {{ hw.concurrency }} install
+    - run: |
+        rm wx-config
+        ln -s ../lib/wx/config/$WX_CONFIG wx-config
+      working-directory: ${{prefix}}/bin
+  env:
+    linux:
+      WX_CONFIG: gtk3-unicode-{{version.marketing}}
+      CC: clang
+      CXX: clang++
+      LD: clang
+    CONFIGURE_ARGS:
+      - --prefix={{prefix}}
+      - --enable-clipboard
+      - --enable-controls
+      - --enable-dataviewctrl
+      - --enable-display
+      - --enable-dnd
+      - --enable-graphics_ctx
+      - --enable-std_string
+      - --enable-svg
+      - --enable-unicode
+      - --enable-webviewwebkit
+      - --with-expat
+      - --with-libjpeg
+      - --with-libpng
+      - --with-libtiff
+      - --with-opengl
+      - --with-zlib
+      - --disable-dependency-tracking
+      - --disable-tests
+      - --disable-precomp-headers
+      - --disable-monolithic
+    darwin:
+      WX_CONFIG: osx_cocoa-unicode-{{version.marketing}}
+      CONFIGURE_ARGS:
+        - --with-macosx-version-min=$MACOSX_DEPLOYMENT_TARGET
+        - --with-osx_cocoa
+        - --with-libiconv
+provides:
+  - bin/wx-config
+  - bin/wxrc
+test: wx-config --version | grep {{version}}

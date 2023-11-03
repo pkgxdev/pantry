@@ -26,7 +26,11 @@ $ pkg build
 # ^^ needs a zero permissions GITHUB_TOKEN to use the GitHub API
 # either set `GITHUB_TOKEN` or run `gh auth login`
 
-$ foo
+$ pkgx yq .provides <projects/$(pkg status | tr -d '[:space:]')/package.yml
+- bin/foo
+# ^^ purely demonstrative for the next step
+
+$ pkgx foo
 # ^^ anything in the `provides:` key will now run
 
 $ pkg test
@@ -39,21 +43,19 @@ $ gh pr create
 ```
 
 > * `pkg build` and `pkg test` take a `-L` flag to run in a Linux Docker container
-> * All commands take an optional pkg-spec eg. `pkg build zlib.net^1.1`
+> * All commands take an optional pkg-spec eg. `pkg build node@19`
 
-While inside the pantry `dev` environment you can run commands from any built
-packages provided you specified their `provides:` key.
+> While inside the pantry `dev` environment you can run commands from any built
+> packages provided you specified their `provides:` key in the `package.yml`.
 
-## BrewKit
-
-We use a special package called [`brewkit`] to build packages both here and
-in CI/CD. `brewkit` provides the `pkg` command.
+> We use a special package called [`brewkit`] to build packages both here and
+> in CI/CD. `brewkit` provides the `pkg` command.
 
 ## GitHub Codespaces
 
 `pantry` also works in GitHub Codespaces. The default configuration
-provides with the repository will install/update `pkgx` at the time
-you attach, so you should be able to quickly work on or test packages
+provided with the repository will install/update `pkgx` at the time
+you attach, so you should be able to quickly work on test packages
 in a remote linux environment (or work from a device with just a web browser).
 
 ## Packaging Guide
@@ -65,19 +67,29 @@ For other assistance, start a [discussion].
 The best way to figure out solutions for your problems is to read other
 examples from the pantry.
 
-## After Your Contribution
+# After Your Contribution
 
 We build “bottles” (tar’d binaries) and upload them to our CDN. Thus your
-contribution will be available at merge-time + build-time. `pkgx` should
+contribution will be available at merge-time + build-time + CDN distribution
+time.
+
+`pkgx` should
 automatically sync the pantry to your local machine if you ask for something
 it doesn’t know about, but in the case where that fails do a `pkgx --sync`
 first.
 
-The pantry automatically builds new releases of packages *as soon as they are
-released* (usually starting the builds within seconds). There is no need to
-submit PRs for updates.
+> The pantry automatically builds new releases of packages *as soon as they are
+> released* (usually starting the builds within seconds). There is no need to
+> submit PRs for updates.
 
-## Working on Other People’s Pull Requests
+Note that while in the pantry `dev` environment you can use your new package
+if you built it. However this will not work outside the pantry `dev` unless
+you either:
+
+1. You set `PKGX_PANTRY_PATH`
+2. Get your PR merged!
+
+# Working on Other People’s Pull Requests
 
 Packaging can be fiddly so we all pitch in. If you want to help someone else
 with their pull request then you can use GitHub’s CLI:
@@ -97,3 +109,4 @@ $ pkg edit
 [discussion]: https://github.com/orgs/pkgxdev/discussions
 [IPFS]: https://ipfs.tech
 [`npmjs.com/provider.yml`]: ./projects/npmjs.com/provider.yml
+[`brewkit`]: https://github.com/pkgxdev/brewkit
