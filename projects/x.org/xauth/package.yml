@@ -1,0 +1,45 @@
+distributable:
+  url: https://www.x.org/releases/individual/app/xauth-{{version}}.tar.xz
+  strip-components: 1
+versions:
+  url: https://www.x.org/releases/individual/app/
+  match: /xauth-\d+\.\d+\.\d+\.tar\.xz/
+  strip:
+    - /^xauth-/
+    - /\.tar\.xz/
+dependencies:
+  x.org/x11: '*'
+  x.org/exts: '*'
+  x.org/xau: '*'
+  x.org/xmu: '*'
+  linux:
+    x.org/xcb: '*'
+    x.org/xdmcp: '*'
+build:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+    x.org/util-macros: '*'
+    linux:
+      gnu.org/gcc: '*'
+      gnu.org/make: '*'
+  script:
+    - ./configure $CONFIGURE_ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    CONFIGURE_ARGS:
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --prefix="{{prefix}}"
+      - --libdir="{{prefix}}/lib"
+      - --sysconfdir="{{prefix}}/etc"
+      - --localstatedir="{{prefix}}/var"
+      - --enable-unix-transport
+      - --enable-tcp-transport
+      - --enable-ipv6
+      - --enable-local-transport
+provides:
+  - bin/xauth
+test:
+  script:
+    - xauth version | grep {{version}}

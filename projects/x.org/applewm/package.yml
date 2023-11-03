@@ -1,0 +1,38 @@
+distributable:
+  url: https://www.x.org/releases/individual/lib/libAppleWM-{{version}}.tar.bz2
+  strip-components: 1
+versions:
+  url: https://www.x.org/releases/individual/lib/
+  match: /libAppleWM-\d+\.\d+\.\d+\.tar\.bz2/
+  strip:
+    - /^libAppleWM-/
+    - /\.tar\.bz2/
+platforms:
+  - darwin
+dependencies:
+  x.org/x11: '*'
+  x.org/exts: '*'
+build:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script:
+    - run: |
+        sed -i.bak "s|-F|-iframeworkwithsysroot|g" src/Makefile.in
+        rm -f src/Makefile.in.bak
+      if: 1.4.1
+    - ./configure $CONFIGURE_ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    CONFIGURE_ARGS:
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --prefix="{{prefix}}"
+      - --libdir="{{prefix}}/lib"
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script:
+    - pkg-config --modversion applewm | grep {{version}}
+    - cc test.c -lX11 -lAppleWM -o test
+    - ./test

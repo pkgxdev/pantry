@@ -1,0 +1,27 @@
+distributable:
+  url: https://github.com/stern/stern/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: stern/stern
+
+build:
+  dependencies:
+    go.dev: ^1.21
+  script: |
+    go mod download
+    go build -ldflags="$LDFLAGS" -o $BUILDLOC .
+  env:
+    CGO_ENABLED: 0
+    LDFLAGS:
+      - -s
+      - -w
+      - -X github.com/stern/stern/cmd.version={{version}}
+    BUILDLOC: '{{prefix}}/bin/stern'
+
+provides:
+  - bin/stern
+
+test:
+  script: |
+    test "$(stern --version)" = "version: {{version}}"

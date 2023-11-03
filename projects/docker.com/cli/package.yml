@@ -11,11 +11,7 @@ build:
     - mkdir -p ./src/github.com/docker
     - ln -sf $GOPATH $GOPATH/src/github.com/docker/cli
     - run: |
-        go build $ARGS -ldflags=" \
-        -X \"github.com/docker/cli/cli/version.BuildTime=$(date "+%Y-%m-%dT%H:%M:%S%z")\" \
-        -X github.com/docker/cli/cli/version.Version={{version}} \
-        -X \"github.com/docker/cli/cli/version.PlatformName=Docker Engine - Community\" \
-        " github.com/docker/cli/cmd/docker
+        go build $ARGS -ldflags="$LD_FLAGS -X \"github.com/docker/cli/cli/version.PlatformName=Docker Engine - Community\"" github.com/docker/cli/cmd/docker
     - run: |
         for md in man/*.[1-8].md; do
           section=$(basename "$md" | sed 's/.*\.\([1-8]\)\.md/\1/')
@@ -28,6 +24,12 @@ build:
     ARGS:
       - -trimpath
       - -o={{prefix}}/bin/docker
+    LD_FLAGS:
+      - -X github.com/docker/cli/cli/version.BuildTime=$(date "+%Y-%m-%dT%H:%M:%S%z")
+      - -X github.com/docker/cli/cli/version.Version={{version}}
+    linux:
+      LD_FLAGS:
+        - -buildmode=pie
 provides:
   - bin/docker
 test:
