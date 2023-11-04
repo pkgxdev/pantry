@@ -1,0 +1,24 @@
+distributable:
+  url: https://github.com/lxml/lxml/releases/download/lxml-{{version}}/lxml-{{version}}.tar.gz
+  strip-components: 1
+versions:
+  github: lxml/lxml
+  strip: /^lxml-/
+dependencies:
+  python.org: ^3.10
+  gnome.org/libxml2: '*'
+  gnome.org/libxslt: '*'
+runtime:
+  env:
+    PYTHONPATH: "{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages:$PYTHONPATH"
+build:
+  dependencies:
+    linux:
+      llvm.org: '*'
+  script:
+    - python -m pip install --prefix={{prefix}} .
+    - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
+      working-directory: "{{prefix}}/lib"
+test:
+  script:
+    - python -c "import lxml"
