@@ -11,8 +11,6 @@ dependencies:
   gnome.org/glib: '*'
   gnupg.org/libgcrypt: '*'
   gnupg.org/libgpg-error: '*'
-  linux:
-    google.com/googletest: '*'
 build:
   dependencies:
     docbook.org/xsl: '*'
@@ -24,7 +22,7 @@ build:
     gnome.org/vala: '*'
     gnome.org/libxslt: '*'
     linux:
-      gnu.org/gcc: '*'
+      llvm.org: '*'
   working-directory: build
   script:
     - meson .. $MESON_ARGS
@@ -39,6 +37,11 @@ build:
     - run: ln -s libsecret-1/libsecret libsecret
       working-directory: "{{prefix}}/include"
   env:
+    linux:
+      CC: clang
+      CXX: clang++
+      LD: clang
+      CFLAGS: "-Wno-incompatible-function-pointer-types $CFLAGS"
     XML_CATALOG_FILES: "{{prefix}}/etc/xml/catalog"
     MESON_ARGS:
       - --prefix="{{prefix}}"
