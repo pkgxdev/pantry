@@ -1,5 +1,7 @@
 distributable:
-  url: https://github.com/cirruslabs/tart/archive/refs/tags/{{version}}.tar.gz
+  # vendoring for newer versions
+  # url: https://github.com/cirruslabs/tart/archive/refs/tags/{{version}}.tar.gz
+  url: https://github.com/cirruslabs/tart/releases/download/{{version}}/tart.tar.gz
 
 warnings:
   - vendored
@@ -20,15 +22,10 @@ platforms:
 # This only works on macOS, arm64, monterey and above. It requires xcode 14.1 to build
 
 build:
-  dependencies:
-    curl.se: '*'
-  working-directory: ${{prefix}}
-  script: |
-    curl -Lfo tart.tar.gz "https://github.com/cirruslabs/tart/releases/download/{{version}}/tart.tar.gz"    
-    tar -zxf tart.tar.gz
-    rm tart.tar.gz
-    mkdir bin
-    cp $SRCROOT/props/tart-shim bin/tart
+  script:
+    - mkdir -p "{{prefix}}/bin"
+    - cp -a tart.app "{{prefix}}"
+    - cp props/tart-shim "{{prefix}}"/bin/tart
 
 provides:
   - bin/tart
@@ -37,8 +34,8 @@ test:
   script:
     - ': >empty.ispw'
     - OUT=$(tart create
-        --from-ipsw empty.ipsw
-        test 2>&1 || true)
+      --from-ipsw empty.ipsw
+      test 2>&1 || true)
     - 'test "$OUT" = "Error: The restore image failed to load. Unable to create sandbox extensions."'
   env:
     TART_HOME: $PWD
