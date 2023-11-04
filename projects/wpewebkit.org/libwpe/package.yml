@@ -18,6 +18,11 @@ build:
     - meson setup build $MESON_ARGS
     - meson compile -C build --verbose
     - meson install -C build
+    - run: |
+        mv wpe-1.0/* .
+        rmdir wpe-1.0
+        ln -s . wpe-1.0
+      working-directory: ${{prefix}}/include
   env:
     LDFLAGS: "-fPIC"
     MESON_ARGS:
@@ -33,5 +38,4 @@ test:
     - make wpe-test
     - ./wpe-test | grep {{version}}
   env:
-    CFLAGS: "-I{{prefix}}/include/wpe-1.0 $CFLAGS"
     LDLIBS: -lwpe-1.0
