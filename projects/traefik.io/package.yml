@@ -1,0 +1,45 @@
+distributable:
+  url: https://github.com/traefik/traefik/releases/download/v{{version}}/traefik-v{{version}}.src.tar.gz
+  strip-components: 1
+versions:
+  github: traefik/traefik
+build:
+  dependencies:
+    go.dev: '*'
+  script:
+    - go generate
+    - go build $GO_ARGS -ldflags="$LD_FLAGS" ./cmd/traefik
+  env:
+    GO_ARGS:
+      - -trimpath
+      - -o="{{prefix}}/bin/traefik"
+    LD_FLAGS:
+      - -s
+      - -w
+      - -X github.com/traefik/traefik/v{{version.major}}/pkg/version.Version={{version}}
+    linux:
+      LD_FLAGS:
+        - -buildmode=pie
+provides:
+  - bin/traefik
+test:
+  dependencies:
+    curl.se: '*'
+  script:
+    - traefik version 2>&1 | grep {{version}}
+    - mv $FIXTURE traefik.toml
+    - traefik --configfile=$PWD/traefik.toml &
+    - sleep 5
+    - curl -sIm3 -XGET http://127.0.0.1:2020/ | grep "HTTP/1.1 404 Not Found"
+    - sleep 1
+    - curl -sIm3 -XGET http://127.0.0.1:2030/dashboard/ | grep "HTTP/1.1 200 OK"
+    - killall traefik || true
+  fixture: |
+    [entryPoints]
+      [entryPoints.http]
+        address = ":2020"
+      [entryPoints.traefik]
+        address = ":2030"
+    [api]
+      insecure = true
+      dashboard = true

@@ -18,13 +18,22 @@ libexec="$(cd "$(dirname "$0")/.." && pwd)"/libexec
 # extract the git subcommand
 cmd=$(find_git_command "$@")
 
+_provides() {
+  if foo="$(pkgx --provider git-"$cmd")"; then
+    echo "$foo"
+  else
+    # syncing is slow but let’s be sure about it
+    pkgx --sync --provider git-"$cmd"
+  fi
+}
+
 if [ -z "$cmd" ]; then
   exec "$libexec/git" "$@"
 elif [ -x "$libexec/git-$cmd" ] && [ -f "$libexec/git-$cmd" ]; then
   exec "$libexec/git" "$@"
 elif type "git-$cmd" >/dev/null 2>&1; then
   exec "$libexec/git" "$@"
-elif command -v pkgx >/dev/null 2>&1 && pkg=$(pkgx --provider git-"$cmd"); then
+elif command -v pkgx >/dev/null 2>&1 && pkg=$(_provides); then
   exec pkgx +"$pkg" "$libexec/git" "$@"
 else
   exec "$libexec/git" "$@"

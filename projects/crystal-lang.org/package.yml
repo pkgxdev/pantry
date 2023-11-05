@@ -31,8 +31,8 @@ dependencies:
 
 runtime:
   env:
+    CRYSTAL_LINK_FLAGS: -Wl,-rpath,{{pkgx.prefix}}
     CRYSTAL_PATH: ${{prefix}}/lib:$CRYSTAL_PATH
-    CRYSTAL_LIBRARY_PATH: $LD_LIBRARY_PATH
 
 build:
   dependencies:
@@ -72,11 +72,9 @@ provides:
 test:
   fixture: puts {{Crystal::VERSION}}
   env:
-    CRYSTAL_LINK_FLAGS: -Wl,-rpath,{{pkgx.prefix}}
   script:
     - cp $FIXTURE test.cr
     - crystal build -o test test.cr
     - test "$(./test)" = "{{version}}"
-    # FIXME: this should work, but because it compiles with LLVM, it needs the
-    # @rpath set somehow.
-    # - test "$(crystal eval 'puts {{Crystal::VERSION}}')" = "{{version}}"
+    - test "$(crystal eval 'puts {{Crystal::VERSION}}')" = "{{version}}"
+    - test "$(cat $FIXTURE | crystal eval)" = "{{version}}"

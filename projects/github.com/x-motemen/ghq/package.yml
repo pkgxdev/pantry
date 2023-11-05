@@ -1,0 +1,30 @@
+distributable:
+  url: git+https://github.com/x-motemen/ghq
+  ref: v{{version}}
+  strip-components: 1
+
+versions:
+  github: x-motemen/ghq
+  strip: /^v/
+
+build:
+  dependencies:
+    go.dev: ^1.21
+  script: |
+    go build -ldflags="$LDFLAGS" -o $BUILDLOC .
+  env:
+    CGO_ENABLED: 0
+    LDFLAGS:
+      - -s
+      - -w
+      - -X main.revision=$(git rev-parse --short HEAD)
+    BUILDLOC: '{{prefix}}/bin/ghq'
+
+provides:
+  - bin/ghq
+
+test:
+  dependencies:
+    gnu.org/grep: '*'
+  script: |
+    test "$(ghq --version | grep -E '^ghq version {{version}}')"

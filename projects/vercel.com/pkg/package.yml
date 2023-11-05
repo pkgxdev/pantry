@@ -1,0 +1,44 @@
+distributable:
+  url: https://github.com/vercel/pkg/archive/refs/tags/{{version.raw}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: vercel/pkg/tags
+
+dependencies:
+  #FIXME I don't know which versions it supports, but Node.js v18 is one of the most well-supported ones.
+  nodejs.org: "*"
+
+build:
+  dependencies:
+    npmjs.com: "*"
+
+  script: |
+    npm i
+    npm install --global --build-from-source --prefix={{prefix}} --install-links
+
+test:
+  dependencies:
+    nodejs.org: "*"
+    vercel.com/pkg: "*"
+  script: |
+    test "$(pkg --version)" = "{{version.raw}}"
+    pkg fixture.js -t node18-$TARGET -o fixture
+    test "$(./fixture)" = "Hello, World!"
+  #FIXME Simplify this
+  env:
+    linux/x86-64: {
+      TARGET: "linux-x64"
+    }
+    linux/aarch64: {
+      TARGET: "linux-arm64"
+    }
+    darwin/x86-64: {
+      TARGET: "macos-x64"
+    }
+    darwin/aarch64: {
+      TARGET: "macos-arm64"
+    }
+
+provides:
+  - bin/pkg

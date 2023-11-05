@@ -16,17 +16,20 @@ provides:
 
 build:
   script:
-    - killall gpg-agent || true
-    - gpg-agent --daemon
     - ./configure $ARGS
     - make -j {{hw.concurrency}}
     - make install
-    - killall gpg-agent || true
   env:
     ARGS:
       - --prefix={{prefix}}
       - --with-libassuan-prefix={{deps.gnupg.org/libassuan.prefix}}
       - --with-libgpg-error-prefix={{deps.gnupg.org/libgpg-error.prefix}}
+      - --disable-gpg-test
+      - --disable-glibtest
+      - --disable-gpgconf-test
+      - --disable-gpg-test
+      - --disable-gpgsm-test
+      - --disable-g13-test
     CFLAGS: $CFLAGS -Wno-implicit-function-declaration
     CXXFLAGS: $CXXFLAGS -std=c++14
   dependencies:
