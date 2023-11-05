@@ -21,7 +21,13 @@ build:
     - meson setup build $MESON_ARGS
     - meson compile -C build --verbose
     - meson install -C build
+    - run: |
+        mv wpe-fdo-1.0/* .
+        rmdir wpe-fdo-1.0
+        ln -s . wpe-fdo-1.0
+      working-directory: ${{prefix}}/include
   env:
+    LDFLAGS: "-fPIC"
     MESON_ARGS:
       - --prefix="{{prefix}}"
       - --libdir="{{prefix}}/lib"
