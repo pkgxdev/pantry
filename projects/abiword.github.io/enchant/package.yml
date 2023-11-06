@@ -6,6 +6,7 @@ versions:
 dependencies:
   gnome.org/glib: '*'
   hunspell.github.io: '*'
+  aspell.net: '*'
 build:
   dependencies:
     freedesktop.org/pkg-config: '*'
@@ -22,13 +23,16 @@ build:
       - --disable-dependency-tracking
       - --prefix={{prefix}}
       - --enable-relocatable
+      - --disable-debug
+      - --disable-silent-rules
+    darwin:
+      ARGS:
+        - --with-applespell=false
 provides:
   - bin/enchant-2
   - bin/enchant-lsmod-2
 test:
-  env:
-    LANG: en_US.UTF-8
   script:
-    - enchant-lsmod-2 -lang $LANG
+    - enchant-lsmod-2
     - enchant-2 -l test.txt
     - enchant-2 -v | grep {{version}}
