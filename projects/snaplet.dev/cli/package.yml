@@ -1,0 +1,36 @@
+distributable:
+  url: https://registry.npmjs.org/snaplet/-/snaplet-{{version}}.tgz
+  strip-components: 1
+
+versions:
+ versions:
+    url: https://www.npmjs.com/package/snaplet?activeTab=versions
+    match: /v\/\d+\.\d+\.\d+/
+    strip:
+        - /^v\//
+platforms:
+  - darwin
+  - linux/x86-64
+
+dependencies:
+  nodejs.org: "*"
+
+build:
+  dependencies:
+    npmjs.com: "*"
+  script:
+    - chmod +x lib/bin/snaplet.js
+    - npm install .
+      --global
+      --prefix="{{prefix}}"
+      --install-links
+
+provides:
+  - bin/firebase
+
+provides:
+  - bin/snaplet
+
+test:
+  script:
+    snaplet -v | grep {{version}}
