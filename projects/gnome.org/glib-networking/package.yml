@@ -1,0 +1,47 @@
+distributable:
+  url: https://download.gnome.org/sources/glib-networking/{{version.marketing}}/glib-networking-{{version}}.tar.xz
+  strip-components: 1
+versions:
+  url: https://download.gnome.org/sources/glib-networking/cache.json
+  match: /glib-networking-\d+\.\d+\.\d+\.tar\.xz/
+  strip:
+    - /^glib-networking-/
+    - /\.tar\.xz/
+dependencies:
+  gnome.org/glib: '*'
+  gnutls.org: '*'
+  gnome.org/gsettings-desktop-schemas: '*'
+runtime:
+  env:
+    GIO_MODULE_DIR: "{{prefix}}/lib/gio/modules"
+build:
+  dependencies:
+    mesonbuild.com: '*'
+    ninja-build.org: '*'
+    freedesktop.org/pkg-config: '*'
+    linux:
+      llvm.org: '*'
+  script:
+    - meson $MESON_ARGS build
+    - meson compile -C build --verbose
+    - meson install -C build
+  env:
+    linux:
+      CC: clang
+      CXX: clang++
+      LD: clang
+    MESON_ARGS:
+      - --prefix="{{prefix}}"
+      - --libdir="{{prefix}}/lib"
+      - --buildtype=release
+      - --wrap-mode=nofallback
+      - -Dlibproxy=disabled
+      - -Dopenssl=disabled
+      - -Dgnome_proxy=disabled
+test:
+  dependencies:
+    linux:
+      llvm.org: '*'
+  script:
+    - cc gtls-test.c -D_REENTRANT -lgio-2.0 -lgobject-2.0 -lglib-2.0 -o test
+    - ./test
