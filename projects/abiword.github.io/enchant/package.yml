@@ -4,9 +4,9 @@ distributable:
 versions:
   github: AbiWord/enchant
 dependencies:
-  aspell.net: '*'
   gnome.org/glib: '*'
-  hunspell.github.io: '*'
+  linux:
+    hunspell.github.io: '*'
 build:
   dependencies:
     freedesktop.org/pkg-config: '*'
@@ -27,6 +27,9 @@ provides:
   - bin/enchant-2
   - bin/enchant-lsmod-2
 test:
+  env:
+    LANG: en_US.UTF-8
   script:
+    - enchant-lsmod-2 -lang $LANG
     - enchant-2 -l test.txt
     - enchant-2 -v | grep {{version}}
