@@ -43,10 +43,6 @@ provides:
   - bin/qemu-system-xtensa
   - bin/qemu-system-xtensaeb
 
-platforms:
-  - darwin
-  # FIXME: linux
-
 dependencies:
   gnome.org/glib: 2
   capstone-engine.org: ^4
@@ -57,17 +53,24 @@ dependencies:
   facebook.com/zstd: '*'
   invisible-island.net/ncurses: '*'
   libssh.org: '*'
+  libpng.org: '*'
 
 build:
   dependencies:
+    gnu.org/bison: '*'
+    github.com/westes/flex: '*'
+    python.org: '<3.10'
     ninja-build.org: '*'
     freedesktop.org/pkg-config: '*'
+
   script:
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
 
     # Without this, `codesign` complains about resource forks in the binary
-    - xattr -cr {{prefix}}/bin/*
+    - if: darwin
+      run:
+      - xattr -cr {{prefix}}/bin/*
   env:
     ARGS:
       - --prefix="{{prefix}}"
@@ -82,6 +85,7 @@ build:
       - --enable-zstd
       - --extra-cflags=-DNCURSES_WIDECHAR=1
       - --disable-sdl
+      - --disable-docs
 
 test:
   dependencies:
