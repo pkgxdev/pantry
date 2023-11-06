@@ -43,10 +43,6 @@ provides:
   - bin/qemu-system-xtensa
   - bin/qemu-system-xtensaeb
 
-platforms:
-  - linux
-  - darwin
-
 dependencies:
   gnome.org/glib: 2
   capstone-engine.org: ^4
@@ -61,42 +57,13 @@ dependencies:
 
 build:
   dependencies:
-    #
-    # ../target/hexagon/meson.build:186:8: ERROR: Program 'bison' not found or not executable
-    #
     gnu.org/bison: '*'
-    #
-    # ../target/hexagon/meson.build:180:8: ERROR: Program 'flex' not found or not executable
-    #
     github.com/westes/flex: '*'
-    #
-    # python.org: '*'
-    #
-    # build in pkgxdev/pkgx container:
-    #
-    # [279/9472] Generating ui/dbus-display gdbus-codegen with a custom command
-    # FAILED: ui/dbus-display1.h ui/dbus-display1.c 
-    # /root/.pkgx/gnome.org/glib/v2.78.0/lib/pkgconfig/../../bin/gdbus-codegen ui/dbus-display1.xml --glib-min-required 2.64 --output-directory /pkgxdev-pantry/builds/qemu.org-8.1.2+linux/build/ui --interface-prefix org.qemu. --c-namespace QemuDBus --generate-c-code dbus-display1
-    # Traceback (most recent call last):
-    #  File "/root/.pkgx/gnome.org/glib/v2.78.0/lib/pkgconfig/../../bin/gdbus-codegen", line 53, in <module>
-    #    from codegen import codegen_main
-    #  File "/root/.pkgx/gnome.org/glib/v2.78.0/share/glib-2.0/codegen/codegen_main.py", line 29, in <module>
-    #    from . import dbustypes
-    #  File "/root/.pkgx/gnome.org/glib/v2.78.0/share/glib-2.0/codegen/dbustypes.py", line 22, in <module>
-    #    from . import utils
-    #  File "/root/.pkgx/gnome.org/glib/v2.78.0/share/glib-2.0/codegen/utils.py", line 22, in <module>
-    #    import distutils.version
-    # ModuleNotFoundError: No module named 'distutils'
-    #
     python.org: '<3.10'
     ninja-build.org: '*'
     freedesktop.org/pkg-config: '*'
 
   script:
-    #- if: linux
-    #  run: |
-    #    sudo apt -o DPkg::Lock::Timeout=60 update
-    #    sudo apt -o DPkg::Lock::Timeout=60 -y install build-essential
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
 
