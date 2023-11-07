@@ -5,10 +5,6 @@ distributable:
 versions:
   github: lima-vm/lima
 
-platforms:
-  # https://github.com/teaxyz/pantry/blob/main/projects/qemu.org/package.yml only darwin
-  - darwin
-
 dependencies:
   qemu.org: '*'
 
@@ -16,9 +12,17 @@ build:
   dependencies:
     go.dev: '*'
   script:
-    - make VERSION={{version}} clean all
+    - run: |
+        sed -i.bak -e's/ldflags="/ldflags="-buildmode=pie /' Makefile
+        rm Makefile.bak
+      if: linux
+    - make VERSION={{version}} minimal
     - mkdir -p {{prefix}}
     - mv ./_output/* {{prefix}}/
+  env:
+    CC: clang
+    CXX: clang++
+    LD: clang
 
 provides:
   - bin/limactl
