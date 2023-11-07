@@ -1,0 +1,34 @@
+distributable:
+  url: git+https://github.com/linkerd/linkerd2
+  ref: stable-{{version}}
+
+versions:
+  github: linkerd/linkerd2
+  match: /^stable-.*/
+  strip: /^stable-/
+
+build:
+  dependencies:
+    go.dev: ^1.21
+    git-scm.org: "*"
+  script: |
+    ./bin/build-cli-bin
+    mkdir -p "{{ prefix }}"/bin
+    mv target/cli/$PLATFORM/linkerd "{{ prefix }}"/bin
+  env:
+    CGO_ENABLED: 0
+    darwin/aarch64: {PLATFORM: darwin-arm64}
+    darwin/x86-64:  {PLATFORM: darwin-amd64}
+    linux/aarch64:  {PLATFORM: linux-arm64}
+    linux/x86-64:   {PLATFORM: linux-amd64}
+
+provides:
+  - bin/linkerd
+
+test:
+  script: |
+    test "$(linkerd version --client)" = "Client version: stable-{{version}}"
+    linkerd install --ignore-cluster --crds > crds.yml
+    test -f crds.yml
+    linkerd install --ignore-cluster > linkerd.yml
+    test -f linkerd.yml
