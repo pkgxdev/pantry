@@ -58,6 +58,8 @@ build:
     freedesktop.org/pkg-config: '*'
     swig.org: '*'
     doxygen.nl: '*'
+    linux:
+      llvm.org: '*'
   script:
     - cmake -S . -B build $CMAKE_ARGS
     - cmake --build build
@@ -70,6 +72,9 @@ build:
     - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
       working-directory: "{{prefix}}/lib"
   env:
+    CC: clang
+    CXX: clang++
+    LD: clang
     CMAKE_ARGS:
       - -DCMAKE_INSTALL_PREFIX="{{prefix}}
       - -DCMAKE_INSTALL_LIBDIR=lib
