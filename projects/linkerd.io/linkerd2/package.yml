@@ -1,6 +1,6 @@
 distributable:
-  url: https://github.com/linkerd/linkerd2/archive/refs/tags/stable-{{version}}.tar.gz
-  strip-components: 1
+  url: git+https://github.com/linkerd/linkerd2
+  ref: stable-{{version}}
 
 versions:
   github: linkerd/linkerd2
@@ -10,18 +10,17 @@ versions:
 build:
   dependencies:
     go.dev: ^1.21
+    git-scm.org: "*"
   script: |
-    go build -o linkerd -tags prod -mod=readonly -ldflags="$LDFLAGS" ./cli
+    ./bin/build-cli-bin
     mkdir -p "{{ prefix }}"/bin
-    mv linkerd "{{ prefix }}"/bin
+    mv target/cli/$PLATFORM/linkerd "{{ prefix }}"/bin
   env:
     CGO_ENABLED: 0
-    GO111MODULE: "on"
-    LDFLAGS:
-      - -extldflags=-static
-      - -w
-      - -s
-      - -X=github.com/linkerd/linkerd2/pkg/version.Version=stable-{{version}}
+    darwin/aarch64: {PLATFORM: darwin-arm64}
+    darwin/x86-64:  {PLATFORM: darwin-amd64}
+    linux/aarch64:  {PLATFORM: linux-arm64}
+    linux/x86-64:   {PLATFORM: linux-amd64}
 
 provides:
   - bin/linkerd
