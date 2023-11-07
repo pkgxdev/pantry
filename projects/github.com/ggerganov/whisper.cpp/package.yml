@@ -20,20 +20,25 @@ build:
   dependencies:
     freedesktop.org/pkg-config: ~0.29
     gnu.org/patch: '*'
-  script: |
-    patch -p1 < props/illegal_instruction.patch
+  script:
+    - run: patch -p1 < props/illegal_instruction.patch
+      if: <1.4.3
 
-    make --jobs {{ hw.concurrency }}
-    make stream --jobs {{ hw.concurrency }}
-    make command --jobs {{ hw.concurrency }}
+    - make --jobs {{ hw.concurrency }}
+    - make stream --jobs {{ hw.concurrency }}
+    - make command --jobs {{ hw.concurrency }}
 
-    mkdir -p {{prefix}}/bin {{prefix}}/tbin {{prefix}}/share
-    mv main stream command {{prefix}}/tbin
-    chmod +x {{prefix}}/tbin/*
+    - mkdir -p {{prefix}}/bin {{prefix}}/tbin {{prefix}}/share
+    - mv main stream command {{prefix}}/tbin
+    - chmod +x {{prefix}}/tbin/*
 
-    mv models/download-ggml-model.sh {{prefix}}/tbin/download-ggml-model.sh
-    mv props/whisper.cpp props/whisper-fetch {{prefix}}/bin
-    mv examples/command/commands.txt {{prefix}}/share
+    - mv models/download-ggml-model.sh {{prefix}}/tbin/download-ggml-model.sh
+    - mv props/whisper.cpp props/whisper-fetch {{prefix}}/bin
+    - mv examples/command/commands.txt {{prefix}}/share
+  env:
+    darwin/aarch64:
+      # https://github.com/ggerganov/whisper.cpp/issues/1367
+      WHISPER_NO_METAL: 1
 
 test:
   dependencies:
