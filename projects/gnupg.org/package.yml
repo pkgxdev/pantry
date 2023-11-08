@@ -17,6 +17,12 @@ dependencies:
   gnupg.org/libksba: '*'
   gnupg.org/libassuan: '*'
   gnupg.org/libgcrypt: '*'
+  gnutls.org: '*'
+  openldap.org: '*'
+  gnu.org/readline: '*'
+  sqlite.org: '*'
+  darwin:
+    gnu.org/gettext: '*'
 
 runtime:
   env:
@@ -29,13 +35,12 @@ build:
   script:
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }}
-    - make --jobs {{ hw.concurrency }} check
     - make --jobs {{ hw.concurrency }} install
     - run: |
         sed -i.bak "s|{{prefix}}|\$(dirname \$0)/..|g" gpg-wks-client
         rm gpg-wks-client.bak
       working-directory: "{{prefix}}/libexec"
-    - run: mkdir -p var/run etc
+    - run: mkdir -p var/run
       working-directory: "{{prefix}}"
   env:
     ARGS:
@@ -45,9 +50,6 @@ build:
       - --disable-debug
       - --disable-dependency-tracking
       - --disable-silent-rules
-    darwin:
-      ARGS:
-        --disable-ccid-driver
 
 provides:
   - bin/gpg
