@@ -18,6 +18,10 @@ dependencies:
   gnupg.org/libassuan: '*'
   gnupg.org/libgcrypt: '*'
 
+runtime:
+  env:
+    GNUPGHOME: "{{prefix}}"
+
 build:
   freedesktop.org/pkg-config: '*'
   linux:
@@ -59,6 +63,8 @@ provides:
 
 test:
   script:
+    - killall gpg-agent || true
+    - gpg-agent --daemon
     - gpg --version | grep {{version}}
     - gpg --batch --gen-key batch.gpg
     - gpg --detach-sign test.txt
