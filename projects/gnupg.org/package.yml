@@ -35,6 +35,8 @@ build:
         sed -i.bak "s|{{prefix}}|\$(dirname \$0)/..|g" gpg-wks-client
         rm gpg-wks-client.bak
       working-directory: "{{prefix}}/libexec"
+    - run: mkdir -p var/run etc
+      working-directory: "{{prefix}}"
   env:
     ARGS:
       - --prefix={{prefix}}
@@ -43,6 +45,9 @@ build:
       - --disable-debug
       - --disable-dependency-tracking
       - --disable-silent-rules
+    darwin:
+      ARGS:
+        --disable-ccid-driver
 
 provides:
   - bin/gpg
