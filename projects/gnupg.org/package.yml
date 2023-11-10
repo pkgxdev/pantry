@@ -36,7 +36,6 @@ build:
   linux:
     gnu.org/gcc: '*'
   script:
-    - cp ./props/entrypoint.sh {{prefix}}
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }}
     - make --jobs {{ hw.concurrency }} install
@@ -46,6 +45,7 @@ build:
       working-directory: "{{prefix}}/libexec"
     - run: mkdir -p var/run
       working-directory: "{{prefix}}"
+    - cp ./props/entrypoint.sh {{prefix}}/
   env:
     ARGS:
       - --prefix={{prefix}}
