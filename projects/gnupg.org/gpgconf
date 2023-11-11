@@ -1,0 +1,13 @@
+#!/bin/sh
+
+d=$(dirname "$0")
+
+if [ ! -f "$GNUPGHOME/gpg.conf" ]; then
+cat << EOF > $GNUPGHOME/gpg.conf
+use-agent
+pinentry-mode loopback
+agent-program $d/gpg-agent
+EOF
+fi
+
+$d/gpg-exec "$@"

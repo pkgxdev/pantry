@@ -43,9 +43,12 @@ build:
       working-directory: "{{prefix}}/libexec"
     - run: mkdir -p var/run etc/gnupg
       working-directory: "{{prefix}}"
-    - run: mv ./gpg ./gpg-exec
+    - run: |
+        mv ./gpg ./gpg-exec
+        mv ./gpgconf ./gpgconf-exec
       working-directory: "{{prefix}}/bin"
-    - install props/gpg {{prefix}}/bin
+    - run: install gpg gpgconf {{prefix}}/bin
+      working-directory: prop
   env:
     ARGS:
       - --prefix={{prefix}}
