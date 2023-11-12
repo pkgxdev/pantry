@@ -51,6 +51,13 @@ jobs:
         with:
           prefix: ${{ github.workspace }}/.pkgx
 
+      - run: |
+          echo $GPG_PRIVATE_KEY | \
+            base64 -d | \
+            pkgx +gnupg.org gpg --import --batch --yes
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+
       - uses: actions/download-artifact@v3
         if: ${{ inputs.new-version }}
         with:
@@ -84,13 +91,6 @@ jobs:
             echo "$file=$(cat $file)" >> $GITHUB_ENV
           done
         working-directory: ${{ github.workspace }}/.pkgx
-
-      - run: |
-          echo $GPG_PRIVATE_KEY | \
-            base64 -d | \
-            pkgx +gnupg.org gpg --import --batch --yes
-        env:
-          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
 
       - uses: pkgxdev/brewkit/actions/bottle@v0
         id: bottle-xz
