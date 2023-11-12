@@ -1,0 +1,36 @@
+distributable:
+  url: https://github.com/rockdaboot/libpsl/releases/download/{{version}}/libpsl-{{version}}.tar.gz
+  strip-components: 1
+versions:
+  github: rockdaboot/libpsl
+dependencies:
+  unicode.org: '*'
+build:
+  dependencies:
+    mesonbuild.com: '*'
+    ninja-build.org: '*'
+    freedesktop.org/pkg-config: '*'
+    python.org: ~3.11
+    linux:
+      gnu.org/gcc: '*'
+  script:
+    - meson setup build $MESON_ARGS
+    - meson compile -C build
+    - meson install -C build
+  env:
+    linux:
+      LDFLAGS: -fPIC
+    MESON_ARGS:
+      - --prefix="{{prefix}}"
+      - --libdir="{{prefix}}/lib"
+      - --buildtype=release
+      - --wrap-mode=nofallback
+      - -Druntime=libicu
+      - -Dbuiltin=true
+test:
+  dependencies:
+    linux:
+      gnu.org/gcc: '*'
+  script:
+    - cc test.c -lpsl -o test
+    - ./test
