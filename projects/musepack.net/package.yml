@@ -19,6 +19,11 @@ build:
     - mkdir -p {{prefix}}/lib
     - cp libmpcdec/libmpcdec.dylib {{prefix}}/lib/
   env:
+    linux:
+      # ld.lld: error: duplicate symbol: Res_bit
+      # ld.lld: error: duplicate symbol: __Cc
+      # ld.lld: error: duplicate symbol: __Dc
+      LDFLAGS: "-Wl,--allow-multiple-definition"
     CMAKE_ARGS:
       - -DCMAKE_INSTALL_PREFIX="{{prefix}}
       - -DCMAKE_INSTALL_LIBDIR=lib
