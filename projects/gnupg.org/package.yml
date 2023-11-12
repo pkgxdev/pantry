@@ -27,7 +27,7 @@ dependencies:
 
 runtime:
   env:
-    GNUPGHOME: "{{prefix}}/etc/gnupg"
+    GNUPGHOME: '{{prefix}}/etc/gnupg'
 
 build:
   freedesktop.org/pkg-config: '*'
@@ -40,12 +40,14 @@ build:
     - run: |
         sed -i.bak "s|{{prefix}}|\$(dirname \$0)/..|g" gpg-wks-client
         rm gpg-wks-client.bak
-      working-directory: "{{prefix}}/libexec"
-    - run: mkdir -p var/run etc/gnupg
-      working-directory: "{{prefix}}"
+      working-directory: '{{prefix}}/libexec'
+    - run: |
+        mkdir -p var/run etc/gnupg
+        chmod 700 etc/gnupg
+      working-directory: '{{prefix}}'
     - run: |
         mv ./gpg ./gpg-exec
-      working-directory: "{{prefix}}/bin"
+      working-directory: '{{prefix}}/bin'
     - run: install gpg {{prefix}}/bin/
       working-directory: props
   env:
