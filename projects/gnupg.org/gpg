@@ -1,13 +1,15 @@
 #!/bin/sh
 
 d=$(dirname "$0")
+etc="$d/../etc"
 
-if [ ! -f "$GNUPGHOME/gpg.conf" ]; then
-cat << EOF > $GNUPGHOME/gpg.conf
+if [ ! -f "$etc/gpg.conf" ]; then
+mkdir -p "$etc"
+cat << EOF > "$etc"/gpg.conf
 use-agent
 pinentry-mode loopback
 agent-program $d/gpg-agent
 EOF
 fi
 
-$d/gpg-exec "$@"
+"$d"/gpg-exec "$@"
