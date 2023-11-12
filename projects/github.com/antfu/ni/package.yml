@@ -7,10 +7,9 @@ versions:
 
 dependencies:
   nodejs.org: '>=14'
+  npmjs.com: '*'
 
 build:
-  dependencies:
-    npmjs.com: '*'
   script:
     - npm install --include=dev
     - npm run build
@@ -29,4 +28,7 @@ provides:
   - bin/nun
 
 test:
-  ni --version | grep {{version}}
+  # or errors
+  - run: touch .nirc
+    if: '>=0.21.9'
+  - ni --version | grep {{version}}

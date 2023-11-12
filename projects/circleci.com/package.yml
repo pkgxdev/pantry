@@ -3,7 +3,7 @@ distributable:
   strip-components: 1
 
 versions:
-  github: CircleCI-Public/circleci-cli/tags 
+  github: CircleCI-Public/circleci-cli/tags
   strip: /^v/
 
 build:
@@ -17,6 +17,9 @@ build:
       - -w
       - -X github.com/CircleCI-Public/circleci-cli/version.packageManager=tea
       - -X github.com/CircleCI-Public/circleci-cli/version.Version={{version}}
+    linux:
+      LDFLAGS:
+        - -buildmode=pie
 
 provides:
   - bin/circleci
@@ -24,5 +27,5 @@ provides:
 test:
   script: |
     circleci version
-    echo "{version: 2.1}" > .circleci.yml 
+    echo "{version: 2.1}" > .circleci.yml
     circleci config pack .circleci.yml

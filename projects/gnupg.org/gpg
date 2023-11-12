@@ -1,0 +1,18 @@
+#!/bin/sh
+
+d=$(dirname "$0")
+etc="$d/../etc/gnupg"
+
+export GNUPGHOME="${GNUPGHOME:-"$etc"}"
+
+if [ ! -f "$etc/gpg.conf" ]; then
+mkdir -p "$etc"
+chmod 700 "$etc"
+cat << EOF > "$etc"/gpg.conf
+use-agent
+pinentry-mode loopback
+agent-program $d/gpg-agent
+EOF
+fi
+
+"$d"/gpg-exec "$@"
