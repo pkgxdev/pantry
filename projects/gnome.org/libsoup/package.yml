@@ -40,10 +40,6 @@ build:
       - --buildtype=release
       - --wrap-mode=nofallback
 test:
-  dependencies:
-    linux:
-      # failed with clang
-      gnu.org/gcc: '*'
   script:
     - cc test.c $ARGS -o test
     - ./test
@@ -54,3 +50,6 @@ test:
       - -lglib-2.0
       - -lgobject-2.0
       - -lsoup-3.0
+    linux:
+      CFLAGS: -fPIC
+      LDFLAGS: -pie
