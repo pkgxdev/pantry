@@ -18,12 +18,17 @@ provides:
 build:
   dependencies:
     gnupg.org/libgpg-error: 1
+    linux:
+      llvm.org: <17 # symbol not defined
   script: |
     ./configure $ARGS
     make
     make check
     make install
   env:
+    CC: clang
+    CXX: clang++
+    LD: clang
     ARGS:
     - --prefix={{prefix}}
     linux/x86-64:
