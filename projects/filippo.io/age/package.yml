@@ -14,10 +14,16 @@ provides:
 build:
   script: |
     mkdir -p build/age
-    go build -o "build/age"  -ldflags "-X main.Version={{ version }}" -trimpath ./cmd/...
+    go build -o "build/age"  -ldflags "$LDFLAGS" -trimpath ./cmd/...
     mkdir -p "{{ prefix }}"/bin
     mv build/age/age "{{ prefix }}"/bin
     mv build/age/age-keygen "{{ prefix }}"/bin
+  env:
+    LDFLAGS:
+      - -X main.Version="{{version}}"
+      linux:
+        LDFLAGS:
+          - -buildmode=pie
 
   dependencies:
     go.dev: ^1.19
