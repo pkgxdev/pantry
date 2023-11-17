@@ -9,23 +9,19 @@ versions:
     - /\.tar\.xz/
 dependencies:
   gnome.org/glib: '*'
-  gnome.org/libxslt: '*'
 build:
   dependencies:
-    docbook.org/xsl: '*'
     gnu.org/gettext: '*'
     gnome.org/gobject-introspection: '*'
     mesonbuild.com: '*'
     ninja-build.org: '*'
     freedesktop.org/pkg-config: '*'
   script:
-    - run: |
-        sed -i.bak "s|'--nonet',||g" meson.build
-        rm meson.build.bak
-      working-directory: doc
     - meson setup build $MESON_ARGS
     - meson compile -C build --verbose
     - meson install -C build
+    - run: ln -s json-glib-1.0/json-glib json-glib
+      working-directory: "{{prefix}}/include"
   env:
     MESON_ARGS:
       - --prefix="{{prefix}}"
@@ -33,10 +29,10 @@ build:
       - --buildtype=release
       - --wrap-mode=nofallback
       - -Dintrospection=enabled
-      - -Dman=true
+      - -Dman=false
 test:
   script:
-    - cc test.c -o test
+    - cc test.c $ARGS -o test
     - ./test
   env:
     ARGS:
