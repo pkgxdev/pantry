@@ -7,7 +7,10 @@ int main(int argc, char *argv[]) {
     GBytes *bytes = soup_session_send_and_read(session, msg, NULL, &error); // blocks
 
     if(error) {
+        g_printerr("Error: %s\n", error->message);
         g_error_free(error);
+        g_object_unref(msg);
+        g_object_unref(session);
         return 1;
     }
 
