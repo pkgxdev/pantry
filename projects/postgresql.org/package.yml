@@ -16,12 +16,12 @@ dependencies:
   lz4.org: '*'
   gnome.org/libxml2: '*'
   gnome.org/libxslt: '*'
-  unicode.org: '*'
+  unicode.org: ^73
 
 build:
   dependencies:
     freedesktop.org/pkg-config: '*'
-    gnu.org/gcc: '*'
+    #gnu.org/gcc: '*'
     gnu.org/bison: '*'
     github.com/westes/flex: ^2.5.31
     perl.org: '*'
@@ -34,6 +34,9 @@ build:
     make --jobs {{ hw.concurrency }}
     make install
   env:
+    CC: clang
+    CXX: clang++
+    LD: clang
     ARGS:
       - --prefix={{prefix}}
       - --with-ssl=openssl
@@ -41,7 +44,8 @@ build:
       - --with-libxml
       - --with-libxslt
     darwin:
-      LDFLAGS: -headerpad_max_install_names
+      LDFLAGS:
+        - -headerpad_max_install_names $LDFLAGS
 
 provides:
   - bin/clusterdb

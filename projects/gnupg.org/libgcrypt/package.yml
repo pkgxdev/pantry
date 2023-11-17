@@ -18,14 +18,23 @@ provides:
 build:
   dependencies:
     gnupg.org/libgpg-error: 1
-  script: |
-    ./configure $ARGS
-    make
-    make check
-    make install
+    darwinsys.com/file: '*' # needed for configure to build dylibs
+    linux:
+      llvm.org: <17 # symbol not defined
+  script:
+    - ./configure $ARGS
+    - make
+    - make check
+    - make install
   env:
+    CC: clang
+    CXX: clang++
     ARGS:
     - --prefix={{prefix}}
+    - --enable-static
+    - --enable-shared
+    linux:
+      LD: ld.lld
     linux/x86-64:
       ARGS:
         # basic.c:317:16: error: inline assembly requires more registers than available

@@ -4,7 +4,12 @@ set -e
 
 find_git_command() {
   for arg in "$@"; do
+    if test "$SKIP" = 1; then
+      SKIP=0
+      continue
+    fi
     case $arg in
+    -C) SKIP=1; continue;;
     -*);;
     *)
       echo "$arg"
