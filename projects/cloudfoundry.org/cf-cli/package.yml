@@ -1,0 +1,30 @@
+distributable:
+  #url: https://github.com/cloudfoundry/cli/archive/refs/tags/v{{version}}.zip
+  url: https://github.com/cloudfoundry/cli/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: cloudfoundry/cli
+
+build:
+  dependencies:
+    cmake.org: ^3
+    go.dev: '*'
+  env:
+    darwin/aarch64: 
+      PLATFORM: macosarm
+    darwin/x86-64:
+      PLATFORM: osx
+    linux/aarch64:
+      PLATFORM: linux_arm64
+    linux/x86-64:
+      PLATFORM: linux_x86-64
+  script: |
+    mkdir -p {{prefix}}/bin
+    make out/cf-cli_${PLATFORM}
+    install out/cf-cli_${PLATFORM} {{prefix}}/bin/cf
+
+provides:
+- bin/cf
+
+test: test "$(cf --version|cut -d' ' -f3|cut -d'+' -f'1')" = {{version}}
