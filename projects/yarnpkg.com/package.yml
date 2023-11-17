@@ -7,8 +7,6 @@ versions:
 
 provides:
   - bin/yarn
-  # no idea why yarn provides a shortcut of yarnpkg but it errors in mac
-  # - scripts/bin/yarnpkg
   - bin/yarnpkg
 
 dependencies:
@@ -16,15 +14,20 @@ dependencies:
 
 build:
   dependencies:
-    npmjs.com: '*'
-  script: |
-    npm install . --global --prefix={{prefix}} --install-links
+    classic.yarnpkg.com: ^1 # works and prevents bootstrapping issues
+  script:
+    - yarn install
+    - yarn build:cli
 
-    mkdir {{prefix}}/bin
-    cd {{prefix}}/bin
+    - run: |
+        chmod +x yarn.js
+        mkdir -p {{prefix}}/bin
+        cp yarn.js {{prefix}}/bin/yarn
+      working-directory: packages/yarnpkg-cli/bundles
 
-    ln -s ../lib/node_modules/@yarnpkg/monorepo/scripts/bin/yarn .
-    ln -s yarn yarnpkg
+    - run: ln -s yarn yarnpkg
+      working-directory: ${{prefix}}/bin
+
 test:
   script: |
     yarn --version

@@ -25,7 +25,12 @@ build:
       --install-links
 
 test:
-  script: |
-    yarn --version
-    yarnpkg --version
-    yarn add jquery
+  script:
+    - yarn --version
+    - yarnpkg --version
+
+    # bug shipped in 1.22.0
+    - run: echo {} >package.json
+      if: =1.22.20
+
+    - yarn add jquery
