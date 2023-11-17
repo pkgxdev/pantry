@@ -1,7 +1,7 @@
 #include <libsoup/soup.h>
 
 int main(int argc, char *argv[]) {
-    SoupMessage *msg = soup_message_new(SOUP_METHOD_GET, "https://brew.sh");
+    SoupMessage *msg = soup_message_new(SOUP_METHOD_GET, "https://tea.xyz/");
     SoupSession *session = soup_session_new();
     GError *error = NULL;
     GBytes *bytes = soup_session_send_and_read(session, msg, NULL, &error); // blocks
