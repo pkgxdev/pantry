@@ -1,0 +1,28 @@
+distributable:
+  url: https://github.com/acorn-io/runtime/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+# if there’s a github then we can parse the versions
+versions:
+  github: acorn-io/runtime
+
+build:
+  dependencies:
+    go.dev: '*'
+  env:
+    CGO_ENABLED: 0
+    LDFLAGS:
+    - -s
+    - -w
+    #- -X github.com/acorn-io/runtime/cmd.Version={{ version }}
+    #- -X github.com/acorn-io/runtime/cmd.GitCommit=$( git rev-parse HEAD )
+    linux:
+      LDFLAGS:
+      - -buildmode=pie
+  script: go build -v -ldflags="${LDFLAGS}" -o "{{ prefix }}"/bin/acorn
+
+provides:
+- bin/acorn
+
+#test: test "$(acorn version)" = {{version}}
+test: acorn help
