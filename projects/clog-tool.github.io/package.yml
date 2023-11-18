@@ -1,0 +1,21 @@
+distributable:
+  url: https://github.com/clog-tool/clog-cli/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/clog
+
+versions:
+  github: clog-tool/clog-cli
+  strip: /v/
+
+build:
+  dependencies:
+    rust-lang.org: ">=1.56"
+    rust-lang.org/cargo: "*"
+  script:
+    - cargo install --locked --path . --root {{prefix}}
+
+test:
+  script:
+    - test "$(clog --version)" = "clog {{version}}"
