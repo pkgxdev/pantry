@@ -1,0 +1,22 @@
+distributable:
+  url: https://github.com/npryce/adr-tools/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: npryce/adr-tools
+
+provides:
+  - bin/adr
+
+dependencies:
+  gnu.org/bash: "*"
+
+build:
+  script:
+    - mkdir -p "{{ prefix }}"/bin
+    - cp src/* {{prefix}}/bin
+
+test:
+  script:
+    - adr help init | cat
+    # - test "$(adr --version)" = "{{version}}"
