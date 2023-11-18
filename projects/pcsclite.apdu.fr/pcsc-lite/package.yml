@@ -1,0 +1,40 @@
+distributable:
+  url: https://pcsclite.apdu.fr/files/pcsc-lite-{{ version }}.tar.bz2
+  strip-components: 1
+  ref: v{{version}}}
+
+display-name: pcsc-lite
+
+versions:
+  url: https://pcsclite.apdu.fr/files/
+  match: /href=.*?pcsc-lite[._-]v?(\d+(?:\.\d+)+)\.t/i # probably wrong
+
+platforms:
+  - darwin
+  - linux
+
+dependencies:
+  libusb.info: '*'
+
+build:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+    cmake.org: ^3
+  script: |
+    ./configure \
+      --disable-udev \
+      --disable-dependency-tracking \
+      --disable-silent-rules \
+      --prefix={{ prefix }} \
+      --sysconfdir=/etc \ # probably wrong
+      --disable-libsystemd
+    make install
+
+provides:
+  - bin/pcscd
+
+test:
+  dependencies:
+    libusb.info: '*'
+  script:
+    pcscd --version
