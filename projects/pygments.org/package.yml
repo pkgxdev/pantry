@@ -9,8 +9,17 @@ dependencies:
   python.org: ~3.11
 
 build:
-  script: |
-    python-venv.sh {{prefix}}/bin/pygmentize
+  script:
+    - python-venv.sh {{prefix}}/bin/pygmentize
+    # Rename Pygments to pygments because python
+    # and macOS can't agree on case sensitivity.
+    - run: |
+        if [ -d Pygments ]; then
+          mv Pygments foo
+          mv foo pygments
+        fi
+      working-directory: ${{prefix}}/venv/lib/python3.11/site-packages
+      if: darwin
 
 provides:
   - bin/pygmentize
@@ -22,4 +31,3 @@ test:
   script: |
     mv $FIXTURE test.py
     pygmentize -f html -o test.html test.py
-
