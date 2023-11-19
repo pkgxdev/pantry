@@ -1,0 +1,22 @@
+distributable:
+  url: https://github.com/antirez/smallchat/archive/Episode-{{version.major}}.tar.gz
+  strip-components: 1
+versions:
+  github: antirez/smallchat/tags
+  strip:
+    - /^Episode-/
+build:
+  script:
+    - make all
+    - mkdir -p {{prefix}}/bin
+    - install smallchat-server smallchat-client {{prefix}}/bin/
+provides:
+  - bin/smallchat-server
+  - bin/smallchat-client
+test:
+  script:
+    - killall smallchat-server || true
+    - killall smallchat-client || true
+    - smallchat-server &
+    - sleep 1
+    - smallchat-client localhost 7711 | grep 'Connected client' &
