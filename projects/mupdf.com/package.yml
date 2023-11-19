@@ -1,0 +1,40 @@
+distributable:
+  url: git+https://github.com/ArtifexSoftware/mupdf
+  ref: ${{version}}
+  strip-components: 1
+
+versions:
+  github: ArtifexSoftware/mupdf/tags
+
+dependencies:
+  zlib.net: '*'
+  linux:
+    freeglut.sourceforge.io: '*'
+    freedesktop.org/mesa-glu: '*'
+    x.org/protocol: '*'
+    x.org/x11: '*'
+    x.org/xcursor: '*'
+    x.org/xinerama: '*'
+    x.org/xrandr: '*'
+    mesa3d.org: '*'
+    gnome.org/glib: '*'
+    x.org/xtrans: '*'
+
+build:
+  dependencies:
+    git-scm.org: '*'
+    gnu.org/binutils: '*'
+  script:
+    - git submodule update --init --recursive
+    - make prefix={{prefix}} install
+
+provides:
+  - bin/mupdf-gl
+  - bin/muraster
+  - bin/mutool
+
+test:
+  script:
+    - mupdf-gl -v | grep {{version}}
+    - muraster -v | grep {{version}}
+    - mutool -v | grep {{version}}
