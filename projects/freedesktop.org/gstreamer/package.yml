@@ -17,14 +17,14 @@ dependencies:
   ebassi.github.io/graphene: '*'
   gtk.org/gtk3: '*'
   libjpeg-turbo.org: '*'
-  #json-glib: '*'
+  gnome.org/json-glib: '*'
   lame.sourceforge.io: '*'
   xiph.org/ogg: '*'
   libpng.org: '*'
   x.org/libpthread-stubs: '*'
   xiph.org/libshout: '*'
   libsodium.org: '*'
-  #libsoup: '*'
+  libsoup.org: '*'
   github.com/sctplab/usrsctp: '*'
   xiph.org/vorbis: '*'
   webmproject.org/libvpx: '*'
@@ -60,5 +60,57 @@ build:
     rust-lang.org: '*'
     yasm.tortall.net: '*'
     github.com/westes/flex: '*'
+  script:
+    - run: curl -L "$RES_RS" | tar -xz --strip-components=1
+      working-directory: subprojects/gst-plugins-rs
+    - run: |
+        sed -i.bak "s|subproject('macos-bison-binary')||g" meson.build
+        rm meson.build.bak
+    - meson setup build $MESON_ARGS
+    - meson compile -C build --verbose
+    - meson install -C build
   env:
+    OPENSSL_NO_VENDOR: 1
+    OPENSSL_DIR: "{{deps.openssl.org.prefix}}"
     RES_RS: https://gitlab.freedesktop.org/gstreamer/gst-plugins-rs/-/archive/gstreamer-{{version}}/gst-plugins-rs-gstreamer-{{version}}.tar.gz
+    MESON_ARGS:
+      - --prefix="{{prefix}}"
+      - --libdir="{{prefix}}/lib"
+      - --buildtype=release
+      - --wrap-mode=nofallback
+      - -Dpython=enabled
+      - -Dlibav=enabled
+      - -Dlibnice=disabled
+      - -Dbase=enabled
+      - -Dgood=enabled
+      - -Dugly=enabled
+      - -Dbad=enabled
+      - -Ddevtools=enabled
+      - -Dges=enabled
+      - -Drtsp_server=enabled
+      - -Drs=enabled
+      - -Dtls=enabled
+      - -Dqt5=disabled
+      - -Dtools=enabled
+      - -Dorc-source=system
+      - -Dgpl=enabled
+      - -Dtests=disabled
+      - -Dexamples=disabled
+      - -Dnls=enabled
+      - -Dorc=enabled
+      - -Ddoc=disabled
+      - -Dgtk_doc=disabled
+      - -Dintrospection=enabled
+      - -Dgst-devtools:validate=enabled
+      - -Dgst-devtools:cairo=enabled
+      - -Dgst-plugins-bad:opencv=disabled
+      - -Dgst-plugins-bad:sctp=enabled
+      - -Dgst-plugins-bad:sctp-internal-usrsctp=disabled
+      - -Dgst-plugins-good:soup=enabled
+      - -Dgst-plugins-rs:closedcaption=enabled
+      - -Dgst-plugins-rs:dav1d=enabled
+      - -Dgst-plugins-rs:sodium=enabled
+      - -Dgst-plugins-rs:csound=disabled
+      - -Dgst-plugins-rs:gtk4=enabled
+      - -Dgst-plugins-rs:sodium-source=system
+      - -Dgstreamer:ptp-helper-permissions=none
