@@ -1,0 +1,47 @@
+distributable:
+  url: git+https://github.com/ArtifexSoftware/mupdf
+  ref: ${{version}}
+
+versions:
+  github: ArtifexSoftware/mupdf/tags
+
+dependencies:
+  zlib.net: ^1
+  openssl.org: ^1.1
+  info-zip.org/unzip: ^6
+  linux:
+    freeglut.sourceforge.io: ^3
+    freedesktop.org/mesa-glu: ^9
+    x.org/protocol: '>=2022'
+    x.org/x11: ^1
+    x.org/xcursor: ^1
+    x.org/xinerama: ^1
+    x.org/xrandr: ^1
+    mesa3d.org: ^23
+    gnome.org/glib: ^2
+    x.org/xtrans: ^1
+
+build:
+  dependencies:
+    git-scm.org: '*'
+  script:
+    - git submodule update --init --recursive
+    - make prefix={{prefix}} install
+    - run: ln -s mutool mudraw
+      working-directory: ${{prefix}}/bin
+  env:
+    CC: clang
+    CXX: clang++
+    LD: clang
+    AS: llvm-as
+
+provides:
+  - bin/mupdf-gl
+  - bin/muraster
+  - bin/mutool
+
+test:
+  script:
+    # - mupdf-gl -v | grep {{version}}
+    - (muraster -v 2>&1 || true) | grep {{version}}
+    - mudraw -F txt test.pdf | grep 'pkgx test'
