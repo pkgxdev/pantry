@@ -9,50 +9,28 @@ versions:
     - /^poppler-/
     - /\.tar\.xz/
 dependencies:
-  gnupg.org/libassuan: '*'
-  cairographics.org: '*'
-  freedesktop.org/fontconfig: '*'
-  freetype.org: '*'
-  gnu.org/gettext: '*'
-  gnome.org/glib: '*'
-  gnupg.org/gpgme: '*'
-  gnupg.org/libgpg-error: '*'
-  libjpeg-turbo.org: '*'
-  libpng.org: '*'
-  simplesystems.org/libtiff: '*'
-  littlecms.com: '*'
-  mozilla.org/nss: '*'
-  openjpeg.org: '*'
+  gnupg.org/libassuan: ^2
+  cairographics.org: ^1
+  freedesktop.org/fontconfig: ^2
+  freetype.org: ^2
+  gnu.org/gettext: ^0
+  gnome.org/glib: ^2
+  gnupg.org/gpgme: ^1
+  gnupg.org/libgpg-error: ^1
+  libjpeg-turbo.org: ^2
+  libpng.org: ^1
+  simplesystems.org/libtiff: ^4
+  littlecms.com: ^2
+  mozilla.org/nss: ^3
+  openjpeg.org: ^2
   qt.io: ~5
-  curl.se: '*'
-  llvm.org: '*'
+  curl.se: ^8
 build:
   dependencies:
     cmake.org: '*'
     gnome.org/gobject-introspection: '*'
     freedesktop.org/pkg-config: '*'
     gnu.org/gperf: '*'
-    darwin:
-      gnu.org/wget: '*'
-      libpipeline.gitlab.io/libpipeline: '*'
-      nasm.us: '*'
-      llvm.org/clang-format: '*'
-      github.com/charliermarsh/ruff: '*'
-      google.github.io/snappy: '*'
-      crates.io/git-trim: '*'
-      crates.io/bat: '*'
-      libusb.info: '*'
-      github.com/westes/flex: '*'
-      libuv.org: '*'
-      gnu.org/help2man: '*'
-      gnu.org/fribidi: '*'
-      people.engr.tamu.edu/davis/suitesparse: '*'
-      brxken128.github.io/dexios: '*'
-      # FIXME
-      # CMake Error at /opt/cmake.org/v3.27.7/var/Modules/CMakeTestCCompiler.cmake:67 (message):
-      # The C compiler
-      # "/opt/gnu.org/gcc/v13.2.0/bin/cc"
-      gnu.org/gcc: =13.2.0
   script:
     - cmake . $CMAKE_ARGS
     - make --jobs {{ hw.concurrency }} install
@@ -65,12 +43,9 @@ build:
         make install prefix={{prefix}}
       working-directory: font-data
   env:
-    linux:
-      CC: clang
-      CXX: clang++
-      LD: clang
-    darwin:
-      AS: /usr/bin/as # not awesome
+    CC: clang
+    CXX: clang++
+    LD: clang
     FONT_DATA: https://poppler.freedesktop.org/poppler-data-0.4.12.tar.gz
     CMAKE_ARGS:
       - -DCMAKE_INSTALL_PREFIX="{{prefix}}
@@ -88,7 +63,7 @@ build:
       - -DENABLE_QT6=OFF
       - -DENABLE_UNSTABLE_API_ABI_HEADERS=ON
       - -DWITH_GObjectIntrospection=ON
-    CXXFLAGS: "$CXXFLAGS -std=c++11"
+    CXXFLAGS: '$CXXFLAGS -std=c++11'
 provides:
   - bin/pdfattach
   - bin/pdfdetach
