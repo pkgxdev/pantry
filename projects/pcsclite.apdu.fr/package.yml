@@ -23,12 +23,17 @@ build:
     github.com/westes/flex: '*'
     perl.org: ^5 # pod2man
   script: |
-    ./configure \
-      --disable-dependency-tracking \
-      --disable-silent-rules \
-      --prefix={{ prefix }} \
-      --sysconfdir=/etc
+    ./configure $ARGS
     make install
+  env:
+    ARGS:
+      - --disable-dependency-tracking
+      - --disable-silent-rules
+      - --prefix={{ prefix }}
+      - --sysconfdir=/etc
+    darwin:
+      ARGS:
+        - --disable-libsystemd
 
 provides:
   - bin/pcscd
