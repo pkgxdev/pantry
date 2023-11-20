@@ -27,6 +27,8 @@ build:
   script:
     - git submodule update --init --recursive
     - make prefix={{prefix}} install
+    - run: ln -s mutool mudraw
+      working-directory: ${{prefix}}/bin
   env:
     CC: clang
     CXX: clang++
@@ -41,5 +43,5 @@ provides:
 test:
   script:
     # - mupdf-gl -v | grep {{version}}
-    - muraster -v
-    - mutool -v
+    - (muraster -v 2>&1 || true) | grep {{version}}
+    - mudraw -F txt test.pdf | grep 'pkgx test'
