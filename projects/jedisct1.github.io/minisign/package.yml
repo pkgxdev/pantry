@@ -1,0 +1,27 @@
+distributable:
+  url: https://github.com/jedisct1/minisign/archive/refs/tags/{{ version.raw }}.tar.gz
+  strip-components: 1
+  ref: v{{ version.raw }}}
+
+display-name: minisign
+
+versions:
+  github: jedisct1/minisign
+
+build:
+  dependencies:
+    cmake.org: '*'
+    libsodium.org: '*'
+  script: |
+    cmake -D BUILD_STATIC_EXECUTABLES=1 .
+    make
+    mkdir -p {{ prefix }}/bin
+    mv minisign {{ prefix }}/bin
+
+
+provides:
+  - bin/minisign
+
+test:
+  script:
+    minisign -v
