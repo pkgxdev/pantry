@@ -1,0 +1,26 @@
+distributable:
+  url: https://github.com/str4d/age-plugin-yubikey/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: str4d/age-plugin-yubikey
+
+dependencies:
+  linux:
+    pcsclite.apdu.fr: ^2
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.65'
+    rust-lang.org/cargo: '*'
+  script: |
+    # don't use --locked to prevent
+    # error[E0635]: unknown feature `proc_macro_span_shrink`
+    cargo install --path . --root {{prefix}}
+
+provides:
+  - bin/age-plugin-yubikey
+
+test:
+  script:
+    test "$(age-plugin-yubikey --version)" = "age-plugin-yubikey {{version}}"
