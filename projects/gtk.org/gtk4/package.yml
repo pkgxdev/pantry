@@ -39,6 +39,8 @@ build:
     sass-lang.com/sassc: '*'
     gnome.org/libxslt: '*'
     cmake.org: '*'
+    linux:
+      gnu.org/binutils: '*'
   script:
     - meson setup build $MESON_ARGS
     - meson compile -C build --verbose
@@ -63,8 +65,9 @@ build:
       - -DG_DISABLE_ASSERT
       - -DG_DISABLE_CAST_CHECKS
     linux:
-      CPPFLAGS:
-        - -pthread
+      # fails to build with objcopy from llvm
+      PATH: ${{deps.gnu.org/binutils.prefix}}/bin:$PATH
+      CFLAGS: -pthread
 
 provides:
   - bin/gtk4-builder-tool
