@@ -46,14 +46,14 @@ provides:
 dependencies:
   gnome.org/glib: 2
   capstone-engine.org: ^4
-  pixman.org: '*'
-  gnutls.org: '*'
-  freedesktop.org/slirp: '*'
-  virtualsquare.org/vde: '*'
-  facebook.com/zstd: '*'
-  invisible-island.net/ncurses: '*'
-  libssh.org: '*'
-  libpng.org: '*'
+  pixman.org: ^0
+  gnutls.org: ^3
+  freedesktop.org/slirp: ^4
+  virtualsquare.org/vde: ^2
+  facebook.com/zstd: ^1
+  invisible-island.net/ncurses: ^6
+  libssh.org: ^0
+  libpng.org: ^1
 
 build:
   dependencies:
@@ -61,16 +61,17 @@ build:
     github.com/westes/flex: '*'
     python.org: '<3.10'
     ninja-build.org: '*'
-    freedesktop.org/pkg-config: '*'
-
   script:
+    # TODO: linux virtfs <8 requires attr and libcap-ng
+    - run: ARGS="$ARGS --enable-virtfs"
+      if: '>=8'
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
 
     # Without this, `codesign` complains about resource forks in the binary
     - if: darwin
       run:
-      - xattr -cr {{prefix}}/bin/*
+        - xattr -cr {{prefix}}/bin/*
   env:
     ARGS:
       - --prefix="{{prefix}}"
@@ -81,11 +82,13 @@ build:
       - --enable-curses
       - --enable-libssh
       - --enable-vde
-      - --enable-virtfs
       - --enable-zstd
       - --extra-cflags=-DNCURSES_WIDECHAR=1
       - --disable-sdl
       - --disable-docs
+    darwin:
+      ARGS:
+        - --enable-virtfs
 
 test:
   dependencies:
