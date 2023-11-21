@@ -13,13 +13,13 @@ provides:
   - bin/whisper.cpp
 
 dependencies:
-  gnu.org/wget: '*'
   libsdl.org: '*'
 
 build:
   dependencies:
     freedesktop.org/pkg-config: ~0.29
     gnu.org/patch: '*'
+    gnu.org/coreutils: '*'
   script:
     - run: patch -p1 < props/illegal_instruction.patch
       if: <1.4.3
@@ -28,21 +28,22 @@ build:
     - make stream --jobs {{ hw.concurrency }}
     - make command --jobs {{ hw.concurrency }}
 
-    - mkdir -p {{prefix}}/bin {{prefix}}/tbin {{prefix}}/share
-    - mv main stream command {{prefix}}/tbin
-    - chmod +x {{prefix}}/tbin/*
+    # ggml-metal.metal must be installed alongside whisper.cpp sadly
+    - install -Dt {{prefix}}/bin
+        ggml-metal.metal
+        stream command
+        models/download-ggml-model.sh
 
-    - mv models/download-ggml-model.sh {{prefix}}/tbin/download-ggml-model.sh
-    - mv props/whisper.cpp props/whisper-fetch {{prefix}}/bin
-    - mv examples/command/commands.txt {{prefix}}/share
-  env:
-    darwin/aarch64:
-      # https://github.com/ggerganov/whisper.cpp/issues/1367
-      WHISPER_NO_METAL: 1
+    - install -D main {{prefix}}/bin/whisper.cpp
+
+    - install -D examples/command/commands.txt {{prefix}}/share/whisper.cpp/commands.txt
 
 test:
-  dependencies:
-    curl.se: '*'
+  env:
+    cache: $HOME/.cache/huggingface
   script: |
-    curl -LO https://github.com/ggerganov/whisper.cpp/raw/master/samples/jfk.wav
-    whisper.cpp -f jfk.wav --print-colors
+    huggingface-cli download ggerganov/whisper.cpp ggml-base.en.bin
+    model="$(find "$cache" -name "ggml-base.en.bin")"
+    curl https://github.com/ggerganov/whisper.cpp/raw/master/samples/jfk.wav | whisper.cpp --model "$model" -
+  cache:
+    $HOME/.cache/huggingface
