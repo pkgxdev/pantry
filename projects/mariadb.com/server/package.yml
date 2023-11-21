@@ -10,17 +10,17 @@ versions:
 
 platforms:
   - darwin
-  - linux/x86-64 # should work on aarch64, but it's complaining about one of its atomic macros
+  - linux/x86-64
 
 dependencies:
-  sourceware.org/bzip2: '*'
-  github.com/besser82/libxcrypt: '*'
-  gnome.org/libxml2: '*'
-  invisible-island.net/ncurses: '*'
+  sourceware.org/bzip2: ^1
+  github.com/besser82/libxcrypt: ^4
+  gnome.org/libxml2: ~2.11
+  invisible-island.net/ncurses: ^6
   zlib.net: ^1
   openssl.org: ^1.1
-  pcre.org/v2: '*'
-  facebook.com/zstd: '*'
+  pcre.org/v2: ^10
+  facebook.com/zstd: ^1
 
 build:
   dependencies:
@@ -30,28 +30,29 @@ build:
     gnu.org/coreutils: '*'
     git-scm.org: '*'
     groonga.org: '*'
-
+    linux:
+      fmt.dev: ^9
   script:
     - git submodule update --init --recursive
     # Use our groonga
     - rm -rf storage/mroonga/vendor/groonga
     # -DINSTALL_* are relative to prefix
     - cmake -S . -B build
-        -DCMAKE_INSTALL_PREFIX={{ prefix }}
-        -DMYSQL_DATADIR={{ prefix }}/var/mysql
-        -DINSTALL_SYSCONFDIR=etc
-        -DINSTALL_INCLUDEDIR=include/mysql
-        -DINSTALL_MANDIR=share/man
-        -DINSTALL_DOCDIR=share/doc/mariadb
-        -DINSTALL_INFODIR=share/info
-        -DINSTALL_MYSQLSHAREDIR=share/mysql
-        -DWITH_LIBFMT=bundled
-        -DWITH_SSL=system
-        -DWITH_UNIT_TESTS=OFF
-        -DDEFAULT_CHARSET=utf8mb4
-        -DDEFAULT_COLLATION=utf8mb4_general_ci
-        -DCOMPILATION_COMMENT=made_by_tea
-        -DPLUGIN_ROCKSDB=NO
+      -DCMAKE_INSTALL_PREFIX={{ prefix }}
+      -DMYSQL_DATADIR={{ prefix }}/var/mysql
+      -DINSTALL_SYSCONFDIR=etc
+      -DINSTALL_INCLUDEDIR=include/mysql
+      -DINSTALL_MANDIR=share/man
+      -DINSTALL_DOCDIR=share/doc/mariadb
+      -DINSTALL_INFODIR=share/info
+      -DINSTALL_MYSQLSHAREDIR=share/mysql
+      -DWITH_LIBFMT=bundled
+      -DWITH_SSL=system
+      -DWITH_UNIT_TESTS=OFF
+      -DDEFAULT_CHARSET=utf8mb4
+      -DDEFAULT_COLLATION=utf8mb4_general_ci
+      -DCOMPILATION_COMMENT=made_by_tea
+      -DPLUGIN_ROCKSDB=NO
 
     - cmake --build build
     - cmake --install build
@@ -87,8 +88,10 @@ build:
         rm wsrep_sst_*.bak
       working-directory: ${{ prefix }}/bin
   env:
-    linux/aarch64:
-      CFLAGS: $CFLAGS -Wno-implicit-function-declaration
+    linux:
+      CC: clang
+      CXX: clang++
+      LD: clang
 
 provides:
   - bin/aria_chk
@@ -186,11 +189,11 @@ test:
           USER_ARG="--user=root"
         fi
     - mysql_install_db --no-defaults
-        $USER_ARG
-        --basedir={{ prefix }}
-        --datadir=$(pwd)/mysql
-        --tmpdir=$(pwd)/tmp
-        --auth-root-authentication-method=normal
+      $USER_ARG
+      --basedir={{ prefix }}
+      --datadir=$(pwd)/mysql
+      --tmpdir=$(pwd)/tmp
+      --auth-root-authentication-method=normal
     - mysqld --no-defaults $USER_ARG --datadir=$(pwd)/mysql --port=3306 --tmpdir=$(pwd)/tmp &
     - sleep 5
     - mysql --port=3306 --user=root --password= --execute='show databases;'
