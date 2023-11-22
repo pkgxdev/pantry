@@ -16,4 +16,14 @@ build:
     linux:
       LDFLAGS:
         - -buildmode=pie
-test: gitleaks version | grep {{version}}
+test:
+  dependencies:
+    git-scm.org: '*'
+  script:
+    - echo 'ghp_deadbeefdeadbeefdeadbeefdeadbeefdeadbeef' > README
+    - git init
+    - git add README
+    - git commit -m 'Initial commit'
+    - gitleaks detect 2>output.log || true
+    - cat output.log | grep '1 commits scanned'
+    - gitleaks version | grep {{version}}
