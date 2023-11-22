@@ -14,16 +14,13 @@ build:
     nodejs.org: ^20
     classic.yarnpkg.com: "*"
     linux:
-      llvm.org: '*'
+      gnu.org/gcc: '*'
   script:
     - make build-js
     - go mod download
     - mkdir -p "{{ prefix }}"/bin
     - go build -v -trimpath -ldflags="$LDFLAGS" -o $BUILDLOC ./cmd/tilt
   env:
-    CC: clang
-    CXX: clang++
-    LD: clang
     GOPROXY: https://proxy.golang.org,direct
     GOSUMDB: sum.golang.org
     GO111MODULE: on
@@ -34,6 +31,9 @@ build:
       - -w
       - -X main.version={{version}}
     linux:
+      CC: gcc
+      CXX: g++
+      LD: gcc
       # or segmentation fault
       # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
       LDFLAGS:
