@@ -13,14 +13,14 @@ build:
     go.dev: ^1.19
     nodejs.org: ^20
     classic.yarnpkg.com: "*"
-    gnu.org/make: "*"
-    gnu.org/gcc: "*"
   script:
     - make build-js
     - go mod download
     - mkdir -p "{{ prefix }}"/bin
     - go build -v -trimpath -ldflags="$LDFLAGS" -o $BUILDLOC ./cmd/tilt
   env:
+    CC: clang
+    LD: clang
     GOPROXY: https://proxy.golang.org,direct
     GOSUMDB: sum.golang.org
     GO111MODULE: on
