@@ -1,0 +1,22 @@
+distributable:
+  url: https://github.com/kornelski/cavif-rs/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/cavif
+
+versions:
+  github: kornelski/cavif-rs
+  strip: /v/
+
+build:
+  dependencies:
+    rust-lang.org: ">=1.65"
+    rust-lang.org/cargo: "*"
+    x86-64:
+      nasm.us: '*'
+  script: cargo install --locked --path . --root {{prefix}}
+
+test:
+  script:
+    - test "$(cavif --version)" = "cavif-rs {{version}}"
