@@ -1,0 +1,31 @@
+distributable:
+  url: https://people.redhat.com/sgrubb/libcap-ng/libcap-ng-{{version}}.tar.gz
+  strip-components: 1
+display-name: libcap-ng
+versions:
+  url: https://people.redhat.com/sgrubb/libcap-ng/
+  match: /libcap-ng-\d+\.\d+\.\d+\.tar\.gz/
+  strip:
+    - /^libcap-ng-/
+    - /\.tar\.gz/
+platforms:
+  - linux
+build:
+  script:
+    - ./configure $CONFIGURE_ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    CONFIGURE_ARGS:
+      - --disable-dependency-tracking
+      - --prefix="{{prefix}}"
+      - --libdir="{{prefix}}/lib"
+      - --disable-silent-rules
+provides:
+  - bin/captest
+  - bin/filecap
+  - bin/netcap
+  - bin/pscap
+test:
+  - cc test.c -lcap-ng -o test
+  - ./test | grep  ok
