@@ -48,8 +48,13 @@ build:
     # this is annoying. install-pear-nozlib.phar relies on finding /usr/bin/cpp.
     # and editing the archive messes with the offsets
     - run: |
+        if command -v sudo >/dev/null; then
+          SUDO=sudo
+        fi
+      if: linux
+    - run: |
         if [ ! -f /usr/bin/cpp ]; then
-          sudo ln -s "{{deps.gnu.org/gcc.prefix}}/bin/cpp" /usr/bin/cpp
+          $SUDO ln -s "{{deps.gnu.org/gcc.prefix}}/bin/cpp" /usr/bin/cpp
           FAKE_CPP=1
         fi
       if: linux
@@ -59,7 +64,7 @@ build:
     # clean up our fake /usr/bin/cpp
     - run: |
         if [ -n "$FAKE_CPP" ]; then
-          sudo rm /usr/bin/cpp
+          $SUDO rm /usr/bin/cpp
         fi
       if: linux
 
