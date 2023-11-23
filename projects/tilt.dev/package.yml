@@ -14,7 +14,7 @@ build:
     nodejs.org: ^20
     classic.yarnpkg.com: "*"
     linux:
-      llvm.org: '*'
+      gnu.org/binutils: '*' # cgo _really_ wants ld.gold
   script:
     - make build-js
     - go mod download
@@ -33,11 +33,9 @@ build:
     linux:
       CC: clang
       CXX: clang++
-      LD: ld.lld
       # or segmentation fault
       # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
       LDFLAGS:
-        - -extld ld.lld
         - -buildmode=pie
 
 test:
