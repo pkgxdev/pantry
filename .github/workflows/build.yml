@@ -58,7 +58,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           FORCE_UNSAFE_CONFIGURE: 1 # some configure scripts refuse to run as root
           APPLE_IDENTITY: ${{ secrets.APPLE_IDENTITY || '-' }}
-          SRCROOT: $GITHUB_WORKSPACE
+          SRCROOT: ${{ env.GITHUB_WORKSPACE }}
 
       - run: |
           ABS_PATHS=$(echo $PATHS | tr ' ' '\n' | sed -e "s_^_/opt/_" | tr '\n' ' ')
@@ -130,7 +130,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           # FIXME: this shouldn't be necessary, but it currently is for the
           # ubuntu+container test matrix entries. :/
-          PKGX_PANTRY_PATH: $GITHUB_WORKSPACE
+          PKGX_PANTRY_PATH: ${{ env.GITHUB_WORKSPACE }}
 
       - name: "[post]"
         run: echo "HAS_SECRETS=$HAS_SECRETS" >>$GITHUB_ENV
