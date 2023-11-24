@@ -5,9 +5,10 @@ versions:
   github: Reference-LAPACK/lapack
 build:
   dependencies:
-    gnu.org/gcc: '*'
+    gnu.org/gcc: ^11
+    gnu.org/binutils: '*'
     gnu.org/make: '*'
-    cmake.org: '*'
+    cmake.org: ~3.24
   working-directory: build
   script:
     - cmake .. $CMAKE_ARGS
@@ -23,11 +24,17 @@ build:
       - -DBUILD_TESTING=OFF
       - -DBUILD_SHARED_LIBS:BOOL=ON
       - -DLAPACKE:BOOL=ON
+    darwin:
+      # FIXME: binutils ar/ranlib are broken on macOS?
+      CMAKE_ARGS:
+        - -DCMAKE_AR=/usr/bin/ar
+        - -DCMAKE_RANLIB=/usr/bin/ranlib
 test:
   dependencies:
     freedesktop.org/pkg-config: '*'
     gnu.org/gcc: '*'
   script:
+    - pkg-config --modversion lapack
     - pkg-config --modversion lapack | grep {{version}}
     - gcc test.c -llapacke -o test
     - ./test
