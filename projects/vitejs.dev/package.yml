@@ -14,16 +14,19 @@ build:
   script: |
     cd vite-{{version.raw}}
     mkdir -p {{prefix}}/bin
+    echo "symlink=false" >> .npmrc
+    echo "node-liner=hoisted" >> .npmrc
     pnpm install
     cd packages/vite
+    echo "symlink=false" >> .npmrc
+    echo "node-liner=hoisted" >> .npmrc
     pnpm run build
     npm install --global --build-from-source --prefix={{prefix}} .
-    cp -r {{prefix}}/lib/node_modules/vite/* {{prefix}}/
 
 test:
   script: |
-    vite.js --version
-    test "$(vite.js --version | grep -o 'vite/[^ ]*')" = "vite/{{version.raw}}"
+    vite --version
+    test "$(vite --version | grep -o 'vite/[^ ]*')" = "vite/{{version.raw}}"
 
 provides:
-  - bin/vite.js # For debug
+  - bin/vite
