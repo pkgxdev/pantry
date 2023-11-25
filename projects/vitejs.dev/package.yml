@@ -1,19 +1,23 @@
-distributable: ~
+distributable: https://github.com/vitejs/vite/archive/refs/tags/v{{version.raw}}.tar.gz
 
 versions:
   github: vitejs/vite/tags
   strip: /v/
 
+dependencies:
+  pnpm.io: "*"
+  nodejs.org: ^18
+  npmjs.com: "*"
+
 build:
-  dependencies:
-    deno.land: "*"
   script: |
-    {{pkgx.prefix}}/pkgx.sh/brewkit/v0/bin/pkg --version
-    mkdir -p "{{prefix}}"/bin
-    deno compile -Ar npm:vite@{{version.raw}} -o vite
-    mv vite "{{prefix}}"/bin/vite # If the binay doesn't get built, the build will fail, not the tests. So, we'll know.
-  # Required. Else, wouldn't work.
-  skip: fix-patchelf
+    cd vite-{{version.raw}}
+    mkdir -p {{prefix}}/bin
+    export PATH="$PATH:{{prefix}}/bin"
+    pnpm install
+    cd packages/vite
+    pnpm run build
+    npm install --global --prefix={{prefix}} .
 
 test:
   script: |
