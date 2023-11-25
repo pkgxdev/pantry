@@ -5,11 +5,12 @@ versions:
   strip: /v/
 
 dependencies:
-  pnpm.io: "*"
-  nodejs.org: ^18
+  nodejs.org: ^16 || ^18 || ^20
   npmjs.com: "*"
 
 build:
+  dependencies:
+    pnpm.io: "*"
   script: |
     cd vite-{{version.raw}}
     mkdir -p {{prefix}}/bin
@@ -22,6 +23,7 @@ test:
   script: |
     export PATH="$PATH:{{pkgx.prefix}}/vitejs.dev/v*/bin"
     ls -la {{pkgx.prefix}}/vitejs.dev/v*/bin/
+    ls -la {{pkgx.prefix}}/vitejs.dev/v*/lib/
     vite --version
     test "$(vite --version | grep -o 'vite/[^ ]*')" = "vite/{{version.raw}}"
 
