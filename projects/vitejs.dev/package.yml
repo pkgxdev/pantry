@@ -18,13 +18,12 @@ build:
     cd packages/vite
     pnpm run build
     npm install --global --build-from-source --prefix={{prefix}} .
-    rm {{prefix}}/bin/vite
-    cp {{prefix}}/lib/node_modules/vite/bin/vite.js {{prefix}}/bin/vite
+    cp -r {{prefix}}/lib/node_modules/vite/* {{prefix}}/
 
 test:
   script: |
-    vite --version
-    test "$(vite --version | grep -o 'vite/[^ ]*')" = "vite/{{version.raw}}"
+    vite.js --version
+    test "$(vite.js --version | grep -o 'vite/[^ ]*')" = "vite/{{version.raw}}"
 
 provides:
-  - bin/vite
+  - bin/vite.js # For debug
