@@ -33,6 +33,8 @@ build:
       # or segmentation fault
       # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
       LDFLAGS:
-      - -buildmode=pie
+        - -buildmode=pie
 
-test: turso --version | grep {{version}}
+test:
+  - turso --version
+  - 'test "$(turso db locations 2>&1 || true)" = "Error: user not logged in, please login with turso auth login"'
