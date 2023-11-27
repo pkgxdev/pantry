@@ -1,0 +1,56 @@
+distributable:
+  url: https://github.com/AmrDeveloper/GQL/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+display-name: gitql
+
+versions:
+  github: AmrDeveloper/GQL
+
+dependencies:
+  libgit2.org: ^1
+
+build:
+  dependencies:
+    rust-lang.org: ^1.65
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path . --root {{prefix}}
+
+provides:
+  - bin/gitql
+
+test:
+  dependencies:
+    git-scm.org: ^2
+  fixture: |
+    SELECT 1
+    SELECT 1 + 2
+    SELECT LEN("Git Query Language")
+    SELECT "One" IN ("One", "Two", "Three")
+    SELECT "Git Query Language" LIKE "%Query%"
+
+    SELECT DISTINCT title AS tt message FROM commits
+    SELECT name, COUNT(name) AS commit_num FROM commits GROUP BY name ORDER BY commit_num DESC LIMIT 10
+    SELECT commit_count FROM branches WHERE commit_count BETWEEN 0 .. 10
+
+    SELECT * FROM refs WHERE type = "branch"
+    SELECT * FROM refs ORDER BY type
+
+    SELECT * FROM commits
+    SELECT name, email FROM commits
+    SELECT name, email FROM commits ORDER BY name DESC, email ASC
+    SELECT name, email FROM commits WHERE name LIKE "%gmail%" ORDER BY name
+    SELECT * FROM commits WHERE LOWER(name) = "mxcl"
+    SELECT name FROM commits GROUP By name
+    SELECT name FROM commits GROUP By name having name = "mxcl"
+
+    SELECT * FROM branches
+    SELECT * FROM branches WHERE is_head = true
+    SELECT name, LEN(name) FROM branches
+
+    SELECT * FROM tags
+    SELECT * FROM tags OFFSET 1 LIMIT 1
+    exit
+  script:
+    - git clone https://github.com/pkgxdev/pkgx
+    - cat $FIXTURE | gitql --repos pkgx
