@@ -1,0 +1,31 @@
+distributable:
+  url: https://github.com/nukesor/pueue/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: nukesor/pueue
+  strip: /^v/
+
+build:
+  dependencies:
+    rust-lang.org: ^1.65
+    rust-lang.org/cargo: '*'
+  script: cargo install --path pueue --root {{prefix}}
+
+provides:
+  - bin/pueue
+  - bin/pueued
+
+test:
+  script:
+    - pueued -d
+    - sleep 5
+    - pueue add ls
+    - pueue add command -v pueue
+    - pueue start
+    - sleep 3
+    - pueue status
+    - pueue log
+  env:
+    # else the socket path can be too long
+    HOME: $(mktemp -d -p /tmp)
