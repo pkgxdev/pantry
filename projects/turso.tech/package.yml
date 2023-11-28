@@ -1,6 +1,6 @@
 distributable:
-  url: https://github.com/tursodatabase/turso-cli/archive/refs/tags/v{{version}}.tar.gz
-  strip-components: 1
+  url: git+https://github.com/tursodatabase/turso-cli
+  ref: v{{version}}
 
 versions:
   github: tursodatabase/turso-cli/tags
@@ -11,7 +11,6 @@ provides:
 
 build:
   script:
-    - echo "{{version}}" > internal/cmd/version.txt
     - go mod download
     - go generate --tags=prod ./...
     - go build $ARGS -ldflags="$LDFLAGS" ./cmd/turso
