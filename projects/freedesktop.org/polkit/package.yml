@@ -1,0 +1,35 @@
+distributable:
+  url: https://www.freedesktop.org/software/polkit/releases/polkit-{{version.raw}}.tar.gz
+  strip-components: 1
+versions:
+  url: https://www.freedesktop.org/software/polkit/releases/
+  match: /polkit-\d+(\.\d+)?\.tar\.gz/
+  strip:
+    - /^polkit-/
+    - /\.tar\.gz/
+platforms:
+  - linux
+dependencies:
+  gnome.org/glib: ^2.78
+  duktape.org: ^2.7
+  gnome.org/gobject-introspection: ^1.72
+  freedesktop.org/dbus: ^1.12
+build:
+  dependencies:
+    mesonbuild.com: '*'
+    ninja-build.org: '*'
+    gnu.org/gettext: '*'
+    gnome.org/libxslt: '*'
+  script:
+    - meson setup $MESON_ARGS build
+    - meson compile -C build
+    - meson install -C build
+  env:
+    MESON_ARGS:
+      - --prefix="{{prefix}}"
+      - --libdir="{{prefix}}/lib"
+      - --buildtype=release
+      - --wrap-mode=nofallback
+test:
+  script:
+    - polkit
