@@ -1,0 +1,24 @@
+distributable:
+  url: https://github.com/darakian/ddh/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: darakian/ddh
+
+build:
+  dependencies:
+    rust-lang.org: ^1.65
+    rust-lang.org/cargo: '*'
+  script: cargo install --path . --root {{prefix}}
+
+provides:
+  - bin/ddh
+
+test:
+  - |
+    for x in A B C D E; do
+      echo $x >$x
+      echo $x >${x}_2
+    done
+  - ddh -d .
+  - cat Results.txt
