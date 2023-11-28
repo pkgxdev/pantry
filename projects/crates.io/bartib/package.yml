@@ -1,0 +1,28 @@
+distributable:
+  url: https://github.com/nikolassv/bartib/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: nikolassv/bartib
+  strip: /^v/
+
+build:
+  dependencies:
+    rust-lang.org: ^1.65
+    rust-lang.org/cargo: '*'
+  script: cargo install --path . --root {{prefix}} --locked
+
+provides:
+  - bin/bartib
+
+test:
+  script:
+    - bartib start -d "Urgent Task X" -p "Important Project"
+    - bartib stop
+    - bartib continue
+    - bartib start -d "More Urgent Task Y" -p "Just Another Project B"
+    - bartib list --today
+    - bartib report --today
+    - cat bartib.log
+  env:
+    BARTIB_FILE: bartib.log
