@@ -15,6 +15,10 @@ build:
     - python -m pip install --prefix={{prefix}} .
     - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}} 
       working-directory: ${{prefix}}/lib
+    - run: |
+        sed -i.bak "s|{{deps.python.org.prefix}}/bin/python|/usr/bin/env python|g" ./*
+        rm *.bak
+      working-directory: ${{prefix}}/bin
   env:
     linux:
       MULTIDICT_NO_EXTENSIONS: 1
