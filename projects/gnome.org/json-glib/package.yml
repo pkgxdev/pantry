@@ -1,0 +1,42 @@
+distributable:
+  url: https://download.gnome.org/sources/json-glib/{{version.marketing}}/json-glib-{{version}}.tar.xz
+  strip-components: 1
+versions:
+  url: https://download.gnome.org/sources/json-glib/cache.json
+  match: /json-glib-\d+\.\d+\.\d+\.tar\.xz/
+  strip:
+    - /^json-glib-/
+    - /\.tar\.xz/
+dependencies:
+  gnome.org/glib: ^2.78
+build:
+  dependencies:
+    gnu.org/gettext: '*'
+    gnome.org/gobject-introspection: '*'
+    mesonbuild.com: '*'
+    ninja-build.org: '*'
+  script:
+    - meson setup build $MESON_ARGS
+    - meson compile -C build --verbose
+    - meson install -C build
+    - run: ln -s json-glib-1.0/json-glib json-glib
+      working-directory: "{{prefix}}/include"
+  env:
+    MESON_ARGS:
+      - --prefix="{{prefix}}"
+      - --libdir="{{prefix}}/lib"
+      - --buildtype=release
+      - --wrap-mode=nofallback
+      - -Dintrospection=enabled
+      - -Dman=false
+test:
+  script:
+    - cc test.c $ARGS -o test
+    - ./test
+  env:
+    ARGS:
+      - -D_REENTRANT
+      - -lgio-2.0
+      - -lglib-2.0
+      - -lgobject-2.0
+      - -ljson-glib-1.0

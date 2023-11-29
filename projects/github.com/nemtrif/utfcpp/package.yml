@@ -12,11 +12,17 @@ build:
     cmake.org: '*'
     darwin:
       gnu.org/gcc: '*'
-
   working-directory: build
   script:
     - cmake .. $ARGS
     - make --jobs {{ hw.concurrency }} install
+    # currently, their builds are just broken :(
+    - run: |
+        ln -s . include/utf8cpp
+        mkdir -p lib/cmake
+        ln -s ../../share/utf8cpp/cmake lib/cmake/utf8cpp
+      working-directory: ${{prefix}}
+      if: '>=4'
   env:
     ARGS:
       - -DUTF8_INSTALL:BOOL=ON
@@ -33,10 +39,12 @@ build:
 test:
   dependencies:
     cmake.org: '*'
-    darwin:
-      gnu.org/gcc: '*'
-    linux:
+    gnu.org/gcc: '*'
+    gnu.org/make: '*'
   script:
+    # currently, their builds are just broken :(
+    - run: sed -i.bak 's/PRIVATE utf8cpp/PRIVATE utf8cpp::utf8cpp/g' CMakeLists.txt
+      if: '>=4'
     - cmake . -DCMAKE_PREFIX_PATH:STRING="test" -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON
     - make
     - ./utf8_append

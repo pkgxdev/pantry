@@ -1,0 +1,23 @@
+distributable:
+  url: https://github.com/ekzhang/sshx/archive/0782485cce686c2656357957a9352c59624aaf6b.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/sshx
+
+versions:
+  - 2023.11.14
+
+dependencies:
+  protobuf.dev: "*"
+
+build:
+  working-directory: crates/sshx
+  dependencies:
+    rust-lang.org: ">=1.65"
+    rust-lang.org/cargo: "*"
+  script: cargo install --locked --path . --root {{prefix}}
+
+test:
+  script:
+    - test "$(sshx --version)" = "sshx 0.2.0"

@@ -1,0 +1,40 @@
+distributable:
+  url: https://github.com/knik0/faad2/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+versions:
+  github: knik0/faad2
+build:
+  dependencies:
+    cmake.org: '*'
+    gnu.org/autoconf: '*'
+    gnu.org/automake: '*'
+    gnu.org/libtool: '*'
+    linux:
+      gnu.org/gcc: '*'
+  script:
+    - run: |
+        ./bootstrap
+        ./configure $CONFIGURE_ARGS
+        make --jobs {{ hw.concurrency }} install
+      if: <2.11
+    - run: |
+        cmake .. $CMAKE_ARGS
+        cmake --build .
+        cmake --install .
+      working-directory: build
+      if: '>=2.11'
+  env:
+    CONFIGURE_ARGS:
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --prefix="{{prefix}}"
+      - --libdir="{{prefix}}/lib"
+    CMAKE_ARGS:
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
+
+provides:
+  - bin/faad
+test:
+  script:
+    - faad -h > output.txt || true
+    - cat output.txt | grep infile.mp4

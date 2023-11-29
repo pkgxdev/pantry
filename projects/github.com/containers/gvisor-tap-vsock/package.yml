@@ -5,10 +5,6 @@ distributable:
 versions:
   github: containers/gvisor-tap-vsock/releases/tags
 
-platforms:
-  - darwin
-  - linux/x86-64
-
 provides:
   - bin/gvproxy
   - bin/qemu-wrapper
@@ -16,17 +12,17 @@ provides:
 build:
   dependencies:
     go.dev: ^1.18
-  script: |
-    if test "{{hw.platform}}" = "linux"; then
-      sed -i.bak 's/go build/go build -buildmode=pie/g' Makefile
-    fi
+  script:
+    - run: |
+        sed -i.bak 's/go build/go build -buildmode=pie/g' Makefile
+        rm Makefile.bak
+      if: linux
 
-    make --jobs {{ hw.concurrency }}
-    mkdir -p "{{ prefix }}"/bin
-    mv bin/* "{{ prefix }}"/bin
+    - make --jobs {{ hw.concurrency }}
+    - mkdir -p "{{ prefix }}"
+    - cp -a bin "{{ prefix }}"
 
 test:
-  script: |
-    gvproxy -help 2>&1
-    gvproxy -help 2>&1 | grep "Usage of gvproxy:"
-    
+  script:
+    - gvproxy -help
+    - gvproxy -help 2>&1 | grep "Usage of gvproxy:"

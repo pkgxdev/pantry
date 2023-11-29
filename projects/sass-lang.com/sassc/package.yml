@@ -1,0 +1,26 @@
+distributable:
+  url: https://github.com/sass/sassc/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+versions:
+  github: sass/sassc
+dependencies:
+  sass-lang.com/libsass: ^3.6.5
+build:
+  dependencies:
+    gnu.org/autoconf: '*'
+    gnu.org/automake: '*'
+    gnu.org/libtool: '*'
+  script:
+    - autoreconf -fvi
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --disable-silent-rules
+      - --disable-dependency-tracking
+provides:
+  - bin/sassc
+test:
+  script:
+    - sassc --style compressed test.scss | grep 'div img{border:0px}'

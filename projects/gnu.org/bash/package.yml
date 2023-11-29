@@ -22,8 +22,10 @@ build:
     ./configure --prefix={{ prefix }}
     make --jobs {{ hw.concurrency }} install
   env:
-    # causes bash to source ~/.bashrc when instantiated
-    # non-interactively from sshd. macOS’s bash does this so users expect it.
-    CFLAGS: $CFLAGS -DSSH_SOURCE_BASHRC
+    CFLAGS:
+      # causes bash to source ~/.bashrc when instantiated
+      # non-interactively from sshd. macOS’s bash does this so users expect it.
+      - -DSSH_SOURCE_BASHRC
+      - -Wno-implicit-function-declaration
 
 test: bash -c "set -o pipefail"
