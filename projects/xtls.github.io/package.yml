@@ -9,7 +9,7 @@ runtime:
     XRAY_LOCATION_ASSET: ${XRAY_LOCATION_ASSET:-{{prefix}}/share/xray}
 build:
   dependencies:
-    go.dev: '*'
+    go.dev: ^1.21.4
     curl.se: '*'
   script:
     - go build $GO_ARGS -ldflags="$LDFLAGS" ./main
@@ -68,38 +68,7 @@ test:
     }
   script:
     - killall xray || true
-    - run: |
-        cat << EOF > config.json
-        {
-          "log": {
-            "access": "$PWD/log"
-          },
-          "outbounds": [
-            {
-              "protocol": "freedom",
-              "tag": "direct"
-            }
-          ],
-          "routing": {
-            "rules": [
-              {
-                "ip": [
-                  "geoip:private"
-                ],
-                "outboundTag": "direct",
-                "type": "field"
-              },
-              {
-                "domains": [
-                  "geosite:private"
-                ],
-                "outboundTag": "direct",
-                "type": "field"
-              }
-            ]
-          }
-        }
-        EOF
+    - cat $FIXTURE > config.json
     - xray run --config {{prefix}}/etc/xray/config.json &
     - sleep 3
     - xray -c $HOME/config.json -test | grep 'Configuration OK.'
