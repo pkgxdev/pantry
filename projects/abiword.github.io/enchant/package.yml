@@ -4,15 +4,12 @@ distributable:
 versions:
   github: AbiWord/enchant
 dependencies:
-  gnome.org/glib: '*'
-  hunspell.github.io: '*'
-  aspell.net: '*'
+  gnome.org/glib: ^2.78
+  aspell.net: ^0.60
 build:
   dependencies:
     freedesktop.org/pkg-config: '*'
     gnu.org/groff: '*'
-    linux:
-      gnu.org/gcc: '*'
   script:
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
@@ -25,14 +22,12 @@ build:
       - --enable-relocatable
       - --disable-debug
       - --disable-silent-rules
-    darwin:
-      ARGS:
-        - --with-applespell=false
 provides:
   - bin/enchant-2
   - bin/enchant-lsmod-2
 test:
   script:
+    - aspell dicts # debug
     - enchant-lsmod-2
     - enchant-2 -l test.txt
     - enchant-2 -v | grep {{version}}
