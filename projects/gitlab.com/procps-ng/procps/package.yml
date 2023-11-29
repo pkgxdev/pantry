@@ -1,0 +1,49 @@
+distributable:
+  url: https://gitlab.com/procps-ng/procps/-/archive/v{{ version }}/v{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  gitlab: procps-ng/procps/tags
+
+platforms: linux
+
+dependencies:
+  invisible-island.net/ncurses: '>=6.0'
+
+build:
+  dependencies:
+    gnu.org/autoconf: '*'
+    gnu.org/automake: '*'
+    gnu.org/gettext: '*'
+    gnu.org/libtool: '*'
+    freedesktop.org/pkg-config: '*'
+  script:
+    - ./autogen.sh
+    - ./configure $ARGS
+    - make -j {{ hw.concurrency }} install
+
+    # also in gnu.org/coreutils, gitlab.com/procps-ng/watch
+    - run: rm kill uptime watch
+      working-directory: ${{prefix}}/bin
+  env:
+    ARGS:
+      - --disable-dependency-tracking
+      - --prefix={{ prefix }}
+      - --disable-nls
+
+provides:
+  - bin/free
+  - bin/pgrep
+  - bin/pidof
+  - bin/pkill
+  - bin/pmap
+  - bin/ps
+  - bin/pwdx
+  - bin/slabtop
+  - bin/sysctl
+  - bin/tload
+  - bin/top
+  - bin/vmstat
+  - bin/w
+
+test: pgrep bash
