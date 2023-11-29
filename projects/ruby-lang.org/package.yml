@@ -20,21 +20,21 @@ build:
     gnu.org/bison: ^3
     gnu.org/autoconf: '*'
     linux:
-      ruby-lang.org: ~3.1  # ruby requires ruby to build
+      ruby-lang.org: '*' # ruby requires ruby to build
       # ^^ only linux because we got issues on darwin currently and darwin provides ruby (for now)
   env:
     ARGS:
-    - --prefix="{{prefix}}"
-    - --enable-load-relative  # makes us relocatable
-    - --without-gmp
-    - --with-rubyarchprefix={{prefix}}/lib/ruby  # no need for architecture specific crap
-    - --with-rubyhdrdir={{prefix}}/include       # ^^
-    - --with-rubyarchhdrdir={{prefix}}/include   # ^^
-    - --disable-multiarch                        # ^^
-    - --with-vendordir=no      # is empty so don’t pollute
-    - --with-vendorarchdir=no  # ^^
-    - --with-sitedir=no        # ^^
-    - --with-sitearchdir=no    # ^^
+      - --prefix="{{prefix}}"
+      - --enable-load-relative # makes us relocatable
+      - --without-gmp
+      - --with-rubyarchprefix={{prefix}}/lib/ruby # no need for architecture specific crap
+      - --with-rubyhdrdir={{prefix}}/include # ^^
+      - --with-rubyarchhdrdir={{prefix}}/include # ^^
+      - --disable-multiarch # ^^
+      - --with-vendordir=no # is empty so don’t pollute
+      - --with-vendorarchdir=no # ^^
+      - --with-sitedir=no # ^^
+      - --with-sitearchdir=no # ^^
   script:
     - patch -p1 < props/mkconfig.rb.diff
 
@@ -53,8 +53,7 @@ build:
     # a companion which in most use means gems are automatically added to the
     # pkgenv. Ruby behaves well if gems isn't around but the user may get
     # unexpected errors in scenarios where they constructed an pkgenv manually
-    - working-directory:
-        ${{prefix}}/lib/ruby/{{version.marketing}}.0
+    - working-directory: ${{prefix}}/lib/ruby/{{version.marketing}}.0
       run: |
         for x in bundler rubygems bundler.rb rubygems.rb; do
           if test -d $x; then
@@ -70,26 +69,24 @@ build:
         rm -rf share/doc
         rm -rf lib/ruby/site_ruby
         rm -rf lib/ruby/vendor_ruby
-      working-directory:
-        ${{prefix}}
+      working-directory: ${{prefix}}
 
     # weirdly files get put here and we can't figure out how to stop it
     - run: |
+        if test -d pkgconfig; then rm -rf pkgconfig; fi
         mv *-{{hw.platform}}*/* .
         rmdir *-{{hw.platform}}*
-      working-directory:
-        ${{prefix}}/lib
+      working-directory: ${{prefix}}/lib
 
     - run: sed -i.bak
         -e 's|$(DESTDIR){{prefix}}|$(topdir)|g'
         -e 's|CONFIG\["topdir"\] = .*|CONFIG\["topdir"\] = TOPDIR|g'
         rbconfig.rb
-      working-directory:
-        ${{prefix}}/lib/ruby/{{version.marketing}}.0
+      working-directory: ${{prefix}}/lib/ruby/{{version.marketing}}.0
 
 test:
   dependencies:
-    rubygems.org: '*'     # is a companion __however__ brewkit doesn’t add companions to the env automatically
+    rubygems.org: '*' # is a companion __however__ brewkit doesn’t add companions to the env automatically
   script:
     - |
       ruby -e 'puts "Hello World!"'
@@ -122,11 +119,9 @@ provides:
   - bin/irb
   - bin/racc
   - bin/rake
-  - bin/rbs
   - bin/rdoc
   - bin/ri
   - bin/ruby
-  - bin/typeprof
 
 interprets:
   extensions: rb
