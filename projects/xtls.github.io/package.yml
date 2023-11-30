@@ -36,10 +36,13 @@ build:
 provides:
   - bin/xray
 test:
+  dependencies:
+    linux:
+      gitlab.com/procps-ng/procps: '*'
   fixture: |
     {
       "log": {
-        "access": "$PWD/log"
+        "access": "./log"
       },
       "outbounds": [
         {
@@ -67,10 +70,15 @@ test:
       }
     }
   script:
-    - killall xray || true
+    - $KILL xray || true
     - cat $FIXTURE > config.json
     - xray run --config {{prefix}}/etc/xray/config.json &
     - sleep 3
     - xray -c $HOME/config.json -test | grep 'Configuration OK.'
     - xray version | grep {{version}}
-    - killall xray || true
+    - $KILL xray
+  env:
+    darwin:
+      KILL: killall
+    linux:
+      KILL: pkill
