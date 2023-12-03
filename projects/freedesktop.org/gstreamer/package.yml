@@ -49,6 +49,9 @@ dependencies:
     musepack.net: ^475
   linux:
     freeglut.sourceforge.io: ^3.4
+runtime:
+  env:
+    PYTHONPATH: "{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages:$PYTHONPATH"
 build:
   dependencies:
     gnu.org/bison: '*'
@@ -70,7 +73,12 @@ build:
     - meson setup build $MESON_ARGS
     - meson compile -C build --verbose
     - meson install -C build
+    - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
+      working-directory: "{{prefix}}/lib"
   env:
+    linux:
+      # ld.lld: error: relocation
+      LDFLAGS: -fPIC
     OPENSSL_NO_VENDOR: 1
     OPENSSL_DIR: "{{deps.openssl.org.prefix}}"
     RES_RS: https://gitlab.freedesktop.org/gstreamer/gst-plugins-rs/-/archive/gstreamer-{{version}}/gst-plugins-rs-gstreamer-{{version}}.tar.gz
