@@ -5,7 +5,7 @@ versions:
   github: AbiWord/enchant
 dependencies:
   gnome.org/glib: ^2.78
-  aspell.net: ^0.60
+  hunspell.github.io: ^1.7
 build:
   dependencies:
     freedesktop.org/pkg-config: '*'
@@ -22,10 +22,6 @@ build:
       - --enable-relocatable
       - --disable-debug
       - --disable-silent-rules
-    darwin:
-      ARGS:
-        - --with-aspell
-        - --with-aspell-dir={{deps.aspell.net.prefix}}/lib/aspell-{{deps.aspell.net.version.marketing}}
 provides:
   - bin/enchant-2
   - bin/enchant-lsmod-2
@@ -33,6 +29,6 @@ test:
   env:
     LANG: en_US
   script:
-    - enchant-lsmod-2
+    - enchant-lsmod-2 | grep hunspell
     - enchant-2 -l test.txt
     - enchant-2 -v | grep {{version}}
