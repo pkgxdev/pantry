@@ -116,3 +116,16 @@ build:
       - -Dgst-plugins-rs:gtk4=enabled
       - -Dgst-plugins-rs:sodium-source=system
       - -Dgstreamer:ptp-helper-permissions=none
+provides:
+  - bin/gst-inspect-1.0
+  - bin/ges-launch-1.0
+  # ...
+test:
+  - ges-launch-1.0 --ges-version
+  - run: |
+      python -c <<EOS
+        import gi
+        gi.require_version('Gst', '1.0')
+        from gi.repository import Gst
+        print (Gst.Fraction(num=3, denom=5))
+      EOS
