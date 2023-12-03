@@ -54,7 +54,6 @@ build:
     gnu.org/bison: '*'
     github.com/lu-zero/cargo-c: '*'
     rust-lang.org/cargo: '*'
-    gnome.org/gobject-introspection: '*'
     mesonbuild.com: '*'
     nasm.us: '*'
     ninja-build.org: '*'
@@ -102,7 +101,7 @@ build:
       - -Dorc=enabled
       - -Ddoc=disabled
       - -Dgtk_doc=disabled
-      - -Dintrospection=enabled
+      - -Dintrospection=disabled
       - -Dgst-devtools:validate=enabled
       - -Dgst-devtools:cairo=enabled
       - -Dgst-plugins-bad:opencv=disabled
@@ -117,15 +116,21 @@ build:
       - -Dgst-plugins-rs:sodium-source=system
       - -Dgstreamer:ptp-helper-permissions=none
 provides:
-  - bin/gst-inspect-1.0
   - bin/ges-launch-1.0
-  # ...
+  - bin/gst-device-monitor-1.0
+  - bin/gst-discoverer-1.0
+  - bin/gst-inspect-1.0
+  - bin/gst-launch-1.0
+  - bin/gst-play-1.0
+  - bin/gst-stats-1.0
+  - bin/gst-transcoder-1.0
+  - bin/gst-typefind-1.0
+  - bin/gst-validate-1.0
+  - bin/gst-validate-images-check-1.0
+  - bin/gst-validate-launcher
+  - bin/gst-validate-media-check-1.0
+  - bin/gst-validate-rtsp-server-1.0
+  - bin/gst-validate-transcoding-1.0
+  - bin/gst-webrtc-signalling-server
 test:
-  - ges-launch-1.0 --ges-version
-  - run: |
-      python -c <<EOS
-        import gi
-        gi.require_version('Gst', '1.0')
-        from gi.repository import Gst
-        print (Gst.Fraction(num=3, denom=5))
-      EOS
+  - ges-launch-1.0 --ges-version | grep {{version}}
