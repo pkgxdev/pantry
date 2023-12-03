@@ -27,20 +27,9 @@ test:
     linux:
       gitlab.com/procps-ng/procps: '*'
   script:
-    - run: |
-        # address already in use
-        port_start=8080
-
-        while true; do
-          port_start=$((port_start + 1))
-          if ! nc -z 127.0.0.1 $port_start -w 1; then
-            port=$port_start
-            break
-          fi
-        done
-    - ladder -p $port &
+    - ladder -p 8082 &
     - sleep 1
-    - curl -L http://127.0.0.1:$port/https://pkgx.sh -o test.html
+    - curl -L http://127.0.0.1:8082/https://pkgx.sh -o test.html
     - $KILL ladder
     - cat test.html | grep 'Run Anything'
   env:
