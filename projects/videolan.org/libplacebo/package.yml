@@ -13,6 +13,9 @@ build:
     python.org: ^3.11
     github.com/KhronosGroup/Vulkan-Headers: '*'
     curl.se: '*'
+    linux:
+      # ERROR: Compiler c++ cannot compile programs.
+      gnu.org/gcc: '*'
   script:
     - run: curl -L "$fast_float" | tar xz --strip-components=1
       working-directory: 3rdparty/fast_float
@@ -26,6 +29,10 @@ build:
     - meson compile -C build --verbose
     - meson install -C build
   env:
+    linux:
+      # undefined reference to `main'
+      # error: ld returned 1 exit status
+      LDFLAGS: -fPIC
     fast_float: https://github.com/fastfloat/fast_float/archive/refs/tags/v5.2.0.tar.gz
     glad: https://files.pythonhosted.org/packages/8b/b3/191508033476b6a409c070c6166b1c41ebb547cc6136260e9157343e6a2b/glad2-2.0.4.tar.gz
     jinja: https://files.pythonhosted.org/packages/7a/ff/75c28576a1d900e87eb6335b063fab47a8ef3c8b4d88524c4bf78f670cce/Jinja2-3.1.2.tar.gz
