@@ -53,9 +53,15 @@ build:
       /v{{deps.github.com/containers/gvisor-tap-vsock.version.major}}" \
       && pwd | sed -e "s_$PKGX_DIR/__")
     CGO_ENABLED: 1
+    linux:
+      EXTRA_LDFLAGS: -buildmode=pie
 
 test:
-  script: |
-    podman-remote -v | grep "podman-remote version {{ version }}"
-    (podman info 2>&1 || true) | grep "Cannot connect to Podman."
-    (podman machine init --image-path fake-testimage fake-testvm 2>&1 || true) | grep "Error: open fake-testimage: no such file or directory"
+  script:
+    - podman-remote -v | grep "podman-remote version {{ version }}"
+    - (podman info 2>&1 || true) | grep "Cannot connect to Podman."
+    # won't run as root
+    - |
+      if test $(id -g) != 0; then
+        (podman machine init --image-path fake-testimage fake-testvm 2>&1 || true) | grep 'Error: open fake-testimage: no such file or directory'
+      fi

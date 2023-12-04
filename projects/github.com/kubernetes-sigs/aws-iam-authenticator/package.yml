@@ -16,11 +16,15 @@ build:
     LDFLAGS:
       - -s
       - -w
-      - "-X sigs.k8s.io/aws-iam-authenticator/pkg.Version={{version}}"
+      - '-X sigs.k8s.io/aws-iam-authenticator/pkg.Version={{version}}'
+    linux:
+      LDFLAGS:
+        - -buildmode=pie
 provides:
   - bin/aws-iam-authenticator
 test:
   script:
+    - aws-iam-authenticator version
     - aws-iam-authenticator version | grep {{version}}
     - aws-iam-authenticator init -i test
     - cat key.pem | grep "BEGIN RSA PRIVATE KEY"

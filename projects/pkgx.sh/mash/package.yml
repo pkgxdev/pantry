@@ -1,0 +1,25 @@
+distributable:
+  url: https://github.com/pkgxdev/mash/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+display-name: ScriptHub
+
+versions:
+  github: pkgxdev/mash
+
+dependencies:
+  pkgx.sh: ^1.1
+  gnu.org/bash: '*'
+  curl.se: '*'
+
+build:
+  - mkdir -p {{prefix}}/bin
+  - run: cp hubx.sh {{prefix}}/bin/mash
+    if: =0.1.0
+  - run: cp mash {{prefix}}/bin/mash
+    if: '>=0.2.0'
+
+provides:
+  - bin/mash
+
+test: mash pkgxdev/demo
