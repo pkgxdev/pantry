@@ -12,20 +12,21 @@ versions:
 dependencies:
   # This is a runtime dep since they use protos at runtime:
   # https://github.com/quickwit-oss/quickwit/blob/main/quickwit/quickwit-proto/protos/quickwit/search.proto
-  protobuf.dev: "*"
+  protobuf.dev: ^25
 
 build:
   working-directory: quickwit/quickwit-cli
   dependencies:
-    rust-lang.org: ">=1.65"
-    rust-lang.org/cargo: "*"
-  script: cargo install --locked --path . --root {{prefix}}
+    # https://github.com/quickwit-oss/tantivy/issues/2260
+    rust-lang.org: '>=1.65<1.74'
+    rust-lang.org/cargo: '*'
+  script:
+    - run: 'sed -i'''' -e''s/version,$/version: "{{version}}".to_string(),/'' build_info.rs'
+      working-directory: ../quickwit-serve/src
+    - cargo install --locked --path . --root {{prefix}}
 
 test:
   script:
     - quickwit --help
-    # TODO: The version command prints out:
-    # Quickwit 0.6.3-nightly (4a36f63 2023-12-03T14:01:02Z)
-    # Where is "0.6.3-nightly" coming from??? Why isn't it 0.6.4?
     - quickwit --version
-    # - test "$(quickwit --version)" = "quickwit {{version}}"
+    - quickwit --version | grep "{{version}}"
