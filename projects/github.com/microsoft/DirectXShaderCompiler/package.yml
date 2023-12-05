@@ -15,6 +15,8 @@ build:
     git submodule update --init
     cmake -B $BUILD_DIR $CMAKE_ARGS
     ninja -C $BUILD_DIR
+    
+    mkdir -p {{prefix}}
     cp -r $BUILD_DIR/bin {{prefix}}/
   env:
     BUILD_DIR: $(mktemp -d)
@@ -23,11 +25,14 @@ build:
       - -C./cmake/caches/PredefinedParams.cmake
       - -DSPIRV_BUILD_TESTS=ON
       - -DLLVM_ENABLE_WERROR=On
-      - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
       - -DCMAKE_BUILD_TYPE=Release
 
 provides:
   -  bin/dxc
+  -  bin/dxv
+  -  bin/dxa
+  -  bin/dxr
+  -  bin/dxl
 
 test:
   script:
