@@ -1,6 +1,6 @@
 distributable:
-  url: https://github.com/microsoft/DirectXShaderCompiler/archive/{{version}}.tar.gz
-  strip-components: 1
+  url: git+https://github.com/microsoft/DirectXShaderCompiler
+  ref: v{{version}}
 
 versions:
   github: microsoft/DirectXShaderCompiler/tags
@@ -8,19 +8,21 @@ versions:
 build:
   dependencies:
     cmake.org: '*'
+    git-scm.org: ^2
     ninja-build.org: ^1
   script: |
-    cmake -B $BUILD_DIR $(cat ./utils/cmake-predefined-config-params) $CMAKE_ARGS
-    cmake --build $BUILD_DIR
+    git submodule update --init
+    cmake -B $BUILD_DIR $CMAKE_ARGS
+    ninja -C $BUILD_DIR
   env:
     BUILD_DIR: $(mktemp -d)
     CMAKE_ARGS:
       - -GNinja
-      - -DCMAKE_INSTALL_PREFIX="{{prefix}}
+      - -C./cmake/caches/PredefinedParams.cmake
       - -DSPIRV_BUILD_TESTS=ON
+      - -DLLVM_ENABLE_WERROR=On
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
       - -DCMAKE_BUILD_TYPE=Release
-      - -DCMAKE_C_COMPILER=${CC}
-      - -DCMAKE_CXX_COMPILER=${CXX}
 
 provides:
   -  bin/dxc
