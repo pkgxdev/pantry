@@ -1,4 +1,6 @@
-distributable: ~
+distributable: 
+  url: https://registry.npmjs.org/@angular/cli/-/cli-{{version}}.tgz
+  strip-components: 1
 versions:
   github: angular/angular
 dependencies:
@@ -6,10 +8,8 @@ dependencies:
 build:
   dependencies:
     npmjs.com: ^10
-    curl.se: '*'
   script:
-    - curl -L https://registry.npmjs.org/@angular/cli/-/cli-{{version}}.tgz --output cli-{{version}}.tgz
-    - npm i $ARGS
+    - npm i $ARGS .
     - run: ln -s ../libexec/bin/ng ng
       working-directory: "{{prefix}}/bin"
   env:
@@ -19,7 +19,6 @@ build:
       - --build-from-source
       - --prefix={{prefix}}/libexec
       - --unsafe-perm
-      - cli-{{version}}.tgz
 provides:
   - bin/ng
 test:
