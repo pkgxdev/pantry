@@ -12,28 +12,32 @@ $ git clone https://github.com/pkgxdev/pantry
 $ cd pantry
 
 $ dev  # https://docs.pkgx.sh/dev
-# ^^ IMPORTANT! Otherwise the `pkg` command cannot be found
+# ^^ adds brewkit to your devenv
+# ^^ IMPORTANT! Otherwise the `bk` command will not be found
 
-$ pkg init
+$ bk init
 # ^^ creates a “wip” package.yml
 # ^^ if you already know the name, you can pass it as an argument
 
-$ pkg edit
+$ bk edit
 # ^^ opens the new package.yml in your EDITOR
 
-$ pkg build
+$ bk build
 # builds to `./builds`
 # ^^ needs a zero permissions GITHUB_TOKEN to use the GitHub API
 # either set `GITHUB_TOKEN` or run `gh auth login`
 
-$ pkgx yq .provides <projects/$(pkg status | tr -d '[:space:]')/package.yml
+$ pkgx yq .provides <projects/$(bk status | tr -d '[:space:]')/package.yml
 - bin/foo
 # ^^ purely demonstrative for the next step
 
 $ pkgx foo
 # ^^ anything in the `provides:` key will now run
 
-$ pkg test
+$ bk audit
+# ^^ worth doing an audit to check for common pkging issues
+
+$ bk test
 # ^^ you need to write a test that verifies the package works
 
 $ gh repo fork
@@ -42,14 +46,22 @@ $ git push origin my-new-package
 $ gh pr create
 ```
 
-> * `pkg build` and `pkg test` take a `-L` flag to run in a Linux Docker container
-> * All commands take an optional pkg-spec eg. `pkg build node@19`
+> [!TIP]
+> * `bk build` and `bk test` can be invoked eg. `bk docker build` to run
+>   inside a Docker container for Linux builds and testing
+> * All commands take an optional pkg-spec eg. `bk build node@19`
 
+> [!TIP]
 > While inside the pantry `dev` environment you can run commands from any built
 > packages provided you specified their `provides:` key in the `package.yml`.
 
+> [!NOTE]
 > We use a special package called [`brewkit`] to build packages both here and
-> in CI/CD. `brewkit` provides the `pkg` command.
+> in CI/CD. `brewkit` provides the `bk` command.
+
+> [!IMPORTANT]
+> brewkit installs the built products to `${PKGX_DIR:-$HOME/.pkgx}` which
+> means they are installed to your user’s pkgx cache.
 
 ## GitHub Codespaces
 
@@ -101,7 +113,7 @@ $ gh pr checkout 123
 $ gh pr checkout https://github.com/pkgxdev/pantry/pull/123
 
 # then open for editing:
-$ pkg edit
+$ bk edit
 ```
 
 

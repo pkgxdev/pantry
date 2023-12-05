@@ -1,0 +1,41 @@
+name: pkg
+run-name: pkging ${{inputs.pkg}}
+
+on:
+  workflow_call:
+    inputs:
+      pkg:
+        required: true
+        type: string
+      dry-run:
+        type: boolean
+        default: false
+
+jobs:
+  get-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - uses: pkgxdev/setup@v2
+      - uses: actions/checkout@v4
+      - run: .github/scripts/get-matrix.ts ${{ inputs.pkg }}
+        id: matrix
+
+  pkgit:
+    needs: get-matrix
+    name: ${{matrix.platform.tinyname}}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: ${{ fromJSON(needs.get-matrix.outputs.matrix) }}
+    uses: ./.github/workflows/pkg-platform.yml
+    with:
+      pkg: ${{ inputs.pkg }}
+      name: ${{ matrix.platform.name }}
+      os: ${{ toJSON(matrix.platform.os) }}
+      container: ${{ matrix.platform.container }}
+      test-os: ${{ toJSON(matrix.platform.test-os) }}
+      test-container: ${{ toJSON(matrix.platform.test-container) }}
+      dry-run: ${{ inputs.dry-run }}
+    secrets: inherit
