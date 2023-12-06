@@ -1,0 +1,30 @@
+distributable:
+  url: https://github.com/Yubico/yubikey-manager/archive/refs/tags/{{ version }}.tar.gz
+  ref: v{{version}}}
+
+display-name: yubikey-manager
+
+versions:
+  github: Yubico/yubikey-manager
+
+dependencies:
+  python.org: '^3'
+  linux:
+    pcsclite.apdu.fr: '^2'
+
+build:
+  dependencies:
+    pip.pypa.io: '*'
+    swig.org: '*'
+  script: |
+    pip install --prefix={{prefix}} yubikey-manager
+
+provides:
+  - bin/ykman
+
+test:
+  dependencies:
+    linux:
+      pcsclite.apdu.fr: '^2'
+  script: 
+    ykman --version
