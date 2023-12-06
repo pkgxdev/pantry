@@ -1,0 +1,30 @@
+distributable:
+  url: https://github.com/util-linux/util-linux/releases/tag/v{{version}}
+  ref: v{{version}}}
+
+versions:
+  github: util-linux/util-linux/tags
+
+platforms:
+  - darwin
+  # not needed on linux
+
+build:
+  dependencies:
+    asciidoctor.org: '*'
+    gnu.org/autoconf: '*'
+    gnu.org/automake: '*'
+    freedesktop.org/pkg-config: '*'
+  script: |
+    ./autogen.sh
+    ./configure --disable-dependency-tracking --disable-silent-rules --prefix={{prefix}}
+    make getopt misc-utils/getopt.1
+    make install-strip
+
+
+provides:
+  - bin/getopt
+
+test:
+  script:
+    getopt
