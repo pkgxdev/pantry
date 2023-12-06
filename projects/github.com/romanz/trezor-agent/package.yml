@@ -1,0 +1,29 @@
+distributable:
+  url: https://github.com/romanz/trezor-agent/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+display-name: common-package-name
+
+versions:
+  github: romanz/trezor-agent/tags
+
+dependencies:
+  python.org: ^3.12
+
+build:
+  dependencies:
+    python.org: ^3.12
+  script: |
+    python-venv.sh {{prefix}}/bin/trezor-agent
+
+  env:
+    CFLAGS:
+      - -I libusb-1.0
+
+
+provides:
+  - bin/trezor-agent
+
+test:
+  script:
+    trezor-agent --version | grep {{version}}
