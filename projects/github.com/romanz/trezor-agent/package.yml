@@ -8,22 +8,47 @@ versions:
   github: romanz/trezor-agent/tags
 
 dependencies:
-  python.org: ^3.12
+  python.org: ~3.12
+  libusb.info: ^1
+
+runtime:
+  env:
+    PYTHONPATH: '{{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH'
 
 build:
-  dependencies:
-    python.org: ^3.12
-  script: |
-    python-venv.sh {{prefix}}/bin/trezor-agent
-
+  script:
+    - python -m pip install --prefix="{{prefix}}" -e .
+    - run: |
+        for AGENT in $AGENTS; do
+          python -m pip install --prefix="{{prefix}}" -e $AGENT
+        done
+      working-directory: agents
   env:
-    CFLAGS:
-      - -I libusb-1.0
-
+    AGENTS:
+      - jade
+      - keepkey
+      - ledger
+      - onlykey
+      - trezor
 
 provides:
+  - bin/jade-agent
+  - bin/jade-gpg
+  - bin/jade-gpg-agent
+  - bin/keepkey-agent
+  - bin/keepkeyctl
+  - bin/ledger-agent
+  - bin/ledger-gpg
+  - bin/ledger-gpg-agent
+  - bin/onlykey-agent
+  - bin/onlykey-cli
+  - bin/onlykey-gpg
+  - bin/onlykey-gpg-agent
   - bin/trezor-agent
+  - bin/trezor-gpg
+  - bin/trezor-gpg-agent
+  - bin/trezor-signify
+  - bin/trezorctl
 
 test:
-  script:
-    trezor-agent --version | grep {{version}}
+  script: trezor-agent --version | grep {{version}}
