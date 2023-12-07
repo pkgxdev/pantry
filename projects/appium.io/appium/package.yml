@@ -1,0 +1,29 @@
+distributable:
+  url: https://github.com/appium/appium/archive/refs/tags/@appium/base-driver@{{version}}.tar.gz
+  strip-components: 1
+  url: git+https://github.com/appium/appium
+
+versions:
+  github: appium/appium
+
+dependencies:
+  nodejs.org: ^10.13.0 || ^12 || ^14 || ^16 || ^18 || ^20
+
+build:
+  dependencies:
+    npmjs.com: '*'
+    linux/x86-64:
+      python.org: ^3 # node-gyp needs python to build
+  script:
+    - chmod +x bin/appium.js
+    - npm install .
+      --global
+      --prefix="{{prefix}}"
+      --install-links
+
+provides:
+  - bin/appium
+
+test:
+  script:
+    - appium | grep {{version}}
