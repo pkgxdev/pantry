@@ -16,6 +16,8 @@ runtime:
     PYTHONPATH: '{{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH'
 
 build:
+  dependencies:
+    git-scm.org: '*'
   script:
     - python -m pip install --prefix="{{prefix}}" -e .
     - run: |
@@ -23,6 +25,8 @@ build:
           python -m pip install --prefix="{{prefix}}" -e $AGENT
         done
       working-directory: agents
+    - run: fix-shebangs.ts *
+      working-directory: ${{prefix}}/bin
   env:
     AGENTS:
       - jade
