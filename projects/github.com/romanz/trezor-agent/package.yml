@@ -27,6 +27,7 @@ build:
       working-directory: agents
     - run: fix-shebangs.ts *
       working-directory: ${{prefix}}/bin
+  skip: fix-patchelf # doesn't like the paths in the libs
   env:
     AGENTS:
       - jade
@@ -55,4 +56,6 @@ provides:
   - bin/trezorctl
 
 test:
-  script: trezor-agent --version | grep {{version}}
+  script:
+    - trezor-agent --version
+    - trezor-agent --version | grep {{version}}
