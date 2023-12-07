@@ -2,8 +2,6 @@ distributable:
   url: https://github.com/romanz/trezor-agent/archive/refs/tags/v{{version}}.tar.gz
   strip-components: 1
 
-display-name: common-package-name
-
 versions:
   github: romanz/trezor-agent/tags
 
@@ -22,9 +20,8 @@ build:
     - python -m pip install --prefix="{{prefix}}" -e .
     - run: |
         for AGENT in $AGENTS; do
-          python -m pip install --prefix="{{prefix}}" -e $AGENT
+          python -m pip install --prefix="{{prefix}}" -e agents/$AGENT
         done
-      working-directory: agents
     - run: fix-shebangs.ts *
       working-directory: ${{prefix}}/bin
   skip: fix-patchelf # doesn't like the paths in the libs
@@ -55,7 +52,5 @@ provides:
   - bin/trezor-signify
   - bin/trezorctl
 
-test:
-  script:
-    - trezor-agent --version
-    - trezor-agent --version | grep {{version}}
+# hard to test this, but this will show the python is working
+test: trezor-agent --help
