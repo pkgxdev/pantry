@@ -1,0 +1,40 @@
+distributable:
+  url: https://github.com/expo/eas-cli/archive/refs/tags/v{{version.raw}}.tar.gz
+  strip-components: 1
+
+display-name: eas
+
+versions:
+  github: expo/eas-cli
+
+dependencies:
+  nodejs.org: ~18
+
+build:
+  dependencies:
+    python.org: ~3.10
+    classic.yarnpkg.com: '*'
+    linux:
+      gnu.org/gcc: '*'
+  script:
+    - mkdir -p "{{prefix}}"
+    - yarn install
+
+    - run: yarn build-ci
+      working-directory: packages/eas-json/
+
+    - yarn build-ci
+    - cp -r * {{prefix}}
+
+    - run:
+        - ln -s ../packages/eas-cli/bin/run bin/eas
+      working-directory: ${{prefix}}
+
+provides:
+  - bin/eas
+
+test:
+  - eas
+  - eas --help
+  - eas --version | grep "{{version}}"
+  - eas autocomplete zsh
