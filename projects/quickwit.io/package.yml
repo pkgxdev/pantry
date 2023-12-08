@@ -1,0 +1,32 @@
+distributable:
+  url: https://github.com/quickwit-oss/quickwit/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/quickwit
+
+versions:
+  github: quickwit-oss/quickwit
+  strip: /v/
+
+dependencies:
+  # This is a runtime dep since they use protos at runtime:
+  # https://github.com/quickwit-oss/quickwit/blob/main/quickwit/quickwit-proto/protos/quickwit/search.proto
+  protobuf.dev: ^25
+
+build:
+  working-directory: quickwit/quickwit-cli
+  dependencies:
+    # https://github.com/quickwit-oss/tantivy/issues/2260
+    rust-lang.org: '>=1.65<1.74'
+    rust-lang.org/cargo: '*'
+  script:
+    - run: 'sed -i'''' -e''s/version,$/version: "{{version}}".to_string(),/'' build_info.rs'
+      working-directory: ../quickwit-serve/src
+    - cargo install --locked --path . --root {{prefix}}
+
+test:
+  script:
+    - quickwit --help
+    - quickwit --version
+    - quickwit --version | grep "{{version}}"

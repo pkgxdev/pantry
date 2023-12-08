@@ -1,0 +1,26 @@
+distributable:
+  url: https://github.com/openai/whisper/archive/v{{version.major}}.tar.gz
+  strip-components: 1
+versions:
+  github: openai/whisper
+dependencies:
+  python.org: ^3.11
+  ffmpeg.org: ^6.1
+  huggingface.co: ^0.19
+  pyyaml.org: ^0.2
+build:
+  dependencies:
+    rust-lang.org: ^1.65
+  script:
+    - python-venv.sh {{prefix}}/bin/whisper
+provides:
+  - bin/whisper
+test:
+  dependencies:
+    curl.se: '*'
+  script:
+    - curl -L $TESTFILE > test.flac
+    - whisper test.flac --model tiny.en --output_format txt
+    - cat test.txt | grep 'American'
+  env:
+    TESTFILE: https://github.com/openai/whisper/raw/e58f28804528831904c3b6f2c0e473f346223433/tests/jfk.flac
