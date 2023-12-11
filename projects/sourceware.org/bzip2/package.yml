@@ -9,41 +9,54 @@ versions:
 provides:
   - bin/bunzip2
   - bin/bzcat
+  - bin/bzcmp
   - bin/bzdiff
   - bin/bzgrep
+  - bin/bzegrep
+  - bin/bzfgrep
   - bin/bzip2
   - bin/bzip2recover
   - bin/bzmore
+  - bin/bzless
 
 build:
-  script: |
-    make \
-      --environment-overrides \
-      --jobs {{ hw.concurrency }} \
+  script:
+    - make
+      --environment-overrides
+      --jobs {{ hw.concurrency }}
       install
 
-    case {{ hw.platform }} in
-    linux)
-      make \
-        --file Makefile-libbz2_so \
-        --environment-overrides \
-        --jobs {{ hw.concurrency }}
+    # fix absolute symlinks
+    - run: |
+        for x in *; do
+          if [ -L $x ]; then
+            y="$(readlink $x)"
+            rm $x
+            ln -s $(basename "$y") $x
+          fi
+        done
+      working-directory: '{{prefix}}/bin'
 
-      mv libbz2.*.1.* {{ prefix }}/lib
-      cd {{ prefix }}/lib
-      test -e libbz2.so || ln -s libbz2.so.{{ version }} libbz2.so
-      test -e libbz2.so.{{ version.major }} || ln -s libbz2.so.{{ version }} libbz2.so.{{ version.major }}
-      ;;
-    darwin)
-      cd {{ prefix }}/lib
-      test -e libbz2.dylib
-      test -e libbz2.{{version}}.dylib
-      test -e libbz2.{{version.major}}.dylib
-      ;;
-    esac
+    - if: linux
+      run: |
+        make \
+          --file Makefile-libbz2_so \
+          --environment-overrides \
+          --jobs {{ hw.concurrency }}
+
+        mv libbz2.*.1.* {{ prefix }}/lib
+        cd {{ prefix }}/lib
+        test -e libbz2.so || ln -s libbz2.so.{{ version }} libbz2.so
+        test -e libbz2.so.{{ version.major }} || ln -s libbz2.so.{{ version }} libbz2.so.{{ version.major }}
+
+    - if: darwin
+      run: |
+        test -e libbz2.dylib
+        test -e libbz2.{{version}}.dylib
+        test -e libbz2.{{version.major}}.dylib
+      working-directory: ${{ prefix }}/lib
 
   env:
-    CFLAGS: -fPIC # so deps link without relocation issues on linux/aarch64
     PREFIX: ${{ prefix }}
     darwin:
       PKG_VERSION: ${{ version }}
@@ -53,4 +66,4 @@ test:
     OUT=$(echo "$INPUT" | bzip2 | bunzip2)
     test "$OUT" = "$INPUT"
   env:
-    INPUT: tea.xyz
+    INPUT: tea.xyz.test-string
