@@ -52,7 +52,9 @@ build:
     - if: darwin
       run: |
         # necessary until brewkit v1
-        rm {{ prefix }}/lib/*.dylib
+        if [ -n "$(ls {{ prefix }}/lib/*.dylib)" ]; then
+          rm {{ prefix }}/lib/*.dylib
+        fi
 
         make \
           --file props/Makefile-libbz2_dylib \
