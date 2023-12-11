@@ -1,0 +1,27 @@
+distributable:
+  url: https://github.com/ast-grep/ast-grep/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+versions:
+  github: ast-grep/ast-grep
+build:
+  dependencies:
+    rust-lang.org: '*'
+    rust-lang.org/cargo: '*'
+  script:
+    - cargo install $CARGO_ARGS
+  env:
+    linux/aarch64:
+      RUSTFLAGS: "-C linker=cc"
+    CARGO_ARGS:
+      - --locked
+      - --root="{{prefix}}"
+      - --path=crates/cli
+provides:
+  - bin/sg
+  - bin/ast-grep
+test:
+  fixture: console.log('it is me')
+  script:
+    - mv $FIXTURE hi.js
+    - sg run -l js -p console.log hi.js | grep 'it is me'
+    - ast-grep --version | grep {{version}}
