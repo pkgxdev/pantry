@@ -67,6 +67,11 @@ test:
       OUT=$(echo "$INPUT" | bzip2 | bunzip2)
       test "$OUT" = "$INPUT"
     # test symlinks are functional
-    - bzegrep --help
+    # sadly bzegrep has no `--help`
+    - if bzegrep; then
+        exit 1
+      else
+        test $? -eq 2
+      fi
   env:
     INPUT: tea.xyz.test-string
