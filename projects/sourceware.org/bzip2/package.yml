@@ -62,8 +62,11 @@ build:
       PKG_VERSION: ${{ version }}
 
 test:
-  script: |
-    OUT=$(echo "$INPUT" | bzip2 | bunzip2)
-    test "$OUT" = "$INPUT"
+  script:
+    - |
+      OUT=$(echo "$INPUT" | bzip2 | bunzip2)
+      test "$OUT" = "$INPUT"
+    # test symlinks are functional
+    - bzegrep --help
   env:
     INPUT: tea.xyz.test-string
