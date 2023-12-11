@@ -51,10 +51,18 @@ build:
 
     - if: darwin
       run: |
+        # necessary until brewkit v1
+        rm {{ prefix }}/lib/*.dylib
+
+        make \
+          --file props/Makefile-libbz2_dylib \
+          --environment-overrides \
+          --jobs {{ hw.concurrency }}
+
+        cd {{ prefix }}/lib
         test -e libbz2.dylib
         test -e libbz2.{{version}}.dylib
-        test -e libbz2.{{version.major}}.dylib
-      working-directory: ${{ prefix }}/lib
+        ln -s libbz2.{{version}}.dylib libbz2.{{version.major}}.dylib
 
   env:
     PREFIX: ${{ prefix }}
@@ -68,7 +76,8 @@ test:
       test "$OUT" = "$INPUT"
     # test symlinks are functional
     # sadly bzegrep has no `--help`
-    - if bzegrep; then
+    - |
+      if bzegrep; then
         exit 1
       else
         test $? -eq 2
