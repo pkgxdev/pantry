@@ -1,0 +1,33 @@
+distributable:
+  url: https://github.com/FiloSottile/age/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+display-name: age
+
+versions:
+  github: FiloSottile/age
+
+provides:
+  - bin/age
+  - bin/age-keygen
+
+build:
+  script: |
+    mkdir -p build/age
+    go build -o "build/age"  -ldflags "$LDFLAGS" -trimpath ./cmd/...
+    mkdir -p "{{ prefix }}"/bin
+    mv build/age/age "{{ prefix }}"/bin
+    mv build/age/age-keygen "{{ prefix }}"/bin
+  env:
+    LDFLAGS:
+      - -X main.Version="{{version}}"
+    linux:
+      LDFLAGS:
+        - -buildmode=pie
+
+  dependencies:
+    go.dev: ^1.19
+
+test:
+  age --version
+  age-keygen --version

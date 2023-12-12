@@ -5,13 +5,14 @@ distributable:
 versions:
   github: containers/podman/releases/tags
 
-platforms:
-  - darwin
-  #fixme: - linux once qemu is built
-
 provides:
-  - bin/podman
-  - bin/podman-mac-helper
+  linux:
+    - bin/podman
+    - bin/podman-remote
+  darwin:
+    - bin/podman
+    - bin/podman-remote
+    - bin/podman-mac-helper
 
 dependencies:
   qemu.org: '*'
@@ -20,6 +21,7 @@ dependencies:
 build:
   dependencies:
     go.dev: ^1.18
+    gnu.org/coreutils: '*'
   script:
     # podman searches a compile-time configured set of paths for helper binaries
     # so we add a relative lookup for the major version of gvproxy we require
@@ -31,11 +33,19 @@ build:
         s_\(^var defaultHelperBinariesDir.*\)_\
         \1\n        "\$BINDIR/../../../$GVISOR_MAJOR/bin",_
 
-    - make --jobs {{ hw.concurrency }} podman-remote
-    - make --jobs {{ hw.concurrency }} podman-mac-helper
     - mkdir -p "{{ prefix }}"/bin
-    - mv bin/"{{ hw.platform }}"/* "{{ prefix }}"/bin
-    - ln -s podman "{{ prefix }}"/bin/podman-remote
+    - make --jobs {{ hw.concurrency }} podman-remote
+
+    - run: |
+        mv bin/podman-remote "{{ prefix }}"/bin/
+        ln -s podman-remote "{{ prefix }}"/bin/podman
+      if: linux
+
+    - run: |
+        make --jobs {{ hw.concurrency }} podman-mac-helper
+        mv bin/darwin/podman{-mac-helper,} "{{ prefix }}"/bin/
+        ln -s podman "{{ prefix }}"/bin/podman-remote
+      if: darwin
   env:
     # path for gvproxy to add to platform config
     GVISOR_MAJOR: |-
@@ -43,9 +53,15 @@ build:
       /v{{deps.github.com/containers/gvisor-tap-vsock.version.major}}" \
       && pwd | sed -e "s_$PKGX_DIR/__")
     CGO_ENABLED: 1
+    linux:
+      EXTRA_LDFLAGS: -buildmode=pie
 
 test:
-  script: |
-    podman-remote -v | grep "podman-remote version {{ version }}"
-    (podman info 2>&1 || true) | grep "Cannot connect to Podman."
-    (podman machine init --image-path fake-testimage fake-testvm 2>&1 || true) | grep "Error: open fake-testimage: no such file or directory"
+  script:
+    - podman-remote -v | grep "podman-remote version {{ version }}"
+    - (podman info 2>&1 || true) | grep "Cannot connect to Podman."
+    # won't run as root
+    - |
+      if test $(id -g) != 0; then
+        (podman machine init --image-path fake-testimage fake-testvm 2>&1 || true) | grep 'Error: open fake-testimage: no such file or directory'
+      fi

@@ -26,7 +26,6 @@ provides:
   - bin/jupyter-nbclassic-serverextension
   - bin/jupyter-nbconvert
   - bin/jupyter-nbextension
-  - bin/jupyter-notebook
   - bin/jupyter-run
   - bin/jupyter-server
   - bin/jupyter-serverextension
@@ -37,32 +36,33 @@ dependencies:
   python.org: '>=3.7<3.12'
 
 build:
-  script: |
-    python-venv.py {{prefix}}/bin/jlpm
-    cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter
-    cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter-bundlerextension
-    cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter-dejavu
-    cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter-events
-    cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter-execute
-    cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter-fileid
-    cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter-kernel
-    cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter-kernelspec
-    cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter-lab
-    cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter-labextension
-    cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter-labhub
-    cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter-migrate
-    cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter-nbclassic
-    cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter-nbclassic-bundlerextension
-    cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter-nbclassic-extension
-    cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter-nbclassic-serverextension
-    cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter-nbconvert
-    cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter-nbextension
-    cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter-notebook
-    cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter-run
-    cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter-server
-    cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter-serverextension
-    cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter-troubleshoot
-    cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter-trust
+  script:
+    - python-venv.py {{prefix}}/bin/jlpm
+    - cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter
+    - cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter-bundlerextension
+    - cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter-dejavu
+    - cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter-events
+    - cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter-execute
+    - cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter-fileid
+    - cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter-kernel
+    - cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter-kernelspec
+    - cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter-lab
+    - cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter-labextension
+    - cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter-labhub
+    - cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter-migrate
+    - cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter-nbclassic
+    - cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter-nbclassic-bundlerextension
+    - cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter-nbclassic-extension
+    - cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter-nbclassic-serverextension
+    - cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter-nbconvert
+    - cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter-nbextension
+    - run: cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter-notebook
+      if: <4
+    - cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter-run
+    - cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter-server
+    - cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter-serverextension
+    - cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter-troubleshoot
+    - cp {{prefix}}/bin/jlpm {{prefix}}/bin/jupyter-trust
 
 test:
   script: test "$(jupyter --version | grep jupyterlab| sed 's/.* //')" = "{{ version }}"

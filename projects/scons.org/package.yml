@@ -7,6 +7,7 @@ versions:
 
 dependencies:
   python.org: ~3.11
+  gnu.org/gcc: '>=10' # scons uses `gcc`
 
 build: python-venv.sh {{prefix}}/bin/scons
 
@@ -14,20 +15,22 @@ provides:
   - bin/scons
 
 test:
-  script: |
-    mv $FIXTURE fixture.c
+  script:
+    - run: mv $FIXTURE fixture.c
+      fixture: |
+        #include <stdio.h>
+        int main() {
+          printf("xyz.tea.hello-world");
+          return 0;
+        }
 
     # scons doesn’t import the external environment
     # this means nobody will enjoy using scons with tea so we have to fix that
-    echo "import os" > SConstruct
-    echo "env = Environment(ENV = os.environ)" >> SConstruct
-    echo "env.Program('fixture.c')" >> SConstruct
+    - run: mv $FIXTURE SConstruct
+      fixture: |
+        import os
+        env = Environment(ENV = os.environ)
+        env.Program('fixture.c')
 
-    scons --debug=explain
-    test $(./fixture) = "xyz.tea.hello-world"
-  fixture: |
-    #include <stdio.h>
-    int main() {
-      printf("xyz.tea.hello-world");
-      return 0;
-    }
+    - scons --debug=explain
+    - test $(./fixture) = "xyz.tea.hello-world"

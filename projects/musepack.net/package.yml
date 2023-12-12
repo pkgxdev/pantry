@@ -1,0 +1,48 @@
+distributable:
+  url: https://files.musepack.net/source/musepack_src_r{{version.major}}.tar.gz
+  strip-components: 1
+versions:
+  url: https://www.musepack.net/index.php?pg=src
+  match: /musepack_src_r\d+\.tar\.gz/
+  strip:
+    - /^musepack_src_r/
+    - /\.tar\.gz/
+dependencies:
+  musepack.net/libreplaygain: '*'
+  musepack.net/libcuefile: '*'
+build:
+  dependencies:
+    cmake.org: '*'
+  script:
+    - cmake . $CMAKE_ARGS
+    - make install
+    - mkdir -p {{prefix}}/lib
+    - cp libmpcdec/libmpcdec.* {{prefix}}/lib/
+  env:
+    linux:
+      # ld.lld: error: duplicate symbol: Res_bit
+      # ld.lld: error: duplicate symbol: __Cc
+      # ld.lld: error: duplicate symbol: __Dc
+      LDFLAGS: "-Wl,--allow-multiple-definition"
+    CMAKE_ARGS:
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}
+      - -DCMAKE_INSTALL_LIBDIR=lib
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_FIND_FRAMEWORK=LAST
+      - -DCMAKE_VERBOSE_MAKEFILE=ON
+      - -Wno-dev
+      - -DBUILD_TESTING=OFF
+provides:
+  - bin/mpc2sv8
+  - bin/mpcchap
+  - bin/mpccut
+  - bin/mpcdec
+  - bin/mpcenc
+  - bin/mpcgain
+  - bin/wavcmp
+test:
+  dependencies:
+    curl.se: '*'
+  script:
+    - curl -L "https://trac.ffmpeg.org/raw-attachment/ticket/1160/decodererror.mpc" -o test.mpc
+    - mpcdec test.mpc 2>&1 | grep "441001 samples decoded"

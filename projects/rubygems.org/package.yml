@@ -31,6 +31,10 @@ build:
         patch -p1 < "$SRCROOT"/props/fit-n-finish.2.patch
       working-directory: ${{prefix}}
     - run: |
+        patch -p1 < "$SRCROOT"/props/fit-n-finish.3.patch
+      working-directory: ${{prefix}}
+      if: '>=3.4'
+    - run: |
         sed -i.bak -e 's/Dir\.mkdir dir, \*\[options\[:dir_mode\].*/FileUtils.mkdir_p dir, *[options[:dir_mode] \&\& 0o755].compact/' installer.rb
         rm installer.rb.bak
       working-directory: ${{prefix}}/lib/rubygems

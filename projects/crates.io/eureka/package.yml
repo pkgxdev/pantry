@@ -1,0 +1,31 @@
+distributable:
+  url: https://github.com/simeg/eureka/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: simeg/eureka
+  strip: /^v/
+
+dependencies:
+  libgit2.org: ^1
+
+build:
+  dependencies:
+    rust-lang.org: ^1.65
+    rust-lang.org/cargo: '*'
+  script: cargo install --path . --root {{prefix}} --locked
+
+provides:
+  - bin/eureka
+
+test:
+  dependencies:
+    git-scm.org: ^2
+  script:
+    - git init
+    - mkdir -p $HOME/.config/eureka
+    - echo "{\"repo\":\"$(pwd)\"}" > $HOME/.config/eureka/config.json
+    - echo "this is an idea" >README.md
+    - test "$(eureka --view)" = "this is an idea"
+  env:
+    PAGER: cat

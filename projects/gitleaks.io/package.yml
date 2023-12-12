@@ -1,0 +1,36 @@
+distributable:
+  url: https://github.com/zricethezav/gitleaks/archive/v{{version}}.tar.gz
+  strip-components: 1
+versions:
+  github: zricethezav/gitleaks
+build:
+  dependencies:
+    go.dev: '*'
+  script:
+    - go build $GO_ARGS -ldflags="$LDFLAGS"
+  env:
+    LDFLAGS: -X github.com/zricethezav/gitleaks/v{{version.major}}/cmd.Version={{version}}
+    GO_ARGS:
+      - -trimpath
+      - -o="{{prefix}}/bin/gitleaks"
+    linux:
+      LDFLAGS:
+        - -buildmode=pie
+provides:
+  - bin/gitleaks
+test:
+  dependencies:
+    git-scm.org: '*'
+  script:
+    - echo 'ghp_deadbeefdeadbeefdeadbeefdeadbeefdeadbeef' > README
+    # Author identity unknown
+    - run: |
+        git config --global user.email "you@example.com"
+        git config --global user.name "Your Name"
+      if: linux
+    - git init
+    - git add README
+    - git commit -m 'Initial commit'
+    - gitleaks detect 2>output.log || true
+    - cat output.log | grep '1 commits scanned'
+    - gitleaks version | grep {{version}}

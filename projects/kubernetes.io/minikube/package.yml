@@ -15,11 +15,15 @@ build:
   dependencies:
     go.dev: ^1.19
     github.com/kevinburke/go-bindata: '*'
-  script: |
-    make
-    mkdir -p "{{ prefix }}"/bin
-    mv out/minikube "{{ prefix }}"/bin
+  script:
+    - run: |
+        sed -E -i.bak -e's/(_LDFLAGS := "?)/\1-buildmode=pie /' Makefile
+        rm Makefile.bak
+      if: linux
+    - make
+    - mkdir -p "{{ prefix }}"/bin
+    - mv out/minikube "{{ prefix }}"/bin
 
-test: 
+test:
   script: |
     minikube version

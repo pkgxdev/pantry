@@ -25,15 +25,18 @@ build:
     haskell.org/cabal: ^3
     crates.io/semverator: ^0
   working-directory: pandoc-cli
-  script: |-
-    if semverator satisfies '^2' '{{ version }}'; then
-      # pandoc 2.x - no pandoc-cli subdirectory
-      cd ..
-    fi
+  script:
+    # pandoc 2.x - no pandoc-cli subdirectory
+    - run: cd ..
+      if: <3
 
-    cabal update
-    mkdir -p {{prefix}}/bin
-    cabal install $ARGS
+    - cabal update
+    - mkdir -p {{prefix}}/bin
+    # digest versions above 0.0.1.4 have RPATH issues for us.
+    - run: |
+        sed -i.bak -e's/text$/text, digest <0.0.1.4/' pandoc-cli.cabal
+        rm pandoc-cli.cabal.bak
+    - cabal v2-install $ARGS
   env:
     ARGS:
       - --install-method=copy
@@ -52,6 +55,5 @@ test:
   fixture: |
     # tea
     brew2 for you
-  script:
-    pandoc -f markdown -t html5 $FIXTURE
+  script: pandoc -f markdown -t html5 $FIXTURE
   #TODO check output is HTML!

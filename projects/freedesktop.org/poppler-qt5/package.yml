@@ -1,0 +1,86 @@
+distributable:
+  url: https://poppler.freedesktop.org/poppler-{{version}}.tar.xz
+  strip-components: 1
+display-name: poppler-qt5
+versions:
+  url: https://poppler.freedesktop.org/
+  match: /poppler-\d+\.\d+\.\d+\.tar\.xz/
+  strip:
+    - /^poppler-/
+    - /\.tar\.xz/
+dependencies:
+  gnupg.org/libassuan: ^2
+  cairographics.org: ^1
+  freedesktop.org/fontconfig: ^2
+  freetype.org: ^2
+  gnu.org/gettext: ^0
+  gnome.org/glib: ^2
+  gnupg.org/gpgme: ^1
+  gnupg.org/libgpg-error: ^1
+  libjpeg-turbo.org: ^2
+  libpng.org: ^1
+  simplesystems.org/libtiff: ^4
+  littlecms.com: ^2
+  mozilla.org/nss: ^3
+  openjpeg.org: ^2
+  qt.io: ~5
+  curl.se: ^8
+build:
+  dependencies:
+    cmake.org: '*'
+    gnome.org/gobject-introspection: '*'
+    freedesktop.org/pkg-config: '*'
+  script:
+    - cmake . $CMAKE_ARGS
+    - make --jobs {{ hw.concurrency }} install
+    - make clean
+    - cmake . -DBUILD_SHARED_LIBS=OFF $CMAKE_ARGS
+    - make --jobs {{ hw.concurrency }}
+    - install libpoppler.a cpp/libpoppler-cpp.a glib/libpoppler-glib.a {{prefix}}/lib/
+    - run: |
+        curl -L "$FONT_DATA" | tar -xz --strip-components=1
+        make install prefix={{prefix}}
+      working-directory: font-data
+  env:
+    CC: clang
+    CXX: clang++
+    LD: clang
+    FONT_DATA: https://poppler.freedesktop.org/poppler-data-0.4.12.tar.gz
+    CMAKE_ARGS:
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}
+      - -DCMAKE_INSTALL_LIBDIR=lib
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_FIND_FRAMEWORK=LAST
+      - -DCMAKE_VERBOSE_MAKEFILE=ON
+      - -Wno-dev
+      - -DBUILD_TESTING=OFF
+      - -DBUILD_GTK_TESTS=OFF
+      - -DENABLE_BOOST=OFF
+      - -DENABLE_CMS=lcms2
+      - -DENABLE_GLIB=ON
+      - -DENABLE_QT5=ON
+      - -DENABLE_QT6=OFF
+      - -DENABLE_UNSTABLE_API_ABI_HEADERS=ON
+      - -DRUN_GPERF_IF_PRESENT=OFF
+      - -DWITH_GObjectIntrospection=ON
+    CXXFLAGS: '$CXXFLAGS -std=c++11'
+provides:
+  - bin/pdfattach
+  - bin/pdfdetach
+  - bin/pdffonts
+  - bin/pdfimages
+  - bin/pdfinfo
+  - bin/pdfseparate
+  - bin/pdfsig
+  - bin/pdftocairo
+  - bin/pdftohtml
+  - bin/pdftoppm
+  - bin/pdftops
+  - bin/pdftotext
+  - bin/pdfunite
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script:
+    - pdfinfo lorem.pdf | grep "Lorem Ipsum"
+    - pkg-config --modversion poppler-qt5 | grep "{{version}}"

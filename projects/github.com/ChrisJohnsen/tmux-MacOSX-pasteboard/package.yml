@@ -1,0 +1,31 @@
+distributable:
+  url: https://github.com/ChrisJohnsen/tmux-MacOSX-pasteboard/archive/refs/tags/v{{ version.raw }}.tar.gz
+  strip-components: 1
+  ref: v{{version}}}
+
+versions: 
+  github: ChrisJohnsen/tmux-MacOSX-pasteboard/tags
+
+display-name: reattach-to-user-namespace
+
+# if there’s a github then we can parse the versions
+platforms:
+  - darwin
+
+build:
+  dependencies:
+    gnu.org/make: '*'
+  script: |
+    make
+    mkdir -p {{ prefix }}/bin
+    mv reattach-to-user-namespace {{ prefix }}/bin
+
+
+provides:
+  - bin/reattach-to-user-namespace
+
+test:
+  dependencies:
+    gnu.org/bash: '*'
+  script:
+    reattach-to-user-namespace -l bash -c "echo Hello World!"

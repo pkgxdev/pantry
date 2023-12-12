@@ -38,6 +38,7 @@ jobs:
   bottle:
     needs: [get-platform]
     if: ${{ !inputs.new-version || needs.get-platform.outputs.available != '' }}
+    # runs-on: ubuntu-latest
     runs-on: ${{ fromJson(needs.get-platform.outputs.os) }}
     outputs:
       srcs: ${{ env.srcs }}
@@ -49,6 +50,7 @@ jobs:
         timeout-minutes: 10
         with:
           prefix: ${{ github.workspace }}/.pkgx
+          pkgs: gnupg.org
 
       - uses: actions/download-artifact@v3
         if: ${{ inputs.new-version }}
@@ -84,11 +86,9 @@ jobs:
           done
         working-directory: ${{ github.workspace }}/.pkgx
 
-      - run: |
-          pkgx +gnupg.org gpg-agent --daemon || true
-          echo $GPG_PRIVATE_KEY | \
-            base64 -d | \
-            pkgx +gnupg.org gpg --import --batch --yes
+      - run: echo $GPG_PRIVATE_KEY |
+          base64 -d |
+          pkgx gpg --import --batch --yes
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
 
@@ -96,6 +96,7 @@ jobs:
         id: bottle-xz
         with:
           built: ${{ env.built }}
+          platform: ${{ inputs.platform }}
           compression: xz
           gpg-key-id: ${{ secrets.GPG_KEY_ID }}
         env:
@@ -105,6 +106,7 @@ jobs:
         id: bottle-gz
         with:
           built: ${{ env.built }}
+          platform: ${{ inputs.platform }}
           compression: gz
           gpg-key-id: ${{ secrets.GPG_KEY_ID }}
         env:
@@ -156,7 +158,7 @@ jobs:
         with:
           qa: ${{ inputs.new-version }}
           pkgs: ${{ needs.bottle.outputs.built }} ${{ needs.bottle.outputs.built }}
-          srcs: '~'
+          srcs: "~"
           bottles: ${{ env.bottles }}
           checksums: ${{ env.checksums }}
           signatures: ${{ env.signatures }}
