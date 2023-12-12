@@ -31,10 +31,17 @@ build:
   script:
     - rm -rf expat freetype jbig2dec jpeg lcms2mt libpng openjpeg tiff zlib
     # ^^ ensure our libs are used and nothing is vendored
+    - run: |
+        sed -i.bak -e's/-mfpu=neon//g' tesseract/CMakeLists.txt tesseract/configure.ac configure.ac configure
+        rm tesseract/CMakeLists.txt.bak tesseract/configure.ac.bak configure.ac.bak configure.bak
+      if: linux/aarch64
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
     - make install-so
   env:
+    CC: clang
+    CXX: clang++
+    LD: clang
     ARGS:
       - --prefix="{{prefix}}"
       - --disable-compile-inits

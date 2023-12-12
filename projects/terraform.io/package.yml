@@ -19,7 +19,11 @@ build:
     go.dev: ^1.18
   env:
     GO111MODULE: on
-    LDFLAGS: [-s, -w, '-X=main.Version={{version}}']
+    LDFLAGS:
+      - -s
+      - -w
+      - -X=github.com/hashicorp/terraform/version.Version={{version}}
+      - -X=github.com/hashicorp/terraform/version.dev=no
     linux:
       # or segmentation fault
       # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
@@ -28,6 +32,9 @@ build:
 
 test:
   script:
+    - terraform --version | grep '^Terraform v{{version}}$'
+    # ^^ test version is set correctly and not suffixed with `-dev`
+
     - terraform init
     - terraform apply --auto-approve
     - out=$(terraform output fixture)

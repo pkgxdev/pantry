@@ -1,5 +1,7 @@
 distributable:
-  url: https://github.com/AntonOsika/gpt-engineer/archive/refs/tags/v{{version}}.tar.gz
+  # url format changed in v0.2.1
+  #url: https://github.com/AntonOsika/gpt-engineer/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/AntonOsika/gpt-engineer/archive/refs/tags/{{version}}.tar.gz
   strip-components: 1
 
 versions:
@@ -8,7 +10,7 @@ versions:
 display-name: GPT Engineer
 
 dependencies:
-  python.org: '>=3<3.12'
+  python.org: '~3.11'
   tea.xyz: ^0
 
 entrypoint: tea ./entrypoint.sh
@@ -16,12 +18,27 @@ entrypoint: tea ./entrypoint.sh
 build:
   dependencies:
     gnu.org/patch: '*'
+    python-poetry.org: '*'
   script:
     # https://github.com/AntonOsika/gpt-engineer/issues/204
     - run: patch -p1 < props/main.py.patch
       if: =0.0.3
 
-    - python-venv.sh {{prefix}}/bin/gpt-engineer
+    # https://github.com/python-poetry/poetry/issues/1937#issuecomment-983754739
+    - run: |
+        poetry config virtualenvs.create true
+        poetry config virtualenvs.in-project true
+        poetry install --with=experimental
+        poetry build -f sdist
+        tar zxvf dist/gpt_engineer-{{version}}.tar.gz -C .venv/lib/python3.11/site-packages --strip-components=1
+        mkdir -p "{{prefix}}"
+        export VIRTUAL_ENV="{{prefix}}/venv"
+        cp -a .venv "$VIRTUAL_ENV"
+        python-venv-stubber.sh gpt-engineer
+      if: '>=0.2.1'
+
+    - run: python-venv.sh {{prefix}}/bin/gpt-engineer
+      if: '<0.2.1'
 
     # https://github.com/AntonOsika/gpt-engineer/issues/204
     - run: cp -a identity {{prefix}}

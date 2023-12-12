@@ -1,0 +1,21 @@
+distributable:
+  url: https://github.com/mitnk/cicada/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: mitnk/cicada
+  strip: /^v/
+
+build:
+  dependencies:
+    rust-lang.org: ^1.65
+    rust-lang.org/cargo: '*'
+  script: cargo install --path . --root {{prefix}}
+
+provides:
+  - bin/cicada
+
+test:
+  dependencies:
+    gnu.org/which: '*'
+  script: test "$(cicada -c 'ls -l `which sh`')" = "$(ls -l `which sh`)"

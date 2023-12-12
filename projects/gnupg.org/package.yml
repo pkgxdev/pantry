@@ -9,12 +9,67 @@ versions:
     - /gnupg-/
     - /.tar.bz2/
 
+runtime:
+  env:
+    # allows us to be relocatable provided `gpgconf.ctl` exists alongside
+    # the `gpgconf` binary. NOTE causes warning messages on Darwin:
+    #     error reading symlink '/proc/curproc/file': No such file or directory
+    # which seemingly cannot be avoided without a patch
+    GNUPG_BUILD_ROOT: '{{prefix}}'
+
+dependencies:
+  zlib.net: ^1.1
+  sourceware.org/bzip2: '*'
+  gnupg.org/npth: '*'
+  gnupg.org/libgpg-error: '*'
+  gnupg.org/libksba: '*'
+  gnupg.org/libassuan: '*'
+  gnupg.org/libgcrypt: '*'
+  gnupg.org/pinentry: '*'
+  gnutls.org: ^3
+  openldap.org: ^2
+  gnu.org/readline: ^8
+  sqlite.org: ^3
+  darwin: # nobody added a comment to say why this is Darwin only
+    gnu.org/gettext: ^0.21
+
+build:
+  freedesktop.org/pkg-config: '*'
+  linux:
+    gnu.org/gcc: '*'
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make --jobs {{ hw.concurrency }} install
+
+    # this makes the lookup machinery relocatable, see above
+    - cp props/gpgconf.ctl {{prefix}}/bin
+
+    - run: |
+        sed -i.bak "s|{{prefix}}|\$(dirname \$0)/..|g" gpg-wks-client
+        rm gpg-wks-client.bak
+      working-directory: '{{prefix}}/libexec'
+    - run: |
+        mkdir -p var/run etc/gnupg
+        chmod 700 etc/gnupg
+      working-directory: '{{prefix}}'
+
+    # nobody added a comment explaining why this conf is required
+    - run: cp props/gpg.conf {{prefix}}/etc/gnupg/gpg.conf
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --libdir={{prefix}}/lib
+      - --sysconfdir={{prefix}}/etc
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --disable-silent-rules
+      - --with-pinentry-pgm={{deps.gnupg.org/pinentry.prefix}}/bin/pinentry
+
 provides:
   - bin/gpg
   - bin/gpg-agent
-  - bin/gpg-card
   - bin/gpg-connect-agent
-  - bin/gpg-wks-client
   - bin/gpg-wks-server
   - bin/gpgconf
   - bin/gpgparsemail
@@ -26,31 +81,10 @@ provides:
   - bin/kbxutil
   - bin/watchgnupg
 
-dependencies:
-  zlib.net: 1
-  sourceware.org/bzip2: 1
-  gnupg.org/npth: 1
-  gnupg.org/libgpg-error: 1
-  gnupg.org/libksba: 1
-  gnupg.org/libassuan: 2
-  gnupg.org/libgcrypt: 1
-
-build:
-  script: |
-    ./configure --prefix={{prefix}}
-    make
-    make check
-    make install
-
 test:
-  script: |
-    gpg --version
-    MD5=$(echo foo | gpg --print-md MD5)
-    SHA1=$(echo foo | gpg --print-md SHA1)
-    SHA512=$(echo foo | gpg --print-md SHA512)
-
-    test "$MD5" = "D3 B0 73 84 D1 13 ED EC  49 EA A6 23 8A D5 FF 00"
-    test "$SHA1" = "F1D2 D2F9 24E9 86AC 86FD  F7B3 6C94 BCDF 32BE EC15"
-    # Yes, there's a newline in this string
-    test "$SHA512" = "0CF9180A 764ABA86 3A67B6D7 2F0918BC 131C6772 642CB2DC E5A34F0A 702F9470
-    DDC2BF12 5C12198B 1995C233 C34B4AFD 346C54A2 334C350A 948A51B6 E8B4E6B6"
+  script:
+    - killall gpg-agent || true
+    - gpg --version | grep {{version}}
+    - gpg --quick-gen-key --batch --passphrase ""  "Testing" default default never
+    - gpg --detach-sign test.txt
+    - gpg --verify test.txt.sig

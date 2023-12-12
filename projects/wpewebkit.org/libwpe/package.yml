@@ -1,0 +1,41 @@
+distributable:
+  url: https://github.com/WebPlatformForEmbedded/libwpe/releases/download/{{version}}/libwpe-{{version}}.tar.xz
+  strip-components: 1
+versions:
+  github: WebPlatformForEmbedded/libwpe
+platforms:
+  - linux
+dependencies:
+  xkbcommon.org: '*'
+  mesa3d.org: '*'
+build:
+  dependencies:
+    gnu.org/gcc: '*'
+    mesonbuild.com: '*'
+    ninja-build.org: '*'
+    freedesktop.org/pkg-config: '*'
+  script:
+    - meson setup build $MESON_ARGS
+    - meson compile -C build --verbose
+    - meson install -C build
+    - run: |
+        mv wpe-1.0/* .
+        rmdir wpe-1.0
+        ln -s . wpe-1.0
+      working-directory: ${{prefix}}/include
+  env:
+    LDFLAGS: "-fPIC"
+    MESON_ARGS:
+      - --prefix="{{prefix}}"
+      - --libdir="{{prefix}}/lib"
+      - --buildtype=release
+      - --wrap-mode=nofallback
+test:
+  dependencies:
+    gnu.org/gcc: '*'
+    gnu.org/make: '*'
+  script:
+    - make wpe-test
+    - ./wpe-test | grep {{version}}
+  env:
+    LDLIBS: -lwpe-1.0

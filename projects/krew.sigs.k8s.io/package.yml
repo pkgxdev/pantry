@@ -1,0 +1,42 @@
+distributable:
+  url: git+https://github.com/kubernetes-sigs/krew
+  ref: v{{version}}
+
+versions:
+  github: kubernetes-sigs/krew
+
+dependencies:
+  git-scm.org: '*'
+
+build:
+  dependencies:
+    go.dev: ^1.21
+  script: |
+    export KREW_ROOT=$(pwd)/.krew
+    export PATH=${PATH}:${KREW_ROOT}/bin
+    go build \
+      -tags netgo \
+      -mod readonly \
+      -ldflags "-w \
+                -X sigs.k8s.io/krew/internal/version.gitCommit=$(git rev-parse --short HEAD) \
+                -X sigs.k8s.io/krew/internal/version.gitTag={{version}}" \
+      -o "{{prefix}}/bin/kubectl-krew" \
+      ./cmd/krew
+  env:
+    CGO_ENABLED: 0
+
+provides:
+  - bin/kubectl-krew
+
+test:
+  dependencies:
+    gnu.org/grep: '*'
+    kubernetes.io/kubectl: '*'
+  env:
+    KREW_ROOT: $PWD
+    PATH: ${KREW_ROOT}/bin:${PATH}
+  script: |
+    kubectl-krew version | grep GitTag | grep {{version}}
+    kubectl-krew update
+    kubectl-krew install ctx
+    kubectl-ctx

@@ -7,48 +7,88 @@ versions:
   strip: /^php-/
 
 dependencies:
-  gnu.org/bison: '*'
-  re2c.org: '*'
-  apache.org/apr: '*'
-  apache.org/apr-util: '*'
-  bcrypt.sourceforge.net: '*'
-  gnu.org/autoconf: '*'
-  curl.se: '*'
-  gnu.org/gettext: '*'
-  gnu.org/gmp: '*'
+  gnu.org/bison: ^3
+  re2c.org: ^3
+  apache.org/apr: ^1
+  apache.org/apr-util: ^1
+  bcrypt.sourceforge.net: ^1
+  gnu.org/autoconf: ^2
+  curl.se: ^8
+  gnu.org/gettext: ^0
+  gnu.org/gmp: ^6
   libsodium.org: '<1.0.19' # dylib version changed from 23 > 26
-  libzip.org: '*'
-  github.com/kkos/oniguruma: '*'
+  libzip.org: ~1.9
+  github.com/kkos/oniguruma: ^6
   openssl.org: '*'
   pcre.org/v2: '>=10.30'
-  sqlite.org: '*'
+  sqlite.org: ^3
   unicode.org: ^71
-  gnu.org/libiconv: '*'
-  kerberos.org: '*'
-  gnome.org/libxml2: '>=2.9.0'
-  thrysoee.dk/editline: '*'
+  gnu.org/libiconv: ^1
+  kerberos.org: ^1
+  gnome.org/libxml2: '>=2.9.0<2.12'
+  thrysoee.dk/editline: ^3
   sourceware.org/libffi: '>=3.0.11'
   gnome.org/libxslt: '>=1.1.0'
-  gnu.org/gcc: '*'
-  libpng.org: '*'
-  google.com/webp: '*'
-  ijg.org: '*'
+  gnu.org/gcc: <13
+  libpng.org: ^1
+  google.com/webp: ^1
+  ijg.org: ^9
+  gnu.org/sed: ^4 # phpize requires this
   darwin:
-    sourceware.org/bzip2: '*'
-    zlib.net: '*'
+    sourceware.org/bzip2: ^1
+    zlib.net: ^1
 
 build:
   dependencies:
-    freedesktop.org/pkg-config: '*'
     freetype.org: '*'
     darwin:
       tukaani.org/xz: '*'
 
-  script: |
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }} install
+  script:
+    # this is annoying. install-pear-nozlib.phar relies on finding /usr/bin/cpp.
+    # and editing the archive messes with the offsets
+    - run: |
+        if command -v sudo >/dev/null; then
+          SUDO=sudo
+        fi
+      if: linux
+    - run: |
+        if [ ! -f /usr/bin/cpp ]; then
+          $SUDO ln -s "{{deps.gnu.org/gcc.prefix}}/bin/cpp" /usr/bin/cpp
+          FAKE_CPP=1
+        fi
+      if: linux
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+
+    # clean up our fake /usr/bin/cpp
+    - run: |
+        if [ -n "$FAKE_CPP" ]; then
+          $SUDO rm /usr/bin/cpp
+        fi
+      if: linux
+
+    - run: |
+        sed -i.bak \
+            -e's|^prefix=.*|prefix="$(dirname "$(dirname "$0")")"|g' \
+            -e's|^datarootdir=.*|datarootdir="${prefix}/share"|g' \
+            -e's|^ini_path=.*|ini_path="${prefix}/etc"|g' \
+            -e's|^extension_dir='\''{{prefix}}\(.*\)'\''|extension_dir="${prefix}\1"|g' \
+            -e's|^SED=.*|SED="$(dirname "$(dirname "$(dirname "$(dirname "$0")")")")/gnu.org/sed/v4/bin/sed"|g' \
+            -e's|#{{prefix}}#|#$(dirname "$(dirname "$0")")#|g' \
+            -e's|{{pkgx.prefix}}|${prefix}/../..|g' \
+            php-config \
+            phpize
+        rm php-config.bak phpize.bak
+
+        fix-shebangs.ts "{{prefix}}/bin/phar"
+
+        sed -i.bak \
+            -e's|{{prefix}}|$(dirname "$(dirname "$0")")|g' \
+            pear peardev pecl
+        rm pear.bak peardev.bak pecl.bak
+      working-directory: ${{prefix}}/bin
   env:
-    LDFLAGS: -Wl,-rpath,{{pkgx.prefix}}
     ARGS:
       - --prefix={{prefix}}
       - --enable-bcmath
@@ -71,6 +111,7 @@ build:
       - --enable-sysvmsg
       - --enable-sysvsem
       - --enable-sysvshm
+      - --with-pear
       - --with-curl
       - --with-external-pcre
       - --with-ffi
@@ -87,18 +128,27 @@ build:
       - --with-sodium
       - --with-sqlite3
       - --with-xsl
-      - --with-zip
       - --with-zlib
       - --disable-dtrace
       - --without-ldap-sasl
       - --without-ndbm
       - --without-gdbm
+      - CC=gcc
+    linux:
+      LDFLAGS: -Wl,-rpath,{{pkgx.prefix}}
     darwin:
+      # ... we need to link with headerpad...
+      LDFLAGS: -Wl,-rpath,{{pkgx.prefix}},-headerpad_max_install_names
       ARGS:
+        # FIXME: we'd like zip support for linux, but libzip's zip.h is using
+        # clang _Nullable and gcc doesn't like it.
+        - --with-zip
         - --enable-dtrace
         - --with-ldap-sasl
 
 provides:
+  - bin/pear
+  - bin/pecl
   - bin/phar
   - bin/php
   - bin/php-cgi

@@ -52,13 +52,17 @@ jobs:
           p12-file-base64: ${{ secrets.APPLE_CERTIFICATE_P12 }}
           p12-password: ${{ secrets.APPLE_CERTIFICATE_P12_PASSWORD }}
 
+      # FIXME: this shouldn't be necessary, but it currently is for the
+      # gha+container build matrix entries. :/
+      - name: set srcroot
+        run: echo "SRCROOT=$GITHUB_WORKSPACE" >>$GITHUB_ENV
+
       - run: pkg build ${{ needs.get-platform.outputs.available }}
         id: build
         env:
           GITHUB_TOKEN: ${{ github.token }}
           FORCE_UNSAFE_CONFIGURE: 1 # some configure scripts refuse to run as root
           APPLE_IDENTITY: ${{ secrets.APPLE_IDENTITY || '-' }}
-          SRCROOT: ${{ github.workspace }}
 
       - run: |
           ABS_PATHS=$(echo $PATHS | tr ' ' '\n' | sed -e "s_^_/opt/_" | tr '\n' ' ')
@@ -125,12 +129,14 @@ jobs:
       - name: extract bottles
         run: tar xzvf artifacts.tgz -C $HOME/.pkgx
 
+      # FIXME: this shouldn't be necessary, but it currently is for the
+      # ubuntu+container test matrix entries. :/
+      - name: set pantry path
+        run: echo "PKGX_PANTRY_PATH=$GITHUB_WORKSPACE" >>$GITHUB_ENV
+
       - run: pkg test ${{ needs.get-platform.outputs.available }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          # FIXME: this shouldn't be necessary, but it currently is for the
-          # ubuntu+container test matrix entries. :/
-          PKGX_PANTRY_PATH: ${{ github.workspace }}
 
       - name: "[post]"
         run: echo "HAS_SECRETS=$HAS_SECRETS" >>$GITHUB_ENV

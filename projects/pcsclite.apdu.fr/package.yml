@@ -1,0 +1,48 @@
+distributable:
+  url: https://pcsclite.apdu.fr/files/pcsc-lite-{{ version }}.tar.bz2
+  strip-components: 1
+  ref: v{{version}}}
+
+display-name: pcsc-lite
+
+versions:
+  url: https://pcsclite.apdu.fr/files/
+  match: /pcsc-lite-\d+(\.\d+)+\.tar/
+  strip:
+    - /pcsc-lite-/
+    - /\.tar/
+
+dependencies:
+  libusb.info: ^1
+  linux:
+    systemd.io: ^254 # libudev
+
+build:
+  dependencies:
+    cmake.org: ^3
+    github.com/westes/flex: '*'
+    perl.org: ^5 # pod2man
+  script:
+    - ./configure $ARGS
+    - make install
+    - run: |
+        mv PCSC/* .
+        rmdir PCSC
+        ln -s . PCSC
+      working-directory: ${{ prefix }}/include
+  env:
+    ARGS:
+      - --disable-dependency-tracking
+      - --disable-silent-rules
+      - --prefix={{ prefix }}
+      - --sysconfdir=/etc
+      # TODO: freedesktop.org/polkit
+      - --disable-polkit
+    darwin:
+      ARGS:
+        - --disable-libsystemd
+
+provides:
+  - bin/pcscd
+
+test: pcscd --version

@@ -1,0 +1,73 @@
+distributable:
+  url: https://archive.apache.org/dist/zookeeper/zookeeper-{{version}}/apache-zookeeper-{{version}}.tar.gz
+  strip-components: 1
+versions:
+  url: https://archive.apache.org/dist/zookeeper/
+  match: /zookeeper-\d+\.\d+\.\d+/
+  strip:
+    - /^zookeeper-/
+dependencies:
+  openjdk.org: '*'
+  openssl.org: '*'
+runtime:
+  env:
+    ZOODIR: "{{prefix}}"
+build:
+  dependencies:
+    gnu.org/autoconf: '*'
+    gnu.org/automake: '*'
+    freedesktop.org/cppunit: '*'
+    gnu.org/libtool: '*'
+    maven.apache.org: '*'
+    freedesktop.org/pkg-config: '*'
+    linux:
+      gnu.org/gcc: '*'
+  script:
+    - cd ..
+    - rm -rf ./zookeeper || true
+    - mv apache.org*zookeeper* zookeeper
+    - cd zookeeper
+    - run: mkdir -p etc/zookeeper var/log/zookeeper var/run/zookeeper/data
+      working-directory: "{{prefix}}"
+    - mvn install -Pfull-build -DskipTests
+    - tar -xf zookeeper-assembly/target/apache-zookeeper-{{version}}-bin.tar.gz
+    - run: |
+        rm -f bin/*.cmd bin/*.txt
+        cp -r ./* {{prefix}}/
+      working-directory: apache-zookeeper-{{version}}-bin
+    - tar -xf zookeeper-assembly/target/apache-zookeeper-{{version}}-lib.tar.gz
+    - run: |
+        cp -r usr/include {{prefix}}/
+        cp -r usr/lib {{prefix}}/
+      working-directory: apache-zookeeper-{{version}}-lib
+    - run: rm -f *.txt *.md
+      working-directory: "{{prefix}}"
+    - run: |
+        ln -s zkCleanup.sh zkCleanup
+        ln -s zkCli.sh zkCli
+        ln -s zkEnv.sh zkEnv
+        ln -s zkServer-initialize.sh zkServer-initialize
+        ln -s zkServer.sh zkServer
+        ln -s zkSnapshotComparer.sh zkSnapshotComparer
+        ln -s zkSnapshotRecursiveSummaryToolkit.sh zkSnapshotRecursiveSummaryToolkit
+        ln -s zkSnapShotToolkit.sh zkSnapShotToolkit
+        ln -s zkTxnLogToolkit.sh zkTxnLogToolkit
+      working-directory: "{{prefix}}/bin"
+    - run: |
+        cp zoo_sample.cfg zoo.cfg
+        sed -i.bak 's|dataDir=/tmp/zookeeper|dataDir=\$ZOODIR/var/run/zookeper|' zoo.cfg
+        rm -f zoo.cfg.bak
+      working-directory: "{{prefix}}/conf"
+provides:
+  - bin/zkCleanup
+  - bin/zkCli
+  - bin/zkEnv
+  - bin/zkServer-initialize
+  - bin/zkServer
+  - bin/zkSnapshotComparer
+  - bin/zkSnapshotRecursiveSummaryToolkit
+  - bin/zkSnapShotToolkit
+  - bin/zkTxnLogToolkit
+test:
+  script:
+    - zkServer version | grep {{version}}

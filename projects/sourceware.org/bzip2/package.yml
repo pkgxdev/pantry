@@ -9,48 +9,76 @@ versions:
 provides:
   - bin/bunzip2
   - bin/bzcat
+  - bin/bzcmp
   - bin/bzdiff
   - bin/bzgrep
+  - bin/bzegrep
+  - bin/bzfgrep
   - bin/bzip2
   - bin/bzip2recover
   - bin/bzmore
+  - bin/bzless
 
 build:
-  script: |
-    make \
-      --environment-overrides \
-      --jobs {{ hw.concurrency }} \
-      install
+  script:
+    - make --environment-overrides
+    - make --environment-overrides install
 
-    case {{ hw.platform }} in
-    linux)
-      make \
-        --file Makefile-libbz2_so \
-        --environment-overrides \
-        --jobs {{ hw.concurrency }}
+    # fix absolute symlinks
+    - run: |
+        for x in *; do
+          if [ -L $x ]; then
+            y="$(readlink $x)"
+            rm $x
+            ln -s $(basename "$y") $x
+          fi
+        done
+      working-directory: '{{prefix}}/bin'
 
-      mv libbz2.*.1.* {{ prefix }}/lib
-      cd {{ prefix }}/lib
-      test -e libbz2.so || ln -s libbz2.so.{{ version }} libbz2.so
-      test -e libbz2.so.{{ version.major }} || ln -s libbz2.so.{{ version }} libbz2.so.{{ version.major }}
-      ;;
-    darwin)
-      cd {{ prefix }}/lib
-      test -e libbz2.dylib
-      test -e libbz2.{{version}}.dylib
-      test -e libbz2.{{version.major}}.dylib
-      ;;
-    esac
+    - if: linux
+      run: |
+        make \
+          --file Makefile-libbz2_so \
+          --environment-overrides \
+          --jobs {{ hw.concurrency }}
+
+        mv libbz2.*.1.* {{ prefix }}/lib
+        cd {{ prefix }}/lib
+        test -e libbz2.so || ln -s libbz2.so.{{ version }} libbz2.so
+        test -e libbz2.so.{{ version.major }} || ln -s libbz2.so.{{ version }} libbz2.so.{{ version.major }}
+
+    - if: darwin
+      run: |
+        # necessary until brewkit v1
+        if [ -n "$(ls {{ prefix }}/lib/*.dylib)" ]; then
+          rm {{ prefix }}/lib/*.dylib
+        fi
+
+        make \
+          --file props/Makefile-libbz2_dylib \
+          --environment-overrides \
+          --jobs {{ hw.concurrency }}
+
+        cd {{ prefix }}/lib
+        test -e libbz2.dylib
+        test -e libbz2.{{version}}.dylib
+        ln -s libbz2.{{version}}.dylib libbz2.{{version.major}}.dylib
 
   env:
-    CFLAGS: -fPIC # so deps link without relocation issues on linux/aarch64
     PREFIX: ${{ prefix }}
     darwin:
       PKG_VERSION: ${{ version }}
 
 test:
-  script: |
-    OUT=$(echo "$INPUT" | bzip2 | bunzip2)
-    test "$OUT" = "$INPUT"
+  script:
+    - |
+      OUT=$(echo "$INPUT" | bzip2 | bunzip2)
+      test "$OUT" = "$INPUT"
+    # test symlinks are functional
+    # sadly bzegrep has no `--help`
+    - |
+      echo "$INPUT" > file
+      bzip2 file
+      bzegrep test-string file.bz2
   env:
-    INPUT: tea.xyz
+    INPUT: tea.xyz.test-string

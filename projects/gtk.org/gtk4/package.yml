@@ -1,0 +1,97 @@
+distributable:
+  url: https://download.gnome.org/sources/gtk/{{version.marketing}}/gtk-{{version}}.tar.xz
+  strip-components: 1
+
+versions:
+  url: https://download.gnome.org/sources/gtk/cache.json
+  match: /gtk-4\.\d+\.\d+\.tar\.xz/
+  strip:
+    - /^gtk-/
+    - /\.tar\.xz$/
+
+display-name: gtk4
+
+dependencies:
+  gnome.org/gdk-pixbuf: ^2.42
+  gnome.org/glib: ^2.78
+  ebassi.github.io/graphene: ^1.10
+  freedesktop.org/icon-theme: ^0.17
+  libjpeg-turbo.org: ^2
+  github.com/anholt/libepoxy: ^1.5.10
+  libpng.org: ^1.6
+  simplesystems.org/libtiff: ^4.6
+  gnome.org/pango: ^1.50
+  openprinting.github.io/cups: ^2.4
+  linux:
+    x.org/xi: ^1.8
+    x.org/xinerama: ^1.1
+    x.org/xcursor: ^1.2
+    xkbcommon.org: ^1.6
+
+build:
+  dependencies:
+    docbook.org: '*'
+    docbook.org/xsl: '*'
+    gnu.org/gettext: '*'
+    gnome.org/gobject-introspection: '*'
+    mesonbuild.com: '*'
+    ninja-build.org: '*'
+    sass-lang.com/sassc: '*'
+    gnome.org/libxslt: '*'
+    gnome.org/libxml2: ~2.11
+    cmake.org: '*'
+    linux:
+      gnu.org/binutils: '*'
+  script:
+    - meson setup build $MESON_ARGS
+    - meson compile -C build --verbose
+    - meson install -C build
+  env:
+    MESON_ARGS:
+      - --prefix="{{prefix}}"
+      - --libdir="{{prefix}}/lib"
+      - --buildtype=release
+      - --wrap-mode=nofallback
+      - -Dgtk_doc=false
+      - -Dbuild-examples=false
+      - -Dbuild-tests=false
+      - -Dmedia-gstreamer=disabled
+    darwin:
+      MESON_ARGS:
+        - -Dx11-backend=false
+        - -Dmacos-backend=true
+    DESTDIR: /
+    XML_CATALOG_FILES: "{{prefix}}/etc/xml/catalog"
+    CPPFLAGS:
+      - -DG_DISABLE_ASSERT
+      - -DG_DISABLE_CAST_CHECKS
+    linux:
+      # fails to build with objcopy from llvm
+      PATH: ${{deps.gnu.org/binutils.prefix}}/bin:$PATH
+      LDFLAGS: $LDFLAGS -lpthread
+
+provides:
+  - bin/gtk4-builder-tool
+  - bin/gtk4-demo
+  - bin/gtk4-demo-application
+  - bin/gtk4-encode-symbolic-svg
+  - bin/gtk4-icon-browser
+  - bin/gtk4-launch
+  - bin/gtk4-node-editor
+  - bin/gtk4-path-tool
+  - bin/gtk4-print-editor
+  - bin/gtk4-path-tool
+  - bin/gtk4-query-settings
+  - bin/gtk4-print-editor
+  - bin/gtk4-rendernode-tool
+  - bin/gtk4-query-settings
+  - bin/gtk4-update-icon-cache
+  - bin/gtk4-widget-factory
+
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script:
+    - pkg-config --modversion gtk4 | grep {{version}}
+    - cc test.c $(pkg-config --cflags --libs gtk4) -o test
+    - ./test

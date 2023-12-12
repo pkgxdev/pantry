@@ -10,11 +10,13 @@ build:
     - mkdir -p {{prefix}}/bin
     - install duk {{prefix}}/bin/
   env:
-    INSTALL_PREFIX: "{{prefix}}"
+    INSTALL_PREFIX: '{{prefix}}'
+    linux:
+      LDFLAGS: '$LDFLAGS -lm'
 provides:
   - bin/duk
 test:
   script:
     - duk test.js | grep "Hello World!"
-    - cc test.c -o test -lduktape -lm
+    - cc test.c -o test -lduktape
     - ./test

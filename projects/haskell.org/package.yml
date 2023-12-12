@@ -42,6 +42,7 @@ dependencies:
   sourceware.org/libffi: 3
   linux:
     github.com/numactl/numactl: ^2
+    gnu.org/gcc: '*'
 
 warnings:
   - vendored
@@ -49,6 +50,8 @@ warnings:
 build:
   dependencies:
     curl.se: '*'
+    linux:
+      gnu.org/make: '*'
   script:
     - curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | sh
     - PATH={{prefix}}/.ghcup/bin:$PATH
@@ -57,11 +60,11 @@ build:
     - run: ln -s .ghcup/* .
       working-directory: ${{prefix}}
     - run: |
-        find . -type f -print0 | xargs -0 sed -i.bak -e "s|$PKGX_DIR|\$PKGX_DIR|g"
+        find . -type f -print0 | xargs -0 sed -i.bak -e "s|$PKGX_DIR|\${PKGX_DIR:-\$HOME/.pkgx}|g"
         rm *.bak
       working-directory: ${{prefix}}/ghc/{{version}}/bin
     - run: |
-        sed -i.bak -e "s|$PKGX_DIR|\$PKGX_DIR|g" env
+        sed -i.bak -e "s|$PKGX_DIR|\${PKGX_DIR:-\$HOME/.pkgx}|g" env
         rm env.bak
       working-directory: ${{prefix}}/.ghcup
     - run: |

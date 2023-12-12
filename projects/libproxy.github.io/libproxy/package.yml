@@ -1,0 +1,41 @@
+distributable:
+  url: https://github.com/libproxy/libproxy/archive/{{version}}.tar.gz
+  strip-components: 1
+versions:
+  github: libproxy/libproxy
+display-name: libproxy
+dependencies:
+  duktape.org: '*'
+  gnome.org/glib: '*'
+  curl.se: '*'
+  linux:
+    freedesktop.org/dbus: '*'
+    llvm.org: '*'
+build:
+  dependencies:
+    gnome.org/gobject-introspection: '*'
+    gnome.org/gsettings-desktop-schemas: '*'
+    mesonbuild.com: '*'
+    ninja-build.org: '*'
+    freedesktop.org/pkg-config: '*'
+    gnome.org/vala: '*'
+  script:
+    - meson setup build $MESON_ARGS
+    - meson compile -C build --verbose
+    - meson install -C build
+  env:
+    MESON_ARGS:
+      - --prefix="{{prefix}}"
+      - --libdir="{{prefix}}/lib"
+      - --buildtype=release
+      - --wrap-mode=nofallback
+      - -Ddocs=false
+    linux:
+      LD: clang
+      CC: clang
+      CXX: clang++
+provides:
+  - bin/proxy
+test:
+  script:
+    - proxy https://tea.xyz/ | grep "direct://"

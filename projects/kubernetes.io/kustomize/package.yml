@@ -15,7 +15,10 @@ dependencies:
 build:
   dependencies:
     go.dev: ^1.18
+    linux:
+      gnu.org/gcc: '*' # aarch64 wants `ld.gold`
   env:
+    GOBIN: '{{prefix}}/bin'
     GO111MODULE: on
     LDFLAGS:
       - -s
@@ -25,8 +28,7 @@ build:
       # https://github.com/docker-library/golang/issues/402#issuecomment-982204575
       LDFLAGS:
         - -buildmode=pie
-  script: |
-    GOBIN={{prefix}}/bin go install -v -ldflags="$LDFLAGS" ./kustomize
+  script: go install -v -ldflags="$LDFLAGS" ./kustomize
 
 test:
   script: |
