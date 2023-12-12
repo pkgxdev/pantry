@@ -23,17 +23,5 @@ build: |
   done
 
 test:
-    # • this is a fix for CI/CD considering brewkit is running tests for brewkit
-    #   inside its own sandbox and our sandbox directories have unicode characters
-    #   which break Ruby 2 which is what we are sadly using for the fix-machos
-    #   part of brewkit’s build process
-    # • the fix is necessary because tests define HOME to be inside the
-    #   brewkit testbed which contains exoctic unicode characters. the fix
-    #   macho script then sees these characters while fixing rpath and other
-    #   macho entities
-  - |
-    if [ -n "$GITHUB_ACTIONS" ]; then
-      export PKGX_DIR=/opt/.pkgx
-    fi
-  - bk build taglib.org
-  - bk test taglib.org
+  - bk build pkgx.sh/brewkit
+  - bk test pkgx.sh/brewkit
