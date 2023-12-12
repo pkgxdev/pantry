@@ -8,28 +8,25 @@ versions:
     - /^wireshark-/
     - /\.tar\.xz/
 dependencies:
-  c-ares.org: '*'
-  gnome.org/glib: '*'
-  gnutls.org: '*'
-  gnupg.org/libgcrypt: '*'
-  github.com/maxmind/libmaxminddb: '*'
-  nghttp2.org: '*'
-  ibr.cs.tu-bs.de/libsmi: '*'
-  libssh.org: '*'
-  lua.org: '*'
-  github.com/xiph/speexdsp: '*'
-  tcpdump.org: '*'
-  gnome.org/libxml2: '*'
+  c-ares.org: ^1.23
+  gnome.org/glib: ^2.78.3
+  gnutls.org: ^3.8.2
+  gnupg.org/libgcrypt: ^1.10.3
+  gnupg.org/libgpg-error: ^1.47
+  github.com/maxmind/libmaxminddb: ^1.8
+  nghttp2.org: ^1.58
+  ibr.cs.tu-bs.de/libsmi: ^0.4.8
+  libssh.org: ^0.10.5
+  lua.org: ^5.4.6
+  github.com/xiph/speexdsp: ^1.2.1
+  tcpdump.org: ^1.10.4
+  gnome.org/libxml2: ^2.12.3
 build:
   dependencies:
     cmake.org: '*'
     gnu.org/bison: '*'
     github.com/westes/flex: '*'
     python.org: ^3.11
-    freedesktop.org/pkg-config: '*'
-    linux:
-      gnu.org/gcc: '*'
-      gnu.org/make: '*'
   script:
     - cmake -S . -B build $CMAKE_ARGS
     - cmake --build build
@@ -44,12 +41,42 @@ build:
       - -DCMAKE_VERBOSE_MAKEFILE=ON
       - -Wno-dev
       - -DBUILD_wireshark=OFF
-provides:
-  - bin/randpkt
-test:
-  dependencies:
+      - -DENABLE_GNUTLS=ON
+      - -DBUILD_wireshark_gtk=OFF
+      - -DENABLE_LUA=ON
+      - -DENABLE_SMI=ON
+      - -DBUILD_sshdump=ON
+      - -DBUILD_ciscodump=ON
+      - -DENABLE_NGHTTP2=ON
+      - -DENABLE_APPLICATION_BUNDLE=OFF
+      - -DCMAKE_INSTALL_NAME_DIR:STRING={{prefix}}/lib
+      - -DLUA_INCLUDE_DIR={{deps.lua.org.prefix}}/include/lua
+      - -DCARES_INCLUDE_DIR={{deps.c-ares.org.prefix}}/include
+      - -DGCRYPT_INCLUDE_DIR={{deps.gnupg.org/libgcrypt.prefix}}/include
+      - -DGNUTLS_INCLUDE_DIR={{deps.gnutls.org.prefix}}/include
+      - -DMAXMINDDB_INCLUDE_DIR={{deps.github.com/maxmind/libmaxminddb.prefix}}/include
+    darwin:
+      CMAKE_ARGS:
+        - -DLUA_LIBRARY={{deps.lua.org.prefix}}/lib/liblua.a
     linux:
-      gnu.org/gcc: '*'
-  script:
-    - c++ -std=c++11 -o test test.cpp
-    - ./test
+      CMAKE_ARGS:
+        - -DLUA_LIBRARY={{deps.lua.org.prefix}}/lib/liblua.so
+provides:
+  - bin/capinfos
+  - bin/captype
+  - bin/dumpcap
+  - bin/editcap
+  - bin/idl2wrs
+  - bin/mergecap
+  - bin/mmdbresolve
+  - bin/randpkt
+  - bin/rawshark
+  - bin/reordercap
+  - bin/sharkd
+  - bin/text2pcap
+  - bin/tshark
+test:
+  - c++ -std=c++11 -o test test.cpp
+  - ./test | grep {{version}}
+  - randpkt -b 100 -c 2 capture.pcap
+  - capinfos -Tmc capture.pcap | grep 'capture.pcap,2'

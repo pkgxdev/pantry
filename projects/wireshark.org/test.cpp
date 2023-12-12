@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <ws_version.h>
+#include <wireshark/ws_version.h>
 
 int main() {
     printf("%d.%d.%d", WIRESHARK_VERSION_MAJOR, WIRESHARK_VERSION_MINOR,
