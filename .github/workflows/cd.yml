@@ -1,5 +1,5 @@
 name: cd
-run-name: 'cd: ${{ github.event.head_commit.message }}'
+run-name: "cd: ${{ github.event.head_commit.message }}"
 
 on:
   push:
@@ -33,6 +33,8 @@ jobs:
     strategy:
       fail-fast: false
     needs: get-projects
+    permissions:
+      issues: write
     uses: ./.github/workflows/new-version.yml
     with:
       projects: ${{ needs.get-projects.outputs.diff }}
