@@ -22,7 +22,7 @@ jobs:
       pkgs: ${{ steps.divide.outputs.pkgs }}
     steps:
       - run: |
-          var="$(echo ${{ inputs.projects }} | jq -R -s -c 'split(" ")')
+          var="$(echo ${{ inputs.projects }} | jq -R -s -c 'split(" ")')"
           echo "pkgs=$var" >> $GITHUB_OUTPUT
         id: divide
 
@@ -42,6 +42,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
+    permissions:
+      issues: write
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/complain
