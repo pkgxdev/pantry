@@ -5,9 +5,6 @@ inputs:
   pkg:
     description: project to complain about
     required: true
-  platform:
-    description: platform key
-    required: true
   token:
     description: github token
     required: true
@@ -23,7 +20,7 @@ runs:
         actions: 'find-issues'
         token: ${{ inputs.token }}
         issue-state: 'open'
-        title-includes: "❌ build issues: ${{ inputs.pkg }}"
+        title-includes: '❌ build issues: ${{ inputs.pkg }}'
         labels: 'build-failure'
 
     - name: Create Issue
@@ -33,8 +30,8 @@ runs:
       with:
         actions: 'create-issue'
         token: ${{ inputs.token }}
-        title: "❌ build issues: ${{ inputs.pkg }}"
-        body: "Running log of build failure for ${{ inputs.pkg }}"
+        title: '❌ build issues: ${{ inputs.pkg }}'
+        body: 'Running log of build failure for ${{ inputs.pkg }}'
         labels: 'build-failure'
         assignees: 'jhheider'
 
@@ -47,6 +44,5 @@ runs:
         body: |
           # Build failure
           ## ${{ inputs.pkg }}
-          ### ${{ inputs.platform }}
 
           logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
