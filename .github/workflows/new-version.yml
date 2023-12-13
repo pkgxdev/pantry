@@ -2,6 +2,12 @@ name: new-version
 run-name: building ${{ inputs.projects }}
 
 on:
+  workflow_call:
+    inputs:
+      projects:
+        description: eg. `foo.com=1.2.3 bar.com^2.3.4`
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
       projects:
@@ -10,61 +16,35 @@ on:
         type: string
 
 jobs:
-  build:
-    strategy:
-      fail-fast: false
-      matrix:
-        platform:
-          - darwin+x86-64
-          - linux+x86-64
-          - darwin+aarch64
-          - linux+aarch64
-    uses: ./.github/workflows/build.yml
-    with:
-      projects: ${{ inputs.projects }}
-      platform: ${{ matrix.platform }}
-    secrets: inherit
-
-  bottle:
-    strategy:
-      fail-fast: false
-      matrix:
-        platform:
-          - darwin+x86-64
-          - linux+x86-64
-          - darwin+aarch64
-          - linux+aarch64
-    needs: [build]
-    uses: ./.github/workflows/bottle.yml
-    with:
-      new-version: true
-      platform: ${{ matrix.platform }}
-      projects: ${{ inputs.projects }}
-    secrets: inherit
-
-  request-qa:
-    needs: [bottle]
-    if: ${{ needs.bottle.outputs.qa-required != '[]' }}
+  divide:
     runs-on: ubuntu-latest
+    outputs:
+      pkgs: ${{ steps.divide.outputs.pkgs }}
+    steps:
+      - run: |
+          var="$(echo ${{ inputs.projects }} | jq -R -s -c 'split(" ")')
+          echo "pkgs=$var" >> $GITHUB_OUTPUT
+        id: divide
+
+  pkgit:
+    needs: divide
     strategy:
       matrix:
-        project: ${{ fromJson(needs.bottle.outputs.qa-required) }}
-    steps:
-      - uses: pkgxdev/pantry/.github/actions/request-qa@main
-        with:
-          project: ${{ matrix.project }}
-          slack-webhook: ${{ secrets.SLACK_QA_WEBHOOK }}
+        pkg: ${{ fromJSON(needs.divide.outputs.pkgs) }}
+    uses: ./.github/workflows/pkg.yml
+    with:
+      pkg: ${{ matrix.pkg }}
+    secrets: inherit
 
   complain:
-    needs: [build, bottle]
+    needs: pkgit
     if: failure()
-    permissions:
-      issues: write
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
     steps:
-      - uses: pkgxdev/pantry/.github/actions/complain@main
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/complain
         with:
-          projects: ${{ inputs.projects }}
-          platform: ${{ inputs.platform }}
-          # slack-webhook: ${{ secrets.SLACK_WEBHOOK }}
-          # slack-channel: ${{ secrets.SLACK_CHANNEL }}
+          pkg: ${{ input.pkg }}
+          platform: ${{ inputs.name }}

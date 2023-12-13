@@ -8,14 +8,14 @@ on:
       - .github/workflows/ci.yml
 
 concurrency:
-  group: ${{ github.event.pull_request.head.ref }}
+  group: ci/${{ github.event.pull_request.head.ref }}
   cancel-in-progress: true
 
 jobs:
-  get-projects:
+  diff:
     runs-on: ubuntu-latest
     outputs:
-      diff: ${{ steps.diff.outputs.diff }}
+      pkgs: ${{ steps.diff.outputs.pkgs }}
     steps:
       - uses: actions/checkout@v3
       - uses: technote-space/get-diff-action@v6
@@ -25,23 +25,61 @@ jobs:
       - id: diff
         run: |
           for x in ${{ steps.get-diff.outputs.diff }}; do
-            y=$(echo $x | sed 's#projects/\(.*\)/package.yml#\1#')
+            y=$(echo $x | sed 's#projects/\(.*\)/[^/]*#\1#')
             RESULT="$RESULT $y"
           done
-          echo "diff=$RESULT" >> $GITHUB_OUTPUT
+          if [ -n "$RESULT" ]; then
+            RESULT="$(echo $RESULT | jq -R -s -c 'split(" ")')"
+          else
+            RESULT='["zlib.net"]'
+          fi
+          echo "pkgs=$RESULT" >> $GITHUB_OUTPUT
+
   build:
+    needs: diff
+    name: ci ${{ matrix.platform.name }} ${{matrix.pkg}}
     strategy:
       fail-fast: false
       matrix:
+        pkg: ${{ fromJSON(needs.diff.outputs.pkgs) }}
         platform:
-          - darwin+x86-64
-          - linux+x86-64
-          - darwin+aarch64
-          - linux+aarch64
-    needs: [get-projects]
-    uses: ./.github/workflows/build.yml
-    name: ${{ matrix.platform }}
-    with:
-      projects: ${{ needs.get-projects.outputs.diff || 'zlib.net^1.2' }}
-      platform: ${{ matrix.platform }}
-    secrets: inherit
+          - os: ["self-hosted", "macOS", "X64"]
+            name: x64
+          - os: ["self-hosted", "macOS", "ARM64"]
+            name: ²
+          - os: ["self-hosted", "linux", "ARM64"]
+            name: Lnx·ARM64
+          - os: {group: "linux-x86-64"}
+            container: debian:buster-slim
+            name: Lnx·x64
+    runs-on: ${{ matrix.platform.os }}
+    container: ${{ matrix.platform.container }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup
+        with:
+          p12-file-base64: ${{ secrets.APPLE_CERTIFICATE_P12 }}
+          p12-password: ${{ secrets.APPLE_CERTIFICATE_P12_PASSWORD }}
+          APPLE_IDENTITY: ${{ secrets.APPLE_IDENTITY }}
+
+      - uses: pkgxdev/setup@v2
+        with:
+          PKGX_DIR: /opt
+
+      - uses: pkgxdev/brewkit/build@v1
+        id: build
+        with:
+          pkg: ${{ matrix.pkg }}
+        env:
+          PKGX_PANTRY_PATH: ${{ github.workspace }}
+
+      - uses: pkgxdev/brewkit/audit@v1
+        if: steps.build.outputs.pkgspec
+        env:
+          PKGX_PANTRY_PATH: ${{ github.workspace }}
+
+      - uses: pkgxdev/brewkit/test@v1
+        if: steps.build.outputs.pkgspec
+        env:
+          PKGX_PANTRY_PATH: ${{ github.workspace }}
