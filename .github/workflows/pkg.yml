@@ -12,7 +12,7 @@ on:
         default: false
 
 jobs:
-  get-matrix:
+  plan:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
@@ -22,13 +22,13 @@ jobs:
       - run: .github/scripts/get-matrix.ts ${{ inputs.pkg }}
         id: matrix
 
-  pkgit:
-    needs: get-matrix
+  pkg:
+    needs: plan
     name: ${{matrix.platform.tinyname}}
     strategy:
       fail-fast: false
       matrix:
-        platform: ${{ fromJSON(needs.get-matrix.outputs.matrix) }}
+        platform: ${{ fromJSON(needs.plan.outputs.matrix) }}
     uses: ./.github/workflows/pkg-platform.yml
     with:
       pkg: ${{ inputs.pkg }}
@@ -38,4 +38,5 @@ jobs:
       test-os: ${{ toJSON(matrix.platform.test-os) }}
       test-container: ${{ toJSON(matrix.platform.test-container) }}
       dry-run: ${{ inputs.dry-run }}
+      tinyname: ${{ matrix.platform.tinyname }}
     secrets: inherit

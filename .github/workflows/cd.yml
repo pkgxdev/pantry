@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  get-projects:
+  ingest:
     runs-on: ubuntu-latest
     outputs:
       projects: ${{ steps.diff.outputs.diff }}
@@ -29,10 +29,10 @@ jobs:
           done
           echo "diff=$RESULT" >> $GITHUB_OUTPUT
 
-  pkgit:
+  pkg:
     strategy:
       fail-fast: false
-    needs: get-projects
+    needs: ingest
     permissions:
       issues: write
     uses: ./.github/workflows/new-version.yml

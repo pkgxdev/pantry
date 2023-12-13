@@ -16,7 +16,7 @@ on:
         type: string
 
 jobs:
-  divide:
+  ingest:
     runs-on: ubuntu-latest
     outputs:
       pkgs: ${{ steps.divide.outputs.pkgs }}
@@ -26,26 +26,13 @@ jobs:
           echo "pkgs=$var" >> $GITHUB_OUTPUT
         id: divide
 
-  pkgit:
-    needs: divide
+  pkg:
+    needs: ingest
     strategy:
+      fail-fast: false
       matrix:
-        pkg: ${{ fromJSON(needs.divide.outputs.pkgs) }}
+        pkg: ${{ fromJSON(needs.ingest.outputs.pkgs) }}
     uses: ./.github/workflows/pkg.yml
     with:
       pkg: ${{ matrix.pkg }}
     secrets: inherit
-
-  complain:
-    needs: pkgit
-    if: failure()
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-    permissions:
-      issues: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/complain
-        with:
-          pkg: ${{ inputs.projects }}
