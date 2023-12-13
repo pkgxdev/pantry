@@ -73,7 +73,7 @@ function get_matrix(platform: string) {
         container: "debian:buster-slim",
         "test-os": [os],
         "test-container": ["debian:buster-slim", "ubuntu", "archlinux"],
-        tinyname: "Lnx·x64"
+        tinyname: "*nix64"
       }}
     case 'linux/aarch64': {
       const os = ["self-hosted", "linux", "ARM64"]
@@ -81,6 +81,6 @@ function get_matrix(platform: string) {
         os, name,
         "test-os": [os],
         "test-container": [null],
-        tinyname: "Lnx·ARM64"
+        tinyname: "*nix·ARM64"
   }}}
 }

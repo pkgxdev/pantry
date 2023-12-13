@@ -5,20 +5,21 @@ on:
   workflow_call:
     inputs:
       name:
-        description: >
-          pretty name for the workflow to make GitHub Actions matrix output
-          more legible
-        required: false
+        description: brewkit platform unique ID
         type: string
+      tinyname:
+        description: >
+          GitHub Actions has a non resizable sidebar so we need a shorter name
+          or it’s much harder to differentiate the different jobs.
+        type: string
+        default: ${{ inputs.name }}
       os:
-        required: true
         type: string
       container:
         required: false
         type: string
       pkg:
         description: eg. `example.com@1.2.3`
-        required: true
         type: string
       dry-run:
         description: dry runs do not modify bottle storage
@@ -26,14 +27,12 @@ on:
         default: false
       test-os:
         description: a JSON array of runner-names
-        required: true
         type: string
       test-container:
         description: >
           A JSON array of docker image names or `[null]`.
           Indeed! You cannot leave this as `null` or undefined.
           Sorry, GHA is not flexible enough to efficiently work around this.
-        required: true
         type: string
     secrets:
       APPLE_CERTIFICATE_P12: { required: false }
@@ -48,7 +47,7 @@ on:
 
 jobs:
   build:
-    name: build (${{inputs.name}})
+    name: build ${{inputs.tinyname}}
     runs-on: ${{ fromJSON(inputs.os) }}
     container: ${{ inputs.container }}
     outputs:
@@ -85,7 +84,7 @@ jobs:
       - uses: pkgxdev/brewkit/upload-build-artifact@v1
 
   test:
-    name: test (${{inputs.name}}) ${{ matrix.container || ''}} ${{ join(matrix.os) }}
+    name: test ${{inputs.tinyname}} ${{ matrix.container || ''}} ${{ matrix.container || '' }} ${{ join(matrix.os, '+') }}
     needs: build
     strategy:
       matrix:
@@ -104,7 +103,7 @@ jobs:
           pkg: ${{ needs.build.outputs.pkg }}
 
   bottle:
-    name: bottle (${{inputs.name}}+${{matrix.compression}})
+    name: bottle (${{inputs.tinyname}}.${{matrix.compression}})
     needs: [build, test]
     strategy:
       matrix:
@@ -168,7 +167,8 @@ jobs:
         id: put
         if: ${{ ! inputs.dry-run }}
 
-  versions:
+  publish:
+    name: publish ${{inputs.tinyname}} ${{ inputs.dry-run && '(dry-run)' }}
     runs-on: ubuntu-latest
     needs: [bottle, build]
     env:
@@ -208,3 +208,16 @@ jobs:
                  /$DIRNAME/versions.txt
                 ${{ needs.bottle.outputs.paths }}
         if: ${{ ! inputs.dry-run }}
+
+  complain:
+    needs: [build, test, bottle]
+    if: failure() && !inputs.dry-run
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/complain
+        with:
+          pkg: ${{ inputs.pkg }}
+          platform: ${{ inputs.name }}
