@@ -15,54 +15,46 @@ interprets:
 
 runtime:
   env:
-    DENO_NO_UPDATE_CHECK: "true"
+    DENO_NO_UPDATE_CHECK: 'true'
 
 build:
-  script: |
+  script:
     # https://github.com/denoland/deno/issues/15596 -- reported fixed in 1.25.3
-    if semverator satisfies '>=1.25.0<1.25.4' {{ version }}; then
-      find ext/ffi/tinycc -maxdepth 0 -empty -exec \
-        git clone https://github.com/TinyCC/tinycc.git {} \;
+    - run: |
+        find ext/ffi/tinycc -maxdepth 0 -empty -exec \
+          git clone https://github.com/TinyCC/tinycc.git {} \;
 
-      if test {{ hw.target }} = x86_64-apple-darwin; then
-        # our LLVM cannot build with deployment target set to 10.6
-        sed -i.bak s/MACOSX_DEPLOYMENT_TARGET/\#/ ext/ffi/tinycc/Makefile
-      fi
-    fi
-
-    # FIXME: until we unblock rust-lang.org>1.65.0, we need a feature flag
-    # to compile deno.land
-    if semverator satisfies '<1.66.0' {{ deps.rust-lang.org.version }}; then
-      git apply props/unzip_option_feature.diff
-    fi
+        if test {{ hw.target }} = x86_64-apple-darwin; then
+          # our LLVM cannot build with deployment target set to 10.6
+          sed -i.bak s/MACOSX_DEPLOYMENT_TARGET/\#/ ext/ffi/tinycc/Makefile
+        fi
+      if: '>=1.25.0<1.25.4'
 
     # change default bindir to ~/.local/bin per our conventions
-    sed -i.bak -e 's/home_path.push(".deno")/home_path.push(".local")/' cli/tools/installer.rs
-    rm cli/tools/installer.rs.bak
-    grep home_path cli/tools/installer.rs
+    - sed -i'' -e 's/home_path.push(".deno")/home_path.push(".local")/' cli/tools/installer.rs
 
-    cargo build --release
-    mkdir -p "{{ prefix }}"/bin
-    mv target/release/deno "{{ prefix }}"/bin
+    - grep home_path cli/tools/installer.rs
+
+    - cargo build --release
+    - mkdir -p "{{ prefix }}"/bin
+    - mv target/release/deno "{{ prefix }}"/bin
   dependencies:
-    git-scm.org: 2       # to build tinycc
+    git-scm.org: 2 # to build tinycc
     rust-lang.org: ^1.70
     rust-lang.org/cargo: ^0.65
-    llvm.org: '>=13'     # macOS/aarch64 requires this (FIXME only dep where needed)
-    curl.se: '*'         # required to download v8 (python is another option)
-    crates.io/semverator: '*'
-    cmake.org: ^3        # deno.land>=1.36.1 requires cmake
-    protobuf.dev: '*'    # deno.land>=1.36.4 requires protoc
+    llvm.org: '>=13' # macOS/aarch64 requires this (FIXME only dep where needed)
+    curl.se: '*' # required to download v8 (python is another option)
+    cmake.org: ^3 # deno.land>=1.36.1 requires cmake
+    protobuf.dev: '*' # deno.land>=1.36.4 requires protoc
   env:
     linux:
       LD: clang
 
 test:
-  script: |
-    deno --version | grep {{version}}
-    mv $FIXTURE test.ts
-    deno install test.ts
-    test "$(.local/bin/test)" = "Hello, world!"
+  script:
+    - deno --version | grep {{version}}
+    - mv $FIXTURE test.ts
+    - deno install test.ts
+    - test "$($HOME/.local/bin/test)" = "Hello, world!"
   fixture: |
     console.log("Hello, world!");
-
