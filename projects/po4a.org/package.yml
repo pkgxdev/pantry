@@ -1,0 +1,55 @@
+distributable:
+  url: https://github.com/mquinson/po4a/releases/download/v{{version.marketing}}/po4a-{{version.marketing}}.tar.gz
+  strip-components: 1
+versions:
+  github: mquinson/po4a
+dependencies:
+  gnu.org/gettext: ^0.22
+  perl.org: ^5.22
+  gnome.org/libxslt: ^1.1
+runtime:
+  env:
+    PERL5LIB: ${{prefix}}/libexec/lib/perl5:$PERL5LIB
+build:
+  dependencies:
+    cpanmin.us: '*'
+    docbook.org/xsl: '*'
+  script:
+    - cpanm -l {{prefix}}/libexec $PKGS
+    - cpanm -l {{prefix}}/libexec https://cpan.metacpan.org/authors/id/R/RA/RAAB/SGMLSpm-1.1.tar.gz
+    - cpanm -l {{prefix}}/libexec https://cpan.metacpan.org/authors/id/J/JS/JSTOWE/TermReadKey-2.38.tar.gz
+    - run: |
+        sed -i.bak "s|/usr/share/xml/docbook/stylesheet/docbook-xsl|{{deps.docbook.org/xsl.prefix}}/libexec/docbook-xsl-ns|" Po4aBuilder.pm
+        rm Po4aBuilder.pm.bak
+    - perl Build.PL --install_base {{prefix}}/libexec
+    - ./Build
+    - ./Build install
+    - run: |
+        ln -s ../../libexec/man/man1 man1
+        ln -s ../../libexec/man/man3 man3
+        ln -s ../../libexec/man/man7 man7
+      working-directory: ${{prefix}}/share/man
+    - run: |
+        sed -i.bak "s|{{deps.perl.org.prefix}}/bin/perl|/usr/bin/env perl|" *
+        rm *.bak
+      working-directory: ${{prefix}}/libexec/bin
+    - run: ln -s ./libexec/bin bin
+      working-directory: ${{prefix}}
+  env:
+    PERL5LIB: ${{prefix}}/libexec/lib/perl5:$PERL5LIB
+    PKGS:
+      - Locale::gettext
+      - Module::Build
+      - Pod::Parser
+      - Text::WrapI18N
+      - Unicode::GCString
+      - YAML::Tiny
+      - ExtUtils::CChecker
+      - XS::Parse::Keyword::Builder
+      - Syntax::Keyword::Try
+      - Module::Build
+provides:
+  - bin/po4a-updatepo
+test:
+  script:
+    - po4a-updatepo
