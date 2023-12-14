@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  diff:
+  plan:
     runs-on: ubuntu-latest
     outputs:
       pkgs: ${{ steps.diff.outputs.pkgs }}
@@ -36,12 +36,13 @@ jobs:
           echo "pkgs=$RESULT" >> $GITHUB_OUTPUT
 
   build:
-    needs: diff
+    if: needs.plan.outputs.pkgs
+    needs: plan
     name: ci ${{ matrix.platform.name }} ${{matrix.pkg}}
     strategy:
       fail-fast: false
       matrix:
-        pkg: ${{ fromJSON(needs.diff.outputs.pkgs) }}
+        pkg: ${{ fromJSON(needs.plan.outputs.pkgs) }}
         platform:
           - os: ["self-hosted", "macOS", "X64"]
             name: x64
@@ -54,6 +55,8 @@ jobs:
             name: Lnx·x64
     runs-on: ${{ matrix.platform.os }}
     container: ${{ matrix.platform.container }}
+    env:
+      PKGX_PANTRY_PATH: ${{ github.workspace }}
     steps:
       - uses: actions/checkout@v4
 
@@ -67,19 +70,13 @@ jobs:
         with:
           PKGX_DIR: /opt
 
-      - uses: pkgxdev/brewkit/build@v1
+      - uses: pkgxdev/brewkit/build@main
         id: build
         with:
           pkg: ${{ matrix.pkg }}
-        env:
-          PKGX_PANTRY_PATH: ${{ github.workspace }}
 
-      - uses: pkgxdev/brewkit/audit@v1
+      - uses: pkgxdev/brewkit/audit@main
         if: steps.build.outputs.pkgspec
-        env:
-          PKGX_PANTRY_PATH: ${{ github.workspace }}
 
-      - uses: pkgxdev/brewkit/test@v1
+      - uses: pkgxdev/brewkit/test@main
         if: steps.build.outputs.pkgspec
-        env:
-          PKGX_PANTRY_PATH: ${{ github.workspace }}

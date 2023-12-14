@@ -1,5 +1,5 @@
 name: pkg for platform
-run-name: pkging ${{ inputs.project }} (${{ inputs.name }})
+run-name: pkging ${{ fromJSON(inputs.pkg).project }} (${{ inputs.name }})
 
 on:
   workflow_call:
@@ -45,13 +45,15 @@ on:
       AWS_SECRET_ACCESS_KEY: { required: true }
       AWS_CF_DISTRIBUTION_ID: { required: true }
 
+env:
+  BREWKIT_PKGJSON: ${{ inputs.pkg }}
+
 jobs:
   build:
     name: build ${{inputs.tinyname}}
     runs-on: ${{ fromJSON(inputs.os) }}
     container: ${{ inputs.container }}
     outputs:
-      pkg: ${{ steps.build.outputs.pkgspec }}
       project: ${{ steps.build.outputs.project }}
       version: ${{ steps.build.outputs.version }}
       platform: ${{ steps.build.outputs.platform }}
@@ -71,17 +73,15 @@ jobs:
           p12-password: ${{ secrets.APPLE_CERTIFICATE_P12_PASSWORD }}
           APPLE_IDENTITY: ${{ secrets.APPLE_IDENTITY }}
 
-      - uses: pkgxdev/brewkit/build@v1
+      - uses: pkgxdev/brewkit/build@main
         id: build
-        with:
-          pkg: ${{ inputs.pkg }}
 
       - uses: styfle/cancel-workflow-action@0.12.0
         if: steps.build.outputs.noop
 
-      - uses: pkgxdev/brewkit/audit@v1
+      - uses: pkgxdev/brewkit/audit@main
 
-      - uses: pkgxdev/brewkit/upload-build-artifact@v1
+      - uses: pkgxdev/brewkit/upload-build-artifact@main
 
   test:
     name: test ${{inputs.tinyname}} ${{ matrix.container || ''}} ${{ matrix.container || '' }} ${{ join(matrix.os, '+') }}
@@ -97,10 +97,8 @@ jobs:
     steps:
       - uses: pkgxdev/setup@v2
       - uses: actions/checkout@v4
-      - uses: pkgxdev/brewkit/download-build-artifact@v1
-      - uses: pkgxdev/brewkit/test@v1
-        with:
-          pkg: ${{ needs.build.outputs.pkg }}
+      - uses: pkgxdev/brewkit/download-build-artifact@main
+      - uses: pkgxdev/brewkit/test@main
 
   bottle:
     name: bottle (${{inputs.tinyname}}.${{matrix.compression}})
@@ -130,13 +128,13 @@ jobs:
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
 
-      - uses: pkgxdev/brewkit/download-build-artifact@v1
+      - uses: pkgxdev/brewkit/download-build-artifact@main
         id: dl
         with:
           platform: ${{ inputs.name }}
           extract: false
 
-      - uses: pkgxdev/brewkit/bottle@v1
+      - uses: pkgxdev/brewkit/bottle@main
         id: bottle
         with:
           file: ${{ steps.dl.outputs.filename }}

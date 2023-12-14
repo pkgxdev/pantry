@@ -24,8 +24,8 @@ jobs:
       - id: diff
         run: |
           for x in ${{ steps.get-diff.outputs.diff }}; do
-            y=$(echo $x | sed 's#projects/\(.*\)/package.yml#\1#')
-            RESULT="$RESULT $y"
+            y=$(echo $x | sed 's#projects/\(.*\)/[^/]*#\1#')
+            RESULT="$RESULT ${y//$'\n'/}"
           done
           echo "diff=$RESULT" >> $GITHUB_OUTPUT
 
