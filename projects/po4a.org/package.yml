@@ -14,12 +14,17 @@ build:
   dependencies:
     cpanmin.us: '*'
     docbook.org/xsl: '*'
-    linux/x86-64:
-      curl.se/ca-certs: '*'
+    curl.se: '*'
   script:
     - cpanm -l {{prefix}}/libexec $PKGS
-    - cpanm -l {{prefix}}/libexec https://cpan.metacpan.org/authors/id/R/RA/RAAB/SGMLSpm-1.1.tar.gz
-    - cpanm -l {{prefix}}/libexec https://cpan.metacpan.org/authors/id/J/JS/JSTOWE/TermReadKey-2.38.tar.gz
+    - run: |
+        curl -L "https://cpan.metacpan.org/authors/id/R/RA/RAAB/SGMLSpm-1.1.tar.gz" | tar -xz --strip-components=1
+        cpanm -l {{prefix}}/libexec .
+      working-directory: pkgs/SGMLSpm
+    - run: |
+        curl -L "https://cpan.metacpan.org/authors/id/J/JS/JSTOWE/TermReadKey-2.38.tar.gz" | tar -xz --strip-components=1
+        cpanm -l {{prefix}}/libexec .
+      working-directory: pkgs/TermReadKey
     - run: |
         sed -i.bak "s|/usr/share/xml/docbook/stylesheet/docbook-xsl|{{deps.docbook.org/xsl.prefix}}/libexec/docbook-xsl-ns|" Po4aBuilder.pm
         rm Po4aBuilder.pm.bak
