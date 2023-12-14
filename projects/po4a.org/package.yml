@@ -31,7 +31,7 @@ build:
       working-directory: ${{prefix}}/share/man
     - run: |
         sed -i.bak "s|{{deps.perl.org.prefix}}/bin/perl|/usr/bin/env perl|" *
-        rm *.bak
+        rm -f *.bak
       working-directory: ${{prefix}}/libexec/bin
     - run: ln -s ./libexec/bin bin
       working-directory: ${{prefix}}
@@ -49,7 +49,18 @@ build:
       - Syntax::Keyword::Try
       - Module::Build
 provides:
+  - bin/msguntypot
+  - bin/po4a
+  - bin/po4a-display-man
+  - bin/po4a-display-pod
+  - bin/po4a-gettextize
+  - bin/po4a-normalize
   - bin/po4a-updatepo
+  - bin/podselect
 test:
   script:
-    - po4a-updatepo
+    - po4a-updatepo -f latex -m en.tex -p latex.pot
+    - cat latex.pot | grep 'Hello from Tea'
+    - po4a-updatepo -f text -m en.md -p text.pot
+    - cat text.pot | grep 'Hello from Tea'
+    - po4a --version | grep {{version.marketing}}
