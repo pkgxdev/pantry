@@ -49,7 +49,7 @@ jobs:
             name: ²
           - os: ["self-hosted", "linux", "ARM64"]
             name: Lnx·ARM64
-          - os: {group: "linux-x86-64"}
+          - os: { group: "linux-x86-64" }
             container: debian:buster-slim
             name: Lnx·x64
     runs-on: ${{ matrix.platform.os }}
@@ -81,5 +81,22 @@ jobs:
 
       - uses: pkgxdev/brewkit/test@v1
         if: steps.build.outputs.pkgspec
+        with:
+          pkg: ${{ steps.build.outputs.pkgspec }}
         env:
           PKGX_PANTRY_PATH: ${{ github.workspace }}
+
+  additional_test:
+    needs: [diff, build]
+    name: additional test
+    runs-on: { group: "linux-x86-64" }
+    container: archlinux
+    env:
+      PKGX_PANTRY_PATH: ${{ github.workspace }}
+    steps:
+      - uses: pkgxdev/setup@v2
+      - uses: actions/checkout@v4
+      - uses: pkgxdev/brewkit/download-build-artifact@v1
+      - uses: pkgxdev/brewkit/test@v1
+        with:
+          pkg: ${{ fromJSON(needs.diff.outputs.pkgs)[0] }}
