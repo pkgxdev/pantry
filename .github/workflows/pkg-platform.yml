@@ -123,8 +123,7 @@ jobs:
           aws-region: us-east-1
 
       - name: import GPG key
-        run:
-          echo $GPG_PRIVATE_KEY |
+        run: echo $GPG_PRIVATE_KEY |
           base64 -d |
           pkgx gpg --import --batch --yes
         env:
@@ -184,9 +183,11 @@ jobs:
 
       - name: generate versions.txt
         run: |
-          aws s3 cp \
+          if !aws s3 cp \
             s3://${{ secrets.AWS_S3_BUCKET }}/${{ needs.build.outputs.project }}/${{ needs.build.outputs.platform }}/${{ needs.build.outputs.arch }}/versions.txt \
-            ./remote-versions.txt
+            ./remote-versions.txt; then
+            touch remote-versions.txt
+          fi
           echo "$SCRIPT" > script.ts
           pkgx deno run -A script.ts ./remote-versions.txt ${{ needs.build.outputs.version }} > versions.txt
         env:
@@ -203,10 +204,10 @@ jobs:
 
       - name: invalidate cloudfront
         run: aws cloudfront create-invalidation
-               --distribution-id ${{ secrets.AWS_CF_DISTRIBUTION_ID }}
-               --paths
-                 /$DIRNAME/versions.txt
-                ${{ needs.bottle.outputs.paths }}
+          --distribution-id ${{ secrets.AWS_CF_DISTRIBUTION_ID }}
+          --paths
+          /$DIRNAME/versions.txt
+          ${{ needs.bottle.outputs.paths }}
         if: ${{ ! inputs.dry-run }}
 
   complain:
