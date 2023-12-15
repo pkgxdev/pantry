@@ -16,11 +16,16 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
+      pkg: ${{ steps.id.outputs.pkg-json }}
     steps:
       - uses: pkgxdev/setup@v2
       - uses: actions/checkout@v4
       - run: .github/scripts/get-matrix.ts ${{ inputs.pkg }}
         id: matrix
+      - uses: pkgxdev/brewkit/id@v1
+        id: id
+        with:
+          pkg: ${{ inputs.pkg }}
 
   pkg:
     needs: plan
@@ -33,7 +38,7 @@ jobs:
     permissions:
       issues: write
     with:
-      pkg: ${{ inputs.pkg }}
+      pkg: ${{ needs.plan.outputs.pkg }}
       name: ${{ matrix.platform.name }}
       os: ${{ toJSON(matrix.platform.os) }}
       container: ${{ matrix.platform.container }}

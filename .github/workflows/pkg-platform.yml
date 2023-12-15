@@ -1,5 +1,5 @@
 name: pkg for platform
-run-name: pkging ${{ inputs.project }} (${{ inputs.name }})
+run-name: pkging ${{ fromJSON(inputs.pkg).project }} (${{ inputs.name }})
 
 on:
   workflow_call:
@@ -45,13 +45,15 @@ on:
       AWS_SECRET_ACCESS_KEY: { required: true }
       AWS_CF_DISTRIBUTION_ID: { required: true }
 
+env:
+  BREWKIT_PKGJSON: ${{ inputs.pkg }}
+
 jobs:
   build:
     name: build ${{inputs.tinyname}}
     runs-on: ${{ fromJSON(inputs.os) }}
     container: ${{ inputs.container }}
     outputs:
-      pkg: ${{ steps.build.outputs.pkgspec }}
       project: ${{ steps.build.outputs.project }}
       version: ${{ steps.build.outputs.version }}
       platform: ${{ steps.build.outputs.platform }}
@@ -73,8 +75,6 @@ jobs:
 
       - uses: pkgxdev/brewkit/build@v1
         id: build
-        with:
-          pkg: ${{ inputs.pkg }}
 
       - uses: styfle/cancel-workflow-action@0.12.0
         if: steps.build.outputs.noop
@@ -99,8 +99,6 @@ jobs:
       - uses: actions/checkout@v4
       - uses: pkgxdev/brewkit/download-build-artifact@v1
       - uses: pkgxdev/brewkit/test@v1
-        with:
-          pkg: ${{ needs.build.outputs.pkg }}
 
   bottle:
     name: bottle (${{inputs.tinyname}}.${{matrix.compression}})

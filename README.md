@@ -12,7 +12,7 @@ $ git clone https://github.com/pkgxdev/pantry
 $ cd pantry
 
 $ dev  # https://docs.pkgx.sh/dev
-# ^^ adds brewkit to your devenv
+# ^^ adds brewkit (ie. the `bk` command) to your devenv
 # ^^ IMPORTANT! Otherwise the `bk` command will not be found
 
 $ bk init
@@ -50,10 +50,9 @@ $ gh pr create
 > * `bk build` and `bk test` can be invoked eg. `bk docker build` to run
 >   inside a Docker container for Linux builds and testing
 > * All commands take an optional pkg-spec eg. `bk build node@19`
-
-> [!TIP]
-> While inside the pantry `dev` environment you can run commands from any built
-> packages provided you specified their `provides:` key in the `package.yml`.
+> * While inside the pantry `dev` environment you can run commands from any
+>   built packages provided you specified their `provides:` key in the
+>   `package.yml`.
 
 > [!NOTE]
 > We use a special package called [`brewkit`] to build packages both here and
@@ -90,9 +89,10 @@ automatically sync the pantry to your local machine if you ask for something
 it doesn’t know about, but in the case where that fails do a `pkgx --sync`
 first.
 
-> The pantry automatically builds new releases of packages *as soon as they are
-> released* (usually starting the builds within seconds). There is no need to
-> submit PRs for updates.
+> [!NOTE]
+> The pantry automatically builds new releases of packages *as soon as they
+> are released* (usually starting the builds within seconds). There is no need
+> to submit PRs for updates.
 
 Note that while in the pantry `dev` environment you can use your new package
 if you built it. However this will not work outside the pantry `dev` unless
@@ -106,7 +106,7 @@ you either:
 Packaging can be fiddly so we all pitch in. If you want to help someone else
 with their pull request then you can use GitHub’s CLI:
 
-```
+```sh
 $ gh pr checkout 123
 
 # or you can copy paste the URL:
