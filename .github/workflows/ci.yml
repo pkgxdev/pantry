@@ -26,7 +26,7 @@ jobs:
         run: |
           for x in ${{ steps.get-diff.outputs.diff }}; do
             y=$(echo $x | sed 's#projects/\(.*\)/[^/]*#\1#')
-            RESULT="$RESULT $y"
+            RESULT="$RESULT ${y//$'\n'/}"
           done
           if [ -n "$RESULT" ]; then
             RESULT="$(echo $RESULT | jq -R -s -c 'split(" ")')"
