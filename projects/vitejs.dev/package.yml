@@ -6,20 +6,19 @@ versions:
 
 dependencies:
   nodejs.org: ^16 || ^18 || ^20
-  npmjs.com: "*"
 
 build:
   dependencies:
     pnpm.io: "*"
+    npmjs.com: "*"
   script: |
     cd vite-{{version.raw}}
     mkdir -p {{prefix}}/bin
-    pnpm install
-    cd packages/vite
-    echo "symlink=false" >> .npmrc
+    pnpm i
     echo "node-linker=hoisted" >> .npmrc
-    pnpm run build
-    npm install --global --build-from-source --prefix={{prefix}} .
+    deno compile -o vite -Ar --unstable --unstable-byonm node_modules/vite/bin/vite.js
+    cp vite {{prefix}}/bin/vite
+  skip: fix-patchelf
 
 test:
   script: |
