@@ -1,0 +1,16 @@
+diff -ru a/lib/rubygems/installer.rb b/lib/rubygems/installer.rb
+--- a/lib/rubygems/installer.rb	2023-12-15 18:44:02
++++ b/lib/rubygems/installer.rb	2023-12-15 19:04:30
+@@ -691,6 +691,12 @@
+       @plugins_dir = File.join(@build_root, @plugins_dir.gsub(/^[a-zA-Z]:/, ""))
+       alert_warning "You build with buildroot.\n  Build root: #{@build_root}\n  Bin dir: #{@bin_dir}\n  Gem home: #{@gem_home}\n  Plugins dir: #{@plugins_dir}"
+     end
++
++    unless File.writable? @gem_home
++      @bin_dir = File.join(Gem.user_home, ".local/bin")
++      @gem_home = Gem.user_dir
++      @plugins_dir = File.join(Gem.user_dir, "plugins")
++    end
+   end
+ 
+   def check_that_user_bin_dir_is_in_path # :nodoc:

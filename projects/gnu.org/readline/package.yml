@@ -14,12 +14,21 @@ dependencies:
   invisible-island.net/ncurses: ^6
 
 build:
-  script: |
-    ./configure --prefix={{ prefix }} --with-curses
-    make --jobs {{ hw.concurrency }} install
+  script:
+    - ./configure --prefix={{ prefix }} --with-curses
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    linux:
+      # otherwise it weirdly omits the linkage
+      # https://stackoverflow.com/a/65623630
+      LDFLAGS: '$LDFLAGS -lncursesw'
 
 test:
-  script: |
-    cc -lreadline -lncurses fixture.c
+  - run: ldd {{prefix}}/lib/libreadline.so | grep ncurses
+    if: linux
+  - run: otool -L {{prefix}}/lib/libreadline.dylib | grep ncurses
+    if: darwin
+  - cc -lreadline -lncurses fixture.c
+  - |
     test "$(echo "Hello, World!" | ./a.out)" = "test> Hello, World!
     Hello, World!\\n"

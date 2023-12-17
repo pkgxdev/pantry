@@ -1,0 +1,32 @@
+distributable:
+  url: https://github.com/moby/buildkit/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+display-name: buildkit
+
+versions:
+  github: moby/buildkit
+
+build:
+  dependencies:
+    go.dev: ^1.21
+  script: |
+    go build -mod=vendor -ldflags "$LDFLAGS" -o {{prefix}}/bin/buildctl ./cmd/buildctl
+
+  env:
+    LDFLAGS:
+      - -s
+      - -w
+      - -X github.com/moby/buildkit/version.Version={{version}}
+      - -X github.com/moby/buildkit/version.Revision=$(git rev-parse HEAD)
+      - -X github.com/moby/buildkit/version.Package=github.com/moby/buildkit
+    linux:
+      LDFLAGS:
+        - -buildmode=pie
+
+provides:
+  - bin/buildctl
+
+test:
+  script:
+    buildctl --version

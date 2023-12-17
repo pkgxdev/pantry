@@ -1,7 +1,7 @@
 distributable:
   # FIXME: foundry has releases named "Nightly (YYYY-MM-DD)"
   # but their tags are "nightly-<sha>".
-  url: https://github.com/foundry-rs/foundry/archive/refs/tags/nightly-56adbe45992c4093fe23dfc3fb59eda521f90266.tar.gz
+  url: https://github.com/foundry-rs/foundry/archive/refs/tags/nightly-54b369564937f5f5d4f2525622e8b9808b1645f6.tar.gz
   strip-components: 1
 versions:
   # FIXME: we should use this, which will get us calver,
@@ -10,19 +10,25 @@ versions:
   # strip:
   #   - /^Nightly \(/
   #   - /\)$/
-  - 2023.7.16
+  - 2023.12.07
 
 dependencies:
   git-scm.org: ^2
 
 build:
   dependencies:
-    rust-lang.org: ^1.56.0 # edition: 2021
-    rust-lang.org/cargo: '*'
+    rust-lang.org: ^1.74 # edition: 2021
+    rust-lang.org/cargo: "*"
   script:
-    - cargo install --path ./cli --bins $ARGS
-    - cargo install --path ./anvil $ARGS
-    - cargo install --path ./chisel $ARGS
+    # install Forge
+    - cargo install --path ./crates/forge $ARGS
+    # install Cast
+    - cargo install --path ./crates/cast $ARGS
+    # install Anvil
+    - cargo install --path ./crates/anvil $ARGS
+    # install Chisel
+    - cargo install --path ./crates/chisel $ARGS
+
   env:
     ARGS:
       - --root "{{prefix}}"
@@ -40,13 +46,13 @@ test:
   script:
     # forge uses git which has minimum config requirements.
     - |
-        git init
-        git config user.email "hello@tea.xyz"
-        git config user.name "teapot"
+      git init
+      git config user.email "hello@tea.xyz"
+      git config user.name "teapot"
     # And forge init requires a clean git repo.
     - |
-        git add -A
-        git commit -m "Initial commit"
+      git add -A
+      git commit -m "Initial commit"
     - forge init hello_foundry
     - run: forge build && forge test
       working-directory: hello_foundry
