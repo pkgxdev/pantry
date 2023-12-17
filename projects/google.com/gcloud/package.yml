@@ -47,5 +47,9 @@ provides:
   - bin/anthoscli
 
 test:
-  - gcloud --version | grep {{version}}
+  dependencies:
+    gnu.org/readline: 8.2.0
+  script:
+    - run: ldd {{deps.gnu.org/readline.prefix}}/lib/libreadline.so.8
+    - gcloud --version | grep {{version}}
   # for more tests we need to authenticate with a service account
