@@ -1,0 +1,32 @@
+distributable:
+  url: https://registry.npmjs.org/appium/-/appium-{{version}}.tgz
+  strip-components: 1
+
+versions:
+  url: https://npmjs.com/package/appium?activeTab=versions
+  match: /v\/\d+\.\d+\.\d+/
+  strip:
+    - /^v\//
+
+dependencies:
+  npmjs.com: '*'
+  nodejs.org: ^10.13.0 || ^12 || ^14 || ^16 || ^18 || ^20
+  openjdk.org: '*'
+
+build:
+  dependencies:
+    linux/x86-64:
+      python.org: ^3 # node-gyp needs python to build
+  script:
+    - chmod +x lib/appium.js
+    - npm install .
+      --global
+      --prefix="{{prefix}}"
+      --install-links
+
+provides:
+  - bin/appium
+
+test: 
+  - appium --version | grep {{version}}
+  - appium driver install uiautomator2

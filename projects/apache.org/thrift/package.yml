@@ -51,14 +51,16 @@ build:
       - --without-lua
       - --without-rs
       - --without-swift
-    PY_PREFIX: "{{prefix}}"
-    PHP_PREFIX: "{{prefix}}"
+    PY_PREFIX: '{{prefix}}'
+    PHP_PREFIX: '{{prefix}}'
     # 0.19.0 has an unused `int j = 0;`.
     CXXFLAGS: $CXXFLAGS -Wno-unused-but-set-variable
-
+    linux/aarch64:
+      CXXFLAGS: $CXXFLAGS -Wno-unused-but-set-variable -fPIC
+    darwin:
+      MACOSX_DEPLOYMENT_TARGET: 11.0
 provides:
   - bin/thrift
 
 test:
-  script:
-    thrift --version | grep {{version}}
+  script: thrift --version | grep {{version}}

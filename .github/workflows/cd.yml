@@ -1,81 +1,22 @@
 name: cd
-run-name: 'cd: ${{ github.event.head_commit.message }}'
+run-name: "cd: ${{ github.event.head_commit.message }}"
 
 on:
   push:
-   branches: main
-   paths: projects/**/*
+    branches: main
+    paths: projects/**/*
+
+concurrency:
+  group: cd/${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  cd:
+  ingest:
     runs-on: ubuntu-latest
     outputs:
-      has-artifacts: ${{ steps.has-artifacts.outputs.has-artifacts }}
-      platforms: ${{ steps.has-artifacts.outputs.platforms }}
+      projects: ${{ steps.diff.outputs.diff }}
     steps:
       - uses: actions/checkout@v4
-      # ^^ NOTE probably no longer required but I don’t dare try to remove it
-
-      - uses: pkgxdev/brewkit/actions/setup-brewkit@v0
-        timeout-minutes: 10
-
-      - uses: pkgxdev/brewkit/actions/has-artifacts@v0
-        id: has-artifacts
-        with:
-          repo: ${{ github.repository }}
-          sha: ${{ github.sha }}
-          token: ${{github.token}}
-          s3-bucket: ${{ secrets.AWS_S3_CACHE }}
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-
-  bottle-pr:
-    strategy:
-      fail-fast: false
-      matrix:
-        platform: ${{ fromJson(needs.cd.outputs.platforms) }}
-    needs: [cd]
-    if: ${{ needs.cd.outputs.has-artifacts == 'true' }}
-    uses: ./.github/workflows/bottle.yml
-    with:
-      platform: ${{ matrix.platform }}
-    secrets: inherit
-
-  cleanup:
-    needs: [bottle-pr]
-    runs-on: ubuntu-latest
-    if: ${{ needs.cd.outputs.has-artifacts == 'true' }}
-    env:
-      PR: ${{ needs.bottle.outputs.pr }}
-    steps:
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
-      - run: |
-          REPO=$(echo ${{github.repository}} | sed -e 's_pkgxdev/__')
-
-          if test -z "$PR"; then
-            echo "no PR to clean up"
-            exit 0
-          fi
-
-          aws s3 rm --recursive s3://$AWS_S3_CACHE/pull-request/$REPO/$PR
-        env:
-          AWS_S3_CACHE: ${{ secrets.AWS_S3_CACHE }}
-          PR: ${{ needs.bottle.outputs.pr }}
-
-  bottle-standalone:
-    runs-on: ubuntu-latest
-    needs: [cd]
-    permissions:
-      contents: read
-      actions: write
-    if: ${{ needs.cd.outputs.has-artifacts == 'false' }}
-    steps:
-      - uses: actions/checkout@v3
       - uses: technote-space/get-diff-action@v6
         id: get-diff
         with:
@@ -83,12 +24,18 @@ jobs:
       - id: diff
         run: |
           for x in ${{ steps.get-diff.outputs.diff }}; do
-            y=$(echo $x | sed 's#projects/\(.*\)/package.yml#\1#')
-            RESULT="$RESULT $y"
+            y=$(echo $x | sed 's#projects/\(.*\)/[^/]*#\1#')
+            RESULT="$RESULT ${y//$'\n'/}"
           done
           echo "diff=$RESULT" >> $GITHUB_OUTPUT
-      - run: gh workflow run new-version.yml -f "projects=$PROJECTS"
-        if: ${{ steps.diff.outputs.diff != '' }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PROJECTS: ${{ steps.diff.outputs.diff }}
+
+  pkg:
+    strategy:
+      fail-fast: false
+    needs: ingest
+    permissions:
+      issues: write
+    uses: ./.github/workflows/new-version.yml
+    with:
+      projects: ${{ needs.ingest.outputs.projects }}
+    secrets: inherit

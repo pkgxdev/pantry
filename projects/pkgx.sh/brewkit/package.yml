@@ -8,24 +8,25 @@ versions:
   github: pkgxdev/brewkit
 
 dependencies:
-  deno.land: '>=1.30<1.36.1'
-  gnu.org/bash: '*'
+  deno.land: ^1.37
+  gnu.org/bash: ^5
   pkgx.sh: ^1
+
+provides:
+  - bin/bk
 
 build: |
   mkdir -p {{prefix}}
-
-  rm -rf {{prefix}}/*
-  # ^^ because our build infra uses this pkg to build itself
 
   for x in bin libexec lib share deno.*; do
     test -e $x && mv $x "{{prefix}}"
   done
 
 test:
-  dependencies:
-    zlib.net: '*'
-  script:
-    pkg test zlib.net
-    # we would like to test builds but we need a `GITHUB_TOKEN` and
-    # (currently) we can’t figure out how to set that up in CI/CD
+  # we can’t test builds since brewkit is not designed to be invoked
+  # recursively and fails in the toolchain setup on Linux and fails due to
+  # Ruby 2 not liking unicode paths on macOS
+  #- bk build pkgx.sh/brewkit
+  #- bk test pkgx.sh/brewkit
+  - bk --help
+  - bk build --help

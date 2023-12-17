@@ -33,7 +33,7 @@ dependencies:
   pcre.org/v2: '*'
   poppler.freedesktop.org: '*'
   proj.org: '*'
-  python.org: ^3.11
+  python.org: ~3.11
   qhull.org: '*'
   sqlite.org: '*'
   unixodbc.org: '*'
@@ -50,12 +50,11 @@ dependencies:
     github.com/util-linux/util-linux: '*'
 runtime:
   env:
-    PYTHONPATH: "{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages/osgeo:{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages/osgeo_utils:$PYTHONPATH"
+    PYTHONPATH: '{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages/osgeo:{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages/osgeo_utils:$PYTHONPATH'
 build:
   dependencies:
     boost.org: '*'
     cmake.org: '*'
-    freedesktop.org/pkg-config: '*'
     swig.org: '*'
     doxygen.nl: '*'
     linux:
@@ -68,9 +67,9 @@ build:
         sed -i.bak "s|{{prefix}}|\$(dirname \$0)/..|g" gdal-config
         sed -i.bak "s|{{pkgx.prefix}}|\$(dirname \$0)/../../..|g" gdal-config
         rm ./*.bak
-      working-directory: "{{prefix}}/bin"
+      working-directory: '{{prefix}}/bin'
     - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
-      working-directory: "{{prefix}}/lib"
+      working-directory: '{{prefix}}/lib'
   env:
     CC: clang
     CXX: clang++

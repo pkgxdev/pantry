@@ -9,12 +9,16 @@ build:
   dependencies:
     gnu.org/make: '*'
     cmake.org: '*'
+    git-scm.org: '*'
   script:
     - cmake -B build $ARGS
     - cmake --build build --parallel
     - cmake --install build
-    - mkdir -p {{prefix}}/pkgshare/graphs
-    - mv ./src/graphs/* {{prefix}}/pkgshare/graphs/
+    # removed in 5.2
+    - run: |
+        mkdir -p {{prefix}}/pkgshare/graphs
+        mv ./src/graphs/* {{prefix}}/pkgshare/graphs/
+      if: <5.2
   env:
     ARGS:
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
@@ -32,8 +36,10 @@ provides:
   - bin/mpmetis
   - bin/ndmetis
 test:
+  dependencies:
+    curl.se: '*'
   script:
-    - cp {{prefix}}/pkgshare/graphs/4elt.graph ./
+    - curl -LO 'https://raw.githubusercontent.com/KarypisLab/METIS/v5.1.1-DistDGL-v0.5/graphs/4elt.graph'
     - graphchk 4elt.graph
     - gpmetis 4elt.graph 2
     - ndmetis 4elt.graph

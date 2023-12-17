@@ -1,0 +1,22 @@
+distributable:
+  url: https://github.com/AleoHQ/leo/archive/v{{version}}.tar.gz
+  strip-components: 1
+versions:
+  github: AleoHQ/leo
+dependencies:
+  openssl.org: ^1.1
+  curl.se: ^8.4
+build:
+  dependencies:
+    rust-lang.org: ^1.65
+    rust-lang.org/cargo: '*'
+  script:
+    - cargo install --locked --path . --root {{prefix}}
+provides:
+  - bin/leo
+test:
+  script:
+    - leo new helloworld
+    - cd helloworld
+    - leo run | grep "Compiled 'main.leo' into Aleo instructions"
+    - leo --version | grep {{version}}

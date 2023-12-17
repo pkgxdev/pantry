@@ -2,22 +2,13 @@ name: pkgx/pantry/complain
 description: creates an issue for failure conditions
 
 inputs:
-  projects:
-    description: projects to complain about
-    required: true
-  platform:
-    description: platform key
+  pkg:
+    description: project to complain about
     required: true
   token:
     description: github token
     required: true
     default: ${{ github.token }}
-  # slack-webhook:
-  #   description: slack webhook
-  #   required: false
-  # slack-channel:
-  #   description: slack channel
-  #   required: false
 
 runs:
   using: composite
@@ -29,7 +20,7 @@ runs:
         actions: 'find-issues'
         token: ${{ inputs.token }}
         issue-state: 'open'
-        title-includes: "❌ build issues: ${{ inputs.projects }}"
+        title-includes: '❌ build issues: ${{ inputs.pkg }}'
         labels: 'build-failure'
 
     - name: Create Issue
@@ -39,8 +30,8 @@ runs:
       with:
         actions: 'create-issue'
         token: ${{ inputs.token }}
-        title: "❌ build issues: ${{ inputs.projects }}"
-        body: "Running log of build failures for ${{ inputs.projects }}"
+        title: '❌ build issues: ${{ inputs.pkg }}'
+        body: 'Running log of build failure for ${{ inputs.pkg }}'
         labels: 'build-failure'
         assignees: 'jhheider'
 
@@ -52,18 +43,6 @@ runs:
         issue-number: ${{ steps.create.outputs.issue-number || fromJSON(steps.find.outputs.issues)[0].number }}
         body: |
           # Build failure
-          ## ${{ inputs.projects }}
-          ### ${{ inputs.platform }}
+          ## ${{ inputs.pkg }}
 
           logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-
-    # - uses: martialonline/workflow-status@v3
-    #   id: status
-
-    # - uses: rtCamp/action-slack-notify@v2
-    #   if: ${{ inputs.slack-webhook != '' }}
-    #   env:
-    #     SLACK_WEBHOOK: ${{ inputs.slack-webhook }}
-    #     SLACK_CHANNEL: ${{ inputs.slack-channel }}
-    #     SLACK_MESSAGE: new-version:${{ inputs.projects }} (${{ inputs.platform }}) ${{ steps.status.outputs.status }}
-    #     SLACK_COLOR: ${{ steps.status.outputs.status }}
