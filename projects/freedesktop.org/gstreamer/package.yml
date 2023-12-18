@@ -5,6 +5,7 @@ versions:
   gitlab: gitlab.freedesktop.org:gstreamer/gstreamer/tags
 dependencies:
   cairographics.org: ^1.18
+  cairographics.org/pycairo: ^1.25
   code.videolan.org/videolan/dav1d: ^1.2
   sourceforge.net/faac: ^1.30
   sourceforge.net/faad2: ^2.11
@@ -45,13 +46,14 @@ dependencies:
   videolan.org/x264: ^0.164
   tukaani.org/xz: ^5.4
   curl.se: ^8.4
+  gnome.org/gobject-introspection: ^1.72
   darwin:
     musepack.net: ^475
   linux:
     freeglut.sourceforge.io: ^3.4
 runtime:
   env:
-    PYTHONPATH: "{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages:$PYTHONPATH"
+    PYTHONPATH: ${{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages:$PYTHONPATH
 build:
   dependencies:
     gnu.org/bison: '*'
@@ -64,7 +66,9 @@ build:
     rust-lang.org: '*'
     yasm.tortall.net: '*'
     github.com/westes/flex: '*'
+    gnu.org/patch: '*'
   script:
+    - patch -p1 < props/patch.diff
     - run: curl -L "$RES_RS" | tar -xz --strip-components=1
       working-directory: subprojects/gst-plugins-rs
     - run: |
@@ -109,9 +113,12 @@ build:
       - -Dorc=enabled
       - -Ddoc=disabled
       - -Dgtk_doc=disabled
-      - -Dintrospection=disabled
+      - -Dintrospection=enabled
       - -Dgst-devtools:validate=enabled
       - -Dgst-devtools:cairo=enabled
+      - -Dgst-editing-services:pygi-overrides-dir={{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages/gi/overrides
+      - -Dgst-python:pygi-overrides-dir={{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages/gi/overrides
+      - -Dgst-python:python={{deps.python.org.prefix}}/bin/python
       - -Dgst-plugins-bad:opencv=disabled
       - -Dgst-plugins-bad:sctp=enabled
       - -Dgst-plugins-bad:sctp-internal-usrsctp=disabled
@@ -141,4 +148,15 @@ provides:
   - bin/gst-validate-transcoding-1.0
   - bin/gst-webrtc-signalling-server
 test:
-  - ges-launch-1.0 --ges-version | grep {{version}}
+  script:
+    - ges-launch-1.0 --ges-version | grep {{version}}
+    - gst-inspect-1.0 libav | grep {{prefix}}
+    - gst-inspect-1.0 --plugin dvbsuboverlay | grep 'DVB subtitle renderer'
+    - gst-inspect-1.0 --plugin fdkaac | grep 'FDK AAC audio decoder'
+    - gst-inspect-1.0 --plugin volume | grep 'plugin for controlling audio volume'
+    - gst-inspect-1.0 --plugin cairo | grep 'Cairo-based elements'
+    - gst-inspect-1.0 --plugin dvdsub | grep 'DVD subtitle parser and decoder'
+    - gst-inspect-1.0 --plugin x264 | grep 'libx264-based H.264 encoder plugin'
+    - gst-inspect-1.0 --plugin rtspclientsink | grep 'RTSP client sink element'
+    - gst-inspect-1.0 --plugin rsfile | grep 'GStreamer Rust File Source/Sink Plugin'
+    - python test.py
