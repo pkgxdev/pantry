@@ -19,10 +19,11 @@ provides:
 test:
   script:
     - trip --version | grep {{version}}
-    - run: trip pkgx.sh -u -m json -C 5 > output.json
+    # Error: privileges are required
+    # `trip` requires root privileges to run on linux.
+    - run: |
+        trip pkgx.sh -u -m json -C 5 > output.json
+        cat output.json | grep 'pkgx.sh'
+        cat output.json | grep 'hosts'
+        cat output.json | grep 'ip'
       if: darwin
-    - run: trip pkgx.sh -m json -C 5 > output.json
-      if: linux
-    - cat output.json | grep 'pkgx.sh'
-    - cat output.json | grep 'hosts'
-    - cat output.json | grep 'ip'
