@@ -19,7 +19,10 @@ provides:
 test:
   script:
     - trip --version | grep {{version}}
-    - trip pkgx.sh -u -m json -C 5 > output.json
+    - run: trip pkgx.sh -u -m json -C 5 > output.json
+      if: darwin
+    - run: trip pkgx.sh -m json -C 5 > output.json
+      if: linux
     - cat output.json | grep 'pkgx.sh'
     - cat output.json | grep 'hosts'
     - cat output.json | grep 'ip'
