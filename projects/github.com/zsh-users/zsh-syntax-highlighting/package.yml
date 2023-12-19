@@ -7,21 +7,15 @@ versions:
 
 build:
   script:
-    - make --jobs {{ hw.concurrency }} install
+    - make --jobs {{ hw.concurrency }} install PREFIX="{{prefix}}"
     # Users need to source this in their zsh configs
     # - export ZSH_HIGHLIGHTING={{prefix}}/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
     # TODO: #2008
     # - gum format "# *Finish the install by running*"  '## `echo "source '$ZSH_HIGHLIGHTING'" >> $HOME/.zshrc`' | gum format
 
     # Use tests provided by the highlighter for test
-    - |
-      mkdir {{prefix}}/share/zsh-syntax-highlighting/tests {{prefix}}/share/zsh-syntax-highlighting/highlighters/main/test-data
-      cp -r ./tests/* {{prefix}}/share/zsh-syntax-highlighting/tests 
-      cp ./highlighters/main/test-data/alias-basic.zsh {{prefix}}/share/zsh-syntax-highlighting/highlighters/main/test-data
-  env:
-    ARGS:
-      - --prefix="{{prefix}}"
+    - mkdir {{prefix}}/share/zsh-syntax-highlighting/tests {{prefix}}/share/zsh-syntax-highlighting/highlighters/main/test-data
+    - cp -r ./tests/* {{prefix}}/share/zsh-syntax-highlighting/tests
+    - cp ./highlighters/main/test-data/alias-basic.zsh {{prefix}}/share/zsh-syntax-highlighting/highlighters/main/test-data
 
-test: |
-  chmod +x ./fixture.sh
-  ./fixture.sh {{prefix}}/share/zsh-syntax-highlighting
+test: ./fixture.sh {{prefix}}/share/zsh-syntax-highlighting
