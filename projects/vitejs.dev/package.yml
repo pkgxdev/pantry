@@ -39,10 +39,13 @@ build:
 test:
   dependencies:
     darwinsys.com/file: '*'
+    linux:
+      strace.io: '*'
   script:
     - ls -l "{{prefix}}/bin"
     - file "{{prefix}}/bin/vite"
-    - ${{prefix}}/bin/vite --version
+    - run: strace vite --version
+      if: linux
     - vite --version
     - test "$(vite --version | grep -o 'vite/[^ ]*')" = "vite/{{version.raw}}"
 
