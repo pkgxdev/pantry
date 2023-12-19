@@ -1,4 +1,6 @@
-distributable: https://github.com/vitejs/vite/archive/refs/tags/v{{version.raw}}.tar.gz
+distributable:
+  url: https://github.com/vitejs/vite/archive/refs/tags/v{{version.raw}}.tar.gz
+  strip-components: 1
 
 versions:
   github: vitejs/vite/tags
@@ -9,28 +11,34 @@ build:
     pnpm.io: "*"
     nodejs.org: ^16 || ^18 || ^20
     deno.land: ^1.39 # Required
-  script: |
-    cd vite-{{version.raw}}
-    mkdir -p {{prefix}}/bin
-    echo "node-linker=hoisted" >> .npmrc
-    echo "node-linker=hoisted" >> packages/vite/.npmrc
-    pnpm i
-    cd packages/vite
-    rm -rf ../../node_modules
-    pnpm i
-    sed -i 's/163/200/g' rollup.config.ts
-    pnpm build || true # Required because it'll fail but still generate the required files
-    cd ../..
-    rm -rf node_modules
-    pnpm i
-    deno compile -o vite -Ar --unstable --unstable-byonm --node-modules-dir node_modules/vite/bin/vite.js
-    cp vite {{prefix}}/bin/vite
+  script:
+    - mkdir -p {{prefix}}/bin
+    # prevent pnpm from using symlinks
+    - echo "node-linker=hoisted" >> .npmrc
+    - echo "node-linker=hoisted" >> packages/vite/.npmrc
+
+    - pnpm i
+    - rm -rf node_modules
+
+    - run: |
+        pnpm i
+        sed -i 's/163/200/g' rollup.config.ts
+
+        # Required because it'll fail but still generate the required files
+        pnpm build || true
+      working-directory: packages/vite
+    
+    - rm -rf node_modules
+    - pnpm i
+
+    - deno compile -o vite -Ar --unstable --unstable-byonm --node-modules-dir node_modules/vite/bin/vite.js
+    - cp vite {{prefix}}/bin/vite
+  # deno binaries are destroyed if patchelfed
   skip: fix-patchelf
 
 test:
-  script: |
-    vite --version
-    test "$(vite --version | grep -o 'vite/[^ ]*')" = "vite/{{version.raw}}"
+  - vite --version
+  - test "$(vite --version | grep -o 'vite/[^ ]*')" = "vite/{{version.raw}}"
 
 provides:
   - bin/vite
