@@ -12,7 +12,6 @@ build:
     nodejs.org: ^16 || ^18 || ^20
     deno.land: ^1.39 # Required
   script:
-    - mkdir -p {{prefix}}/bin
     # prevent pnpm from using symlinks
     - echo "node-linker=hoisted" >> .npmrc
     - echo "node-linker=hoisted" >> packages/vite/.npmrc
@@ -32,7 +31,12 @@ build:
     - pnpm i
 
     - deno compile -o vite -Ar --unstable --unstable-byonm --node-modules-dir node_modules/vite/bin/vite.js
-    - cp vite {{prefix}}/bin/vite
+
+    - mkdir -p {{prefix}}/bin
+    - cp vite {{prefix}}/bin
+
+    # this ensures we aren't passing testing due to available build artifacts
+    - rm -rf packages/vite/bin
   # deno binaries are destroyed if patchelfed
   skip: fix-patchelf
 
