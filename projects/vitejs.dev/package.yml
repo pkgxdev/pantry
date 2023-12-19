@@ -37,9 +37,14 @@ build:
   skip: fix-patchelf
 
 test:
-  - ls -Rl "{{prefix}}"
-  - vite --version
-  - test "$(vite --version | grep -o 'vite/[^ ]*')" = "vite/{{version.raw}}"
+  dependencies:
+    darwinsys.com/file: '*'
+  script:
+    - ls -l "{{prefix}}/bin"
+    - file "{{prefix}}/bin/vite"
+    - ${{prefix}}/bin/vite --version
+    - vite --version
+    - test "$(vite --version | grep -o 'vite/[^ ]*')" = "vite/{{version.raw}}"
 
 provides:
   - bin/vite
