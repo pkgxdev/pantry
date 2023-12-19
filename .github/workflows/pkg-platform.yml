@@ -74,12 +74,16 @@ jobs:
           APPLE_IDENTITY: ${{ secrets.APPLE_IDENTITY }}
 
       - uses: pkgxdev/brewkit/build@v1
+        with:
+          pkg: ${{ inputs.pkg }}
         id: build
 
       - uses: styfle/cancel-workflow-action@0.12.0
         if: steps.build.outputs.noop
 
       - uses: pkgxdev/brewkit/audit@v1
+        with:
+          pkg: ${{ inputs.pkg }}
 
       - uses: pkgxdev/brewkit/upload-build-artifact@v1
 
@@ -98,7 +102,11 @@ jobs:
       - uses: pkgxdev/setup@v2
       - uses: actions/checkout@v4
       - uses: pkgxdev/brewkit/download-build-artifact@v1
+        with:
+          pkg: ${{ inputs.pkg }}
       - uses: pkgxdev/brewkit/test@v1
+        with:
+          pkg: ${{ inputs.pkg }}
 
   bottle:
     name: bottle (${{inputs.tinyname}}.${{matrix.compression}})
@@ -130,6 +138,7 @@ jobs:
       - uses: pkgxdev/brewkit/download-build-artifact@v1
         id: dl
         with:
+          pkg: ${{ inputs.pkg }}
           platform: ${{ inputs.name }}
           extract: false
 
