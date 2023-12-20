@@ -1,0 +1,42 @@
+distributable:
+  url: https://github.com/qpdf/qpdf/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+display-name: qpdf
+
+versions:
+  github: qpdf/qpdf
+  strip: /v/
+
+dependencies:
+  zlib.net: ^1
+  libjpeg-turbo.org: ^2
+  openssl.org: ^1.1
+  gnutls.org: ^3
+build:
+  dependencies:
+    cmake.org: ^3
+    pyyaml.org/libyaml: '*'
+    python.org: ^3
+    pip.pypa.io: '*'
+  working-directory: build
+  script:
+    # requires pyyaml to build
+    - python -m venv venv
+    - source venv/bin/activate
+    - pip install pyyaml
+
+    - cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1
+      -DMAINTAINER_MODE=1
+      -DBUILD_STATIC_LIBS=0
+      -DCMAKE_INSTALL_PREFIX={{ prefix }}
+      -DCMAKE_BUILD_TYPE=Release
+      -DBUILD_DOC=0
+      ..
+    - cmake --build .
+    - cmake --install .
+
+provides:
+  - bin/qpdf
+
+test: qpdf --version | grep {{version}}
