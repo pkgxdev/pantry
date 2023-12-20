@@ -3,28 +3,33 @@ distributable:
   strip-components: 1
 
 versions:
-  github: ocrmypdf/OCRmyPDF 
-  
-platforms:
-  - darwin
-  - linux/x86-64
+  github: ocrmypdf/OCRmyPDF
+
+# platforms:
+#   - darwin
+#   - linux/x86-64
 
 dependencies:
   python.org: ~3.11
 
 build:
-  script: |
-    python-venv.sh {{prefix}}/bin/ocrmypdf
+  dependencies:
+    openjpeg.org: '*'
+    qpdf.sourceforge.io: '*'
+    gnome.org/libxml2: ~2.11
+    gnome.org/libxslt: '*'
+  script:
+    - python-venv.sh {{prefix}}/bin/ocrmypdf
+    - source <("{{prefix}}"/venv/bin/activate)
+    # pikepdf libs are compiled for MACOSX_DEPLOYMENT_TARGET=12.0
+    - 'pip install --no-cache-dir --force-reinstall --no-binary :all: pikepdf'
   env:
     # add any environment variables here
     ARGS:
       - --prefix="{{prefix}}"
 
-
 provides:
   - bin/ocrmypdf
 
 test:
-  script:
-    test "$(ocrmypdf --version)" = {{version}}
-    
+  script: test "$(ocrmypdf --version)" = {{version}}
