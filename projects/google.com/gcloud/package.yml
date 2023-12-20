@@ -1,0 +1,50 @@
+warnings: vendored
+
+versions:
+  url: https://cloud.google.com/sdk/docs/install-sdk
+  match: /google-cloud-cli-\d+\.\d+\.\d+-darwin-arm\.tar\.gz/
+  strip:
+    - /^google-cloud-cli-/
+    - /-darwin-arm\.tar\.gz$/
+dependencies:
+  python.org: ^3.11
+
+build:
+  dependencies:
+    curl.se: '*'
+  script:
+    - mkdir -p {{prefix}}/libexec
+    - curl -L $DISTRIBUTABLE_URL | tar -xz --strip-components=1
+    - ./install.sh $ARGS
+    - cp -r .install bin lib platform {{prefix}}/libexec/
+    - run: |
+        ln -s ../libexec/bin/gcloud gcloud
+        ln -s ../libexec/bin/gsutil gsutil
+        ln -s ../libexec/bin/bq bq
+        ln -s ../libexec/bin/anthoscli anthoscli
+        ln -s ../libexec/bin/docker-creditnail-gcloud docker-creditnail-gcloud
+      working-directory: ${{prefix}}/bin
+  env:
+    ARGS:
+      - --usage-reporting false
+      - --command-completion false
+      - --path-update false
+      - --quiet
+      - --install-python false
+    linux/aarch64:
+      DISTRIBUTABLE_URL: https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-{{version}}-linux-arm.tar.gz
+    linux/x86-64:
+      DISTRIBUTABLE_URL: https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-{{version}}-linux-x86_64.tar.gz
+    darwin/aarch64:
+      DISTRIBUTABLE_URL: https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-{{version}}-darwin-arm.tar.gz
+    darwin/x86-64:
+      DISTRIBUTABLE_URL: https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-{{version}}-darwin-x86_64.tar.gz
+
+provides:
+  - bin/gcloud
+  - bin/gsutil
+  - bin/bq
+  - bin/anthoscli
+
+# for more tests we need to authenticate with a service account
+test: gcloud --version | grep {{version}}
