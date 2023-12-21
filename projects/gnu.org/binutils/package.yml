@@ -16,9 +16,15 @@ build:
     linux:
       gnu.org/gcc: '*'
   script: |
-    ./configure --prefix={{ prefix }}
+    ./configure $ARGS
     make --jobs {{ hw.concurrency }}
     make install
+  env:
+    ARGS:
+      - --prefix={{ prefix }}
+    linux:
+      ARGS:
+        - --enable-gold=yes
 
 test:
   script: objdump -x $(which objdump) | grep -s $TEST_STRING
@@ -30,15 +36,40 @@ test:
       TEST_STRING: GNU_HASH
 
 provides:
-  - bin/addr2line
-  - bin/ar
-  - bin/c++filt
-  - bin/elfedit
-  - bin/nm
-  - bin/objcopy
-  - bin/objdump
-  - bin/ranlib
-  - bin/readelf
-  - bin/size
-  - bin/strings
-  - bin/strip
+  darwin:
+    - bin/addr2line
+    - bin/ar
+    - bin/c++filt
+    - bin/elfedit
+    - bin/nm
+    - bin/objcopy
+    - bin/objdump
+    - bin/ranlib
+    - bin/readelf
+    - bin/size
+    - bin/strings
+    - bin/strip
+  linux:
+    - bin/addr2line
+    - bin/ar
+    - bin/as
+    - bin/c++filt
+    - bin/elfedit
+    - bin/gp-archive
+    - bin/gp-collect-app
+    - bin/gp-display-html
+    - bin/gp-display-src
+    - bin/gp-display-text
+    - bin/gprof
+    - bin/gprofng
+    - bin/ld
+    - bin/ld.bfd
+    - bin/ld.gold
+    - bin/nm
+    - bin/objcopy
+    - bin/objdump
+    - bin/ranlib
+    - bin/readelf
+    - bin/size
+    - bin/strings
+    - bin/strip

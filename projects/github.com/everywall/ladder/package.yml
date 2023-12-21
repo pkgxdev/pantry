@@ -1,0 +1,39 @@
+distributable:
+  url: https://github.com/everywall/ladder/archive/v{{version}}.tar.gz
+  strip-components: 1
+versions:
+  github: everywall/ladder
+build:
+  dependencies:
+    go.dev: ^1.21.1
+  script:
+    - echo '{{version}}' > handlers/VERSION
+    - go build $GO_ARGS -ldflags="$LDFLAGS" ./cmd
+  env:
+    GO_ARGS:
+      - -trimpath
+      - -o="{{prefix}}/bin/ladder"
+    LDFLAGS:
+      - -s
+      - -w
+    linux:
+      LDFLAGS:
+        - -buildmode=pie
+provides:
+  - bin/ladder
+test:
+  dependencies:
+    curl.se: '*'
+    linux:
+      gitlab.com/procps-ng/procps: '*'
+  script:
+    - ladder -p 8082 &
+    - sleep 1
+    - curl -L http://127.0.0.1:8082/https://pkgx.sh -o test.html
+    - $KILL ladder
+    - cat test.html | grep 'Run Anything'
+  env:
+    darwin:
+      KILL: killall
+    linux:
+      KILL: pkill

@@ -1,0 +1,36 @@
+distributable:
+  url: https://download.savannah.nongnu.org/releases/attr/attr-{{version}}.tar.gz
+  strip-components: 1
+display-name: attr
+versions:
+  url: https://download.savannah.nongnu.org/releases/attr/
+  match: /attr-\d+\.\d+\.\d+\.tar\.gz/
+  strip:
+    - /^attr-/
+    - /\.tar\.gz/
+platforms:
+  - linux
+build:
+  dependencies:
+    gnu.org/gettext: '*'
+  script:
+    - ./configure $CONFIGURE_ARGS
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    CONFIGURE_ARGS:
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --disable-silent-rules
+      - --prefix="{{prefix}}"
+      - --libdir="{{prefix}}/lib"
+provides:
+  - bin/attr
+  - bin/getfattr
+  - bin/setfattr
+test:
+  - echo "Hello World!\n" > test.txt
+  - setfattr -n user.test -v "Hello World!" test.txt
+  - getfattr -d test.txt | grep 'Hello World!'
+  - getfattr -n user.test test.txt | grep 'Hello World!'
+  - getfattr -n user.test -e hex test.txt | grep '0x48656c6c6f20576f726c6421'
+  - attr -l test.txt 

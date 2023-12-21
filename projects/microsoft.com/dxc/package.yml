@@ -1,0 +1,42 @@
+distributable:
+  url: git+https://github.com/microsoft/DirectXShaderCompiler
+  ref: v{{version}}
+
+versions:
+  github: microsoft/DirectXShaderCompiler/tags
+
+dependencies:
+  zlib.net: ^1
+
+build:
+  dependencies:
+    cmake.org: '*'
+    git-scm.org: ^2
+    ninja-build.org: ^1
+    python.org: '>=3.7<3.12'
+  script: |
+    git submodule update --init
+    cmake -B $BUILD_DIR $CMAKE_ARGS
+    ninja -C $BUILD_DIR
+    
+    mkdir -p {{prefix}}
+    cp -r $BUILD_DIR/bin {{prefix}}/
+    cp -r $BUILD_DIR/lib {{prefix}}/
+  env:
+    BUILD_DIR: $(mktemp -d)
+    CMAKE_ARGS:
+      - -GNinja
+      - -C./cmake/caches/PredefinedParams.cmake
+      - -DSPIRV_BUILD_TESTS=ON
+      - -DCMAKE_BUILD_TYPE=Release
+
+provides:
+  -  bin/dxc
+  -  bin/dxv
+  -  bin/dxa
+  -  bin/dxr
+  -  bin/dxl
+
+test:
+  script:
+    dxc --help

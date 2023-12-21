@@ -1,0 +1,49 @@
+distributable:
+  url: https://downloads.xiph.org/releases/libshout/libshout-{{version}}.tar.gz
+  strip-components: 1
+versions:
+  url: https://ftp.osuosl.org/pub/xiph/releases/libshout/
+  match: /libshout-\d+\.\d+\.\d+\.tar\.gz/
+  strip:
+    - /^libshout-/
+    - /\.tar\.gz/
+dependencies:
+  xiph.org/ogg: '*'
+  xiph.org/vorbis: '*'
+  openssl.org: ~1
+  speex.org: '*'
+  theora.org: '*'
+build:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+    darwin:
+      curl.se: '*'
+      gnu.org/patch: '*'
+    linux:
+      gnu.org/gcc: '*'
+  script:
+    - run: curl -L "$PATCH" | patch
+      if: darwin
+    - ./configure $CONFIGURE_ARGS
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    PATCH: https://raw.githubusercontent.com/Homebrew/formula-patches/03cf8088210822aa2c1ab544ed58ea04c897d9c4/libtool/configure-big_sur.diff
+    CONFIGURE_ARGS:
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --prefix="{{prefix}}"
+      - --libdir="{{prefix}}/lib"
+provides:
+  - bin/shout
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+    linux:
+      gnu.org/gcc: '*'
+  script:
+    - pkg-config --modversion shout | grep {{version}}
+    - cc test.c -lshout -lssl -lcrypto -o test
+    - ./test
+  env:
+    linux:
+      LDFLAGS: -fPIC

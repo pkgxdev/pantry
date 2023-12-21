@@ -77,15 +77,6 @@ index b186375..de168c4 100644
      end
    end
 
-@@ -137,7 +129,7 @@ def self.config_file
-   # The path to standard location of the user's state file.
-
-   def self.state_file
--    @state_file ||= File.join(Gem.state_home, "gem", "last_update_check").tap(&Gem::UNTAINT)
-+    @state_file ||= File.join(Gem.state_home, "last_update_check").tap(&Gem::UNTAINT)
-   end
-
-   ##
 @@ -151,7 +143,11 @@ def self.cache_home
    # The path to standard location of the user's data directory.
 
@@ -157,19 +148,3 @@ index b186375..de168c4 100644
    end
 
    ##
-diff --git a/lib/rubygems/installer.rb b/lib/rubygems/installer.rb
-index 8fef455..3ef4e30 100644
---- a/lib/rubygems/installer.rb
-+++ b/lib/rubygems/installer.rb
-@@ -188,9 +188,9 @@ def initialize(package, options={})
-     @package.prog_mode = options[:prog_mode]
-     @package.data_mode = options[:data_mode]
-
--    if options[:user_install]
-+    if options[:user_install] or options[:user_install].nil? and not File.writable? Gem.paths.home
-       @gem_home = Gem.user_dir
--      @bin_dir = Gem.bindir gem_home unless options[:bin_dir]
-+      @bin_dir = File.join(Gem.user_home, ".local/bin") unless options[:bin_dir]
-       @plugins_dir = Gem.plugindir(gem_home)
-       check_that_user_bin_dir_is_in_path
-     end

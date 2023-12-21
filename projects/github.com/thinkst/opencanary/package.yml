@@ -1,0 +1,37 @@
+distributable:
+  url: https://github.com/thinkst/opencanary/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: thinkst/opencanary
+
+dependencies:
+  python.org: '>=3.10<3.12'
+  tcpdump.org: '*'
+  openssl.org: '*'
+
+runtime:
+  env:
+    PYTHONPATH: "$PYTHONPATH:{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages"
+
+build:
+  dependencies:
+    pip.pypa.io: '*'
+
+  script: 
+    - run: |
+        pip install setuptools
+        cat setup.py | sed -e 's/requirements = \[/requirements = \["scapy","pcapy-ng",/' > setup.py.mod
+        mv setup.py.mod setup.py
+        python setup.py sdist
+        python -m pip install --prefix={{prefix}} dist/opencanary-{{version}}.tar.gz
+
+    - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
+      working-directory: ${{prefix}}/lib/
+
+provides:
+  - bin/opencanaryd
+
+test:
+  script: test "$(opencanaryd --version)" = "{{version}}"
+    

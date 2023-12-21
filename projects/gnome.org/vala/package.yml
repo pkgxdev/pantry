@@ -35,8 +35,11 @@ provides:
   - bin/vala-gen-introspect
   - bin/vapigen
 test:
+  dependencies:
+    linux:
+      llvm.org: '*'
   script:
-    - valac -g --cc=cc --save-temps test.vala
+    - valac -g --cc=clang --save-temps test.vala
     - ls | grep "test.c"
     - ./test | grep "Hello World!"
     - vala --version | grep {{version}}

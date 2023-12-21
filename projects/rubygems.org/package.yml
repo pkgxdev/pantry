@@ -29,7 +29,21 @@ build:
     - run: |
         patch -p1 < "$SRCROOT"/props/fit-n-finish.patch
         patch -p1 < "$SRCROOT"/props/fit-n-finish.2.patch
+        sed -i'' -e 's/Gem.default_dir/Gem.default_system_dir/' lib/rubygems/path_support.rb
       working-directory: ${{prefix}}
+
+    - run: sed -i'' -e 's/Gem.state_home, "gem",/Gem.state_home,/' defaults.rb
+      working-directory: ${{prefix}}/lib/rubygems
+      if: '>=3.4'
+
+    - run: patch -p1 < "$SRCROOT"/props/fit-n-finish.3.patch
+      working-directory: ${{prefix}}
+      if: '<3.5'
+
+    - run: patch -p1 < "$SRCROOT"/props/fit-n-finish.4.patch
+      working-directory: ${{prefix}}
+      if: '>=3.5'
+
     - run: |
         sed -i.bak -e 's/Dir\.mkdir dir, \*\[options\[:dir_mode\].*/FileUtils.mkdir_p dir, *[options[:dir_mode] \&\& 0o755].compact/' installer.rb
         rm installer.rb.bak

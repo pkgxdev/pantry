@@ -24,7 +24,7 @@ build:
     LDFLAGS:
       - -s
       - -w
-      - -X github.com/git-town/git-town/v9/src/cmd.version={{version}}
+      - -X github.com/git-town/git-town/v{{version.major}}/src/cmd.version={{version}}
     linux:
       # or segmentation fault
       # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
@@ -33,4 +33,7 @@ build:
 
 test:
   script:
-    - test "$(git-town version)" = "Git Town {{version}} ()"
+    - run: test "$(git-town version)" = "Git Town {{version}} ()"
+      if: <10
+    - run: test "$(git-town --version)" = "Git Town {{version}} ()"
+      if: '>=10'

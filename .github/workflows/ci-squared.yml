@@ -1,0 +1,30 @@
+name: ci-squared
+run-name: ci²
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/pkg.yml
+      - .github/workflows/pkg-for-platform.yml
+      - .github/workflows/ci-squared.yml
+
+concurrency:
+  group: pulls/${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: ci²
+    uses: ./.github/workflows/pkg.yml
+    strategy:
+      fail-fast: false
+      matrix:
+        pkg:
+          - r-wos.org/gti
+          - github.com/ggerganov/llama.cpp  # has platform restrictions
+    permissions:
+      issues: write
+    with:
+      pkg: ${{ matrix.pkg }}
+      dry-run: true
+    secrets: inherit

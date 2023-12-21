@@ -1,0 +1,35 @@
+distributable:
+  url: https://files.musepack.net/source/libreplaygain_r{{version.major}}.tar.gz
+  strip-components: 1
+versions:
+  url: https://www.musepack.net/index.php?pg=src
+  match: /libreplaygain_r\d+\.tar\.gz/
+  strip:
+    - /^libreplaygain_r/
+    - /\.tar\.gz/
+build:
+  dependencies:
+    cmake.org: '*'
+    linux:
+      gnu.org/gcc: '*'
+  script:
+    - cmake -S . -B build $CMAKE_ARGS
+    - cmake --build build
+    - cmake --install build
+    - mkdir -p {{prefix}}/include
+    - cp -r include/replaygain {{prefix}}/include/
+  env:
+    darwin:
+      CFLAGS: "$CFLAGS -Wno-implicit-function-declaration"
+    CMAKE_ARGS:
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}
+      - -DCMAKE_INSTALL_LIBDIR=lib
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_FIND_FRAMEWORK=LAST
+      - -DCMAKE_VERBOSE_MAKEFILE=ON
+      - -Wno-dev
+      - -DBUILD_TESTING=OFF
+test:
+  script:
+    - cc test.c -o test
+    - ./test

@@ -14,17 +14,26 @@ versions:
 
 provides:
   - bin/ffmpeg
+  - bin/ffplay
   - bin/ffprobe
+
+dependencies:
+  lame.sourceforge.io: '>=3.98.3'
+  libsdl.org: ^2
 
 build:
   dependencies:
     x86-64:
       nasm.us: 2
-  script: |
-    ./configure --prefix="{{prefix}}"
-    make --jobs {{hw.concurrency}}
-    make install
+  script:
+    - ./configure $ARGS
+    - make --jobs {{hw.concurrency}}
+    - make install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --enable-libmp3lame
 
-test: |
-  ffmpeg -filter_complex testsrc=rate=1:duration=1 out.mp4
-  test -f out.mp4
+test:
+  - ffmpeg -filter_complex testsrc=rate=1:duration=1 out.mp4
+  - test -f out.mp4

@@ -1,0 +1,32 @@
+distributable:
+  url: https://github.com/KarypisLab/GKlib/archive/refs/tags/METIS-v{{version}}-DistDGL-0.5.tar.gz
+  strip-components: 1
+
+versions:
+  github: KarypisLab/GKlib/tags
+  strip:
+    - /^METIS-/
+    - /-DistDGL-0\.5$/
+
+build:
+  dependencies:
+    gnu.org/make: '*'
+    cmake.org: '*'
+  script:
+    - make config $ARGS
+    - make -j {{hw.concurrency}}
+    - make install
+  env:
+    ARGS:
+      - prefix="{{prefix}}"
+
+provides:
+  - bin/cmpnbrs
+  - bin/csrcnv
+  - bin/fis
+  - bin/gkgraph
+  - bin/gkrw
+  - bin/m2mnbrs
+
+# help? i have no idea what to do with these.
+test: cmpnbrs -help

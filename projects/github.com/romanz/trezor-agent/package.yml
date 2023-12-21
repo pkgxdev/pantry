@@ -1,0 +1,56 @@
+distributable:
+  url: https://github.com/romanz/trezor-agent/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: romanz/trezor-agent/tags
+
+dependencies:
+  python.org: ~3.12
+  libusb.info: ^1
+
+runtime:
+  env:
+    PYTHONPATH: '{{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH'
+
+build:
+  dependencies:
+    git-scm.org: '*'
+  script:
+    - python -m pip install --prefix="{{prefix}}" -e .
+    - run: |
+        for AGENT in $AGENTS; do
+          python -m pip install --prefix="{{prefix}}" -e agents/$AGENT
+        done
+    - run: fix-shebangs.ts *
+      working-directory: ${{prefix}}/bin
+  skip: fix-patchelf # doesn't like the paths in the libs
+  env:
+    AGENTS:
+      - jade
+      - keepkey
+      - ledger
+      - onlykey
+      - trezor
+
+provides:
+  - bin/jade-agent
+  - bin/jade-gpg
+  - bin/jade-gpg-agent
+  - bin/keepkey-agent
+  - bin/keepkeyctl
+  - bin/ledger-agent
+  - bin/ledger-gpg
+  - bin/ledger-gpg-agent
+  - bin/onlykey-agent
+  - bin/onlykey-cli
+  - bin/onlykey-gpg
+  - bin/onlykey-gpg-agent
+  - bin/trezor-agent
+  - bin/trezor-gpg
+  - bin/trezor-gpg-agent
+  - bin/trezor-signify
+  - bin/trezorctl
+
+# hard to test this, but this will show the python is working
+test: trezor-agent --help

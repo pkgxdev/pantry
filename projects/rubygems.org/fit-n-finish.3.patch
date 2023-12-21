@@ -1,0 +1,16 @@
+diff --git a/lib/rubygems/installer.rb b/lib/rubygems/installer.rb
+index 8fef455..3ef4e30 100644
+--- a/lib/rubygems/installer.rb
++++ b/lib/rubygems/installer.rb
+@@ -188,9 +188,9 @@ def initialize(package, options={})
+     @package.prog_mode = options[:prog_mode]
+     @package.data_mode = options[:data_mode]
+
+-    if options[:user_install]
++    if options[:user_install] or options[:user_install].nil? and not File.writable? Gem.paths.home
+       @gem_home = Gem.user_dir
+-      @bin_dir = Gem.bindir gem_home unless options[:bin_dir]
++      @bin_dir = File.join(Gem.user_home, ".local/bin") unless options[:bin_dir]
+       @plugins_dir = Gem.plugindir(gem_home)
+       check_that_user_bin_dir_is_in_path
+     end

@@ -2,21 +2,49 @@
 
 set -e
 
-find_git_command() {
+# This function searches through the provided arguments
+# to find the first non-option argument, which is assumed
+# to be the git subcommand.
+find_git_subcommand() {
+  skip_next=0  # Flag to indicate if the next argument should be skipped.
+
   for arg in "$@"; do
+    # If the skip_next flag is set, skip this argument.
+    if [ "$skip_next" -eq 1 ]; then
+      skip_next=0
+      continue
+    fi
+
+    # Check for options that require skipping the next argument.
     case $arg in
-    -*);;
-    *)
-      echo "$arg"
-      return  # found the command!
+      -C | --git-dir | --work-tree | --namespace | --super-prefix | --config-env | -c)
+        skip_next=1  # The next argument is a value for these options.
+        continue
+        ;;
+      -*)
+        continue  # Skip other options that start with '-'.
+        ;;
     esac
+
+    # If we reach this point, it's likely the git subcommand.
+    echo "$arg"
+    return
   done
 }
 
 libexec="$(cd "$(dirname "$0")/.." && pwd)"/libexec
 
 # extract the git subcommand
-cmd=$(find_git_command "$@")
+cmd=$(find_git_subcommand "$@")
+
+_provides() {
+  if foo="$(pkgx --provider git-"$cmd")"; then
+    echo "$foo"
+  else
+    # syncing is slow but let’s be sure about it
+    pkgx --sync --provider git-"$cmd"
+  fi
+}
 
 if [ -z "$cmd" ]; then
   exec "$libexec/git" "$@"
@@ -24,7 +52,7 @@ elif [ -x "$libexec/git-$cmd" ] && [ -f "$libexec/git-$cmd" ]; then
   exec "$libexec/git" "$@"
 elif type "git-$cmd" >/dev/null 2>&1; then
   exec "$libexec/git" "$@"
-elif command -v pkgx >/dev/null 2>&1 && pkg=$(pkgx --provider git-"$cmd"); then
+elif command -v pkgx >/dev/null 2>&1 && pkg=$(_provides); then
   exec pkgx +"$pkg" "$libexec/git" "$@"
 else
   exec "$libexec/git" "$@"

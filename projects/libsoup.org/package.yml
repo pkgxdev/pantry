@@ -1,0 +1,49 @@
+distributable:
+  url: https://download.gnome.org/sources/libsoup/{{version.marketing}}/libsoup-{{version}}.tar.xz
+  strip-components: 1
+versions:
+  url: https://download.gnome.org/sources/libsoup/cache.json
+  match: /libsoup-\d+\.\d+\.\d+\.tar\.xz/
+  strip:
+    - /^libsoup-/
+    - /\.tar\.xz/
+dependencies:
+  gnome.org/glib-networking: '*'
+  gnutls.org: '*'
+  rockdaboot.github.io/libpsl: '*'
+  kerberos.org: '*'
+  gnome.org/libxml2: '*'
+  sqlite.org: '*'
+  nghttp2.org: '*'
+  linux:
+    gnu.org/gettext: '*'
+    gnome.org/glib: '*'
+    github.com/google/brotli: '*'
+build:
+  dependencies:
+    gnome.org/gobject-introspection: '*'
+    mesonbuild.com: '*'
+    ninja-build.org: '*'
+    freedesktop.org/pkg-config: '*'
+    python.org: ~3.11
+    gnome.org/vala: '*'
+  script:
+    - meson setup build $MESON_ARGS
+    - meson compile -C build --verbose
+    - meson install -C build
+    - run: |
+        d=$(ls)
+        ln -s $d/libsoup libsoup
+      working-directory: "{{prefix}}/include"
+  env:
+    MESON_ARGS:
+      - --prefix="{{prefix}}"
+      - --libdir="{{prefix}}/lib"
+      - --buildtype=release
+      - --wrap-mode=nofallback
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script:
+    - cc test.c $(pkg-config --libs --cflags libsoup-3.0) -o test
+    - ./test
