@@ -26,10 +26,10 @@ build:
         cat << EOF > config.json
         {
           "platform": {
-            "name": "ubuntu2204",
-            "nameFull": "ubuntu22.04",
-            "namePretty": "Ubuntu 22.04.2 LTS",
-            "architecture": null
+            "name": "$PLATFORM_NAME",
+            "nameFull": "$PLATFORM_NAME_FULL",
+            "namePretty": "$PRETTY_NAME",
+            "architecture": "$ARCH"
           },
           "installedToolchains": [],
           "inUse": null
@@ -37,6 +37,9 @@ build:
         EOF
       working-directory: "{{prefix}}/share"
   env:
+    PRETTY_NAME: 'Ubuntu 22.04.3 LTS'
+    PLATFORM_NAME: 'ubuntu2204'
+    PLATFORM_NAME_FULL: 'ubuntu22.04'
     aarch64:
       ARCH: aarch64
     x86-64:
@@ -46,8 +49,8 @@ provides:
 test:
   script:
     - swiftly --version | grep {{version}}
-    - swiftly install 5.9.1
-    - swiftly list | grep 5.9.1
-    - swift --version | grep 5.9.1
+    - swiftly install 5.9.2
+    - swiftly list | grep 5.9.2
+    - swift --version | grep 5.9.2
     - swift package init --type executable
     - swift run | grep "Hello, world!"
