@@ -49,10 +49,10 @@ jobs:
           - os: ["self-hosted", "macOS", "ARM64"]
             name: ²
           - os: ["self-hosted", "linux", "ARM64"]
-            name: Lnx·ARM64
+            name: "*nix·ARM64"
           - os: { group: "linux-x86-64" }
             container: debian:buster-slim
-            name: Lnx·x64
+            name: "*nix64"
     runs-on: ${{ matrix.platform.os }}
     container: ${{ matrix.platform.container }}
     env:
@@ -76,7 +76,18 @@ jobs:
           pkg: ${{ matrix.pkg }}
 
       - uses: pkgxdev/brewkit/audit@v1
+        with:
+          pkg: ${{ matrix.pkg }}
+        if: steps.build.outputs.pkgspec
+
+      # prevent tests passing because the build directory is still there
+      - name: wipe builds directory
+        run: |
+          test -d builds
+          rm -rf builds
         if: steps.build.outputs.pkgspec
 
       - uses: pkgxdev/brewkit/test@v1
+        with:
+          pkg: ${{ matrix.pkg }}
         if: steps.build.outputs.pkgspec

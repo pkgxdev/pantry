@@ -61,10 +61,16 @@ build:
     github.com/westes/flex: '*'
     python.org: '<3.10'
     ninja-build.org: '*'
+    mesonbuild.com: '*'
   script:
     # TODO: linux virtfs <8 requires attr and libcap-ng
     - run: ARGS="$ARGS --enable-virtfs"
       if: '>=8'
+
+    # https://gitlab.com/qemu-project/qemu/-/issues/1853
+    - run: sed -i -e"s/-isystem', /-isystem' + /g" meson.build
+      if: '>=8.2'
+
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
 

@@ -20,6 +20,7 @@ dependencies:
   google.github.io/snappy: '*'
   facebook.com/zstd: 1
   sourceware.org/bzip2: 1
+  zlib.net: ^1
 
 provides:
   - bin/fizz
@@ -29,6 +30,14 @@ build:
     cmake.org: ^3
     ninja-build.org: ^1
   script:
+    # compilation errors in 2023.12.18.0
+    - run: |
+        sed -i -e '/#include <fizz\/crypto\/aead\/AESGCM128.h>/a\
+        #include <fizz/crypto/exchange/X25519.h>\
+        #include <fizz/protocol/OpenSSLFactory.h>' FizzServerCommand.cpp
+      if: =2023.12.18.0
+      working-directory: fizz/tool
+
     - cmake -S fizz -B build $ARGS
     - cmake --build build
     - cmake --install build
@@ -40,7 +49,7 @@ build:
           -e '/^  INTERFACE_LINK_LIBRARIES/ s|/v([0-9]+)(\.[0-9]+)*[a-z]?/lib|/v\1/lib|g' \
         fizz-targets.cmake
         rm "{{prefix}}"/lib/cmake/fizz/fizz-targets.cmake.bak
-      working-directory: "{{prefix}}/lib/cmake/fizz"
+      working-directory: '{{prefix}}/lib/cmake/fizz'
   env:
     ARGS:
       - -GNinja
