@@ -1,11 +1,16 @@
 distributable:
   url: https://github.com/JetBrains/kotlin/releases/download/v{{version}}/kotlin-compiler-{{version}}.zip
   strip-components: 1
+
 versions:
   github: JetBrains/kotlin
+
 dependencies:
   openjdk.org: '*'
+
 build:
+  dependencies:
+    info-zip.org/unzip: '*'
   working-directory: kotlinc
   script:
     - echo -e "{{version}}" > build.txt
@@ -15,6 +20,7 @@ build:
     - install lib/* {{prefix}}/lib/
     - install build.txt {{prefix}}/
     - rm {{prefix}}/bin/*.bat
+
 provides:
   - bin/kapt
   - bin/kotlin
@@ -22,6 +28,7 @@ provides:
   - bin/kotlinc
   - bin/kotlinc-js
   - bin/kotlinc-jvm
+
 test:
   script:
     - kotlin -version | grep {{version}}
