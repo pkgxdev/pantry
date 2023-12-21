@@ -218,7 +218,7 @@ jobs:
         if: ${{ ! inputs.dry-run }}
 
   complain:
-    needs: [build, test, bottle]
+    needs: bottle
     if: failure() && !inputs.dry-run
     runs-on: ubuntu-latest
     permissions:
@@ -228,4 +228,3 @@ jobs:
       - uses: ./.github/actions/complain
         with:
           pkg: ${{ fromJSON(inputs.pkg).project }}=${{ fromJSON(inputs.pkg).version.value }}
-          platform: ${{ inputs.name }}
