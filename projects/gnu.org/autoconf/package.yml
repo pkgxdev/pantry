@@ -52,8 +52,10 @@ build:
   - perl -pi -e "s|$PREFIX|\\\$PREFIX|" share/autoconf/autom4te.cfg
 
 test:
-  script: |
-    autoconf --verbose --debug
-    ./configure
-    test -f config.status
-    test -f config.log
+  dependencies:
+    llvm.org: '*' # requires a C compiler to configure
+  script:
+    - autoconf --verbose --debug
+    - ./configure
+    - test -f config.status
+    - test -f config.log
