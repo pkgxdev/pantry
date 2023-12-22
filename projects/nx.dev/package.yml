@@ -1,0 +1,32 @@
+distributable:
+  url: https://registry.npmjs.org/nx/-/nx-{{version}}.tgz
+  strip-components: 1
+
+display-name: nx.dev
+
+versions:
+  github: nrwl/nx/releases
+
+provides:
+  - bin/nx
+
+dependencies:
+  nodejs.org: ^18
+
+build:
+  dependencies:
+    npmjs.com: ^10
+  script:
+    - npm i $ARGS .
+    - cp props/nx.json {{prefix}}
+  env:
+    ARGS:
+      - --global
+      - --install-links
+      - --prefix={{prefix}}
+
+test:
+  script: |
+    npm i nx
+    nx show projects --with-target lint
+
