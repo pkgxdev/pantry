@@ -25,6 +25,7 @@ provides:
 
 test:
   script:
-    - test "$(templ --version)" = {{version}}
+    # some versions have a v prefix, some don't
+    - test "$(templ --version)" = {{version}} || test "$(templ --version)" = "v{{version}}"
     - templ generate
     - test -f hello_templ.go
