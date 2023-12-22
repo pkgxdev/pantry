@@ -8,6 +8,7 @@ dependencies:
   github.com/facebookincubator/fizz: '*'
   facebook.com/wangle: '*'
   facebook.com/folly: '*'
+  facebook.com/fbthrift: '>=2023.12.18.0'
   fmt.dev: ^9
   gflags.github.io: ^2.2.2
   google.com/glog: ^0.6
@@ -18,7 +19,6 @@ dependencies:
 build:
   dependencies:
     cmake.org: '*'
-    facebook.com/fbthrift: '>=2023.12.18.0'
     facebook.com/mvfst: '*'
     boost.org: ^1.84
   script:
@@ -42,8 +42,5 @@ build:
         - -DCMAKE_CXX_FLAGS=-fPIC
         - -DCMAKE_EXE_LINKER_FLAGS=-pie
 test:
-  dependencies:
-    facebook.com/fbthrift: '*'
-  script:
-    - c++ -std=c++17 test.cpp -o test -lfb303_thrift_cpp -lfolly -lglog -lthriftprotocol -lthriftcpp2 -ldl
-    - ./test | grep 'BaseService'
+  - c++ -std=c++17 test.cpp -o test -lfb303_thrift_cpp -lfolly -lglog -lthriftprotocol -lthriftcpp2 -ldl
+  - ./test | grep 'BaseService'
