@@ -23,9 +23,6 @@ build:
         --no-ri
         --no-rdoc
 
-    - run: cp $SRCROOT/props/proxy .
-      working-directory: ${{prefix}}/shim
-
     - run: |
         patch -p1 < "$SRCROOT"/props/fit-n-finish.patch
         patch -p1 < "$SRCROOT"/props/fit-n-finish.2.patch
@@ -50,17 +47,9 @@ build:
       working-directory: ${{prefix}}/lib/rubygems
 
     # these are provided by ruby-lang.org
-    # we don’t know why they turn up here too…
+    # they turn up here since that is how gem handles deps
+    # but ruby is in PATH and has these and that is the preference
     - run: rm rake rbs rdbg typeprof
-      working-directory: ${{prefix}}/bin
-
-    # We’re not a “GEMHOME” since we *are* gem, so yeah instead
-    # we have a RUBYLIB hack via our proxy script
-    - run: |
-        for x in *; do
-          mv $x ../shim
-          ln -s ../shim/proxy $x
-        done
       working-directory: ${{prefix}}/bin
 
     # bundle and bundler are “gem” shims that try to invoke rubygems magic
@@ -69,15 +58,18 @@ build:
     # want to use ourselves.
     # REF https://github.com/pkgxdev/pantry/issues/4010
     - run: |
-        for x in bundle bundler; do
-          rm $x
-          cp $PROP $x
+        cp {{props}}/proxy gem
+        for tool in bundle bundler; do
+          rm $tool
+          cp $PROP $tool
         done
       prop: |
         #!/bin/sh
-        d="\$(cd "\$(dirname "\$0")"/.. && pwd)"
-        exec "\$d"/gems/bundler-*/exe/bundle "\$@"
-      working-directory: ${{prefix}}/bin
+        d="$(cd "$(dirname "$0")"/.. && pwd)"
+        export RUBYLIB="$d/lib"
+        exec "$d"/gems/bundler-*/exe/bundle "$@"
+      working-directory:
+        ${{prefix}}/bin
 
     # clean up empty, unused directory
     - rmdir {{prefix}}/plugins
