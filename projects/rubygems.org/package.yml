@@ -18,10 +18,10 @@ build:
     ruby-lang.org: ~3.1 # testing a theory
   script:
     - ruby setup.rb
-      --prefix={{prefix}}
-      --env-shebang
-      --no-ri
-      --no-rdoc
+        --prefix={{prefix}}
+        --env-shebang
+        --no-ri
+        --no-rdoc
 
     - run: cp $SRCROOT/props/proxy .
       working-directory: ${{prefix}}/shim
@@ -29,10 +29,10 @@ build:
     - run: |
         patch -p1 < "$SRCROOT"/props/fit-n-finish.patch
         patch -p1 < "$SRCROOT"/props/fit-n-finish.2.patch
-        sed -i'' -e 's/Gem.default_dir/Gem.default_system_dir/' lib/rubygems/path_support.rb
+        sed -i -e 's/Gem.default_dir/Gem.default_system_dir/' lib/rubygems/path_support.rb
       working-directory: ${{prefix}}
 
-    - run: sed -i'' -e 's/Gem.state_home, "gem",/Gem.state_home,/' defaults.rb
+    - run: sed -i -e 's/Gem.state_home, "gem",/Gem.state_home,/' defaults.rb
       working-directory: ${{prefix}}/lib/rubygems
       if: '>=3.4'
 
@@ -44,9 +44,9 @@ build:
       working-directory: ${{prefix}}
       if: '>=3.5'
 
-    - run: |
-        sed -i.bak -e 's/Dir\.mkdir dir, \*\[options\[:dir_mode\].*/FileUtils.mkdir_p dir, *[options[:dir_mode] \&\& 0o755].compact/' installer.rb
-        rm installer.rb.bak
+    - run: sed -i -e
+        's/Dir\.mkdir dir, \*\[options\[:dir_mode\].*/FileUtils.mkdir_p dir, *[options[:dir_mode] \&\& 0o755].compact/'
+        installer.rb
       working-directory: ${{prefix}}/lib/rubygems
 
     # these are provided by ruby-lang.org
@@ -63,11 +63,27 @@ build:
         done
       working-directory: ${{prefix}}/bin
 
+    # bundle and bundler are “gem” shims that try to invoke rubygems magic
+    # to figure out which bundler etc. to run. However this is not what we
+    # need since we are a specifically packages rubygems version and only
+    # want to use ourselves.
+    # REF https://github.com/pkgxdev/pantry/issues/4010
+    - run: |
+        for x in bundle bundler; do
+          rm $x
+          cp $PROP $x
+        done
+      prop: |
+        #!/bin/sh
+        d="\$(cd "\$(dirname "\$0")"/.. && pwd)"
+        exec "\$d"/gems/bundler-*/exe/bundle "\$@"
+      working-directory: ${{prefix}}/bin
+
+    # clean up empty, unused directory
     - rmdir {{prefix}}/plugins
 
 test:
   env:
-    HOME: $PWD
     vRUBY: ${{deps.ruby-lang.org.version.marketing}}.0
   script:
     # for debug
@@ -87,6 +103,13 @@ test:
         v="$(~/.local/bin/hexapdf version | cut -d' ' -f2)"
         test -d ~/.gem/ruby/$vRUBY/gems/hexapdf-$v
       fi
+
+    - run:
+        mv $FIXTURE Gemfile
+        bundle install --path vendor/bundle
+      fixture: |
+        source 'https://rubygems.org'
+        gem 'warbler', platforms: :jruby
 
 provides:
   - bin/bundle
