@@ -70,14 +70,11 @@ build:
       working-directory:
         ${{prefix}}/bin
 
-    - run: |
-        mv gem ../gems/gem
-        cp $PROP ./gem
+    - run:
+        echo "$(cat $PROP gem)" > gem
       prop: |
         #!/bin/sh
-        d="$(cd "$(dirname "$0")"/.. && pwd)"
-        export RUBYLIB="$d/lib"
-        "$d"/gems/gem "$@"
+        RUBYLIB="$(cd "$(dirname "$0")"/.. && pwd)/lib" exec ruby "$0" "$@"
       working-directory:
         ${{prefix}}/bin
 
