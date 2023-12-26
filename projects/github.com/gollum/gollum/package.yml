@@ -1,0 +1,43 @@
+distributable:
+  url: https://github.com/gollum/gollum/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: gollum/gollum
+
+provides:
+  - bin/gollum
+
+dependencies:
+  ruby-lang.org: ^3.1
+  rubygems.org: '*'
+
+build:
+  env:
+    GEM_HOME: ${{prefix}}
+    GEM_PATH: ${{prefix}}
+  dependencies:
+    cmake.org: ^3  # needed by the rugged gem
+  script:
+    - gem build gollum.gemspec
+    - gem install gollum-{{version}}.gem
+
+    - run: |
+        mv {{prefix}}/bin/* .
+        for tool in gollum*; do
+          cp $PROP {{prefix}}/bin/$tool
+        done
+      working-directory:
+        ${{prefix}}/gems/bin
+      prop: |
+        #!/bin/sh
+        export GEM_HOME="$(cd "$(dirname "$0")"/.. && pwd)"
+        export GEM_PATH="$GEM_HOME"
+        export PATH="$GEM_HOME/gems/bin:$PATH"
+        exec "$GEM_HOME"/gems/bin/$(basename $0) "$@"
+
+    - run: rmdir plugins build_info
+      working-directory: ${{prefix}}
+
+test:
+  test "$(gollum --version)" = Gollum\ {{version}}
