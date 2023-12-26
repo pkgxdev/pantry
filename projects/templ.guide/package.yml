@@ -1,0 +1,31 @@
+distributable:
+  url: https://github.com/a-h/templ/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: a-h/templ
+  strip: /^v/
+
+build:
+  dependencies:
+    go.dev: ^1.20
+  env:
+    CGO_ENABLED: 0
+    LDFLAGS:
+      - -extldflags=-static
+      - -w
+      - -s
+  script:
+    - go build -v -ldflags="$LDFLAGS" -o templ ./cmd/templ
+    - mkdir -p "{{ prefix }}"/bin
+    - mv templ "{{ prefix }}"/bin
+
+provides:
+  - bin/templ
+
+test:
+  script:
+    # some versions have a v prefix, some don't
+    - test "$(templ --version)" = {{version}} || test "$(templ --version)" = "v{{version}}"
+    - templ generate
+    - test -f hello_templ.go

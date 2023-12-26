@@ -1,0 +1,51 @@
+distributable:
+  url: https://github.com/numpy/numpy/releases/download/v{{version}}/numpy-{{version}}.tar.gz
+  strip-components: 1
+versions:
+  github: numpy/numpy
+dependencies:
+  openblas.net: ^0.3
+  python.org: ^3.11
+  gnu.org/gcc: ^13 #gfortran (no Fortran compiler found)
+runtime:
+  env:
+    PYTHONPATH: $PYTHONPATH:{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages
+build:
+  dependencies:
+    cython.org/libcython: '*'
+    llvm.org: '*' # fails with gcc
+  script:
+    - run: |
+        cat <<EOF > site.cfg
+        [openblas]
+        libraries = openblas
+        library_dirs = {{deps.openblas.net.prefix}}/lib
+        include_dirs = {{deps.openblas.net.prefix}}/include
+        EOF
+    - python -m pip install --prefix={{prefix}} .
+    - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
+      working-directory: ${{prefix}}/lib
+    - run: |
+        sed -i.bak "s|{{deps.python.org.prefix}}/bin/python|/usr/bin/env python|g" f2py
+        rm f2py.bak
+      working-directory: ${{prefix}}/bin
+  env:
+    # ld unrecognized option '--version'
+    CC: clang
+    CXX: clang++
+    LD: clang
+    ATLAS: None
+    darwin:
+      BLAS: ${{deps.openblas.net.prefix}}/lib/libopenblas.dylib
+      LAPACK: ${{deps.openblas.net.prefix}}/lib/libopenblas.dylib
+    linux:
+      BLAS: ${{deps.openblas.net.prefix}}/lib/libopenblas.so
+      LAPACK: ${{deps.openblas.net.prefix}}/lib/libopenblas.so
+provides:
+  - bin/f2py
+test:
+  script:
+    - python test.py
+    - f2py -v | grep {{version}}
+    - f2py -c -m test test.f90
+    - ls | grep test.cpython

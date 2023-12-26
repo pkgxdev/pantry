@@ -74,12 +74,16 @@ jobs:
           APPLE_IDENTITY: ${{ secrets.APPLE_IDENTITY }}
 
       - uses: pkgxdev/brewkit/build@v1
+        with:
+          pkg: ${{ inputs.pkg }}
         id: build
 
       - uses: styfle/cancel-workflow-action@0.12.0
         if: steps.build.outputs.noop
 
       - uses: pkgxdev/brewkit/audit@v1
+        with:
+          pkg: ${{ inputs.pkg }}
 
       - uses: pkgxdev/brewkit/upload-build-artifact@v1
 
@@ -98,7 +102,11 @@ jobs:
       - uses: pkgxdev/setup@v2
       - uses: actions/checkout@v4
       - uses: pkgxdev/brewkit/download-build-artifact@v1
+        with:
+          pkg: ${{ inputs.pkg }}
       - uses: pkgxdev/brewkit/test@v1
+        with:
+          pkg: ${{ inputs.pkg }}
 
   bottle:
     name: bottle (${{inputs.tinyname}}.${{matrix.compression}})
@@ -107,8 +115,6 @@ jobs:
       matrix:
         compression: [xz, gz]
     runs-on: ubuntu-latest
-    outputs:
-      paths: ${{ steps.put.outputs.cf-paths }}
     env:
       PREFIX: ${{ needs.build.outputs.project }}/${{ needs.build.outputs.platform }}/${{ needs.build.outputs.arch }}/v${{ needs.build.outputs.version }}.tar.${{ matrix.compression }}
     steps:
@@ -130,6 +136,7 @@ jobs:
       - uses: pkgxdev/brewkit/download-build-artifact@v1
         id: dl
         with:
+          pkg: ${{ inputs.pkg }}
           platform: ${{ inputs.name }}
           extract: false
 
@@ -164,6 +171,13 @@ jobs:
         id: put
         if: ${{ ! inputs.dry-run }}
 
+      - name: invalidate cloudfront
+        run: aws cloudfront create-invalidation
+          --distribution-id ${{ secrets.AWS_CF_DISTRIBUTION_ID }}
+          --paths
+          ${{ steps.put.outputs.cf-paths }}
+        if: ${{ ! inputs.dry-run }}
+
   publish:
     name: publish ${{inputs.tinyname}} ${{ inputs.dry-run && '(dry-run)' }}
     runs-on: ubuntu-latest
@@ -182,7 +196,7 @@ jobs:
       - name: generate versions.txt
         run: |
           if ! aws s3 cp \
-            s3://${{ secrets.AWS_S3_BUCKET }}/${{ needs.build.outputs.project }}/${{ needs.build.outputs.platform }}/${{ needs.build.outputs.arch }}/versions.txt \
+            s3://${{ secrets.AWS_S3_BUCKET }}/$DIRNAME/versions.txt \
             ./remote-versions.txt; then
             touch remote-versions.txt
           fi
@@ -191,9 +205,9 @@ jobs:
         env:
           SCRIPT: |
             import SemVer, { compare } from "https://raw.githubusercontent.com/pkgxdev/libpkgx/main/src/utils/semver.ts"
-            const versions = Deno.readTextFileSync(Deno.args[0]).trim().split("\n").filter(x => x)
-            versions.push(Deno.args[1])
-            const out = versions.map(x => new SemVer(x)).sort(compare).join("\n")
+            const versions = new Set(Deno.readTextFileSync(Deno.args[0]).trim().split("\n").filter(x => x))
+            versions.add(Deno.args[1])
+            const out = [...versions].map(x => new SemVer(x)).sort(compare).join("\n")
             await Deno.stdout.write(new TextEncoder().encode(out.trim()))
 
       - name: s3 put
@@ -205,11 +219,10 @@ jobs:
           --distribution-id ${{ secrets.AWS_CF_DISTRIBUTION_ID }}
           --paths
           /$DIRNAME/versions.txt
-          ${{ needs.bottle.outputs.paths }}
         if: ${{ ! inputs.dry-run }}
 
   complain:
-    needs: [build, test, bottle]
+    needs: bottle
     if: failure() && !inputs.dry-run
     runs-on: ubuntu-latest
     permissions:
@@ -219,4 +232,3 @@ jobs:
       - uses: ./.github/actions/complain
         with:
           pkg: ${{ fromJSON(inputs.pkg).project }}=${{ fromJSON(inputs.pkg).version.value }}
-          platform: ${{ inputs.name }}
