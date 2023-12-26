@@ -70,11 +70,14 @@ build:
       working-directory:
         ${{prefix}}/bin
 
+    # ruby has a neat feature where it will look for a ruby shebang and
+    # ignore everything from before that, so we can make scripts that execute
+    # as POSIX shell and then re-exec themselves as ruby scripts
     - run:
         echo "$(cat $PROP gem)" > gem
       prop: |
         #!/bin/sh
-        RUBYLIB="$(cd "$(dirname "$0")"/.. && pwd)/lib" exec ruby "$0" "$@"
+        RUBYLIB="$(cd "$(dirname "$0")"/../lib && pwd)" exec ruby "$0" "$@"
       working-directory:
         ${{prefix}}/bin
 
