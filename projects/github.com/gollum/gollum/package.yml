@@ -5,6 +5,9 @@ distributable:
 versions:
   github: gollum/gollum
 
+provides:
+  - bin/gollum
+
 dependencies:
   ruby-lang.org: ^3.1
   rubygems.org: '*'
@@ -31,7 +34,10 @@ build:
         export GEM_HOME="$(cd "$(dirname "$0")"/.. && pwd)"
         export GEM_PATH="$GEM_HOME"
         export PATH="$GEM_HOME/gems/bin:$PATH"
-        exec "$GEM_HOME"/gems/bin/$0 "$@"
+        exec "$GEM_HOME"/gems/bin/$(basename $0) "$@"
 
-provides:
-  - bin/gollum
+    - run: rmdir plugins build_info
+      working-directory: ${{prefix}}
+
+test:
+  test "$(gollum --version)" = Gollum\ {{version}}
