@@ -42,27 +42,27 @@ build:
     - run: sed -i.bak 's|CFLAGS_SHLIB = |CFLAGS_SHLIB = -fPIC|g' config.mk
       if: linux
     - rm config.mk.bak
-    
+
     - make --jobs {{hw.concurrency}}
     - make --jobs {{hw.concurrency}} package pkgdir=$SRCROOT/stage
     - run: |
         mkdir -p {{prefix}}
         mv bin include lib misc {{prefix}}/
-        
+
         mkdir -p {{prefix}}/lib/pkgconfig
         cp $PROP {{prefix}}/lib/pkgconfig/netpbm.pc
       working-directory: stage
       prop: |
-        prefix=\${pcfiledir}/../..
-        exec_prefix=\${prefix}
-        libdir=\${exec_prefix}/lib
-        includedir=\${prefix}/include/netpbm
+        prefix=${pcfiledir}/../..
+        exec_prefix=${prefix}
+        libdir=${exec_prefix}/lib
+        includedir=${prefix}/include/netpbm
 
         Name: Netpbm
         Description: Graphics utilities
         Version: {{version}}
-        Libs: -L\${libdir} -lmylibrary
-        Cflags: -I\${includedir}
+        Libs: -L${libdir} -lmylibrary
+        Cflags: -I${includedir}
   env:
     CFLAGS: "-Wno-implicit-function-declaration $CFLAGS"
 provides:
