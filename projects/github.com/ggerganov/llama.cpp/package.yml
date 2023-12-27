@@ -6,8 +6,7 @@ versions:
   github: ggerganov/llama.cpp/tags
   strip: /^b/
 
-display-name:
-  LLaMA.cpp
+display-name: LLaMA.cpp
 
 provides:
   - bin/llama.cpp
@@ -27,6 +26,7 @@ build:
   dependencies:
     gnu.org/coreutils: '*'
     git-scm.org: '*'
+    curl.se: '*'
   env:
     VIRTUAL_ENV: ${{prefix}}/venv
     CC: clang
@@ -38,6 +38,11 @@ build:
         sed -i.bak -e's/\(MK_.* -march=native -mtune=native\)/#\1/g' Makefile
         rm Makefile.bak
       if: linux/x86-64
+
+    # this commit breaks linux/aarch64 - remove once fixed
+    - run: curl -LSs 'https://github.com/ggerganov/llama.cpp/pull/4630/commits/42f5246effafddcf87d67656b58e95030f4bc454.patch' | patch -p1 -R
+      if: '>=1705'
+
     - make --jobs {{hw.concurrency}}
 
     - |
