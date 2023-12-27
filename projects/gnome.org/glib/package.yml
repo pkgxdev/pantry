@@ -18,6 +18,10 @@ dependencies:
   pcre.org: 8
   pcre.org/v2: 10
 
+runtime:
+  env:
+    PYTHONPATH: '{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages:$PYTHONPATH'
+
 build:
   dependencies:
     mesonbuild.com: ^1.2
@@ -60,6 +64,10 @@ build:
 
         ln -s ../lib/glib-{{version.major}}.0/include/* .
       working-directory: '{{prefix}}/include'
+
+    - cp -a ../venv/lib/python{{deps.python.org.version.marketing}} "{{prefix}}"/lib
+    - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
+      working-directory: '{{prefix}}/lib'
 
   #REF https://github.com/Homebrew/homebrew-core/blob/d0e65698ccd502335bea68ce879ae02e1735db0d/Formula/glib.rb#L66-L67
   #FIXME hardcoded paths ^^
