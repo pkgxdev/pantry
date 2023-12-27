@@ -1,0 +1,66 @@
+distributable:
+  url: https://github.com/facebook/watchman/archive/refs/tags/v{{version.raw}}.tar.gz
+  strip-components: 1
+versions:
+  github: facebook/watchman
+dependencies:
+  boost.org: ^1.84
+  facebook.com/edencommon: '>=2023.12.25.0'
+  facebook.com/fb303: '>=2023.12.25.0'
+  fmt.dev: '>=9'
+  facebook.com/folly: '>=2023.12.25.0'
+  gflags.github.io: ^2
+  google.com/glog: ^0.6
+  libevent.org: ^2.1
+  libsodium.org: ^1
+  openssl.org: ^1.1
+  pcre.org/v2: ^10
+  python.org: ~3.11
+build:
+  dependencies:
+    cmake.org: '*'
+    github.com/skystrife/cpptoml: '*'
+    facebook.com/fbthrift: '>=2023.12.25.0'
+    google.com/googletest: '*'
+    facebook.com/mvfst: '>=2023.12.25.0'
+    rust-lang.org: '*'
+  script:
+    - cmake -S . -B build $CMAKE_ARGS
+    - cmake --build build
+    - cmake --install build
+    - mkdir -p {{prefix}}/var/run/watchman
+  env:
+    CMAKE_ARGS:
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}
+      - -DCMAKE_INSTALL_LIBDIR=lib
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_FIND_FRAMEWORK=LAST
+      - -DCMAKE_VERBOSE_MAKEFILE=ON
+      - -Wno-dev
+      - -DBUILD_TESTING=OFF
+      - -DENABLE_EDEN_SUPPORT=ON
+      - -DWATCHMAN_VERSION_OVERRIDE={{version}}
+    linux:
+      CMAKE_ARGS:
+        - -DCMAKE_C_FLAGS=-fPIC
+        - -DCMAKE_CXX_FLAGS=-fPIC
+        - -DCMAKE_EXE_LINKER_FLAGS=-pie
+provides:
+  - bin/watchman
+  - bin/watchman-diag
+  - bin/watchman-make
+  - bin/watchman-wait
+  - bin/watchman-replicate-subscription
+  - bin/watchmanctl
+test:
+  script:
+    - watchman -v | grep {{version}}
+    - watchman watch $ARGS .
+    - kill $(cat pid)
+    - cat state | grep {{version}}
+  env:
+    ARGS:
+      - --sockname=$PWD/sock
+      - --statefile=$PWD/state
+      - --logfile=$PWD/log
+      - --pidfile=$PWD/pid
