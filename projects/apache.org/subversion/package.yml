@@ -31,7 +31,7 @@ build:
     make --jobs {{ hw.concurrency }}
     make install
   env:
-    CFLAGS: "$CFLAGS -I{{deps.apache.org/apr-util.prefix}}/include/apr-1"
+    CFLAGS: '$CFLAGS -I{{deps.apache.org/apr-util.prefix}}/include/apr-1'
     ARGS:
       - --prefix="{{prefix}}"
       - --disable-debug
@@ -59,4 +59,6 @@ provides:
   - bin/svnversion
 
 test:
-  svn --version
+  script: svn --version
+  # svn doen't like UTF-8 directories
+  working-directory: $(mktemp -d)
