@@ -24,14 +24,14 @@ build:
       ruby-lang.org: ^3 # ruby requires ruby to build
       # ^^ only linux because we got issues on darwin currently and darwin provides ruby (for now)
   script:
-    - patch -p1 < props/mkconfig.rb.diff
+    - patch -p1 -F5 < props/mkconfig.rb.diff
 
     - ./configure $ARGS
 
     - make --jobs {{hw.concurrency}} install
 
     # we provide these as `rubygems.org`
-    - run: rm bundle bundler gem
+    - run: rm -f bundle bundler gem
       working-directory: ${{prefix}}/bin
 
     - fix-shebangs.ts ${{prefix}}/bin/*
@@ -48,7 +48,7 @@ build:
           if test -d $x; then
             rm -rf $x
           else
-            rm $x
+            rm -f $x
           fi
         done
         rm -rf ../gems/3.2.0/gems/bundler-*.*.*
@@ -123,6 +123,7 @@ test:
 
     - run:
         ruby --yjit $FIXTURE
+      if: ^3
       fixture:
         content: |
           def fib(n)
