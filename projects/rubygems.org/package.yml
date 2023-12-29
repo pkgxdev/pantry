@@ -24,24 +24,24 @@ build:
         --no-rdoc
 
     - run: |
-        patch -p1 < "$SRCROOT"/props/fit-n-finish.1.patch
-        patch -p1 < "$SRCROOT"/props/fit-n-finish.2.patch
-        sed -ie 's/Gem.default_dir/Gem.default_system_dir/' lib/rubygems/path_support.rb
+        patch -p1 --no-backup-if-mismatch < "$SRCROOT"/props/fit-n-finish.1.patch
+        patch -p1 --no-backup-if-mismatch < "$SRCROOT"/props/fit-n-finish.2.patch
+        sed -i -e 's/Gem.default_dir/Gem.default_system_dir/' lib/rubygems/path_support.rb
       working-directory: ${{prefix}}
 
-    - run: sed -ie 's/Gem.state_home, "gem",/Gem.state_home,/' defaults.rb
+    - run: sed -i -e 's/Gem.state_home, "gem",/Gem.state_home,/' defaults.rb
       working-directory: ${{prefix}}/lib/rubygems
       if: '>=3.4'
 
-    - run: patch -p1 < "$SRCROOT"/props/fit-n-finish.3.patch
+    - run: patch -p1 --no-backup-if-mismatch "" < "$SRCROOT"/props/fit-n-finish.3.patch
       working-directory: ${{prefix}}
       if: '<3.5'
 
-    - run: patch -p1 < "$SRCROOT"/props/fit-n-finish.4.patch
+    - run: patch -p1 --no-backup-if-mismatch < "$SRCROOT"/props/fit-n-finish.4.patch
       working-directory: ${{prefix}}
       if: '>=3.5'
 
-    - run: sed -ie
+    - run: sed -i -e
         's/Dir\.mkdir dir, \*\[options\[:dir_mode\].*/FileUtils.mkdir_p dir, *[options[:dir_mode] \&\& 0o755].compact/'
         installer.rb
       working-directory: ${{prefix}}/lib/rubygems
@@ -111,16 +111,17 @@ test:
 
     # test for https://github.com/pkgxdev/pantry/issues/4010
     - run: |
-        export GEM_HOME=$HOME/.bundler
         mv $FIXTURE Gemfile
-        bundle install --path vendor/bundle
+        GEM_HOME=$HOME/.bundler bundle install --path vendor/bundle
       fixture: |
         source 'https://rubygems.org'
         gem 'warbler', platforms: :jruby
 
     # verifies that our bundler can be used as a gem
     - run:
-        ruby $FIXTURE
+        rm -rf {{deps.ruby-lang.org.prefix}}/lib/ruby/gems/*/bundler*
+        rm -rf {{deps.ruby-lang.org.prefix}}/lib/ruby/gems/*/rubygems*
+        GEM_HOME=$HOME/.bundler ruby $FIXTURE
       fixture:
         content: |
           require 'bundler/inline'
