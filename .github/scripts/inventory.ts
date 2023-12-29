@@ -1,4 +1,4 @@
-#!/usr/bin/env -S pkgx deno run --allow-net --allow-env=GITHUB_OUTPUT
+#!/usr/bin/env -S pkgx deno run --allow-net --allow-env=GITHUB_OUTPUT --allow-write
 
 const [project] = Deno.args
 
