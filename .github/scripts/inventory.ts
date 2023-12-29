@@ -1,4 +1,4 @@
-#!/usr/bin/env -S pkgx deno run --allow-net
+#!/usr/bin/env -S pkgx deno run --allow-net --allow-env=GITHUB_OUTPUT
 
 const [project] = Deno.args
 
