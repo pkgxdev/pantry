@@ -34,6 +34,9 @@ on:
           Indeed! You cannot leave this as `null` or undefined.
           Sorry, GHA is not flexible enough to efficiently work around this.
         type: string
+      complain:
+        type: boolean
+        default: false
     secrets:
       APPLE_CERTIFICATE_P12: { required: false }
       APPLE_CERTIFICATE_P12_PASSWORD: { required: false }
@@ -223,7 +226,7 @@ jobs:
 
   complain:
     needs: bottle
-    if: failure() && !inputs.dry-run
+    if: failure() && !inputs.dry-run && inputs.complain
     runs-on: ubuntu-latest
     permissions:
       issues: write
