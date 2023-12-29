@@ -14,4 +14,10 @@ for (const platform of ["linux", "darwin"]) {
 
 versions = [...new Set(versions.filter(x => x.trim()))]
 
-console.log(JSON.stringify(versions))
+const ghout = Deno.env.get("GITHUB_OUTPUT")
+if (ghout) {
+  const json = JSON.stringify(versions)
+  Deno.writeTextFileSync(ghout, `versions=${json}`, {append: true})
+} else {
+  console.log(JSON.stringify(versions))
+}
