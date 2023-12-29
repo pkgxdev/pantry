@@ -1,0 +1,34 @@
+name: restock project inventory
+run-name: rebuilding ${{ inputs.project }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      project:
+        description: a single project, eg. `foo.com`
+        required: true
+        type: string
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    outputs:
+      versions: ${{ steps.fetch.outputs.plan }}
+    steps:
+      - uses: pkgxdev/setup@v2
+      - uses: actions/checkout@v4
+      - run: ./.github/actions/inventory.ts ${{ inputs.project }}
+        id: fetch
+
+  pkg:
+    needs: ingest
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ${{ fromJSON(needs.ingest.outputs.versions) }}
+    uses: ./.github/workflows/pkg.yml
+    permissions:
+      issues: write  #FIXME we don’t want this but I don’t think we can alter the way permissions are inherited
+    with:
+      pkg: ${{inputs.project}}=${{ matrix.version }}
+    secrets: inherit
