@@ -10,35 +10,29 @@ versions:
 display-name: GPT Engineer
 
 dependencies:
-  python.org: '~3.11'
-  tea.xyz: ^0
+  pkgx.sh: ^1
 
-entrypoint: tea ./entrypoint.sh
+entrypoint: pkgx ./entrypoint.sh
 
 build:
   dependencies:
-    gnu.org/patch: '*'
-    python-poetry.org: '*'
+    python.org: ~3.11
+    python-poetry.org: ^1.7
   script:
     # https://github.com/AntonOsika/gpt-engineer/issues/204
     - run: patch -p1 < props/main.py.patch
       if: =0.0.3
 
-    # https://github.com/python-poetry/poetry/issues/1937#issuecomment-983754739
     - run: |
-        poetry config virtualenvs.create true
-        poetry config virtualenvs.in-project true
+        bkpyvenv stage --engine=poetry {{prefix}} {{version}}
         poetry install --with=experimental
-        poetry build -f sdist
-        tar zxvf dist/gpt_engineer-{{version}}.tar.gz -C .venv/lib/python3.11/site-packages --strip-components=1
-        mkdir -p "{{prefix}}"
-        export VIRTUAL_ENV="{{prefix}}/venv"
-        cp -a .venv "$VIRTUAL_ENV"
-        cp pyproject.toml "$VIRTUAL_ENV"
-        python-venv-stubber.sh gpt-engineer
+        bkpyvenv seal --engine=poetry {{prefix}} gpt-engineer
       if: '>=0.2.1'
 
-    - run: python-venv.sh {{prefix}}/bin/gpt-engineer
+    - run: |
+        bkpyvenv stage {{prefix}} {{version}}
+        {{prefix}}/venv/bin/pip install .
+        bkpyvenv seal {{prefix}} gpt-engineer
       if: '<0.2.1'
 
     # https://github.com/AntonOsika/gpt-engineer/issues/204
@@ -52,4 +46,8 @@ provides:
 
 test:
   qa-required: true
-  script: gpt-engineer --help
+  script:
+    - gpt-engineer --help
+    # verifies that python cannot have been available to gpt-engineer in any
+    # other way than via pkgx in the command’s pkgx shim
+    - if command -v python; then exit 1; fi
