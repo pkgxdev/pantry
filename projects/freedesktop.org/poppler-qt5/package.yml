@@ -1,13 +1,13 @@
 distributable:
-  url: https://poppler.freedesktop.org/poppler-{{version}}.tar.xz
+  url: https://poppler.freedesktop.org/{{version.tag}}.tar.xz
   strip-components: 1
+
 display-name: poppler-qt5
+
 versions:
-  url: https://poppler.freedesktop.org/
-  match: /poppler-\d+\.\d+\.\d+\.tar\.xz/
-  strip:
-    - /^poppler-/
-    - /\.tar\.xz/
+  gitlab: gitlab.freedesktop.org:poppler/poppler/tags
+  strip: /^poppler-/
+
 dependencies:
   gnupg.org/libassuan: ^2
   cairographics.org: ^1
@@ -25,11 +25,11 @@ dependencies:
   openjpeg.org: ^2
   qt.io: ~5
   curl.se: ^8
+
 build:
   dependencies:
     cmake.org: '*'
     gnome.org/gobject-introspection: '*'
-    freedesktop.org/pkg-config: '*'
   script:
     - cmake . $CMAKE_ARGS
     - make --jobs {{ hw.concurrency }} install
@@ -64,6 +64,7 @@ build:
       - -DRUN_GPERF_IF_PRESENT=OFF
       - -DWITH_GObjectIntrospection=ON
     CXXFLAGS: '$CXXFLAGS -std=c++11'
+
 provides:
   - bin/pdfattach
   - bin/pdfdetach
@@ -78,9 +79,7 @@ provides:
   - bin/pdftops
   - bin/pdftotext
   - bin/pdfunite
+
 test:
-  dependencies:
-    freedesktop.org/pkg-config: '*'
-  script:
-    - pdfinfo lorem.pdf | grep "Lorem Ipsum"
-    - pkg-config --modversion poppler-qt5 | grep "{{version}}"
+  - pdfinfo lorem.pdf | grep "Lorem Ipsum"
+  - pkg-config --modversion poppler-qt5 | grep "{{version.raw}}"
