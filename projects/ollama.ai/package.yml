@@ -15,14 +15,6 @@ build:
         git submodule init
         git submodule update
       if: '>=0.0.18'
-    # 0.1.18 seems to have changed these, and it's breaking x86-64 darwin builds
-    - run: |
-        if test -f gen_darwin.sh; then
-          sed -i 's/-DLLAMA_METAL=on/-DLLAMA_METAL=off -DLLAMA_NATIVE=off -DLLAMA_AVX=on -DLLAMA_AVX2=off -DLLAMA_AVX512=off -DLLAMA_FMA=off -DLLAMA_F16C=on/' gen_darwin.sh
-        fi
-      if: darwin/x86-64
-      working-directory: llm/llama.cpp
-
     - go generate ./...
     - go build .
     - mkdir -p {{prefix}}/bin
