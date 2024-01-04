@@ -19,7 +19,6 @@ platforms:
   # Illegal instruction: 4 on darwin/x86-64
 
 dependencies:
-  python.org: ~3.11
   pkgx.sh: ^1
 
 build:
@@ -27,6 +26,7 @@ build:
     gnu.org/coreutils: '*'
     git-scm.org: '*'
     curl.se: '*'
+    python.org: ~3.11
   env:
     VIRTUAL_ENV: ${{prefix}}/venv
     CC: clang
@@ -54,15 +54,12 @@ build:
       mkdir -p {{prefix}}/share
       mv prompts {{prefix}}/share
 
-    - |
-      install -D convert.py $VIRTUAL_ENV/bin/convert.py
-      python-venv-stubber.sh convert.py
+    - install -D convert.py $VIRTUAL_ENV/bin/convert.py
 
     - |
-      python -m venv $VIRTUAL_ENV
-      source $VIRTUAL_ENV/bin/activate
-      pip install -r requirements.txt
-      deactivate
+      bkpyvenv stage {{prefix}} {{version}}
+      $VIRTUAL_ENV/bin/pip install -r requirements.txt
+      bkpyvenv seal {{prefix}} convert.py
 
 test:
   '{{prefix}}/bin/llama.cpp --help'
