@@ -1,4 +1,4 @@
-### Setup your OPENAI_API_KEY, or make sure it existed in the env
+### Setup your OPENAI_API_KEY and OPENAI_API_MODEL, or make sure they exist in the env
 
 ```
 mkdir ~/.metagpt/key.yaml
