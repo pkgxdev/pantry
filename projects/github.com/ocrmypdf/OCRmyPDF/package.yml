@@ -10,19 +10,22 @@ versions:
 #   - linux/x86-64
 
 dependencies:
-  python.org: ~3.11
+  pkgx.sh: ^1
   qpdf.sourceforge.io: ^11
 
 build:
   dependencies:
+    python.org: ~3.11
     openjpeg.org: '*'
-    gnome.org/libxml2: ~2.11
+    gnome.org/libxml2: ~2.12
     gnome.org/libxslt: '*'
   script:
-    - python-venv.sh {{prefix}}/bin/ocrmypdf
-    - source <("{{prefix}}"/venv/bin/activate)
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
     # pikepdf libs are compiled for MACOSX_DEPLOYMENT_TARGET=12.0
-    - 'pip install --no-cache-dir --force-reinstall --no-binary :all: pikepdf'
+    - run: '{{prefix}}/venv/bin/pip install --no-cache-dir --force-reinstall --no-binary :all: pikepdf'
+      if: darwin
+    - bkpyvenv seal {{prefix}} ocrmypdf
   env:
     # add any environment variables here
     ARGS:
