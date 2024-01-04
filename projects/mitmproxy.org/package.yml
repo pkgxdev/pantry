@@ -1,15 +1,24 @@
 distributable:
   url: https://github.com/mitmproxy/mitmproxy/archive/{{version}}.tar.gz
   strip-components: 1
+
 versions:
   github: mitmproxy/mitmproxy
+
 dependencies:
-  python.org: ~3.11
+  pkgx.sh: ^1
+
 build:
+  dependencies:
+    python.org: ~3.11
   script:
-    - python-venv.sh {{prefix}}/bin/mitmproxy
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} mitmproxy
+
 provides:
   - bin/mitmproxy
+
 test:
   script:
     - mitmproxy --version | grep {{version}}
