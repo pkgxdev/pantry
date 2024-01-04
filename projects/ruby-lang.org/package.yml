@@ -28,6 +28,12 @@ build:
 
     - ./configure $ARGS
 
+    # clang17 doesn't like [[maybe_unused]] on types
+    # fix cribbed from https://github.com/ruby/ruby/pull/4603/commits/fbdff085ef3c8a56e0a33404e8795879e3167549
+    - run: sed -i -e 's/elif RBIMPL_HAS_C_ATTRIBUTE(maybe_unused)/elif RBIMPL_HAS_C_ATTRIBUTE(maybe_unused) \&\& (__STDC_VERSION__ >= 202000L)/' maybe_unused.h
+      if: linux
+      working-directory: include/ruby/internal/attr
+
     - make --jobs {{hw.concurrency}} install
 
     # we provide these as `rubygems.org`
@@ -99,8 +105,7 @@ test:
     # - echo 'puts 1' | irb
 
     # tests the libraries that come with Ruby can be utilized
-    - run:
-        ruby $FIXTURE
+    - run: ruby $FIXTURE
       fixture:
         content: |
           require 'date'
@@ -108,8 +113,7 @@ test:
         extname: rb
 
     # tests the gems that come with Ruby can be utilized
-    - run:
-        ruby $FIXTURE
+    - run: ruby $FIXTURE
       fixture:
         content: |
           require 'matrix'
@@ -121,9 +125,8 @@ test:
           puts "Determinant of the matrix: #{determinant}"
         extname: rb
 
-    - run:
-        ruby --yjit $FIXTURE
-      if: ^3
+    - run: ruby --yjit $FIXTURE
+      if: ^3.1
       fixture:
         content: |
           def fib(n)
