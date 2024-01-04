@@ -10,11 +10,14 @@ dependencies:
 
 build:
   dependencies:
-    cmake.org: '*'
+    python.org: ~3.11
+    cmake.org: ^3
     linux:
       rust-lang.org/cargo: '*'  # for cryptographic bindings
   script:
-    python-venv.sh {{prefix}}/bin/poetry
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} poetry
 
 test:
   script:
