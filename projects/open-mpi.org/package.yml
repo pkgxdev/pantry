@@ -29,29 +29,34 @@ build:
   dependencies:
     zlib.net: ^1
     gnu.org/binutils: '*'
+    python.org: ^3
     linux:
       gnu.org/make: '*'
   script:
     - ./configure $CONFIGURE_ARGS
     - make --jobs {{ hw.concurrency }} all
     - make --jobs {{ hw.concurrency }} install
-    - run: |
-        sed -i.bak "s|$PKGX_DIR|\${pcfiledir}/../../../..|g" ompi-c.pc ompi-cxx.pc ompi-fort.pc ompi.pc orte.pc pmix.pc
-        rm ./*.bak
+
+    - run: sed -i "s|$PKGX_DIR|\${pcfiledir}/../../../..|g" *.pc
       working-directory: '{{prefix}}/lib/pkgconfig'
-    - run: |
-        sed -i.bak "s|linker_flags=.*|linker_flags=|g" mpic++-wrapper-data.txt mpicc-wrapper-data.txt mpifort-wrapper-data.txt ortecc-wrapper-data.txt
-        rm ./*.bak
+
+    - run: sed -i "s|linker_flags=.*|linker_flags=|g" *-wrapper-data.txt
       working-directory: '{{prefix}}/share/openmpi'
+
     - install {{prefix}}/lib/*.mod {{prefix}}/include/
   env:
-    AR: ${{deps.gnu.org/binutils.prefix}}/bin/ar
-    RANLIB: ${{deps.gnu.org/binutils.prefix}}/bin/ranlib
+    linux:
+      AR: ${{deps.gnu.org/binutils.prefix}}/bin/ar
+      RANLIB: ${{deps.gnu.org/binutils.prefix}}/bin/ranlib
     CXXFLAGS: $CXXFLAGS -std=c++11
     darwin:
+      # FIXME: binutils ar/ranlib are broken on macOS?
+      AR: /usr/bin/ar
+      RANLIB: /usr/bin/ranlib
       CFLAGS: $CFLAGS -Wl,-rpath,{{pkgx.prefix}}
       CXXFLAGS: $CXXFLAGS -Wl,-rpath,{{pkgx.prefix}}
       FCFLAGS: $FCFLAGS -Wl,-rpath,{{pkgx.prefix}}
+      LDFLAGS: $LDFLAGS -headerpad_max_install_names
     CONFIGURE_ARGS:
       - --disable-debug
       - --disable-dependency-tracking
@@ -75,16 +80,9 @@ provides:
   - bin/mpif90
   - bin/mpifort
   - bin/mpirun
-  - bin/ompi-clean
   - bin/ompi_info
-  - bin/ompi-server
   - bin/opal_wrapper
-  - bin/ortecc
-  - bin/orte-clean
-  - bin/orted
   - bin/orte-info
-  - bin/orterun
-  - bin/orte-server
 
 test:
   dependencies:
