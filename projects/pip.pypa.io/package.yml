@@ -30,14 +30,14 @@ build:
       while semverator lt $v {{deps.python.org.version.marketing}}; do
         v=$(semverator bump $v minor | cut -d. -f1,2)
         cp $PROP pip$v
-        echo "exec pkgx python@$v \$d/lib/bin/pip \"\$@\"" >> pip$v
+        echo "exec pkgx python@$v \"\$d/lib/bin/pip\" \"\$@\"" >> pip$v
       done
 
       cp $PROP pip{{ deps.python.org.version.major }}
-      echo 'exec pkgx python@{{ deps.python.org.version.major }} $d/lib/bin/pip "$@"' >> pip{{ deps.python.org.version.major }}
+      echo 'exec pkgx python@{{ deps.python.org.version.major }} "$d/lib/bin/pip" "$@"' >> pip{{ deps.python.org.version.major }}
 
       cp $PROP pip
-      echo 'exec pkgx python $d/lib/bin/pip "$@"' >> pip
+      echo 'exec pkgx python "$d/lib/bin/pip" "$@"' >> pip
 
       rm {{prefix}}/lib/bin/pip?*
     working-directory:
