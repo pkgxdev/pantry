@@ -6,19 +6,20 @@ versions:
   github: pypa/pipenv/releases/tags
   strip: /^v/
 
-dependencies:
-  tea.xyz: ^0
-
 companions:
-  python.org: '>=3.7<3.12'
   pip.pypa.io: '*'
+
+dependencies:
+  pkgx.sh: ^1
 
 build:
   dependencies:
-    python.org: '>=3.7<3.12'
+    python.org: ~3.11
     crates.io/semverator: '*'
   script:
-    - python-venv.sh {{prefix}}/bin/pipenv
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} pipenv
 
     # create exec scripts for pipenv so it can auto install and use the pythons it wants
     - working-directory:
@@ -28,18 +29,9 @@ build:
         while semverator lt $v {{deps.python.org.version.marketing}}; do
           v=$(semverator bump $v minor | cut -d. -f1,2)
           echo '#!/bin/sh' > python$v
-          echo "exec tea python~$v \"\$@\"" >> python$v
+          echo "exec pkgx python~$v \"\$@\"" >> python$v
           chmod +x python$v
         done
-
-    # so the venv for ourselves works without adding a specific python to
-    # our runtime dependencies
-    - working-directory:
-        ${{prefix}}/bin
-      run: |
-        echo '#!/bin/sh' > python
-        echo "exec tea python~{{ deps.python.org.version.marketing }} \"\$@\"" >> python
-        chmod +x python
 
 runtime:
   env:
