@@ -6,10 +6,15 @@ versions:
   github: mesonbuild/meson/tags
 
 dependencies:
-  python.org: '>=3<3.12'
+  pkgx.sh: ^1
 
 build:
-  python-venv.sh "{{prefix}}/bin/meson"
+  dependencies:
+    python.org: ~3.11
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} meson
 
 test:
   dependencies:
