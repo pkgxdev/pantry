@@ -30,7 +30,10 @@ build:
 
     # clang17 doesn't like [[maybe_unused]] on types
     # fix cribbed from https://github.com/ruby/ruby/pull/4603/commits/fbdff085ef3c8a56e0a33404e8795879e3167549
-    - run: sed -i -e 's/elif RBIMPL_HAS_C_ATTRIBUTE(maybe_unused)/elif RBIMPL_HAS_C_ATTRIBUTE(maybe_unused) \&\& (__STDC_VERSION__ >= 202000L)/' maybe_unused.h
+    - run: |
+        if test -f maybe_unused.h; then
+          sed -i -e 's/elif RBIMPL_HAS_C_ATTRIBUTE(maybe_unused)/elif RBIMPL_HAS_C_ATTRIBUTE(maybe_unused) \&\& (__STDC_VERSION__ >= 202000L)/' maybe_unused.h
+        fi
       if: linux
       working-directory: include/ruby/internal/attr
 
@@ -72,6 +75,7 @@ build:
         mv *-{{hw.platform}}*/* .
         rmdir *-{{hw.platform}}*
       working-directory: ${{prefix}}/lib
+      if: '>=2.6'
 
     - run: sed -i.bak
         -e 's|$(DESTDIR){{prefix}}|$(topdir)|g'
@@ -79,6 +83,7 @@ build:
         rbconfig.rb
       working-directory: ${{prefix}}/lib/ruby/{{version.marketing}}.0
   env:
+    CFLAGS: $CFLAGS -Wno-implicit-function-declaration
     ARGS:
       - --prefix="{{prefix}}"
       - --enable-load-relative  # makes us relocatable
