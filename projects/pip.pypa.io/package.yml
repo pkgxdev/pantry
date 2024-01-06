@@ -30,25 +30,29 @@ build:
       while semverator lt $v {{deps.python.org.version.marketing}}; do
         v=$(semverator bump $v minor | cut -d. -f1,2)
         cp $PROP pip$v
-        echo "exec pkgx python@$v \"\$d/lib/bin/pip\" \"\$@\"" >> pip$v
+        echo "exec pkgx python@$v \"\$d/bin/pip\" \"\$@\"" >> pip$v
       done
 
       cp $PROP pip{{ deps.python.org.version.major }}
-      echo 'exec pkgx python@{{ deps.python.org.version.major }} "$d/lib/bin/pip" "$@"' >> pip{{ deps.python.org.version.major }}
+      echo 'exec pkgx python@{{ deps.python.org.version.major }} "$d/bin/pip" "$@"' >> pip{{ deps.python.org.version.major }}
 
       cp $PROP pip
-      echo 'exec pkgx python "$d/lib/bin/pip" "$@"' >> pip
+      echo 'exec pkgx python "$d/bin/pip" "$@"' >> pip
 
       rm {{prefix}}/lib/bin/pip?*
     working-directory:
       ${{prefix}}/bin
     prop: |
       #!/bin/sh
-      d="$(cd "$(dirname "$0")"/.. && pwd)"
+      d="$(cd "$(dirname "$0")"/.. && pwd)/lib"
       export PIP_DISABLE_PIP_VERSION_CHECK=1
-      export PYTHONPATH="$d:$PYTHONPATH"
+      if [ -n "$PYTHONPATH" ]; then
+        export PYTHONPATH="$d:$PYTHONPATH"
+      else
+        export PYTHONPATH="$d"
+      fi
 
-  - fix-shebangs.ts {{prefix}}/lib/bin/*
+  - fix-shebangs.ts {{prefix}}/bin/*
 
 test:
   - run: pkgx +python.org~3.9 pip install findtui --target .
@@ -59,6 +63,8 @@ test:
     if: '>=19'
 
   - test -f findtui/main.py
+
+  - pip --version | grep {{prefix}}
 
 provides:
   - bin/pip
