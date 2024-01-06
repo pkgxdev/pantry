@@ -37,6 +37,9 @@ on:
       complain:
         type: boolean
         default: false
+      invalidate-cloudfront:
+        type: boolean
+        default: true
     secrets:
       APPLE_CERTIFICATE_P12: { required: false }
       APPLE_CERTIFICATE_P12_PASSWORD: { required: false }
@@ -222,7 +225,7 @@ jobs:
           --distribution-id ${{ secrets.AWS_CF_DISTRIBUTION_ID }}
           --paths
           /$DIRNAME/versions.txt
-        if: ${{ ! inputs.dry-run }}
+        if: ${{ ! inputs.dry-run && inputs.invalidate-cloudfront }}
 
   complain:
     needs: bottle
