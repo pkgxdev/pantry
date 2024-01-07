@@ -49,11 +49,21 @@ build:
       # FIXME hardcoded `3`
       - |
         install -D $PROP {{prefix}}/bin/pip3
-        echo "exec pkgx python@3 \"\$d/bin/pip\" \"\$@\"" >> {{prefix}}/bin/pip3
+        if semverator lt {{version}} 23.1.2; then
+          python="'python<3.12'"
+        else
+          python=python@3
+        fi
+        echo "exec pkgx $python \"\$d/bin/pip\" \"\$@\"" >> {{prefix}}/bin/pip3
 
       - |
         install -D $PROP {{prefix}}/bin/pip
-        echo "exec pkgx python \"\$d/bin/pip\" \"\$@\"" >> {{prefix}}/bin/pip
+        if semverator lt {{version}} 23.1.2; then
+          python="'python<3.12'"
+        else
+          python=python
+        fi
+        echo "exec pkgx $python \"\$d/bin/pip\" \"\$@\"" >> {{prefix}}/bin/pip
 
     prop: |
       #!/bin/sh
@@ -83,10 +93,11 @@ test:
   - pip --version | grep {{prefix}}
   - pip --version | grep {{version}}
 
-  - |
-    for v in 3.8 3.9 3.10 3.11; do
-      test $(pip$v inspect | pkgx jq --raw-output .environment.python_version) = $v
-    done
+  - run: |
+      for v in 3.8 3.9 3.10 3.11; do
+        test $(pip$v inspect | pkgx jq --raw-output .environment.python_version) = $v
+      done
+    if: '>=22'  # inspect command introduced at v22
 
 provides:
   - bin/pip
