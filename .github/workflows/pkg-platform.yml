@@ -175,14 +175,14 @@ jobs:
         env:
           URL: s3://${{ secrets.AWS_S3_BUCKET }}/${{ env.PREFIX }}
         id: put
-        if: ${{ ! inputs.dry-run }}
+        if: !inputs.dry-run
 
       - name: invalidate cloudfront
         run: aws cloudfront create-invalidation
           --distribution-id ${{ secrets.AWS_CF_DISTRIBUTION_ID }}
           --paths
           ${{ steps.put.outputs.cf-paths }}
-        if: ${{ ! inputs.dry-run }}
+        if: !inputs.dry-run && inputs.invalidate-cloudfront
 
   publish:
     name: publish ${{inputs.tinyname}} ${{ inputs.dry-run && '(dry-run)' }}
@@ -218,14 +218,14 @@ jobs:
 
       - name: s3 put
         run: aws s3 cp versions.txt s3://${{ secrets.AWS_S3_BUCKET }}/$DIRNAME/versions.txt
-        if: ${{ ! inputs.dry-run }}
+        if: !inputs.dry-run
 
       - name: invalidate cloudfront
         run: aws cloudfront create-invalidation
           --distribution-id ${{ secrets.AWS_CF_DISTRIBUTION_ID }}
           --paths
           /$DIRNAME/versions.txt
-        if: ${{ ! inputs.dry-run && inputs.invalidate-cloudfront }}
+        if: inputs.invalidate-cloudfront && !inputs.dry-run
 
   complain:
     needs: bottle
