@@ -1,0 +1,31 @@
+distributable:
+  url: https://registry.npmjs.org/nx/-/nx-{{version}}.tgz
+  strip-components: 1
+
+display-name: nx.dev
+
+versions:
+  npm: nx
+  ignore: ["9999.0.1", "999.9.9"]
+
+provides:
+  - bin/nx
+
+dependencies:
+  nodejs.org: ^18
+
+build:
+  dependencies:
+    npmjs.com: ^10
+  script:
+    - npm i $ARGS .
+  env:
+    ARGS:
+      - --global
+      - --install-links
+      - --prefix={{prefix}}
+
+test:
+  script: |
+    nx --version
+

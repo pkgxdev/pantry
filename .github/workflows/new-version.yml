@@ -1,4 +1,4 @@
-name: new-version
+name: build pkg version
 run-name: building ${{ inputs.projects }}
 
 on:
@@ -8,12 +8,18 @@ on:
         description: eg. `foo.com=1.2.3 bar.com^2.3.4`
         required: true
         type: string
+      complain:
+        type: boolean
+        default: false
   workflow_dispatch:
     inputs:
       projects:
         description: eg. `foo.com=1.2.3 bar.com^2.3.4`
         required: true
         type: string
+      complain:
+        type: boolean
+        default: true
 
 jobs:
   ingest:
@@ -22,7 +28,7 @@ jobs:
       pkgs: ${{ steps.divide.outputs.pkgs }}
     steps:
       - run: |
-          var="$(echo ${{ inputs.projects }} | jq -R -s -c 'split(" ")')"
+          var="$(echo -n ${{ inputs.projects }} | jq -R -s -c 'split(" ")')"
           echo "pkgs=$var" >> $GITHUB_OUTPUT
         id: divide
 
@@ -37,4 +43,5 @@ jobs:
       issues: write
     with:
       pkg: ${{ matrix.pkg }}
+      complain: ${{ github.event_name == 'workflow_call' || inputs.complain }}
     secrets: inherit

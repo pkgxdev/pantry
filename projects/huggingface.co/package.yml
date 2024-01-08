@@ -4,15 +4,19 @@ distributable:
 
 display-name: huggingface/cli
 
-# if there’s a github then we can parse the versions
 versions:
   github: huggingface/huggingface_hub
 
 dependencies:
-  python.org: ~3.11
+  pkgx.sh: ^1
 
 build:
-  python-venv.sh {{prefix}}/bin/huggingface-cli
+  dependencies:
+    python.org: ~3.11
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} huggingface-cli
 
 provides:
   - bin/huggingface-cli

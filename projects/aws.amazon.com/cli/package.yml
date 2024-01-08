@@ -8,15 +8,18 @@ versions:
   github: aws/aws-cli/tags
 
 dependencies:
-  python.org: ">=3.7<3.12"
   sourceware.org/libffi: ^3
+  pkgx.sh: ^1
 
 build:
   dependencies:
-    rust-lang.org: ">=1.48.0" # needed for cryptography
-    rust-lang.org/cargo: "*"
-  script: |
-    python-venv.sh {{prefix}}/bin/aws
+    rust-lang.org: '>=1.48.0' # needed for cryptography
+    rust-lang.org/cargo: '*'
+    python.org: '>=3.7<3.12'
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} aws
   env:
     # python includes are subdirectoried under the version
     # frankly, python's versioning system causes a lot of
