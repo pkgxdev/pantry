@@ -7,11 +7,18 @@ build:
   dependencies:
     go.dev: '*'
   script:
-    - make cnquery/install
-    - mkdir -p {{prefix}}/bin
-    - cp $SRCROOT/go/bin/cnquery {{prefix}}/bin
+    - go build $ARGS -ldflags="$LD_FLAGS" ./apps/cnquery/cnquery.go
   env:
-    GOPATH: $SRCROOT/go
+    LD_FLAGS:
+      - -s
+      - -w
+    linux:
+      LD_FLAGS:
+        - -buildmode=pie
+    ARGS:
+      - -v
+      - -trimpath
+      - -o={{prefix}}/bin/cnquery
 provides:
   - bin/cnquery
 test:
