@@ -17,24 +17,26 @@ build:
     freedesktop.org/pkg-config: ^0.29
     linux:
       systemd.io: '*' # hidapi crate requires libudev
-  script: |
-    for x in \
-      cli \
-      bench-streamer \
-      faucet \
-      keygen \
-      log-analyzer \
-      net-shaper \
-      stake-accounts \
-      sys-tuner \
-      tokens \
-      watchtower
-    do
-      # sys-tuner removed in v1.16
-      if test -d $x; then
-        cargo install --root {{prefix}} --path $x
-      fi
-    done
+  script:
+    # ahash 0.8.3 got yanked, and 0.8.4 has build failures
+    - sed -i -e 's/^ahash = "=0\.8\.[34]"$/ahash = "=0.8.5"/' Cargo.toml
+    - |
+      for x in \
+        cli \
+        bench-streamer \
+        faucet \
+        keygen \
+        log-analyzer \
+        net-shaper \
+        stake-accounts \
+        sys-tuner \
+        tokens \
+        watchtower
+      do
+        if test -d $x; then
+          cargo install --root {{prefix}} --path $x
+        fi
+      done
   env:
     # TODO this should be fixed in brewkit
     linux/aarch64:
