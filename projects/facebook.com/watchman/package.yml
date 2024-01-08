@@ -25,7 +25,7 @@ build:
     facebook.com/mvfst: '>=2023.12.25.0'
     rust-lang.org: '*'
   script:
-    - cmake -S . -B build $CMAKE_ARGS
+    - cmake -S . -B build $CMAKE_ARGS -DCMAKE_CXX_FLAGS="$CXXFLAGS"
     - cmake --build build
     - cmake --install build
     - mkdir -p {{prefix}}/var/run/watchman
@@ -41,9 +41,11 @@ build:
       - -DENABLE_EDEN_SUPPORT=ON
       - -DWATCHMAN_VERSION_OVERRIDE={{version}}
     linux:
+      CXXFLAGS:
+        - -fPIC
+        - -latomic
       CMAKE_ARGS:
         - -DCMAKE_C_FLAGS=-fPIC
-        - -DCMAKE_CXX_FLAGS=-fPIC
         - -DCMAKE_EXE_LINKER_FLAGS=-pie
 provides:
   - bin/watchman
