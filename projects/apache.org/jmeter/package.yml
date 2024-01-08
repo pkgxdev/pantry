@@ -36,8 +36,8 @@ test:
   # Caused by: java.nio.file.InvalidPathException: Malformed input or input contains unmappable characters: /__w/pantry/pantry/testbeds/apache.org???jmeter-5.6.3
   working-directory: $(mktemp -d)
   script:
-    - jmeter -n -t $FIXTURE
-    - jmeter -n -t $FIXTURE | grep 'end of run'
+    - cat $FIXTURE > test.jmx
+    - jmeter -n -t test.jmx | grep 'end of run'
     - jmeter --version | grep {{version}}
   fixture: |
     <?xml version="1.0" encoding="UTF-8"?>
