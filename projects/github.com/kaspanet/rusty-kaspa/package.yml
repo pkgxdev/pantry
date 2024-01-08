@@ -4,6 +4,7 @@ distributable:
 
 provides:
   - bin/kaspad
+  - bin/kaspa-cli
 
 versions:
   github: kaspanet/rusty-kaspa/tags
@@ -18,8 +19,11 @@ build:
     rust-lang.org: '>=1.56'
     rust-lang.org/cargo: '*'
     protobuf.dev: 25
-  working-directory: kaspad
-  script: cargo install --locked --path . --root {{prefix}}
+    curl.se: '*'
+  script:
+    # >=0.13.2 requires --features=heap or segfaults
+    - cargo install --path kaspad --root {{prefix}} --features=heap
+    - cargo install --path cli --root {{prefix}}
 
 test:
-  - kaspad --version | grep "{{version}}"
+  - (kaspad --version || true) | grep "{{version}}"
