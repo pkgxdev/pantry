@@ -1,0 +1,22 @@
+distributable:
+  url: https://tailcall.gateway.scarf.sh/archive/refs/tags/tailcall-v{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/tailcall
+
+versions:
+  github: tailcallhq/tailcall
+  strip: /v/
+
+build:
+  env:
+    APP_VERSION: "{{ version }}"
+  dependencies:
+    rust-lang.org: ">=1.65"
+    rust-lang.org/cargo: "*"
+  script: cargo install --locked --path . --root {{prefix}}
+
+test:
+  script:
+    - test "$(tailcall --version)" = "tailcall {{version}}"

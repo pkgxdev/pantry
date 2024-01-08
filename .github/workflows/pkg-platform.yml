@@ -37,6 +37,9 @@ on:
       complain:
         type: boolean
         default: false
+      invalidate-cloudfront:
+        type: boolean
+        default: true
     secrets:
       APPLE_CERTIFICATE_P12: { required: false }
       APPLE_CERTIFICATE_P12_PASSWORD: { required: false }
@@ -172,14 +175,14 @@ jobs:
         env:
           URL: s3://${{ secrets.AWS_S3_BUCKET }}/${{ env.PREFIX }}
         id: put
-        if: ${{ ! inputs.dry-run }}
+        if: inputs.dry-run != true
 
       - name: invalidate cloudfront
         run: aws cloudfront create-invalidation
           --distribution-id ${{ secrets.AWS_CF_DISTRIBUTION_ID }}
           --paths
           ${{ steps.put.outputs.cf-paths }}
-        if: ${{ ! inputs.dry-run }}
+        if: inputs.invalidate-cloudfront && !inputs.dry-run
 
   publish:
     name: publish ${{inputs.tinyname}} ${{ inputs.dry-run && '(dry-run)' }}
@@ -215,14 +218,14 @@ jobs:
 
       - name: s3 put
         run: aws s3 cp versions.txt s3://${{ secrets.AWS_S3_BUCKET }}/$DIRNAME/versions.txt
-        if: ${{ ! inputs.dry-run }}
+        if: inputs.dry-run != true
 
       - name: invalidate cloudfront
         run: aws cloudfront create-invalidation
           --distribution-id ${{ secrets.AWS_CF_DISTRIBUTION_ID }}
           --paths
           /$DIRNAME/versions.txt
-        if: ${{ ! inputs.dry-run }}
+        if: inputs.invalidate-cloudfront && !inputs.dry-run
 
   complain:
     needs: bottle
