@@ -1,0 +1,33 @@
+distributable:
+  url: https://www.x.org/archive/individual/lib/libXft-{{version}}.tar.xz
+  strip-components: 1
+versions:
+  url: https://www.x.org/archive/individual/lib/
+  match: /libXft-\d+\.\d+\.\d+\.tar\.xz/
+  strip:
+    - /^libXft-/
+    - /\.tar\.xz/
+dependencies:
+  freedesktop.org/fontconfig: ^2.14
+  x.org/xrender: ^0.9
+  sourceware.org/bzip2: ^1
+  zlib.net: ^1
+build:
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --sysconfdir={{prefix}}/etc
+      - --localstatedir={{prefix}}/var
+      - --disable-dependency-tracking
+      - --disable-silent-rules
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script:
+    - cc test.c $(pkg-config --cflags fontconfig) -o test
+    - ./test
+    - pkg-config --modversion xft | grep {{version}}
