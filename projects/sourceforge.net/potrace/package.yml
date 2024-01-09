@@ -1,0 +1,31 @@
+distributable:
+  url: https://potrace.sourceforge.net/download/{{version.marketing}}/potrace-{{version.marketing}}.tar.gz
+  strip-components: 1
+versions:
+  url: https://potrace.sourceforge.net/
+  match: /potrace-\d+\.\d+\.tar\.gz/
+  strip:
+    - /^potrace-/
+    - /\.tar\.gz/
+dependencies:
+  zlib.net: ^1
+build:
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --disable-dependency-tracking
+      - --prefix={{prefix}}
+      - --with-libpotrace
+provides:
+  - bin/potrace
+  - bin/mkbitmap
+test:
+  dependencies:
+    curl.se: '*'
+  script:
+    - curl -L https://potrace.sourceforge.net/img/head.pbm -o head.pbm
+    - potrace head.pbm -o test.eps
+    - ls | grep test.eps
+    - potrace --version | grep {{version.marketing}}
