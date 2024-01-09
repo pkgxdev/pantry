@@ -59,17 +59,13 @@ build:
     - ghcup set ghc {{version}}
     - run: ln -s .ghcup/* .
       working-directory: ${{prefix}}
-    - run: |
-        find . -type f -print0 | xargs -0 sed -i.bak -e "s|$PKGX_DIR|\${PKGX_DIR:-\$HOME/.pkgx}|g"
-        rm *.bak
+    - run: find . -type f -print0 | xargs -0 sed -i -e "s|$PKGX_DIR|\${PKGX_DIR:-\$HOME/.pkgx}|g" -e 's/\+brewing//g'
       working-directory: ${{prefix}}/ghc/{{version}}/bin
     - run: |
         sed -i.bak -e "s|$PKGX_DIR|\${PKGX_DIR:-\$HOME/.pkgx}|g" env
         rm env.bak
       working-directory: ${{prefix}}/.ghcup
-    - run: |
-        find . -type f -name \*.conf -print0 | xargs -0 sed -i.bak -e 's|{{prefix}}|${pkgroot}/../../../../..|g'
-        find . -type f -name \*.conf.bak -delete
+    - run: find . -type f -name \*.conf -print0 | xargs -0 sed -i -e 's|{{prefix}}|${pkgroot}/../../../../..|g' -e 's/\+brewing//g'
       working-directory: ${{prefix}}/ghc/{{version}}/lib/ghc-{{version}}/package.conf.d
       if: <9.4
   env:
