@@ -12,6 +12,11 @@ dependencies:
   libraw.org: ^0.21
 build:
   script:
+    # warning: ISO C++17 does not allow 'register' storage class specifier [-Wregister]
+    - run: |
+        sed -i.bak "s|register ||g" pic2plot/gram.cc
+        rm pic2plot/gram.cc.bak
+      if: linux
     - run: |
         sed -i.bak "s|png_ptr->jmpbuf|png_jmpbuf (png_ptr)|g" z_write.c
         rm z_write.c.bak
@@ -32,10 +37,6 @@ build:
     linux/aarch64:
       ARGS:
         - --build=aarch64-unknown-linux-gnu
-    linux:
-      CC: clang
-      CXX: clang++
-      LD: clang
 provides:
   - bin/double
   - bin/graph
