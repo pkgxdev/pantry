@@ -13,13 +13,9 @@ dependencies:
 build:
   script:
     # warning: ISO C++17 does not allow 'register' storage class specifier [-Wregister]
-    - run: |
-        sed -i.bak "s|register ||g" pic2plot/gram.cc
-        rm pic2plot/gram.cc.bak
+    - run: sed -i "s|register ||g" pic2plot/gram.cc
       if: linux
-    - run: |
-        sed -i.bak "s|png_ptr->jmpbuf|png_jmpbuf (png_ptr)|g" z_write.c
-        rm z_write.c.bak
+    - run: sed -i "s|png_ptr->jmpbuf|png_jmpbuf (png_ptr)|g" z_write.c
       working-directory: libplot
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }}
