@@ -1,0 +1,38 @@
+distributable:
+  url: https://alpha.gnu.org/gnu/clisp/clisp-{{version}}.tar.bz2
+  strip-components: 1
+versions:
+  url: https://alpha.gnu.org/gnu/clisp/
+  match: /clisp-\d+\.\d+(\.\d+)?\.tar\.bz2/
+  strip:
+    - /^clisp-/
+    - /\.tar\.bz2$/
+dependencies:
+  gnu.org/libsigsegv: ^2.14
+  gnu.org/readline: ^8.2
+  github.com/besser82/libxcrypt: ^4.4
+build:
+  script:
+    # Fix build on ARM
+    # Remove once https://gitlab.com/gnu-clisp/clisp/-/commit/39b68a14d9a1fcde8a357c088c7317b19ff598ad is released,
+    # which contains the necessary patch to the bundled gnulib
+    # https://git.savannah.gnu.org/gitweb/?p=gnulib.git;a=commit;h=00e688fc22c7bfb0bba2bd8a7b2a7d22d21d31ef
+    - run: patch -p1 < props/patch.patch
+      if: aarch64
+    - ./configure $ARGS
+    - run: |
+        make --jobs {{ hw.concurrency }}
+        make --jobs {{ hw.concurrency }} install
+      working-directory: src
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --disable-silent-rules
+      - --with-readline=yes
+provides:
+  - bin/clisp
+test:
+  - clisp --version | grep {{version.marketing}}
+  - clisp test.lisp
