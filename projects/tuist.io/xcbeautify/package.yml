@@ -16,6 +16,11 @@ build:
   #   swift.org: 5
   #   apple.com/xcode: >=13.3
   script:
+    # swift freaks all the way out if there's UTF-8 in the `TMPDIR`
+    # swift build --configuration=release
+    # TSCUtility/Triple.swift:215: Fatal error: Failed to parse target info (malformed).
+    - export TMPDIR=$(mktemp -d)
+
     # 0.21.0 doesn't have its version bumped
     - run: echo 'let version = "{{version}}"' > Sources/xcbeautify/Version.swift
       if: '>=0.21.0'
