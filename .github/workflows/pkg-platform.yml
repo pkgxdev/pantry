@@ -59,6 +59,7 @@ jobs:
     name: build ${{inputs.tinyname}}
     runs-on: ${{ fromJSON(inputs.os) }}
     container: ${{ inputs.container }}
+    permissions: {}
     outputs:
       project: ${{ steps.build.outputs.project }}
       version: ${{ steps.build.outputs.version }}
@@ -118,6 +119,7 @@ jobs:
   bottle:
     name: bottle (${{inputs.tinyname}}.${{matrix.compression}})
     needs: [build, test]
+    permissions: {}
     strategy:
       matrix:
         compression: [xz, gz]
@@ -189,6 +191,7 @@ jobs:
     name: publish ${{inputs.tinyname}} ${{ inputs.dry-run && '(dry-run)' }}
     runs-on: ubuntu-latest
     needs: [bottle, build]
+    permissions: {}
     env:
       DIRNAME: ${{ needs.build.outputs.project }}/${{ needs.build.outputs.platform }}/${{ needs.build.outputs.arch }}
     steps:
