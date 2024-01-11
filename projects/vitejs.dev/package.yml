@@ -10,11 +10,23 @@ dependencies:
   nodejs.org: ^16 || ^18 || ^20
 
 build:
-  npm install .
-    --global
-    --build-from-source
-    --install-links
-    --prefix="{{prefix}}"
+  - npm install .
+      --global
+      --install-links
+      --prefix="{{prefix}}"
+
+  # minimize universal binaries
+  #TODO should probs be a general step we perform in CI/CD
+  - run:
+      - for x in $(pkgx fd --type x); do
+        # not all are unix binaries and I couldn’t find a command to filter
+        # for those properly
+      - |
+          if lipo $x -thin $(uname -m) -output $x.new; then
+            mv $x.new $x
+          fi
+      - done
+    working-directory: ${{prefix}}/lib
 
 test:
   dependencies:
