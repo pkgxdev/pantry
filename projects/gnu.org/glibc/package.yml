@@ -12,8 +12,8 @@ platforms:
 
 build:
   dependencies:
-    gnu.org/make: ^3.79
-    gnu.org/gawk: ^3
+    gnu.org/make: '>=3.79'
+    gnu.org/gawk: '>=3'
     gnu.org/gcc: ^13.2
     gnu.org/gettext: ~0.22.4
     gnu.org/texinfo: ^7
@@ -22,8 +22,12 @@ build:
     python.org: ~3.11
   working-directory: build
   script:
+    #FIXME
+    # Putting ourselves in the LD_LIBRARY_PATH breaks literally everything else...
+    - export LD_LIBRARY_PATH=/root/.pkgx/zlib.net/v1.3.0/lib:/root/.pkgx/gnome.org/libxml2/v2.12.3/lib:/root/.pkgx/tukaani.org/xz/v5.4.5/lib:/root/.pkgx/perl.org/v5.38.2/lib:/root/.pkgx/sourceware.org/bzip2/v1.0.8/lib:/root/.pkgx/openssl.org/v1.1.1w/lib:/root/.pkgx/libexpat.github.io/v2.5.0/lib:/root/.pkgx/gnu.org/gcc/v13.2.0/lib:/root/.pkgx/gnu.org/gawk/v5.3.0/lib:/root/.pkgx/sqlite.org/v3.44.2/lib:/root/.pkgx/gnu.org/texinfo/v7.1.0/lib:/root/.pkgx/x.org/exts/v1.3.5/lib:/root/.pkgx/invisible-island.net/ncurses/v6.4.0/lib:/root/.pkgx/gnu.org/bison/v3.8.2/lib:/root/.pkgx/gnu.org/gettext/v0.22.4/lib:/root/.pkgx/gnu.org/mpfr/v4.2.1/lib:/root/.pkgx/gnu.org/mpc/v1.3.1/lib:/root/.pkgx/x.org/xcb/v1.16.0/lib:/root/.pkgx/python.org/v3.11.7/lib:/root/.pkgx/x.org/x11/v1.8.7/lib:/root/.pkgx/sourceware.org/libffi/v3.4.4/lib:/root/.pkgx/libpng.org/v1.6.40/lib:/root/.pkgx/gnu.org/gmp/v6.3.0/lib:/root/.pkgx/gnu.org/readline/v8.2.0/lib:/root/.pkgx/x.org/xau/v1.0.11/lib:/root/.pkgx/bytereef.org/mpdecimal/v2.5.1/lib:/root/.pkgx/freetype.org/v2.13.2/lib:/root/.pkgx/tcl-lang.org/v8.6.13/lib:/root/.pkgx/x.org/xdmcp/v1.1.4/lib:/root/.pkgx/gnu.org/binutils/v2.41.0/lib
+
     - ../configure $ARGS
-    - make all -j {{hw.concurrency}}
+    - make all #-j {{hw.concurrency}}
     - make install
 
     - run: |
