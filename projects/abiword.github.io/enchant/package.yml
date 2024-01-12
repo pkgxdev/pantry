@@ -5,7 +5,7 @@ versions:
   github: AbiWord/enchant
 dependencies:
   gnome.org/glib: ^2.78
-  aspell.net: ^0.60.8.1
+  hunspell.github.io: ^1.7
 build:
   dependencies:
     freedesktop.org/pkg-config: '*'
@@ -22,13 +22,18 @@ build:
       - --enable-relocatable
       - --disable-debug
       - --disable-silent-rules
+      - --with-hunspell
 provides:
   - bin/enchant-2
   - bin/enchant-lsmod-2
 test:
+  dependencies:
+    git-scm.org: '*'
   env:
-    LANG: en_US
+    LANG: en_US.UTF-8
+    DICPATH: $DICPATH:$PWD/dictionaries/en
   script:
+    - git clone https://github.com/LibreOffice/dictionaries
     - enchant-lsmod-2 -list-dicts
     - enchant-2 -l test.txt
     - enchant-2 -v | grep {{version}}
