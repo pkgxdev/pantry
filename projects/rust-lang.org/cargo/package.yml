@@ -50,12 +50,14 @@ test:
   dependencies: #FIXME brewkit should add companions to the test env
     git-scm.org: ^2
     rust-lang.org: '*'
-  script: |
-    cargo init . --name xyz_tea_fixture
-    echo 'fn main() {println!("Hello World!");}' >src/main.rs
-    cargo clippy
-    cargo run
-    cargo run --release
-    cargo install cowsay
-    test -x ~/.local/bin/cowsay
-    ~/.local/bin/cowsay xyz.tea.hi
+  script:
+    - cargo init . --name xyz_tea_fixture
+    - echo 'fn main() {println!("Hello World!");}' >src/main.rs
+    - cargo clippy
+    - cargo run
+    - cargo run --release
+    # use our $HOME
+    - export CARGO_INSTALL_ROOT=$HOME/.local
+    - cargo install cowsay
+    - test -x ~/.local/bin/cowsay
+    - ~/.local/bin/cowsay xyz.tea.hi

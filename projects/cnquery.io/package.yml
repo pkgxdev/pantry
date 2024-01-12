@@ -1,0 +1,31 @@
+distributable:
+  url: https://github.com/mondoohq/cnquery/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+versions:
+  github: mondoohq/cnquery
+build:
+  dependencies:
+    go.dev: ~1.21
+  script:
+    - go build $ARGS -ldflags="$LD_FLAGS" ./apps/cnquery/cnquery.go
+  env:
+    LD_FLAGS:
+      - -s
+      - -w
+    linux:
+      LD_FLAGS:
+        - -buildmode=pie
+    ARGS:
+      - -v
+      - -trimpath
+      - -o={{prefix}}/bin/cnquery
+provides:
+  - bin/cnquery
+test:
+  dependencies:
+    curl.se: '*'
+  script:
+    - cnquery run -c "ports.listening { port process }"
+    - curl -L "https://raw.githubusercontent.com/mondoohq/cnquery/main/examples/complex.mql.yaml" -o complex.mql.yaml
+    - curl -L "https://raw.githubusercontent.com/mondoohq/cnquery/main/examples/example-os.mql.yaml" -o example-os.mql.yaml
+    - cnquery scan -f complex.mql.yaml | grep 'Summary (1 assets)'

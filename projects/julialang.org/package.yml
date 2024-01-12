@@ -21,9 +21,8 @@ build:
       tar zxvf - --strip-components=1
     - mkdir -p "{{prefix}}"
     - cp -av ./* {{prefix}}/
-    - run: rm -rf sys.dylib.dSYM
-      if: darwin
-      working-directory: ${{prefix}}/lib/julia
+  # since these are vendored, all paths are relative; we don't need to fix-machos
+  skip: fix-machos
   env:
     linux/x86-64:
       PLATFORM: 'linux'

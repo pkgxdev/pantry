@@ -1,6 +1,6 @@
 distributable:
-  url: https://github.com/libjxl/libjxl/archive/v{{version}}.tar.gz
-  strip-components: 1
+  url: git+https://github.com/libjxl/libjxl.git
+  ref: v{{version}}
 
 versions:
   github: libjxl/libjxl
@@ -12,48 +12,47 @@ dependencies:
   google.com/webp: ^1
   giflib.sourceforge.io: ^5
   openexr.com: ^3
+  libpng.org: ^1
 
 provides:
-  - bin/cjpeg_hdr
   - bin/cjxl
+  - bin/cjpegli
   - bin/djxl
+  - bin/djpegli
   - bin/jxlinfo
 
 build:
   dependencies:
     freedesktop.org/pkg-config: ^0.29
     cmake.org: ^3
-    gnu.org/coreutils: '*' # deps.sh needs “realpath”
+    gnu.org/coreutils: '*'  # deps.sh needs “realpath”
+    git-scm.org: ^2
   working-directory: build
-  script: |
-    GIT_DIR=$PWD ../deps.sh  # †
-    find ../third_party -not -name sjpeg -mindepth 1 -maxdepth 1 -type d | xargs rm -rf  # ‡
+  script:
+    # the `SJPEG` library is obscure and we have not yet pkg’d it.
+    # the rest we have and provide as deps.
+    # jpeg-turbo is a dep we provide, but for some reason around v0.9 the
+    # jpegxl build started requiring their vendored copy
+    - run: |
+        ./deps.sh
+        find third_party -not -name sjpeg -and -not -name libjpeg-turbo -mindepth 1 -maxdepth 1 -type d | xargs rm -rf
+      working-directory: ..
 
-    cmake .. $ARGS
-    make --jobs {{ hw.concurrency }} install
-  env:
-    # add any environment variables here
-    ARGS:
-      - -DCMAKE_BUILD_TYPE=Release
-      - -DCMAKE_INSTALL_PREFIX={{prefix}}
-      - -DBUILD_TESTING=OFF
-      - -DJPEGXL_ENABLE_SKCMS=OFF
-      - -DJPEGXL_ENABLE_BENCHMARK=OFF
-      - -DJPEGXL_VERSION={{version}}
+    - cmake ..
+        -DCMAKE_BUILD_TYPE=Release
+        -DCMAKE_INSTALL_PREFIX={{prefix}}
+        -DBUILD_TESTING=OFF
+        -DJPEGXL_ENABLE_SKCMS=OFF
+        -DJPEGXL_ENABLE_BENCHMARK=OFF
+        -DJPEGXL_VERSION={{version}}
 
-# † we set GIT_DIR because the script assumes git if it finds git rev-parse
-# works, which it does for us because we have a git checkout both locally and
-# in CI/CD
+    - make --jobs {{ hw.concurrency }} install
 
-# ‡ we don’t want anything but sjpeg which is a super rare dep only used by
-# this package
+test: |
+  cjxl fixture.jpeg out.jxl
 
-test:
-  script: |
-    cjxl fixture.jpeg out.jxl
+  cc fixture1.c -ljxl
+  ./a.out
 
-    cc fixture1.c -ljxl
-    ./a.out
-
-    cc fixture2.c -ljxl_threads
-    ./a.out
+  cc fixture2.c -ljxl_threads
+  ./a.out

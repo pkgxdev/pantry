@@ -20,6 +20,8 @@ provides:
 dependencies:
   lame.sourceforge.io: '>=3.98.3'
   libsdl.org: ^2
+  freetype.org: ^2
+  harfbuzz.org: ^8
 
 build:
   dependencies:
@@ -32,8 +34,15 @@ build:
   env:
     ARGS:
       - --prefix="{{prefix}}"
+      - --enable-libfreetype
+      - --enable-libharfbuzz
       - --enable-libmp3lame
 
 test:
-  - ffmpeg -filter_complex testsrc=rate=1:duration=1 out.mp4
-  - test -f out.mp4
+  dependencies:
+    gnu.org/wget: "*"
+    info-zip.org/unzip: "*"
+  script:
+    - wget --content-disposition https://github.com/googlefonts/RobotoMono/raw/main/fonts/ttf/RobotoMono-Regular.ttf
+    - ffmpeg -filter_complex testsrc=rate=1:duration=1,drawtext=fontfile=RobotoMono-Regular.ttf:text=hello out.mp4
+    - test -f out.mp4

@@ -13,7 +13,7 @@ dependencies:
   openjdk.org: '*'
 runtime:
   env:
-    JAVA_HOME: "{{deps.openjdk.org.prefix}}"
+    JAVA_HOME: '{{deps.openjdk.org.prefix}}'
 build:
   dependencies:
     gnu.org/wget: '*'
@@ -33,6 +33,43 @@ provides:
   - bin/jmeter-server
   - bin/mirror-server
 test:
+  # Caused by: java.nio.file.InvalidPathException: Malformed input or input contains unmappable characters: /__w/pantry/pantry/testbeds/apache.org???jmeter-5.6.3
+  working-directory: $(mktemp -d)
   script:
+    - cat $FIXTURE > test.jmx
     - jmeter -n -t test.jmx | grep 'end of run'
     - jmeter --version | grep {{version}}
+  fixture: |
+    <?xml version="1.0" encoding="UTF-8"?>
+    <jmeterTestPlan version="1.2" properties="5.0" jmeter="5.5">
+        <hashTree>
+            <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Test Plan" enabled="true">
+            </TestPlan>
+            <hashTree>
+                <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Thread Group" enabled="true">
+                    <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+                    <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
+                        <boolProp name="LoopController.continue_forever">false</boolProp>
+                        <stringProp name="LoopController.loops">1</stringProp>
+                    </elementProp>
+                    <stringProp name="ThreadGroup.num_threads">1</stringProp>
+                </ThreadGroup>
+                <hashTree>
+                    <DebugSampler guiclass="TestBeanGUI" testclass="DebugSampler" testname="Debug Sampler" enabled="true">
+                    </DebugSampler>
+                    <hashTree>
+                        <JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="JSR223 PostProcessor" enabled="true">
+                            <stringProp name="cacheKey">true</stringProp>
+                            <stringProp name="script">import java.util.Random
+          Random rand = new Random();
+          // This will break unless Groovy accepts the current version of the JDK
+          int rand_int1 = rand.nextInt(1000);
+                            </stringProp>
+                            <stringProp name="scriptLanguage">groovy</stringProp>
+                        </JSR223PostProcessor>
+                        <hashTree/>
+                    </hashTree>
+                </hashTree>
+            </hashTree>
+        </hashTree>
+    </jmeterTestPlan>

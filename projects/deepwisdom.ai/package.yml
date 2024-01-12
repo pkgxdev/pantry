@@ -1,0 +1,31 @@
+distributable:
+  url: https://github.com/geekan/MetaGPT/archive/v{{version}}.tar.gz
+  strip-components: 1
+
+display-name: MetaGPT
+
+versions:
+  github: geekan/MetaGPT
+
+dependencies:
+  pkgx.sh: ^1
+
+build:
+  dependencies:
+    # Python 3.12 ==> ModuleNotFoundError: No module named 'distutils'
+    python.org: '>=3.9<3.12'
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} metagpt
+
+provides:
+  - bin/metagpt
+
+test:
+  env:
+    OPENAI_API_KEY: metaGptTestKey
+    OPENAI_API_MODEL: gpt-4-1106-preview
+  script:
+    # for more tests we need to set valid OPENAI_API_KEY with gpt-4 access
+    - metagpt --help | grep 'Run a startup. Be a boss.'
