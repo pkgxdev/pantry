@@ -12,11 +12,20 @@ dependencies:
   invisible-island.net/ncurses: '*'
   gnu.org/gettext: '*'
 
+runtime:
+  env:
+    DICPATH: $DICPATH:{{prefix}}/share/dictionaries/en
+
 build:
-  script: |
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }}
-    make --jobs {{ hw.concurrency }} install
+  dependencies:
+    git-scm.org: '*'
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make --jobs {{ hw.concurrency }} install
+    - git clone https://github.com/LibreOffice/dictionaries
+    - mkdir -p {{prefix}}/share/dictionaries
+    - cp -r dictionaries/en {{prefix}}/share/dictionaries/
   env:
     ARGS:
       - --prefix="{{prefix}}"
@@ -33,4 +42,10 @@ provides:
   - bin/munch
   - bin/unmunch
 
-test: hunspell --version | grep {{version}}
+test:
+  env:
+    LANG: en_US.UTF-8
+  script:
+    - hunspell --version | grep {{version}}
+    - hunspell -m test.txt | grep 'st:hello'
+    - hunspell -m test.txt | grep 'st:world'
