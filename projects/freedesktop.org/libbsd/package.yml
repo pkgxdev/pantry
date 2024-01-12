@@ -10,12 +10,15 @@ platforms: linux
 build:
   dependencies:
     hadrons.org/libmd: '*'
-  script: |
-    ./configure --prefix={{prefix}}
-    make --jobs {{hw.concurrency}} install
+  script:
+    - ./configure --prefix={{prefix}}
+    - make --jobs {{hw.concurrency}} install
+  env:
+    linux:
+      # undefined symbol errors in newer llvms prevent building shared libs
+      CFLAGS: $CFLAGS -Wl,--undefined-version
 
 test:
   dependencies:
     gnu.org/binutils: '*'
-  script:
-    nm {{prefix}}/lib/libbsd.so.{{version.major}} | grep strtonum
+  script: nm {{prefix}}/lib/libbsd.so.{{version.major}} | grep strtonum

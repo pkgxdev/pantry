@@ -15,9 +15,14 @@ build:
   # dependencies:
   #   swift.org: 5
   #   apple.com/xcode: >=13.3
-  script: |
-    swift build --configuration release
-    mkdir -p {{prefix}}/bin
-    mv $(swift build --configuration release --show-bin-path)/swiftformat {{prefix}}/bin
+  script:
+    # swift freaks all the way out if there's UTF-8 in the `TMPDIR`
+    # swift build --configuration=release
+    # TSCUtility/Triple.swift:215: Fatal error: Failed to parse target info (malformed).
+    - export TMPDIR=$(mktemp -d)
+
+    - swift build --configuration release
+    - mkdir -p {{prefix}}/bin
+    - mv $(swift build --configuration release --show-bin-path)/swiftformat {{prefix}}/bin
 
 test: swiftformat --version | grep {{version}}

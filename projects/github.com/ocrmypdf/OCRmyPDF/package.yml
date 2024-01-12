@@ -5,24 +5,28 @@ distributable:
 versions:
   github: ocrmypdf/OCRmyPDF
 
-# platforms:
-#   - darwin
-#   - linux/x86-64
-
 dependencies:
-  python.org: ~3.11
+  pkgx.sh: ^1
   qpdf.sourceforge.io: ^11
+  darwin: # a consequence of rebuilding for 11.0
+    simplesystems.org/libtiff: ^4
+    openjpeg.org: ^2
+    libjpeg-turbo.org: ^2
+    zlib.net: ^1
+    x.org/xcb: ^1
+    gnome.org/libxml2: ~2.12
+    gnome.org/libxslt: ^1
 
 build:
   dependencies:
-    openjpeg.org: '*'
-    gnome.org/libxml2: ~2.11
-    gnome.org/libxslt: '*'
+    python.org: ~3.11
   script:
-    - python-venv.sh {{prefix}}/bin/ocrmypdf
-    - source <("{{prefix}}"/venv/bin/activate)
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
     # pikepdf libs are compiled for MACOSX_DEPLOYMENT_TARGET=12.0
-    - 'pip install --no-cache-dir --force-reinstall --no-binary :all: pikepdf'
+    - run: '{{prefix}}/venv/bin/pip install --no-cache-dir --force-reinstall --no-binary :all: pikepdf'
+      if: darwin
+    - bkpyvenv seal {{prefix}} ocrmypdf
   env:
     # add any environment variables here
     ARGS:

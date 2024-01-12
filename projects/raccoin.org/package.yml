@@ -17,23 +17,38 @@ build:
   dependencies:
     rust-lang.org: '>=1.56'
     rust-lang.org/cargo: '*'
-    linux:
-     gnu.org/make: '*'
   script:
     # raccoin doesn't provide any testability without
     # a UI, so we add some
     - run: |
-        sed -i.bak \
+        sed -i \
             -e'1a\
         const VERSION: &str = "{{version}}";' \
+        main.rs
+      working-directory: src
+    - run: |
+        sed -i \
             -e'/let portfolio_file: PathBuf = portfolio_file.into();/i\
                 if portfolio_file == "--version" {\
                     println!("raccoin v{VERSION}");\
                     return Ok(());\
                 }' \
         main.rs
-        rm main.rs.bak
+      if: '<0.2.0'
       working-directory: src
+    - run: |
+        sed -i \
+            -e'/let Some(portfolio_file)/i\
+            if let Some(arg1) = env::args_os().nth(1) {\
+                if arg1 == "--version" {\
+                    println!("raccoin v{VERSION}");\
+                    return Ok(());\
+                }\
+            }' \
+        main.rs
+      if: '>=0.2.0'
+      working-directory: src
+
     - cargo install --locked --path . --root {{prefix}}
   env:
     linux:

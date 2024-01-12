@@ -3,9 +3,8 @@ distributable:
   strip-components: 1
 
 versions:
-  #FIXME: use public versions if possible
-  #github: dotnet/sdk/tags
-  - 7.0.306
+  github: dotnet/sdk/tags
+  strip: /v/
 
 warnings:
   - vendored
@@ -21,18 +20,14 @@ build:
     curl.se: '*'
   working-directory: ${{prefix}}
   script:
-    - curl -L "$LINK" | tar zxf -
+    - curl -L "https://dotnetcli.azureedge.net/dotnet/Sdk/{{version}}/dotnet-sdk-{{version}}-${PLATFORM}.tar.gz" | tar zxf -
     - run: ln -s ../dotnet ./dotnet
       working-directory: "{{prefix}}/bin"
   env:
-    darwin/aarch64:
-      LINK: https://download.visualstudio.microsoft.com/download/pr/0e57f35a-00e6-49ab-aa75-7ae6711f0a8e/f28c04285b8bfd3f975731a186e23c23/dotnet-sdk-7.0.306-osx-arm64.tar.gz
-    darwin/x86-64:
-      LINK: https://download.visualstudio.microsoft.com/download/pr/3d615bde-bfce-4ee0-a3b9-73dc4ea5a472/907ac9c03d971c7577ce60932456b3e3/dotnet-sdk-7.0.306-osx-x64.tar.gz
-    linux/aarch64:
-      LINK: https://download.visualstudio.microsoft.com/download/pr/fb648e91-a4b9-4fc1-b6a3-acd293668e75/ccdc8a107bdb8b8f59ae6bb66ebecb6e/dotnet-sdk-7.0.306-linux-arm64.tar.gz
-    linux/x86-64:
-      LINK: https://download.visualstudio.microsoft.com/download/pr/0be7a87e-3a3f-4500-8301-49ccd6f24887/e9e36f35dbaf6625fec3e18f5c2b613f/dotnet-sdk-7.0.306-linux-x64.tar.gz
+    darwin/aarch64: { PLATFORM: osx-arm64 }
+    darwin/x86-64:  { PLATFORM: osx-x64 }
+    linux/aarch64:  { PLATFORM: linux-arm64 }
+    linux/x86-64:   { PLATFORM: linux-x64 }
 
 provides:
   - bin/dotnet

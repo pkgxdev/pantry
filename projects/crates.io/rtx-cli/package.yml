@@ -1,13 +1,16 @@
 distributable:
-  url: https://github.com/jdxcode/rtx/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/jdx/mise/archive/refs/tags/v{{version}}.tar.gz
   strip-components: 1
 
-provides:
-  - bin/rtx
+# renamed at 2024.1.0
+# provides:
+#   - bin/rtx
+#   - bin/mise
 
 versions:
-  github: jdxcode/rtx
+  github: jdx/mise
   strip: /v/
+  ignore: [0.x.y, 1.x.y] # they moved to calver
 
 dependencies:
   openssl.org: ^1.1 # newer RTX after 1.35.2 versions require openssl
@@ -18,11 +21,18 @@ build:
     rust-lang.org/cargo: '*'
     freedesktop.org/pkg-config: '*'
   script:
-    cargo install --locked --path . --root {{prefix}}
+    - cargo install --locked --path . --root {{prefix}}
+    # FIXME: <2024 isn't matching like it should. this should be split at 2024.1.0
+    - run: |
+        if test -f rtx; then
+          ln -s rtx mise
+        elif test -f mise; then
+          ln -s mise rtx
+        fi
+      working-directory: '{{prefix}}/bin'
   env:
     linux/x86-64:
       # portable-atomic-1.3.1 uses this, but it's unstable
       RUSTFLAGS: -C target-feature=+cmpxchg16b
 
-test:
-  rtx --version
+test: mise --version

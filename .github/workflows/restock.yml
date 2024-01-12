@@ -1,0 +1,60 @@
+name: restock pkg inventory
+run-name: restocking ${{ inputs.project }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      project:
+        description: a single project, eg. `foo.com`
+        required: true
+        type: string
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    outputs:
+      versions: ${{ steps.inventory.outputs.versions }}
+    steps:
+      - uses: pkgxdev/setup@v2
+      - uses: actions/checkout@v4
+      - run: ./.github/scripts/inventory.ts ${{ inputs.project }}
+        id: inventory
+
+  pkg:
+    needs: ingest
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ${{ fromJSON(needs.ingest.outputs.versions) }}
+    uses: ./.github/workflows/pkg.yml
+    permissions:
+      issues: write  #FIXME we don’t want this but I don’t think we can alter the way permissions are inherited
+    with:
+      pkg: ${{inputs.project}}=${{ matrix.version }}
+      invalidate-cloudfront: false  # we do it all at once below otherwise
+    secrets: inherit
+
+  invalidate-cloudfront:
+    needs: pkg
+    runs-on: ubuntu-latest
+
+    if: always()
+    # ^^ not ideal but often <5% builds fail because we have modified the build script
+    # in a non backward compatible way over time and we still want to invalidate cloudfront
+    # for most of the builds.
+
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      # FIXME ideally we would get the exact path list from the above matrix
+      # but GitHub Actions has no clean way to do that. This is more ideal as
+      # we don’t want to invalidate paths that failed and certainly want to
+      # avoid invalidations if all failed
+      - name: invalidate cloudfront
+        run: aws cloudfront create-invalidation
+          --distribution-id ${{ secrets.AWS_CF_DISTRIBUTION_ID }}
+          --paths /${{inputs.project}}/*

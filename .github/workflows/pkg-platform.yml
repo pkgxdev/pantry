@@ -34,6 +34,12 @@ on:
           Indeed! You cannot leave this as `null` or undefined.
           Sorry, GHA is not flexible enough to efficiently work around this.
         type: string
+      complain:
+        type: boolean
+        default: false
+      invalidate-cloudfront:
+        type: boolean
+        default: true
     secrets:
       APPLE_CERTIFICATE_P12: { required: false }
       APPLE_CERTIFICATE_P12_PASSWORD: { required: false }
@@ -53,6 +59,7 @@ jobs:
     name: build ${{inputs.tinyname}}
     runs-on: ${{ fromJSON(inputs.os) }}
     container: ${{ inputs.container }}
+    permissions: {}
     outputs:
       project: ${{ steps.build.outputs.project }}
       version: ${{ steps.build.outputs.version }}
@@ -94,6 +101,7 @@ jobs:
       matrix:
         os: ${{ fromJSON(inputs.test-os) }}
         container: ${{ fromJSON(inputs.test-container) }}
+    permissions: {}
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container }}
     env:
@@ -111,6 +119,7 @@ jobs:
   bottle:
     name: bottle (${{inputs.tinyname}}.${{matrix.compression}})
     needs: [build, test]
+    permissions: {}
     strategy:
       matrix:
         compression: [xz, gz]
@@ -169,19 +178,20 @@ jobs:
         env:
           URL: s3://${{ secrets.AWS_S3_BUCKET }}/${{ env.PREFIX }}
         id: put
-        if: ${{ ! inputs.dry-run }}
+        if: inputs.dry-run != true
 
       - name: invalidate cloudfront
         run: aws cloudfront create-invalidation
           --distribution-id ${{ secrets.AWS_CF_DISTRIBUTION_ID }}
           --paths
           ${{ steps.put.outputs.cf-paths }}
-        if: ${{ ! inputs.dry-run }}
+        if: inputs.invalidate-cloudfront && !inputs.dry-run
 
   publish:
     name: publish ${{inputs.tinyname}} ${{ inputs.dry-run && '(dry-run)' }}
     runs-on: ubuntu-latest
     needs: [bottle, build]
+    permissions: {}
     env:
       DIRNAME: ${{ needs.build.outputs.project }}/${{ needs.build.outputs.platform }}/${{ needs.build.outputs.arch }}
     steps:
@@ -212,18 +222,18 @@ jobs:
 
       - name: s3 put
         run: aws s3 cp versions.txt s3://${{ secrets.AWS_S3_BUCKET }}/$DIRNAME/versions.txt
-        if: ${{ ! inputs.dry-run }}
+        if: inputs.dry-run != true
 
       - name: invalidate cloudfront
         run: aws cloudfront create-invalidation
           --distribution-id ${{ secrets.AWS_CF_DISTRIBUTION_ID }}
           --paths
           /$DIRNAME/versions.txt
-        if: ${{ ! inputs.dry-run }}
+        if: inputs.invalidate-cloudfront && !inputs.dry-run
 
   complain:
     needs: bottle
-    if: failure() && !inputs.dry-run
+    if: failure() && !inputs.dry-run && inputs.complain
     runs-on: ubuntu-latest
     permissions:
       issues: write
