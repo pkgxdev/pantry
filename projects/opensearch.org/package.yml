@@ -69,6 +69,13 @@ build:
         cmake . --fresh
         make
         cd ..
+    - run: |
+        cd jni/release
+        for LIB in *.jnilib; do
+          install_name_tool -add_rpath @loader_path $LIB
+        done
+        cd ../..
+      if: darwin
     -  run: |
         ./gradlew build --refresh-dependencies -x integTest -x test -DskipTests=true -Dopensearch.version={{version}} -Dbuild.snapshot=false -Dbuild.version_qualifier=
         ./gradlew publishPluginZipPublicationToZipStagingRepository -Dopensearch.version={{version}} -Dbuild.snapshot=false -Dbuild.version_qualifier=
