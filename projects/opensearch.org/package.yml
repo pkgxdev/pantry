@@ -43,6 +43,11 @@ build:
         git submodule update --init --recursive
     - run: |
         # workarounds for m1 build. see: https://github.com/opensearch-project/k-NN/blob/main/DEVELOPER_GUIDE.md#extra-setup-for-mac-m1-machines
+        sed -i -e 's/-march=native/-mcpu=apple-m1/g' jni/external/nmslib/similarity_search/CMakeLists.txt
+        sed -i -e 's/-mcpu=apple-a14/-mcpu=apple-m1/g' jni/external/nmslib/python_bindings/setup.py
+        sed -i -e 's/__aarch64__/__undefine_aarch64__/g' jni/external/faiss/faiss/utils/distances_simd.cpp
+      if: darwin/aarch64
+    - run: |
         IFS=:
         for p in ${LD_LIBRARY_PATH}; do
           if [ -e "${p}/libomp.dylib" ]; then
@@ -53,12 +58,7 @@ build:
         [ -z "${libomp_path}" ] && echo "libomp.dylib not found" && exit 1
 
         sed -i -e "s|/usr/local/opt/libomp/|${libomp_path}/|g" jni/CMakeLists.txt
-        sed -i -e 's/-march=native/-mcpu=apple-m1/g' jni/external/nmslib/similarity_search/CMakeLists.txt
         sed -i -e 's/pragma message WARN/pragma message /g' jni/external/nmslib/similarity_search/src/distcomp_scalar.cc
-        sed -i -e 's/-mcpu=apple-a14/-mcpu=apple-m1/g' jni/external/nmslib/python_bindings/setup.py
-        sed -i -e 's/__aarch64__/__undefine_aarch64__/g' jni/external/faiss/faiss/utils/distances_simd.cpp
-      if: darwin/aarch64
-    - run: |
         export CC=clang
         export CXX=clang++
       if: darwin
