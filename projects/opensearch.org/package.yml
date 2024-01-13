@@ -23,7 +23,7 @@ build:
     gnu.org/gcc: '*' # for gfortran
 
   script:
-    - gradle -Dbuild.snapshot=false --stacktrace ":distribution:archives:no-jdk-{{hw.platform}}-tar:assemble"
+    - gradle -Dbuild.snapshot=false ":distribution:archives:no-jdk-{{hw.platform}}-tar:assemble"
     - mkdir -p "{{prefix}}"
     - tar --strip-components=1 -xf distribution/archives/no-jdk-{{hw.platform}}-tar/build/distributions/opensearch-*.tar.gz -C "{{prefix}}"
     - run: |
@@ -57,10 +57,11 @@ build:
         sed -i -e 's/pragma message WARN/pragma message /g' jni/external/nmslib/similarity_search/src/distcomp_scalar.cc
         sed -i -e 's/-mcpu=apple-a14/-mcpu=apple-m1/g' jni/external/nmslib/python_bindings/setup.py
         sed -i -e 's/__aarch64__/__undefine_aarch64__/g' jni/external/faiss/faiss/utils/distances_simd.cpp
-
+      if: darwin/aarch64
+    - run: |
         export CC=clang
         export CXX=clang++
-      if: darwin/aarch64
+      if: darwin
     # this is recommended in https://github.com/opensearch-project/k-NN/blob/45e9e542aef60ef7073ee726e6ac14dec27bfa04/scripts/build.sh#L91-L94
     - run: sed -i -e 's/-march=native/-march=x86-64/g' jni/external/nmslib/similarity_search/CMakeLists.txt
       if: x86-64
