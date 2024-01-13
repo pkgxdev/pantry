@@ -9,9 +9,7 @@ versions:
 
 dependencies:
   openjdk.org: '*'
-  openmp.llvm.org: '*'
-  linux:
-    openblas.net: "*"
+  openmp.llvm.org: ^17
 
 build:
   dependencies:
@@ -20,7 +18,10 @@ build:
     gnu.org/wget: "*"
     gradle.org: '*'
     openjdk.org: ^17
-    gnu.org/gcc: '*' # for gfortran
+    gnu.org/gcc: ^12 # for gfortran
+    linux:
+      # on mac we use the Accelerate framework instead, on linux this is linked statically
+      openblas.net: "*"
 
   script:
     - gradle -Dbuild.snapshot=false ":distribution:archives:no-jdk-{{hw.platform}}-tar:assemble"
