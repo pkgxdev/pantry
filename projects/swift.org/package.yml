@@ -1,36 +1,44 @@
-distributable:
-  url: https://download.swift.org/swift-{{version}}-release/xcode/swift-{{version}}-RELEASE/swift-{{version}}-RELEASE-osx.pkg
-  strip-components: 1
-
 display-name: swift
 
-# if there’s a github then we can parse the versions
+warnings:
+  - vendored
+
 versions:
-  github: apple/swift  # reads github tags but only tags of releases (this is usually what you want)
+  github: apple/swift
   strip:
     - /^swift-/
     - /-RELEASE$/
 
-dependencies:
-  zlib.net: 1
-
 platforms:
-  - darwin
-  # - linux/x86-64
-  # - linux/aarch64
+  - darwin/aarch64
+  - linux/x86-64
+  - linux/aarch64
 
 runtime:
   env:
     TOOLCHAINS: ${{prefix}}/usr/bin/swift
 
 build:
+  dependencies:
+    curl.se: '*'
   script:
     - mkdir -p {{prefix}}/bin
-    - tar xf Payload -C {{prefix}}
-    - rm -rf {{prefix}}/_CodeSignature
-    - rm -rf {{prefix}}/Info.plist
+    - run: |
+        curl -SfL "$DOWNLOAD_URL" | tar xzf - --strip-components=2
+        tar xzf Payload -C {{prefix}}
+        rm -rf {{prefix}}/_CodeSignature
+        rm -rf {{prefix}}/Info.plist
+      if: darwin
     - run: ln -sh ../usr/bin/* {{prefix}}/bin
       working-directory: ${{prefix}}/bin
+      if: darwin
+    - run: |
+        curl -SfL "$DOWNLOAD_URL" | tar xzf - -C {{ prefix }} --strip-components=2
+      if: linux
+  env:
+    darwin/aarch64: { DOWNLOAD_URL: "https://download.swift.org/swift-{{version}}-release/xcode/swift-{{version}}-RELEASE/swift-{{version}}-RELEASE-osx.pkg" }
+    linux/aarch64:  { DOWNLOAD_URL: "https://download.swift.org/swift-{{version}}-release/ubuntu2204-aarch64/swift-{{version}}-RELEASE/swift-{{version}}-RELEASE-ubuntu22.04-aarch64.tar.gz" }
+    linux/x86-64:   { DOWNLOAD_URL: "https://download.swift.org/swift-{{version}}-release/ubuntu2204/swift-{{version}}-RELEASE/swift-{{version}}-RELEASE-ubuntu22.04.tar.gz" }
 
 provides:
   - bin/clang-13
