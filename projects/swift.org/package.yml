@@ -1,0 +1,73 @@
+distributable:
+  url: https://download.swift.org/swift-{{version}}-release/xcode/swift-{{version}}-RELEASE/swift-{{version}}-RELEASE-osx.pkg
+  strip-components: 1
+
+display-name: swift
+
+# if there’s a github then we can parse the versions
+versions:
+  github: apple/swift  # reads github tags but only tags of releases (this is usually what you want)
+  strip:
+    - /^swift-/
+    - /-RELEASE$/
+
+dependencies:
+  zlib.net: 1
+
+platforms:
+  - darwin
+  # - linux/x86-64
+  # - linux/aarch64
+
+runtime:
+  env:
+    TOOLCHAINS: ${{prefix}}/usr/bin/swift
+
+build:
+  script:
+    - mkdir -p {{prefix}}/bin
+    - tar xf Payload -C {{prefix}}
+    - rm -rf {{prefix}}/_CodeSignature
+    - rm -rf {{prefix}}/Info.plist
+    - run: ln -sh ../usr/bin/* {{prefix}}/bin
+      working-directory: ${{prefix}}/bin
+
+provides:
+  - bin/clang-13
+  - bin/clangd
+  - bin/docc
+  - bin/dsymutil
+  - bin/llvm-ar
+  - bin/llvm-cov
+  - bin/llvm-profdata
+  - bin/sourcekit-lsp
+  - bin/swift-build-sdk-interfaces
+  - bin/swift-build-tool
+  - bin/swift-demangle
+  - bin/swift-driver
+  - bin/swift-format
+  - bin/swift-frontend
+  - bin/swift-help
+  - bin/swift-package
+  - bin/swift-plugin-server
+  - bin/swift-stdlib-tool
+  - bin/swift-api-checker.py
+  - bin/clang
+  - bin/clang-cache
+  - bin/clang-cl
+  - bin/clang-cpp
+  - bin/clang++
+  - bin/swift
+  - bin/swift-api-digester
+  - bin/swift-api-extract
+  - bin/swift-autolink-extract
+  - bin/swift-experimental-sdk
+  - bin/swift-package-collection
+  - bin/swift-package-registry
+  - bin/swift-run
+  - bin/swift-symbolgraph-extract
+  - bin/swift-test
+  - bin/swiftc
+
+test: |
+  swift --version
