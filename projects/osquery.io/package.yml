@@ -1,0 +1,41 @@
+distributable:
+  url: git+https://github.com/osquery/osquery
+  ref: ${{version.tag}}
+
+versions:
+  github: osquery/osquery
+
+dependencies:
+  python.org: ^3.12
+  
+build:
+  dependencies:
+    cmake.org: '*'
+    git-scm.org: '*'
+
+  script:
+    - cmake -B build $CMAKE_ARGS
+    - cmake --build build
+    # file cannot create directory: /control.  Maybe need administrative privileges.
+    - run: |
+        sed -i "s|/control|{{prefix}}/etc/control|g" cmake_install.cmake
+        sed -i "s|/private/var|{{prefix}}/var|g" cmake_install.cmake
+      working-directory: build
+    - cmake --install build
+  env:
+    CMAKE_ARGS:
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_INSTALL_LIBDIR=lib
+      - -DCMAKE_INSTALL_SYSCONFDIR=etc
+      - -DCMAKE_INSTALL_LOCALSTATEDIR=var
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_FIND_FRAMEWORK=LAST
+      - -DCMAKE_VERBOSE_MAKEFILE=ON
+      - -Wno-dev
+      - -DBUILD_TESTING=OFF
+
+provides:
+  - bin/osqueryctl
+
+test:
+  - osqueryctl --version
