@@ -1,0 +1,166 @@
+distributable:
+  url: https://github.com/opensearch-project/OpenSearch/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+display-name: opensearch
+
+versions:
+  github: opensearch-project/OpenSearch
+
+dependencies:
+  openjdk.org: '*'
+  openmp.llvm.org: ^17
+
+build:
+  dependencies:
+    cmake.org: "*"
+    git-scm.org: "*"
+    gnu.org/wget: "*"
+    gradle.org: '*'
+    openjdk.org: ^17
+    gnu.org/gcc: ^12 # for gfortran
+    linux:
+      # on mac we use the Accelerate framework instead, on linux this is linked statically
+      openblas.net: "*"
+
+  script:
+    - gradle -Dbuild.snapshot=false ":distribution:archives:no-jdk-{{hw.platform}}-tar:assemble"
+    - run: tar --strip-components=1 -xf $SRCROOT/distribution/archives/no-jdk-{{hw.platform}}-tar/build/distributions/opensearch-*.tar.gz
+      working-directory: ${{prefix}}
+    - run: 'sed -i "s|#\s*cluster.name: .*|cluster.name: opensearch_pkgx|" opensearch.yml'
+      working-directory: ${{prefix}}/config
+
+    # checkout k-NN plugin
+    - run: |
+        if [ -d .git ]; then
+          git fetch
+        else
+          git clone https://github.com/opensearch-project/k-NN .
+        fi
+        git checkout {{version}}.0
+        git reset --hard
+        git submodule foreach --recursive git reset --hard
+        git submodule update --init --recursive
+      working-directory: k-NN
+
+    # workarounds for m1 build. see: https://github.com/opensearch-project/k-NN/blob/main/DEVELOPER_GUIDE.md#extra-setup-for-mac-m1-machines
+    - run: |
+        sed -i -e 's/-march=native/-mcpu=apple-m1/g' nmslib/similarity_search/CMakeLists.txt
+        sed -i -e 's/-mcpu=apple-a14/-mcpu=apple-m1/g' nmslib/python_bindings/setup.py
+        sed -i -e 's/__aarch64__/__undefine_aarch64__/g' faiss/faiss/utils/distances_simd.cpp
+      if: darwin/aarch64
+      working-directory: k-NN/jni/external
+
+    - run: |
+        IFS=:
+        for p in ${LD_LIBRARY_PATH}; do
+          if [ -e "${p}/libomp.dylib" ]; then
+            libomp_path="${p}/.."
+            break
+          fi
+        done
+        unset IFS
+        [ -z "${libomp_path}" ] && echo "libomp.dylib not found" && exit 1
+
+        sed -i -e "s|/usr/local/opt/libomp/|${libomp_path}/|g" jni/CMakeLists.txt
+        sed -i -e 's/pragma message WARN/pragma message /g' jni/external/nmslib/similarity_search/src/distcomp_scalar.cc
+        export CC=clang
+        export CXX=clang++
+      if: darwin
+      working-directory: k-NN
+
+    # this is recommended in https://github.com/opensearch-project/k-NN/blob/45e9e542aef60ef7073ee726e6ac14dec27bfa04/scripts/build.sh#L91-L94
+    - run: sed -i -e 's/-march=native/-march=x86-64/g' CMakeLists.txt
+      working-directory: k-NN/jni/external/nmslib/similarity_search
+      if: x86-64
+    - run: |
+        cmake . --fresh
+        make
+      working-directory: k-NN/jni
+    - run: |
+        for LIB in *.jnilib; do
+          install_name_tool -add_rpath @loader_path $LIB
+        done
+      working-directory: k-NN/jni/release
+      if: darwin
+    - run: |
+        ./gradlew build --refresh-dependencies -x integTest -x test -DskipTests=true -Dopensearch.version={{version}} -Dbuild.snapshot=false -Dbuild.version_qualifier=
+        ./gradlew publishPluginZipPublicationToZipStagingRepository -Dopensearch.version={{version}} -Dbuild.snapshot=false -Dbuild.version_qualifier=
+        ./gradlew publishPluginZipPublicationToMavenLocal -Dbuild.snapshot=false -Dbuild.version_qualifier= -Dopensearch.version={{version}}
+      working-directory: k-NN
+    - run: |
+        mkdir -p ./build/distributions/lib
+        cp -v ./jni/release/libopensearchknn* ./build/distributions/lib
+        cd ./build/distributions
+        zip -r opensearch-knn-{{version}}.0.zip lib/
+        {{prefix}}/bin/opensearch-plugin install --batch file:`pwd`/opensearch-knn-{{version}}.0.zip
+      working-directory: k-NN
+    - run: echo 'export OPENSEARCH_JAVA_OPTS="-Djava.library.path=$OPENSEARCH_HOME/plugins/opensearch-knn/lib $OPENSEARCH_JAVA_OPTS"' >> opensearch-env
+      working-directory: ${{prefix}}/bin
+
+provides:
+  - bin/opensearch
+  - bin/opensearch-keystore
+  - bin/opensearch-plugin
+  - bin/opensearch-shard
+
+test:
+  dependencies:
+     gnu.org/coreutils: ^9
+     stedolan.github.io/jq: "*"
+     curl.se: "*"
+  script:
+    - opensearch-plugin list
+
+    # While we'd love a good test like this, `opensearch` doesn't run as root, and managing
+    # all the environment passthrough with `sudo` is a nightmare.
+    - run: 'opensearch -version | grep "Version: {{version}}"'
+      if: linux
+
+    - run: |
+        mkdir -p test/{data,logs}
+        PORT=$(shuf -i 2000-65000 -n 1)
+        opensearch -Ehttp.port=$PORT -Epath.data=$PWD/test/data -Epath.logs=$PWD/test/logs &
+        pid=$!
+        for i in $(seq 1 30); do
+          curl -k --silent --fail http://localhost:$PORT/ > output.txt && break || sleep 1
+        done
+        test "$(jq .version.number output.txt)" = \"{{version}}\"
+        curl --fail -XPUT http://localhost:$PORT/my-test-knn-index -H 'Content-Type: application/json' -d '
+          {
+            "settings": {
+              "index.knn": true
+            },
+            "mappings": {
+              "properties": {
+                "my_vector1": {
+                  "type": "knn_vector",
+                  "dimension": 2
+                },
+                "my_vector2": {
+                  "type": "knn_vector",
+                  "dimension": 4
+                }
+              }
+            }
+          }'
+        curl --fail -XPUT http://localhost:$PORT/my-test-knn-index/_doc/1?refresh=true -H 'Content-Type: application/json' -d '
+          {
+            "my_vector1": [1, 2],
+            "my_vector2": [1, 2, 3, 4]
+          }'
+
+        curl --fail -XPOST http://localhost:$PORT/my-test-knn-index/_search -H 'Content-Type: application/json' -d '
+          {
+            "query": {
+              "knn": {
+                "my_vector1": {
+                  "vector": [1, 2],
+                  "k": 1
+                }
+              }
+            }
+          }' > output.txt
+        kill $pid
+        test "$(jq .hits.total.value output.txt)" = 1
+      if: darwin
