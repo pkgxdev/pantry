@@ -95,8 +95,12 @@ build:
         zip -r opensearch-knn-{{version}}.0.zip lib/
         {{prefix}}/bin/opensearch-plugin install --batch file:`pwd`/opensearch-knn-{{version}}.0.zip
       working-directory: k-NN
-    - run: echo 'export OPENSEARCH_JAVA_OPTS="-Djava.library.path=$OPENSEARCH_HOME/plugins/opensearch-knn/lib $OPENSEARCH_JAVA_OPTS"' >> opensearch-env
+    - run: echo 'export JAVA_LIBRARY_PATH="$OPENSEARCH_HOME/plugins/opensearch-knn/lib:$JAVA_LIBRARY_PATH"' >> opensearch-env
       working-directory: ${{prefix}}/bin
+      if: darwin
+    - run: echo 'export LD_LIBRARY_PATH="$OPENSEARCH_HOME/plugins/opensearch-knn/lib:$LD_LIBRARY_PATH"' >> opensearch-env
+      working-directory: ${{prefix}}/bin
+      if: linux
 
 provides:
   - bin/opensearch
