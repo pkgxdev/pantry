@@ -25,14 +25,13 @@ build:
 
   script:
     - gradle -Dbuild.snapshot=false ":distribution:archives:no-jdk-{{hw.platform}}-tar:assemble"
-    - mkdir -p "{{prefix}}"
-    - tar --strip-components=1 -xf distribution/archives/no-jdk-{{hw.platform}}-tar/build/distributions/opensearch-*.tar.gz -C "{{prefix}}"
+    - run: tar --strip-components=1 -xf distribution/archives/no-jdk-{{hw.platform}}-tar/build/distributions/opensearch-*.tar.gz
+      working-directory: ${{prefix}}
+    - run: sed -i 's|#\s*cluster.name: .*|cluster.name: opensearch_pkgx|' opensearch.yml
+      working-directory: ${{prefix}}/config
+
+    # checkout k-NN plugin
     - run: |
-        sed -i 's|#\s*cluster.name: .*|cluster.name: opensearch_pkgx|' "{{prefix}}/config/opensearch.yml"
-    - run: |
-        # checkout k-NN plugin
-        mkdir -p k-NN
-        cd k-NN
         if [ -d .git ]; then
           git fetch
         else
@@ -42,12 +41,16 @@ build:
         git reset --hard
         git submodule foreach --recursive git reset --hard
         git submodule update --init --recursive
+      working-directory: k-NN
+
+    # workarounds for m1 build. see: https://github.com/opensearch-project/k-NN/blob/main/DEVELOPER_GUIDE.md#extra-setup-for-mac-m1-machines
     - run: |
-        # workarounds for m1 build. see: https://github.com/opensearch-project/k-NN/blob/main/DEVELOPER_GUIDE.md#extra-setup-for-mac-m1-machines
-        sed -i -e 's/-march=native/-mcpu=apple-m1/g' jni/external/nmslib/similarity_search/CMakeLists.txt
-        sed -i -e 's/-mcpu=apple-a14/-mcpu=apple-m1/g' jni/external/nmslib/python_bindings/setup.py
-        sed -i -e 's/__aarch64__/__undefine_aarch64__/g' jni/external/faiss/faiss/utils/distances_simd.cpp
+        sed -i -e 's/-march=native/-mcpu=apple-m1/g' nmslib/similarity_search/CMakeLists.txt
+        sed -i -e 's/-mcpu=apple-a14/-mcpu=apple-m1/g' nmslib/python_bindings/setup.py
+        sed -i -e 's/__aarch64__/__undefine_aarch64__/g' faiss/faiss/utils/distances_simd.cpp
       if: darwin/aarch64
+      working-directory: k-NN/jni/external
+
     - run: |
         IFS=:
         for p in ${LD_LIBRARY_PATH}; do
@@ -56,6 +59,7 @@ build:
             break
           fi
         done
+        unset IFS
         [ -z "${libomp_path}" ] && echo "libomp.dylib not found" && exit 1
 
         sed -i -e "s|/usr/local/opt/libomp/|${libomp_path}/|g" jni/CMakeLists.txt
@@ -63,33 +67,36 @@ build:
         export CC=clang
         export CXX=clang++
       if: darwin
+      working-directory: k-NN
+
     # this is recommended in https://github.com/opensearch-project/k-NN/blob/45e9e542aef60ef7073ee726e6ac14dec27bfa04/scripts/build.sh#L91-L94
-    - run: sed -i -e 's/-march=native/-march=x86-64/g' jni/external/nmslib/similarity_search/CMakeLists.txt
+    - run: sed -i -e 's/-march=native/-march=x86-64/g' CMakeLists.txt
+      working-directory: k-NN/jni/external/nmslib/similarity_search
       if: x86-64
-    -  run: |
-        cd jni
+    - run: |
         cmake . --fresh
         make
-        cd ..
+      working-directory: k-NN/jni
     - run: |
-        cd jni/release
         for LIB in *.jnilib; do
           install_name_tool -add_rpath @loader_path $LIB
         done
-        cd ../..
+      working-directory: k-NN/jni/release
       if: darwin
-    -  run: |
+    - run: |
         ./gradlew build --refresh-dependencies -x integTest -x test -DskipTests=true -Dopensearch.version={{version}} -Dbuild.snapshot=false -Dbuild.version_qualifier=
         ./gradlew publishPluginZipPublicationToZipStagingRepository -Dopensearch.version={{version}} -Dbuild.snapshot=false -Dbuild.version_qualifier=
         ./gradlew publishPluginZipPublicationToMavenLocal -Dbuild.snapshot=false -Dbuild.version_qualifier= -Dopensearch.version={{version}}
-    -  run: |
+      working-directory: k-NN
+    - run: |
         mkdir -p ./build/distributions/lib
         cp -v ./jni/release/libopensearchknn* ./build/distributions/lib
         cd ./build/distributions
         zip -r opensearch-knn-{{version}}.0.zip lib/
         {{prefix}}/bin/opensearch-plugin install --batch file:`pwd`/opensearch-knn-{{version}}.0.zip
-    - run: |
-        echo 'export OPENSEARCH_JAVA_OPTS="-Djava.library.path=$OPENSEARCH_HOME/plugins/opensearch-knn/lib $OPENSEARCH_JAVA_OPTS"' >> {{prefix}}/bin/opensearch-env
+      working-directory: k-NN
+    - run: echo 'export OPENSEARCH_JAVA_OPTS="-Djava.library.path=$OPENSEARCH_HOME/plugins/opensearch-knn/lib $OPENSEARCH_JAVA_OPTS"' >> opensearch-env
+      working-directory: ${{prefix}}/bin
 
 provides:
   - bin/opensearch
@@ -107,8 +114,7 @@ test:
 
     # While we'd love a good test like this, `opensearch` doesn't run as root, and managing
     # all the environment passthrough with `sudo` is a nightmare.
-    - run: |
-        opensearch -version |grep "Version: {{version}}"
+    - run: opensearch -version | grep "Version: {{version}}"
       if: linux
 
     - run: |
