@@ -35,10 +35,5 @@ test:
     - pocketbase serve --dir $PWD/pb_data &
     - sleep 1
     - curl -L http://127.0.0.1:8090/_/ -o output.html
-    - $KILL pocketbase
+    - lsof -ti :8090 | xargs kill -9
     - cat output.html | grep '<title>PocketBase</title>'
-  env:
-    darwin:
-      KILL: killall
-    linux:
-      KILL: pkill -f
