@@ -1,0 +1,30 @@
+distributable:
+  url: git+https://github.com/atuinsh/atuin
+  ref: ${{version.tag}}
+
+display-name: Atuin
+
+versions:
+  github: atuinsh/atuin
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.65'
+    rust-lang.org/cargo: '*'
+  script:
+    - cargo install $ARGS
+  env:
+    ARGS:
+      - --path=atuin
+      - --locked
+      - --root={{prefix}}
+
+provides:
+  - bin/atuin
+
+test:
+  script:
+    - atuin init bash | grep 'Add it to the bash history'
+    - atuin --version | grep ${{version.tag}}
+  env:
+    ATUIN_SESSION: random
