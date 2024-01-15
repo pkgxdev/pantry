@@ -1,12 +1,12 @@
 distributable:
   #FIXME: they use a weird versioning scheme
-  url: https://github.com/ImageMagick/ImageMagick/archive/7.1.1-12.tar.gz
+  url: https://github.com/ImageMagick/ImageMagick/archive/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
-  #FIXME: they use a weird versioning scheme
-  # github: ImageMagick/ImageMagick
-  - 7.1.1.12
+  github: ImageMagick/ImageMagick
+  # tags are of the form 7.1.2-44 where the `-44` is significant and not a pre-release indicator
+  transform: v => v.replace('-', '.')
 
 provides:
   - bin/animate
@@ -41,7 +41,7 @@ dependencies:
     tukaani.org/xz: '*'
     sourceware.org/bzip2: '*'
     gnome.org/libxml2: '*'
-    zlib.net: '*'
+    zlib.net: ^1
     jpeg.org/jpegxl: '*'
     perl.org: '*'
     libzip.org: '*'
@@ -54,16 +54,17 @@ dependencies:
       x.org/x11: '*'
 
 runtime:
-  MAGICK_HOME: "{{prefix}}"
+  env:
+    MAGICK_HOME: "{{prefix}}"
 
 build:
-  dependencies:
-    freedesktop.org/pkg-config: '*'
   script:
-    - sed -i'' -e 's|${PACKAGE_NAME}-${PACKAGE_BASE_VERSION}|${PACKAGE_NAME}|g' configure
+    - sed -i -e 's|${PACKAGE_NAME}-${PACKAGE_BASE_VERSION}|${PACKAGE_NAME}|g' configure
     - find . -type f -name '*-config.in' -exec sed -i'' -e 's|@PKG_CONFIG@|pkg-config|g' {} +
+
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
+
     - run: sed -i'' -e 's|^prefix=.*|prefix=${MAGICK_HOME}|g' Magick++-config MagickCore-config MagickWand-config
       working-directory: ${{prefix}}/bin
 
@@ -119,12 +120,9 @@ build:
         - --without-x
 
 test:
-  env:
-    MAGICK_HOME: "{{prefix}}"
   dependencies:
     curl.se: '*'
   script:
-    #FIXME: they use a weird versioning scheme
-    - magick -version | grep 7.1.1-12
+    - magick -version | grep {{version.tag}}
     - curl "https://upload.wikimedia.org/wikipedia/commons/6/6a/PNG_Test.png" -o a.png
     - magick identify a.png | grep "a.png PNG"

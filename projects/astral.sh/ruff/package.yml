@@ -22,6 +22,12 @@ provides:
 
 test:
   script:
+    # v0.1.12 introduced this test error:
+    # ruff failed
+    #   Cause: Failed to create cache file '/__w/pantry/pantry/testbeds/astral.sh__ruff-0.1.12/.ruff_cache/0.1.12/10391082687706843805'
+    #   Cause: No such file or directory (os error 2)
+    - run: mkdir -p .ruff_cache/{{version}}
+      if: '>=0.1.12'
     - ruff -e $FIXTURE | grep "\`os\` imported but unused"
     - ruff --fix $FIXTURE
     - test ! -s $FIXTURE

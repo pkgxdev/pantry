@@ -1,0 +1,47 @@
+distributable:
+  url: https://ftp.gnu.org/gnu/plotutils/plotutils-{{version.raw}}.tar.gz
+  strip-components: 1
+versions:
+  url: https://ftp.gnu.org/gnu/plotutils/
+  match: /plotutils-\d+\.\d+(\.\d+)?\.tar\.gz/
+  strip:
+    - /plotutils-/
+    - /.tar.gz/
+dependencies:
+  libpng.org: ^1.6
+  libraw.org: ^0.21
+build:
+  script:
+    # warning: ISO C++17 does not allow 'register' storage class specifier [-Wregister]
+    - run: sed -i "s|register ||g" pic2plot/gram.cc
+      if: linux
+    - run: sed -i "s|png_ptr->jmpbuf|png_jmpbuf (png_ptr)|g" z_write.c
+      working-directory: libplot
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --disable-silent-rules
+      - --prefix={{prefix}}
+      - --enable-libplotter
+    darwin:
+      ARGS:
+        - --without-x
+    linux/aarch64:
+      ARGS:
+        - --build=aarch64-unknown-linux-gnu
+provides:
+  - bin/double
+  - bin/graph
+  - bin/ode
+  - bin/pic2plot
+  - bin/plot
+  - bin/plotfont
+  - bin/spline
+  - bin/tek2plot
+test:
+  - plot --version | grep {{version.marketing}}
+  - graph -T png test.dat > test.png
