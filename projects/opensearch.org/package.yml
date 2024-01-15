@@ -24,6 +24,11 @@ build:
       openblas.net: "*"
 
   script:
+      # there seems to be a loader bug with trying to dlopen libc on macos 12 and earlier.
+      # remove this step when macos 12 and under are no longer supported.
+    - run: |
+        sed -i 's|JNAKernel32Library.getInstance();|//JNAKernel32Library.getInstance();|' server/src/main/java/org/opensearch/bootstrap/Bootstrap.java
+      if: darwin/x86-64
     - gradle -Dbuild.snapshot=false ":distribution:archives:no-jdk-{{hw.platform}}-tar:assemble"
     - run: tar --strip-components=1 -xf $SRCROOT/distribution/archives/no-jdk-{{hw.platform}}-tar/build/distributions/opensearch-*.tar.gz
       working-directory: ${{prefix}}
@@ -31,7 +36,6 @@ build:
     # remove this step when macos 12 and under are no longer supported.
     - run: |
         rm -f lib/jna-*.jar
-        sed -i.bak 's|JNAKernel32Library.getInstance();|//JNAKernel32Library.getInstance();|' server/src/main/java/org/opensearch/bootstrap/Bootstrap.java
       if: darwin/x86-64
       working-directory: ${{prefix}}
     - run: 'sed -i "s|#\s*cluster.name: .*|cluster.name: opensearch_pkgx|" opensearch.yml'
