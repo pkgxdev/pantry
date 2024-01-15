@@ -33,7 +33,9 @@ test:
     - pocketbase --version | grep {{version}}
     - mkdir -p pb_data
     - pocketbase serve --dir $PWD/pb_data &
+    - pid=$!
     - sleep 1
+    - echo "pocketbase pid is $pid"
     - curl -L http://127.0.0.1:8090/_/ -o output.html
-    - lsof -ti :8090 | xargs kill -9
+    - kill $pid
     - cat output.html | grep '<title>PocketBase</title>'
