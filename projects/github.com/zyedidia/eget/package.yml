@@ -1,0 +1,45 @@
+distributable:
+  url: git+https://github.com/zyedidia/eget
+  ref: ${{version.tag}}
+
+display-name: Eget
+
+versions:
+  github: zyedidia/eget
+
+dependencies:
+  curl.se/ca-certs: '*'
+  
+build:
+  dependencies:
+    go.dev: '*'
+    pandoc.org: '*'
+  script:
+    - go build -ldflags="$LDFLAGS" $ARGS
+  env:
+    ARGS:
+      - -v
+      - -trimpath
+      - -o
+      - ${{prefix}}/bin/eget
+    LDFLAGS:
+      - -s
+      - -w
+      - -X main.Version={{version}}
+    linux:
+      LDFLAGS:
+        - -buildmode=pie
+
+provides:
+  - bin/eget
+
+test:
+  script:
+    - eget --version | grep {{version}}
+    - eget zyedidia/eget $ARGS
+    - ./eget --version | grep 1.1.0
+  env:
+    ARGS:
+      - --tag=v1.1.0
+      - --to=$PWD
+      - --file=eget
