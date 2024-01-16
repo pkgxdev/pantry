@@ -18,6 +18,9 @@ build:
     python-poetry.org: ^1.7
   script:
     - bkpyvenv stage --engine=poetry {{prefix}} {{version}}
+    # cv2 libs are compiled for MACOSX_DEPLOYMENT_TARGET=12.0
+    - run: poetry config --local installer.no-binary cv2
+      if: darwin
     - poetry install
     - bkpyvenv seal --engine=poetry {{prefix}} surya_detect
 
