@@ -15,9 +15,17 @@ warnings:
 
 build:
   working-directory: ${{prefix}}/bin
-  script: mv "$SRCROOT"/bin/sourcery .
+  script:
+    - run: install "$SRCROOT"/bin/sourcery .
+      if: <2.1.4
+    - run: install "$SRCROOT"/sourcery-{{version}}/bin/sourcery .
+      if: '>=2.1.4'
 
-test: |
-  [[ "$(sourcery --version)" = "{{version}}" ]]
+test:
+  - run: test "$(sourcery --version)" = "{{version}}"
+    if: <2.1.4
+  # 2.1.4 has the wrong version
+  - run: sourcery --version
+    if: '>=2.1.4'
 
 display-name: Sourcery
