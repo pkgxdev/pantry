@@ -1,79 +1,18 @@
-# this is a basic template for packages we strongly recommend looking at the
-# contents of both:
-#
-# * https://github.com/pkgxdev/pantry
-#
-# as a learning guide and reference. For example, if you are package a `go`
-# project, then browse the listings and find a go package.
-
-
-# this is the source tarball. Swap the version out for {{version}} or we won’t
-# be able to upgrade the package when it updates!
+isplay-name: chainguard-dev/apko
 distributable:
-  #url: https://github.com/chainguard-dev/apko/archive/refs/tags/v{{version}}.tar.gz
-  # this obscure option dictates how many components are removed from the
-  # extracted tarball. It only works with tarballs. You almost always want
-  # `1`. If after extraction the src-directory is funky try `0` or `2`.
-  strip-components: 1
-  # alternatively, we can use direct git checkouts from refs
-  # but we should prefer official source distributions.
-  # often CI/CD will do some post-processing of the source
-  # for release, including setting version numbers, running
-  # autotools, etc.
   url: git+https://github.com/chainguard-dev/apko
   ref: v{{version}}
 
-# if omitted, most tools will work by looking at either the provides: list, or require the
-# fully-qualified name of the package. providing a display-name looks better in `pkgxdev/ossapp`
-# and allows simpler commands like `pkgx install common-package-name`. this _should never_ conflict
-# with any other display-name, or we will become upset and probably yell and stuff.
-display-name: chainguard-dev/apko
-
-# if there’s a github then we can parse the versions
 versions:
-  # if the repo has a github then we can parse versions
-  # this should be one of these (remove the rest or the YAML won’t parse)
   github: chainguard-dev/apko
-#  github: user/repo  # reads github tags but only tags of releases (this is usually what you want)
-#  github: user/repo/tags  # reads github tags from github
-#  github: user/repo/releases  # reads github release *titles* (for some repos this can work better)
-
-  # Alternatively, we have a generic web scraper that can parse versions from
-  # any website. This is useful for projects that don’t have a github or
-  # don’t use tags/releases. It works in three parts:
-#  url: https://example.com/  # the url to scrape
-#  match: /package-name-\d+\.\d+\.\d+\.tar\.gz/  # a regex to find versions
-  # ^^ REMOVE ALL BUT ONE!
-
-  # often maintainers prepend or append junk, this can be a single or an array of regexes.
-  # almost always required with web scraping.
   strip:
-    - /^v/
-#    - /-suffixed-garbage$/
-
-# this is an key/list of platforms that the package supports
-# usually omitted, which will default to all platforms
-#platforms:
-#  - darwin
-#  - linux/x86-64
-
-#dependencies:
-  # to figure out dependencies you can read the project’s README
-  # however it is often easier to read the [brew formula](https://formulae.brew.sh/formula/)
-  #
-  # see dist.pkgx.dev for the packages pkgx provides
-  # if you need a package that isn’t there, you may need to build it!
-  #
-  # see semver.org for version specifications
-#  foo.com: ^1.2.3
-  
+  - /^v/
 
 build:
   dependencies:
     git-scm.org: '*'
     go.dev: '^1.21'
     cmake.org: '^3'
-    # ^^ use fully qualified names
   env:
      DESTDIR: "{{ prefix }}/"
      BINDIR: "bin"
