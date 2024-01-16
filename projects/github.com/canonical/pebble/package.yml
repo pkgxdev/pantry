@@ -1,0 +1,39 @@
+distributable:
+  url: git+https://github.com/canonical/pebble
+  ref: v{{version.raw}}
+
+display-name: canonical/pebble
+
+versions:
+  github: canonical/pebble
+  strip:
+    - /^v/
+
+platforms:
+# not compiling presently
+# looks like canonical's fork of go-flags (several years old) doesn't support unix.Prctl properly on darwin
+#  - darwin
+  - linux
+
+build:
+  dependencies:
+    go.dev: '*'
+    git-scm.org: '*'
+    gnu.org/sed: '*'
+    cmake.org: ^3
+  env:
+    CGO_ENABLED: 0
+    LDFLAGS:
+    - -w
+    - -s
+    linux:
+      LDFLAGS:
+      - -buildmode=pie
+  script:
+  - go generate ./cmd
+  - go build -v -ldflags="${LDFLAGS}" -o "{{ prefix }}/bin/pebble" --trimpath ./cmd/pebble
+
+provides:
+- bin/pebble
+
+test: test "$(pebble version --client)" = v{{version}}
