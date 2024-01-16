@@ -1,0 +1,40 @@
+distributable:
+  url: git+https://github.com/canonical/pebble
+  ref: v{{version.raw}}
+
+display-name: canonical/pebble
+
+versions:
+  github: canonical/pebble  # reads github tags but only tags of releases (this is usually what you want)
+  #github: user/repo/tags  # reads github tags from github
+  #github: user/repo/releases  # reads github release *titles* (for some repos this can work better)
+
+  strip:
+    - /^v/
+
+#platforms:
+#  - darwin
+#  - linux/x86-64
+
+build:
+  dependencies:
+    go.dev: '*'
+    git-scm.org: '*'
+    gnu.org/sed: '*'
+    cmake.org: ^3
+  env:
+    CGO_ENABLED: 0
+    LDFLAGS:
+    - -w
+    - -s
+    linux:
+      LDFLAGS:
+      - -buildmode=pie
+  script:
+  - go generate ./cmd
+  - go build -v -ldflags="${LDFLAGS}" -o "{{ prefix }}/bin/pebble" --trimpath ./cmd/pebble
+
+provides:
+- bin/pebble
+
+test: test "$(pebble version --client)" = v{{version}}
