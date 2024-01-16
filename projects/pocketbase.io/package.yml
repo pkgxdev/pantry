@@ -1,0 +1,41 @@
+distributable:
+  url: git+https://github.com/pocketbase/pocketbase.git
+  ref: ${{version.tag}}
+
+versions:
+  github: pocketbase/pocketbase
+
+build:
+  dependencies:
+    go.dev: '>=1.16'
+  script:
+    - go build $ARGS -ldflags="$LDFLAGS" ./examples/base
+  env:
+    CGO_ENABLED: 0
+    ARGS:
+      - -trimpath
+      - -o="{{prefix}}/bin/pocketbase"
+    LDFLAGS:
+      - -s
+      - -w
+      - -X github.com/pocketbase/pocketbase.Version={{version}}
+    linux:
+      LDFLAGS:
+        - -buildmode=pie
+
+provides:
+  - bin/pocketbase
+
+test:
+  dependencies:
+    curl.se: '*'
+  script:
+    - pocketbase --version | grep {{version}}
+    - mkdir -p pb_data
+    - pocketbase serve --dir $PWD/pb_data &
+    - pid=$!
+    - sleep 1
+    - echo "pocketbase pid is $pid"
+    - curl -L http://127.0.0.1:8090/_/ -o output.html
+    - kill $pid
+    - cat output.html | grep '<title>PocketBase</title>'
