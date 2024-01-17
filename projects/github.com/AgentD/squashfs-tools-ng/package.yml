@@ -1,0 +1,47 @@
+distributable:
+  url: https://codeload.github.com/AgentD/squashfs-tools-ng/tar.gz/refs/tags/v{{version}}
+  strip-components: 1
+
+display-name: github.com/agentd/squashfs-tools-ng
+
+versions:
+  github: AgentD/squashfs-tools-ng/tags
+  strip: /^v/
+
+dependencies:
+  zlib.net: '*'
+  tukaani.org/xz: '*'
+  lz4.org: '*'
+  facebook.com/zstd: '*'
+  oberhumer.com/lzo: '*'
+  gnu.org/readline: '*'
+
+build:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+    gnu.org/coreutils: '*'
+    gnu.org/libtool: '*'
+    gnu.org/automake: '*'
+    gnu.org/autoconf: '*'
+    gnu.org/gawk: '*'
+    gnu.org/gcc: '*'
+    cmake.org: ^3
+  script:
+    - autoreconf --force --install --symlink
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+    - run: ls -l
+      working-directory: ${{prefix}}/bin
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+
+provides:
+- bin/gensquashfs
+- bin/rdsquashfs
+- bin/sqfs2tar
+- bin/tar2sqfs
+- bin/sqfsdiff
+
+test: test "$(gensquashfs --version|head -1 |cut -d' ' -f 3)" = {{version}}
+
