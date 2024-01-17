@@ -8,8 +8,8 @@ versions:
   github: AgentD/squashfs-tools-ng/tags
   strip: /^v/
 
-platforms:
-  - linux
+#platforms:
+#  - linux
 
 dependencies:
   zlib.net: '*'
@@ -37,6 +37,10 @@ build:
   env:
     ARGS:
       - --prefix="{{prefix}}"
+    darwin:
+      # FIXME: binutils ar/ranlib are broken on macOS?
+      AR: /usr/bin/ar
+      RANLIB: /usr/bin/ranlib
 
 provides:
 - bin/gensquashfs
