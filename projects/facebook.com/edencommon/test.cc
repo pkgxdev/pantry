@@ -1,20 +1,12 @@
-#include <eden/common/utils/ProcessNameCache.h>
-  #include <cstdlib>
-      #include <iostream>
+#include <eden/common/utils/ProcessInfo.h>
+#include <cstdlib>
+#include <iostream>
 
-      using namespace facebook::eden;
+using namespace facebook::eden;
 
-      ProcessNameCache& getProcessNameCache() {
-        static auto* pnc = new ProcessNameCache;
-        return *pnc;
-      }
-
-      ProcessNameHandle lookupProcessName(pid_t pid) {
-        return getProcessNameCache().lookup(pid);
-      }
-
-      int main() {
-        int pid = getpid();
-        std::cout << lookupProcessName(pid).get() << std::endl;
-        return 0;
-      }
+int main(int argc, char **argv) {
+  if (argc <= 1) return 1;
+  int pid = std::atoi(argv[1]);
+  std::cout << readProcessName(pid) << std::endl;
+  return 0;
+}

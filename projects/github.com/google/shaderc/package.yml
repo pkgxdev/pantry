@@ -1,0 +1,52 @@
+distributable:
+  url: https://github.com/google/shaderc/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: google/shaderc/tags
+
+build:
+  dependencies:
+    cmake.org: '*'
+    python.org: ~3.12
+    git-scm.org: ^2
+  working-directory: build
+  script:
+    - ../utils/git-sync-deps
+    # don't install third-party stuff if possible
+    - run: sed -i -e 's/\${SHADERC_SKIP_INSTALL}/ON/g' CMakeLists.txt
+      working-directory: ../third_party
+    - cmake .. $CMAKE_ARGS
+    - cmake --build .
+    - cmake --install .
+  env:
+    CMAKE_ARGS:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DSHADERC_SKIP_TESTS=ON
+      - -DSKIP_GLSLANG_INSTALL=ON
+      - -DSKIP_SPIRV_TOOLS_INSTALL=ON
+      - -DSKIP_GOOGLETEST_INSTALL=ON
+    linux:
+      CMAKE_ARGS:
+        - -DCMAKE_EXE_LINKER_FLAGS=-lstdc++fs
+
+provides:
+  - bin/glslc
+
+test:
+  fixture: |
+    #include <shaderc/shaderc.h>
+    int main() {
+      int version;
+      shaderc_profile profile;
+      if (!shaderc_parse_version_profile("450core", &version, &profile))
+        return 1;
+      return (profile == shaderc_profile_core) ? 0 : 1;
+    }
+  dependencies:
+    freedesktop.org/pkg-config: ^0.29
+  script:
+    - cat $FIXTURE > test.c
+    - clang -o test test.c $(pkg-config --cflags --libs shaderc)
+    - ./test

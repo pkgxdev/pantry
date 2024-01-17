@@ -1,0 +1,23 @@
+distributable:
+  url: https://github.com/pls-rs/pls/archive/refs/tags/v0.0.1-beta.3.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/pls
+
+# TODO: use github: pls-rs/pls once they have tagged releases
+versions:
+  - 2023.12.22
+
+dependencies:
+  libgit2.org: ^1
+
+build:
+  dependencies:
+    rust-lang.org: ">=1.65"
+    rust-lang.org/cargo: "*"
+  script: cargo install --locked --path . --root {{prefix}}
+
+test:
+  script:
+    - test "$(pls --version 2>&1 || true)" = "pls 0.0.1-beta.3"

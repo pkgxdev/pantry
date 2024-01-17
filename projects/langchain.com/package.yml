@@ -1,0 +1,43 @@
+distributable:
+  url: https://github.com/langchain-ai/langchain/archive/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: langchain-ai/langchain
+
+dependencies:
+  python.org: ^3.12
+  docker.com/compose: ^2.23
+
+runtime:
+  env:
+    PYTHONPATH: $PYTHONPATH:{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages
+
+build:
+  working-directory: libs/langchain
+  script:
+    - python -m pip install --prefix={{prefix}} .
+    - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
+      working-directory: ${{prefix}}/lib
+    - run: sed -i'' "s|{{deps.python.org.prefix}}/bin/python|/usr/bin/env python|g" ./*
+      working-directory: ${{prefix}}/bin
+  env:
+    linux:
+      MULTIDICT_NO_EXTENSIONS: 1
+
+provides:
+  - bin/f2py
+  - bin/jsondiff
+  - bin/jsonpatch
+  - bin/jsonpointer
+  - bin/langchain-server
+  - bin/langsmith
+  - bin/normalizer
+
+test:
+  - python -c "import langchain; print(langchain.__version__)" | grep {{version}}
+  - killall langsmith || true
+  - langsmith start &
+  - sleep 1
+  - langsmith status
+  - langsmith stop

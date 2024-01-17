@@ -24,11 +24,16 @@ build:
     ./configure $ARGS
     make --jobs {{ hw.concurrency }} install
   env:
+    linux:
+      CC: clang
+      CXX: clang++
+      LD: clang
+      LDFLAGS: $LDFLAGS -lstdc++fs
     ARGS:
       - --prefix={{prefix}}
       - --disable-debug
-      - --disable-tests  # needs: `hexedit`
-      - --disable-bench  # fails: linux/aarch64/v24.0.1
+      - --disable-tests # needs: `hexedit`
+      - --disable-bench # fails: linux/aarch64/v24.0.1
 
 provides:
   - bin/bitcoin-cli
@@ -37,5 +42,4 @@ provides:
   - bin/bitcoin-wallet
   - bin/bitcoind
 
-test:
-  bitcoind -version
+test: bitcoind -version

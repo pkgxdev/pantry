@@ -1,0 +1,244 @@
+name: pkg for platform
+run-name: pkging ${{ fromJSON(inputs.pkg).project }} (${{ inputs.name }})
+
+on:
+  workflow_call:
+    inputs:
+      name:
+        description: brewkit platform unique ID
+        type: string
+      tinyname:
+        description: >
+          GitHub Actions has a non resizable sidebar so we need a shorter name
+          or it’s much harder to differentiate the different jobs.
+        type: string
+        default: ${{ inputs.name }}
+      os:
+        type: string
+      container:
+        required: false
+        type: string
+      pkg:
+        description: eg. `example.com@1.2.3`
+        type: string
+      dry-run:
+        description: dry runs do not modify bottle storage
+        type: boolean
+        default: false
+      test-os:
+        description: a JSON array of runner-names
+        type: string
+      test-container:
+        description: >
+          A JSON array of docker image names or `[null]`.
+          Indeed! You cannot leave this as `null` or undefined.
+          Sorry, GHA is not flexible enough to efficiently work around this.
+        type: string
+      complain:
+        type: boolean
+        default: false
+      invalidate-cloudfront:
+        type: boolean
+        default: true
+    secrets:
+      APPLE_CERTIFICATE_P12: { required: false }
+      APPLE_CERTIFICATE_P12_PASSWORD: { required: false }
+      APPLE_IDENTITY: { required: false }
+      GPG_KEY_ID: { required: true }
+      GPG_PRIVATE_KEY: { required: true }
+      AWS_ACCESS_KEY_ID: { required: false }
+      AWS_S3_BUCKET: { required: true }
+      AWS_SECRET_ACCESS_KEY: { required: true }
+      AWS_CF_DISTRIBUTION_ID: { required: true }
+
+env:
+  BREWKIT_PKGJSON: ${{ inputs.pkg }}
+
+jobs:
+  build:
+    name: build ${{inputs.tinyname}}
+    runs-on: ${{ fromJSON(inputs.os) }}
+    container: ${{ inputs.container }}
+    permissions: {}
+    outputs:
+      project: ${{ steps.build.outputs.project }}
+      version: ${{ steps.build.outputs.version }}
+      platform: ${{ steps.build.outputs.platform }}
+      arch: ${{ steps.build.outputs.arch }}
+    env:
+      PKGX_PANTRY_PATH: ${{ github.workspace }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pkgxdev/setup@v2
+        with:
+          PKGX_DIR: /opt
+
+      - uses: ./.github/actions/setup
+        with:
+          p12-file-base64: ${{ secrets.APPLE_CERTIFICATE_P12 }}
+          p12-password: ${{ secrets.APPLE_CERTIFICATE_P12_PASSWORD }}
+          APPLE_IDENTITY: ${{ secrets.APPLE_IDENTITY }}
+
+      - uses: pkgxdev/brewkit/build@v1
+        with:
+          pkg: ${{ inputs.pkg }}
+        id: build
+
+      - uses: styfle/cancel-workflow-action@0.12.0
+        if: steps.build.outputs.noop
+
+      - uses: pkgxdev/brewkit/audit@v1
+        with:
+          pkg: ${{ inputs.pkg }}
+
+      - uses: pkgxdev/brewkit/upload-build-artifact@v1
+
+  test:
+    name: test ${{inputs.tinyname}} ${{ matrix.container || ''}} ${{ matrix.container || '' }} ${{ join(matrix.os, '+') }}
+    needs: build
+    strategy:
+      matrix:
+        os: ${{ fromJSON(inputs.test-os) }}
+        container: ${{ fromJSON(inputs.test-container) }}
+    permissions: {}
+    runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
+    env:
+      PKGX_PANTRY_PATH: ${{ github.workspace }}
+    steps:
+      - uses: pkgxdev/setup@v2
+      - uses: actions/checkout@v4
+      - uses: pkgxdev/brewkit/download-build-artifact@v1
+        with:
+          pkg: ${{ inputs.pkg }}
+      - uses: pkgxdev/brewkit/test@v1
+        with:
+          pkg: ${{ inputs.pkg }}
+
+  bottle:
+    name: bottle (${{inputs.tinyname}}.${{matrix.compression}})
+    needs: [build, test]
+    permissions: {}
+    strategy:
+      matrix:
+        compression: [xz, gz]
+    runs-on: ubuntu-latest
+    env:
+      PREFIX: ${{ needs.build.outputs.project }}/${{ needs.build.outputs.platform }}/${{ needs.build.outputs.arch }}/v${{ needs.build.outputs.version }}.tar.${{ matrix.compression }}
+    steps:
+      - uses: pkgxdev/setup@v2
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: import GPG key
+        run: echo $GPG_PRIVATE_KEY |
+          base64 -d |
+          pkgx gpg --import --batch --yes
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+
+      - uses: pkgxdev/brewkit/download-build-artifact@v1
+        id: dl
+        with:
+          pkg: ${{ inputs.pkg }}
+          platform: ${{ inputs.name }}
+          extract: false
+
+      - uses: pkgxdev/brewkit/bottle@v1
+        id: bottle
+        with:
+          file: ${{ steps.dl.outputs.filename }}
+          compression: ${{ matrix.compression }}
+
+      - name: gpg
+        run: pkgx gpg
+          --detach-sign
+          --armor
+          --output ${{ steps.bottle.outputs.filename }}.asc
+          --local-user ${{ secrets.GPG_KEY_ID }}
+          ${{ steps.bottle.outputs.filename }}
+
+      - name: sha
+        run: pkgx
+          sha256sum
+          ${{ steps.bottle.outputs.filename }} > ${{ steps.bottle.outputs.filename }}.sha256sum
+
+      - name: s3 put
+        run: |
+          aws s3 cp ${{ steps.bottle.outputs.filename }}           $URL
+          aws s3 cp ${{ steps.bottle.outputs.filename }}.asc       $URL.asc
+          aws s3 cp ${{ steps.bottle.outputs.filename }}.sha256sum $URL.sha256sum
+
+          echo "cf-paths=/$PREFIX /$PREFIX.asc /$PREFIX.sha256sum" >> $GITHUB_OUTPUT
+        env:
+          URL: s3://${{ secrets.AWS_S3_BUCKET }}/${{ env.PREFIX }}
+        id: put
+        if: inputs.dry-run != true
+
+      - name: invalidate cloudfront
+        run: aws cloudfront create-invalidation
+          --distribution-id ${{ secrets.AWS_CF_DISTRIBUTION_ID }}
+          --paths
+          ${{ steps.put.outputs.cf-paths }}
+        if: inputs.invalidate-cloudfront && !inputs.dry-run
+
+  publish:
+    name: publish ${{inputs.tinyname}} ${{ inputs.dry-run && '(dry-run)' }}
+    runs-on: ubuntu-latest
+    needs: [bottle, build]
+    permissions: {}
+    env:
+      DIRNAME: ${{ needs.build.outputs.project }}/${{ needs.build.outputs.platform }}/${{ needs.build.outputs.arch }}
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - uses: pkgxdev/setup@v2
+
+      - name: generate versions.txt
+        run: |
+          if ! aws s3 cp \
+            s3://${{ secrets.AWS_S3_BUCKET }}/$DIRNAME/versions.txt \
+            ./remote-versions.txt; then
+            touch remote-versions.txt
+          fi
+          echo "$SCRIPT" > script.ts
+          pkgx deno run -A script.ts ./remote-versions.txt ${{ needs.build.outputs.version }} > versions.txt
+        env:
+          SCRIPT: |
+            import SemVer, { compare } from "https://raw.githubusercontent.com/pkgxdev/libpkgx/main/src/utils/semver.ts"
+            const versions = new Set(Deno.readTextFileSync(Deno.args[0]).trim().split("\n").filter(x => x))
+            versions.add(Deno.args[1])
+            const out = [...versions].map(x => new SemVer(x)).sort(compare).join("\n")
+            await Deno.stdout.write(new TextEncoder().encode(out.trim()))
+
+      - name: s3 put
+        run: aws s3 cp versions.txt s3://${{ secrets.AWS_S3_BUCKET }}/$DIRNAME/versions.txt
+        if: inputs.dry-run != true
+
+      - name: invalidate cloudfront
+        run: aws cloudfront create-invalidation
+          --distribution-id ${{ secrets.AWS_CF_DISTRIBUTION_ID }}
+          --paths
+          /$DIRNAME/versions.txt
+        if: inputs.invalidate-cloudfront && !inputs.dry-run
+
+  complain:
+    needs: bottle
+    if: failure() && !inputs.dry-run && inputs.complain
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/complain
+        with:
+          pkg: ${{ fromJSON(inputs.pkg).project }}=${{ fromJSON(inputs.pkg).version.value }}

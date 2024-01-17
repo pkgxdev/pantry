@@ -1,10 +1,4 @@
-#!/usr/bin/env -S tea bash
-# shellcheck shell=bash
-
-#---
-# dependencies:
-#   charm.sh/gum: '*'
-#---
+#!/usr/bin/env -S pkgx +gum bash
 
 set -eo pipefail
 

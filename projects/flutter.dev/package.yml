@@ -8,12 +8,13 @@ platforms:
 dependencies:
   git-scm.org: '*'
   tukaani.org/xz: '*'
+  gnu.org/which: '*' # flutter create uses which
   linux:
     curl.se: '*'
     info-zip.org/zip: '*'
     info-zip.org/unzip: '*'
 build:
-  working-directory: "{{prefix}}"
+  working-directory: '{{prefix}}'
   script:
     - run: curl -L "$DIST" | tar Jxf -
       if: linux
@@ -22,10 +23,10 @@ build:
         unzip flutter_darwin.zip
         rm flutter_darwin.zip
       if: darwin
-    - run: | 
+    - run: |
         ln -s ../flutter/bin/flutter flutter
         ln -s ../flutter/bin/dart dart
-      working-directory: "{{prefix}}/bin"
+      working-directory: '{{prefix}}/bin'
   env:
     linux:
       DIST: https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_{{version}}-stable.tar.xz

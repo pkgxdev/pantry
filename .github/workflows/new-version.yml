@@ -1,70 +1,47 @@
-name: new-version
+name: build pkg version
 run-name: building ${{ inputs.projects }}
 
 on:
+  workflow_call:
+    inputs:
+      projects:
+        description: eg. `foo.com=1.2.3 bar.com^2.3.4`
+        required: true
+        type: string
+      complain:
+        type: boolean
+        default: false
   workflow_dispatch:
     inputs:
       projects:
         description: eg. `foo.com=1.2.3 bar.com^2.3.4`
         required: true
         type: string
+      complain:
+        type: boolean
+        default: true
 
 jobs:
-  build:
-    strategy:
-      fail-fast: false
-      matrix:
-        platform:
-          - darwin+x86-64
-          - linux+x86-64
-          - darwin+aarch64
-          - linux+aarch64
-    uses: ./.github/workflows/build.yml
-    with:
-      projects: ${{ inputs.projects }}
-      platform: ${{ matrix.platform }}
-    secrets: inherit
-
-  bottle:
-    strategy:
-      fail-fast: false
-      matrix:
-        platform:
-          - darwin+x86-64
-          - linux+x86-64
-          - darwin+aarch64
-          - linux+aarch64
-    needs: [build]
-    uses: ./.github/workflows/bottle.yml
-    with:
-      new-version: true
-      platform: ${{ matrix.platform }}
-      projects: ${{ inputs.projects }}
-    secrets: inherit
-
-  request-qa:
-    needs: [bottle]
-    if: ${{ needs.bottle.outputs.qa-required != '[]' }}
+  ingest:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        project: ${{ fromJson(needs.bottle.outputs.qa-required) }}
+    outputs:
+      pkgs: ${{ steps.divide.outputs.pkgs }}
     steps:
-      - uses: pkgxdev/pantry/.github/actions/request-qa@main
-        with:
-          project: ${{ matrix.project }}
-          slack-webhook: ${{ secrets.SLACK_QA_WEBHOOK }}
+      - run: |
+          var="$(echo -n ${{ inputs.projects }} | jq -R -s -c 'split(" ")')"
+          echo "pkgs=$var" >> $GITHUB_OUTPUT
+        id: divide
 
-  complain:
-    needs: [build, bottle]
-    if: failure()
+  pkg:
+    needs: ingest
+    strategy:
+      fail-fast: false
+      matrix:
+        pkg: ${{ fromJSON(needs.ingest.outputs.pkgs) }}
+    uses: ./.github/workflows/pkg.yml
     permissions:
       issues: write
-    runs-on: ubuntu-latest
-    steps:
-      - uses: pkgxdev/pantry/.github/actions/complain@main
-        with:
-          projects: ${{ inputs.projects }}
-          platform: ${{ inputs.platform }}
-          # slack-webhook: ${{ secrets.SLACK_WEBHOOK }}
-          # slack-channel: ${{ secrets.SLACK_CHANNEL }}
+    with:
+      pkg: ${{ matrix.pkg }}
+      complain: ${{ github.event_name == 'workflow_call' || inputs.complain }}
+    secrets: inherit

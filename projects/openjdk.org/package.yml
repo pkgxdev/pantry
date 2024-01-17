@@ -1,10 +1,19 @@
 distributable:
-  url: https://github.com/openjdk/jdk20u/archive/jdk-20.0.2+9.tar.gz
-  strip-components: 1
+  # TODO: more majors
+  - url: https://github.com/openjdk/jdk20u/archive/{{version.tag}}.tar.gz
+    strip-components: 1
+  - url: https://github.com/openjdk/jdk17u/archive/{{version.tag}}.tar.gz
+    strip-components: 1
 
 versions:
-  - 20.0.2.9
-  #FIXME
+  # TODO: more majors
+  - github: openjdk/jdk20u/tags
+    # each repo contains all the prior repo tags at the time of the fork,
+    # as well as tags like 20+10, which should be 20.0.0.10, but parses to
+    # 20.10.0.
+    transform: 'v => v.match(/jdk-20\.0\./) ? v.replace(/\+/, ".").replace(/^jdk-/, "") : undefined'
+  - github: openjdk/jdk17u/tags
+    transform: 'v => v.match(/jdk-17\.0\./) ? v.replace(/\+/, ".").replace(/^jdk-/, "") : undefined'
 
 interprets:
   extensions: java
@@ -46,17 +55,15 @@ build:
     freedesktop.org/pkg-config: '*'
     gnu.org/wget: '*'
   script:
-    - run: wget -c $BOOT_JDK -O - | tar xz -C . --strip-components=$STRIP
+    - run: wget -c ${BOOT_JDK{{version.major}}}_${JDK_ARCH}_bin.tar.gz -O - | tar xz -C . --strip-components=$STRIP
       working-directory: boot-jdk
     # autoconf won't find llvm-cxxfilt for c++filt, and won't take an envvar
-    - run: |
-        sed -i.bak -e's/c..filt/llvm-cxxfilt/' toolchain.m4
-        rm toolchain.m4.bak
+    - run: sed -i -e's/c..filt/llvm-cxxfilt/' toolchain.m4
       working-directory: make/autoconf
       if: linux
     - bash configure $ARGS
       --with-boot-jdk="$BOOT_JDK_DIR"
-      --with-vendor-version-string="$(tea --version | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+')"
+      --with-vendor-version-string="$(pkgx --version | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+')"
       --with-extra-cflags="$CFLAGS"
       --with-extra-cxxflags="$CXXFLAGS"
       --with-extra-ldflags="$LDFLAGS"
@@ -68,7 +75,7 @@ build:
     darwin:
       STRIP: 2
       BOOT_JDK_DIR: $SRCROOT/boot-jdk/Contents/Home
-      JDK_DIR: build/*/images/jdk-bundle/jdk-20.0.2.jdk/Contents/Home/*
+      JDK_DIR: build/*/images/jdk-bundle/jdk-{{version.marketing}}.{{version.patch}}.jdk/Contents/Home/*
       ARGS:
         - --enable-dtrace
     linux:
@@ -82,13 +89,16 @@ build:
         - --with-stdc++lib=dynamic
         - --with-toolchain-type=clang
     darwin/aarch64:
-      BOOT_JDK: https://download.java.net/java/GA/jdk19.0.1/afdd2e245b014143b62ccb916125e3ce/10/GPL/openjdk-19.0.1_macos-aarch64_bin.tar.gz
+      JDK_ARCH: macos-aarch64
     darwin/x86-64:
-      BOOT_JDK: https://download.java.net/java/GA/jdk19.0.1/afdd2e245b014143b62ccb916125e3ce/10/GPL/openjdk-19.0.1_macos-x64_bin.tar.gz
+      JDK_ARCH: macos-x64
     linux/aarch64:
-      BOOT_JDK: https://download.java.net/java/GA/jdk19.0.1/afdd2e245b014143b62ccb916125e3ce/10/GPL/openjdk-19.0.1_linux-aarch64_bin.tar.gz
+      JDK_ARCH: linux-aarch64
     linux/x86-64:
-      BOOT_JDK: https://download.java.net/java/GA/jdk19.0.1/afdd2e245b014143b62ccb916125e3ce/10/GPL/openjdk-19.0.1_linux-x64_bin.tar.gz
+      JDK_ARCH: linux-x64
+    BOOT_JDK17: https://download.java.net/java/GA/jdk17.0.2/dfd4a8d0985749f896bed50d7138ee7f/8/GPL/openjdk-17.0.2
+    BOOT_JDK20: https://download.java.net/java/GA/jdk19.0.1/afdd2e245b014143b62ccb916125e3ce/10/GPL/openjdk-19.0.1
+
     ARGS:
       - --disable-warnings-as-errors
       - --with-debug-level=release
@@ -134,7 +144,6 @@ provides:
   - bin/jstack
   - bin/jstat
   - bin/jstatd
-  - bin/jwebserver
   - bin/keytool
   - bin/rmiregistry
   - bin/serialver

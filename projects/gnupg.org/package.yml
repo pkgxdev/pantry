@@ -9,8 +9,16 @@ versions:
     - /gnupg-/
     - /.tar.bz2/
 
+runtime:
+  env:
+    # allows us to be relocatable provided `gpgconf.ctl` exists alongside
+    # the `gpgconf` binary. NOTE causes warning messages on Darwin:
+    #     error reading symlink '/proc/curproc/file': No such file or directory
+    # which seemingly cannot be avoided without a patch
+    GNUPG_BUILD_ROOT: '{{prefix}}'
+
 dependencies:
-  zlib.net: '*'
+  zlib.net: ^1.1
   sourceware.org/bzip2: '*'
   gnupg.org/npth: '*'
   gnupg.org/libgpg-error: '*'
@@ -22,13 +30,8 @@ dependencies:
   openldap.org: ^2
   gnu.org/readline: ^8
   sqlite.org: ^3
-  thrysoee.dk/editline: ^3  #NOTE added by jacob to try and fix a bug
-  darwin:
-    gnu.org/gettext: ^0.22.4
-
-runtime:
-  env:
-    GNUPGHOME: '{{prefix}}/etc/gnupg'
+  darwin: # nobody added a comment to say why this is Darwin only
+    gnu.org/gettext: ^0.21
 
 build:
   freedesktop.org/pkg-config: '*'
@@ -38,6 +41,10 @@ build:
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }}
     - make --jobs {{ hw.concurrency }} install
+
+    # this makes the lookup machinery relocatable, see above
+    - cp props/gpgconf.ctl {{prefix}}/bin
+
     - run: |
         sed -i.bak "s|{{prefix}}|\$(dirname \$0)/..|g" gpg-wks-client
         rm gpg-wks-client.bak
@@ -46,11 +53,9 @@ build:
         mkdir -p var/run etc/gnupg
         chmod 700 etc/gnupg
       working-directory: '{{prefix}}'
-    - run: |
-        mv ./gpg ./gpg-exec
-      working-directory: '{{prefix}}/bin'
-    - run: install gpg {{prefix}}/bin/
-      working-directory: props
+
+    # nobody added a comment explaining why this conf is required
+    - run: cp props/gpg.conf {{prefix}}/etc/gnupg/gpg.conf
   env:
     ARGS:
       - --prefix={{prefix}}
@@ -64,9 +69,7 @@ build:
 provides:
   - bin/gpg
   - bin/gpg-agent
-  - bin/gpg-card
   - bin/gpg-connect-agent
-  - bin/gpg-wks-client
   - bin/gpg-wks-server
   - bin/gpgconf
   - bin/gpgparsemail

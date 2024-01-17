@@ -6,8 +6,7 @@ versions:
   github: ggerganov/llama.cpp/tags
   strip: /^b/
 
-display-name:
-  LLaMA.cpp
+display-name: LLaMA.cpp
 
 provides:
   - bin/llama.cpp
@@ -20,13 +19,14 @@ platforms:
   # Illegal instruction: 4 on darwin/x86-64
 
 dependencies:
-  python.org: ~3.11
   pkgx.sh: ^1
 
 build:
   dependencies:
     gnu.org/coreutils: '*'
     git-scm.org: '*'
+    curl.se: '*'
+    python.org: ~3.11
   env:
     VIRTUAL_ENV: ${{prefix}}/venv
     CC: clang
@@ -38,6 +38,11 @@ build:
         sed -i.bak -e's/\(MK_.* -march=native -mtune=native\)/#\1/g' Makefile
         rm Makefile.bak
       if: linux/x86-64
+
+    # this commit breaks linux/aarch64 - fixed in 1732
+    - run: curl -LSs 'https://github.com/ggerganov/llama.cpp/pull/4630/commits/42f5246effafddcf87d67656b58e95030f4bc454.patch' | patch -p1 -R
+      if: '>=1705<1732'
+
     - make --jobs {{hw.concurrency}}
 
     - |
@@ -49,15 +54,12 @@ build:
       mkdir -p {{prefix}}/share
       mv prompts {{prefix}}/share
 
-    - |
-      install -D convert.py $VIRTUAL_ENV/bin/convert.py
-      python-venv-stubber.sh convert.py
+    - install -D convert.py $VIRTUAL_ENV/bin/convert.py
 
     - |
-      python -m venv $VIRTUAL_ENV
-      source $VIRTUAL_ENV/bin/activate
-      pip install -r requirements.txt
-      deactivate
+      bkpyvenv stage {{prefix}} {{version}}
+      $VIRTUAL_ENV/bin/pip install -r requirements.txt
+      bkpyvenv seal {{prefix}} convert.py
 
 test:
   '{{prefix}}/bin/llama.cpp --help'

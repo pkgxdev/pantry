@@ -1,0 +1,37 @@
+distributable:
+  url: https://github.com/env0/terratag/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: env0/terratag
+  strip: /^v/
+
+dependencies:
+  terraform.io: ">=0.12"
+  curl.se/ca-certs: '*'
+
+build:
+  dependencies:
+    go.dev: ^1.21
+  env:
+    CGO_ENABLED: 0
+    LDFLAGS:
+      - -extldflags=-static
+      - -w
+      - -s
+      - -X=main.version=v{{version}}
+  script:
+    - go build -v -ldflags="$LDFLAGS" -o terratag ./cmd/terratag
+    - mkdir -p "{{ prefix }}"/bin
+    - mv terratag "{{ prefix }}"/bin
+
+provides:
+  - bin/terratag
+
+test:
+  script:
+    - test "$(terratag -version)" = "Terratag v{{version}}"
+    - terraform init
+    - terratag -tags="env=dev,tenant=clientA"
+    - test -f example.terratag.tf
+    - test -f example.tf.bak

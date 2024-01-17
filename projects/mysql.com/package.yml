@@ -16,12 +16,17 @@ dependencies:
   facebook.com/zstd: ^1
   curl.se: '>=6.0'
   thrysoee.dk/editline: ^3
+  developers.yubico.com/libfido2: ^1
+  linux:
+    # llvm cannot find #include <bit>
+    # use our libstdc++ instead
+    gnu.org/gcc: '*'
 
 build:
   dependencies:
     cmake.org: ^3
     freedesktop.org/pkg-config: ^0.29
-    gnu.org/bison: ">=3.0.4"
+    gnu.org/bison: '>=3.0.4'
   working-directory: build
   script: |
     # https://www.mail-archive.com/ports@freebsd.org/msg00418.html
@@ -64,9 +69,7 @@ build:
       - -DWITH_UNIT_TESTS=OFF
       - -DENABLED_LOCAL_INFILE=1
       - -DWITH_INNODB_MEMCACHED=ON
-
-      #FIXME pkg this and change to =system
-      - -DWITH_FIDO=bundled
+      - -DWITH_FIDO=system
 
       #FIXME mysql requires boost=1.77
       # which seems perfect for us right! Since we version independently
@@ -78,10 +81,11 @@ build:
 
       # Now requires bison>=3.0.4
       - -DBISON_EXECUTABLE={{deps.gnu.org/bison.prefix}}/bin/bison
+
     linux/aarch64:
       ARGS:
-      - -DCMAKE_CXX_FLAGS="-mno-outline-atomics"
-      - -DCMAKE_C_FLAGS="-mno-outline-atomics"
+        - -DCMAKE_CXX_FLAGS="-mno-outline-atomics"
+        - -DCMAKE_C_FLAGS="-mno-outline-atomics"
       #^^ https://www.mail-archive.com/ports@freebsd.org/msg00418.html
 
 provides:

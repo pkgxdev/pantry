@@ -1,0 +1,35 @@
+distributable:
+  url: https://github.com/astral-sh/ruff/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: charliermarsh/ruff
+  strip: /^v /
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.60'
+    rust-lang.org/cargo: '*'
+  script:
+    - run: CRATE=ruff_cli
+      if: <0.0.242
+    - run: CRATE=crates/ruff_cli
+      if: '>=0.0.242'
+    - cargo install --locked --path $CRATE --root {{prefix}}
+
+provides:
+  - bin/ruff
+
+test:
+  script:
+    # v0.1.12 introduced this test error:
+    # ruff failed
+    #   Cause: Failed to create cache file '/__w/pantry/pantry/testbeds/astral.sh__ruff-0.1.12/.ruff_cache/0.1.12/10391082687706843805'
+    #   Cause: No such file or directory (os error 2)
+    - run: mkdir -p .ruff_cache/{{version}}
+      if: '>=0.1.12'
+    - ruff -e $FIXTURE | grep "\`os\` imported but unused"
+    - ruff --fix $FIXTURE
+    - test ! -s $FIXTURE
+  fixture: |
+    import os

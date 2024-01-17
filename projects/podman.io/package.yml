@@ -28,10 +28,11 @@ build:
     - run: |
         sed -i.bak -f $PROP config_{darwin,linux}.go
         rm config_{darwin,linux}.go.bak
-      working-directory: vendor/github.com/containers/common/pkg/config
+      working-directory:
+        vendor/github.com/containers/common/pkg/config
       prop: |-
         s_\(^var defaultHelperBinariesDir.*\)_\
-        \1\n        "\$BINDIR/../../../$GVISOR_MAJOR/bin",_
+        \1\n        "$BINDIR/../../../github.com/containers/gvisor-tap-vsock/v{{deps.github.com/containers/gvisor-tap-vsock.version.major}}/bin",_
 
     - mkdir -p "{{ prefix }}"/bin
     - make --jobs {{ hw.concurrency }} podman-remote
@@ -47,15 +48,16 @@ build:
         ln -s podman "{{ prefix }}"/bin/podman-remote
       if: darwin
   env:
-    # path for gvproxy to add to platform config
-    GVISOR_MAJOR: |-
-      $(cd "{{deps.github.com/containers/gvisor-tap-vsock.prefix}}/../\
-      /v{{deps.github.com/containers/gvisor-tap-vsock.version.major}}" \
-      && pwd | sed -e "s_$PKGX_DIR/__")
     CGO_ENABLED: 1
+    linux:
+      EXTRA_LDFLAGS: -buildmode=pie
 
 test:
-  script: |
-    podman-remote -v | grep "podman-remote version {{ version }}"
-    (podman info 2>&1 || true) | grep "Cannot connect to Podman."
-    (podman machine init --image-path fake-testimage fake-testvm 2>&1 || true) | grep "Error: open fake-testimage: no such file or directory"
+  script:
+    - podman-remote -v | grep "podman-remote version {{ version }}"
+    - (podman info 2>&1 || true) | grep "Cannot connect to Podman."
+    # won't run as root
+    - |
+      if test $(id -g) != 0; then
+        (podman machine init --image-path fake-testimage fake-testvm 2>&1 || true) | grep 'Error: open fake-testimage: no such file or directory'
+      fi

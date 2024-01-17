@@ -9,6 +9,12 @@ build:
   script: |
     ./configure --prefix="{{prefix}}"
     make --jobs {{ hw.concurrency }} install
+  env:
+    linux:
+      CFLAGS:
+        - -fPIC
+        # undefined symbol errors in newer llvms prevent building shared libs
+        - -Wl,--undefined-version
 
 test:
   script: |

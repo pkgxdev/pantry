@@ -1,24 +1,44 @@
-distributable: ~
+distributable:
+  url: https://registry.npmjs.org/vite/-/vite-{{version}}.tgz
+  strip-components: 1
 
 versions:
-  github: vitejs/vite/tags
-  strip: /v/
+  npm: vite
+
+dependencies:
+  nodejs.org: ^16 || ^18 || ^20
 
 build:
-  dependencies:
-    deno.land: "*"
-  script: |
-    {{pkgx.prefix}}/pkgx.sh/brewkit/v0/bin/pkg --version
-    mkdir -p "{{prefix}}"/bin
-    deno compile -Ar npm:vite@{{version.raw}} -o vite
-    mv vite "{{prefix}}"/bin/vite # If the binay doesn't get built, the build will fail, not the tests. So, we'll know.
-  # Required. Else, wouldn't work.
-  skip: fix-patchelf
+  - npm install .
+      --global
+      --install-links
+      --prefix="{{prefix}}"
+
+  # minimize universal binaries
+  #TODO should probs be a general step we perform in CI/CD
+  - run:
+      - for x in $(pkgx fd --type x); do
+        # not all are unix binaries and I couldn’t find a command to filter
+        # for those properly
+      - |
+          if lipo $x -thin $(uname -m) -output $x.new; then
+            mv $x.new $x
+          fi
+      - done
+    working-directory: ${{prefix}}/lib
 
 test:
-  script: |
-    vite --version
-    test "$(vite --version | grep -o 'vite/[^ ]*')" = "vite/{{version.raw}}"
+  dependencies:
+    darwinsys.com/file: '*'
+    linux:
+      strace.io: '*'
+  script:
+    - ls -l "{{prefix}}/bin"
+    - file "{{prefix}}/bin/vite"
+    - run: strace vite --version
+      if: linux
+    - vite --version
+    - test "$(vite --version | grep -o 'vite/[^ ]*')" = "vite/{{version.raw}}"
 
 provides:
   - bin/vite

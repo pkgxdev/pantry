@@ -1,0 +1,23 @@
+distributable:
+  url: https://github.com/YS-L/csvlens/archive/v{{version}}.tar.gz
+  strip-components: 1
+versions:
+  github: YS-L/csvlens
+build:
+  dependencies:
+    rust-lang.org: ^1.65
+    rust-lang.org/cargo: '*'
+  script:
+    - cargo install $CARGO_ARGS
+  env:
+    CARGO_ARGS:
+      - --locked
+      - --root="{{prefix}}"
+      - --path=.
+provides:
+  - bin/csvlens
+test:
+  script:
+    - csvlens --version | grep {{version}}
+    #- csvlens test.csv --echo-column B
+    # We can't test this because it will open a virtual window

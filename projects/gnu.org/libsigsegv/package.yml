@@ -1,0 +1,26 @@
+distributable:
+  url: https://ftp.gnu.org/gnu/libsigsegv/libsigsegv-{{version.marketing}}.tar.gz
+  strip-components: 1
+versions:
+  url: https://ftp.gnu.org/gnu/libsigsegv/
+  match: /libsigsegv-(\d+\.\d+(\.\d+)?).tar.gz/
+  strip:
+    - /^libsigsegv-/
+    - /\.tar\.gz$/
+build:
+  script:
+    - ./configure $ARGS
+    - make --jobs {{hw.concurrency}}
+    - make --jobs {{hw.concurrency}} check
+    - make --jobs {{hw.concurrency}} install
+  env:
+    ARGS:
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --prefix={{prefix}}
+      - --libdir={{prefix}}/lib
+      - --enable-shared
+      - --enable-relocatable
+test:
+  - cc test.c -lsigsegv -o test
+  - ./test | grep 'Test passed'

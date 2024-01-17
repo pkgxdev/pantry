@@ -23,9 +23,14 @@ build:
     ninja-build.org: '*'
     freedesktop.org/pkg-config: '*'
     gnu.org/wget: '*'
-
+    gnu.org/patch: '*'
   working-directory: build
   script:
+    # quick post-release patch to address a build failure:
+    # https://github.com/Genymobile/scrcpy/commit/4135c411af419f4f86dc9ec9301c88012d616c49
+    - run: patch -p1 < props/4135c411af419f4f86dc9ec9301c88012d616c49.diff
+      working-directory: ..
+      if: '>=2.3<=2.3.1'
     - wget $PREBUILT_SERVER_URL -O scrcpy-server
     - meson setup $ARGS ..
     - meson compile --verbose

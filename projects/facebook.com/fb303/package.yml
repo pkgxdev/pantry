@@ -1,0 +1,49 @@
+distributable:
+  url: https://github.com/facebook/fb303/archive/v{{version.raw}}.tar.gz
+  strip-components: 1
+versions:
+  github: facebook/fb303/tags
+dependencies:
+  # these need to version match, but we don't have a method for that
+  github.com/facebookincubator/fizz: '*'
+  facebook.com/wangle: '*'
+  facebook.com/folly: '*'
+  facebook.com/fbthrift: '>=2023.12.18.0'
+  fmt.dev: ^9
+  gflags.github.io: ^2.2.2
+  google.com/glog: ^0.6
+  libsodium.org: ^1.0.19
+  openssl.org: ^1.1
+  linux:
+    zlib.net: ^1
+build:
+  dependencies:
+    cmake.org: '*'
+    facebook.com/mvfst: '*'
+    boost.org: ^1.84
+  script:
+    - cmake -S . -B build $CMAKE_ARGS
+    - cmake --build build
+    - cmake --install build
+  env:
+    CMAKE_ARGS:
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}
+      - -DCMAKE_INSTALL_LIBDIR=lib
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_FIND_FRAMEWORK=LAST
+      - -DCMAKE_VERBOSE_MAKEFILE=ON
+      - -Wno-dev
+      - -DBUILD_TESTING=OFF
+      - -DPYTHON_EXTENSIONS=OFF
+      - -DBUILD_SHARED_LIBS=ON
+    linux:
+      CMAKE_ARGS:
+        - -DCMAKE_C_FLAGS=-fPIC
+        - -DCMAKE_CXX_FLAGS=-fPIC
+        - -DCMAKE_EXE_LINKER_FLAGS=-pie
+test:
+  dependencies:
+    boost.org: ^1.84
+  script:
+    - c++ -std=c++17 test.cpp -o test -lfb303_thrift_cpp -lfolly -lglog -lthriftprotocol -lthriftcpp2 -ldl -lboost_context
+    - ./test | grep 'BaseService'

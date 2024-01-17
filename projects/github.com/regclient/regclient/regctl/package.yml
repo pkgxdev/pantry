@@ -15,13 +15,15 @@ build:
   dependencies:
     go.dev: ^1.21
     git-scm.org: '*'
-  script: |
-    make bin/regctl
-    mkdir -p '{{ prefix }}/bin'
-    mv -f ./bin/regctl '{{ prefix }}/bin'
+  script:
+    - make bin/regctl
+    - mkdir -p '{{ prefix }}/bin'
+    - mv -f ./bin/regctl '{{ prefix }}/bin'
 
 test:
-  script: |
-    regctl version | tee /dev/stderr | grep -q -w "v{{ version }}"
-
-    regctl image inspect hello-world --platform linux/amd64 | tee /dev/stderr | grep -q -w '"Image":'
+  - regctl version | tee /dev/stderr | grep -q -w "v{{ version }}"
+  - OUT="$(regctl image inspect hello-world --platform linux/amd64)"
+  - run: echo "$OUT" | grep -q -w '"Image":'
+    if: <0.5.6
+  - run: echo "$OUT" | grep -q -w '"/hello"'
+    if: '>=0.5.6'

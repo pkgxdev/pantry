@@ -14,12 +14,21 @@ dependencies:
   invisible-island.net/ncurses: '*'
 
 build:
-  script: |
-    ./configure $ARGS
-    make SUIDMODE= install
-    mkdir "{{prefix}}"/sbin
-    cd "{{prefix}}"/libexec
-    for x in *; do ln -s ../libexec/$x ../sbin; done
+  dependencies:
+    gnu.org/help2man: 1
+  script:
+    # 2.5.0 has a conflicting definition on darwin
+    - run: |
+        if test "{{hw.platform}}" = "darwin"; then
+          sed -i -e 's/char \*ttymsg (struct iovec \*, int, char \*, int);/char *ttymsg (struct iovec *, int, const char *, int);/' syslogd.c
+        fi
+      working-directory: src
+      if: 2.5.0
+    - ./configure $ARGS
+    - make SUIDMODE= install
+    - mkdir "{{prefix}}"/sbin
+    - run: for x in *; do ln -s ../libexec/$x ../sbin; done
+      working-directory: '{{prefix}}/libexec'
   env:
     ARGS:
       - --prefix="{{prefix}}"

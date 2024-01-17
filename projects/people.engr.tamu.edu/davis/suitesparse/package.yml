@@ -30,6 +30,18 @@ build:
       working-directory: SuiteSparse_config
     - make library $ARGS CMAKE_OPTIONS="$CMAKE_ARGS"
     - make install $ARGS CMAKE_OPTIONS="$CMAKE_ARGS"
+    - run: ln -s mongoose suitesparse_mongoose
+      working-directory: '{{prefix}}/bin'
+      if: '<7.4.0'
+    - run: ln -s suitesparse_mongoose mongoose
+      working-directory: '{{prefix}}/bin'
+      if: '>=7.4.0'
+    - run: |
+        mv suitesparse/* .
+        rmdir suitesparse
+        ln -s . suitesparse
+      working-directory: '{{prefix}}/include'
+      if: '>=7.4.0'
   env:
     ARGS:
       - INSTALL={{prefix}}
@@ -55,6 +67,7 @@ build:
         - -DBLAS_LIBRARIES={{deps.netlib.org/lapack.prefix}}/lib/libblas.{{deps.netlib.org/lapack.version.major}}.dylib
 provides:
   - bin/mongoose
+  - bin/suitesparse_mongoose
 test:
   dependencies:
     freedesktop.org/pkg-config: '*'

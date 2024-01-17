@@ -22,15 +22,22 @@ build:
     cmake.org: ^3
     github.com/westes/flex: '*'
     perl.org: ^5 # pod2man
-  script: |
-    ./configure $ARGS
-    make install
+  script:
+    - ./configure $ARGS
+    - make install
+    - run: |
+        mv PCSC/* .
+        rmdir PCSC
+        ln -s . PCSC
+      working-directory: ${{ prefix }}/include
   env:
     ARGS:
       - --disable-dependency-tracking
       - --disable-silent-rules
       - --prefix={{ prefix }}
       - --sysconfdir=/etc
+      # TODO: freedesktop.org/polkit
+      - --disable-polkit
     darwin:
       ARGS:
         - --disable-libsystemd

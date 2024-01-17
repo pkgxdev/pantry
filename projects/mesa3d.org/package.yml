@@ -71,7 +71,7 @@ build:
   env:
     Mako: https://files.pythonhosted.org/packages/05/5f/2ba6e026d33a0e6ddc1dddf9958677f76f5f80c236bd65309d280b166d3e/Mako-1.2.4.tar.gz
     MarkupSafe: https://files.pythonhosted.org/packages/95/7e/68018b70268fb4a2a605e2be44ab7b4dd7ce7808adae6c5ef32e34f4b55a/MarkupSafe-2.1.2.tar.gz
-    PYTHONPATH: "{{deps.pygments.org.prefix}}/venv/lib/python3.11/site-packages:$PYTHONPATH"
+    PYTHONPATH: '{{deps.pygments.org.prefix}}/venv/lib/python3.11/site-packages:$PYTHONPATH'
     MESON_ARGS:
       - --libdir=lib
       - --prefix={{prefix}}
@@ -101,6 +101,9 @@ build:
 test:
   dependencies:
     freedesktop.org/pkg-config: '*'
+    linux:
+      gnu.org/gcc: '*' # archlinux doesn't provide libgcc
+      llvm.org: '*'
   env:
     FLAGS:
       - -lX11
@@ -111,7 +114,7 @@ test:
         - -lGl
     linux:
       FLAGS:
-        - "{{prefix}}/lib/libGL.so.1"
+        - '{{prefix}}/lib/libGL.so.1'
   script:
-    - cc glxgears.c -o gears $FLAGS
+    - clang glxgears.c -o gears $FLAGS
     - pkg-config --modversion gl | grep {{version}}

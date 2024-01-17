@@ -1,0 +1,32 @@
+distributable:
+  url: https://github.com/bridgecrewio/checkov/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://pypi.org/project/checkov/#history
+  match: /checkov\/\d+\.\d+\.\d+/
+  strip: /^checkov\//
+
+dependencies:
+  pkgx.sh: ^1
+
+build:
+  dependencies:
+    python.org: ^3.12
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} checkov
+  env:
+    linux:
+      # error: incompatible pointer to integer conversion initializing 'int' with an expression of type 'void *'
+      CFLAGS: -Wno-int-conversion
+
+provides:
+  - bin/checkov
+
+test:
+  - checkov --version | grep {{version}}
+  - checkov -f test.tf > output.log
+  - run: |
+      cat output.log | grep 'Passed checks: 14, Failed checks: 0, Skipped checks: 0'
