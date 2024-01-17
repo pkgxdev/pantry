@@ -15,13 +15,20 @@ build:
     gnu.org/gcc: '*'
     gnu.org/make: '*'
   script:
+    # 1.6.0 is missing an include
+    - run: |
+        sed -i -e '/argv_parse\.h/a\
+        #include <stdint.h>\
+        ' pam_namespace.c
+      working-directory: modules/pam_namespace
+      if: =1.6.0
     - ./configure $CONFIGURE_ARGS
     - make --jobs {{ hw.concurrency }}
     - make --jobs {{ hw.concurrency }} install
     - run: |
         sed -i.bak "s|{{prefix}}|\$(dirname \$0)/..|g" pam_namespace_helper
         rm *.bak
-      working-directory: "{{prefix}}/sbin"
+      working-directory: '{{prefix}}/sbin'
   env:
     CONFIGURE_ARGS:
       - --disable-debug
@@ -41,9 +48,7 @@ provides:
   - sbin/mkhomedir_helper
   - sbin/pam_namespace_helper
   - sbin/pam_timestamp_check
-  - sbin/pwhistory_helper
   - sbin/unix_chkpwd
-  - sbin/unix_update
 test:
   dependencies:
     freedesktop.org/pkg-config: '*'
@@ -53,4 +58,3 @@ test:
     - pkg-config --modversion pam | grep {{version}}
     - cc test.c -o test
     - ./test
-    
