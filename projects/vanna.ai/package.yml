@@ -1,0 +1,28 @@
+distributable:
+  url: git+https://github.com/vanna-ai/vanna.git
+  ref: ${{version.tag}}
+
+display-name: Vanna
+
+versions:
+  github: vanna-ai/vanna
+
+dependencies:
+  python.org: ^3.12
+
+runtime:
+  env:
+    PYTHONPATH: ${{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages:$PYTHONPATH
+
+build:
+  - python -m pip install . --prefix={{prefix}}
+  - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
+    working-directory: ${{prefix}}/lib
+
+test:
+  dependencies:
+    curl.se: '*'
+    pytest.org: '*'
+  script:
+    - curl -L "https://raw.githubusercontent.com/vanna-ai/vanna/main/tests/test_vanna.py" -o test_vanna.py
+    - python test_vanna.py
