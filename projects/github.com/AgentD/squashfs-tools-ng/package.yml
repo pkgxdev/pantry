@@ -2,21 +2,18 @@ distributable:
   url: https://codeload.github.com/AgentD/squashfs-tools-ng/tar.gz/refs/tags/v{{version}}
   strip-components: 1
 
-display-name: github.com/agentd/squashfs-tools-ng
+display-name: squashfs-tools-ng
 
 versions:
   github: AgentD/squashfs-tools-ng/tags
   strip: /^v/
 
-#platforms:
-#  - linux
-
 dependencies:
-  zlib.net: '*'
-  tukaani.org/xz: '*'
-  lz4.org: '*'
-  facebook.com/zstd: '*'
-  oberhumer.com/lzo: '*'
+  zlib.net: ^1
+  tukaani.org/xz: ^5
+  lz4.org: ^1
+  facebook.com/zstd: ^1
+  oberhumer.com/lzo: ^2
 
 build:
   dependencies:
@@ -32,8 +29,6 @@ build:
     - autoreconf --force --install --symlink
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
-    - run: ls -l
-      working-directory: ${{prefix}}/bin
   env:
     ARGS:
       - --prefix="{{prefix}}"
@@ -43,11 +38,10 @@ build:
       RANLIB: /usr/bin/ranlib
 
 provides:
-- bin/gensquashfs
-- bin/rdsquashfs
-- bin/sqfs2tar
-- bin/tar2sqfs
-- bin/sqfsdiff
+  - bin/gensquashfs
+  - bin/rdsquashfs
+  - bin/sqfs2tar
+  - bin/tar2sqfs
+  - bin/sqfsdiff
 
 test: test "$(gensquashfs --version|head -1 |cut -d' ' -f 3)" = {{version}}
-
