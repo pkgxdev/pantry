@@ -11,7 +11,7 @@ versions:
 
 platforms:
   - darwin/aarch64
-  - linux
+  - linux/x86-64
 
 dependencies:
   linux:
@@ -21,6 +21,7 @@ dependencies:
     libgit2.org: '*'
     curl.se: '*'
     sqlite.org: ^3
+    invisible-island.net/ncurses: ^6
 
 runtime:
   env:
@@ -35,7 +36,7 @@ build:
         curl -SfL "$DOWNLOAD_URL" | tar xzf - --strip-components=2
         tar xzf Payload -C {{prefix}}
         rm -rf {{prefix}}/_CodeSignature
-        rm -rf {{prefix}}/Info.plist
+        rm {{prefix}}/Info.plist
       if: darwin
     - run: ln -sh ../usr/bin/* {{prefix}}/bin
       working-directory: ${{prefix}}/bin
@@ -45,7 +46,6 @@ build:
       if: linux
   env:
     darwin/aarch64: { DOWNLOAD_URL: "https://download.swift.org/swift-{{version}}-release/xcode/swift-{{version}}-RELEASE/swift-{{version}}-RELEASE-osx.pkg" }
-    linux/aarch64:  { DOWNLOAD_URL: "https://download.swift.org/swift-{{version}}-release/ubuntu1804-aarch64/swift-{{version}}-RELEASE/swift-{{version}}-RELEASE-ubuntu18.04-aarch64.tar.gz" }
     linux/x86-64:   { DOWNLOAD_URL: "https://download.swift.org/swift-{{version}}-release/ubuntu1804/swift-{{version}}-RELEASE/swift-{{version}}-RELEASE-ubuntu18.04.tar.gz" }
 
 provides:
