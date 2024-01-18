@@ -11,14 +11,10 @@ versions:
 
 platforms:
   - darwin/aarch64
-# It is ready to run on linux. It going to work with ubuntu 22.04,
-# and not with debian-buster and tests going to fail
-#  - linux/x86-64
-#  - linux/aarch64
+  - linux
 
 dependencies:
   linux:
-    gnu.org/gcc: '*'
     gnu.org/binutils: '*'
     gnupg.org: ^2
     gnome.org/libxml2: '*'
@@ -49,30 +45,24 @@ build:
       if: linux
   env:
     darwin/aarch64: { DOWNLOAD_URL: "https://download.swift.org/swift-{{version}}-release/xcode/swift-{{version}}-RELEASE/swift-{{version}}-RELEASE-osx.pkg" }
-    linux/aarch64:  { DOWNLOAD_URL: "https://download.swift.org/swift-{{version}}-release/ubuntu2204-aarch64/swift-{{version}}-RELEASE/swift-{{version}}-RELEASE-ubuntu22.04-aarch64.tar.gz" }
-    linux/x86-64:   { DOWNLOAD_URL: "https://download.swift.org/swift-{{version}}-release/ubuntu2204/swift-{{version}}-RELEASE/swift-{{version}}-RELEASE-ubuntu22.04.tar.gz" }
+    linux/aarch64:  { DOWNLOAD_URL: "https://download.swift.org/swift-{{version}}-release/ubuntu1804-aarch64/swift-{{version}}-RELEASE/swift-{{version}}-RELEASE-ubuntu18.04-aarch64.tar.gz" }
+    linux/x86-64:   { DOWNLOAD_URL: "https://download.swift.org/swift-{{version}}-release/ubuntu1804/swift-{{version}}-RELEASE/swift-{{version}}-RELEASE-ubuntu18.04.tar.gz" }
 
 provides:
   darwin:
     - bin/clang-13
     - bin/clangd
     - bin/docc
-    - bin/dsymutil
     - bin/llvm-ar
     - bin/llvm-cov
     - bin/llvm-profdata
     - bin/sourcekit-lsp
-    - bin/swift-api-checker.py
-    - bin/swift-build-sdk-interfaces
-    - bin/swift-build-tool
     - bin/swift-demangle
     - bin/swift-driver
-    - bin/swift-format
     - bin/swift-frontend
     - bin/swift-help
     - bin/swift-package
     - bin/swift-plugin-server
-    - bin/swift-stdlib-tool
     - bin/clang
     - bin/clang-cache
     - bin/clang-cl
@@ -90,48 +80,60 @@ provides:
     - bin/swift-symbolgraph-extract
     - bin/swift-test
     - bin/swiftc
+    # follows unique programs for darwin
+    - bin/dsymutil
+    - bin/swift-format
+    - bin/swift-api-checker.py
+    - bin/swift-build-sdk-interfaces
+    - bin/swift-build-tool
+    - bin/swift-package
+    - bin/swift-plugin-server
+    - bin/swift-stdlib-tool
   linux:
-    - bin/clang-13
     - bin/clangd
     - bin/docc
+    - bin/llvm-ar
+    - bin/llvm-cov
+    - bin/llvm-profdata
+    - bin/sourcekit-lsp
+    - bin/swift-demangle
+    - bin/swift-driver
+    - bin/swift-frontend
+    - bin/swift-help
+    - bin/swift-package
+    - bin/swift-plugin-server
+    - bin/clang
+    - bin/clang-cache
+    - bin/clang-cl
+    - bin/clang-cpp
+    - bin/clang++
+    - bin/swift
+    - bin/swift-api-digester
+    - bin/swift-api-extract
+    - bin/swift-autolink-extract
+    - bin/swift-build
+    - bin/swift-experimental-sdk
+    - bin/swift-package-collection
+    - bin/swift-package-registry
+    - bin/swift-run
+    - bin/swift-symbolgraph-extract
+    - bin/swift-test
+    - bin/swiftc
+    # follows unique programs for linux
     - bin/lld
     - bin/lldb
     - bin/lldb-argdumper
     - bin/lldb-server
-    - bin/llvm-ar
-    - bin/llvm-cov
-    - bin/llvm-profdata
     - bin/plutil
     - bin/repl_swift
-    - bin/sourcekit-lsp
-    - bin/swift-api-checker.py
-    - bin/swift-build-sdk-interfaces
-    - bin/swift-build-tool
-    - bin/swift-demangle
-    - bin/swift-driver
-    - bin/swift-frontend
-    - bin/swift-help
-    - bin/swift-package
-    - bin/swift-plugin-server
-    - bin/clang
-    - bin/clang-cache
-    - bin/clang-cl
-    - bin/clang-cpp
-    - bin/clang++
     - bin/ld.lld
     - bin/ld64.lld
     - bin/lld-link
-    - bin/swift
-    - bin/swift-api-digester
-    - bin/swift-api-extract
-    - bin/swift-autolink-extract
-    - bin/swift-build
-    - bin/swift-experimental-sdk
-    - bin/swift-package-collection
-    - bin/swift-package-registry
-    - bin/swift-run
-    - bin/swift-symbolgraph-extract
-    - bin/swift-test
-    - bin/swiftc
-test: |
-  swift --version
+
+test:
+  - swift --version | grep {{version}}
+  - run:
+      swift $FIXTURE | grep "Hello, World!"
+    fixture:
+      content: print("Hello, World!")
+      extname: .swift
