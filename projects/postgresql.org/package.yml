@@ -23,12 +23,17 @@ build:
     freedesktop.org/pkg-config: '*'
     #gnu.org/gcc: '*'
     gnu.org/bison: '*'
+    gnu.org/sed: '*'
     github.com/westes/flex: ^2.5.31
     perl.org: '*'
   script: |
     # remove `-w`` from CFLAGS, because it causes build to fail, ironically.
     # `./configure` *specifically* checks that certain warnings are emitted.
     export CFLAGS="$(echo $CFLAGS | tr ' ' '\n' | sed -e '/^-w$/d' | tr '\n' ' ')"
+
+    # disable sgml doc generation, since that seems to fail.
+    # sorry all you sgml-heads out there
+    sed -i 's|\([^\t]*sgml.*\)$|#\1|' GNUmakefile.in doc/src/Makefile
 
     ./configure $ARGS
     make --jobs {{ hw.concurrency }}
