@@ -26,9 +26,13 @@ provides:
   - bin/sops
 
 test:
+  dependencies:
+    gnupg.org: '*'
   script:
     - sops --version | grep {{version}}
     - git clone https://github.com/getsops/sops.git
     - gpg --import sops/pgp/sops_functional_tests_key.asc
     - sops --decrypt sops/example.json > example.dec.json
     - cat example.dec.json | grep 'New York'
+  env:
+    GPG_HOME: "$(dirname $(which gpg))/../etc/gnupg"
