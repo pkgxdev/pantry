@@ -15,11 +15,14 @@ build:
     llvm.org: '*'
     gnu.org/bash: '^5'
     cmake.org: '^3'
+  env:
+    CMAKE_ARGS:
+    - -DCMAKE_INSTALL_PREFIX={{prefix}}
+    - -DCMAKE_CXX_COMPILER=clang++
   script:
-  - cmake -B build -DCMAKE_CXX_COMPILER=clang++ 
+  - cmake -B build ${CMAKE_ARGS}
   - cmake --build build
-  - mkdir -p {{prefix}}/bin
-  - mv build/fastgron {{prefix}}/bin
+  - cmake --install build
 
 provides:
   - bin/fastgron
