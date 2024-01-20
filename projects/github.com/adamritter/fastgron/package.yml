@@ -20,7 +20,10 @@ build:
     CMAKE_ARGS:
     - -DCMAKE_INSTALL_PREFIX={{prefix}}
     - -DCMAKE_CXX_COMPILER=clang++
-    - -DCMAKE_BUILD_PARALLEL_LEVEL=$(nproc)
+    - -DCMAKE_BUILD_PARALLEL_LEVEL={{hw.concurrency}}
+    linux:
+      CMAKE_ARGS:
+      - -DCMAKE_POSITION_INDEPENDENT_CODE=true
   script:
   - cmake -B build ${CMAKE_ARGS}
   - cmake --build build --verbose
