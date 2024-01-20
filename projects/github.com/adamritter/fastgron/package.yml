@@ -1,0 +1,45 @@
+distributable:
+  url: https://github.com/adamritter/fastgron/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: adamritter/fastgron
+  strip:
+    - /^v/
+
+dependencies:
+  curl.se: '*'
+
+build:
+  dependencies:
+    llvm.org: '*'
+    gnu.org/bash: '^5'
+    cmake.org: '^3'
+  script:
+  #  ./configure $ARGS
+  #- cmake -B build -DCMAKE_CXX_COMPILER=/usr/bin/clang++ 
+  - cmake -B build -DCMAKE_CXX_COMPILER=clang++ 
+  - cmake --build build
+  - pwd
+  - ls -alFh
+  - ls -alFh build
+  - mkdir -p {{prefix}}/bin
+  - mv build/fastgron {{prefix}}/bin
+  #- cmake --build build
+  #- cmake install {{prefix}}/bin
+  #- cmake --build --verbose
+  
+  #- make build --jobs {{ hw.concurrency }}
+
+#    # add any environment variables here
+#    ARGS:
+#      - --prefix="{{prefix}}"
+
+
+provides:
+  - bin/fastgron
+
+test:
+  dependencies:
+    curl.se: '*'
+  script: test "$(fastgron --version 2>&1| cut -d' ' -f 3)" = {{version}}
