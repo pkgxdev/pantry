@@ -29,4 +29,6 @@ provides:
 
 test:
   - socat -V | grep {{version}}
-  - socat - TCP:google.com:80,crnl <<< 'GET /\n' #| grep '<!DOCTYPE html>'
+  - run: |
+      echo -e "GET / HTTP/1.1\r\nhost: example.com\r\nConnection: close\r\n\r\n" | socat - TCP4:example.com:80 > index.html
+  - cat index.html | grep "<title>Example Domain</title>"
