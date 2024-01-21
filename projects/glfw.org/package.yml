@@ -29,19 +29,8 @@ build:
       - -DGLFW_USE_CHDIR=TRUE
       - -DGLFW_USE_MENUBAR=TRUE
       - -DBUILD_SHARED_LIBS=TRUE
-    linux:
-      ARGS:
-        - -DCMAKE_C_FLAGS=-fPIC
-        - -DCMAKE_CXX_FLAGS=-fPIC
-        - -DCMAKE_EXE_LINKER_FLAGS=-pie
 
 test:
-  script:
-    - cc test.c $CFLAGS -lglfw -o test
-    - ./test
-  env:
-    linux:
-      CFLAGS:
-        - -fPIC
-      LDFLAGS:
-        - -pie
+  - cc test.c $CFLAGS -lglfw -o test
+  - run: ./test
+    if: darwin
