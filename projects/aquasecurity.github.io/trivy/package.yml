@@ -1,0 +1,30 @@
+distributable:
+  url: git+https://github.com/aquasecurity/trivy.git
+  ref: ${{version.tag}}
+
+versions:
+  github: aquasecurity/trivy
+
+build:
+  dependencies:
+    go.dev: '>=1.21'
+  script:
+    - go build $ARGS -ldflags="$LDFLAGS" ./cmd/trivy
+  env:
+    ARGS:
+      - -trimpath
+      - -o={{prefix}}/bin/trivy
+    LDFLAGS:
+      - -s
+      - -w
+      - -X github.com/aquasecurity/trivy/pkg/version.ver={{version}}
+    linux:
+      LDFLAGS:
+        - -buildmode=pie
+
+provides:
+  - bin/trivy
+
+test:
+  - trivy image alpine:3.10
+  - trivy --version | grep {{version}}
