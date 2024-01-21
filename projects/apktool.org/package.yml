@@ -1,0 +1,37 @@
+distributable:
+  url: https://github.com/iBotPeaches/Apktool/releases/download/v{{version}}/apktool_{{version}}.jar
+
+versions:
+  github: iBotPeaches/Apktool
+
+warnings:
+  - vendored
+
+dependencies:
+  openjdk.org: ^20
+
+build:
+  script:
+    - run: mkdir -p bin libexec/lib
+      working-directory: ${{prefix}}
+    - cp apktool.org-{{version}}.jar {{prefix}}/libexec/lib/
+    - run: |
+        echo '#!/bin/sh' > apktool
+        echo 'java -jar $(dirname $0)/../libexec/lib/apktool.org-{{version}}.jar "$@"' >> apktool
+        chmod +x apktool
+      working-directory: ${{prefix}}/bin
+
+provides:
+  - bin/apktool
+
+test:
+  dependencies:
+    curl.se: '*'
+  script:
+    - apktool --version | grep {{version}}
+    - curl -L "$TEST_APK" -o test.apk
+    - apktool d test.apk
+    - apktool b test
+    - ls test/dist | grep test.apk
+  env:
+    TEST_APK: https://raw.githubusercontent.com/facebook/redex/fa32d542d4074dbd485584413d69ea0c9c3cbc98/test/instr/redex-test.apk
