@@ -12,23 +12,27 @@ dependencies:
 
 build:
   dependencies:
-    llvm.org: '*'
+    darwin:
+      llvm.org: '*'
+    linux:
+      gnu.org/gcc: '*'
     gnu.org/bash: '^5'
     gnu.org/make: '*'
     cmake.org: '^3'
   env:
     CMAKE_ARGS:
-    - -DCMAKE_INSTALL_PREFIX={{prefix}}
-    - -DCMAKE_CXX_COMPILER=clang++
-    - -DCMAKE_BUILD_PARALLEL_LEVEL={{hw.concurrency}}
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_BUILD_PARALLEL_LEVEL={{hw.concurrency}}
+    darwin:
+      CMAKE_ARGS:
+        - -DCMAKE_CXX_COMPILER=clang++
     linux:
       CMAKE_ARGS:
-      - -DCMAKE_POSITION_INDEPENDENT_CODE=true
-      CXXFLAGS: -std=c++20
+        - -DCMAKE_POSITION_INDEPENDENT_CODE=true
   script:
-  - cmake -B build ${CMAKE_ARGS}
-  - cmake --build build --verbose
-  - cmake --install build
+    - cmake -B build ${CMAKE_ARGS}
+    - cmake --build build --verbose
+    - cmake --install build
 
 provides:
   - bin/fastgron
