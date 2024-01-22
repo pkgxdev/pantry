@@ -1,0 +1,31 @@
+distributable:
+  url: https://ftp.gnu.org/gnu/ed/ed-{{version.raw}}.tar.lz
+  strip-components: 1
+
+versions:
+  url: https://ftp.gnu.org/gnu/ed/
+  match: /ed-\d+\.\d+\.\d+\.tar\.lz/
+  strip:
+    - /^ed-/
+    - /\.tar\.lz$/
+
+build:
+  - ./configure --prefix={{prefix}}
+  - make
+  - make install
+
+provides:
+  - bin/ed
+
+test:
+  - echo "Hello world\n" > test
+  - run: |
+      ed test <<EOF
+      i
+      Additional line
+      .
+      w
+      q
+      EOF
+  - cat test | grep "Additional line"
+  - ed --version | grep {{version}}
