@@ -11,28 +11,23 @@ build:
   dependencies:
     go.dev: '*'
   env:
-    darwin/aarch64: {PLATFORM: mac-apple}
-    darwin/x86-64:  {PLATFORM: mac-intel}
-    linux/aarch64:  {PLATFORM: linux-arm}
-    linux/x86-64:   {PLATFORM: linux-amd}
-  script: |
-    make CLI_VERSION=v{{version}} build-cli-${PLATFORM}
-
-    mkdir -p {{prefix}}/bin
-
-    if test "{{hw.platform}}+{{hw.arch}}" = "darwin+aarch64"; then
-      mv build/zarf-mac-apple {{prefix}}/bin/zarf
-    elif test "{{hw.platform}}+{{hw.arch}}" = "darwin+x86-64"; then
-      mv build/zarf-mac-intel {{prefix}}/bin/zarf
-    elif test "{{hw.platform}}+{{hw.arch}}" = "linux+aarch64"; then
-      mv build/zarf-arm {{prefix}}/bin/zarf
-    elif test "{{hw.platform}}+{{hw.arch}}" = "linux+x86-64"; then
-      mv build/zarf {{prefix}}/bin/zarf
-    fi
-    rmdir build
-    chmod +x {{prefix}}/bin/zarf
-
-  # zarf is a static binary, so we don't need to patchelf it
+    darwin/aarch64:
+      PLATFORM: mac-apple
+      BIN: zarf-mac-apple
+    darwin/x86-64:
+      PLATFORM: mac-intel
+      BIN: zarf-mac-intel
+    linux/aarch64:
+      PLATFORM: linux-arm
+      BIN: zarf-arm
+    linux/x86-64:
+      PLATFORM: linux-amd
+      BIN: zarf
+  script:
+    - make CLI_VERSION=v{{version}} build-cli-${PLATFORM}
+    - mkdir -p {{prefix}}/bin
+    - chmod +x $BIN
+    - mv build/$BIN '{{prefix}}'/bin/zarf
   skip: fix-patchelf
 
 provides:
