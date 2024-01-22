@@ -19,7 +19,16 @@ build:
     make CLI_VERSION=v{{version}} build-cli-${PLATFORM}
 
     mkdir -p {{prefix}}/bin
-    mv build/zarf {{prefix}}/bin
+
+    if test "{{hw.platform}}+{{hw.arch}}" = "darwin+aarch64"; then
+      mv build/zarf-mac-apple {{prefix}}/bin/zarf
+    elif test "{{hw.platform}}+{{hw.arch}}" = "darwin+x86-64"; then
+      mv build/zarf-mac-intel {{prefix}}/bin/zarf
+    elif test "{{hw.platform}}+{{hw.arch}}" = "linux+aarch64"; then
+      mv build/zarf-arm {{prefix}}/bin/zarf
+    elif test "{{hw.platform}}+{{hw.arch}}" = "linux+x86-64"; then
+      mv build/zarf {{prefix}}/bin/zarf
+    fi
     rmdir build
     chmod +x {{prefix}}/bin/zarf
 
