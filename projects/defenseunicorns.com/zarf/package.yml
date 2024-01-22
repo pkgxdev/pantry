@@ -9,35 +9,19 @@ versions:
 
 build:
   dependencies:
-    curl.se: "*"
-    gnu.org/coreutils: "*"
+    go.dev: '*'
   env:
-    # platform renaming from goreleaser
-    darwin/aarch64: { PLATFORM: Darwin_arm64 }
-    darwin/x86-64: { PLATFORM: Darwin_amd64 }
-    linux/aarch64: { PLATFORM: Linux_arm64 }
-    linux/x86-64: { PLATFORM: Linux_amd64 }
-  working-directory: ${{prefix}}/bin
+    darwin/aarch64: {PLATFORM: mac-apple}
+    darwin/x86-64:  {PLATFORM: mac-intel}
+    linux/aarch64:  {PLATFORM: linux-arm}
+    linux/x86-64:   {PLATFORM: linux-amd}
   script: |
-    version="v{{version}}"
+    make CLI_VERSION=v{{version}} build-cli-${PLATFORM}
 
-    release_path="https://github.com/defenseunicorns/zarf/releases/download/${version}"
-
-    filename="zarf_${version}_${PLATFORM}"
-
-    curl -sL "${release_path}/${filename}" -o zarf
-
-    curl -sL "${release_path}/checksums.txt" -o checksums.txt
-
-    checksum=$(grep "${filename}$" checksums.txt | cut -d' ' -f1)
-
-    if test "$(sha256sum zarf | cut -d' ' -f1)" != "${checksum}"; then
-      echo "checksum mismatch"
-      exit 1
-    fi
-
-    rm checksums.txt
-    chmod +x zarf
+    mkdir -p {{prefix}}/bin
+    mv build/zarf {{prefix}}/bin
+    rmdir build
+    chmod +x {{prefix}}/bin/zarf
 
   # zarf is a static binary, so we don't need to patchelf it
   skip: fix-patchelf
