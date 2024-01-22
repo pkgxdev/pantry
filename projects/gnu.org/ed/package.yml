@@ -1,6 +1,4 @@
-distributable:
-  url: https://ftp.gnu.org/gnu/ed/ed-{{version.raw}}.tar.lz
-  strip-components: 1
+distributable: ~
 
 versions:
   url: https://ftp.gnu.org/gnu/ed/
@@ -10,9 +8,13 @@ versions:
     - /\.tar\.lz$/
 
 build:
-  - ./configure --prefix={{prefix}}
-  - make
-  - make install
+  dependencies:
+    curl.se: '*'
+  script:
+    - curl -L "https://ftp.gnu.org/gnu/ed/ed-{{version.raw}}.tar.lz" | tar -xJ --strip-components=1
+    - ./configure --prefix={{prefix}}
+    - make
+    - make install
 
 provides:
   - bin/ed
