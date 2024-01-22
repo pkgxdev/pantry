@@ -26,18 +26,15 @@ build:
         -DBUILD_TESTING=OFF
     - cmake --build build
     - cmake --install build
+
       # Remove bad flags in .pc files.
       # https://github.com/abseil/abseil-cpp/issues/1408
-    - run: |
-        sed -i '' 's/-Xarch_x86_64 -Xarch_x86_64 -Xarch_arm64 //g' {{ prefix }}/lib/pkgconfig/absl_random_internal_randen_hwaes{_impl,}.pc
+    - run: sed -i 's/-Xarch_x86_64 -Xarch_x86_64 -Xarch_arm64 //g' *.pc
+      working-directory: ${{ prefix }}/lib/pkgconfig
       if: darwin
 
-    - working-directory: '{{prefix}}/lib/cmake/absl'
-      run: |
-        sed -i.bak \
-          -e "s:{{ pkgx.prefix }}:\$\{CMAKE_CURRENT_LIST_DIR\}/../../../../..:g" \
-          abslTargets{,-release}.cmake
-        rm abslTargets{,-release}.cmake.bak
+    - run: sed -i -e "s:{{ pkgx.prefix }}:\$\{CMAKE_CURRENT_LIST_DIR\}/../../../../..:g" abslTargets{,-release}.cmake
+      working-directory: '{{prefix}}/lib/cmake/absl'
 
 test:
   script: |
