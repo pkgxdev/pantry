@@ -1,0 +1,30 @@
+distributable:
+  url: git+https://github.com/Azure/azure-storage-azcopy.git
+  ref: ${{version.tag}}
+
+versions:
+  github: Azure/azure-storage-azcopy
+
+build:
+  dependencies:
+    go.dev: '>=1.19'
+  script:
+    go build $ARGS -ldflags="$LDFLAGS"
+  env:
+    ARGS:
+      - -trimpath
+      - -o={{prefix}}/bin/azcopy
+    LDFLAGS:
+      - -s
+      - -w
+    linux:
+      LDFLAGS:
+        - -buildmode=pie
+
+provides:
+  - bin/azcopy
+
+test:
+  - azcopy --version | grep {{version}}
+  - azcopy list https://storageaccountname.blob.core.windows.net/containername/ > output.txt || true
+  - cat output.txt | grep 'Login Credentials missing'

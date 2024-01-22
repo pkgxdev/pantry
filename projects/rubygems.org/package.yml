@@ -14,8 +14,8 @@ runtime:
 
 build:
   dependencies:
-    gnu.org/patch: '*'
-    ruby-lang.org: ~3.1 # testing a theory
+    ruby-lang.org: ~3.1  # testing a theory
+                         # NOTE ^^ we don’t know what this comment means either!
   script:
     - ruby setup.rb
         --prefix={{prefix}}
@@ -23,24 +23,55 @@ build:
         --no-ri
         --no-rdoc
 
+    # 3.5.5 fixed this
+    - run: patch -p1 --no-backup-if-mismatch < $PROP
+      if: <3.5.5
+      working-directory: ${{prefix}}
+      prop: |+
+        --- a/lib/rubygems/defaults.rb
+        +++ b/lib/rubygems/defaults.rb
+        @@ -20,13 +20,7 @@ def self.default_sources
+           # specified in the environment
+
+           def self.default_spec_cache_dir
+        -    default_spec_cache_dir = File.join Gem.user_home, ".gem", "specs"
+        -
+        -    unless File.exist?(default_spec_cache_dir)
+        -      default_spec_cache_dir = File.join Gem.data_home, "gem", "specs"
+        -    end
+        -
+        -    default_spec_cache_dir
+        +    File.join Gem.cache_home, "gem", "specs"
+           end
+
+           ##
+
+    - run: patch -p1 --no-backup-if-mismatch < "$SRCROOT"/props/fit-n-finish.patch
+      working-directory: ${{prefix}}
+
+    # makes ruby’s default system dir be fixed in /usr/local/lib/ruby
+    # rather the relative to ~/.pkgx/ruby-lang.org
     - run: |
-        patch -p1 --no-backup-if-mismatch < "$SRCROOT"/props/fit-n-finish.1.patch
-        patch -p1 --no-backup-if-mismatch < "$SRCROOT"/props/fit-n-finish.2.patch
+        patch -p1 --no-backup-if-mismatch < "$SRCROOT"/props/default-sys-dir.patch
         sed -i -e 's/Gem.default_dir/Gem.default_system_dir/' lib/rubygems/path_support.rb
       working-directory: ${{prefix}}
 
+    # removes redudnant `gem` directory that looks gross in our directory formatting
     - run: sed -i -e 's/Gem.state_home, "gem",/Gem.state_home,/' defaults.rb
       working-directory: ${{prefix}}/lib/rubygems
       if: '>=3.4'
 
-    - run: patch -p1 --no-backup-if-mismatch < "$SRCROOT"/props/fit-n-finish.3.patch
+    # ensure `gem` tries to install to ~/.gem if /usr/local is not writable
+    - run: patch -p1 --no-backup-if-mismatch < "$SRCROOT"/props/user-install-pre3.5.patch
       working-directory: ${{prefix}}
       if: '<3.5'
-
-    - run: patch -p1 --no-backup-if-mismatch < "$SRCROOT"/props/fit-n-finish.4.patch
+    - run: patch -p1 --no-backup-if-mismatch < "$SRCROOT"/props/user-install-post3.5.patch
       working-directory: ${{prefix}}
       if: '>=3.5'
 
+    # fixes bug where gem won’t create the full directory path when installing
+    # which typically isn’t a problem since the directory already exists in a standard
+    # install but we fuck with the paths way more
     - run: sed -i -e
         's/Dir\.mkdir dir, \*\[options\[:dir_mode\].*/FileUtils.mkdir_p dir, *[options[:dir_mode] \&\& 0o755].compact/'
         installer.rb

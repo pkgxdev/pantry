@@ -70,7 +70,8 @@ build:
     linux:
       # fails to build with objcopy from llvm
       PATH: ${{deps.gnu.org/binutils.prefix}}/bin:$PATH
-      LDFLAGS: $LDFLAGS -lpthread
+      # ld.lld: error: undefined reference due to --no-allow-shlib-undefined: jpeg_std_error@LIBJPEG_9.0
+      LDFLAGS: $LDFLAGS -Wl,-lpthread,--allow-shlib-undefined
 
 provides:
   - bin/gtk4-builder-tool
@@ -80,13 +81,9 @@ provides:
   - bin/gtk4-icon-browser
   - bin/gtk4-launch
   - bin/gtk4-node-editor
-  - bin/gtk4-path-tool
-  - bin/gtk4-print-editor
-  - bin/gtk4-path-tool
   - bin/gtk4-query-settings
   - bin/gtk4-print-editor
   - bin/gtk4-rendernode-tool
-  - bin/gtk4-query-settings
   - bin/gtk4-update-icon-cache
   - bin/gtk4-widget-factory
 

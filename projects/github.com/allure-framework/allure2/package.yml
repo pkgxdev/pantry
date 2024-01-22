@@ -1,0 +1,57 @@
+distributable:
+  url: https://repo.maven.apache.org/maven2/io/qameta/allure/allure-commandline/{{version}}/allure-commandline-{{version}}.zip
+  strip-components: 1
+
+versions:
+  github: allure-framework/allure2
+
+warnings:
+  - vendored
+
+dependencies:
+  openjdk.org: '*'
+
+build:
+  working-directory: allure-{{version}}
+  script:
+    - rm -rf bin/*.bat
+    - run: mkdir -p bin libexec
+      working-directory: ${{prefix}}
+    - cp -r ./* {{prefix}}/libexec/
+    - run: ln -s ../libexec/bin/allure allure
+      working-directory: ${{prefix}}/bin
+
+provides:
+  - bin/allure
+
+test:
+  fixture: |
+    {
+      "uuid": "allure",
+      "name": "testReportGeneration",
+      "fullName": "org.pkgx.AllurePackage.testReportGeneration",
+      "status": "passed",
+      "stage": "finished",
+      "start": 1494857300486,
+      "stop": 1494857300492,
+      "labels": [
+        {
+          "name": "package",
+          "value": "org.pkgx"
+        },
+        {
+          "name": "testClass",
+          "value": "AllurePackage"
+        },
+        {
+          "name": "testMethod",
+          "value": "testReportGeneration"
+        }
+      ]
+    }
+  script:
+    - allure --version | grep {{version}}
+    - mkdir -p allure-results
+    - cp $FIXTURE allure-results/allure-result.json
+    - allure generate allure-results -o allure-report | grep 'Report successfully generated to allure-report'
+    - cat allure-report/widgets/summary.json | grep '"passed":1'

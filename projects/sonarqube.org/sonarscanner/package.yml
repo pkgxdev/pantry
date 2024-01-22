@@ -1,0 +1,30 @@
+distributable:
+  url: https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-{{version.tag}}.zip
+
+versions:
+  github: SonarSource/sonar-scanner-cli
+
+warnings:
+  - vendored
+
+dependencies:
+  openjdk.org: ^20
+
+build:
+  working-directory: sonar-scanner-{{version.tag}}
+  script:
+    - rm -rf bin/*.bat
+    - run: mkdir -p bin libexec
+      working-directory: ${{prefix}}
+    - cp -r ./* {{prefix}}/libexec/
+    - run: |
+        ln -s ../libexec/bin/sonar-scanner sonar-scanner
+        ln -s ../libexec/bin/sonar-scanner-debug sonar-scanner-debug
+      working-directory: ${{prefix}}/bin
+
+provides:
+  - bin/sonar-scanner
+  - bin/sonar-scanner-debug
+
+test:
+  - sonar-scanner --version | grep {{version}}
