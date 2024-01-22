@@ -1,0 +1,45 @@
+distributable:
+  url: https://codeload.github.com/defenseunicorns/zarf/tar.gz/refs/tags/v{{version}}
+  strip-components: 1
+
+display-name: zarf
+
+versions:
+  github: defenseunicorns/zarf
+
+build:
+  dependencies:
+    curl.se: "*"
+    gnu.org/coreutils: "*"
+  env:
+    darwin/aarch64: { PLATFORM: Darwin_arm64 }
+    darwin/x86-64: { PLATFORM: Darwin_amd64 }
+    linux/aarch64: { PLATFORM: Linux_arm64 }
+    linux/x86-64: { PLATFORM: Linux_amd64 }
+  working-directory: ${{prefix}}/bin
+  script: |
+    version="v{{version}}"
+
+    release_path="https://github.com/defenseunicorns/zarf/releases/download/${version}"
+
+    filename="zarf_${version}_${PLATFORM}"
+
+    curl -sL "${release_path}/${filename}" -o zarf
+
+    curl -sL "${release_path}/checksums.txt" -o checksums.txt
+
+    checksum=$(grep "${filename}$" checksums.txt | cut -d' ' -f1)
+
+    if test "$(sha256sum zarf | cut -d' ' -f1)" != "${checksum}"; then
+      echo "checksum mismatch"
+      exit 1
+    fi
+
+    rm checksums.txt
+    chmod +x zarf
+  skip: fix-patchelf
+
+provides:
+  - bin/zarf
+
+test: test "$(zarf version)" = "v{{version}}"
