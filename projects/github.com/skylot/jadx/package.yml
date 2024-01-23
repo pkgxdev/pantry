@@ -1,0 +1,33 @@
+distributable:
+  url: git+https://github.com/skylot/jadx.git
+  ref: ${{version.tag}}
+
+versions:
+  github: skylot/jadx
+
+dependencies:
+  openjdk.org: ^20
+
+build:
+  dependencies:
+    gradle.org: '*'
+  script:
+    - gradle clean dist
+    - mkdir -p {{prefix}}
+    - run: cp -r bin lib {{prefix}}/
+      working-directory: build/jadx
+    - run: rm -rf ./*.bat
+      working-directory: ${{prefix}}/bin
+
+provides:
+  - bin/jadx
+  - bin/jadx-gui
+
+test:
+  dependencies:
+    curl.se: '*'
+  script:
+    - curl -L "https://raw.githubusercontent.com/facebook/redex/fa32d542d4074dbd485584413d69ea0c9c3cbc98/test/instr/redex-test.apk" -o redex-test.apk
+    - jadx -d out redex-test.apk | grep 'done'
+    - ls | grep 'out'
+  
