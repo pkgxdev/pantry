@@ -1,0 +1,21 @@
+distributable:
+  url: git+https://github.com/networkx/networkx.git
+  ref: ${{version.tag}}
+
+versions:
+  github: networkx/networkx
+  strip: /^networkx-/
+
+dependencies:
+  python.org: '>=3.11'
+
+runtime:
+  env:
+    PYTHONPATH: $PYTHONPATH:{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages
+
+build:
+  - python -m pip install --prefix={{prefix}} .
+  - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
+    working-directory: ${{prefix}}/lib
+
+test: python -c 'import networkx as nx; print(nx.__version__)' | grep {{version}}
