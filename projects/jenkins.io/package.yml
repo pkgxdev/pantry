@@ -44,12 +44,9 @@ provides:
 test:
   dependencies:
     curl.se: '*'
+    pkgx.sh: ^1
   script:
-    - run: |
-        FREE_PORT=$((RANDOM % 10000 + 1024))
-        while lsof -i:$FREE_PORT >/dev/null 2>&1; do
-          ((FREE_PORT++))
-        done
+    - FREE_PORT=$(pkgx get-port)
     - mkdir -p tmp var/jenkins
     - jenkins-lts --version
 
