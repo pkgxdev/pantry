@@ -11,18 +11,13 @@ build:
     python.org: '>=3<3.12'
     tukaani.org/xz: '*'
     git-scm.org: '*'
-    # linux:
-    # required for fetch (pgrep)
-    # gitlab.com/procps-ng/procps: '*'
   script:
-    - run: |
-        git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
-        git -C depot_tools checkout 007dd45a94b8fe400fb69113f7999fed185cb5c1
+    - run: git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
       working-directory: $SRCROOT/resources
-    # fetch seems worrying; run gclient directly
-    # - fetch --no-history dart
+
     - gclient config --name sdk https://dart.googlesource.com/sdk.git@{{version}}
     - gclient sync --no-history
+
     - run: ./tools/build.py --no-goma --mode=release --arch=$ARCH create_sdk
       working-directory: sdk
     - mkdir -p {{prefix}}/libexec
