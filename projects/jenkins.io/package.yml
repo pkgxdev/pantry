@@ -46,14 +46,17 @@ test:
     curl.se: '*'
   script:
     - run: |
-        for i in $(seq 1 10); do
-          FREE_PORT=$((RANDOM % 10000 + 1024))
-          if ! nc -z localhost $FREE_PORT; then
-            echo $FREE_PORT
-          fi
+        FREE_PORT=$((RANDOM % 10000 + 1024))
+        while lsof -i:$FREE_PORT >/dev/null 2>&1; do
+          ((FREE_PORT++))
         done
     - mkdir -p tmp var/jenkins
-    - jenkins-lts --version | grep {{version}}
+    - jenkins-lts --version
+
+    # version not updated in 2.426.3
+    - run: jenkins-lts --version | grep {{version}}
+      if: '<2.426.3 || >=2.426.4'
+
     - jenkins-lts --httpPort=$FREE_PORT > var/jenkins/jenkins.log 2>&1 &
     - PID=$!
     - sleep 30
