@@ -1,10 +1,14 @@
 distributable:
-  url: https://taglib.github.io/releases/taglib-{{version}}.tar.gz
+  url: https://taglib.github.io/releases/taglib-{{version.raw}}.tar.gz
   strip-components: 1
+
 versions:
   github: taglib/taglib
+
 dependencies:
-  zlib.net: '*'
+  zlib.net: ^1
+  github.com/nemtrif/utfcpp: ^4
+
 build:
   dependencies:
     cmake.org: '*'
@@ -13,11 +17,8 @@ build:
   script:
     - cmake $CMAKE_ARGS
     - make --jobs {{ hw.concurrency }} install
-    - run: |
-        sed -i.bak "s|prefix=|prefix=\$(dirname \$0)/..|g" taglib-config
-        sed -i.bak "s|{{prefix}}|\$(dirname \$0)/..|g" taglib-config
-        rm taglib-config.bak
-      working-directory: "{{prefix}}/bin"
+    - run: sed -i -e "s|prefix=|prefix=\$(dirname \$0)/..|g" -e "s|{{prefix}}|\$(dirname \$0)/..|g" taglib-config
+      working-directory: '{{prefix}}/bin'
   env:
     CMAKE_ARGS:
       - -DCMAKE_INSTALL_PREFIX="{{prefix}}
@@ -30,9 +31,11 @@ build:
       - -DWITH_MP4=ON
       - -DWITH_ASF=ON
       - -DBUILD_SHARED_LIBS=ON
+
 provides:
   - bin/taglib-config
+
 test:
   script:
-    - taglib-config --version | grep {{version}}
+    - taglib-config --version | grep {{version.raw}}
     - taglib-config --prefix | grep {{prefix}}
