@@ -121,17 +121,11 @@ build:
         - --without-x
 
 test:
-  dependencies:
-    linux:
-      llvm.org: '*'
-  env:
-    CC: clang
-  script:
-    - magick -version | grep {{version.tag}}
-    - pkgx curl "https://upload.wikimedia.org/wikipedia/commons/6/6a/PNG_Test.png" -o a.png
-    - magick identify a.png | grep "a.png PNG"
+  - magick -version | grep {{version.tag}}
+  - pkgx curl "https://upload.wikimedia.org/wikipedia/commons/6/6a/PNG_Test.png" -o a.png
+  - magick identify a.png | grep "a.png PNG"
 
-    # verify that we can build the rmagick gem
-    #NOTE only darwin because honestly it looks like the rmagick gem build process is broken on Linux
-    - run: pkgx +ruby@3.2.2 gem install rmagick
-      if: darwin
+  # verify that we can build the rmagick gem
+  #NOTE only darwin because honestly it looks like the rmagick gem build process is broken on Linux
+  - run: pkgx +ruby@3.2.2 gem install rmagick
+    if: darwin
