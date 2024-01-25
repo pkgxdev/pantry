@@ -11,13 +11,13 @@ build:
     python.org: '>=3<3.12'
     tukaani.org/xz: '*'
     git-scm.org: '*'
-    linux:
-      # required for fetch (pgrep)
-      gitlab.com/procps-ng/procps: '*'
   script:
     - run: git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
       working-directory: $SRCROOT/resources
-    - fetch --no-history dart
+
+    - gclient config --name sdk https://dart.googlesource.com/sdk.git@{{version}}
+    - gclient sync --no-history
+
     - run: ./tools/build.py --no-goma --mode=release --arch=$ARCH create_sdk
       working-directory: sdk
     - mkdir -p {{prefix}}/libexec
@@ -30,6 +30,7 @@ build:
         ln -s ./../libexec/bin/dartaotruntime dartaotruntime
       working-directory: '{{prefix}}/bin'
   env:
+    DEPOT_TOOLS_UPDATE: 0
     PATH: $SRCROOT/resources/depot_tools:$PATH
     aarch64:
       ARCH: arm64
@@ -41,5 +42,7 @@ provides:
 test:
   script:
     - dart create dart-test
+    - run: dart run
+      working-directory: dart-test
     - run: dart run | grep "Hello world"
       working-directory: dart-test

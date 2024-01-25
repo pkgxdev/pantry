@@ -44,16 +44,16 @@ provides:
 test:
   dependencies:
     curl.se: '*'
+    pkgx.sh: ^1
   script:
-    - run: |
-        for i in $(seq 1 10); do
-          FREE_PORT=$((RANDOM % 10000 + 1024))
-          if ! nc -z localhost $FREE_PORT; then
-            echo $FREE_PORT
-          fi
-        done
+    - FREE_PORT=$(pkgx get-port)
     - mkdir -p tmp var/jenkins
-    - jenkins-lts --version | grep {{version}}
+    - jenkins-lts --version
+
+    # version not updated in 2.426.3
+    - run: jenkins-lts --version | grep {{version}}
+      if: '<2.426.3 || >=2.426.4'
+
     - jenkins-lts --httpPort=$FREE_PORT > var/jenkins/jenkins.log 2>&1 &
     - PID=$!
     - sleep 30
