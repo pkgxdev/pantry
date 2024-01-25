@@ -15,17 +15,12 @@ build:
     rust-lang.org/cargo: '*'
     cmake.org: ^3.12
     protobuf.dev: '*'
-  script: |
-    make
-    mkdir -p "{{ prefix }}"/bin
-    mv .local/bin/lighthouse "{{ prefix }}"/bin
-  test:
-    make test-release
-
+  script: make CARGO_INSTALL_EXTRA_FLAGS="--root {{prefix}}"
+  test: make test-release
 
 provides:
   - bin/lighthouse
 
-test: |
-  lighthouse account_manager wallet list
-  test -d ~/.lighthouse/mainnet/wallets
+test:
+  - lighthouse account_manager wallet list
+  - test -d ~/.lighthouse/mainnet/wallets
