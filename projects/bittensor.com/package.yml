@@ -1,0 +1,25 @@
+distributable:
+  url: https://github.com/opentensor/bittensor/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+display-name: Bittensor
+
+versions:
+  github: opentensor/bittensor
+
+dependencies:
+  pkgx.sh: ^1
+
+build:
+  dependencies:
+    python.org: ^3.11
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} btcli
+
+test:
+  btcli --help | grep {{version}}
+
+provides:
+  - bin/btcli
