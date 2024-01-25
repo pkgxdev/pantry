@@ -1,0 +1,22 @@
+distributable:
+  url: git+https://github.com/pypa/distlib.git
+  ref: ${{version.tag}}
+
+versions:
+  github: pypa/distlib
+
+dependencies:
+  python.org: '>=3.11'
+
+runtime:
+  env:
+    PYTHONPATH: ${{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages:$PYTHONPATH
+
+build:
+  - python -m pip install --prefix={{prefix}} .
+  - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
+    working-directory: ${{prefix}}/lib
+
+test:
+  - python -c 'from distlib.database import DistributionPath;'
+  - python -c 'import distlib; print(distlib.__version__);' | grep {{version}}
