@@ -2,10 +2,6 @@ distributable:
   url: git+https://github.com/mudler/LocalAI
   ref: ${{version.tag}}
 
-# weird c++ stdlib linkage error on linux
-platforms:
-  - darwin
-
 display-name: LocalAI
 
 versions:
@@ -20,6 +16,13 @@ build:
     gnu.org/wget: ^1
     gnu.org/coreutils: ^9
     git-scm.org: ^2
+  env:
+    linux:
+      # one of these will do it. probably.
+      CGO_LDFLAGS:
+        - -lstdc++fs
+      LD_FLAGS:
+        - -buildmode=pie
   script:
     - make build
     - install -D local-ai {{prefix}}/bin/local-ai
@@ -27,5 +30,4 @@ build:
 provides:
   - bin/local-ai
 
-test:
-  local-ai --version | grep {{version}}
+test: local-ai --version | grep {{version}}
