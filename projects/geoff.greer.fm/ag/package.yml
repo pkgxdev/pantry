@@ -1,0 +1,37 @@
+distributable:
+  url: git+https://github.com/ggreer/the_silver_searcher.git
+  ref: ${{version}}
+
+display-name: the_silver_searcher
+
+versions:
+  github: ggreer/the_silver_searcher/tags
+
+dependencies:
+  pcre.org: ^8
+  tukaani.org/xz: ^5.4.5
+
+build:
+  dependencies:
+    gnu.org/autoconf: '*'
+    gnu.org/automake: '*'
+    #./configure: line 4550: syntax error near unexpected token `PCRE,'
+    # ./configure: line 4550: `PKG_CHECK_MODULES(PCRE, libpcre)'
+    freedesktop.org/pkg-config: '*'
+  script:
+    - autoreconf -fiv
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --disable-dependency-tracking
+
+provides:
+  - bin/ag
+
+test:
+  - echo 'Hello World!' > test.txt
+  - ag 'Hello World!' . | grep 'test.txt'
+  - ag --version | grep {{version}}
