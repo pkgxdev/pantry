@@ -24,13 +24,13 @@ build:
       working-directory: ${{prefix}}/lib
 
 test:
-  fixture:
-    extname: py
-    content: |
-      from cryptography.fernet import Fernet
-      key = Fernet.generate_key()
-      f = Fernet(key)
-      token = f.encrypt(b"pkgx")
-      print(f.decrypt(token))
   script:
-    - python $FIXTURE
+    - run: python $FIXTURE
+      fixture:
+        extname: py
+        content: |
+          from cryptography.fernet import Fernet
+          key = Fernet.generate_key()
+          f = Fernet(key)
+          token = f.encrypt(b"pkgx")
+          print(f.decrypt(token))
