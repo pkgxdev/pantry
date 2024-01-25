@@ -18,7 +18,10 @@ build:
     git-scm.org: ^2
   env:
     linux:
-      LDFLAGS: $LDFLAGS -lstdc++fs
+      # one of these will do it. probably.
+      CGO_LDFLAGS: $LDFLAGS -lstdc++fs
+      CMAKE_ARGS:
+        - -DCMAKE_EXE_LINKER_FLAGS=-lstdc++fs
   script:
     - make build
     - install -D local-ai {{prefix}}/bin/local-ai
@@ -26,5 +29,4 @@ build:
 provides:
   - bin/local-ai
 
-test:
-  local-ai --version | grep {{version}}
+test: local-ai --version | grep {{version}}
