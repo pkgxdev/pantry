@@ -7,7 +7,7 @@ versions:
 
 dependencies:
   cairographics.org: 1
-  unicode.org: 71
+  unicode.org: ^73
   leptonica.org: '*'
   libarchive.org: '*'
   gnome.org/pango: 1
@@ -26,17 +26,17 @@ build:
   script: |
     ./autogen.sh
     ./configure $ARGS
-    make --jobs {{ hw.concurrency }} 
-    make install 
+    make --jobs {{ hw.concurrency }}
+    make install
 
     # install trained datafiles and move to share/tessdata
     wget https://github.com/tesseract-ocr/tessdata/blob/main/eng.traineddata?raw=true -O eng.traineddata
     wget https://github.com/tesseract-ocr/tessdata/blob/main/osd.traineddata?raw=true -O osd.traineddata
     mv eng.traineddata "{{prefix}}"/share/tessdata/
     mv osd.traineddata "{{prefix}}"/share/tessdata/
-    
-  env: 
-    ARGS: 
+
+  env:
+    ARGS:
       - --prefix="{{prefix}}"
       - --disable-dependency-tracking
       - --datarootdir="{{prefix}}"/share
@@ -48,5 +48,5 @@ test:
   dependencies:
     gnu.org/wget: '*'
   script: |
-    wget https://raw.githubusercontent.com/tesseract-ocr/test/6dd816cdaf3e76153271daf773e562e24c928bf5/testing/eurotext.tif 
+    wget https://raw.githubusercontent.com/tesseract-ocr/test/6dd816cdaf3e76153271daf773e562e24c928bf5/testing/eurotext.tif
     tesseract eurotext.tif stdout -l eng
