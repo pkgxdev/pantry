@@ -1,0 +1,21 @@
+distributable:
+  url: git+https://github.com/tox-dev/filelock.git
+  ref: ${{version.tag}}
+
+versions:
+  github: tox-dev/filelock
+
+dependencies:
+  python.org: '>=3.11'
+
+runtime:
+  env:
+    PYTHONPATH: ${{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages:$PYTHONPATH
+
+build:
+  - python -m pip install --prefix={{prefix}} .
+  - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
+    working-directory: ${{prefix}}/lib
+
+test:
+  - python -c 'from filelock import FileLock'
