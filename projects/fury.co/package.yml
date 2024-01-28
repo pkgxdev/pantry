@@ -1,0 +1,32 @@
+distributable:
+  url: git+https://github.com/gemfury/cli.git
+  ref: ${{version.tag}}
+
+versions:
+  github: gemfury/cli
+
+build:
+  dependencies:
+    go.dev: ^1.21
+  script:
+    - go build $ARGS -ldflags="$LDFLAGS" ./cmd/fury
+  env:
+    ARGS:
+      - -v
+      - -trimpath
+      - -o={{prefix}}/bin/fury
+    LDFLAGS:
+      - -s
+      - -w
+      - -X main.Version={{version}}
+    linux:
+      LDFLAGS:
+        - -buildmode=pie
+
+provides:
+  - bin/fury
+
+test:
+  - fury --version | grep {{version}}
+  - fury --help | grep 'Listing of your collaborations'
+  # more testing requires authorization
