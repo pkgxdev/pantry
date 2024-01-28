@@ -1,0 +1,25 @@
+distributable:
+  url: git+https://github.com/railwayapp/cli.git
+  ref: ${{version.tag}}
+
+versions:
+  github: railwayapp/cli
+
+build:
+  dependencies:
+    rust-lang.org: ^1.67.1
+    rust-lang.org/cargo: '*'
+  script:
+    - cargo install $ARGS
+  env:
+    ARGS:
+      - --locked
+      - --root={{prefix}}
+      - --path=.
+
+provides:
+  - bin/railway
+
+test:
+  - railway init 2>&1
+  - railway --version | grep {{version}}
