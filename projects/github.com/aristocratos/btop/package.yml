@@ -12,8 +12,13 @@ provides:
   - bin/btop
 
 build:
-  - make ADDFLAGS=-std=c++20
-  - make install PREFIX={{prefix}}
+  dependencies:
+    # built fine for me on macOS 14 & Xcode 15 but won’t in CI complaining
+    # that the provided clang is too old
+    llvm.org: ^17
+  script:
+    - make
+    - make install PREFIX={{prefix}}
 
 test:
   btop --version | grep {{version}}
