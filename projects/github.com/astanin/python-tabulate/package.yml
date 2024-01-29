@@ -6,16 +6,21 @@ versions:
   github: astanin/python-tabulate/tags
 
 dependencies:
-  python.org: '>=3.11'
+  pkgx.sh: ^1
 
 runtime:
   env:
-    PYTHONPATH: ${{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages:$PYTHONPATH
+    PYTHONPATH: ${{prefix}}/venv/lib/python{{deps.python.org.version.major}}/site-packages:$PYTHONPATH
 
 build:
-  - python -m pip install --prefix={{prefix}} .
-  - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
-    working-directory: ${{prefix}}/lib
+  dependencies:
+    python.org: '>=3.11'
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} tabulate
+    - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
+      working-directory: ${{prefix}}/venv/lib
 
 provides:
   - bin/tabulate
