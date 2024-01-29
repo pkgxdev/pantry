@@ -1,0 +1,21 @@
+distributable:
+  url: git+https://github.com/platformdirs/platformdirs.git
+  ref: ${{version.tag}}
+
+versions:
+  github: platformdirs/platformdirs
+
+dependencies:
+  python.org: '>=3.11'
+
+runtime:
+  env:
+    PYTHONPATH: ${{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages:$PYTHONPATH
+
+build:
+  - python -m pip install --prefix={{prefix}} .
+  - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
+    working-directory: ${{prefix}}/lib
+
+test:
+  - python -c 'import platformdirs; print(platformdirs.__version__)' | grep {{version}}
