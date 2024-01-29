@@ -1,0 +1,28 @@
+distributable:
+  url: git+https://github.com/railwayapp/cli.git
+  ref: ${{version.tag}}
+
+versions:
+  github: railwayapp/cli
+
+build:
+  dependencies:
+    rust-lang.org: ^1.75
+    rust-lang.org/cargo: '*'
+  script:
+    # could not compile `proc-macro2` (lib) due to previous error
+    - cargo add proc-macro2
+    - cargo install $ARGS
+  env:
+    ARGS:
+      - --root={{prefix}}
+      - --path=.
+      - --locked
+
+provides:
+  - bin/railway
+
+test:
+  - railway init 2>out.log || true
+  - cat out.log | grep 'Unauthorized. Please login with `railway login`'
+  - railway --version | grep {{version}}
