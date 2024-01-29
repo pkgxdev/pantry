@@ -45,6 +45,9 @@ build:
       - --enable-unique
       - --enable-valsort
       - --without-systemd
+    linux:
+      # undefined symbol errors in newer llvms prevent building shared libs
+      CFLAGS: $CFLAGS -Wl,--undefined-version
 
 provides:
   - bin/ldapcompare
@@ -58,5 +61,4 @@ provides:
   - bin/ldapvc
   - bin/ldapwhoami
 
-test:
-  ldapcompare -VV 2>&1 | grep {{version}}
+test: ldapcompare -VV 2>&1 | grep {{version}}
