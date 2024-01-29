@@ -8,8 +8,7 @@ versions:
 build:
   dependencies:
     go.dev: '>=1.19'
-  script:
-    go build $ARGS -ldflags="$LDFLAGS"
+  script: go build $ARGS -ldflags="$LDFLAGS"
   env:
     ARGS:
       - -trimpath
@@ -26,5 +25,9 @@ provides:
 
 test:
   - azcopy --version | grep {{version}}
+  - azcopy list https://storageaccountname.blob.core.windows.net/containername/ || true
   - azcopy list https://storageaccountname.blob.core.windows.net/containername/ > output.txt || true
-  - cat output.txt | grep 'Login Credentials missing'
+  - run: cat output.txt | grep 'Login Credentials missing'
+    if: '<10.23'
+  - run: cat output.txt | grep 'This request is not authorized to perform this operation'
+    if: '>=10.23'
