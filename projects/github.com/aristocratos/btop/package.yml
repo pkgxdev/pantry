@@ -11,12 +11,18 @@ versions:
 provides:
   - bin/btop
 
-build:
-  dependencies:
+dependencies:
+  linux:
     # built fine for me on macOS 14 & Xcode 15 but won’t in CI complaining
     # that the provided clang is too old
     # llvm^17 should work but didn’t for headers not found reasons
+    # needed for build and runtime
     gnu.org/gcc: '>=10'
+
+build:
+  dependencies:
+    darwin/x86-64:
+      gnu.org/gcc: '>=10'
   script:
     - make
     - make install PREFIX={{prefix}}
