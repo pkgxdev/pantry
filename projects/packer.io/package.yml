@@ -3,31 +3,27 @@ distributable:
   strip-components: 1
 
 versions:
-  github: hashicorp/packer/tags 
+  github: hashicorp/packer/tags
   strip: /^v/
-    
+
 provides:
   - bin/packer
 
 build:
-  script: |
-    go mod download
-    go build -v -ldflags="$LDFLAGS" -o my_packer
-    mkdir -p "{{ prefix }}"/bin
-    # move and rename back to packer
-    mv my_packer "{{ prefix }}"/bin/packer
+  script:
+    - go mod download
+    - go build -v -ldflags="$GO_LDFLAGS" -o "{{ prefix }}"/bin/packer
   dependencies:
     go.dev: ^1.18
   env:
     GO111MODULE: on
-    LDFLAGS:
-      [-s, -w, "-X=main.Version={{version}}"]
+    GO_LDFLAGS: [-s, -w, '-X=main.Version={{version}}']
     linux:
       # or segmentation fault
       # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
-      LDFLAGS:
-      - -buildmode=pie
+      GO_LDFLAGS:
+        - -buildmode=pie
 
 test:
-  script: |
-    test "$(packer --version)" = {{version}}
+  - packer --version
+  - packer --version | grep {{version}}
