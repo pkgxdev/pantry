@@ -11,17 +11,20 @@ build:
   dependencies:
     git-scm.org: '*'
     python.org: '>=3<3.12'
-  script: |
+  script:
     # Set the version
-    sed -i.bak -e 's/^VERSION=.*/VERSION={{ version }}/' tools/update-version
-    rm tools/update-version.bak
+    - run: sed -i -e 's/^VERSION=.*/VERSION={{ version }}/' update-version
+      if: <2.39
+      working-directory: tools
+    - run: sed -i -e 's/^VERSION=.*/VERSION={{ version }}/' update-version
+      if: '>=2.39'
+      working-directory: buildtools
 
     # Don't try to chown/chmod on install
-    sed -i.bak -e '/\(chown\|chmod\)/d' libfuse/Makefile
-    rm libfuse/Makefile.bak
+    - sed -i -e '/\(chown\|chmod\)/d' libfuse/Makefile
 
-    make --jobs {{ hw.concurrency }}
-    make install DESTDIR="{{prefix}}" PREFIX=""
+    - make --jobs {{ hw.concurrency }}
+    - make install DESTDIR="{{prefix}}" PREFIX=""
   env:
     CFLAGS: -Wno-implicit-function-declaration
 
@@ -31,5 +34,4 @@ provides:
   - sbin/mount.mergerfs
 
 # FIXME: Maybe? Complicated to test something that mounts filesystems...
-test: |
-  mergerfs --version | grep "{{ version }}"
+test: mergerfs --version | grep "{{ version }}"
