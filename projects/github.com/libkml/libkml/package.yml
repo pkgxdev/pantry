@@ -1,0 +1,40 @@
+distributable:
+  url: git+https://github.com/libkml/libkml.git
+  ref: ${{version.tag}}
+
+versions:
+  github: libkml/libkml
+
+dependencies:
+  zlib.net/minizip: ^1.3
+  uriparser.github.io: ^0.9
+  curl.se: ^8
+  libexpat.github.io: ^2.5
+  boost.org: '>=1.81'
+
+build:
+  dependencies:
+    cmake.org: '*'
+  script:
+    - cmake -S . -B build $ARGS
+    - cmake --build build
+    - cmake --install build
+  env:
+    ARGS:
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_INSTALL_LIBDIR=lib
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_FIND_FRAMEWORK=LAST
+      - -DCMAKE_VERBOSE_MAKEFILE=ON
+      - -Wno-dev
+      - -DBUILD_TESTING=OFF
+
+test:
+  dependencies:
+    google.com/googletest: '*'
+    freedesktop.org/pkg-config: '*'
+  script:
+    - COMPILE_FLAGS=$(pkg-config --cflags --libs libkml gtest)
+    - c++ test.cpp $COMPILE_FLAGS -std=c++14 -o test
+    - ./test | grep 'PASSED'
+    - pkg-config --modversion libkml | grep {{version}}
