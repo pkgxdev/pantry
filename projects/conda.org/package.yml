@@ -26,7 +26,7 @@ build:
     curl.se: '*'
   script:
     - bkpyvenv stage {{prefix}} {{version}}
-    - curl -LS https://repo.anaconda.com/miniconda/Miniconda3-py311_{{version}}-1-MacOSX-arm64.sh -o miniconda.sh
+    - curl -LS https://repo.anaconda.com/miniconda/Miniconda3-py311_{{version}}-1-${SUFFIX}.sh -o miniconda.sh
     - chmod +x miniconda.sh
     - ./miniconda.sh -b -f -s -p {{prefix}}/venv
 
@@ -43,6 +43,15 @@ build:
     # erroring so we have to do prior to pkging it
     - bkpyvenv seal {{prefix}} conda
     - '{{prefix}}/bin/conda init'
+  env:
+    darwin/aarch64:
+      SUFFIX: MacOSX-arm64
+    darwin/x86-64:
+      SUFFIX: MacOSX-x86_64
+    linux/x86-64:
+      SUFFIX: Linux-x86_64
+    linux/aarch64:
+      SUFFIX: Linux-aarch64 # not arm64. weird.
 
 provides:
   - bin/conda
