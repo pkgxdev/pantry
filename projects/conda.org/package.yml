@@ -1,26 +1,47 @@
 # this is what docs.conda.io refers to as `miniconda`
 
-distributable:
-  url: https://github.com/conda/conda/archive/refs/tags/{{version.tag}}.tar.gz
-  strip-components: 1
+# conda requires conda to build conda since 23.11. so, we use miniconda's installer script
+# into a venv
+
+warnings:
+  - vendored
 
 versions:
-  github: conda/conda
+  url: https://repo.anaconda.com/miniconda/
+  match: /Miniconda3-py311_\d+\.\d+\.\d+-1-MacOSX-arm64.sh/
+  strip:
+    - /Miniconda3-py311_/
+    - /-1-MacOSX-arm64.sh/
 
 dependencies:
   python.org: ~3.11
 
+runtime:
+  env:
+    PYTHONPATH: '{{prefix}}/lib/python3.11/site-packages:$PYTHONPATH'
+
 build:
   dependencies:
     gnu.org/patch: '*'
+    curl.se: '*'
   script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - curl -LS https://repo.anaconda.com/miniconda/Miniconda3-py311_{{version}}-1-MacOSX-arm64.sh -o miniconda.sh
+    - chmod +x miniconda.sh
+    - ./miniconda.sh -b -f -s -p {{prefix}}/venv
+
     # stops conda from installing to our versioned prefix by default
-    - patch -p1 < props/context.py.diff
-    - python-venv.sh {{prefix}}/bin/conda
+    - run: |
+        cd conda-{{version}}-*/lib/python3.11/site-packages
+        patch -p1 < $SRCROOT/props/context.py.diff
+      working-directory: ${{prefix}}/venv/pkgs
+    - run: patch -p1 < $SRCROOT/props/context.py.diff
+      working-directory: ${{prefix}}/venv/lib/python3.11/site-packages
 
     # we desire to provide a conda that doesn’t require you to force it into
     # your shellrc this command modifies the installation to prevent it
     # erroring so we have to do prior to pkging it
+    - bkpyvenv seal {{prefix}} conda
     - '{{prefix}}/bin/conda init'
 
 provides:
