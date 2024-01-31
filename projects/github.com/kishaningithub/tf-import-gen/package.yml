@@ -11,10 +11,8 @@ provides:
 build:
   dependencies:
     go.dev: "*"
-
   script:
     - go build -v -ldflags="$LDFLAGS" -o "{{prefix}}"/bin/tf-import-gen
-
   env:
     CGO_ENABLED: 0
     LDFLAGS:
@@ -23,5 +21,6 @@ build:
       - -X main.version={{version}}
 
 test:
-  script: |
-    tf-import-gen --version 2>&1 | grep -F "{{version}}"
+  - tf-import-gen --version 2>&1 || true # test for exit code
+  - tf-import-gen --version
+  - tf-import-gen --version 2>&1 | grep -F "{{version}}"
