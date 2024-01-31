@@ -1,0 +1,24 @@
+distributable:
+  url: https://github.com/koekeishiya/yabai/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: koekeishiya/yabai
+
+platforms:
+  - darwin
+
+build:
+  # dependencies:
+  #   apple.com/xcode: >=11
+  script:
+    - make
+    - install -D bin/yabai {{prefix}}/bin/yabai
+    - install -D doc/yabai.1 {{prefix}}/man/man1/yabai.1
+
+provides:
+  - bin/yabai
+
+test:
+  - yabai --help
+  - test "$(yabai --version)" = "yabai-v{{version}}"
