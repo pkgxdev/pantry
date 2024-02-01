@@ -14,15 +14,11 @@ versions:
     - /-1-MacOSX-arm64.sh/
 
 dependencies:
-  python.org: ~3.11
-
-runtime:
-  env:
-    # https://github.com/conda/conda/issues/9356#issuecomment-577271046
-    PYTHONPATH: '{{prefix}}/venv/lib/python3.11/site-packages'
+  pkgx.sh: ^1
 
 build:
   dependencies:
+    python.org: ~3.11
     gnu.org/patch: '*'
     curl.se: '*'
   script:
@@ -39,10 +35,11 @@ build:
     - run: patch -p1 < $SRCROOT/props/context.py.diff
       working-directory: ${{prefix}}/venv/lib/python3.11/site-packages
 
+    - bkpyvenv seal {{prefix}} conda
+
     # we desire to provide a conda that doesn’t require you to force it into
     # your shellrc this command modifies the installation to prevent it
     # erroring so we have to do prior to pkging it
-    - bkpyvenv seal {{prefix}} conda
     - '{{prefix}}/bin/conda init'
   env:
     darwin/aarch64:
