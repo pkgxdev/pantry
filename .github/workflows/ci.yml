@@ -84,7 +84,11 @@ jobs:
       - name: wipe builds directory
         run: |
           test -d builds
-          rm -rf builds
+          # requires `sudo` because `go` makes unremovable files...
+          if command -v sudo; then
+            SUDO=sudo
+          fi
+          $SUDO rm -rf builds
         if: steps.build.outputs.pkgspec
 
       - uses: pkgxdev/brewkit/test@v1
