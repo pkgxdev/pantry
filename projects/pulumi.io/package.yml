@@ -8,13 +8,27 @@ versions:
 
 provides:
   - bin/pulumi
+  - bin/pulumi-analyzer-policy
+  - bin/pulumi-analyzer-policy-python
+  - bin/pulumi-language-dotnet
+  - bin/pulumi-language-go
+  - bin/pulumi-language-java
+  - bin/pulumi-language-nodejs
+  - bin/pulumi-language-python
+  - bin/pulumi-language-python-exec
+  - bin/pulumi-language-yaml
+  - bin/pulumi-resource-pulumi-nodejs
+  - bin/pulumi-resource-pulumi-python
+  - bin/pulumi-watch
 
 dependencies:
   curl.se/ca-certs: '*'
 
 build:
   dependencies:
-    go.dev: '*'
+    go.dev: ^1.20
+    classic.yarnpkg.com: '*'
+    nodejs.org: '*'
   script:
     - run: go mod download
       working-directory: sdk
@@ -23,31 +37,33 @@ build:
       working-directory: pkg
 
     - run: |
-        sed -i.bak -e 's/-ldflags "/-ldflags "-buildmode=pie /g' Makefile
-        rm Makefile.bak
-      if: linux
+        for DIR in go nodejs python; do
+          make -C $DIR install_plugin PULUMI_BIN={{prefix}}/bin
+        done
+      working-directory: sdk
 
-    - make build
-    - make install
+    # The next steps are modified from scripts/brew.sh
+    - run: go build
+        -ldflags "-X github.com/pulumi/pulumi/pkg/v3/version.Version={{version}}"
+        -o {{prefix}}/bin/pulumi ./cmd/pulumi
+      working-directory: pkg
 
-    - mkdir -p {{prefix}}/bin
-    - mv build/bin/pulumi* {{prefix}}/bin/
+    - ./scripts/prep-for-goreleaser.sh "local"
+    - cp -a bin/$(go env GOOS)*/* {{prefix}}/bin/
+
+    # - mkdir -p {{prefix}}/bin
+    # - mv build/bin/pulumi* {{prefix}}/bin/
 
     # Install shell completions
     # TODO: Doesn't work for zsh. Should it be left up to user?
     # {{prefix}}/bin/pulumi gen-completion $SHELL
   env:
-    GOPATH: "$PWD/build"
+    GOPATH: '$PWD/build'
 
 test:
-  script: |
-    pulumi new aws-typescript --generate-only --force -y
-    if [ -e "$PWD/Pulumi.yaml" ]; then
-        echo "Project was created"
-    else
-        echo "Project was not created"
-        exit 1
-    fi
+  script:
+    - pulumi new aws-typescript --generate-only --force -y
+    - test -e Pulumi.yaml
   env:
     PULUMI_ACCESS_TOKEN: local://
-    PULUMI_TEMPLATE_PATH: "$PWD/templates"
+    PULUMI_TEMPLATE_PATH: '$PWD/templates'
