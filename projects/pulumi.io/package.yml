@@ -44,7 +44,7 @@ build:
 
     # The next steps are modified from scripts/brew.sh
     - run: go build
-        -ldflags "-X github.com/pulumi/pulumi/pkg/v3/version.Version={{version}}"
+        -ldflags "$GO_LDFLAGS"
         -o {{prefix}}/bin/pulumi ./cmd/pulumi
       working-directory: pkg
 
@@ -59,6 +59,11 @@ build:
     # {{prefix}}/bin/pulumi gen-completion $SHELL
   env:
     GOPATH: '$PWD/build'
+    GO_LDFLAGS:
+      - -X github.com/pulumi/pulumi/pkg/v3/version.Version={{version}}
+    linux:
+      GO_LDFLAGS:
+        - -buildmode=pie
 
 test:
   script:
