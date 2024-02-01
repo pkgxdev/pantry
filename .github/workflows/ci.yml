@@ -85,7 +85,10 @@ jobs:
         run: |
           test -d builds
           # requires `sudo` because `go` makes unremovable files...
-          sudo rm -rf builds
+          if command -v sudo; then
+            SUDO=sudo
+          fi
+          $SUDO rm -rf builds
         if: steps.build.outputs.pkgspec
 
       - uses: pkgxdev/brewkit/test@v1
