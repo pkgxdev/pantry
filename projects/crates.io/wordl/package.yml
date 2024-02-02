@@ -1,0 +1,21 @@
+distributable:
+  url: https://github.com/palerdot/wordl-rs/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/wordl
+
+versions:
+  github: palerdot/wordl-rs
+  strip: /v/
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
+  script:
+    # add --version/-V to allow a simple test
+    - patch -p1 < props/add-version.patch
+    - cargo install --locked --path . --root {{prefix}}
+
+test: test "$(wordl --version)" = "wordl {{version}}"
