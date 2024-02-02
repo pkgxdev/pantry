@@ -15,46 +15,39 @@ jobs:
   plan:
     runs-on: ubuntu-latest
     outputs:
-      pkgs: ${{ steps.diff.outputs.pkgs }}
+      matrix: ${{ steps.process-diff.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: pkgxdev/setup@v2
+      - uses: actions/checkout@v4
       - uses: technote-space/get-diff-action@v6
         id: get-diff
         with:
           PATTERNS: projects/**/package.yml
-      - id: diff
+      - name: process diff
+        id: process-diff
         run: |
-          for x in ${{ steps.get-diff.outputs.diff }}; do
-            y=$(echo $x | sed 's#projects/\(.*\)/[^/]*#\1#')
-            RESULT="$RESULT ${y//$'\n'/}"
-          done
-          if [ -n "$RESULT" ]; then
-            RESULT="$(echo -n $RESULT | jq -R -s -c 'split(" ")')"
+          if [ -n "${{ steps.get-diff.outputs.diff }}" ]; then
+            for x in ${{ steps.get-diff.outputs.diff }}; do
+              y=$(echo $x | sed 's#projects/\(.*\)/[^/]*#\1#')
+              RESULT="$RESULT ${y//$'\n'/}"
+            done
           else
-            RESULT='["zlib.net"]'
+            RESULT="zlib.net kernel.org/linux-headers"
           fi
-          echo "pkgs=$RESULT" >> $GITHUB_OUTPUT
+
+          ./.github/scripts/get-ci-matrix.ts $RESULT
+
+      - run: echo '${{ steps.process-diff.outputs.matrix }}' | jq
 
   build:
-    if: needs.plan.outputs.pkgs
     needs: plan
-    name: ci ${{ matrix.platform.name }} ${{matrix.pkg}}
     strategy:
       fail-fast: false
       matrix:
-        pkg: ${{ fromJSON(needs.plan.outputs.pkgs) }}
-        platform:
-          - os: ["self-hosted", "macOS", "X64"]
-            name: x64
-          - os: ["self-hosted", "macOS", "ARM64"]
-            name: ²
-          - os: ["self-hosted", "linux", "ARM64"]
-            name: "*nix·ARM64"
-          - os: { group: "linux-x86-64" }
-            container: debian:buster-slim
-            name: "*nix64"
+        include: ${{ fromJSON(needs.plan.outputs.matrix) }}
     runs-on: ${{ matrix.platform.os }}
     container: ${{ matrix.platform.container }}
+    name: ${{ matrix.pkg }} ${{ matrix.platform.tinyname }}
     env:
       PKGX_PANTRY_PATH: ${{ github.workspace }}
     steps:
@@ -78,20 +71,16 @@ jobs:
       - uses: pkgxdev/brewkit/audit@v1
         with:
           pkg: ${{ steps.build.outputs.pkgspec }}
-        if: steps.build.outputs.pkgspec
 
       # prevent tests passing because the build directory is still there
+      # requires `sudo` because `go` makes unremovable files…
       - name: wipe builds directory
         run: |
-          test -d builds
-          # requires `sudo` because `go` makes unremovable files...
-          if command -v sudo; then
+          if command -v sudo >/dev/null; then
             SUDO=sudo
           fi
           $SUDO rm -rf builds
-        if: steps.build.outputs.pkgspec
 
       - uses: pkgxdev/brewkit/test@v1
         with:
           pkg: ${{ steps.build.outputs.pkgspec }}
-        if: steps.build.outputs.pkgspec
