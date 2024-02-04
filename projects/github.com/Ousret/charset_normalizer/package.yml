@@ -1,0 +1,21 @@
+distributable:
+  url: git+https://github.com/Ousret/charset_normalizer.git
+  ref: ${{version.tag}}
+
+versions:
+  github: Ousret/charset_normalizer
+
+dependencies:
+  python.org: '>=3.11'
+
+runtime:
+  env:
+    PYTHONPATH: ${{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages:$PYTHONPATH
+
+build:
+  - python -m pip install --prefix={{prefix}} .
+  - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
+    working-directory: ${{prefix}}/lib
+
+test:
+  - python -c 'import charset_normalizer; print(charset_normalizer.__version__)' | grep {{version}}
