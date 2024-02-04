@@ -17,5 +17,11 @@ build:
   - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
     working-directory: ${{prefix}}/lib
 
+provides:
+  - bin/normalizer
+
 test:
   - python -c 'import charset_normalizer; print(charset_normalizer.__version__)' | grep {{version}}
+  - normalizer --version | grep {{version}}
+  - echo "Hello, World!" > test.txt
+  - normalizer test.txt | grep 'English'
