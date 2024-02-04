@@ -1,0 +1,27 @@
+distributable:
+  url: git+https://github.com/XCTestHTMLReport/XCTestHTMLReport.git
+  ref: ${{version.tag}}
+
+versions:
+  github: XCTestHTMLReport/XCTestHTMLReport
+
+platforms:
+  - darwin
+
+build:
+  - swift build --disable-sandbox -c release
+  - install -D .build/release/xchtmlreport {{prefix}}/bin/xchtmlreport
+
+provides:
+  - bin/xchtmlreport
+
+test:
+  dependencies:
+    curl.se: '*'
+  script:
+    - xchtmlreport --version | grep {{version}}
+    - curl -L "${TESTDATA}" | tar -xz
+    - xchtmlreport SanityResults.xcresult
+    - cat index.html | grep "Xcode Testing HTML Report"
+  env:
+    TESTDATA: https://pub-0b56a3a43f5b4adc91c743afc384fe1a.r2.dev/SanityResults.xcresult.tar.gz
