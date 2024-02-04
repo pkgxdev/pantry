@@ -10,12 +10,14 @@ dependencies:
 
 runtime:
   env:
-    PYTHONPATH: ${{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages:$PYTHONPATH
+    PYTHONPATH: ${{prefix}}/venv/lib/python{{deps.python.org.version.major}}/site-packages:$PYTHONPATH
 
 build:
-  - python -m pip install --prefix={{prefix}} .
+  - bkpyvenv stage {{prefix}} {{version}}
+  - ${{prefix}}/venv/bin/pip install .
+  - bkpyvenv seal {{prefix}} normalizer
   - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
-    working-directory: ${{prefix}}/lib
+    working-directory: ${{prefix}}/venv/lib
 
 provides:
   - bin/normalizer
