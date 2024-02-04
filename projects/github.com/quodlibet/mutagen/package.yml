@@ -1,0 +1,21 @@
+distributable:
+  url: git+https://github.com/quodlibet/mutagen.git
+  ref: ${{version.tag}}
+
+versions:
+  github: quodlibet/mutagen
+  strip: /^release-/
+
+dependencies:
+  python.org: '>=3.11'
+
+runtime:
+  env:
+    PYTHONPATH: $PYTHONPATH:{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages
+
+build:
+  - python -m pip install --prefix={{prefix}} .
+  - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
+    working-directory: ${{prefix}}/lib
+
+test: python -c 'from mutagen.id3 import ID3, TIT2'
