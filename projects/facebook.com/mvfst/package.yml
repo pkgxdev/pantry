@@ -20,6 +20,11 @@ build:
       gnu.org/gcc: '*'
       gnu.org/make: '*'
   script:
+    # FIXME: seems unable to find XDP_USE_NEED_WAKEUP in the linux kernel headers...
+    # https://github.com/torvalds/linux/blob/54be6c6c5ae8e0d93a6c4641cb7528eb0b6ba478/include/uapi/linux/if_xdp.h#L27
+    - run: sed -i 's/XDP_USE_NEED_WAKEUP/0x8/' xsk_lib.cpp
+      working-directory: quic/xsk
+      if: '>=2024.1.29'
     - cmake -S . -B _build $CMAKE_ARGS
     - cmake --build _build
     - cmake --install _build
@@ -63,7 +68,7 @@ test:
           ((current_port++))
       done
     - ./echo --mode server --host 127.0.0.1 --port $current_port &
-    -  sleep 15
+    - sleep 15
     - ./echo --mode client --host 127.0.0.1 --port $current_port &
     - sleep 15
     - killall echo || true
