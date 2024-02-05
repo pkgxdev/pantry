@@ -14,28 +14,28 @@ dependencies:
 
 runtime:
   env:
-    GAUCHE_LOAD_PATH: ${{prefix}}/etc/GAUCHE_LOAD_PATH:{{prefix}}/etc/GAUCHE_LOAD_PATH/gauche:$GAUCHE_LOAD_PATH
-    GAUCHE_DYNLOAD_PATH: ${{prefix}}/etc/GAUCHE_DYNLOAD_PATH:$GAUCHE_DYNLOAD_PATH
+    GAUCHE_LOAD_PATH: ${{prefix}}/share/GAUCHE_LOAD_PATH:{{prefix}}/share/GAUCHE_LOAD_PATH/gauche:$GAUCHE_LOAD_PATH
+    GAUCHE_DYNLOAD_PATH: ${{prefix}}/lib/GAUCHE_DYNLOAD_PATH:$GAUCHE_DYNLOAD_PATH
 
 build:
   script:
     - ./configure $ARGS
     - make --jobs {{hw.concurrency}}
     - make --jobs {{hw.concurrency}} install
-    - run: sed -i 's|#!{{prefix}}/bin/gosh|#!/usr/bin/env gosh|g' gauche-cesconv gauche-install gauche-package
+    - run: fix-shebangs.ts gauche-cesconv gauche-install gauche-package
       working-directory: ${{prefix}}/bin
     
     # create symlink to share/gauche-0.98/0.9.14/lib
     - run: GAUCHE_DIR=$(ls -d */ | grep gauche)
       working-directory: ${{prefix}}/lib
-    - run: ln -s ../share/${GAUCHE_DIR}/{{version}}/lib GAUCHE_LOAD_PATH
-      working-directory: ${{prefix}}/etc
+    - run: ln -s ${GAUCHE_DIR}/{{version}}/lib GAUCHE_LOAD_PATH
+      working-directory: ${{prefix}}/share
 
     # create symlink to lib/gauche-0.98/0.9.14/aarch64-apple-darwin23.2.0
     - run: GAUCHE_PLATFORM_DIR=$(ls -d */ | grep -i $(uname -s))
       working-directory: ${{prefix}}/lib/${GAUCHE_DIR}/{{version}}
-    - run: ln -s ../lib/${GAUCHE_DIR}/{{version}}/${GAUCHE_PLATFORM_DIR} GAUCHE_DYNLOAD_PATH
-      working-directory: ${{prefix}}/etc
+    - run: ln -s ${GAUCHE_DIR}/{{version}}/${GAUCHE_PLATFORM_DIR} GAUCHE_DYNLOAD_PATH
+      working-directory: ${{prefix}}/lib
   env:
     ARGS:
       - --disable-debug
