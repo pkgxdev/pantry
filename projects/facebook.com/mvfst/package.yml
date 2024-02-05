@@ -78,7 +78,7 @@ test:
         target_link_libraries(echo ${mvfst_LIBRARIES} fizz::fizz_test_support GTest::gmock)
         target_include_directories(echo PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
-    - cmake .
+    - cmake . $ARGS
     - cmake --build .
 
     # Find a free port
@@ -93,3 +93,7 @@ test:
     - cat out.txt
     - grep 'EchoClient wrote "Hello, World!' out.txt
     - killall echo || true
+  env:
+    linux:
+      ARGS:
+        - -DCMAKE_CXX_FLAGS="-fPIC -Wl,-pie"
