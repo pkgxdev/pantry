@@ -57,6 +57,7 @@ test:
       gnu.org/gcc: '*'
       gnu.org/make: '*'
       curl.se: '*'
+      darwinsys.com/file: '*'
   script:
     # The best test we know is to build the echo client/server sample from the source.
     - PADDED_VERSION=$(echo "{{version}}" | gawk -F. '{printf "%04d.%02d.%02d.%02d\n", $1, $2, $3, $4}')
@@ -85,6 +86,10 @@ test:
 
     - cmake . $ARGS
     - cmake --build .
+
+    # test
+    - run: file {{prefix}}/lib/* echo
+      if: linux
 
     # Find a free port
     - PORT=$(pkgx get-port)
