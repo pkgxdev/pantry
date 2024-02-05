@@ -22,8 +22,11 @@ build:
   script:
     # FIXME: seems unable to find XDP_USE_NEED_WAKEUP in the linux kernel headers...
     # https://github.com/torvalds/linux/blob/54be6c6c5ae8e0d93a6c4641cb7528eb0b6ba478/include/uapi/linux/if_xdp.h#L27
-    - run: sed -i 's/XDP_USE_NEED_WAKEUP/0x8/' xsk_lib.cpp
-      working-directory: quic/xsk
+    # revert that commit, and the one that depends on it
+    - run: |
+        curl https://github.com/facebook/mvfst/commit/3eb7c16af64af5356fd0eec77449fe0e2cf2fd8a.patch | patch -Rp1
+        curl https://github.com/facebook/mvfst/commit/ea57a18ce6758afe7cc556cbb74f669fbc913915.patch | patch -Rp1
+        curl https://github.com/facebook/mvfst/commit/c6032bb3bdd8b892fb80c05f2854b090cfa91de5.patch | patch -Rp1
       if: '>=2024.1.29'
     - cmake -S . -B _build $CMAKE_ARGS
     - cmake --build _build
