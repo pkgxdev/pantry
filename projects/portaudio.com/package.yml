@@ -19,10 +19,11 @@ platforms:
 build:
   dependencies:
     freedesktop.org/pkg-config: '*'
-  script: |
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }} install
-    cp install/pa_mac_core.h {{prefix}}/install/pa_mac_core.h
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+    # should this be /include instead of /install?
+    - install -D install/pa_mac_core.h {{prefix}}/install/pa_mac_core.h
   env:
     ARGS:
       - --prefix="{{prefix}}"
@@ -30,6 +31,6 @@ build:
       - --enable-cxx
 
 test:
-  script: |
-    cc test.c -lportaudio
-    test "$(./a.out --version)" = "PortAudio V{{version}}-devel, revision unknown"
+  script:
+    - cc test.c -lportaudio
+    - test "$(./a.out --version)" = "PortAudio V{{version}}-devel, revision unknown"
