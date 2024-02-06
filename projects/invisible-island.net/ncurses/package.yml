@@ -48,6 +48,16 @@ build:
     sed -i.bak 's|{{prefix}}|\$(dirname "\$0")/..|g' {{prefix}}/bin/ncursesw{{version.major}}-config
     rm {{prefix}}/bin/ncursesw{{version.major}}-config.bak
 
+  # libtermcap and libtinfo are provided by ncurses and have the
+  # same api. Help some older packages to find these dependencies.
+  # https://bugs.centos.org/view.php?id=11423
+  # https://bugs.launchpad.net/ubuntu/+source/ncurses/+bug/259139
+  - run: |
+      ln -s libncurses.so libtermcap.so
+      ln -s libncursesw.so libtinfow.so
+    working-directory: ${{prefix}}/lib
+    if: linux
+
   env:
     PCDIR: ${{prefix}}/lib/pkgconfig
     ARGS:
