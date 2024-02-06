@@ -7,20 +7,25 @@ versions:
   github: squidfunk/mkdocs-material
 
 dependencies:
-  python.org: ">=3<3.12"
+  pkgx.sh: ^1
 
 build:
-  script: |
-    echo mkdocs-mermaid2-plugin >> requirements.txt
-    echo mkdocs-plugin-progress >> requirements.txt
-    echo mkdocs-include-markdown-plugin >> requirements.txt
-    python-venv.sh {{prefix}}/bin/mkdocs
+  dependencies:
+    python.org: ">=3<3.12"
+  script:
+    - run: cat $PROP >> requirements.txt
+      prop: |
+        mkdocs-mermaid2-plugin
+        mkdocs-plugin-progress
+        mkdocs-include-markdown-plugin
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} mkdocs
 
 provides:
-- bin/mkdocs
+  - bin/mkdocs
 
 test:
-  script: |
-    mkdir docs
-    mv index.md docs/
-    mkdocs -v build
+  - mkdir docs
+  - mv index.md docs/
+  - mkdocs -v build
