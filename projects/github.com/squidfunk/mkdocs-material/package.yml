@@ -13,6 +13,8 @@ dependencies:
 build:
   dependencies:
     python.org: ">=3<3.12"
+    linux/aarch64:
+      gnu.org/gcc: '*' # otherwise, building the python sass module complains about -std=gnu++0x use with C
   script:
     - run: cat $PROP >> requirements.txt
       prop: |
@@ -25,8 +27,6 @@ build:
     - bkpyvenv stage {{prefix}} {{version}}
     - ${{prefix}}/venv/bin/pip install .
     - bkpyvenv seal {{prefix}} mkdocs
-  env:
-    CC: clang
 
 provides:
   - bin/mkdocs
