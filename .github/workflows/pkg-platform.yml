@@ -125,6 +125,7 @@ jobs:
         compression: [xz, gz]
     runs-on: ubuntu-latest
     env:
+      AWS: ${{ inputs.dry-run && 'echo' || 'aws' }}
       PREFIX: ${{ needs.build.outputs.project }}/${{ needs.build.outputs.platform }}/${{ needs.build.outputs.arch }}/v${{ needs.build.outputs.version }}.tar.${{ matrix.compression }}
     steps:
       - uses: pkgxdev/setup@v2
@@ -170,22 +171,35 @@ jobs:
 
       - name: s3 put
         run: |
-          aws s3 cp ${{ steps.bottle.outputs.filename }}           $URL
-          aws s3 cp ${{ steps.bottle.outputs.filename }}.asc       $URL.asc
-          aws s3 cp ${{ steps.bottle.outputs.filename }}.sha256sum $URL.sha256sum
+          $AWS s3 cp ${{ steps.bottle.outputs.filename }}           $URL
+          $AWS s3 cp ${{ steps.bottle.outputs.filename }}.asc       $URL.asc
+          $AWS s3 cp ${{ steps.bottle.outputs.filename }}.sha256sum $URL.sha256sum
 
           echo "cf-paths=/$PREFIX /$PREFIX.asc /$PREFIX.sha256sum" >> $GITHUB_OUTPUT
         env:
           URL: s3://${{ secrets.AWS_S3_BUCKET }}/${{ env.PREFIX }}
         id: put
-        if: inputs.dry-run != true
+
+      - name: s3 put file listing
+        if: ${{ matrix.compression == 'gz' }}
+        id: files
+        run: |
+          PREFIX=$(dirname $PREFIX)
+          tar tf ${{ steps.bottle.outputs.filename }} \
+            | grep -v '/$' \
+            | grep -v '^venv/' \
+            > $FILENAME
+          $AWS s3 cp $FILENAME s3://${{ secrets.AWS_S3_BUCKET }}/$PREFIX/$FILENAME
+          echo "cf-paths=/$PREFIX/$FILENAME" >> $GITHUB_OUTPUT
+        env:
+          FILENAME: v${{ needs.build.outputs.version }}.files.txt
 
       - name: invalidate cloudfront
-        run: aws cloudfront create-invalidation
+        run: $AWS cloudfront create-invalidation
           --distribution-id ${{ secrets.AWS_CF_DISTRIBUTION_ID }}
           --paths
-          ${{ steps.put.outputs.cf-paths }}
-        if: inputs.invalidate-cloudfront && !inputs.dry-run
+          ${{ steps.put.outputs.cf-paths }} ${{ steps.files.outputs.cf-paths }}
+        if: inputs.invalidate-cloudfront
 
   publish:
     name: publish ${{inputs.tinyname}} ${{ inputs.dry-run && '(dry-run)' }}
@@ -193,6 +207,7 @@ jobs:
     needs: [bottle, build]
     permissions: {}
     env:
+      AWS: ${{ inputs.dry-run && 'echo' || 'aws' }}
       DIRNAME: ${{ needs.build.outputs.project }}/${{ needs.build.outputs.platform }}/${{ needs.build.outputs.arch }}
     steps:
       - uses: aws-actions/configure-aws-credentials@v4
@@ -221,15 +236,14 @@ jobs:
             await Deno.stdout.write(new TextEncoder().encode(out.trim()))
 
       - name: s3 put
-        run: aws s3 cp versions.txt s3://${{ secrets.AWS_S3_BUCKET }}/$DIRNAME/versions.txt
-        if: inputs.dry-run != true
+        run: $AWS s3 cp versions.txt s3://${{ secrets.AWS_S3_BUCKET }}/$DIRNAME/versions.txt
 
       - name: invalidate cloudfront
-        run: aws cloudfront create-invalidation
+        run: $AWS cloudfront create-invalidation
           --distribution-id ${{ secrets.AWS_CF_DISTRIBUTION_ID }}
           --paths
           /$DIRNAME/versions.txt
-        if: inputs.invalidate-cloudfront && !inputs.dry-run
+        if: inputs.invalidate-cloudfront
 
   complain:
     needs: bottle

@@ -10,15 +10,13 @@ build:
   dependencies:
     gnu.org/autoconf: '*'
     gnu.org/libtool: '*'
-  script: |
-    ./configure $ARGS
-    make install
+    linux:
+      systemd.io: '*' # libudev
+  script:
+    - ./configure $ARGS
+    - make install
   env:
     ARGS:
       - --prefix="{{prefix}}"
 
-test:
-  dependencies:
-    freedesktop.org/pkg-config: '*'
-  script:
-    pkg-config --modversion libusb-1.0 | grep {{ version }}
+test: pkg-config --modversion libusb-1.0 | grep {{ version }}

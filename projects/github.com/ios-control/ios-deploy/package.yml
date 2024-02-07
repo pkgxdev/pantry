@@ -1,0 +1,19 @@
+distributable:
+  url: git+https://github.com/ios-control/ios-deploy.git
+  ref: ${{version.tag}}
+
+versions:
+  github: ios-control/ios-deploy
+
+platforms:
+  - darwin
+
+build:
+  - xcodebuild -configuration Release SYMROOT=build -arch $(uname -m)
+  - xcodebuild test -scheme ios-deploy-tests -configuration Release SYMROOT=build -arch $(uname -m)
+  - install -D build/Release/ios-deploy {{prefix}}/bin/ios-deploy
+
+provides:
+  - bin/ios-deploy
+
+test: ios-deploy -V | grep {{version}}
