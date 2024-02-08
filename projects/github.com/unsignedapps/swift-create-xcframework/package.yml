@@ -13,9 +13,8 @@ provides:
   - bin/swift-create-xcframework
 
 build:
-  script: |
-    swift build --configuration release
-    mkdir -p {{prefix}}/bin
-    mv $(swift build --configuration release --show-bin-path)/swift-create-xcframework {{prefix}}/bin
+  script:
+    - swift build --configuration release
+    - install -D $(swift build --configuration release --show-bin-path)/swift-create-xcframework {{prefix}}/bin/swift-create-xcframework
 
 test: swift create-xcframework --version | grep {{version}}
