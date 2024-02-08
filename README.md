@@ -14,6 +14,8 @@ $ cd pantry
 $ dev  # https://docs.pkgx.sh/dev
 # ^^ adds brewkit (ie. the `bk` command) to your devenv
 # ^^ IMPORTANT! Otherwise the `bk` command will not be found
+# ^^ Alternatively, you can use pkgx and prefix your commands with the ENV
+# ^^ PKGX_PANTRY_PATH=$(pwd) pkgx bk [command]
 
 $ bk init
 # ^^ creates a “wip” package.yml
