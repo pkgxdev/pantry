@@ -37,7 +37,10 @@ build:
   script:
     # otherwise we are not ABI compatible and new macOS versions may break
     # this happened with Sonoma
-    - echo "default = ['curl/force-system-lib-on-osx']" >> Cargo.toml
+    - |
+      sed -i "/^\[features\]\$/a\
+      default = ['curl/force-system-lib-on-osx']" \
+      Cargo.toml
     - cargo install
       --verbose
       --root={{ prefix }}
