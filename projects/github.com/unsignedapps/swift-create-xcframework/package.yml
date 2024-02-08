@@ -1,0 +1,20 @@
+distributable:
+  url: https://github.com/unsignedapps/swift-create-xcframework/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: unsignedapps/swift-create-xcframework
+  strip: /^v/
+
+platforms:
+  - darwin
+
+provides:
+  - bin/swift-create-xcframework
+
+build:
+  script:
+    - swift build --configuration release
+    - install -D $(swift build --configuration release --show-bin-path)/swift-create-xcframework {{prefix}}/bin/swift-create-xcframework
+
+test: swift create-xcframework --version | grep {{version}}

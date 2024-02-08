@@ -1,8 +1,3 @@
-distributable:
-  # We are downloading a .tar.gz archive from GitHub because we are unable to download a .phar archive.
-  url: https://github.com/composer/composer/archive/{{version}}.tar.gz
-  strip-components: 1
-
 versions:
   github: composer/composer
 
@@ -12,14 +7,16 @@ dependencies:
 build:
   dependencies:
     curl.se: '*'
-  script: |
-    curl -sS https://getcomposer.org/installer | php
-    mkdir -p {{prefix}}/bin
-    mv ./composer.phar {{prefix}}/bin
-    test ! -e {{prefix}}/bin/composer && ln -s ./composer.phar {{prefix}}/bin/composer
+  script:
+    - curl -sSLO https://github.com/composer/composer/releases/download/{{version}}/composer.phar
+    - install -D composer.phar {{prefix}}/bin/composer.phar
+    - run: ln -sf composer.phar composer
+      working-directory: ${{prefix}}/bin
 
 provides:
   - bin/composer
   - bin/composer.phar
 
-test: composer -V | grep {{version}}
+test:
+  - composer -V
+  - composer -V | grep {{version}}

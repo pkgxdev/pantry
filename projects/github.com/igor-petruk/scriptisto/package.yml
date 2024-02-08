@@ -1,0 +1,44 @@
+distributable:
+  url: https://github.com/igor-petruk/scriptisto/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+display-name: Scriptisto
+
+versions:
+  github: igor-petruk/scriptisto
+
+build:
+  dependencies:
+    rust-lang.org: ^1.75
+    rust-lang.org/cargo: ^0.76
+  script:
+    cargo install --path . --root {{prefix}}
+    # ^^ --locked doesn’t work currently
+
+provides:
+  - bin/scriptisto
+
+test:
+  dependencies:
+    linux:
+      llvm.org: '*'
+    gnome.org/glib: ^2.79
+  script:
+    - run: |
+        scriptisto $FIXTURE | grep 'Current user: '
+      fixture: |
+        #!/usr/bin/env scriptisto
+
+        #include <stdio.h>
+        #include <glib.h>
+
+        // scriptisto-begin
+        // script_src: main.c
+        // build_cmd: clang -O2 main.c `pkg-config --libs --cflags glib-2.0` -o ./script
+        // scriptisto-end
+
+        int main(int argc, char *argv[]) {
+          gchar* user = g_getenv("USER");
+          printf("Hello, C! Current user: %s\n", user);
+          return 0;
+        }
