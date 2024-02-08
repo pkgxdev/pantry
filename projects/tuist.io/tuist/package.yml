@@ -1,0 +1,27 @@
+distributable:
+  url: https://github.com/tuist/tuist/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: tuist/tuist
+
+platforms:
+  - darwin
+
+provides:
+  - bin/tuist
+
+build:
+  dependencies:
+    github.com/unsignedapps/swift-create-xcframework: "*"
+  script: |
+    swift build -c release --product tuist
+    swift create-xcframework ProjectDescription
+    swift create-xcframework ProjectAutomation
+    mkdir -p {{prefix}}/bin
+    mv $(swift build --configuration release --show-bin-path)/tuist {{prefix}}/bin
+    mv $(swift build --configuration release --show-bin-path)/ProjectDescription.xcframework {{prefix}}/bin
+    mv $(swift build --configuration release --show-bin-path)/ProjectAutomation.xcframework {{prefix}}/bin
+    cp -R Templates {{prefix}}/bin
+
+test: tuist version | grep {{version}}
