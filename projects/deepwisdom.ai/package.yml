@@ -26,6 +26,17 @@ test:
   env:
     OPENAI_API_KEY: metaGptTestKey
     OPENAI_API_MODEL: gpt-4-1106-preview
+  dependencies:
+    gnu.org/coreutils: '*'
   script:
+    # starting with 0.7.0, it uses a config file instead of env vars
+    - run: install -D $FIXTURE ~/.metagpt/config2.yaml
+      fixture: |
+        llm:
+          api_key: "metaGptTestKey"
+          model: "gpt-4-1106-preview"  # or gpt-3.5-turbo-1106 / gpt-4-1106-preview
+      if: '>=0.7.0'
+
     # for more tests we need to set valid OPENAI_API_KEY with gpt-4 access
-    - metagpt --help | grep 'Run a startup. Be a boss.'
+    # the tag line got less cool after 0.6.0...
+    - metagpt --help | grep -E '(Run a startup. Be a boss.|Start a new project.)'
