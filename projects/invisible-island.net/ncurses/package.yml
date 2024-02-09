@@ -6,58 +6,61 @@ versions:
   github: mirror/ncurses/tags
   strip: /v/
 
-
 build:
   dependencies:
     freedesktop.org/pkg-config: ^0.29
   script:
+    #FIXME because our build infra is recursive
+    - |
+      if [ -d {{prefix}}/include ]; then
+        rm -rf {{prefix}}/include
+      fi
 
-  #FIXME because our build infra is recursive
-  - |
-    if [ -d {{prefix}}/include ]; then
-      rm -rf {{prefix}}/include
-    fi
+    - |
+      mkdir -p $PCDIR
+      ./configure $ARGS
+      make --jobs {{ hw.concurrency }} install
 
-  - |
-    mkdir -p $PCDIR
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }} install
-
-  # fix up symlinks
-  - run: |
-      for lib in form menu ncurses panel curses++; do
-        for ii in $(find . -name lib${lib}w\*); do
-          # hopefully no new w's will be introduced
-          ln -sf $ii $(echo $ii | tr -d w)
+    # fix up symlinks
+    - run: |
+        for lib in form menu ncurses panel curses++; do
+          for ii in $(find . -name lib${lib}w\*); do
+            # hopefully no new w's will be introduced
+            ln -sf $ii $(echo $ii | tr -d w)
+          done
         done
-      done
-    working-directory: ${{prefix}}/lib
+      working-directory: ${{prefix}}/lib
 
-  # things often expect either no namespace or namespace
-  - run: |
-      mv ncursesw/* .
-      rmdir ncursesw
-      ln -sf . ncursesw
-    working-directory: ${{prefix}}/include
+    # things often expect either no namespace or namespace
+    - run: |
+        mv ncursesw/* .
+        rmdir ncursesw
+        ln -sf . ncursesw
+      working-directory: ${{prefix}}/include
 
-  # fix hardcoded paths
-  - |
-    sed -i.bak 's|{{prefix}}|\${pcfiledir}/../..|g' {{prefix}}/lib/pkgconfig/*.pc
-    rm {{prefix}}/lib/pkgconfig/*.bak
+    # fix hardcoded paths
+    - |
+      sed -i.bak 's|{{prefix}}|\${pcfiledir}/../..|g' {{prefix}}/lib/pkgconfig/*.pc
+      rm {{prefix}}/lib/pkgconfig/*.bak
 
-    sed -i.bak 's|{{prefix}}|\$(dirname "\$0")/..|g' {{prefix}}/bin/ncursesw{{version.major}}-config
-    rm {{prefix}}/bin/ncursesw{{version.major}}-config.bak
+      sed -i.bak 's|{{prefix}}|\$(dirname "\$0")/..|g' {{prefix}}/bin/ncursesw{{version.major}}-config
+      rm {{prefix}}/bin/ncursesw{{version.major}}-config.bak
 
-  # libtermcap and libtinfo are provided by ncurses and have the
-  # same api. Help some older packages to find these dependencies.
-  # https://bugs.centos.org/view.php?id=11423
-  # https://bugs.launchpad.net/ubuntu/+source/ncurses/+bug/259139
-  - run: |
-      ln -s libncurses.so libtermcap.so
-      ln -s libncursesw.so libtinfow.so
-      ln -s libncurses.so libtinfo.so
-    working-directory: ${{prefix}}/lib
-    if: linux
+    # libtermcap and libtinfo are provided by ncurses and have the
+    # same api. Help some older packages to find these dependencies.
+    # https://bugs.centos.org/view.php?id=11423
+    # https://bugs.launchpad.net/ubuntu/+source/ncurses/+bug/259139
+    - run: |
+        ln -s libncurses.so libtermcap.so
+        ln -s libncursesw.so libtinfow.so
+        ln -s libncurses.so libtinfo.so
+        # ghc needs to find libtinfo.so.5, which is built from v6 on ubuntu 18.04...
+        ln -s libncurses.so libtinfo.so.5
+        ln -s libncurses.so libtinfo.so.{{version.major}}
+        ln -s libncursesw.so libtinfow.so.5
+        ln -s libncursesw.so libtinfow.so.{{version.major}}
+      working-directory: ${{prefix}}/lib
+      if: linux
 
   env:
     PCDIR: ${{prefix}}/lib/pkgconfig
@@ -82,14 +85,14 @@ test:
     github.com/tmux/tmux: ^3
     freedesktop.org/pkg-config: ^0.29
   script:
-  - |
-    ncursesw6-config --version | grep {{version.marketing}}
-    ncursesw6-config --terminfo-dirs | grep '{{prefix}}'
-    pkg-config --modversion ncursesw | grep {{version.marketing}}
-    pkg-config --libs ncursesw | grep '{{prefix}}'
+    - |
+      ncursesw6-config --version | grep {{version.marketing}}
+      ncursesw6-config --terminfo-dirs | grep '{{prefix}}'
+      pkg-config --modversion ncursesw | grep {{version.marketing}}
+      pkg-config --libs ncursesw | grep '{{prefix}}'
 
-  # https://github.com/pkgxdev/pantry/issues/1658
-  - tmux -c ls
+    # https://github.com/pkgxdev/pantry/issues/1658
+    - tmux -c ls
 
 provides:
   - bin/captoinfo
