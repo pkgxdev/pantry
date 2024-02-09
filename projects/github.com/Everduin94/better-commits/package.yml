@@ -1,0 +1,31 @@
+distributable:
+  url: https://registry.npmjs.org/better-commits/-/better-commits-{{version}}.tgz
+  strip-components: 1
+
+versions:
+  npm: better-commits
+
+dependencies:
+  nodejs.org: ^20
+
+build:
+  dependencies:
+    npmjs.com: ^10
+  script:
+    - npm i $ARGS .
+    - run: ln -s ../libexec/bin/better-commits better-commits
+      working-directory: '{{prefix}}/bin'
+  env:
+    ARGS:
+      - -ddd
+      - --global
+      - --build-from-source
+      - --prefix={{prefix}}/libexec
+      - --install-links
+      - --unsafe-perm
+
+provides:
+  - bin/better-commits
+
+test:
+  - better-commits --version
