@@ -13,7 +13,12 @@ build:
     npmjs.com: ^10
   script:
     - npm i $ARGS .
-    - run: ln -s ../libexec/bin/better-commits better-commits
+    - run: |
+        ln -s ../libexec/bin/bcommits bcommits
+        ln -s ../libexec/bin/better-branch better-branch
+        ln -s ../libexec/bin/better-commits better-commits
+        ln -s ../libexec/bin/better-commits-init better-commits-init
+        ln -s ../libexec/bin/git-bc git-bc
       working-directory: '{{prefix}}/bin'
   env:
     ARGS:
@@ -25,7 +30,13 @@ build:
       - --unsafe-perm
 
 provides:
+  - bin/bcommits
+  - bin/better-branch
   - bin/better-commits
+  - bin/better-commits-init
+  - bin/git-bc
 
 test:
-  - better-commits --version
+  - git init
+  - better-commits-init
+  - cat .better-commits.json | grep 'A code change that neither fixes a bug nor adds a feature'
