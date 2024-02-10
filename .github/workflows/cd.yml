@@ -48,8 +48,10 @@ jobs:
           aws-region: us-east-1
 
       - uses: actions/checkout@v4
-      - run: find . -type f -not -name package.yml -delete -o -type l -delete
-      - run: tar -czf pantry.tgz .
+        with:
+          path: co
+      - run: find co -type f -not -name package.yml -delete -o -type l -delete
+      - run: tar -C co -czf pantry.tgz .
       - run: aws s3 cp
           ./pantry.tgz
           s3://${{ secrets.AWS_S3_BUCKET }}/pantry.tgz
