@@ -37,14 +37,14 @@ build:
   script:
     # otherwise we are not ABI compatible and new macOS versions may break
     # this happened with Sonoma
-    - |
-      sed -i "/^\[features\]\$/a\
-      default = ['curl/force-system-lib-on-osx']" \
-      Cargo.toml
-    - cargo install
-      --verbose
-      --root={{ prefix }}
-      --path=.
+    # this instead seems to break cargo on sonoma
+    # after 0.75
+    - run: |
+        sed -i "/^\[features\]\$/a\
+        default = ['curl/force-system-lib-on-osx']" \
+        Cargo.toml
+      if: <0.76.0
+    - cargo install --root={{ prefix }} --path=.
   env:
     LIBGIT2_SYS_USE_PKG_CONFIG: 1
     LIBSSH2_SYS_USE_PKG_CONFIG: 1
