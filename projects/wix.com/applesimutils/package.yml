@@ -1,0 +1,32 @@
+distributable:
+  url: git+https://github.com/wix/AppleSimulatorUtils
+  ref: ${{version.tag}}
+
+platforms:
+  - darwin
+
+versions:
+  github: wix/AppleSimulatorUtils
+
+build:
+  script:
+    # Are you sure you want to continue connecting (yes/no)?
+    - sed -i 's|git@github.com:|https://github.com/|g' .gitmodules
+    - git submodule update --init --recursive
+    - xcodebuild clean build $ARGS
+    - install -D build/Build/Products/Release/applesimutils {{prefix}}/bin/applesimutils
+  env:
+    CODE_SIGNING_REQUIRED: NO
+    ARGS:
+      - -project applesimutils/applesimutils.xcodeproj
+      - -scheme applesimutils
+      - -configuration Release
+      - -derivedDataPath ./build
+      - BUILD_DIR=../build/Build/Products
+
+provides:
+  - bin/applesimutils
+
+test:
+  - applesimutils --version | grep {{version}}
+  - applesimutils --help
