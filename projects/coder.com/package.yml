@@ -1,0 +1,34 @@
+distributable:
+  url: git+https://github.com/coder/coder.git
+  ref: ${{version.tag}}
+
+versions:
+  github: coder/coder
+
+build:
+  dependencies:
+    # doesn't work with 1.22 yet:
+    # https://github.com/coder/coder/issues/11342
+    go.dev: ~1.21
+  script: go build $ARGS -ldflags="$LD_FLAGS" ./cmd/coder
+  env:
+    ARGS:
+      - -trimpath
+      - -o={{prefix}}/bin/coder
+      - -tags slim
+    LD_FLAGS:
+      - -s
+      - -w
+      - -X github.com/coder/coder/v2/buildinfo.tag={{version}}
+      - -X github.com/coder/coder/v2/buildinfo.agpl=true
+    linux:
+      LD_FLAGS:
+        - -buildmode=pie
+
+provides:
+  - bin/coder
+
+test:
+  - coder version | grep {{version}}
+  - coder netcheck 2>out.log || true
+  - cat out.log | grep 'You are not logged in'

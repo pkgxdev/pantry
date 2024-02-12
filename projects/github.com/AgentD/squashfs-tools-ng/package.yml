@@ -1,12 +1,15 @@
 distributable:
-  url: https://codeload.github.com/AgentD/squashfs-tools-ng/tar.gz/refs/tags/v{{version}}
+  url: https://infraroot.at/pub/squashfs/squashfs-tools-ng-{{version}}.tar.xz
   strip-components: 1
 
 display-name: squashfs-tools-ng
 
 versions:
-  github: AgentD/squashfs-tools-ng/tags
-  strip: /^v/
+  url: https://infraroot.at/pub/squashfs/
+  match: /squashfs-tools-ng-\d+\.\d+(\.\d+)?\.tar\.gz/
+  strip:
+    - /^squashfs-tools-ng-/
+    - /.tar.gz$/
 
 dependencies:
   zlib.net: ^1
@@ -17,25 +20,14 @@ dependencies:
 
 build:
   dependencies:
-    freedesktop.org/pkg-config: '*'
     gnu.org/coreutils: '*'
     gnu.org/libtool: '*'
-    gnu.org/automake: '*'
-    gnu.org/autoconf: '*'
     gnu.org/gawk: '*'
     gnu.org/gcc: '*'
     cmake.org: ^3
   script:
-    - autoreconf --force --install --symlink
-    - ./configure $ARGS
-    - make --jobs {{ hw.concurrency }} install
-  env:
-    ARGS:
-      - --prefix="{{prefix}}"
-    darwin:
-      # FIXME: binutils ar/ranlib are broken on macOS?
-      AR: /usr/bin/ar
-      RANLIB: /usr/bin/ranlib
+    - ./configure --prefix="{{prefix}}"
+    - make --jobs {{ hw.concurrency }} install V=1
 
 provides:
   - bin/gensquashfs

@@ -9,10 +9,9 @@ versions:
 build:
   dependencies:
     go.dev: ^1.19
-  script: |
-    mkdir -p "{{ prefix }}"/bin
-    go build -ldflags="$LDFLAGS" ./cmd/elvish
-    mv elvish "{{ prefix }}"/bin
+    linux/aarch64:
+      gnu.org/gcc: '*' # wants `gcc` and `ld.gold`
+  script: go build -ldflags="$LDFLAGS" -o "{{ prefix }}/bin/elvish" ./cmd/elvish
   env:
     LDFLAGS:
       - -s
@@ -23,10 +22,9 @@ build:
       LDFLAGS:
         - -buildmode=pie
 
-
 provides:
   - bin/elvish
 
-test: |
-  test "$(elvish --version)" = "{{version}}"
-  test "$(elvish -c 'echo hello')" = "hello"
+test:
+  - test "$(elvish --version)" = "{{version}}"
+  - test "$(elvish -c 'echo hello')" = "hello"
