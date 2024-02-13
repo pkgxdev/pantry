@@ -1,0 +1,23 @@
+distributable:
+  url: git+https://github.com/pyparsing/pyparsing.git
+  ref: ${{version.tag}}
+
+versions:
+  github: pyparsing/pyparsing
+
+dependencies:
+  python.org: '>=3.11'
+
+runtime:
+  env:
+    PYTHONPATH: ${{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages:$PYTHONPATH
+
+build:
+  dependencies:
+    flit.pypa.io: '*'
+  script:
+    - python -m pip install --prefix={{prefix}} .
+    - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
+      working-directory: ${{prefix}}/lib
+
+test: python -c 'import pyparsing; print(pyparsing.__version__)' | grep {{version}}
