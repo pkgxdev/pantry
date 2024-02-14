@@ -1,0 +1,41 @@
+distributable:
+  url: https://deb.debian.org/debian/pool/main/v/vamp-plugin-sdk/vamp-plugin-sdk_{{version}}.orig.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://ftp.debian.org/debian/pool/main/v/vamp-plugin-sdk/
+  match: /vamp-plugin-sdk_\d+\.\d+\.\d+\.orig\.tar\.gz/
+  strip:
+    - /^vamp-plugin-sdk_/
+    - /\.orig\.tar\.gz$/
+
+dependencies:
+  xiph.org/flac: ^1.4
+  xiph.org/ogg: ^1.3
+  github.com/libsndfile/libsndfile: ^1.2
+
+build:
+  dependencies:
+    gnu.org/automake: '*'
+  script:
+    - ./configure $ARGS
+    - make --jobs {{hw.concurrency}}
+    - make --jobs {{hw.concurrency}} install
+  env:
+    ARGS:
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --prefix={{prefix}}
+      - --libdir={{prefix}}/lib
+
+provides:
+  - bin/vamp-simple-host
+  - bin/vamp-rdf-template-generator
+
+test:
+  script:
+    - vamp-simple-host -v | grep {{version.marketing}}
+    - cp {{prefix}}/lib/vamp/vamp-example-plugins.so vamp-example-plugins.dylib
+    - vamp-simple-host -l | grep 'Amplitude Follower'
+  env:
+    VAMP_PATH: $PWD
