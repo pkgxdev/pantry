@@ -1,0 +1,27 @@
+distributable:
+  url: git+https://github.com/rbenv/ruby-build.git
+  ref: ${{version.tag}}
+
+versions:
+  github: rbenv/ruby-build
+
+dependencies:
+  gnu.org/autoconf: ^2.72
+  pyyaml.org/libyaml: ^0.2
+  freedesktop.org/pkg-config: ^0.29
+  gnu.org/readline: ^8.2
+  openssl.org: '>=1.1'
+
+build:
+  - make install PREFIX={{prefix}}
+
+provides:
+  - bin/ruby-build
+
+test:
+  script:
+    - ruby-build --version | grep {{version.raw}}
+    - ruby-build 2.7.8 $PWD/ruby-2.7.8
+    - ruby --version | grep '2.7.8'
+  env:
+    PATH: $PWD/ruby-2.7.8/bin:$PATH
