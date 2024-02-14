@@ -35,7 +35,11 @@ provides:
 test:
   script:
     - vamp-simple-host -v | grep {{version.marketing}}
-    - cp {{prefix}}/lib/vamp/vamp-example-plugins.so vamp-example-plugins.dylib
+    - cp {{prefix}}/lib/vamp/vamp-example-plugins.so $OUT
     - vamp-simple-host -l | grep 'Amplitude Follower'
   env:
     VAMP_PATH: $PWD
+    darwin:
+      OUT: vamp-example-plugins.dylib
+    linux:
+      OUT: vamp-example-plugins.so
