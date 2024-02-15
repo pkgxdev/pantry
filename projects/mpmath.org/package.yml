@@ -14,11 +14,7 @@ dependencies:
 
 runtime:
   env:
-    PYTHONPATH: ${{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages:$PYTHONPATH
+    PYTHONPATH: ${{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH
 
-build:
-  - python -m pip install --prefix={{prefix}} .
-  - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
-    working-directory: ${{prefix}}/lib
-
+build: python -m pip install --prefix={{prefix}} .
 test: python -c 'import mpmath; print(mpmath.__version__)' | grep {{version}}
