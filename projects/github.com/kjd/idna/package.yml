@@ -6,18 +6,15 @@ versions:
   github: kjd/idna/tags
 
 dependencies:
-  python.org: '>=3.11'
+  python.org: ~3.11
 
 runtime:
   env:
-    PYTHONPATH: ${{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages:$PYTHONPATH
+    PYTHONPATH: ${{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH
 
 build:
   dependencies:
     flit.pypa.io: '*'
-  script:
-    - python -m pip install --prefix={{prefix}} .
-    - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
-      working-directory: ${{prefix}}/lib
+  script: python -m pip install --prefix={{prefix}} .
 
 test: python -c 'import idna; print(idna.__version__)' | grep {{version.marketing}}
