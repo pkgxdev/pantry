@@ -8,11 +8,11 @@ versions:
     - /<\/title>$/
 
 dependencies:
-  python.org: '>=3.11'
+  python.org: ~3.11
 
 runtime:
   env:
-    PYTHONPATH: ${{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages:$PYTHONPATH
+    PYTHONPATH: ${{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH
 
 build:
   dependencies:
@@ -22,10 +22,9 @@ build:
     - cat page.html | grep -o 'https://files.pythonhosted.org/packages/[^"]*certifi-{{version.raw}}.tar.gz' > url.txt
     - curl -L $(cat url.txt) | tar -xz --strip-components=1
     - python -m pip install --prefix={{prefix}} .
-    - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
-      working-directory: ${{prefix}}/lib
 
 test: 
   - python -c 'import certifi;'
   - python -m certifi | grep '{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages/certifi/cacert.pem'
   - python -m certifi -h | grep 'usage'
+  
