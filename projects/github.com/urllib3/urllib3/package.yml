@@ -1,0 +1,16 @@
+distributable:
+  url: git+https://github.com/urllib3/urllib3.git
+  ref: ${{version.tag}}
+
+versions:
+  github: urllib3/urllib3
+
+dependencies:
+  python.org: ~3.11
+
+runtime:
+  env:
+    PYTHONPATH: ${{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH
+
+build: python -m pip install --prefix={{prefix}} .
+test: python -c 'import urllib3; print(urllib3.__version__)' | grep {{version}}
