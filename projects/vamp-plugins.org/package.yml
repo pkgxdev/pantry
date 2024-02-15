@@ -1,13 +1,11 @@
-distributable:
-  url: https://deb.debian.org/debian/pool/main/v/vamp-plugin-sdk/vamp-plugin-sdk_{{version}}.orig.tar.gz
-  strip-components: 1
+distributable: ~
 
 versions:
-  url: https://ftp.debian.org/debian/pool/main/v/vamp-plugin-sdk/
-  match: /vamp-plugin-sdk_\d+\.\d+\.\d+\.orig\.tar\.gz/
+  url: https://vamp-plugins.org/develop.html
+  match: /vamp-plugin-sdk-\d+\.\d+\.\d+\.tar\.gz/
   strip:
-    - /^vamp-plugin-sdk_/
-    - /\.orig\.tar\.gz$/
+    - /^vamp-plugin-sdk-/
+    - /\.tar\.gz$/
 
 dependencies:
   xiph.org/flac: ^1.4
@@ -17,7 +15,11 @@ dependencies:
 build:
   dependencies:
     gnu.org/automake: '*'
+    curl.se: '*'
   script:
+    # get archive url
+    - DIST_URL=$(curl -s https://vamp-plugins.org/develop.html | grep -oP 'https://code.soundsoftware.ac.uk/attachments/download/\d+/vamp-plugin-sdk-\d+\.\d+\.\d+\.tar\.gz')
+    - curl -L $DIST_URL | tar -xz --strip-components 1
     - ./configure $ARGS
     - make --jobs {{hw.concurrency}}
     - make --jobs {{hw.concurrency}} install
