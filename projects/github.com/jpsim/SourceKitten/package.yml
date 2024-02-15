@@ -9,7 +9,10 @@ platforms:
   - darwin
 
 build:
-  - patch -p1 < props/patch.diff
+  # https://github.com/jpsim/SourceKitten/pull/794 remove in release > 0.34.1
+  # fix this issue https://github.com/jpsim/SourceKitten/issues/793
+  - run: patch -p1 < props/patch.diff
+    if: <=0.34.1
   - make prefix_install PREFIX={{prefix}} TEMPORARY_FOLDER=$PWD/SourceKitten.dst --jobs={{hw.concurrency}}
 
 provides:
