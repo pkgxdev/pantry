@@ -1,0 +1,33 @@
+distributable:
+  url: https://sourceforge.net/projects/libsnet/files/libsnet-{{version}}/libsnet-{{version}}.tar.gz
+  strip-components: 1
+
+display-name: libsnet
+
+versions:
+  - 1.0.0
+#   # This is messy: several versions provided .bz2 rather than
+#   # .gz, and the latest version is v15.9, but the earlier
+#   # versions are 15.8, 15.7a, etc. This will only match v15.9,
+#   # but will hopefully match future versions as well
+#   url: https://sourceforge.net/projects/libsnet/files/
+#   match: projects/libsnet/files/libsnet-\d+.\d+.\d+
+#   strip:
+#     - projects/libsnet/files/libsnet-
+
+platforms:
+  - darwin
+  - linux/x86-64
+
+build:
+  dependencies:
+    gnu.org/autoconf: '*'
+    openssl.org: ^1.1.1
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --with-ssl={{ deps.openssl.org.prefix }}
+      - --prefix="{{prefix}}"
+      - --libdir="{{prefix}}/lib"
