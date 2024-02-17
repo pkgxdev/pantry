@@ -1,0 +1,25 @@
+distributable:
+  url: https://github.com/astral-sh/uv/releases/download/{{version}}/source.tar.gz
+  strip-components: 1
+
+versions:
+  github: astral-sh/uv
+
+provides:
+  - bin/uv
+
+build:
+  dependencies:
+    cmake.org: ^3.28
+    rust-lang.org/cargo: ^0.77
+    maturin.rs: ^1.4.0
+    info-zip.org/unzip: ^6
+  script:
+    - maturin build --locked --release --out ./out
+    - run:
+        - unzip ./uv-{{version}}-*.whl
+        - install -D ./uv-{{version}}.data/scripts/uv {{prefix}}/bin/uv
+      working-directory: out
+
+test:
+  uv --version | grep {{version}}
