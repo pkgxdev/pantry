@@ -37,3 +37,25 @@ jobs:
     with:
       projects: ${{ needs.ingest.outputs.projects }}
     secrets: inherit
+
+  notify:
+    needs: [pkg, ingest]
+    runs-on: ubuntu-latest
+    steps:
+    - name: make embeds
+      id: make-embeds
+      run: |
+        RV=""
+        for x in ${{ needs.ingest.outputs.projects }}; do
+          RV="${RV:+$RV,} {\"title\": \"$x\", \"url\": \"https://pkgx.dev/pkgs/$x\"}"
+        done
+        echo "json=$RV" >> $GITHUB_OUTPUT
+    - uses: Ilshidur/action-discord@0.3.2
+      env:
+        DISCORD_EMBEDS: |
+          {
+            "embeds": [${{ steps.make-embeds.outputs.json }}]
+          }
+        DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+      with:
+        args: new pkgs
