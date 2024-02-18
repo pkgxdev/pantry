@@ -18,7 +18,9 @@ build:
     curl.se: '*'
   script:
     # get archive url
-    - DIST_URL=$(curl -s https://vamp-plugins.org/develop.html | grep -o 'https://code.soundsoftware.ac.uk/attachments/download/[0-9]*/vamp-plugin-sdk-[0-9.]*.tar.gz')
+    # ex: https://code.soundsoftware.ac.uk/attachments/download/2588/vamp-plugin-sdk-2.9.0.tar.gz
+    # we need to find url from the page because it's not a fixed url
+    - DIST_URL=$(curl -s https://vamp-plugins.org/develop.html | grep -o 'https://code.soundsoftware.ac.uk/attachments/download/[0-9]*/vamp-plugin-sdk-{{version}}.tar.gz')
     - curl -L $DIST_URL | tar -xz --strip-components 1
     - ./configure $ARGS
     - make --jobs {{hw.concurrency}}
