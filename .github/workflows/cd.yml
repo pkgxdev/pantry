@@ -49,13 +49,10 @@ jobs:
         for x in ${{ needs.ingest.outputs.projects }}; do
           RV="${RV:+$RV,} {\"title\": \"$x\", \"url\": \"https://pkgx.dev/pkgs/$x\"}"
         done
-        echo "json=$RV" >> $GITHUB_OUTPUT
+        echo "json={\"embeds\": [$RV]}" >> $GITHUB_OUTPUT
     - uses: Ilshidur/action-discord@0.3.2
       env:
-        DISCORD_EMBEDS: |
-          {
-            "embeds": [${{ steps.make-embeds.outputs.json }}]
-          }
+        DISCORD_EMBEDS: ${{ steps.make-embeds.outputs.json }}
         DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
       with:
         args: new pkgs
