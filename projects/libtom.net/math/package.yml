@@ -15,3 +15,20 @@ build:
   script:
     - make -f makefile.shared install
     - make test
+
+test:
+  linux:
+    llvm.org: '*'
+  script:
+    - fixture:
+        content: |
+          #include <tommath.h>
+          #include <stdio.h>
+          int main() {
+            printf("%s", mp_error_to_string(1));
+            return 0;
+          }
+        extname: .c
+      run:
+        - cc $FIXTURE -ltommath
+        - test "$(./a.out)" = "Invalid error code"
