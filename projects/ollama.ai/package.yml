@@ -1,8 +1,10 @@
 distributable:
   url: git+https://github.com/jmorganca/ollama
   ref: v{{version}}
+
 versions:
   github: jmorganca/ollama
+
 build:
   dependencies:
     go.dev: ^1.21
@@ -14,11 +16,16 @@ build:
         git submodule update
       if: '>=0.0.18'
     - go generate ./...
-    - go build .
-    - mkdir -p {{prefix}}/bin
-    - install ollama {{prefix}}/bin/
+    - go build -ldflags="$GO_LDFLAGS" -o '{{prefix}}/bin/ollama' .
+  env:
+    linux:
+      GO_LDFLAGS:
+        # else segfaults
+        - -buildmode=pie
+
 provides:
   - bin/ollama
+
 test:
   qa-required: true
   script:
