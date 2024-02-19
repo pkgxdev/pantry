@@ -31,13 +31,22 @@ provides:
 
 test:
   qa-required: true
+  dependencies:
+    linux:
+      gitlab.com/procps-ng/procps: '*'
   script:
     # 0.0.19 complains about a missing blobs directory
     - run: mkdir -p ~/.ollama/models/blobs
       if: =0.0.19
-    - killall ollama || true
+    - $KILL ollama || true
+    - sleep 5
     - ollama serve &
     - sleep 5
     - ollama create mario -f ./Modelfile
     - ollama list | grep 'mario'
-    - killall ollama || true
+    - $KILL ollama || true
+  env:
+    darwin:
+      KILL: killall
+    linux:
+      KILL: pkill
