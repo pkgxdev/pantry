@@ -42,14 +42,30 @@ jobs:
     needs: [pkg, ingest]
     runs-on: ubuntu-latest
     steps:
-    - name: make paylaod
+    - run: actions/checkout@v4
+      with:
+        fetch-depth: 1
+
+    - name: check if new pkgs
+      id: check-new-files
+      run: |
+        NEW_FILES=$(git diff --name-status HEAD $(git merge-base HEAD origin/main) | grep '^A\s*projects/.+?/package\.yml$' | wc -l)
+
+        if [ "$NEW_FILES" -gt 0 ]; then
+          echo "New files were added in this push."
+          echo "::set-output name=new_files::true"
+        fi
+
+    - name: make payload
       run: |
         RV=""
         for x in ${{ needs.ingest.outputs.projects }}; do
-          RV="${RV:+$RV,} {\"title\": \"$x\", \"url\": \"https://pkgx.dev/pkgs/$x\"}"
+          RV="${RV:+$RV,} {\"title\": \"$x\", \"url\": \"https://pkgx.dev/pkgs/$x/\"}"
         done
         echo "{\"embeds\": [$RV], \"content\": \"new pkgs\"}" >> payload.json
+
     - uses: tsickert/discord-webhook@v5.4.0
+      if: steps.check-new-files.outputs.new_files == 'true'
       with:
         webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
         raw-data: ./payload.json
