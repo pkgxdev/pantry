@@ -1,8 +1,3 @@
-distributable:
-  # vendoring for newer versions
-  # url: https://github.com/cirruslabs/tart/archive/refs/tags/{{version}}.tar.gz
-  url: https://github.com/cirruslabs/tart/releases/download/{{version}}/tart.tar.gz
-
 warnings:
   - vendored
 
@@ -10,7 +5,7 @@ versions:
   github: cirruslabs/tart/releases
 
 platforms:
-  - darwin/aarch64
+  - darwin
 
 #FIXME proper system for re-using pre-built binaries
 # we must require the vendor to provide signatures against a published public
@@ -22,10 +17,27 @@ platforms:
 # This only works on macOS, arm64, monterey and above. It requires xcode 14.1 to build
 
 build:
+  dependencies:
+    curl.se: '*'
   script:
     - mkdir -p "{{prefix}}/bin"
+    - run: curl -LSs https://github.com/cirruslabs/tart/releases/download/{{version.tag}}/tart-$ARCH.tar.gz | tar -xzf -
+      if: '>=2.5'
+    - run: |
+        if test "{{hw.arch}}" = "aarch64"; then
+          curl -LSs https://github.com/cirruslabs/tart/releases/download/{{version.tag}}/tart.tar.gz | tar -xzf -
+        else
+          # not available on x86-64
+          false
+        fi
+      if: <2.5
     - cp -a tart.app "{{prefix}}"
     - cp props/tart-shim "{{prefix}}"/bin/tart
+  env:
+    aarch64:
+      ARCH: arm64
+    x86-64:
+      ARCH: amd64
 
 provides:
   - bin/tart
