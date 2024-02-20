@@ -36,12 +36,13 @@ build:
     # Building compiler-rt on darwin+aarch64 fails for versions less than
     # 14 with the below configuration. FIXME if possible, of course.
     - run: |
+        RUNTIMES="-DLLVM_ENABLE_RUNTIMES='compiler-rt;libcxx;libcxxabi;libunwind'"
         if test "{{hw.platform}}" = "linux"; then
-          ARGS="$ARGS -DLLVM_ENABLE_RUNTIMES='compiler-rt'"
+          ARGS="$ARGS $RUNTIMES"
         elif semverator satisfies '>=14' {{version}}; then
-          ARGS="$ARGS -DLLVM_ENABLE_RUNTIMES='compiler-rt'"
+          ARGS="$ARGS $RUNTIMES"
         elif test "{{hw.arch}}" = "x86-64" && semverator satisfies '>=14' {{version}}; then
-          ARGS="$ARGS -DLLVM_ENABLE_RUNTIMES='compiler-rt'"
+          ARGS="$ARGS $RUNTIMES"
         fi
       # if: linux || >=14 || (x86-64 && >=13)  ## Brewkit can't do this. Yet.
     - cmake ../llvm -G Ninja $ARGS
