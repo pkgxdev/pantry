@@ -19,7 +19,6 @@ build:
   script:
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
-
   env:
     ARGS:
       - --disable-macos-framework
@@ -27,6 +26,8 @@ build:
       - --disable-silent-rules
       - --prefix="{{prefix}}"
       - --with-ssl={{ deps.openssl.org.prefix }}
+    linux:
+      CFLAGS: -Wno-implicit-function-declaration
 
 test:
   script:
