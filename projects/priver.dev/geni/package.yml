@@ -20,5 +20,22 @@ build:
     - cargo install --locked --path . --root {{prefix}}
 
 test:
+  env:
+    DATABASE_URL: 'sqlite://./database.sqlite'
+  dependencies:
+    sqlite.org: '*'
   script:
     - test "$(geni --version)" = "geni v{{version}}"
+    - geni new test
+    - run: cat $FIXTURE >> migrations/*_test.up.sql
+      fixture: |
+
+        CREATE TABLE Persons (
+            PersonID int
+        )
+    - run: cat $FIXTURE >> migrations/*_test.down.sql
+      fixture: |
+
+        DROP TABLE Persons;
+    - geni up
+    - geni down
