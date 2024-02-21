@@ -10,20 +10,21 @@ versions:
   strip: /v/
 
 dependencies:
-  perl.org: "*"
+  perl.org: '*'
   openssl.org: ^1.1
   zlib.net: ^1
+  libgit2.org: ^1
 
 build:
   dependencies:
-    rust-lang.org: ">=1.60"
-    rust-lang.org/cargo: "*"
-  script: cargo install --path . --root {{prefix}}
+    rust-lang.org: '>=1.60'
+    rust-lang.org/cargo: '*'
+  script: cargo install --path . --locked --root {{prefix}}
   env:
     linux:
-      RUSTFLAGS: "-C linker=cc"
+      RUSTFLAGS: '-C linker=cc'
       # See: https://docs.rs/openssl/latest/openssl/#manual
       OPENSSL_NO_VENDOR: true # Always find OpenSSL in the system, even if the vendored feature is enabled.
-      OPENSSL_DIR: "{{ deps.openssl.org.prefix }}" # Use tea's openssl installation directory
+      OPENSSL_DIR: '{{ deps.openssl.org.prefix }}' # Use tea's openssl installation directory
 
 test: gitui --version
