@@ -13,19 +13,19 @@ dependencies:
 
 build:
   dependencies:
-    cmake.org: "*"
-    git-scm.org: "*"
-    gnu.org/wget: "*"
+    cmake.org: '*'
+    git-scm.org: '*'
+    gnu.org/wget: '*'
     gradle.org: '*'
     openjdk.org: ^17
     gnu.org/gcc: ^12 # for gfortran
     linux:
       # on mac we use the Accelerate framework instead, on linux this is linked statically
-      openblas.net: "*"
+      openblas.net: '*'
 
   script:
-      # there seems to be a loader bug with trying to dlopen libc on macos 12 and earlier.
-      # remove this step when macos 12 and under are no longer supported.
+    # there seems to be a loader bug with trying to dlopen libc on macos 12 and earlier.
+    # remove this step when macos 12 and under are no longer supported.
     - run: |
         sed -i 's|JNAKernel32Library.getInstance();|//JNAKernel32Library.getInstance();|' server/src/main/java/org/opensearch/bootstrap/Bootstrap.java
       if: darwin/x86-64
@@ -42,13 +42,17 @@ build:
       working-directory: ${{prefix}}/config
 
     # checkout k-NN plugin
+    - kNNVERSION={{version}}.0
+    # no matching version here.
+    - run: kNNVERSION=2.11.1.0
+      if: 2.12.0
     - run: |
         if [ -d .git ]; then
           git fetch
         else
           git clone https://github.com/opensearch-project/k-NN .
         fi
-        git checkout {{version}}.0
+        git checkout $kNNVERSION
         git reset --hard
         git submodule foreach --recursive git reset --hard
         git submodule update --init --recursive
@@ -121,9 +125,9 @@ provides:
 
 test:
   dependencies:
-     gnu.org/coreutils: ^9
-     stedolan.github.io/jq: "*"
-     curl.se: "*"
+    gnu.org/coreutils: ^9
+    stedolan.github.io/jq: '*'
+    curl.se: '*'
   script:
     - opensearch-plugin list
 
