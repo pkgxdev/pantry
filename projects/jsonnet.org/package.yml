@@ -6,9 +6,13 @@ versions:
   github: google/jsonnet
 
 build:
-  - make --jobs={{hw.concurrency}}
-  - install -D jsonnet {{prefix}}/bin/jsonnet
-  - install -D jsonnetfmt {{prefix}}/bin/jsonnetfmt
+  dependencies:
+    linux:
+      gnu.org/gcc: '*'
+  script:
+    - make --jobs={{hw.concurrency}}
+    - install -D jsonnet {{prefix}}/bin/jsonnet
+    - install -D jsonnetfmt {{prefix}}/bin/jsonnetfmt
 
 provides:
   - bin/jsonnet
@@ -27,3 +31,4 @@ test:
         }
       extname: jsonnet
   - jsonnetfmt --version | grep {{version}}
+  
