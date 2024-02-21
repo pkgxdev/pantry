@@ -12,17 +12,20 @@ versions:
 build:
   dependencies:
     gnu.org/patch: '*'
-  script: |
-    if test {{ hw.platform }} = "darwin"; then
-      # needed to work on macOS
-      patch -p0 < props/Makefile.patch
-    fi
+    imagemagick.org: '*' # needs `convert`
+  script:
+    # the appears to be applied in 5.2.2
+    - run: |
+        if test {{ hw.platform }} = "darwin"; then
+          # needed to work on macOS
+          patch -p0 < props/Makefile.patch
+        fi
+      if: <5.2.2
 
-    make --jobs {{ hw.concurrency }} all
-    make install PREFIX="{{ prefix }}"
+    - make --jobs {{ hw.concurrency }} all
+    - make install PREFIX="{{ prefix }}"
 
-test:
-  giftext fixture.gif
+test: giftext fixture.gif
 
 provides:
   - bin/gif2rgb
