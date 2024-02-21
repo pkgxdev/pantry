@@ -26,10 +26,18 @@ build:
     gnu.org/bison: '*'
     github.com/westes/flex: '*'
   script:
-    # spaces....
-    - run: CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_C_FLAGS=-fPIC '-DCMAKE_CXX_FLAGS=-fPIC -stdlib=libc++ -isystem {{deps.llvm.org.prefix}}/include/c++/v1' -DCMAKE_EXE_LINKER_FLAGS=-pie"
+    # spaces.... use array
+    - CMAKE_ARGS=($CMAKE_ARGS)
+    # use llvm's libc++ and system headers
+    - run: CMAKE_ARGS=(
+        ${CMAKE_ARGS[@]}
+        -DCMAKE_C_FLAGS=-fPIC
+        "-DCMAKE_CXX_FLAGS=-fPIC -stdlib=libc++ -isystem {{deps.llvm.org.prefix}}/include/c++/v1"
+        -DCMAKE_EXE_LINKER_FLAGS=-pie
+        )
       if: linux
-    - cmake -S . -B build/shared $CMAKE_ARGS
+
+    - cmake -S . -B build/shared "${CMAKE_ARGS[@]}"
     - cmake --build build/shared
     - cmake --install build/shared
   env:
