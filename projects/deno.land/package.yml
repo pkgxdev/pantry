@@ -17,10 +17,6 @@ runtime:
   env:
     DENO_NO_UPDATE_CHECK: 'true'
 
-companions:
-  # denort added in v1.41.0 requires `unzip`
-  info-zip.org/unzip: '*'
-
 dependencies:
   darwin/x86-64:
     llvm.org: 17 # libunwind
@@ -43,9 +39,7 @@ build:
 
     - grep home_path cli/tools/installer.rs
 
-    - cargo build --release
-    - mkdir -p "{{ prefix }}"/bin
-    - mv target/release/deno "{{ prefix }}"/bin
+    - cargo install --locked --path cli --root {{ prefix }}
   dependencies:
     git-scm.org: 2 # to build tinycc
     rust-lang.org: ^1.70
