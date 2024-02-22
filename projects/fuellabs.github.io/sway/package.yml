@@ -9,25 +9,23 @@ provides:
   - bin/forc
 
 dependencies:
-  zlib.net: '*'
-  linux:
-    openssl.org: '*'
+  zlib.net: ^1
+  openssl.org: ^3
 
 build:
   dependencies:
     rust-lang.org: 1
     rust-lang.org/cargo: ^0
-    linux:
-      # needed to build openssl module
-      perl.org: '*'
+    # needed to build openssl module
+    perl.org: '*'
   script: cargo install --locked --path forc --root {{prefix}}
 
 test:
-  script: |
-    forc new tea_test
-    cd tea_test
-    cp $FIXTURE src/main.sw
-    forc test
+  script:
+    - forc new tea_test
+    - cd tea_test
+    - cat $FIXTURE >src/main.sw
+    - forc test
   fixture: |
     script;
 
