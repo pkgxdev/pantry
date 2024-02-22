@@ -17,6 +17,14 @@ runtime:
   env:
     DENO_NO_UPDATE_CHECK: 'true'
 
+companions:
+  # denort added in v1.41.0 requires `unzip`
+  info-zip.org/unzip: '*'
+
+dependencies:
+  darwin/x86-64:
+    llvm.org: 17 # libunwind
+
 build:
   script:
     # https://github.com/denoland/deno/issues/15596 -- reported fixed in 1.25.3
@@ -41,8 +49,8 @@ build:
   dependencies:
     git-scm.org: 2 # to build tinycc
     rust-lang.org: ^1.70
-    rust-lang.org/cargo: ^0.65
-    llvm.org: '>=13' # macOS/aarch64 requires this (FIXME only dep where needed)
+    rust-lang.org/cargo: ^0
+    llvm.org: 17 # macOS/aarch64 requires (FIXME only dep where needed)
     curl.se: '*' # required to download v8 (python is another option)
     cmake.org: ^3 # deno.land>=1.36.1 requires cmake
     protobuf.dev: '*' # deno.land>=1.36.4 requires protoc
