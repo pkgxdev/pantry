@@ -25,13 +25,16 @@ build:
     haskell.org/cabal: ^3
     crates.io/semverator: ^0
     linux:
-      gnu.org/binutils: '*' # wants ld.gold
       llvm.org: '*'
   working-directory: pandoc-cli
   script:
-    # with two linkers and build systems in play, getting the right tooling is complicated
-    # haskell doesn't seem to respect the env vars in this respect.
-    - run: export PATH={{deps.llvm.org.prefix}}/bin:$PATH
+    # it really wants ld.bfd or ld.gold, but those both bring in a host of compiler matching
+    # issues, so we'll just do a trick
+    - run: |
+        mkdir .fakebin
+        ln -s {{deps.llvm.org.prefix}}/bin/ld.lld .fakebin/ld.bfd
+        ln -s {{deps.llvm.org.prefix}}/bin/ld.lld .fakebin/ld.gold
+        export PATH=$PWD/.fakebin:$PATH
       if: linux
 
     # pandoc 2.x - no pandoc-cli subdirectory
