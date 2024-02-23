@@ -24,6 +24,10 @@ build:
     haskell.org: '>=8.6.5<9.6'
     haskell.org/cabal: ^3
     crates.io/semverator: ^0
+    linux:
+      # requires gcc/ld.bfd
+      gnu.org/gcc: '*'
+      gnu.org/binutils: '*'
   working-directory: pandoc-cli
   script:
     # pandoc 2.x - no pandoc-cli subdirectory
@@ -45,6 +49,9 @@ build:
       # https://pandoc.org/installing.html#creating-a-relocatable-binary
       - -fembed_data_files
     linux:
+      AS: '{{deps.gnu.org.binutils.prefix}}/bin/as'
+      AR: '{{deps.gnu.org.binutils.prefix}}/bin/ar'
+      RANLIB: '{{deps.gnu.org.binutils.prefix}}/bin/ranlib'
       ARGS:
         # else segfaults
         - --enable-relocatable
