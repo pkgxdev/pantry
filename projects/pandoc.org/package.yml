@@ -32,9 +32,12 @@ build:
     # issues, so we'll just do a trick
     - run: |
         mkdir .fakebin
-        ln -s {{deps.llvm.org.prefix}}/bin/ld.lld .fakebin/ld.bfd
-        ln -s {{deps.llvm.org.prefix}}/bin/ld.lld .fakebin/ld.gold
+        cat $PROP > .fakebin/ld.bfd
+        cat $PROP > .fakebin/ld.gold
         export PATH=$PWD/.fakebin:$PATH
+      prop: |
+        #!/bin/sh
+        ld.lld "$@"
       if: linux
 
     # pandoc 2.x - no pandoc-cli subdirectory
