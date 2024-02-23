@@ -24,8 +24,12 @@ build:
     haskell.org: '>=8.6.5<9.6'
     haskell.org/cabal: ^3
     crates.io/semverator: ^0
+    linux/x86-64:
+      llvm.org: '*'
   working-directory: pandoc-cli
   script:
+    # FIXME: these are seriously hacky; we need to understand how to tweak ghc's `settings`
+    # file better
     # it really wants ld.bfd or ld.gold, but those both bring in a host of compiler matching
     # issues, so we'll just do a trick
     - run: |
@@ -38,6 +42,14 @@ build:
         #!/bin/sh
         ld.lld "$@"
       if: linux
+    # passing compiler flags is also a problem...
+    - run: |
+        cat $PROP > .fakebin/clang
+        chmod +x .fakebin/clang
+      prop: |
+        #!/bin/sh
+        {{deps.llvm.org.prefix}}/bin/clang -fPIC -Wl,-pie "$@"
+      if: linux/x86-64
 
     # pandoc 2.x - no pandoc-cli subdirectory
     - run: cd ..
