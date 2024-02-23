@@ -25,9 +25,15 @@ build:
 
     - run: |
         bkpyvenv stage --engine=poetry {{prefix}} {{version}}
+        poetry install
+        bkpyvenv seal --engine=poetry {{prefix}} gpte gpt-engineer
+      if: '>=0.2.6'
+
+    - run: |
+        bkpyvenv stage --engine=poetry {{prefix}} {{version}}
         poetry install --with=experimental
         bkpyvenv seal --engine=poetry {{prefix}} gpte gpt-engineer
-      if: '>=0.2.1'
+      if: '>=0.2.1<0.2.6'
 
     - run: |
         bkpyvenv stage {{prefix}} {{version}}
@@ -40,7 +46,7 @@ build:
       if: =0.0.3
 
 provides:
-  - bin/gpte  # only after roughly 0.2.1
+  - bin/gpte # only after roughly 0.2.1
   - bin/gpt-engineer
 
 test:
