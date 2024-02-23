@@ -26,8 +26,14 @@ build:
     crates.io/semverator: ^0
     linux:
       gnu.org/binutils: '*' # wants ld.gold
+      llvm.org: '*'
   working-directory: pandoc-cli
   script:
+    # with two linkers and build systems in play, getting the right tooling is complicated
+    # haskell doesn't seem to respect the env vars in this respect.
+    - run: export PATH={{deps.llvm.org.prefix}}/bin:$PATH
+      if: linux
+
     # pandoc 2.x - no pandoc-cli subdirectory
     - run: cd ..
       if: <3
