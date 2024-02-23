@@ -24,8 +24,6 @@ build:
     haskell.org: '>=8.6.5<9.6'
     haskell.org/cabal: ^3
     crates.io/semverator: ^0
-    linux/x86-64:
-      llvm.org: '*'
   working-directory: pandoc-cli
   script:
     # FIXME: these are seriously hacky; we need to understand how to tweak ghc's `settings`
@@ -42,13 +40,64 @@ build:
         #!/bin/sh
         ld.lld "$@"
       if: linux
-    # passing compiler flags is also a problem...
-    - run: |
-        cat $PROP > .fakebin/clang
-        chmod +x .fakebin/clang
+    # testing a fix
+    - run: cat $PROP > settings
       prop: |
-        #!/bin/sh
-        {{deps.llvm.org.prefix}}/bin/clang -fPIC -Wl,-pie "$@"
+        [("GCC extra via C opts", "")
+        ,("C compiler command", "clang")
+        ,("C compiler flags", "--target=x86_64-unknown-linux -fPIC")
+        ,("C++ compiler command", "clang++")
+        ,("C++ compiler flags", "--target=x86_64-unknown-linux -fPIC")
+        ,("C compiler link flags", "-pie")
+        ,("C compiler supports -no-pie", "NO")
+        ,("Haskell CPP command", "clang")
+        ,("Haskell CPP flags", "-E -undef -traditional -Wno-invalid-pp-token -Wno-unicode -Wno-trigraphs")
+        ,("ld command", "ld.lld")
+        ,("ld flags", "-pie")
+        ,("ld supports compact unwind", "NO")
+        ,("ld supports build-id", "YES")
+        ,("ld supports filelist", "NO")
+        ,("ld is GNU ld", "YES")
+        ,("Merge objects command", "ld.lld")
+        ,("Merge objects flags", "-r")
+        ,("ar command", "llvm-ar")
+        ,("ar flags", "qcls")
+        ,("ar supports at file", "YES")
+        ,("ar supports -L", "YES")
+        ,("ranlib command", "llvm-ranlib")
+        ,("otool command", "llvm-otool")
+        ,("install_name_tool command", "install_name_tool")
+        ,("touch command", "touch")
+        ,("dllwrap command", "/bin/false")
+        ,("windres command", "/bin/false")
+        ,("libtool command", "libtool")
+        ,("unlit command", "$topdir/bin/unlit")
+        ,("cross compiling", "NO")
+        ,("target platform string", "x86_64-unknown-linux")
+        ,("target os", "OSLinux")
+        ,("target arch", "ArchX86_64")
+        ,("target word size", "8")
+        ,("target word big endian", "NO")
+        ,("target has GNU nonexec stack", "YES")
+        ,("target has .ident directive", "YES")
+        ,("target has subsections via symbols", "NO")
+        ,("target has RTS linker", "YES")
+        ,("target has libm", "YES")
+        ,("Unregisterised", "NO")
+        ,("LLVM target", "x86_64-unknown-linux")
+        ,("LLVM llc command", "llc")
+        ,("LLVM opt command", "opt")
+        ,("LLVM clang command", "clang")
+        ,("Use inplace MinGW toolchain", "NO")
+        ,("Use interpreter", "YES")
+        ,("Support SMP", "YES")
+        ,("RTS ways", "debug thr thr_debug thr_p dyn debug_dyn thr_dyn thr_debug_dyn thr_debug_p debug_p")
+        ,("Tables next to code", "YES")
+        ,("Leading underscore", "NO")
+        ,("Use LibFFI", "NO")
+        ,("RTS expects libdw", "NO")
+        ]
+      working-directory: ${{deps.haskell.org.prefix}}/ghc/{{deps.haskell.org.version}}/lib/ghc-{{deps.haskell.org.version}}/lib
       if: linux/x86-64
 
     # pandoc 2.x - no pandoc-cli subdirectory
