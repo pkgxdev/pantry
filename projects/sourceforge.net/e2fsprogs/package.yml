@@ -1,0 +1,56 @@
+distributable:
+  url: https://downloads.sourceforge.net/project/e2fsprogs/e2fsprogs/v{{version}}/e2fsprogs-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://sourceforge.net/projects/e2fsprogs/rss
+  match: /e2fsprogs-(\d+\.\d+\.\d+)\.tar\.gz/
+  strip:
+    - /^e2fsprogs-/
+    - /\.tar\.gz$/
+
+dependencies:
+  darwin:
+    gnu.org/gettext: ^0.22
+  linux:
+    github.com/util-linux/util-linux: ^2.39
+
+build:
+  script:
+    - ./configure $ARGS
+    - make --jobs {{hw.concurrency}}
+    - make install
+    - make install-libs
+    - run: sed -i 's|{{prefix}}|\$(dirname \$0)/..|g' compile_et mk_cmds
+      working-directory: ${{prefix}}/bin
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --exec-prefix={{prefix}}
+      - --disable-e2initrd-helper
+      - --without-udev-rules-dir
+      - --without-systemd-unit-dir
+    linux:
+      CC: clang
+      CXX: clang++
+      LD: clang
+      ARGS:
+        - --enable-elf-shlibs
+        - --disable-fsck
+        - --disable-uuidd
+        - --disable-libuuid
+        - --disable-libblkid
+        - --without-crond-dir
+    darwin:
+      ARGS:
+        - --enable-bsd-shlibs
+
+provides:
+  - chattr
+  - compile_et
+  - lsattr
+  - mk_cmds
+
+test:
+  lsattr -al | grep Extents
+  # for more tests we need sudo
