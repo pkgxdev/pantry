@@ -17,8 +17,14 @@ dependencies:
 
 build:
   script:
-    - ./configure $ARGS
+    - run: ./configure $ARGS
+      if: linux
+    # Enforce MKDIR_P to work around a configure bug
+    # https://sourceforge.net/p/e2fsprogs/discussion/7053/thread/edec6de279/
+    - run: ./configure $ARGS MKDIR_P='mkdir -p'
+      if: darwin
     - make --jobs {{hw.concurrency}}
+    # Deparallelize: lib/libcom_err.1.1.dylib: No such file or directory
     - make install
     - make install-libs
     - run: sed -i 's|{{prefix}}|\$(dirname \$0)/..|g' compile_et mk_cmds
@@ -46,11 +52,23 @@ build:
         - --enable-bsd-shlibs
 
 provides:
-  - chattr
-  - compile_et
-  - lsattr
-  - mk_cmds
+  linux:
+    - bin/chattr
+    - bin/compile_et
+    - bin/lsattr
+    - bin/mk_cmds
+  darwin:
+    - bin/chattr
+    - bin/compile_et
+    - bin/lsattr
+    - bin/mk_cmds
+    - bin/uuidgen
 
 test:
-  lsattr -al | grep Extents
+  - run: lsattr -al | grep Extents
+    if: linux
+  - run: |
+      lsattr -al | grep '\-\-\-'
+      uuidgen | wc -c | grep 37 # 36 + 1 newline
+    if: darwin
   # for more tests we need sudo
