@@ -1,0 +1,26 @@
+distributable:
+  url: https://github.com/AbanteAI/rawdog/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/rawdog
+
+versions:
+  github: AbanteAI/rawdog
+
+dependencies:
+  pkgx.sh: ^1
+
+add-ons:
+  ollama.ai  # can be used for local LLMs
+
+build:
+  dependencies:
+    python.org: ~3.11
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} rawdog
+
+test:
+  rawdog --help

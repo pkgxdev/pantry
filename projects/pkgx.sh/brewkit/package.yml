@@ -15,12 +15,24 @@ dependencies:
 provides:
   - bin/bk
 
-build: |
-  mkdir -p {{prefix}}
+build:
+  script:
+    - mkdir -p {{prefix}}
 
-  for x in bin libexec lib share deno.*; do
-    test -e $x && mv $x "{{prefix}}"
-  done
+    - |
+      for x in $PARTS; do
+        test -e $x && cp -a $x "{{prefix}}"
+      done
+  env:
+    PARTS:
+      - bin
+      - libexec
+      - lib
+      - share
+      - deno.*
+      - audit
+      - build
+      - test
 
 test:
   # we can’t test builds since brewkit is not designed to be invoked

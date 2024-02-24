@@ -1,0 +1,31 @@
+distributable:
+  url: https://pagure.io/libaio/archive/libaio-0.3.113/libaio-libaio-0.3.113.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://pagure.io/libaio/releases
+  match: /libaio-(\d+\.\d+\.\d+)\.tar\.gz/
+  strip:
+    - /^libaio-/
+    - /\.tar\.gz$/
+
+platforms:
+  - linux
+
+build:
+  script:
+    - make
+    - make prefix={{prefix}} install
+
+test:
+  - run: cc $FIXTURE -laio -o test
+    fixture:
+      content: |
+        #include <libaio.h>
+
+        int main(int argc, char *argv[])
+        {
+          struct io_event *event;
+        }
+      extname: c
+  - ./test

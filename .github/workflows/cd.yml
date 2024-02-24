@@ -38,23 +38,34 @@ jobs:
       projects: ${{ needs.ingest.outputs.projects }}
     secrets: inherit
 
-  tarball:
+  notify:
+    needs: [pkg, ingest]
     runs-on: ubuntu-latest
     steps:
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
 
-      - uses: actions/checkout@v4
-        with:
-          path: co
-      - run: find co -type f -not -name package.yml -delete -o -type l -delete
-      - run: tar -C co -czf pantry.tgz .
-      - run: aws s3 cp
-          ./pantry.tgz
-          s3://${{ secrets.AWS_S3_BUCKET }}/pantry.tgz
-      - run: aws cloudfront create-invalidation
-          --distribution-id ${{ secrets.AWS_CF_DISTRIBUTION_ID }}
-          --paths /pantry.tgz
+    - name: check if new pkgs
+      id: check-new-files
+      run: |
+        NEW_FILES=$(git diff --name-status HEAD $(git merge-base HEAD origin/main) | grep '^A\s*projects/.+?/package\.yml$' | wc -l)
+
+        if [ "$NEW_FILES" -gt 0 ]; then
+          echo "New files were added in this push."
+          echo "::set-output name=new_files::true"
+        fi
+
+    - name: make payload
+      run: |
+        RV=""
+        for x in ${{ needs.ingest.outputs.projects }}; do
+          RV="${RV:+$RV,} {\"title\": \"$x\", \"url\": \"https://pkgx.dev/pkgs/$x/\"}"
+        done
+        echo "{\"embeds\": [$RV], \"content\": \"new pkgs\"}" >> payload.json
+
+    - uses: tsickert/discord-webhook@v5.4.0
+      if: steps.check-new-files.outputs.new_files == 'true'
+      with:
+        webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
+        raw-data: ./payload.json

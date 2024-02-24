@@ -1,10 +1,13 @@
 distributable:
   url: git+https://github.com/jmorganca/ollama
   ref: v{{version}}
+
 versions:
   github: jmorganca/ollama
-platforms:
-  - darwin # Available for macOS Windows & Linux support coming soon. <= from https://ollama.ai/
+
+dependencies:
+  curl.se/ca-certs: '*'
+
 build:
   dependencies:
     go.dev: ^1.21
@@ -16,20 +19,37 @@ build:
         git submodule update
       if: '>=0.0.18'
     - go generate ./...
-    - go build .
-    - mkdir -p {{prefix}}/bin
-    - install ollama {{prefix}}/bin/
+    - go build -ldflags="$GO_LDFLAGS" -o '{{prefix}}/bin/ollama' .
+  env:
+    linux:
+      GO_LDFLAGS:
+        # else segfaults
+        - -buildmode=pie
+
 provides:
   - bin/ollama
+
 test:
   qa-required: true
+  dependencies:
+    linux:
+      gitlab.com/procps-ng/procps: '*'
   script:
     # 0.0.19 complains about a missing blobs directory
     - run: mkdir -p ~/.ollama/models/blobs
       if: =0.0.19
-    - killall ollama || true
+    # why is this killing the test, it seems like?
+    - run: pgrep -l ollama
+      if: linux
+    - $KILL ollama || true
+    - sleep 5
     - ollama serve &
     - sleep 5
     - ollama create mario -f ./Modelfile
     - ollama list | grep 'mario'
-    - killall ollama || true
+    - $KILL ollama || true
+  env:
+    darwin:
+      KILL: killall
+    linux:
+      KILL: pkill -x
