@@ -13,8 +13,11 @@ platforms:
   - linux
 
 build:
-  - make --jobs {{hw.concurrency}}
-  - make --jobs {{hw.concurrency}} prefix={{prefix}} install
+  script:
+    - make --jobs {{hw.concurrency}}
+    - make --jobs {{hw.concurrency}} prefix={{prefix}} install
+  env:
+    CC: clang
 
 test:
   - run: cc $FIXTURE -laio -o test
