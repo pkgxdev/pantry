@@ -1,0 +1,42 @@
+distributable:
+  url: https://gitlab.com/lvmteam/lvm2/-/archive/{{version.tag}}/lvm2-{{version.tag}}.tar.gz
+  strip-components: 1
+
+display-name: device-mapper
+
+platforms:
+  - linux
+
+versions:
+  gitlab: lvmteam/lvm2/tags
+
+dependencies:
+  pagure.io/libaio: ^0.3
+
+build:
+  script:
+    - ./configure $ARGS
+    - make device-mapper
+    - make install_device-mapper
+  env:
+    CC: clang
+    CXX: clang++
+    LD: clang
+    ARGS:
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --disable-silent-rules
+      - --prefix={{prefix}}
+      - --enable-pkgconfig
+
+test:
+  run: cc $FIXTURE -ldevmapper -o test && ./test
+  fixture:
+    content: |
+      #include <libdevmapper.h>
+
+      int main() {
+        if (DM_STATS_REGIONS_ALL != UINT64_MAX)
+          exit(1);
+      }
+    extname: c
