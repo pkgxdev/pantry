@@ -25,7 +25,9 @@ build:
       - --disable-silent-rules
       - --prefix={{prefix}}
       - --enable-pkgconfig
-
+    linux:
+      # undefined symbol errors in newer llvms prevent building shared libs
+      CFLAGS: $CFLAGS -Wl,--undefined-version
 test:
   run: cc $FIXTURE -ldevmapper -o test && ./test
   fixture:
