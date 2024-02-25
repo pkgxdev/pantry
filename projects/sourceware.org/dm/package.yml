@@ -15,15 +15,18 @@ dependencies:
 
 build:
   script:
-    - ./configure $ARGS
+    # the make file uses sed over the bindir, our +brewing messes that up.
+    - TMP_PREFIX=$(mkdir -d)
+    - ./configure $ARGS --prefix="$TMP_PREFIX"
     - make device-mapper
     - make install_device-mapper
+    - mkdir -p "{{prefix}}"
+    - cp -a "$TMP_PREFIX"/* "{{prefix}}"
   env:
     ARGS:
       - --disable-debug
       - --disable-dependency-tracking
       - --disable-silent-rules
-      - --prefix={{prefix}}
       - --enable-pkgconfig
     linux:
       # undefined symbol errors in newer llvms prevent building shared libs
