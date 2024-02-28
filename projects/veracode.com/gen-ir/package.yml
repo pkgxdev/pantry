@@ -1,0 +1,20 @@
+distributable:
+  url: https://github.com/veracode/gen-ir/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: veracode/gen-ir
+
+platforms:
+  - darwin
+
+build:
+  - swift build -c release --disable-sandbox
+  - install -D .build/release/gen-ir {{prefix}}/bin/gen-ir
+
+provides:
+  - bin/gen-ir
+
+test:
+  - gen-ir --help
+  - gen-ir --version | grep {{version}}
