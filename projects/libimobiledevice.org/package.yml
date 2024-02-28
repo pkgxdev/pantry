@@ -1,0 +1,32 @@
+distributable:
+  url: https://github.com/libimobiledevice/libimobiledevice/releases/download/{{version}}/libimobiledevice-{{version}}.tar.bz2
+  strip-components: 1
+
+versions:
+  github: libimobiledevice/libimobiledevice
+
+dependencies:
+  libimobiledevice.org/libplist: ^2.4
+  gnu.org/libtasn1: ^4.19
+  #libimobiledevice.org/libusbmuxd: '*'
+  openssl.org: ^3
+
+build:
+  script:
+    - ./configure $ARGS
+    - make --jobs {{hw.concurrency}} install
+  env:
+    ARGS:
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --disable-silent-rules
+      - --prefix={{prefix}}
+      - --libdir={{prefix}}/lib
+      - --enable-debug
+      - --without-cython
+
+provides:
+  - bin/idevicedate
+
+test:
+  idevicedate --help
