@@ -1,0 +1,42 @@
+distributable:
+  url: https://github.com/doy/rbw/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+display-name: rbw
+
+versions:
+  github: doy/rbw
+#  strip:
+#    - /^v/
+#    - /-suffixed-garbage$/
+
+# this is an key/list of platforms that the package supports
+# usually omitted, which will default to all platforms
+#platforms:
+#  - darwin
+#  - linux/x86-64
+
+dependencies:
+  # to figure out dependencies you can read the project’s README
+  # however it is often easier to read the [brew formula](https://formulae.brew.sh/formula/)
+  #
+  # see dist.pkgx.dev for the packages pkgx provides
+  # if you need a package that isn’t there, you may need to build it!
+  #
+  # see semver.org for version specifications
+
+build:
+  dependencies:
+    rust-lang.org/cargo: '*'
+  env:
+    # add any environment variables here
+    #ARGS:
+    #  - --prefix="{{prefix}}"
+  script:
+  - cargo install --root={{ prefix}} --path=.
+
+
+provides:
+- bin/rbw
+
+test: test "$(rbw --version|cut -d' ' -f2)" = {{version}}
