@@ -19,6 +19,9 @@ build:
   script:
     - ./autogen.sh $ARGS
     - make --jobs {{hw.concurrency}} install
+    # FIXME: this is a hack; we need to fix fixup.ts
+    - run: sed -i 's/\+brewing//g' *.pc
+      working-directory: '{{prefix}}/lib/pkgconfig'
   env:
     ARGS:
       - --disable-debug
