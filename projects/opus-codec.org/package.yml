@@ -2,9 +2,8 @@ distributable:
   url: https://github.com/xiph/opus/archive/refs/tags/v{{ version.raw }}.tar.gz
   strip-components: 1
 
-# if there’s a github then we can parse the versions
 versions:
-  github: xiph/opus/tags # reads github tags from github
+  github: xiph/opus/tags
   strip: /^v/
 
 build:
@@ -12,16 +11,18 @@ build:
     gnu.org/autoconf: 2
     gnu.org/automake: 1.16
     gnu.org/libtool: 2.4
-  script: |
-    ./autogen.sh
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }}
-    make install
+    gnu.org/wget: '*' # downloads content at build time
+  script:
+    - ./autogen.sh
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
 
-    mv {{ prefix}}/include/opus/* {{prefix}}/include
-    rmdir {{ prefix}}/include/opus
-    ln -s . {{ prefix }}/include/opus
-  # it’s extremely common for packages to require the above
+    - run: |
+        mv opus/* .
+        rmdir opus
+        ln -s . opus
+      working-directory: ${{ prefix }}/include
   env:
     ARGS:
       - --prefix={{ prefix }}
@@ -29,29 +30,29 @@ build:
       - --disable-doc
 
 test:
-  fixture: |
-    #include <opus.h>
-    int main(int argc, char **argv)
-    {
-      int err = 0;
-      opus_int32 rate = 48000;
-      int channels = 2;
-      int app = OPUS_APPLICATION_AUDIO;
-      OpusEncoder *enc;
-      int ret;
-      enc = opus_encoder_create(rate, channels, app, &err);
-      if (!(err < 0))
-      {
-        err = opus_encoder_ctl(enc, OPUS_SET_BITRATE(OPUS_AUTO));
-        if (!(err < 0))
+  - run: cc $FIXTURE -lopus -o test
+    fixture:
+      extname: cpp
+      content: |
+        #include <opus.h>
+        int main(int argc, char **argv)
         {
-            opus_encoder_destroy(enc);
-            return 0;
+          int err = 0;
+          opus_int32 rate = 48000;
+          int channels = 2;
+          int app = OPUS_APPLICATION_AUDIO;
+          OpusEncoder *enc;
+          int ret;
+          enc = opus_encoder_create(rate, channels, app, &err);
+          if (!(err < 0))
+          {
+            err = opus_encoder_ctl(enc, OPUS_SET_BITRATE(OPUS_AUTO));
+            if (!(err < 0))
+            {
+                opus_encoder_destroy(enc);
+                return 0;
+            }
+          }
+          return err;
         }
-      }
-      return err;
-    }
-  script: |
-    mv $FIXTURE fixture.cpp
-    cc fixture.cpp -lopus
-    ./a.out
+  - ./test
