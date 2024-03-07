@@ -1,0 +1,21 @@
+distributable:
+  url: https://github.com/aome510/spotify-player/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/spotify_player
+
+versions:
+  github: aome510/spotify-player
+  strip: /v/
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.60'
+    rust-lang.org/cargo: '*'
+  script:
+    cargo install --locked --path . --root {{prefix}}
+
+test:
+  script:
+    - test "$(spotify_player --version)" = "spotify_player {{version}}"
