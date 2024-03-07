@@ -1,10 +1,12 @@
 distributable:
-  # TODO: add jdk11 and jdk8
+  # TODO: add jdk8
   - url: https://github.com/openjdk/jdk21u/archive/{{version.tag}}.tar.gz
     strip-components: 1
   - url: https://github.com/openjdk/jdk20u/archive/{{version.tag}}.tar.gz
     strip-components: 1
   - url: https://github.com/openjdk/jdk17u/archive/{{version.tag}}.tar.gz
+    strip-components: 1
+  - url: https://github.com/openjdk/jdk11u/archive/{{version.tag}}.tar.gz
     strip-components: 1
 
 versions:
@@ -17,6 +19,8 @@ versions:
     transform: 'v => v.match(/jdk-20\.0\./) ? v.replace(/\+/, ".").replace(/^jdk-/, "") : undefined'
   - github: openjdk/jdk17u/tags
     transform: 'v => v.match(/jdk-17\.0\./) ? v.replace(/\+/, ".").replace(/^jdk-/, "") : undefined'
+  - github: openjdk/jdk11u/tags
+    transform: 'v => v.match(/jdk-11\.0\./) ? v.replace(/\+/, ".").replace(/^jdk-/, "") : undefined'
 
 interprets:
   extensions: java
@@ -103,9 +107,10 @@ build:
     # from https://jdk.java.net/archive/
     # the boot jdk should point to the last version of the previous major version
     # or the last previous version of the current major version
-    BOOT_JDK17: https://download.java.net/java/GA/jdk17.0.2/dfd4a8d0985749f896bed50d7138ee7f/8/GPL/openjdk-17.0.2
-    BOOT_JDK20: https://download.java.net/java/GA/jdk20.0.2/6e380f22cbe7469fa75fb448bd903d8e/9/GPL/openjdk-20.0.2
     BOOT_JDK21: https://download.java.net/java/GA/jdk21.0.1/415e3f918a1f4062a0074a2794853d0d/12/GPL/openjdk-21.0.1
+    BOOT_JDK20: https://download.java.net/java/GA/jdk20.0.2/6e380f22cbe7469fa75fb448bd903d8e/9/GPL/openjdk-20.0.2
+    BOOT_JDK17: https://download.java.net/java/GA/jdk17.0.2/dfd4a8d0985749f896bed50d7138ee7f/8/GPL/openjdk-17.0.2
+    BOOT_JDK11: https://download.java.net/java/GA/jdk11/9/GPL/openjdk-11.0.2
 
     ARGS:
       - --disable-warnings-as-errors
@@ -152,7 +157,8 @@ provides:
   - bin/jstack
   - bin/jstat
   - bin/jstatd
-  # TODO: if: {{version.major}} >= 21
+  # TODO: this bin should only be available in jdk21+
+  # https://github.com/pkgxdev/libpkgx/issues/68
   # - bin/jwebserver
   - bin/keytool
   - bin/rmiregistry
