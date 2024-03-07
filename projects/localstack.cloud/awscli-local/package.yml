@@ -10,13 +10,14 @@ versions:
 
 dependencies:
   pkgx.sh: ^1
+  aws.amazon.com/cli: ^2
 
 build:
   dependencies:
     python.org: ^3.11
   script:
     - bkpyvenv stage {{prefix}} {{version}}
-    - ${{prefix}}/venv/bin/pip install -r requirements.txt
+    - ${{prefix}}/venv/bin/pip install .
     - bkpyvenv seal {{prefix}} awslocal
 
 provides:
@@ -24,4 +25,4 @@ provides:
 
 test:
   - awslocal --version
-  - test "$(awslocal --version)" = {{version}}
+  - awslocal --version | grep aws-cli/2
