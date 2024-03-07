@@ -64,16 +64,11 @@ build:
   script:
     - run: wget -c ${BOOT_JDK{{version.major}}}_${JDK_ARCH}_bin.tar.gz -O - | tar xz -C . --strip-components=$STRIP
       working-directory: boot-jdk
-    # autoconf won't find llvm-cxxfilt for c++filt, and won't take an envvar
-    - run: sed -i -e's/c..filt/llvm-cxxfilt/' toolchain.m4
-      working-directory: make/autoconf
-      if: linux
-    - run: version_args=--with-version-build={{version.minor}}
-      if: '>=12'
-    - run: version_args="--disable-hotspot-gtest --with-conf-name=release --with-jvm-features=shenandoahgc"
+    - run: extra_args="--disable-hotspot-gtest --with-jvm-features=shenandoahgc --with-conf-name=release"
       if: <12
-    - bash configure $ARGS $version_args
+    - bash configure $ARGS $extra_args
       --with-boot-jdk="$BOOT_JDK_DIR"
+      --with-version-build=$(echo {{version.raw}} | grep -o '[0-9]\+$')
       --with-vendor-version-string="pkgx@$(pkgx --version | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+')"
       --with-extra-cflags="$CFLAGS"
       --with-extra-cxxflags="$CXXFLAGS"
@@ -101,7 +96,7 @@ build:
         - --with-freetype=system
         - --with-stdc++lib=dynamic
         - --with-toolchain-type=clang
-        - CXXFILT=llvm-cxxfilt # apparently not required in CI
+        - CXXFILT=llvm-cxxfilt
     darwin/aarch64:
       JDK_ARCH: macos-aarch64
     darwin/x86-64:
@@ -128,8 +123,8 @@ build:
       - --with-vendor-name="tea.xyz"
       - --with-vendor-url="https://github.com/teaxyz/pantry/issues"
       - --with-vendor-vm-bug-url="https://github.com/teaxyz/pantry/issues"
-      - --without-version-opt
-      - --without-version-pre
+      - --with-version-opt=""
+      - --with-version-pre=""
       - --with-giflib=system
       - --with-harfbuzz=system
       - --with-lcms=system
