@@ -68,12 +68,19 @@ build:
     - run: sed -i -e's/c..filt/llvm-cxxfilt/' toolchain.m4
       working-directory: make/autoconf
       if: linux
-    - bash configure $ARGS
-      --with-boot-jdk="$BOOT_JDK_DIR"
-      --with-vendor-version-string="$(pkgx --version | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+')"
-      --with-extra-cflags="$CFLAGS"
-      --with-extra-cxxflags="$CXXFLAGS"
-      --with-extra-ldflags="$LDFLAGS"
+    - |
+      if [ {{version.major}} -gt 11 ]; then
+        version_args=--with-version-build={{version.minor}}
+      else
+        version_args="--disable-hotspot-gtest --with-conf-name=release --with-jvm-features=shenandoahgc"
+      fi
+
+      bash configure $ARGS $version_args \
+        --with-boot-jdk="$BOOT_JDK_DIR" \
+        --with-vendor-version-string="$(pkgx --version | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+')" \
+        --with-extra-cflags="$CFLAGS" \
+        --with-extra-cxxflags="$CXXFLAGS" \
+        --with-extra-ldflags="$LDFLAGS"
     - make images
     - mkdir -p {{prefix}}
     - mv $JDK_DIR {{prefix}}/
@@ -85,16 +92,18 @@ build:
       JDK_DIR: build/*/images/jdk-bundle/jdk-{{version.marketing}}.{{version.patch}}.jdk/Contents/Home/*
       ARGS:
         - --enable-dtrace
+        # - --with-sysroot=#{MacOS.sdk_path} # from homebrew's formulae
     linux:
       STRIP: 1
       BOOT_JDK_DIR: $SRCROOT/boot-jdk
       JDK_DIR: build/*/images/jdk/*
       ARGS:
+        - --with-x={{deps.x.org/x11.prefix}} # from homebrew's formulae
         - --with-cups={{deps.openprinting.github.io/cups.prefix}}
         - --with-fontconfig={{deps.freedesktop.org/fontconfig.prefix}}
         - --with-freetype=system
         - --with-stdc++lib=dynamic
-        - --with-toolchain-type=clang
+        - --with-toolchain-type=clang # not in brew's formulae
     darwin/aarch64:
       JDK_ARCH: macos-aarch64
     darwin/x86-64:
@@ -121,7 +130,6 @@ build:
       - --with-vendor-name="tea.xyz"
       - --with-vendor-url="https://github.com/teaxyz/pantry/issues"
       - --with-vendor-vm-bug-url="https://github.com/teaxyz/pantry/issues"
-      - --with-version-build={{version.minor}}
       - --without-version-opt
       - --without-version-pre
       - --with-giflib=system
