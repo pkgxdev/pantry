@@ -64,9 +64,9 @@ build:
   script:
     - run: |
         BOOT_JDK_VERSION="${BOOT_JDK{{version.major}}_VERSION}"
-        BOOT_JDK_MAJOR=$(echo "$version" | grep -o '^[0-9]\+')
-        BOOT_JDK_URL="https://github.com/adoptium/temurin${BOOT_JDK_MAJOR}-binaries/releases/download/jdk-${BOOT_JDK_VERSION}/OpenJDK${BOOT_JDK_MAJOR}U-jdk_${BOOT_JDK_ARCH}_mac_hotspot_${BOOT_JDK_VERSION//+/_}.tar.gz"
-        wget -c "${BOOT_JDK_URL}" -O - | tar xz -C . --strip-components=$STRIP
+        BOOT_JDK_MAJOR=$(echo "${BOOT_JDK_VERSION}" | grep -o '^[0-9]\+')
+        BOOT_JDK_URL="https://github.com/adoptium/temurin${BOOT_JDK_MAJOR}-binaries/releases/download/jdk-${BOOT_JDK_VERSION}/OpenJDK${BOOT_JDK_MAJOR}U-jdk_${BOOT_JDK_ARCH}_hotspot_${BOOT_JDK_VERSION//+/_}.tar.gz"
+        wget -c "${BOOT_JDK_URL}" -O - | tar xz -C . --strip-components=1
       working-directory: boot-jdk
     - run: |
         ARGS+=" --disable-hotspot-gtest --with-jvm-features=shenandoahgc --with-conf-name=release"
@@ -85,14 +85,12 @@ build:
   env:
     MAKE_ARGS: 'JOBS={{ hw.concurrency }}'
     darwin:
-      STRIP: 2
       BOOT_JDK_DIR: $SRCROOT/boot-jdk/Contents/Home
       JDK_DIR: build/*/images/jdk-bundle/jdk-{{version.marketing}}.{{version.patch}}.jdk/Contents/Home/*
       ARGS:
         - --enable-dtrace
         - --with-sysroot=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
     linux:
-      STRIP: 1
       BOOT_JDK_DIR: $SRCROOT/boot-jdk
       JDK_DIR: build/*/images/jdk/*
       ARGS:
@@ -104,9 +102,9 @@ build:
         - --with-toolchain-type=clang
         - CXXFILT=llvm-cxxfilt
     darwin/aarch64:
-      BOOT_JDK_ARCH: aarch64_macos
+      BOOT_JDK_ARCH: aarch64_mac
     darwin/x86-64:
-      BOOT_JDK_ARCH: x64_macos
+      BOOT_JDK_ARCH: x64_mac
     linux/aarch64:
       BOOT_JDK_ARCH: aarch64_linux
     linux/x86-64:
@@ -114,9 +112,13 @@ build:
 
     # the boot jdk should point to the last version of the previous major version
     # or the last previous version of the current major version
+    # https://github.com/adoptium/temurin21-binaries/releases
     BOOT_JDK21_VERSION: 21.0.2+13
+    # https://github.com/adoptium/temurin20-binaries/releases
     BOOT_JDK20_VERSION: 20.0.2+9
+    # https://github.com/adoptium/temurin17-binaries/releases
     BOOT_JDK17_VERSION: 17.0.9+9
+    # https://github.com/adoptium/temurin11-binaries/releases
     BOOT_JDK11_VERSION: 11.0.22+7
 
     ARGS:

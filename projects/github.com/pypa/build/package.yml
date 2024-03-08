@@ -1,18 +1,22 @@
 distributable:
-  url: https://github.com/pypa/build/archive/refs/tags/{{version}}.tar.gz
+  url: https://github.com/pypa/build/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
   github: pypa/build/tags
 
 dependencies:
-  python.org: '>=3<3.12'
+  pkgx.sh: ^1
 
-build: python-venv.sh {{prefix}}/bin/pyproject-build
+build:
+  dependencies:
+    python.org: '>=3<3.12'
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} pyproject-build
 
 provides:
   - bin/pyproject-build
 
-test:
-  script: |
-    pyproject-build --version | grep {{version}}
+test: pyproject-build --version | grep {{version}}
