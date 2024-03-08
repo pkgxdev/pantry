@@ -56,28 +56,34 @@ runtime:
 build:
   dependencies:
     linux:
-      llvm.org: <17
+      llvm.org: <16 # due to jdk11, jdk17+ compiles with llvm.org <17
       gnu.org/make: '*'
     gnu.org/autoconf: '*'
     freedesktop.org/pkg-config: '*'
     gnu.org/wget: '*'
   script:
-    - run: wget -c ${BOOT_JDK{{version.major}}}_${JDK_ARCH}_bin.tar.gz -O - | tar xz -C . --strip-components=$STRIP
+    - run: |
+        BOOT_JDK_VERSION="${BOOT_JDK{{version.major}}_VERSION}"
+        BOOT_JDK_MAJOR=$(echo "$version" | grep -o '^[0-9]\+')
+        BOOT_JDK_URL="https://github.com/adoptium/temurin${BOOT_JDK_MAJOR}-binaries/releases/download/jdk-${BOOT_JDK_VERSION}/OpenJDK${BOOT_JDK_MAJOR}U-jdk_${BOOT_JDK_ARCH}_mac_hotspot_${BOOT_JDK_VERSION//+/_}.tar.gz"
+        wget -c "${BOOT_JDK_URL}" -O - | tar xz -C . --strip-components=$STRIP
       working-directory: boot-jdk
-    - run: extra_args="--disable-hotspot-gtest --with-jvm-features=shenandoahgc --with-conf-name=release"
+    - run: |
+        ARGS+=" --disable-hotspot-gtest --with-jvm-features=shenandoahgc --with-conf-name=release"
+        MAKE_ARGS+=" CONF=release"
       if: <12
-    - bash configure $ARGS $extra_args
+    - bash configure $ARGS
       --with-boot-jdk="$BOOT_JDK_DIR"
       --with-version-build=$(echo {{version.raw}} | grep -o '[0-9]\+$')
       --with-vendor-version-string="pkgx@$(pkgx --version | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+')"
       --with-extra-cflags="$CFLAGS"
       --with-extra-cxxflags="$CXXFLAGS"
       --with-extra-ldflags="$LDFLAGS"
-    - make images
+    - make images $MAKE_ARGS
     - mkdir -p {{prefix}}
     - mv $JDK_DIR {{prefix}}/
   env:
-    MAKEFLAGS: 'JOBS={{ hw.concurrency }}'
+    MAKE_ARGS: 'JOBS={{ hw.concurrency }}'
     darwin:
       STRIP: 2
       BOOT_JDK_DIR: $SRCROOT/boot-jdk/Contents/Home
@@ -98,21 +104,20 @@ build:
         - --with-toolchain-type=clang
         - CXXFILT=llvm-cxxfilt
     darwin/aarch64:
-      JDK_ARCH: macos-aarch64
+      BOOT_JDK_ARCH: aarch64_macos
     darwin/x86-64:
-      JDK_ARCH: macos-x64
+      BOOT_JDK_ARCH: x64_macos
     linux/aarch64:
-      JDK_ARCH: linux-aarch64
+      BOOT_JDK_ARCH: aarch64_linux
     linux/x86-64:
-      JDK_ARCH: linux-x64
+      BOOT_JDK_ARCH: x64_linux
 
-    # from https://jdk.java.net/archive/
     # the boot jdk should point to the last version of the previous major version
     # or the last previous version of the current major version
-    BOOT_JDK21: https://download.java.net/java/GA/jdk21.0.1/415e3f918a1f4062a0074a2794853d0d/12/GPL/openjdk-21.0.1
-    BOOT_JDK20: https://download.java.net/java/GA/jdk20.0.2/6e380f22cbe7469fa75fb448bd903d8e/9/GPL/openjdk-20.0.2
-    BOOT_JDK17: https://download.java.net/java/GA/jdk17.0.2/dfd4a8d0985749f896bed50d7138ee7f/8/GPL/openjdk-17.0.2
-    BOOT_JDK11: https://download.java.net/java/GA/jdk11/9/GPL/openjdk-11.0.2
+    BOOT_JDK21_VERSION: 21.0.2+13
+    BOOT_JDK20_VERSION: 20.0.2+9
+    BOOT_JDK17_VERSION: 17.0.9+9
+    BOOT_JDK11_VERSION: 11.0.22+7
 
     ARGS:
       - --disable-warnings-as-errors
