@@ -16,7 +16,6 @@ provides:
   - bin/grpc_cli
 
 dependencies:
-  abseil.io: '*'
   c-ares.org: '*'
   openssl.org: ^1.1
   protobuf.dev: 25.2.0 # grpc links to specific versions, so we have to pick one.
@@ -60,7 +59,7 @@ build:
       - -DCMAKE_CXX_STANDARD_REQUIRED=TRUE
       - -DgRPC_BUILD_TESTS=OFF
       - -DgRPC_INSTALL=ON
-      - -DgRPC_ABSL_PROVIDER=package
+      - -DgRPC_ABSL_PROVIDER=module # otherwise we get version wonkiness
       - -DgRPC_CARES_PROVIDER=package
       - -DgRPC_PROTOBUF_PROVIDER=package
       - -DgRPC_SSL_PROVIDER=package
@@ -68,10 +67,6 @@ build:
       - -DgRPC_RE2_PROVIDER=package
     CLI_ARGS:
       - -DgRPC_BUILD_TESTS=ON
-    linux:
-      # likely needs bumping to an unreleased abseil.io version
-      # ld.lld: error: undefined reference due to --no-allow-shlib-undefined: absl::lts_20230802::Cord::Cord<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>, 0>(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>&&)
-      LDFLAGS: $LDFLAGS -Wl,--allow-shlib-undefined
 
 test:
   dependencies:
