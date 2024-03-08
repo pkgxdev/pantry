@@ -47,6 +47,11 @@ build:
     - run: install_name_tool -add_rpath @loader_path libgrpc++_test_config.dylib
       working-directory: '{{prefix}}/lib'
       if: darwin
+
+    # clang doesn't like these on darwin/x86-64
+    - run: sed -i 's/-Xarch_(x86_64|arm64)//g' *.pc
+      working-directory: '{{prefix}}/lib/pkgconfig'
+      if: darwin/x86-64
   env:
     COMMON_ARGS:
       - -DCMAKE_BUILD_TYPE=Release
