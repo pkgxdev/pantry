@@ -1,0 +1,46 @@
+distributable:
+  url: https://github.com/CESNET/libyang/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+display-name: libyang
+
+versions:
+  github: CESNET/libyang
+  strip:
+    - /^v/
+
+# this is an key/list of platforms that the package supports
+# usually omitted, which will default to all platforms
+#platforms:
+#  - darwin
+#  - linux/x86-64
+
+dependencies:
+  pcre.org/v2: '*'
+
+build:
+  dependencies:
+    graphviz.org: '*'
+    freedesktop.org/pkg-config: '*' 
+    doxygen.nl: '*'
+    pcre.org/v2: '*'
+    gnu.org/gcc: '*'
+    cmake.org: ^3
+  script: |
+    mkdir build
+    cd build
+    CC=gcc cmake ${ARGS} ..
+    make
+    make install
+
+  env:
+    ARGS:
+    - -DCMAKE_BUILD_TYPE=Release
+    - -DCMAKE_INSTALL_PREFIX={{prefix}}
+
+
+provides:
+  - bin/yanglint
+  - bin/yangre
+
+test: test "$(yangre --version|cut -d' ' -f2)" = {{version}}
