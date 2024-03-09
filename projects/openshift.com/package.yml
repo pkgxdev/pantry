@@ -16,13 +16,14 @@ build:
     - make $ARGS
     - install -D _output/bin/{{hw.platform}}_${ARCH}/oc {{prefix}}/bin/oc
   env:
-    x86-64:
-      ARCH: amd64
-    aarch64:
-      ARCH: arm64
     ARGS:
-      - cross-build-{{hw.platform}}-${ARCH}
       - OS_GIT_VERSION={{version}}
+    x86-64:
+      ARGS:
+        - cross-build-{{hw.platform}}-amd64
+    aarch64:
+      ARGS:
+        - cross-build-{{hw.platform}}-arm64
     linux:
       ARGS:
         # https://github.com/openshift/oc/issues/562
