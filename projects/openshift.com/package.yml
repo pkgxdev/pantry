@@ -11,15 +11,22 @@ dependencies:
 
 build:
   dependencies:
-    go.dev: ~1.21
+    go.dev: ^1.21
   script:
-    - make cross-build-{{hw.platform}}-${ARCH} OS_GIT_VERSION={{version}} GO_REQUIRED_MIN_VERSION:=1.21
+    - make $ARGS
     - install -D _output/bin/{{hw.platform}}_${ARCH}/oc {{prefix}}/bin/oc
   env:
     x86-64:
       ARCH: amd64
     aarch64:
       ARCH: arm64
+    ARGS:
+      - cross-build-{{hw.platform}}-${ARCH}
+      - OS_GIT_VERSION={{version}}
+    linux:
+      ARGS:
+        # https://github.com/openshift/oc/issues/562
+        - SHELL=/bin/bash
 
 provides:
   - bin/oc
