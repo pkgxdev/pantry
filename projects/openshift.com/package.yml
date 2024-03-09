@@ -16,16 +16,15 @@ build:
     - make $ARGS
     - install -D _output/bin/{{hw.platform}}_${ARCH}/oc {{prefix}}/bin/oc
   env:
-    ARGS:
-      - OS_GIT_VERSION={{version}}
+    # Without declaring ARCH, cross-build-{{hw.platform}}-${ARCH} will execute like cross-build-{{hw.platform}}-
+    ARCH:
     x86-64:
       ARCH: amd64
-      ARGS:
-        - cross-build-{{hw.platform}}-amd64
     aarch64:
       ARCH: arm64
-      ARGS:
-        - cross-build-{{hw.platform}}-arm64
+    ARGS:
+      - cross-build-{{hw.platform}}-${ARCH}
+      - OS_GIT_VERSION={{version}}
     linux:
       ARGS:
         # https://github.com/openshift/oc/issues/562
