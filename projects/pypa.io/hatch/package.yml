@@ -1,0 +1,26 @@
+distributable:
+  # Make sure you're either building from a fully intact git repository 
+  url: git+https://github.com/pypa/hatch.git
+  ref: ${{version.tag}}
+
+versions:
+  github: pypa/hatch
+  strip: /hatchling-v/
+
+dependencies:
+  python.org: ~3.12
+
+runtime:
+  env:
+    PYTHONPATH: ${{prefix}}/lib/python3.12/site-packages:$PYTHONPATH
+
+build:
+  python -m pip install --prefix={{prefix}} .
+
+provides:
+  - bin/hatch
+  - bin/hatchling
+
+test:
+  - hatch env create 2>&1 | grep 'Creating environment'
+  - python -c 'import hatchling'
