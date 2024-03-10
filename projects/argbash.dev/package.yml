@@ -1,0 +1,27 @@
+distributable:
+  url: https://github.com/matejak/argbash/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: matejak/argbash
+
+dependencies:
+  gnu.org/bash: '>=3.0'
+
+build:
+  dependencies:
+    gnu.org/autoconf: '*'
+  script:
+    - run: make develop PREFIX={{prefix}}
+      working-directory: resources
+  
+provides:
+  - bin/argbash
+  - bin/argbash-init
+  - bin/argbash-1to2
+
+test:
+  - argbash-init --pos positional-arg --opt option --opt-bool print minimal.m4
+  - cat minimal.m4 | grep 'This is just a script template'
+  - argbash --version | grep {{version}}
+  - argbash --help | grep 'Argbash is an argument parser generator for Bash'
