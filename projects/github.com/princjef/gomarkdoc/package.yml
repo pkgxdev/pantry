@@ -1,0 +1,34 @@
+distributable:
+  url: https://github.com/princjef/gomarkdoc/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+display-name: gomarkdoc
+
+versions:
+  github: princjef/gomarkdoc
+  strip: /^v/
+
+build:
+  dependencies:
+    go.dev: ^1.18
+  env:
+    CGO_ENABLED: 0
+    LDFLAGS:
+      - -extldflags=-static
+      - -w
+      - -s
+      - -X=main.version=v{{version}}
+  script:
+    - go mod download
+    - go build -ldflags="$LDFLAGS" -o gomarkdoc ./cmd/gomarkdoc
+    - mkdir -p "{{ prefix }}"/bin
+    - mv gomarkdoc "{{ prefix }}"/bin
+
+provides:
+  - bin/gomarkdoc
+
+test:
+  script:
+    - test "$(gomarkdoc --version)" = "v{{version}}"
+    - gomarkdoc -o example.md
+    - test -f example.md
