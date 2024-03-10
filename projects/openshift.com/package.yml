@@ -15,6 +15,10 @@ build:
     linux:
       gnu.org/gcc: '*' # aarch64 wants `ld.gold`
   script:
+    # linux builds like to segfault without -buildmode=pie
+    - run: sed -i 's/GO_LD_EXTRAFLAGS :=/GO_LD_EXTRAFLAGS :=-buildmode=pie /' Makefile
+      if: linux
+
     - make $ARGS
     - install -D _output/bin/{{hw.platform}}_${ARCH}/oc {{prefix}}/bin/oc
   env:
