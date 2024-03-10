@@ -52,7 +52,7 @@ runtime:
 build:
   dependencies:
     linux:
-      llvm.org: <16 # due to jdk11, jdk17+ compiles with llvm.org <17
+      llvm.org: ^16
       gnu.org/make: '*'
     gnu.org/autoconf: '*'
     freedesktop.org/pkg-config: '*'
@@ -63,10 +63,19 @@ build:
         BOOT_JDK_MAJOR=$(echo "${BOOT_JDK_VERSION}" | grep -o '^[0-9]\+')
         BOOT_JDK_URL="https://github.com/adoptium/temurin${BOOT_JDK_MAJOR}-binaries/releases/download/jdk-${BOOT_JDK_VERSION}/OpenJDK${BOOT_JDK_MAJOR}U-jdk_${BOOT_JDK_ARCH}_hotspot_${BOOT_JDK_VERSION//+/_}.tar.gz"
         wget -c "${BOOT_JDK_URL}" -O - | tar xz -C . --strip-components=1
+        unset BOOT_JDK_VERSION BOOT_JDK_MAJOR BOOT_JDK_URL
       working-directory: boot-jdk
     - run: |
         ARGS+=" --disable-hotspot-gtest --with-jvm-features=shenandoahgc --with-conf-name=release"
         MAKE_ARGS+=" CONF=release"
+
+        LLVM_VERSION_MAJOR='12'
+        pkgx "+llvm.org^${LLVM_VERSION_MAJOR}"
+        LLVM_BIN_PATH="$(realpath "{{deps.llvm.org.prefix}}/../v${LLVM_VERSION_MAJOR}/bin")"
+        PATH_WITHOUT_LLVM="$(echo "${PATH}" | tr ':' '\n' | grep -v '/llvm.org/' | tr '\n' ':')"
+        export PATH="${LLVM_BIN_PATH}:${PATH_WITHOUT_LLVM}"
+        clang --version | grep "clang version ${LLVM_VERSION_MAJOR}"
+        unset LLVM_VERSION_MAJOR LLVM_BIN_PATH PATH_WITHOUT_.LLVM
       if: <12
     - bash configure $ARGS
       --with-boot-jdk="$BOOT_JDK_DIR"
