@@ -12,6 +12,9 @@ build:
   dependencies:
     go.dev: ^1.22
     pnpm.io: '*'
+    linux:
+      # error: invalid linker name in argument '-fuse-ld=gold'
+      gnu.org/gcc: '*'
   script:
     ./scripts/build_bytebase.sh {{prefix}}/bin
 
@@ -25,7 +28,7 @@ test:
     - bytebase version | grep {{version}}
     - bytebase --port 2222 > out.log 2>&1 &
     - PID=$!
-    - sleep 15
+    - sleep 35
     - curl -L http://localhost:2222 | grep 'Bytebase'
     - kill $PID
     - cat out.log | grep 'has started on port 2222'
