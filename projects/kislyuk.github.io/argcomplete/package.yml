@@ -7,15 +7,22 @@ versions:
   github: kislyuk/argcomplete
 
 dependencies:
-  python.org: ~3.12
+  pkgx.sh: ^1
 
 runtime:
   env:
-    PYTHONPATH: ${{prefix}}/lib/python3.12/site-packages:$PYTHONPATH
+    PYTHONPATH: ${{prefix}}/lib/python3/site-packages:$PYTHONPATH
 
 build:
-  - python -m pip install setuptools wheel
-  - python -m pip install --prefix={{prefix}} .
+  dependencies:
+    python.org: ~3.12
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install setuptools wheel
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} activate-global-python-argcomplete register-python-argcomplete python-argcomplete-check-easy-install-script
+    - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
+      working-directory: ${{prefix}}/venv/lib
 
 provides:
   - bin/activate-global-python-argcomplete
