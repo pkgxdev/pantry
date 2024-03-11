@@ -1,0 +1,23 @@
+distributable:
+  url: https://github.com/jonas/tig/releases/download/{{version.tag}}/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: jonas/tig
+  strip: /tig-/
+
+provides:
+  - bin/tig
+
+dependencies:
+  gnu.org/libiconv: ^1
+  invisible-island.net/ncurses: ^6
+
+build:
+  script:
+    - ./configure --prefix={{prefix}}
+    - make prefix={{prefix}}
+    - make prefix={{prefix}} install
+
+# FIXME: testing curses stuff
+test: tig --help

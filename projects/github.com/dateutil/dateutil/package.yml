@@ -1,0 +1,17 @@
+distributable:
+  url: git+https://github.com/dateutil/dateutil.git
+  ref: ${{version.tag}}
+
+versions:
+  github: dateutil/dateutil
+
+dependencies:
+  github.com/benjaminp/six: ^1.16
+  python.org: ~3.11
+
+runtime:
+  env:
+    PYTHONPATH: ${{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH
+
+build: python -m pip install --prefix={{prefix}} .
+test: python -c 'import dateutil; print(dateutil.__version__)' | grep {{version}}

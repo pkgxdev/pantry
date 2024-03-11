@@ -1,0 +1,30 @@
+distributable:
+  url: https://github.com/skx/marionette/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+display-name: marionette
+
+versions:
+  github: skx/marionette 
+  strip:
+    - /^v/
+
+build:
+  dependencies:
+    go.dev: '*'
+  env:
+    CGO_ENABLED: 0
+    LDFLAGS:
+    - -s
+    - -w
+    - -X main.version={{version}} 
+    linux:
+      LDFLAGS:
+      - -buildmode=pie
+  script: go build -v -ldflags="${LDFLAGS}" -o "{{ prefix }}"/bin/marionette
+
+
+provides:
+  - bin/marionette
+
+test: test "$(marionette -version|head -1)" = {{version}}

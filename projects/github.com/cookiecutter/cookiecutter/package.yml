@@ -1,0 +1,29 @@
+distributable:
+  url: https://github.com/cookiecutter/cookiecutter/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: cookiecutter/cookiecutter
+
+dependencies:
+  pkgx.sh: ^1
+
+build:
+  dependencies:
+    python.org: ~3.12
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} cookiecutter
+
+provides:
+  - bin/cookiecutter
+
+test:
+  dependencies:
+    git-scm.org: '*'
+  script:
+    - git clone https://github.com/audreyr/cookiecutter-pypackage.git
+    - cookiecutter --no-input cookiecutter-pypackage
+    - ls | grep 'python_boilerplate'
+    - cookiecutter --version | grep {{version}}

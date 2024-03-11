@@ -1,0 +1,63 @@
+distributable:
+  url: https://github.com/astral-sh/uv/releases/download/{{version}}/source.tar.gz
+  strip-components: 1
+
+versions:
+  github: astral-sh/uv
+
+provides:
+  - bin/uv
+
+companions:
+  python.org: '*'
+
+dependencies:
+  libgit2.org: ^1.7
+
+build:
+  dependencies:
+    linux:
+      nixos.org/patchelf: ^0.18
+    cmake.org: ^3.28
+    rust-lang.org/cargo: ^0.77
+    maturin.rs: ^1.4.0
+    info-zip.org/unzip: ^6
+  script:
+    - maturin build --locked --release --out ./out
+    - run:
+        - unzip ./uv-{{version}}-*.whl
+        - install -D ./uv-{{version}}.data/scripts/uv {{prefix}}/bin/uv
+      working-directory: out
+
+test:
+  dependencies:
+    curl.se: '*'
+  script:
+    - uv --version | grep {{version}}
+    - fixture:
+        contents: |
+          from flask import Flask
+          app = Flask(__name__)
+          @app.route("/")
+          def hello_world():
+            return "<p>Hello, World!</p>"
+        extname: .py
+      run:
+      - |
+        if which flask; then
+          false
+        fi
+      - |
+        uv venv
+        source .venv/bin/activate
+        uv pip install flask
+      - |
+        mv $FIXTURE app.py
+        set -m
+        flask run &
+        PID=$!
+      # otherwise the server may not be ready
+      - sleep 4
+      - test "$(curl 127.0.0.1:5000)" = "<p>Hello, World!</p>"
+      # TODO need to install a signal handler or our build servers could be left with a running flask process
+      - kill $PID

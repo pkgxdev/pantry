@@ -1,0 +1,31 @@
+distributable:
+  url: https://github.com/uriparser/uriparser/releases/download/uriparser-{{version}}/uriparser-{{version}}.tar.bz2
+  strip-components: 1
+
+versions:
+  github: uriparser/uriparser
+  strip: /^uriparser-/
+
+build:
+  dependencies:
+    cmake.org: '*'
+  script:
+    - cmake -S . -B build $ARGS
+    - cmake --build build
+    - cmake --install build
+  env:
+    ARGS:
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}
+      - -DCMAKE_INSTALL_LIBDIR=lib
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_FIND_FRAMEWORK=LAST
+      - -DCMAKE_VERBOSE_MAKEFILE=ON
+      - -Wno-dev
+      - -DBUILD_TESTING=OFF
+      - -DURIPARSER_BUILD_TESTS=OFF
+      - -DURIPARSER_BUILD_DOCS=OFF
+
+provides:
+  - bin/uriparse
+
+test: uriparse https://pkgx.dev/pkgs/pkgx.sh/brewkit/ | grep 'pathSeg'

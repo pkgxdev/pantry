@@ -1,0 +1,57 @@
+distributable:
+  url: https://github.com/shirok/Gauche/releases/download/{{version.tag}}/Gauche-{{version}}.tgz
+  strip-components: 1
+
+versions:
+  github: shirok/Gauche
+  strip: /^release/
+
+dependencies:
+  curl.se/ca-certs: '>=2023'
+  github.com/Mbed-TLS/mbedtls: ^3.5
+  github.com/besser82/libxcrypt: ^4.4
+  zlib.net: ^1.3
+
+runtime:
+  env:
+    GAUCHE_LOAD_PATH: ${{prefix}}/share/GAUCHE_LOAD_PATH:{{prefix}}/share/GAUCHE_LOAD_PATH/gauche:$GAUCHE_LOAD_PATH
+    GAUCHE_DYNLOAD_PATH: ${{prefix}}/lib/GAUCHE_DYNLOAD_PATH:$GAUCHE_DYNLOAD_PATH
+
+build:
+  script:
+    - ./configure $ARGS
+    - make --jobs {{hw.concurrency}}
+    - make --jobs {{hw.concurrency}} install
+    - run: fix-shebangs.ts gauche-cesconv gauche-install gauche-package
+      working-directory: ${{prefix}}/bin
+    
+    # create symlink to share/gauche-0.98/0.9.14/lib
+    - run: GAUCHE_DIR=$(ls -d */ | grep gauche)
+      working-directory: ${{prefix}}/lib
+    - run: ln -s ${GAUCHE_DIR}/{{version}}/lib GAUCHE_LOAD_PATH
+      working-directory: ${{prefix}}/share
+
+    # create symlink to lib/gauche-0.98/0.9.14/aarch64-apple-darwin23.2.0
+    - run: GAUCHE_PLATFORM_DIR=$(ls -d */ | grep -i $(uname -s))
+      working-directory: ${{prefix}}/lib/${GAUCHE_DIR}/{{version}}
+    - run: ln -s ${GAUCHE_DIR}/{{version}}/${GAUCHE_PLATFORM_DIR} GAUCHE_DYNLOAD_PATH
+      working-directory: ${{prefix}}/lib
+  env:
+    ARGS:
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --prefix={{prefix}}
+      - --libdir={{prefix}}/lib
+      - --enable-multibyte=utf-8
+      - --with-ca-bundle={{deps.curl.se/ca-certs.prefix}}/ssl/cert.pem
+
+provides:
+  - bin/gauche-cesconv
+  - bin/gauche-config
+  - bin/gauche-install
+  - bin/gauche-package
+  - bin/gosh
+
+test:
+  - gosh -V | grep {{version}}
+  - gosh test.scm | grep {{version}}

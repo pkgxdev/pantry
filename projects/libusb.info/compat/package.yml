@@ -1,0 +1,43 @@
+distributable:
+  url: https://downloads.sourceforge.net/project/libusb/libusb-compat-{{version.marketing}}/libusb-compat-{{version}}/libusb-compat-{{version}}.tar.bz2
+  strip-components: 1
+
+display-name: libusb-compat
+
+versions:
+  url: https://sourceforge.net/projects/libusb/rss
+  match: /libusb-compat-\d+\.\d+\.\d+\.tar\.bz2/
+  strip:
+    - /^libusb-compat-/
+    - /\.tar\.bz2/
+
+dependencies:
+  libusb.info: ^1
+
+build:
+  dependencies:
+    gnu.org/autoconf: '*'
+    gnu.org/automake: '*'
+    gnu.org/libtool: '*'
+    linux/aarch64:
+      # for libudev
+      systemd.io: '*'
+  script:
+    - ./configure $ARGS
+    - make --jobs {{hw.concurrency}} install
+    - run: sed -i 's|{{prefix}}|$(dirname $0)/..|g' libusb-config
+      working-directory: ${{prefix}}/bin
+  env:
+    ARGS:
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --prefix={{prefix}}
+      - --libdir={{prefix}}/lib
+
+provides:
+  - bin/libusb-config
+
+test: 
+  - libusb-config --libs | grep {{prefix}}
+  - cc test.c -o test -lusb
+  - ./test

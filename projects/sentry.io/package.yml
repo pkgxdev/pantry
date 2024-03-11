@@ -1,0 +1,29 @@
+distributable:
+  url: https://github.com/getsentry/sentry-cli/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: getsentry/sentry-cli
+
+dependencies:
+  libgit2.org: ^1.7
+
+build:
+  dependencies:
+    rust-lang.org: ^1.65
+    rust-lang.org/cargo: '*'
+  script:
+    - cargo install $ARGS
+  env:
+    ARGS:
+      - --locked
+      - --root={{prefix}}
+      - --path=.
+
+provides:
+  - bin/sentry-cli
+
+test:
+  - sentry-cli --version | grep {{version}}
+  - sentry-cli --url='https://sentry.io/' --auth-token='testtoken' releases list > out.log 2>&1 || true
+  - cat out.log | grep 'Did you copy your token correctly?'

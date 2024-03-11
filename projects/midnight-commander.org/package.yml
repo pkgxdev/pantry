@@ -51,5 +51,10 @@ build:
       - --with-screen=ncurses
 
 # FIXME: hard to test interactive tools
-test: test "$(mc --datadir | cut -d ' ' -f1 | cut -d':' -f1)" = "{{prefix}}/etc/mc/"
+test:
+  env:
+    TERM: vt100  # needs $TERM set to run
+  script:
+    - mc --datadir
+    - test "$(mc --datadir | cut -d ' ' -f1 | cut -d':' -f1)" = "{{prefix}}/etc/mc/"
 # ^^ tests relocatability

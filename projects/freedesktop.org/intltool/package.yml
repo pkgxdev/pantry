@@ -1,0 +1,55 @@
+distributable:
+  url: https://launchpad.net/intltool/trunk/{{version}}/+download/intltool-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://launchpad.net/intltool/+download
+  match: /intltool-\d+\.\d+\.\d+.tar.gz/
+  strip:
+    - /^intltool-/
+    - /\.tar\.gz$/
+
+dependencies:
+  perl.org: ~5
+  linux:
+    libexpat.github.io: ^2.6
+
+runtime:
+  env:
+    PERL5LIB: ${{prefix}}/lib/perl5:{{prefix}}/libexec/lib/perl5:$PERL5LIB
+
+build:
+  dependencies:
+    cpanmin.us: '*'
+  script:
+    - cpanm -l {{prefix}} XML::Parser File::Basename Getopt::Long --force
+    - ./configure $ARGS
+    - make --jobs {{hw.concurrency}} install
+    - run: fix-shebangs.ts *
+      working-directory: '{{prefix}}/bin'
+  env:
+    PERL5LIB: ${{prefix}}/lib/perl5:{{prefix}}/libexec/lib/perl5:$PERL5LIB
+    ARGS:
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --disable-silent-rules
+      - --prefix={{prefix}}
+      - --libdir={{prefix}}/lib
+
+provides:
+  - bin/intltool-extract
+  - bin/intltool-merge
+  - bin/intltool-prepare
+  - bin/intltool-update
+  - bin/intltoolize
+  - bin/lwp-download
+  - bin/lwp-dump
+  - bin/lwp-mirror
+  - bin/lwp-request
+
+test:
+  - intltool-extract --help
+  - intltoolize --version | grep {{version}}
+  - intltool-extract --type=gettext/xml test.xml
+  - cat test.xml.h | grep 'This comment is not ignored'
+  - cat test.xml.h | grep 'This comment is ignored' || true

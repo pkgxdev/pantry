@@ -1,0 +1,25 @@
+distributable:
+  url: git+https://github.com/railwayapp/nixpacks.git
+  ref: ${{version.tag}}
+
+versions:
+  github: railwayapp/nixpacks
+
+build:
+  dependencies:
+    rust-lang.org: ^1.65
+    rust-lang.org/cargo: '*'
+  script:
+    - cargo install $ARGS
+  env:
+    ARGS:
+      - --root={{prefix}}
+      - --path=.
+
+provides:
+  - bin/nixpacks
+
+test:
+  - nixpacks build $PWD --name test > out.log || true
+  - cat out.log | grep 'Nixpacks was unable to generate a build plan for this app'
+  - nixpacks -V | grep {{version}}

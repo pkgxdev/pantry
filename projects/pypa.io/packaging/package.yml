@@ -1,0 +1,21 @@
+distributable:
+  url: git+https://github.com/pypa/packaging.git
+  ref: ${{version.tag}}
+
+versions:
+  github: pypa/packaging
+
+dependencies:
+  python.org: '>=3.11'
+
+runtime:
+  env:
+    PYTHONPATH: ${{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages:$PYTHONPATH
+
+build:
+  - python -m pip install --prefix={{prefix}} .
+  - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
+    working-directory: ${{prefix}}/lib
+
+test:
+  - python -c 'import packaging; print(packaging.__version__);' | grep {{version.tag}}

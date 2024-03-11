@@ -1,0 +1,33 @@
+distributable:
+  url: https://github.com/aristocratos/btop/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+display-name: btop
+
+# if there’s a github then we can parse the versions
+versions:
+  github: aristocratos/btop
+
+provides:
+  - bin/btop
+
+dependencies:
+  linux:
+    # built fine for me on macOS 14 & Xcode 15 but won’t in CI complaining
+    # that the provided clang is too old
+    # llvm^17 should work but didn’t for headers not found reasons
+    # needed for build and runtime
+    gnu.org/gcc: '>=10'
+  darwin/x86-64:
+    # it is not overly clear to us why this is required
+    gnu.org/gcc: '>=10'
+
+build:
+  env:
+    linux/x86-64:
+      LDFLAGS: -ldl $LDFLAGS
+  script:
+    - make
+    - make install PREFIX={{prefix}}
+
+test: btop --version | grep {{version}}

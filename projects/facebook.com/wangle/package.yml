@@ -1,6 +1,6 @@
 distributable:
-   url: https://github.com/facebook/wangle/archive/refs/tags/v{{version.raw}}.tar.gz
-   strip-components: 1
+  url: https://github.com/facebook/wangle/archive/refs/tags/v{{version.raw}}.tar.gz
+  strip-components: 1
 
 versions:
   github: facebook/wangle
@@ -13,7 +13,7 @@ dependencies:
   fmt.dev: ^9
   facebook.com/folly: '*'
   gflags.github.io: '*'
-  google.com/glog: '*'
+  google.com/glog: '<0.7' # glog 0.7.0 cannot be simply included
   libevent.org: '*'
   libsodium.org: '*'
   lz4.org: ^1
@@ -44,7 +44,7 @@ build:
           -e '/^  INTERFACE_LINK_LIBRARIES/ s|/v([0-9]+)(\.[0-9]+)*[a-z]?/lib|/v\1/lib|g' \
         wangle-targets.cmake
         rm wangle-targets.cmake.bak
-      working-directory: "{{prefix}}/lib/cmake/wangle"
+      working-directory: '{{prefix}}/lib/cmake/wangle'
   env:
     ARGS:
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
@@ -106,6 +106,6 @@ test:
         - -lc++abi
     linux:
       CXXFLAGS:
-       - -ldl
-       - -lpthread
-       - -latomic
+        - -ldl
+        - -lpthread
+        - -latomic
