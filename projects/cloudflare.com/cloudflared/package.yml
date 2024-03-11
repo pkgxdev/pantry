@@ -9,7 +9,9 @@ build:
   dependencies:
     go.dev: ^1.21
   script:
-    make install $ARGS
+    - make install $ARGS
+    - run: sed -i 's|go build|go build -buildmode=pie|g' Makefile
+      if: linux
   env:
     DATE: $(date -u +%FT%TZ)
     ARGS:
