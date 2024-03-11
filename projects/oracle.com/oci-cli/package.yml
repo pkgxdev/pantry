@@ -1,0 +1,30 @@
+distributable:
+  url: https://github.com/oracle/oci-cli/archive/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: oracle/oci-cli
+
+dependencies:
+  certifi.io/python-certifi: ^2024
+  pyyaml.org/libyaml: ^0.2
+  cryptography.io: ^42
+  python.org: ^3.11
+
+build:
+  dependencies:
+    cmake.org: '*'
+    rust-lang.org: '*'
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} oci
+
+provides:
+  - bin/oci
+
+test:
+  - oci --version | grep {{version}}
+  - oci --help
+  - oci session validate 2>out.log || true
+  - cat out.log | grep 'ConfigFileNotFound'
