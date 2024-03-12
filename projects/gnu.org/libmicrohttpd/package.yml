@@ -10,7 +10,7 @@ versions:
     - /\.tar\.gz$/
 
 dependencies:
-  gnutls.org: ^3.8
+  gnu.org/libunistring: ^1
 
 build:
   script:
@@ -20,11 +20,15 @@ build:
     ARGS:
       - --disable-dependency-tracking
       - --disable-silent-rules
-      - --enable-https
       - --prefix={{prefix}}
 
 test:
-  - cc simplepost.c -lmicrohttpd -o test
-  - ./test > output.log &
-  - sleep 1
-  - cat output.log | grep daemon
+  dependencies:
+    curl.se: '*'
+  script:
+    - cc test.c -lmicrohttpd -o test
+    - ./test &
+    - echo $! > test.pid
+    - sleep 1
+    - curl -L http://localhost:8888/ | grep 'namepost'
+    - kill $(cat test.pid)
