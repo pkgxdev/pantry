@@ -1,10 +1,12 @@
 distributable:
   url: https://gitlab.freedesktop.org/gstreamer/gstreamer/-/archive/{{version}}/gstreamer-{{version}}.tar.gz
   strip-components: 1
+
 versions:
   gitlab: gitlab.freedesktop.org:gstreamer/gstreamer/tags
+
 dependencies:
-  cairographics.org: ^1.18
+  cairographics.org: ^1.16
   cairographics.org/pycairo: ^1.25
   code.videolan.org/videolan/dav1d: ^1.2
   sourceforge.net/faac: ^1.30
@@ -36,7 +38,7 @@ dependencies:
   gstreamer.freedesktop.org/orc: ^0.4
   gnome.org/pango: ^1.50
   gnome.org/PyGObject: ^3.46
-  python.org: ^3
+  python.org: ~3.11
   github.com/xiph/rav1e: ^0.6
   rtmpdump.mplayerhq.hu: ^2.3
   speex.org: ^1.2
@@ -50,9 +52,11 @@ dependencies:
     musepack.net: ^475
   linux:
     freeglut.sourceforge.io: ^3.4
+
 runtime:
   env:
-    PYTHONPATH: ${{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages:$PYTHONPATH
+    PYTHONPATH: ${{prefix}}/lib/python3.11/site-packages:$PYTHONPATH
+
 build:
   dependencies:
     gnu.org/bison: '*'
@@ -65,9 +69,7 @@ build:
     rust-lang.org: '*'
     yasm.tortall.net: '*'
     github.com/westes/flex: '*'
-    gnu.org/patch: '*'
   script:
-    - patch -p1 < props/patch.diff
     - run: curl -L "$RES_RS" | tar -xz --strip-components=1
       working-directory: subprojects/gst-plugins-rs
     - run: |
@@ -76,8 +78,6 @@ build:
     - meson setup build $MESON_ARGS
     - meson compile -C build --verbose
     - meson install -C build
-    - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
-      working-directory: "{{prefix}}/lib"
   env:
     linux/x86-64:
       # ld.lld: error: relocation
@@ -115,8 +115,8 @@ build:
       - -Dintrospection=enabled
       - -Dgst-devtools:validate=enabled
       - -Dgst-devtools:cairo=enabled
-      - -Dgst-editing-services:pygi-overrides-dir={{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages/gi/overrides
-      - -Dgst-python:pygi-overrides-dir={{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages/gi/overrides
+      - -Dgst-editing-services:pygi-overrides-dir={{prefix}}/lib/python3.11/site-packages/gi/overrides
+      - -Dgst-python:pygi-overrides-dir={{prefix}}/lib/python3.11/site-packages/gi/overrides
       - -Dgst-python:python={{deps.python.org.prefix}}/bin/python
       - -Dgst-plugins-bad:opencv=disabled
       - -Dgst-plugins-bad:sctp=enabled
@@ -129,6 +129,7 @@ build:
       - -Dgst-plugins-rs:gtk4=enabled
       - -Dgst-plugins-rs:sodium-source=system
       - -Dgstreamer:ptp-helper-permissions=none
+
 provides:
   - bin/ges-launch-1.0
   - bin/gst-device-monitor-1.0
@@ -146,6 +147,7 @@ provides:
   - bin/gst-validate-rtsp-server-1.0
   - bin/gst-validate-transcoding-1.0
   - bin/gst-webrtc-signalling-server
+
 test:
   script:
     - ges-launch-1.0 --ges-version | grep {{version}}
