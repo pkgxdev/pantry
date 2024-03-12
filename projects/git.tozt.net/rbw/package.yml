@@ -1,0 +1,19 @@
+distributable:
+  url: https://github.com/doy/rbw/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+display-name: rbw
+
+versions:
+  github: doy/rbw
+
+build:
+  dependencies:
+    rust-lang.org/cargo: '*'
+  script:
+    - cargo install --root={{ prefix}} --path=.
+
+provides:
+  - bin/rbw
+
+test: test "$(rbw --version|cut -d' ' -f2)" = {{version}}

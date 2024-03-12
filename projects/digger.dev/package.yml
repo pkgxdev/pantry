@@ -44,4 +44,8 @@ build:
 
 test:
   script:
-    - test "$(digger version)" = "you are using digger version {{version}}"
+    # `digger version` inexplicably removed in 0.3.22
+    - run: digger --help
+      if: '>=0.3.22'
+    - run: test "$(digger version)" = "you are using digger version {{version}}"
+      if: <0.3.22

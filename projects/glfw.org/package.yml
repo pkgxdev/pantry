@@ -1,0 +1,38 @@
+distributable:
+  url: git+https://github.com/glfw/glfw.git
+  ref: ${{version.tag}}
+
+versions:
+  github: glfw/glfw
+
+dependencies:
+  linux:
+    freeglut.sourceforge.io: ^3.4
+    x.org/xcursor: ^1.2
+    xkbcommon.org: ^1.0
+    mesa3d.org: ^23.3
+
+build:
+  dependencies:
+    cmake.org: '*'
+  script:
+    - cmake $ARGS .
+    - make --jobs {{hw.concurrency}} install
+  env:
+    ARGS:
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_INSTALL_LIBDIR=lib
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_FIND_FRAMEWORK=LAST
+      - -DCMAKE_VERBOSE_MAKEFILE=ON
+      - -Wno-dev
+      - -DBUILD_TESTING=OFF
+      - -DGLFW_USE_CHDIR=TRUE
+      - -DGLFW_USE_MENUBAR=TRUE
+      - -DBUILD_SHARED_LIBS=TRUE
+
+test:
+  - cc test.c $CFLAGS -lglfw -o test
+  # FIXME: we should get a test that runs on linux as well
+  - run: ./test
+    if: darwin

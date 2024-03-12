@@ -1,0 +1,37 @@
+distributable:
+  url: git+https://github.com/Azure/azure-storage-azcopy.git
+  ref: ${{version.tag}}
+
+versions:
+  github: Azure/azure-storage-azcopy
+
+build:
+  dependencies:
+    go.dev: '>=1.19'
+  script: go build $ARGS -ldflags="$LDFLAGS"
+  env:
+    ARGS:
+      - -trimpath
+      - -o={{prefix}}/bin/azcopy
+    LDFLAGS:
+      - -s
+      - -w
+    linux:
+      LDFLAGS:
+        - -buildmode=pie
+
+provides:
+  - bin/azcopy
+
+test:
+  - azcopy --version | grep {{version}}
+  # FIXME: these hang forever on GHA linux+x86-64 runners...
+  - run: exit 0
+    if: linux/x86-64
+
+  - azcopy list https://storageaccountname.blob.core.windows.net/containername/ || true
+  - azcopy list https://storageaccountname.blob.core.windows.net/containername/ > output.txt || true
+  - run: cat output.txt | grep 'Login Credentials missing'
+    if: '<10.23'
+  - run: cat output.txt | grep 'This request is not authorized to perform this operation'
+    if: '>=10.23'

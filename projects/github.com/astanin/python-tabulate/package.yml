@@ -1,0 +1,36 @@
+distributable:
+  url: git+https://github.com/astanin/python-tabulate.git
+  ref: ${{version.tag}}
+
+versions:
+  github: astanin/python-tabulate/tags
+
+dependencies:
+  pkgx.sh: ^1
+
+runtime:
+  env:
+    PYTHONPATH: ${{prefix}}/venv/lib/python{{deps.python.org.version.major}}/site-packages:$PYTHONPATH
+
+build:
+  dependencies:
+    python.org: '>=3.11'
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} tabulate
+    - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
+      working-directory: ${{prefix}}/venv/lib
+
+provides:
+  - bin/tabulate
+
+test:
+  script:
+    - run: tabulate -f grid $FIXTURE | grep '| eggs | 451 |'
+      fixture:
+        content: |
+          name qty
+          eggs 451
+          spam 42
+        extname: txt

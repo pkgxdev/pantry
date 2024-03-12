@@ -1,0 +1,36 @@
+# FIXME: get .lz support
+# https://github.com/pkgxdev/brewkit/issues/283
+distributable: ~
+
+versions:
+  url: https://ftp.gnu.org/gnu/ed/
+  match: /ed-\d+\.\d+\.\d+\.tar\.lz/
+  strip:
+    - /^ed-/
+    - /\.tar\.lz$/
+
+build:
+  dependencies:
+    curl.se: '*'
+    nongnu.org/lzip: '*'
+  script:
+    - curl -L "https://ftp.gnu.org/gnu/ed/ed-{{version.raw}}.tar.lz" | lzip -d | tar -x --strip-components=1
+    - ./configure --prefix={{prefix}}
+    - make
+    - make install
+
+provides:
+  - bin/ed
+
+test:
+  - echo "Hello world\n" > test
+  - run: |
+      ed test <<EOF
+      i
+      Additional line
+      .
+      w
+      q
+      EOF
+  - cat test | grep "Additional line"
+  - ed --version | grep {{version}}

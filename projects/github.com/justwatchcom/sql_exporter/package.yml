@@ -1,0 +1,33 @@
+distributable:
+  url: https://github.com/justwatchcom/sql_exporter/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+display-name: justwatchcom/sql_exporter
+
+versions:
+  github: free/sql_exporter
+  strip:
+  - /^v/
+
+build:
+  dependencies:
+    git-scm.org: '*'
+    go.dev: ^1.21
+  env:
+    CGO_ENABLED: 0
+    LDFLAGS:
+    - -s
+    - -w
+    - -X github.com/prometheus/common/version.Version="{{version}}"
+    - -X github.com/prometheus/common/version.Branch="$( git branch --show-current )"
+    - -X github.com/prometheus/common/version.BuildUser="${USER}"
+    - -X github.com/prometheus/common/version.BuildDate="$(date +%Y-%m-%d %H:%M:%S)"
+    linux:
+      LDFLAGS:
+      - -buildmode=pie
+  script: go build -v -ldflags="${LDFLAGS}" -o {{prefix}}/bin/sql_exporter
+
+provides:
+  - bin/sql_exporter
+
+test: test "$(sql_exporter --version|head -1|cut -d' ' -f 3)" = {{version}}

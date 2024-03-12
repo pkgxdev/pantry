@@ -1,19 +1,22 @@
 distributable:
-  # TODO: more majors
-  - url: https://github.com/openjdk/jdk20u/archive/{{version.tag}}.tar.gz
+  # TODO: add jdk8
+  - url: https://github.com/openjdk/jdk21u/archive/{{version.tag}}.tar.gz
     strip-components: 1
   - url: https://github.com/openjdk/jdk17u/archive/{{version.tag}}.tar.gz
     strip-components: 1
+  - url: https://github.com/openjdk/jdk11u/archive/{{version.tag}}.tar.gz
+    strip-components: 1
 
 versions:
-  # TODO: more majors
-  - github: openjdk/jdk20u/tags
-    # each repo contains all the prior repo tags at the time of the fork,
-    # as well as tags like 20+10, which should be 20.0.0.10, but parses to
-    # 20.10.0.
-    transform: 'v => v.match(/jdk-20\.0\./) ? v.replace(/\+/, ".").replace(/^jdk-/, "") : undefined'
+  # each repo contains all the prior repo tags at the time of the fork,
+  # as well as tags like 21+10, which should be 21.0.0.10, but parses to
+  # 21.10.0.
+  - github: openjdk/jdk21u/tags
+    transform: 'v => v.match(/jdk-21\.0\./) ? v.replace(/\+/, ".").replace(/^jdk-/, "") : undefined'
   - github: openjdk/jdk17u/tags
     transform: 'v => v.match(/jdk-17\.0\./) ? v.replace(/\+/, ".").replace(/^jdk-/, "") : undefined'
+  - github: openjdk/jdk11u/tags
+    transform: 'v => v.match(/jdk-11\.0\./) ? v.replace(/\+/, ".").replace(/^jdk-/, "") : undefined'
 
 interprets:
   extensions: java
@@ -49,55 +52,80 @@ runtime:
 build:
   dependencies:
     linux:
-      llvm.org: <17
+      llvm.org: ^16
       gnu.org/make: '*'
     gnu.org/autoconf: '*'
     freedesktop.org/pkg-config: '*'
     gnu.org/wget: '*'
   script:
-    - run: wget -c ${BOOT_JDK{{version.major}}}_${JDK_ARCH}_bin.tar.gz -O - | tar xz -C . --strip-components=$STRIP
+    - run: |
+        BOOT_JDK_VERSION="${BOOT_JDK{{version.major}}_VERSION}"
+        BOOT_JDK_MAJOR=$(echo "${BOOT_JDK_VERSION}" | grep -o '^[0-9]\+')
+        BOOT_JDK_URL="https://github.com/adoptium/temurin${BOOT_JDK_MAJOR}-binaries/releases/download/jdk-${BOOT_JDK_VERSION}/OpenJDK${BOOT_JDK_MAJOR}U-jdk_${BOOT_JDK_ARCH}_hotspot_${BOOT_JDK_VERSION//+/_}.tar.gz"
+        wget -c "${BOOT_JDK_URL}" -O - | tar xz -C . --strip-components=1
+        unset BOOT_JDK_VERSION BOOT_JDK_MAJOR BOOT_JDK_URL
       working-directory: boot-jdk
-    # autoconf won't find llvm-cxxfilt for c++filt, and won't take an envvar
-    - run: sed -i -e's/c..filt/llvm-cxxfilt/' toolchain.m4
-      working-directory: make/autoconf
-      if: linux
+    - run: |
+        ARGS+=" --disable-hotspot-gtest --with-jvm-features=shenandoahgc --with-conf-name=release"
+        MAKE_ARGS+=" CONF=release"
+
+        # This is hacky, but it's necessary to version the LLVM dependency by openjdk version.
+        if test {{hw.platform}} = "linux"; then
+          LLVM_VERSION_MAJOR='12'
+          pkgx "+llvm.org^${LLVM_VERSION_MAJOR}"
+          LLVM_BIN_PATH="$(realpath "{{deps.llvm.org.prefix}}/../v${LLVM_VERSION_MAJOR}/bin")"
+          PATH_WITHOUT_LLVM="$(echo "${PATH}" | tr ':' '\n' | grep -v '/llvm.org/' | tr '\n' ':')"
+          export PATH="${LLVM_BIN_PATH}:${PATH_WITHOUT_LLVM}"
+          clang --version | grep "clang version ${LLVM_VERSION_MAJOR}"
+          unset LLVM_VERSION_MAJOR LLVM_BIN_PATH PATH_WITHOUT_.LLVM
+        fi
+      if: <12
     - bash configure $ARGS
       --with-boot-jdk="$BOOT_JDK_DIR"
-      --with-vendor-version-string="$(pkgx --version | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+')"
+      --with-version-build=$(echo {{version.raw}} | grep -o '[0-9]\+$')
+      --with-vendor-version-string="pkgx@$(pkgx --version | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+')"
       --with-extra-cflags="$CFLAGS"
       --with-extra-cxxflags="$CXXFLAGS"
       --with-extra-ldflags="$LDFLAGS"
-    - make images
+    - make images $MAKE_ARGS
     - mkdir -p {{prefix}}
     - mv $JDK_DIR {{prefix}}/
   env:
-    MAKEFLAGS: 'JOBS={{ hw.concurrency }}'
+    MAKE_ARGS: 'JOBS={{ hw.concurrency }}'
     darwin:
-      STRIP: 2
       BOOT_JDK_DIR: $SRCROOT/boot-jdk/Contents/Home
       JDK_DIR: build/*/images/jdk-bundle/jdk-{{version.marketing}}.{{version.patch}}.jdk/Contents/Home/*
       ARGS:
         - --enable-dtrace
+        - --with-sysroot=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
     linux:
-      STRIP: 1
       BOOT_JDK_DIR: $SRCROOT/boot-jdk
       JDK_DIR: build/*/images/jdk/*
       ARGS:
+        - --with-x={{deps.x.org/x11.prefix}}
         - --with-cups={{deps.openprinting.github.io/cups.prefix}}
         - --with-fontconfig={{deps.freedesktop.org/fontconfig.prefix}}
         - --with-freetype=system
         - --with-stdc++lib=dynamic
         - --with-toolchain-type=clang
+        - CXXFILT=llvm-cxxfilt
     darwin/aarch64:
-      JDK_ARCH: macos-aarch64
+      BOOT_JDK_ARCH: aarch64_mac
     darwin/x86-64:
-      JDK_ARCH: macos-x64
+      BOOT_JDK_ARCH: x64_mac
     linux/aarch64:
-      JDK_ARCH: linux-aarch64
+      BOOT_JDK_ARCH: aarch64_linux
     linux/x86-64:
-      JDK_ARCH: linux-x64
-    BOOT_JDK17: https://download.java.net/java/GA/jdk17.0.2/dfd4a8d0985749f896bed50d7138ee7f/8/GPL/openjdk-17.0.2
-    BOOT_JDK20: https://download.java.net/java/GA/jdk19.0.1/afdd2e245b014143b62ccb916125e3ce/10/GPL/openjdk-19.0.1
+      BOOT_JDK_ARCH: x64_linux
+
+    # the boot jdk should point to the last version of the previous major version
+    # or the last previous version of the current major version
+    # https://github.com/adoptium/temurin21-binaries/releases
+    BOOT_JDK21_VERSION: 21.0.2+13
+    # https://github.com/adoptium/temurin17-binaries/releases
+    BOOT_JDK17_VERSION: 17.0.9+9
+    # https://github.com/adoptium/temurin11-binaries/releases
+    BOOT_JDK11_VERSION: 11.0.22+7
 
     ARGS:
       - --disable-warnings-as-errors
@@ -108,9 +136,8 @@ build:
       - --with-vendor-name="tea.xyz"
       - --with-vendor-url="https://github.com/teaxyz/pantry/issues"
       - --with-vendor-vm-bug-url="https://github.com/teaxyz/pantry/issues"
-      - --with-version-build={{version.minor}}
-      - --without-version-opt
-      - --without-version-pre
+      - --with-version-opt=""
+      - --with-version-pre=""
       - --with-giflib=system
       - --with-harfbuzz=system
       - --with-lcms=system
@@ -119,6 +146,8 @@ build:
       - --with-zlib=system
 
 provides:
+  # TODO: https://github.com/pkgxdev/libpkgx/issues/68
+  # - bin/jaotc # <=11
   - bin/jar
   - bin/jarsigner
   - bin/java
@@ -134,19 +163,25 @@ provides:
   - bin/jhsdb
   - bin/jimage
   - bin/jinfo
+  # - bin/jjs # <=11
   - bin/jlink
   - bin/jmap
   - bin/jmod
-  - bin/jpackage
+  # - bin/jpackage # >=17
   - bin/jps
   - bin/jrunscript
   - bin/jshell
   - bin/jstack
   - bin/jstat
   - bin/jstatd
+  # - bin/jwebserver # >=21
   - bin/keytool
+  # - bin/pack200 # <=11
+  # - bin/rmic # <=11
+  # - bin/rmid # <=11
   - bin/rmiregistry
   - bin/serialver
+  # - bin/unpack200 # <=11
 
 test:
   script:

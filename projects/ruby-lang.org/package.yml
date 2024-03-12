@@ -80,6 +80,8 @@ build:
     - run: sed -i.bak
         -e 's|$(DESTDIR){{prefix}}|$(topdir)|g'
         -e 's|CONFIG\["topdir"\] = .*|CONFIG\["topdir"\] = TOPDIR|g'
+        -e 's|CONFIG\["INSTALL"\] =.*|CONFIG\["INSTALL"\] = "/usr/bin/install"|g'
+        -e 's|CONFIG\["MJIT_CC"\] =.*|CONFIG\["MJIT_CC"\] = "/usr/bin/cc"|g'
         rbconfig.rb
       working-directory: ${{prefix}}/lib/ruby/{{version.marketing}}.0
   env:
@@ -94,7 +96,6 @@ build:
       - --disable-multiarch                        # ^^
       - --with-vendordir=no     # is empty so don’t pollute
       - --with-vendorarchdir=no # ^^
-      - --with-sitedir=no       # ^^
       - --with-sitearchdir=no   # ^^
       - --enable-yjit  # https://github.com/pkgxdev/pantry/issues/3538
 

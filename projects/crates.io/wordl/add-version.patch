@@ -1,0 +1,15 @@
+diff --git a/src/main.rs b/src/main.rs
+index f21aebd..f7f8410 100644
+--- a/src/main.rs
++++ b/src/main.rs
+@@ -15,6 +15,10 @@ pub mod wordle;
+ 
+ #[tokio::main]
+ async fn main() -> color_eyre::Result<()> {
++    if std::env::args().any(|arg| arg == "--version" || arg == "-V") {
++        println!("wordl {}", env!("CARGO_PKG_VERSION"));
++        return Ok(());
++    }
+     color_eyre::install()?;
+     let result = run().await;
+     result?;

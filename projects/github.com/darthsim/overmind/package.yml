@@ -1,0 +1,29 @@
+distributable:
+  url: https://github.com/DarthSim/overmind/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+display-name: overmind
+
+versions:
+  github: darthsim/overmind
+
+dependencies:
+  github.com/tmux/tmux: "*"
+
+build:
+  dependencies:
+    go.dev: ">=1.21"
+  script: go build -v -ldflags="$LDFLAGS" -o "{{prefix}}"/bin/overmind
+  env:
+    CGO_ENABLED: 0
+    LDFLAGS:
+      - -s
+      - -w
+    linux:
+      LDFLAGS:
+      - -buildmode=pie
+
+provides:
+  - bin/overmind
+
+test: test "$(overmind --version)" = "Overmind version {{version}}"

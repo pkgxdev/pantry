@@ -1,0 +1,33 @@
+distributable:
+  url: https://github.com/common-fate/granted/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: common-fate/granted
+
+provides:
+  - bin/granted
+
+build:
+  dependencies:
+    go.dev: ^1.19
+  script:
+    - go mod download
+    - go build -v -trimpath -ldflags="$LDFLAGS" -o $BUILDLOC ./cmd/granted
+  env:
+    GOPROXY: https://proxy.golang.org,direct
+    GOSUMDB: sum.golang.org
+    GO111MODULE: on
+    CGO_ENABLED: 0
+    BUILDLOC: '{{prefix}}/bin/granted'
+    LDFLAGS:
+      - -s
+      - -w
+      - -X github.com/common-fate/granted/internal/build.Version={{version}}
+    linux:
+      # or segmentation fault
+      # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
+      LDFLAGS:
+        - -buildmode=pie
+
+test: granted -v 2>&1 | grep {{version}}

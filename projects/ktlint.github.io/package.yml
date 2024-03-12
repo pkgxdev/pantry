@@ -1,0 +1,23 @@
+distributable:
+  url: https://github.com/pinterest/ktlint/releases/download/{{version}}/ktlint-{{version}}.zip
+
+versions:
+  github: pinterest/ktlint
+
+warnings:
+  - vendored
+
+dependencies:
+  openjdk.org: '*'
+
+build:
+  - install -D ktlint-{{version}}/bin/ktlint {{prefix}}/bin/ktlint
+
+provides:
+  - bin/ktlint
+
+test:
+  - ktlint --version | grep {{version}}
+  - echo 'fun main(   )  {}' > Main.kt
+  - ktlint -F Main.kt
+  - cat Main.kt | grep 'fun main() {}'

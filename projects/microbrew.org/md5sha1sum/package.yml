@@ -1,0 +1,40 @@
+distributable:
+  url: http://microbrew.org/tools/md5sha1sum/md5sha1sum-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: http://microbrew.org/tools/md5sha1sum/
+  match: /md5sha1sum-\d+\.\d+\.\d+\.tar\.gz/
+  strip:
+    - /^md5sha1sum-/
+    - /\.tar\.gz$/
+
+dependencies:
+  openssl.org: ^1.1
+
+build:
+  script:
+    - ./configure --prefix={{prefix}}
+    - make --jobs={{hw.concurrency}}
+    - install -D md5sum {{prefix}}/bin/md5sum
+    - run: |
+        ln -s md5sum sha1sum
+        ln -s md5sum ripemd160sum
+      working-directory: ${{prefix}}/bin
+  env:
+    SSLINCPATH: ${{deps.openssl.org.prefix}}/include
+    SSLLIBPATH: ${{deps.openssl.org.prefix}}/lib
+
+provides:
+  - bin/md5sum
+  - bin/sha1sum
+  - bin/ripemd160sum
+
+test:
+  - echo "Hello, world!" > test.txt
+  - md5sum test.txt > test.txt.md5
+  - sha1sum test.txt > test.txt.sha1
+  - ripemd160sum test.txt > test.txt.ripemd160
+  - md5sum -c test.txt.md5 | grep OK
+  - sha1sum -c test.txt.sha1 | grep OK
+  - ripemd160sum -c test.txt.ripemd160 | grep OK

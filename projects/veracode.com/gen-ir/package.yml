@@ -1,0 +1,23 @@
+distributable:
+  url: https://github.com/veracode/gen-ir/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: veracode/gen-ir
+
+platforms:
+  - darwin
+
+build:
+  - swift build -c release --disable-sandbox
+  - install -D .build/release/gen-ir {{prefix}}/bin/gen-ir
+
+provides:
+  - bin/gen-ir
+
+test:
+  # FIXME: this is fine on MacOS12, but not on 11, due to libswiftfoundation.dylib
+  - run: exit 0
+    if: darwin/x86-64
+  - gen-ir --help
+  - gen-ir --version | grep {{version}}

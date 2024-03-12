@@ -1,0 +1,36 @@
+distributable:
+  url: https://codeload.github.com/defenseunicorns/zarf/tar.gz/refs/tags/v{{version}}
+  strip-components: 1
+
+display-name: zarf
+
+versions:
+  github: defenseunicorns/zarf
+
+build:
+  dependencies:
+    go.dev: '*'
+  env:
+    darwin/aarch64:
+      PLATFORM: mac-apple
+      BIN: zarf-mac-apple
+    darwin/x86-64:
+      PLATFORM: mac-intel
+      BIN: zarf-mac-intel
+    linux/aarch64:
+      PLATFORM: linux-arm
+      BIN: zarf-arm
+    linux/x86-64:
+      PLATFORM: linux-amd
+      BIN: zarf
+  script:
+    - make CLI_VERSION=v{{version}} build-cli-${PLATFORM}
+    - mkdir -p {{prefix}}/bin
+    - chmod +x build/$BIN
+    - mv build/$BIN '{{prefix}}'/bin/zarf
+  skip: fix-patchelf
+
+provides:
+  - bin/zarf
+
+test: test "$(zarf version)" = "v{{version}}"

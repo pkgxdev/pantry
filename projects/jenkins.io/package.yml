@@ -1,0 +1,65 @@
+distributable:
+  url: https://get.jenkins.io/war-stable/2.426.2/jenkins.war
+
+versions:
+  url: https://www.jenkins.io/download/
+  match: /\d+\.\d+\.\d+\/jenkins\.war/
+  strip: /\/jenkins\.war/
+
+warnings:
+  - vendored
+
+dependencies:
+  openjdk.org: '<20'
+
+runtime:
+  env:
+    JENKINS_HOME: ${{prefix}}/var/jenkins
+
+build:
+  - run: mkdir -p libexec/lib bin var/jenkins
+    working-directory: ${{prefix}}
+  - jar xvf jenkins.io-{{version}}.war
+  - cp -r jenkins.io-{{version}}.war {{prefix}}/libexec/lib/
+  - cp -r WEB-INF/lib/* {{prefix}}/libexec/lib/
+  - run: |
+      cat > jenkins-lts <<EOF
+      #!/bin/sh
+      exec java -jar \$(dirname \$0)/../libexec/lib/jenkins.io-{{version}}.war "\$@"
+      EOF
+      chmod +x jenkins-lts
+    working-directory: ${{prefix}}/bin
+  - run: |
+      cat > jenkins-lts-cli <<EOF
+      #!/bin/sh
+      exec java -jar \$(dirname \$0)/../libexec/lib/cli-{{version}}.jar "\$@"
+      EOF
+      chmod +x jenkins-lts-cli
+    working-directory: ${{prefix}}/bin
+
+provides:
+  - bin/jenkins-lts
+  - bin/jenkins-lts-cli
+
+test:
+  dependencies:
+    curl.se: '*'
+    pkgx.sh: ^1
+  script:
+    - FREE_PORT=$(pkgx get-port)
+    - mkdir -p tmp var/jenkins
+    - jenkins-lts --version
+
+    # FIXME: version not updated starting in 2.426.3
+    - run: jenkins-lts --version | grep {{version}}
+      if: <2.426.3
+
+    - jenkins-lts --httpPort=$FREE_PORT > var/jenkins/jenkins.log 2>&1 &
+    - PID=$!
+    - sleep 30
+    - curl -L localhost:$FREE_PORT -o output.html
+    - kill $PID || cat var/jenkins/jenkins.log # debug
+    - cat output.html | grep '<html>'
+  env:
+    _JAVA_OPTIONS: -Djava.io.tmpdir=$PWD/tmp $_JAVA_OPTIONS
+    JENKINS_HOME: $PWD/var/jenkins

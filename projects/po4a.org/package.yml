@@ -1,15 +1,19 @@
 distributable:
-  url: https://github.com/mquinson/po4a/releases/download/v{{version.marketing}}/po4a-{{version.marketing}}.tar.gz
+  url: https://github.com/mquinson/po4a/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
+
 versions:
   github: mquinson/po4a
+
 dependencies:
   gnu.org/gettext: ^0.22
   perl.org: ^5.22
   gnome.org/libxslt: ^1.1
+
 runtime:
   env:
     PERL5LIB: ${{prefix}}/libexec/lib/perl5:$PERL5LIB
+
 build:
   dependencies:
     cpanmin.us: '*'
@@ -17,29 +21,35 @@ build:
     curl.se: '*'
   script:
     - cpanm -l {{prefix}}/libexec $PKGS
+
     - run: |
-        curl -L "https://cpan.metacpan.org/authors/id/R/RA/RAAB/SGMLSpm-1.1.tar.gz" | tar -xz --strip-components=1
+        curl -L "https://cpan.metacpan.org/authors/id/R/RA/RAAB/SGMLSpm-1.1.tar.gz" | \
+          tar -xz --strip-components=1
         cpanm -l {{prefix}}/libexec .
       working-directory: pkgs/SGMLSpm
+
     - run: |
-        curl -L "https://cpan.metacpan.org/authors/id/J/JS/JSTOWE/TermReadKey-2.38.tar.gz" | tar -xz --strip-components=1
+        curl -L "https://cpan.metacpan.org/authors/id/J/JS/JSTOWE/TermReadKey-2.38.tar.gz" | \
+          tar -xz --strip-components=1
         cpanm -l {{prefix}}/libexec .
       working-directory: pkgs/TermReadKey
-    - run: |
-        sed -i.bak "s|/usr/share/xml/docbook/stylesheet/docbook-xsl|{{deps.docbook.org/xsl.prefix}}/libexec/docbook-xsl-ns|" Po4aBuilder.pm
-        rm Po4aBuilder.pm.bak
+
+    # xsltproc fails to parse the remote xsl file; skip xml docs
+    - sed -i
+      -e "s|/usr/share/xml/docbook/stylesheet/docbook-xsl|{{deps.docbook.org/xsl.prefix}}/libexec/docbook-xsl-ns|"
+      -e "s/if ( \$\^O ne 'MSWin32' )/if (0)/"
+      Po4aBuilder.pm
+
     - perl Build.PL --install_base {{prefix}}/libexec
     - ./Build
     - ./Build install
-    - run: |
-        ln -s ../../libexec/man/man1 man1
-        ln -s ../../libexec/man/man3 man3
-        ln -s ../../libexec/man/man7 man7
+
+    - run: ln -s ../../libexec/man/man? .
       working-directory: ${{prefix}}/share/man
-    - run: |
-        sed -i.bak "s|{{deps.perl.org.prefix}}/bin/perl|/usr/bin/env perl|" *
-        rm -f *.bak
+
+    - run: sed -i "s|{{deps.perl.org.prefix}}/bin/perl|/usr/bin/env perl|" *
       working-directory: ${{prefix}}/libexec/bin
+
     - run: ln -s ./libexec/bin bin
       working-directory: ${{prefix}}
   env:
@@ -55,6 +65,7 @@ build:
       - XS::Parse::Keyword::Builder
       - Syntax::Keyword::Try
       - Module::Build
+
 provides:
   - bin/msguntypot
   - bin/po4a
@@ -64,10 +75,10 @@ provides:
   - bin/po4a-normalize
   - bin/po4a-updatepo
   - bin/podselect
+
 test:
-  script:
-    - po4a-updatepo -f latex -m en.tex -p latex.pot
-    - cat latex.pot | grep 'Hello from Tea'
-    - po4a-updatepo -f text -m en.md -p text.pot
-    - cat text.pot | grep 'Hello from Tea'
-    - po4a --version | grep {{version.marketing}}
+  - po4a-updatepo -f latex -m en.tex -p latex.pot
+  - cat latex.pot | grep 'Hello from Tea'
+  - po4a-updatepo -f text -m en.md -p text.pot
+  - cat text.pot | grep 'Hello from Tea'
+  - po4a --version | grep {{version.marketing}}

@@ -1,0 +1,37 @@
+display-name: squidfunk/mkdocs-material
+distributable:
+  url: https://github.com/squidfunk/mkdocs-material/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: squidfunk/mkdocs-material
+
+dependencies:
+  pkgx.sh: ^1
+  sass-lang.com/libsass: ^3.6
+
+build:
+  dependencies:
+    python.org: ">=3<3.12"
+    linux/aarch64:
+      gnu.org/gcc: '*' # otherwise, building the python sass module complains about -std=gnu++0x use with C
+  script:
+    - run: cat $PROP >> requirements.txt
+      prop: |
+        mkdocs-mermaid2-plugin
+        mkdocs-plugin-progress
+        mkdocs-include-markdown-plugin
+        mkdocs-macros-plugin
+        mkdocs-encriptmail-plugin
+        mkdocs-exporter
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} mkdocs
+
+provides:
+  - bin/mkdocs
+
+test:
+  - mkdir docs
+  - mv index.md docs/
+  - mkdocs -v build

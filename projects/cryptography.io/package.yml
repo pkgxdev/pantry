@@ -1,0 +1,36 @@
+distributable:
+  url: git+https://github.com/pyca/cryptography.git
+  ref: ${{version.tag}}
+
+versions:
+  github: pyca/cryptography/tags
+
+dependencies:
+  python.org: '>=3.11'
+  github.com/python-cffi/cffi: ^1.16
+  openssl.org: '>=1.1'
+
+runtime:
+  env:
+    PYTHONPATH: $PYTHONPATH:{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages
+
+build:
+  dependencies:
+    python.org/typing_extensions: '*'
+    rust-lang.org: '>=1.65'
+  script:
+    - python -m pip install --prefix={{prefix}} .
+    - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
+      working-directory: ${{prefix}}/lib
+
+test:
+  script:
+    - run: python $FIXTURE
+      fixture:
+        extname: py
+        content: |
+          from cryptography.fernet import Fernet
+          key = Fernet.generate_key()
+          f = Fernet(key)
+          token = f.encrypt(b"pkgx")
+          print(f.decrypt(token))

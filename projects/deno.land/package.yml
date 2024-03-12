@@ -17,8 +17,28 @@ runtime:
   env:
     DENO_NO_UPDATE_CHECK: 'true'
 
+companions:
+  # denort added in v1.41.0 requires `unzip`
+  info-zip.org/unzip: '*'
+
+dependencies:
+  x86-64:
+    llvm.org: 17 # libunwind
+
 build:
   script:
+    # https://github.com/denoland/deno/pull/22298
+    # deno.land 1.41.0 will currently _not_ run deno compile on linux/aarch64
+    # for their first official release, they're using ubuntu 22.04, which means
+    # a newer glibc. Patching via the https://github.com/LukeChannings/deno-arm64
+    # repo may be possible, but lets not delay the three usable arches for the rare
+    # one. Revist this.
+
+    # Obviously, I'd just skip the test, except everything we _do_ relies on
+    # deno compile, so that'd just break the unholy everything out of pkgx.
+    - run: test "{{hw.platform}}+{{ hw.arch }}" != "linux+aarch64"
+      if: 1.41.0
+
     # https://github.com/denoland/deno/issues/15596 -- reported fixed in 1.25.3
     - run: |
         find ext/ffi/tinycc -maxdepth 0 -empty -exec \
@@ -35,14 +55,12 @@ build:
 
     - grep home_path cli/tools/installer.rs
 
-    - cargo build --release
-    - mkdir -p "{{ prefix }}"/bin
-    - mv target/release/deno "{{ prefix }}"/bin
+    - cargo install --locked --path cli --root "{{ prefix }}"
   dependencies:
     git-scm.org: 2 # to build tinycc
     rust-lang.org: ^1.70
-    rust-lang.org/cargo: ^0.65
-    llvm.org: '>=13' # macOS/aarch64 requires this (FIXME only dep where needed)
+    rust-lang.org/cargo: ^0
+    llvm.org: 17 # macOS/aarch64 requires (FIXME only dep where needed)
     curl.se: '*' # required to download v8 (python is another option)
     cmake.org: ^3 # deno.land>=1.36.1 requires cmake
     protobuf.dev: '*' # deno.land>=1.36.4 requires protoc
@@ -54,7 +72,7 @@ test:
   script:
     - deno --version | grep {{version}}
     - mv $FIXTURE test.ts
-    - deno install test.ts
+    - deno install -f test.ts
     - test "$($HOME/.local/bin/test)" = "Hello, world!"
     - deno compile test.ts
     - test "$(./test)" = "Hello, world!"

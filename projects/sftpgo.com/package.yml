@@ -1,0 +1,31 @@
+distributable:
+  url: https://github.com/drakkan/sftpgo/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+display-name: sftpgo
+
+versions:
+  github: drakkan/sftpgo
+  strip: /^v/
+
+build:
+  dependencies:
+    go.dev: '*'
+  env:
+    CGO_ENABLED: 0
+    COMMIT_SHA: "$(git describe --always --abbrev=8 --dirty)"
+    VERSION_DATE: "$(date -u +%FT%TZ)"
+    LDFLAGS:
+      - -s
+      - -w
+      - -X github.com/drakkan/sftpgo/v2/internal/version.commit=${COMMIT_SHA}
+      - -X github.com/drakkan/sftpgo/v2/internal/version.date=${VERSION_DATE}
+    linux:
+      LDFLAGS:
+        - -buildmode=pie
+  script: go build -v -trimpath -ldflags="${LDFLAGS}" -o {{prefix}}/bin/sftpgo
+
+provides:
+  - bin/sftpgo
+
+test: test "$(sftpgo --version | cut -d' ' -f2 | cut -d'-' -f1)" = {{version}}

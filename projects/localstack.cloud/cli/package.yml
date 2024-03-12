@@ -8,20 +8,20 @@ versions:
   github: localstack/localstack-cli
   strip: /^v/
 
+dependencies:
+  pkgx.sh: ^1
+
 build:
   dependencies:
     python.org: ^3.11
-    gnu.org/make: "*"
-    gnu.org/binutils: "*"
-  script: |
-    make venv
-    make all
-    mkdir -p "{{ prefix }}"/bin
-    mv dist-bin/localstack "{{ prefix }}"/bin
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install -r requirements.txt
+    - bkpyvenv seal {{prefix}} localstack
 
 provides:
   - bin/localstack
 
 test:
-  script:
-    test "$(localstack --version)" = {{version}}
+  - localstack --version
+  - test "$(localstack --version)" = {{version}}

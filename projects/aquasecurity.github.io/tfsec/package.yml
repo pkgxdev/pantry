@@ -1,0 +1,38 @@
+distributable:
+  url: git+https://github.com/aquasecurity/tfsec.git
+  ref: ${{version.tag}}
+
+versions:
+  github: aquasecurity/tfsec
+
+build:
+  dependencies:
+    go.dev: '>=1.19'
+  script:
+    - scripts/install.sh v{{version}}
+    - mkdir -p {{prefix}}/bin
+    - install tfsec {{prefix}}/bin/
+
+provides:
+  - bin/tfsec
+
+test:
+  - mkdir -p good bad
+  - run: |
+      cat <<EOF > good/main.tf
+      resource "aws_alb_listener" "my-alb-listener" {
+        port     = "443"
+        protocol = "HTTPS"
+      }
+      EOF
+  - run: |
+      cat <<EOF > bad/main.tf
+      resource "aws_security_group_rule" "world" {
+        description = "A security group triggering tfsec AWS006."
+        type        = "ingress"
+        cidr_blocks = ["0.0.0.0/0"]
+      }
+      EOF
+  - tfsec good | grep 'No problems'
+  - tfsec bad || true # tfsec returns 1 on problems detected, it's ok
+  - tfsec --version | grep {{version}}

@@ -1,0 +1,32 @@
+distributable:
+  url: https://github.com/caddyserver/xcaddy/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+display-name: xcaddy
+
+versions:
+  github: caddyserver/xcaddy
+  strip:
+    - /^v/
+
+dependencies:
+  go.dev: '^1.21'
+
+build:
+  env:
+    CGO_ENABLED: 0
+    LDFLAGS:
+    - -s
+    - -w
+    linux:
+      LDFLAGS:
+      - -buildmode=pie
+  script: go build -v -trimpath -ldflags="${LDFLAGS}" -o {{prefix}}/bin/xcaddy ./cmd/xcaddy
+
+provides:
+  - bin/xcaddy
+
+test:
+  script: |
+    xcaddy build --with github.com/greenpau/caddy-security
+    test "$($PWD/caddy list-modules | grep security)" = security

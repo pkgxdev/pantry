@@ -1,0 +1,36 @@
+distributable:
+  url: git+https://github.com/JanDeDobbeleer/oh-my-posh.git
+  ref: ${{version.tag}}
+
+versions:
+  github: JanDeDobbeleer/oh-my-posh
+
+build:
+  dependencies:
+    go.dev: '>=1.21'
+  script:
+    - run: go build $ARGS -ldflags="$LDFLAGS"
+      working-directory: src
+    - cp -r themes {{prefix}}/
+    - run: ln -s ../../themes themes
+      working-directory: ${{prefix}}/share/oh-my-posh
+  env:
+    VERSION_DATE: "$(date -u +%FT%TZ)"
+    ARGS:
+      - -trimpath
+      - -o={{prefix}}/bin/oh-my-posh
+    LDFLAGS:
+      - -s
+      - -w
+      - -X github.com/jandedobbeleer/oh-my-posh/src/build.Version={{version}}
+      - -X github.com/jandedobbeleer/oh-my-posh/src/build.Date=${VERSION_DATE}
+    linux:
+      LDFLAGS:
+        - -buildmode=pie
+
+provides:
+  - bin/oh-my-posh
+
+test:
+  - oh-my-posh --init --shell bash | grep 'oh-my-posh'
+  - oh-my-posh --version | grep {{version}}

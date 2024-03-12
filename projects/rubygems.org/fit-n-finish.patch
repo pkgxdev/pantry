@@ -1,0 +1,135 @@
+diff --git a/lib/rubygems/config_file.rb b/lib/rubygems/config_file.rb
+index 4aa8b4d..8354c08 100644
+--- a/lib/rubygems/config_file.rb
++++ b/lib/rubygems/config_file.rb
+@@ -62,12 +62,7 @@ class Gem::ConfigFile
+   # :stopdoc:
+
+   SYSTEM_CONFIG_PATH =
+-    begin
+-      require "etc"
+-      Etc.sysconfdir
+-    rescue LoadError, NoMethodError
+-      RbConfig::CONFIG["sysconfdir"] || "/etc"
+-    end
++    RbConfig::CONFIG["sysconfdir"] || "/etc"
+
+   # :startdoc:
+
+diff --git a/lib/rubygems/defaults.rb b/lib/rubygems/defaults.rb
+index b186375..de168c4 100644
+--- a/lib/rubygems/defaults.rb
++++ b/lib/rubygems/defaults.rb
+@@ -34,7 +28,7 @@ def self.default_spec_cache_dir
+   # specified in the environment
+
+   def self.default_dir
+-    @default_dir ||= File.join(RbConfig::CONFIG["rubylibprefix"], "gems", RbConfig::CONFIG["ruby_version"])
++    @default_dir ||= File.join(RbConfig::CONFIG["rubylibprefix"], "gems", RbConfig::CONFIG["ruby_version"])
+   end
+
+   ##
+@@ -100,8 +94,7 @@ def self.user_home
+   # Path for gems in the user's home directory
+
+   def self.user_dir
+-    gem_dir = File.join(Gem.user_home, ".gem")
+-    gem_dir = File.join(Gem.data_home, "gem") unless File.exist?(gem_dir)
++    gem_dir = Gem.data_home
+     parts = [gem_dir, ruby_engine]
+     parts << RbConfig::CONFIG["ruby_version"] unless RbConfig::CONFIG["ruby_version"].empty?
+     File.join parts
+@@ -111,18 +104,17 @@ def self.user_dir
+   # The path to standard location of the user's configuration directory.
+
+   def self.config_home
+-    @config_home ||= (ENV["XDG_CONFIG_HOME"] || File.join(Gem.user_home, ".config"))
++    @config_home ||= (ENV["XDG_CONFIG_HOME"] || File.join(Gem.user_home, ".gem"))
+   end
+
+   ##
+   # Finds the user's config file
+
+   def self.find_config_file
+-    gemrc = File.join Gem.user_home, ".gemrc"
+-    if File.exist? gemrc
+-      gemrc
++    @gemrc = if ENV["XDG_CONFIG_HOME"]
++      File.join ENV["XDG_CONFIG_HOME"], "gemrc"
+     else
+-      File.join Gem.config_home, "gem", "gemrc"
++      File.join Gem.user_home, ".gemrc"
+     end
+   end
+
+@@ -151,7 +143,11 @@ def self.cache_home
+   # The path to standard location of the user's data directory.
+
+   def self.data_home
+-    @data_home ||= (ENV["XDG_DATA_HOME"] || File.join(Gem.user_home, ".local", "share"))
++    @data_home ||= if ENV["XDG_DATA_HOME"]
++      File.join(ENV["XDG_DATA_HOME"], "gem")
++    else
++      File.join(Gem.user_home, ".gem")
++    end
+   end
+
+   ##
+@@ -176,6 +172,7 @@ def self.default_path
+     path << user_dir if user_home && File.exist?(user_home)
+     path << default_dir
+     path << vendor_dir if vendor_dir && File.directory?(vendor_dir)
++    path << File.expand_path(File.join(__FILE__, "../../../../../ruby-lang.org", "v#{RbConfig::CONFIG["RUBY_PROGRAM_VERSION"]}", "lib/ruby/gems", RbConfig::CONFIG["ruby_version"]))
+     path
+   end
+
+@@ -197,7 +194,7 @@ def self.default_exec_format
+   # The default directory for binaries
+
+   def self.default_bindir
+-    RbConfig::CONFIG["bindir"]
++    "/usr/local/bin"
+   end
+
+   def self.ruby_engine
+@@ -208,26 +205,14 @@ def self.ruby_engine
+   # The default signing key path
+
+   def self.default_key_path
+-    default_key_path = File.join Gem.user_home, ".gem", "gem-private_key.pem"
+-
+-    unless File.exist?(default_key_path)
+-      default_key_path = File.join Gem.data_home, "gem", "gem-private_key.pem"
+-    end
+-
+-    default_key_path
++    File.join Gem.data_home, "private-key.pem"
+   end
+
+   ##
+   # The default signing certificate chain path
+
+   def self.default_cert_path
+-    default_cert_path = File.join Gem.user_home, ".gem", "gem-public_cert.pem"
+-
+-    unless File.exist?(default_cert_path)
+-      default_cert_path = File.join Gem.data_home, "gem", "gem-public_cert.pem"
+-    end
+-
+-    default_cert_path
++    File.join Gem.data_home, "public-cert.pem"
+   end
+
+   ##
+@@ -267,7 +252,10 @@ def self.vendor_dir # :nodoc:
+   # end
+
+   def self.operating_system_defaults
+-    {}
++    {
++      'install' => '--no-rdoc --no-ri --env-shebang',
++      'update' => '--no-rdoc --no-ri --env-shebang'
++    }
+   end
+
+   ##
