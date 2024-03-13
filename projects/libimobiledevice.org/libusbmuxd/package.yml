@@ -8,6 +8,10 @@ versions:
 dependencies:
   libimobiledevice.org/libplist: ^2.4
 
+runtime:
+  env:
+    LIBUSBMUXD_DIR: ${{prefix}}
+
 build:
   dependencies:
     gnu.org/autoconf: '*'
@@ -23,8 +27,8 @@ build:
     - run: sed -i 's/\+brewing//g' *.pc
       working-directory: '{{prefix}}/lib/pkgconfig'
     - run: |
-        sed -i 's|{{prefix}}|./..|g' *.la
-        sed -i 's|{{pkgx.prefix}}|./../../..|g' *.la
+        sed -i 's|{{prefix}}|\$LIBUSBMUXD_DIR|g' *.la
+        sed -i 's|{{pkgx.prefix}}|\$LIBUSBMUXD_DIR/../..|g' *.la
       working-directory: '{{prefix}}/lib'
   env:
     ARGS:
