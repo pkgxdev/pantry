@@ -1,0 +1,23 @@
+distributable:
+  url: https://github.com/leoafarias/fvm/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: leoafarias/fvm
+
+build:
+  dependencies:
+    dart.dev: ^3
+  script:
+    - dart pub get
+    - dart compile exe bin/main.dart -o fvm
+    - install -D fvm {{prefix}}/bin/fvm
+
+provides:
+  - bin/fvm
+
+test:
+  - fvm --version | grep {{version}}
+  - fvm --help
+  - fvm install 3.19.1
+  - fvm list | grep 3.19.1
