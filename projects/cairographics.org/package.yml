@@ -24,12 +24,14 @@ dependencies:
 
 build:
   dependencies:
-    freedesktop.org/pkg-config: ^0.29
+    linux:
+      # error: "XXX: No mutex implementation found.  Cairo will not work with multiple threads.  Define CAIRO_NO_MUTEX to 1 to acknowledge and accept this limitation and compile cairo without thread-safety support."
+      llvm.org: <15
     #FIXME or fontconfig detection fails
     #FIXME build looks for 2.4.9 even when it has 2.5.0
     libexpat.github.io: =2.4.9
     gnome.org/gobject-introspection: 1
-    gnu.org/libtool: ^2
+    # gnu.org/libtool: ^2
     mesonbuild.com: ^1
     ninja-build.org: ^1
   script:
@@ -54,12 +56,16 @@ build:
       working-directory: ${{ prefix }}/include
 
     - run: |
-        tmp_dir=$(ls)
+        if [ -d cairo ]; then
+          tmp_dir=cairo
+        else
+          tmp_dir=$(ls | head -n1)
+        fi
         mv $tmp_dir/* .
         rmdir $tmp_dir
       working-directory: ${{ prefix }}/lib
       if: linux
-      
+
     - run: |
         mv cairo/* .
         rmdir cairo
@@ -67,6 +73,10 @@ build:
       working-directory: ${{ prefix }}/lib
       if: darwin
   env:
+    linux:
+      CC: clang
+      CXX: clang++
+      LD: clang
     ARGS:
       - -Dfreetype=enabled
       - -Dpng=enabled
