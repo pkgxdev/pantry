@@ -1,0 +1,57 @@
+distributable:
+  url: git+https://github.com/osquery/osquery
+  ref: ${{version.tag}}
+
+versions:
+  github: osquery/osquery
+  
+build:
+  dependencies:
+    python.org: '>=3.11'
+    cmake.org: '*'
+    git-scm.org: '*'
+    curl.se: '*'
+    linux:
+      llvm.org: '*'
+      llvm.org/clang-format: '*'
+
+  script:
+    - run: |
+        curl -L "https://raw.githubusercontent.com/macports/macports-ports/master/sysutils/osquery/files/patch-default_paths.h.diff" | patch -p0
+        curl -L "https://github.com/macports/macports-ports/raw/master/sysutils/osquery/files/patch-lenses-path-augeas.cpp.diff" | patch -p0
+    - run: |
+        sed -i "s|/control|{{prefix}}/control|g" install_directives.cmake
+        sed -i "s|/private/var|{{prefix}}/var|g" install_directives.cmake
+      working-directory: cmake
+    - cmake -B build $CMAKE_ARGS
+    - cmake --build build
+    - cmake --install build
+    - run: |
+        sed -i "s|/var|\$OSQUERY_HOME/var|g" osqueryctl
+        sed -i "s|/opt/osquery|\$OSQUERY_HOME|g" osqueryctl
+      working-directory: ${{prefix}}/bin
+  env:
+    CMAKE_ARGS:
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_INSTALL_LIBDIR=lib
+      - -DCMAKE_INSTALL_SYSCONFDIR=etc
+      - -DCMAKE_INSTALL_LOCALSTATEDIR=var
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_FIND_FRAMEWORK=LAST
+      - -DCMAKE_VERBOSE_MAKEFILE=ON
+      - -Wno-dev
+      - -DBUILD_TESTING=OFF
+      - -DOSQUERY_VERSION={{version}}
+
+provides:
+  - bin/osqueryctl
+  - bin/osqueryd
+  - bin/osqueryi
+
+test:
+  - osqueryd --version | grep {{version}}
+  - osqueryi --version | grep {{version}}
+  # User has insufficient privileges. osqueryctl must be run as root.
+  # osqueryctl --version | grep {{version}}
+  - osqueryi --nodisable_extensions --allow_unsafe --json < test.sql > output.json
+  - cat output.json | grep '{"id":"1","name":"Example"}'
