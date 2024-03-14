@@ -1,0 +1,28 @@
+distributable:
+  url: https://github.com/cloudflare/cloudflared/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: cloudflare/cloudflared
+
+build:
+  dependencies:
+    go.dev: ^1.21
+  script:
+    - run: sed -i 's|go build|go build -buildmode=pie|g' Makefile
+      if: linux
+    - make install $ARGS
+  env:
+    DATE: $(date -u +%FT%TZ)
+    ARGS:
+      - VERSION={{version}}
+      - DATE=${DATE}
+      - PACKAGE_MANAGER=pkgx
+      - PREFIX={{prefix}}
+
+provides:
+  - bin/cloudflared
+
+test:
+  - cloudflared help | grep {{version}}
+  - cloudflared update 2>&1 | grep 'cloudflared was installed by pkgx'

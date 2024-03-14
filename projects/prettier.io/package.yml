@@ -1,0 +1,33 @@
+distributable:
+  url: https://registry.npmjs.org/prettier/-/prettier-{{version}}.tgz
+  strip-components: 1
+
+versions:
+  npm: prettier
+
+dependencies:
+  nodejs.org: ^20
+
+build:
+  dependencies:
+    npmjs.com: ^10
+  script:
+    npm i $ARGS .
+  env:
+    ARGS:
+      - -ddd
+      - --global
+      - --build-from-source
+      - --prefix={{prefix}}
+      - --install-links
+      - --unsafe-perm
+
+provides:
+  - bin/prettier
+
+test:
+  - prettier --version | grep {{version}}
+  - run: prettier $FIXTURE | grep 'const arr = \[1, 2\];'
+    fixture:
+      content: const arr = [1,2];
+      extname: js
