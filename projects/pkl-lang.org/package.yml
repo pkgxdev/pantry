@@ -1,0 +1,31 @@
+distributable: ~
+
+warnings:
+  - vendored
+
+versions:
+  github: apple/pkl
+
+build:
+  dependencies:
+    curl.se: '*'
+  script:
+    - curl -L "https://github.com/apple/pkl/releases/download/{{version}}/pkl-${SYS_NAME}-${ARCH_NAME}" -o "pkl"
+    - install -D pkl {{prefix}}/bin/pkl
+  env:
+    darwin:
+      SYS_NAME: macos
+    linux:
+      SYS_NAME: linux
+    x86-64:
+      ARCH_NAME: amd64
+    aarch64:
+      ARCH_NAME: aarch64
+
+provides:
+  - bin/pkl
+
+test:
+  - pkl --version | grep {{version}}
+  - pkl eval template.pkl | grep 'Writing a Template'
+  - pkl eval class.pkl | grep 'bestForConfig'

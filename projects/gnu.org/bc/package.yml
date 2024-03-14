@@ -1,0 +1,38 @@
+distributable:
+  url: https://ftp.gnu.org/gnu/bc/bc-{{version.raw}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://ftp.gnu.org/gnu/bc/
+  match: /bc-\d+\.\d+\.\d+\.tar\.gz/
+  strip:
+    - /^bc-/
+    - /\.tar\.gz$/
+
+dependencies:
+  github.com/westes/flex: ^2.6
+
+build:
+  dependencies:
+    gnu.org/bison: '*'
+    gnu.org/ed: '*'
+    gnu.org/texinfo: '*'
+  script:
+    - ./configure $ARGS
+    - make --jobs {{hw.concurrency}} install
+  env:
+    ARGS:
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --disable-silent-rules
+      - --prefix={{prefix}}
+      - --infodir={{prefix}}/share/info
+      - --mandir={{prefix}}/share/man
+      - --with-libedit
+
+provides:
+  - bin/bc
+
+test:
+  - bc --version | grep {{version.raw}}
+  - echo '150+150' | bc | grep 300

@@ -1,0 +1,22 @@
+distributable:
+  url: git+https://github.com/yonaskolb/Mint.git
+  ref: ${{version.tag}}
+
+versions:
+  github: yonaskolb/Mint
+
+platforms:
+  - darwin
+
+build:
+  - swift build --disable-sandbox -c release
+  - install -D .build/release/mint {{prefix}}/bin/mint
+
+provides:
+  - bin/mint
+
+test:
+  - mint version | grep {{version}}
+  - mint help | grep 'Swift Package Manager'
+  - mint install yonaskolb/mint
+  - mint list | grep 'mint'

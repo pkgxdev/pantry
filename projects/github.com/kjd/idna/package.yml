@@ -1,0 +1,20 @@
+distributable:
+  url: git+https://github.com/kjd/idna.git
+  ref: ${{version.tag}}
+
+versions:
+  github: kjd/idna/tags
+
+dependencies:
+  python.org: ~3.11
+
+runtime:
+  env:
+    PYTHONPATH: ${{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH
+
+build:
+  dependencies:
+    flit.pypa.io: '*'
+  script: python -m pip install --prefix={{prefix}} .
+
+test: python -c 'import idna; print(idna.__version__)' | grep {{version.marketing}}

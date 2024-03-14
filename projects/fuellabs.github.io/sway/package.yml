@@ -9,26 +9,31 @@ provides:
   - bin/forc
 
 dependencies:
-  zlib.net: '*'
-  linux:
-    openssl.org: '*'
+  zlib.net: ^1
+  openssl.org: ^1.1
 
 build:
   dependencies:
     rust-lang.org: 1
-    rust-lang.org/cargo: ^0.65
-    linux:
-      # needed to build openssl module
-      perl.org: '*'
+    rust-lang.org/cargo: ^0
+    # needed to build openssl module
+    perl.org: '*'
+    gnu.org/make: '*'
   script:
-        cargo install --locked --path forc --root {{prefix}}
+    # curve25519-dalek 4.1.2 introduces some odd simd issues on x86-64
+    - run: sed -i
+        -e 's/version = "4.1.2"/version = "4.1.1"/'
+        -e 's/0a677b8922c94e01bdbb12126b0bc852f00447528dee1782229af9c720c3f348/e89b8c6a2e4b1f45971ad09761aafb85514a84744b67a95e32c3cc1352d1f65c/'
+        Cargo.lock
+      if: '>=0.51.0'
+    - cargo install --locked --path forc --root {{prefix}}
 
 test:
-  script: |
-    forc new tea_test
-    cd tea_test
-    cp $FIXTURE src/main.sw
-    forc test
+  script:
+    - forc new tea_test
+    - cd tea_test
+    - cat $FIXTURE >src/main.sw
+    - forc test
   fixture: |
     script;
 

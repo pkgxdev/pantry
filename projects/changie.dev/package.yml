@@ -1,0 +1,31 @@
+distributable:
+  url: git+https://github.com/miniscruff/changie.git
+  ref: ${{version.tag}}
+
+versions:
+  github: miniscruff/changie
+
+build:
+  dependencies:
+    go.dev: '>=1.21'
+  script:
+    - go build $ARGS -ldflags="$LDFLAGS"
+  env:
+    ARGS:
+      - -trimpath
+      - -o={{prefix}}/bin/changie
+    LDFLAGS:
+      - -s
+      - -w
+      - -X main.version={{version}}
+    linux:
+      LDFLAGS:
+        - -buildmode=pie
+
+provides:
+  - bin/changie
+
+test:
+  - changie init
+  - cat CHANGELOG.md | grep 'All notable changes to this project will be documented in this file'
+  - changie --version | grep {{version}}

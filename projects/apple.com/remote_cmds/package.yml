@@ -1,0 +1,54 @@
+distributable:
+  url: https://github.com/apple-oss-distributions/remote_cmds/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: apple-oss-distributions/remote_cmds/tags
+  strip: /^remote_cmds-/
+
+display-name: telnet
+
+platforms:
+  - darwin
+
+build:
+  dependencies:
+    curl.se: '*'
+  script:
+    - run: |
+        curl -L 'https://github.com/apple-oss-distributions/libtelnet/archive/refs/tags/libtelnet-13.tar.gz' | tar -xz --strip-components=1
+
+        xcodebuild \
+          OBJROOT=build/Intermediates \
+          SYMROOT=build/Products \
+          DSTROOT=build/Archive \
+          -IDEBuildLocationStyle=Custom \
+          -IDECustomDerivedDataLocation=$SRCROOT \
+          -arch $(uname -m)
+
+        cp build/Products/Release/libtelnet.a ./
+        cp -r build/Products/Release/usr/local/include/libtelnet ./
+      working-directory: libtelnet
+    - |
+      xcodebuild \
+        OBJROOT=build/Intermediates \
+        SYMROOT=build/Products \
+        DSTROOT=build/Archive \
+        OTHER_CFLAGS="${inherited} $CFLAGS -I$SRCROOT/libtelnet" \
+        OTHER_LDFLAGS="${inherited} $LDFLAGS -L$SRCROOT/libtelnet" \
+        -IDEBuildLocationStyle=Custom \
+        -IDECustomDerivedDataLocation=$SRCROOT \
+        -sdk macosx \
+        -arch $(uname -m) \
+        -target telnet
+    - install -D build/Products/Release/telnet {{prefix}}/bin/telnet
+
+provides:
+  - bin/telnet
+
+test:
+  - server=pkgx.dev
+  - port=80
+  - |
+    (echo -e "GET / HTTP/1.1\nHost: $server\n\n"; sleep 1; echo "quit") | telnet $server $port > response.txt || true
+  - cat response.txt | grep '301 Moved Permanently'

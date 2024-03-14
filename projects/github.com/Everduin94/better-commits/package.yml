@@ -1,0 +1,42 @@
+distributable:
+  url: https://registry.npmjs.org/better-commits/-/better-commits-{{version}}.tgz
+  strip-components: 1
+
+versions:
+  npm: better-commits
+
+dependencies:
+  nodejs.org: ^20
+
+build:
+  dependencies:
+    npmjs.com: ^10
+  script:
+    - npm i $ARGS .
+    - run: |
+        ln -s ../libexec/bin/bcommits bcommits
+        ln -s ../libexec/bin/better-branch better-branch
+        ln -s ../libexec/bin/better-commits better-commits
+        ln -s ../libexec/bin/better-commits-init better-commits-init
+        ln -s ../libexec/bin/git-bc git-bc
+      working-directory: '{{prefix}}/bin'
+  env:
+    ARGS:
+      - -ddd
+      - --global
+      - --build-from-source
+      - --prefix={{prefix}}/libexec
+      - --install-links
+      - --unsafe-perm
+
+provides:
+  - bin/bcommits
+  - bin/better-branch
+  - bin/better-commits
+  - bin/better-commits-init
+  - bin/git-bc
+
+test:
+  - git init
+  - better-commits-init
+  - cat .better-commits.json | grep 'A code change that neither fixes a bug nor adds a feature'

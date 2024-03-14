@@ -1,0 +1,34 @@
+distributable:
+  url: https://ftp.gnu.org/gnu/parallel/parallel-{{version.raw}}.tar.bz2
+  strip-components: 1
+
+versions:
+  url: https://ftp.gnu.org/gnu/parallel/
+  match: /parallel-\d+\.tar\.bz2/
+  strip:
+    - /^parallel-/
+    - /\.tar\.bz2$/
+
+dependencies:
+  perl.org: 5
+
+build:
+  script:
+    - ./configure --prefix={{prefix}}
+    - make --jobs {{hw.concurrency}} install
+  env:
+    PATH: ${{prefix}}/bin:$PATH
+
+provides:
+  - bin/env_parallel
+  - bin/niceload
+  - bin/parallel
+  - bin/parcat
+  - bin/parset
+  - bin/parsort
+  - bin/sem
+  - bin/sql
+
+test:
+  - parallel --will-cite echo ':::' test test | grep 'test'
+  - parallel --version | grep {{version.raw}}

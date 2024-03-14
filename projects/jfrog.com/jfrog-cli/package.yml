@@ -11,21 +11,20 @@ platforms:
 build:
   dependencies:
     go.dev: '*'
-  script: |
-    go build $ARGS
-    mkdir -p {{prefix}}/bin
-    mv ./bin/jf {{prefix}}/bin
-    ln -sf jf {{prefix}}/bin/jfrog
-    
+  script:
+    - go mod tidy
+    - go build $ARGS
+    - run: ln -s jf jfrog
+      working-directory: '{{prefix}}/bin'
   env:
     ARGS:
       - -trimpath
-      - -o=bin/jf
+      - -o {{prefix}}/bin/jf
 
 provides:
   - bin/jf
   - bin/jfrog
 
-test: |
-  jf -v | grep {{version}}
-  jfrog -v | grep {{version}}
+test:
+  - jf -v | grep {{version}}
+  - jfrog -v | grep {{version}}

@@ -1,0 +1,30 @@
+distributable:
+  url: git+https://github.com/bats-core/bats-core.git
+  ref: ${{version.tag}}
+
+versions:
+  github: bats-core/bats-core
+
+warnings:
+  - vendored
+
+dependencies:
+  gnu.org/coreutils: ^9.4
+
+build: ./install.sh {{prefix}}
+
+provides:
+  - bin/bats
+
+test:
+  dependencies:
+    gnu.org/bc: ^1
+  fixture: |
+    @test "addition using bc" {
+      result="$(echo 2+2 | bc)"
+      [ "$result" -eq 4 ]
+    }
+  script:
+    - cp $FIXTURE test.sh
+    - bats test.sh | grep 'addition'
+    - bats --version | grep {{version}}

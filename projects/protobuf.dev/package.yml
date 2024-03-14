@@ -1,13 +1,13 @@
 distributable:
-   url: https://github.com/protocolbuffers/protobuf/archive/refs/tags/v{{version.raw}}.tar.gz
-   strip-components: 1
+  url: https://github.com/protocolbuffers/protobuf/archive/refs/tags/v{{version.raw}}.tar.gz
+  strip-components: 1
 
 versions:
   github: protocolbuffers/protobuf
 
 dependencies:
   zlib.net: ^1
-  abseil.io: '*'
+  abseil.io: '>=20230800<20230900'  # FIXME: how? it links to e.g. libabsl_bad_any_cast_impl.so.2308.0.0
 
 build:
   dependencies:
@@ -17,6 +17,10 @@ build:
     cmake .. $ARGS
     make --jobs {{ hw.concurrency }} install
   env:
+    linux:
+      # likely needs bumping to an unreleased abseil.io version
+      # ld.lld: error: undefined reference due to --no-allow-shlib-undefined: absl::lts_20240116::log_internal::LogMessage& absl::lts_20240116::log_internal::LogMessage::operator<<<int, 0>(int const&)
+      LDFLAGS: $LDFLAGS -Wl,--allow-shlib-undefined
     ARGS:
       - -Dprotobuf_BUILD_LIBPROTOC=ON
       - -Dprotobuf_BUILD_SHARED_LIBS=ON

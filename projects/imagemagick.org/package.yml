@@ -55,7 +55,7 @@ dependencies:
 
 runtime:
   env:
-    MAGICK_HOME: "{{prefix}}"
+    MAGICK_HOME: ${{prefix}}
 
 build:
   script:
@@ -88,7 +88,8 @@ build:
       - --disable-silent-rules
       - --disable-opencl
       - --enable-static
-      - --disable-shared
+      - --disable-installed  # makes us relocatable
+      - --enable-shared      # https://github.com/pkgxdev/pantry/issues/4030
       - --with-png=yes
       - --with-tiff=yes
       - --with-jxl=yes
@@ -120,9 +121,11 @@ build:
         - --without-x
 
 test:
-  dependencies:
-    curl.se: '*'
-  script:
-    - magick -version | grep {{version.tag}}
-    - curl "https://upload.wikimedia.org/wikipedia/commons/6/6a/PNG_Test.png" -o a.png
-    - magick identify a.png | grep "a.png PNG"
+  - magick -version | grep {{version.tag}}
+  - pkgx curl "https://upload.wikimedia.org/wikipedia/commons/6/6a/PNG_Test.png" -o a.png
+  - magick identify a.png | grep "a.png PNG"
+
+  # verify that we can build the rmagick gem
+  #NOTE only darwin because honestly it looks like the rmagick gem build process is broken on Linux
+  - run: pkgx +ruby@3.2.2 gem install rmagick
+    if: darwin

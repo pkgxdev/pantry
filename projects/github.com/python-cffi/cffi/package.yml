@@ -1,0 +1,53 @@
+distributable:
+  url: git+https://github.com/python-cffi/cffi.git
+  ref: ${{version.tag}}
+
+versions:
+  github: python-cffi/cffi
+
+dependencies:
+  python.org: '>=3.11'
+  github.com/eliben/pycparser: ^2.21
+  sourceware.org/libffi: ^3.4
+
+runtime:
+  env:
+    PYTHONPATH: ${{prefix}}/lib/python3/site-packages:$PYTHONPATH
+
+build:
+  - python -m pip install . --prefix={{prefix}}
+  - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
+    working-directory: ${{prefix}}/lib
+
+test:
+  dependencies:
+    llvm.org: '*'
+  script:
+    - clang -shared sum.c -o $SHARED_LIBRARY
+    - run: |
+        cat << EOF > sum_build.py
+        from cffi import FFI
+        ffibuilder = FFI()
+
+        declaration = """
+          int sum(int a, int b);
+        """
+
+        ffibuilder.cdef(declaration)
+        ffibuilder.set_source(
+          "_sum_cffi",
+          declaration,
+          libraries=['sum'],
+          extra_link_args=['-L$PWD', '-Wl,-rpath,$PWD']
+        )
+
+        ffibuilder.compile(verbose=True)
+        EOF
+    - python sum_build.py
+    - python -c "import _sum_cffi; assert _sum_cffi.lib.sum(1, 2) == 3"
+  env:
+    CC: clang
+    linux:
+      SHARED_LIBRARY: libsum.so
+    darwin:
+      SHARED_LIBRARY: libsum.dylib

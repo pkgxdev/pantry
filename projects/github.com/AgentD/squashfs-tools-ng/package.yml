@@ -1,0 +1,39 @@
+distributable:
+  url: https://infraroot.at/pub/squashfs/squashfs-tools-ng-{{version}}.tar.xz
+  strip-components: 1
+
+display-name: squashfs-tools-ng
+
+versions:
+  url: https://infraroot.at/pub/squashfs/
+  match: /squashfs-tools-ng-\d+\.\d+(\.\d+)?\.tar\.gz/
+  strip:
+    - /^squashfs-tools-ng-/
+    - /.tar.gz$/
+
+dependencies:
+  zlib.net: ^1
+  tukaani.org/xz: ^5
+  lz4.org: ^1
+  facebook.com/zstd: ^1
+  oberhumer.com/lzo: ^2
+
+build:
+  dependencies:
+    gnu.org/coreutils: '*'
+    gnu.org/libtool: '*'
+    gnu.org/gawk: '*'
+    gnu.org/gcc: '*'
+    cmake.org: ^3
+  script:
+    - ./configure --prefix="{{prefix}}"
+    - make --jobs {{ hw.concurrency }} install V=1
+
+provides:
+  - bin/gensquashfs
+  - bin/rdsquashfs
+  - bin/sqfs2tar
+  - bin/tar2sqfs
+  - bin/sqfsdiff
+
+test: test "$(gensquashfs --version|head -1 |cut -d' ' -f 3)" = {{version}}

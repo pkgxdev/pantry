@@ -1,0 +1,23 @@
+distributable:
+  url: git+https://github.com/pallets/jinja.git
+  ref: ${{version.tag}}
+
+display-name: python-jinja
+
+versions:
+  github: pallets/jinja
+
+dependencies:
+  python.org: '>=3.11'
+  markupsafe.palletsprojects.com: '>=2.1'
+
+runtime:
+  env:
+    PYTHONPATH: ${{prefix}}/lib/python3/site-packages:$PYTHONPATH
+
+build:
+  - python -m pip install --prefix={{prefix}} .
+  - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
+    working-directory: ${{prefix}}/lib
+
+test: python -c "import jinja2; print(jinja2.__version__)" | grep {{version}}

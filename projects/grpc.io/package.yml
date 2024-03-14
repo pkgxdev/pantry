@@ -19,7 +19,7 @@ dependencies:
   abseil.io: '*'
   c-ares.org: '*'
   openssl.org: ^1.1
-  protobuf.dev: '>=22.3'
+  protobuf.dev: 25.2.0 # grpc links to specific versions, so we have to pick one.
   github.com/google/re2: '*'
   zlib.net: '*'
 
@@ -47,7 +47,7 @@ build:
     - cp libgrpc++_test_config.* "{{prefix}}/lib"
 
     - run: install_name_tool -add_rpath @loader_path libgrpc++_test_config.dylib
-      working-directory: "{{prefix}}/lib"
+      working-directory: '{{prefix}}/lib'
       if: darwin
   env:
     COMMON_ARGS:
@@ -68,6 +68,10 @@ build:
       - -DgRPC_RE2_PROVIDER=package
     CLI_ARGS:
       - -DgRPC_BUILD_TESTS=ON
+    linux:
+      # likely needs bumping to an unreleased abseil.io version
+      # ld.lld: error: undefined reference due to --no-allow-shlib-undefined: absl::lts_20230802::Cord::Cord<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>, 0>(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>&&)
+      LDFLAGS: $LDFLAGS -Wl,--allow-shlib-undefined
 
 test:
   dependencies:

@@ -1,0 +1,36 @@
+distributable:
+  url: git+https://github.com/yannh/kubeconform.git
+  ref: ${{version.tag}}
+
+versions:
+  github: yannh/kubeconform
+
+build:
+  dependencies:
+    go.dev: '>=1.21'
+  script:
+    - go build $ARGS -ldflags="$LDFLAGS" ./cmd/kubeconform
+  env:
+    ARGS:
+      - -trimpath
+      - -o={{prefix}}/bin/kubeconform
+    LDFLAGS:
+      - -s
+      - -w
+      - -X main.version={{version}}
+    linux:
+      LDFLAGS:
+        - -buildmode=pie
+
+provides:
+  - bin/kubeconform
+
+test:
+  dependencies:
+    curl.se: '*'
+  script:
+    - curl -L "https://raw.githubusercontent.com/yannh/kubeconform/master/fixtures/valid.yaml" -o valid.yaml
+    - kubeconform valid.yaml
+    - curl -L "https://raw.githubusercontent.com/yannh/kubeconform/master/fixtures/invalid.yaml" -o invalid.yaml
+    - kubeconform invalid.yaml | false || true
+    - kubeconform -v | grep {{version}}

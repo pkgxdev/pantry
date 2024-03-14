@@ -23,6 +23,7 @@ build:
     freedesktop.org/pkg-config: '*'
     #gnu.org/gcc: '*'
     gnu.org/bison: '*'
+    gnu.org/sed: '*'
     github.com/westes/flex: ^2.5.31
     perl.org: '*'
   script: |
@@ -30,9 +31,13 @@ build:
     # `./configure` *specifically* checks that certain warnings are emitted.
     export CFLAGS="$(echo $CFLAGS | tr ' ' '\n' | sed -e '/^-w$/d' | tr '\n' ' ')"
 
+    # disable sgml doc generation, since that seems to fail.
+    # sorry all you sgml-heads out there
+    sed -i 's|\([^\t]*sgml.*\)$|#\1|' GNUmakefile.in doc/src/Makefile
+
     ./configure $ARGS
     make --jobs {{ hw.concurrency }}
-    make install
+    make install-world
   env:
     CC: clang
     CXX: clang++
@@ -46,6 +51,9 @@ build:
     darwin:
       LDFLAGS:
         - -headerpad_max_install_names $LDFLAGS
+    linux:
+      CFLAGS:
+        - -Wno-incompatible-function-pointer-types $CFLAGS
 
 provides:
   - bin/clusterdb

@@ -1,0 +1,16 @@
+distributable:
+  url: git+https://github.com/python-attrs/attrs.git
+  ref: ${{version.tag}}
+
+versions:
+  github: python-attrs/attrs
+
+dependencies:
+  python.org: ~3.11
+
+runtime:
+  env:
+    PYTHONPATH: ${{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH
+
+build: python -m pip install --prefix={{prefix}} .
+test: python -c 'import attrs; print(attrs.__version__)' | grep {{version}}

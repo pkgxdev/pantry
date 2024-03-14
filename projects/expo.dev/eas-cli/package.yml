@@ -20,10 +20,16 @@ build:
     - mkdir -p "{{prefix}}"
     - yarn install
 
-    - run: yarn build-ci
+    # `build-ci` not present in v6
+    - run: BUILD_CMD="build-ci"
+      if: <6
+    - run: BUILD_CMD="build"
+      if: '>=6'
+
+    - run: yarn $BUILD_CMD
       working-directory: packages/eas-json/
 
-    - yarn build-ci
+    - yarn $BUILD_CMD
     - cp -r * {{prefix}}
 
     - run:

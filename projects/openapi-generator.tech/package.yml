@@ -1,0 +1,59 @@
+distributable:
+  url: git+https://github.com/OpenAPITools/openapi-generator.git
+  ref: ${{version.tag}}
+
+versions:
+  github: OpenAPITools/openapi-generator
+
+dependencies:
+  openjdk.org: ^20
+
+build:
+  dependencies:
+    maven.apache.org: '*'
+  script:
+    - mvn clean package -Dmaven.javadoc.skip=true
+    - install -D modules/openapi-generator-cli/target/openapi-generator-cli.jar {{prefix}}/libexec/lib/openapi-generator-cli.jar
+    - run: |
+        cat > openapi-generator <<EOF
+        #!/bin/sh
+        exec java -jar \$(dirname \$0)/../libexec/lib/openapi-generator-cli.jar "\$@"
+        EOF
+        chmod +x openapi-generator
+      working-directory: ${{prefix}}/bin
+
+provides:
+  - bin/openapi-generator
+
+test:
+  fixture: |
+    ---
+    openapi: 3.0.3
+    info:
+      version: 0.0.0
+      title: Sample API
+    servers:
+      - url: http://api.example.com/v1
+        description: Optional server description, e.g. Main (production) server
+      - url: http://staging-api.example.com
+        description: Optional server description, e.g. Internal staging server for testing
+    paths:
+      /users:
+        get:
+          summary: Returns a list of users.
+          responses:
+            '200':
+              description: A JSON array of user names
+              content:
+                application/json:
+                  schema:
+                    type: array
+                    items:
+                      type: string
+  script:
+    - cp $FIXTURE minimal.yaml
+    - openapi-generator generate -i minimal.yaml -g openapi -o out
+    - openapi-generator generate -i minimal.yaml -g python -o out
+    - ls out | grep openapi.json
+    - ls out | grep setup.py
+    - openapi-generator --version | grep {{version}}

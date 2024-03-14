@@ -1,0 +1,33 @@
+distributable:
+  # Make sure you're either building from a fully intact git repository
+  url: git+https://github.com/pypa/hatch.git
+  ref: ${{version.tag}}
+
+versions:
+  github: pypa/hatch
+  strip: /hatchling-v/
+
+dependencies:
+  pkgx.sh: ^1
+
+runtime:
+  env:
+    PYTHONPATH: ${{prefix}}/venv/lib/python3/site-packages:$PYTHONPATH
+
+build:
+  dependencies:
+    python.org: ~3.12
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} hatch hatchling
+    - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
+      working-directory: ${{prefix}}/venv/lib
+
+provides:
+  - bin/hatch
+  - bin/hatchling
+
+test:
+  - hatch env create
+  - python -c 'import hatchling'

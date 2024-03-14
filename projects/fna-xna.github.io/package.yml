@@ -1,0 +1,39 @@
+distributable:
+  url: git+https://github.com/FNA-XNA/FAudio.git
+  ref: ${{version.tag}}
+
+versions:
+  github: FNA-XNA/FAudio
+
+dependencies:
+  libsdl.org: ^2.28
+
+build:
+  dependencies:
+    cmake.org: '*'
+  script:
+    - cmake -S . -B build $ARGS
+    - cmake --build build
+    - cmake --install build
+  env:
+    ARGS:
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}
+      - -DCMAKE_INSTALL_LIBDIR=lib
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_FIND_FRAMEWORK=LAST
+      - -DCMAKE_VERBOSE_MAKEFILE=ON
+      - -Wno-dev
+      - -DBUILD_TESTING=OFF
+
+test:
+  fixture: |
+    #include <FAudio.h>
+    int main(int argc, char const *argv[])
+    {
+      FAudio *audio;
+      return FAudioCreate(&audio, 0, FAUDIO_DEFAULT_PROCESSOR);
+    }
+  script:
+    - cp $FIXTURE test.c
+    - cc test.c -lFAudio -o test
+    - ./test

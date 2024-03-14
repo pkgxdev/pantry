@@ -1,0 +1,29 @@
+distributable:
+  url: git+https://github.com/Ousret/charset_normalizer.git
+  ref: ${{version.tag}}
+
+versions:
+  github: Ousret/charset_normalizer
+
+dependencies:
+  python.org: '>=3.11'
+
+runtime:
+  env:
+    PYTHONPATH: ${{prefix}}/venv/lib/python{{deps.python.org.version.major}}/site-packages:$PYTHONPATH
+
+build:
+  - bkpyvenv stage {{prefix}} {{version}}
+  - ${{prefix}}/venv/bin/pip install .
+  - bkpyvenv seal {{prefix}} normalizer
+  - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
+    working-directory: ${{prefix}}/venv/lib
+
+provides:
+  - bin/normalizer
+
+test:
+  - python -c 'import charset_normalizer; print(charset_normalizer.__version__)' | grep {{version}}
+  - normalizer --version | grep {{version}}
+  - echo "Hello, World!" > test.txt
+  - normalizer test.txt | grep 'English'

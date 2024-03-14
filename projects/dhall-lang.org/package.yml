@@ -1,0 +1,43 @@
+distributable:
+  url: https://hackage.haskell.org/package/dhall-{{version}}/dhall-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://hackage.haskell.org/package/dhall
+  match: /dhall-\d+\.\d+\.\d+\.tar\.gz/
+  strip:
+    - /^dhall-/
+    - /\.tar\.gz$/
+
+dependencies:
+  invisible-island.net/ncurses: ^6.4
+  zlib.net: ^1.3
+
+build:
+  dependencies:
+    haskell.org: '*'
+    haskell.org/cabal: '*'
+  script:
+    - run: |
+        sed -i '/unordered-containers/i\
+                -- zlib 0.7.0 fails to find zlib.dylib on macOS\
+                zlib                        >= 0.6.0    \&\& < 0.7 ,' \
+        dhall.cabal
+      if: darwin
+    - cabal v2-update
+    - mkdir -p {{prefix}}/bin
+    - cabal v2-install $ARGS
+    - install -D man/dhall.1 {{prefix}}/share/man/man1/dhall.1
+  env:
+    ARGS:
+      - --install-method=copy
+      - --installdir={{prefix}}/bin
+      - --jobs={{hw.concurrency}}
+
+provides:
+  - bin/dhall
+
+test:
+  - dhall format <<< '{ = }' | grep '{=}'
+  - dhall normalize <<< 'let x = 1 in x' | grep 1
+  - dhall version | grep '{{version}}'

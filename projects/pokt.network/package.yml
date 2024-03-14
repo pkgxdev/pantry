@@ -9,21 +9,18 @@ versions:
 provides:
   - bin/pocket
 
-dependencies:
-  go.dev: ^1.18
-
 build:
   dependencies:
     go.dev: ^1.18
-  script: |
-    go build -o pocket ./app/cmd/pocket_core/main.go
-    mkdir -p "{{ prefix }}"/bin
-    mv pocket "{{ prefix }}"/bin
+  script:
+    - run: sed -i -e 's/AppVersion = ".*"$/AppVersion = "RC-{{version}}"/' app.go
+      working-directory: app
+    - go build -ldflags="$GO_LDFLAGS" -o '{{prefix}}'/bin/pocket ./app/cmd/pocket_core/main.go
+  env:
+    linux:
+      GO_LDFLAGS:
+        - -buildmode=pie
 
 test:
-  script: |
-    pocket --help >> /tmp/pocket.help
-    if ! grep -q "Pocket is a distributed network that relays data" /tmp/pocket.help; then
-      echo "Error: Pocket was not installed successfully"
-      exit 1
-    fi
+  - pocket version
+  - pocket version | grep {{version}}

@@ -1,0 +1,33 @@
+distributable:
+  url: https://github.com/siderolabs/talos/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: siderolabs/talos
+
+build:
+  dependencies:
+    go.dev: ^1.21
+    linux:
+      # invalid linker name in argument '-fuse-ld=gold'
+      gnu.org/gcc: '*'
+  script:
+    go build $ARGS -ldflags="$LDFLAGS" ./cmd/talosctl
+  env:
+    ARGS:
+      - -trimpath
+      - -o={{prefix}}/bin/talosctl
+    LDFLAGS:
+      - -s
+      - -w
+    linux:
+      LDFLAGS:
+        - -buildmode=pie
+
+provides:
+  - bin/talosctl
+
+test:
+  - talosctl help | grep 'A CLI for out-of-band management of Kubernetes nodes created by Talos'
+  - talosctl gen config --version v1alpha1 test_cluster 127.0.0.1:2222 2>out.log || true
+  - cat out.log | grep 'https://127.0.0.1:2222'
