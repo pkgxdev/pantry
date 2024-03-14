@@ -1,0 +1,42 @@
+distributable:
+  url: https://registry.npmjs.org/pyright/-/pyright-{{version}}.tgz
+  strip-components: 1
+
+versions:
+  npm: pyright
+
+dependencies:
+  nodejs.org: ^20
+
+build:
+  dependencies:
+    npmjs.com: '*'
+  script:
+    npm i $ARGS .
+  env:
+    ARGS:
+      - -ddd
+      - --global
+      - --build-from-source
+      - --prefix={{prefix}}
+      - --install-links
+      - --unsafe-perm
+
+provides:
+  - bin/pyright
+
+test:
+  - run: pyright $FIXTURE 2>&1>out.log || true
+    fixture:
+      content: |
+        def wrong_types(a: int, b: int) -> str:
+          return a + b
+      extname: py
+  - cat out.log | grep 'Expression of type "int" cannot be assigned to return type "str"'
+  - run: pyright $FIXTURE 2>&1 | grep '0 errors, 0 warnings, 0 informations'
+    fixture:
+      content: |
+        def add(a: int, b: int) -> int:
+          return a + b
+      extname: py
+  - pyright --version | grep {{version}}
