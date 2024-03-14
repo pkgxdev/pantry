@@ -34,7 +34,6 @@ interprets:
   args: python
 
 dependencies:
-  # recommended (but none are actually required)
   zlib.net: 1
   sourceware.org/bzip2: 1
   openssl.org: ^1.1
@@ -229,6 +228,7 @@ build:
       - bin/pydoc{{version.marketing}}
       - bin/python{{version.marketing}}-config
 
+    LDFLAGS: -L{{ deps.zlib.net.prefix }}/lib
     OPENSSL_INCLUDES: ${{ deps.openssl.org.prefix }}/include
     OPENSSL_LDFLAGS: -L{{ deps.openssl.org.prefix }}/lib
     PYTHON2PATCHES:
@@ -259,13 +259,9 @@ test:
       if: ^3.8
 
     # Check if some other modules import. Then the linked libs are working.
-    - run: |
-        python -v -c "import _ctypes"
-        # python -c "import _decimal" #FIXME
-        python -c "import zlib"
-      # FIXME: v2, <=3.6.4
-      if: ^3.6.4
-
+    - python -v -c "import _ctypes"
+    # - python -c "import _decimal" #FIXME
+    - python -c "import zlib"
     - python -c "import pyexpat"
 
     # Verify that the selected DBM interface works
