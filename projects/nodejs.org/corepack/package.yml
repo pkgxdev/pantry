@@ -1,0 +1,37 @@
+distributable:
+  url: https://registry.npmjs.org/corepack/-/corepack-{{version}}.tgz
+  strip-components: 1
+
+versions:
+  npm: corepack
+
+dependencies:
+  nodejs.org: ^20
+
+build:
+  dependencies:
+    npmjs.com: '*'
+  script:
+    - npm install $ARGS
+  env:
+    ARGS:
+      - -ddd
+      - --global
+      - --build-from-source
+      - --prefix={{prefix}}
+      - --install-links
+      - --unsafe-perm
+
+provides:
+  - bin/corepack
+
+test:
+  - corepack enable yarn
+  - |
+    echo '{"name": "test"}' > package.json
+  - yarn add jquery -y
+  - rm package.json
+  - corepack disable yarn
+  - corepack enable pnpm
+  - pnpm init
+  - ls | grep package.json
