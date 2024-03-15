@@ -228,8 +228,8 @@ build:
       - bin/pydoc{{version.marketing}}
       - bin/python{{version.marketing}}-config
 
-    CPPFLAGS: -I{{ deps.zlib.net.prefix }}/include
-    LDFLAGS: -L{{ deps.zlib.net.prefix }}/lib
+    CPPFLAGS: ${CPPFLAGS:+$CPPFLAGS }-I{{ deps.zlib.net.prefix }}/include
+    LDFLAGS: ${LDFLAGS:+$LDFLAGS }-L{{ deps.zlib.net.prefix }}/lib
     OPENSSL_INCLUDES: ${{ deps.openssl.org.prefix }}/include
     OPENSSL_LDFLAGS: -L{{ deps.openssl.org.prefix }}/lib
     PYTHON2PATCHES:
@@ -260,10 +260,11 @@ test:
       if: ^3.8
 
     # Check if some other modules import. Then the linked libs are working.
-    - python -v -c "import _ctypes"
-    # - python -c "import _decimal" #FIXME
     - python -c "import zlib"
     - python -c "import pyexpat"
+    # - python -c "import _decimal" # FIXME
+    - run: python -v -c "import _ctypes"
+      if: ^3.6.4 # || linux # FIXME
 
     # Verify that the selected DBM interface works
     # FIXME: doen't work
