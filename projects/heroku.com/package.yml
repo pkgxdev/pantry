@@ -1,0 +1,32 @@
+distributable:
+  url: https://registry.npmjs.org/heroku/-/heroku-{{version}}.tgz
+  strip-components: 1
+
+versions:
+  npm: heroku
+
+dependencies:
+  nodejs.org: ^20
+
+build:
+  dependencies:
+    npmjs.com: '*'
+  script:
+    npm i $ARGS .
+  env:
+    ARGS:
+      - -ddd
+      - --global
+      - --build-from-source
+      - --prefix={{prefix}}
+      - --install-links
+      - --unsafe-perm
+
+provides:
+  - bin/heroku
+
+test:
+  - heroku --version | grep {{version}}
+  - heroku --help
+  - heroku authorizations:create -d "getting started token" 2>out.log <<< q || true
+  - cat out.log | grep "Press any key to open up the browser to login"
