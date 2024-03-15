@@ -1,0 +1,40 @@
+distributable:
+  url: https://registry.npmjs.org/typescript/-/typescript-{{version}}.tgz
+  strip-components: 1
+
+versions:
+  npm: typescript
+
+dependencies:
+  nodejs.org: ^20
+
+build:
+  dependencies:
+    npmjs.com: '*'
+  script:
+    - npm install $ARGS
+  env:
+    ARGS:
+      - -ddd
+      - --global
+      - --build-from-source
+      - --prefix={{prefix}}
+      - --install-links
+      - --unsafe-perm
+
+provides:
+  - bin/tsc
+
+test:
+  - run: tsc $FIXTURE
+    fixture:
+      content: |
+        class Test {
+          greet() {
+            return "Hello, world!";
+          }
+        };
+        var test = new Test();
+        document.body.innerHTML = test.greet();
+      extname: ts
+  - tsc --version | grep {{version}}

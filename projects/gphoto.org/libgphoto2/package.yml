@@ -1,0 +1,52 @@
+distributable:
+  url: https://downloads.sourceforge.net/project/gphoto/libgphoto/{{version}}/libgphoto2-{{version}}.tar.bz2
+  strip-components: 1
+
+versions:
+  url: https://sourceforge.net/projects/gphoto/rss?path=/libgphoto
+  match: /libgphoto2-\d+\.\d+\.\d+\.tar\.bz2/
+  strip:
+    - /^libgphoto2-/
+    - /\.tar\.bz2$/
+  
+dependencies:
+  libgd.github.io: ^2.3
+  libjpeg-turbo.org: ^2
+  libexif.github.io: ^0.6
+  gnu.org/libtool: ^2.4
+  libusb.info/compat: ^0.1
+  curl.se: ^8
+  gnome.org/libxml2: ^2.12
+
+build:
+  dependencies:
+    linux:
+      gnu.org/gcc: '*'
+      systemd.io: '*' # cannot find -ludev
+  script:
+    - ./configure $ARGS
+    - make --jobs {{hw.concurrency}}
+    - make --jobs {{hw.concurrency}} install
+    - sed -i 's|{{prefix}}|\$(dirname \$0)/..|g' {{prefix}}/bin/*
+  env:
+    ARGS:
+      - --disable-dependency-tracking
+      - --disable-silent-rules
+      - --prefix={{prefix}}
+
+provides:
+  - bin/gphoto2-config
+  - bin/gphoto2-port-config
+
+test:
+  - run: cc $FIXTURE $(gphoto2-config --libs) -o test
+    fixture:
+      content: |
+        #include <gphoto2/gphoto2-camera.h>
+        int main(void) {
+          Camera *camera;
+          return gp_camera_new(&camera);
+        }
+      extname: c
+  - ./test
+  - gphoto2-config --version | grep {{version}}

@@ -1,0 +1,19 @@
+distributable:
+  url: https://github.com/mono0926/LicensePlist/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: mono0926/LicensePList
+
+platforms:
+  - darwin
+
+build:
+  make install PREFIX={{prefix}}
+
+provides:
+  - bin/license-plist
+
+test:
+  - echo 'github "realm/realm-swift" "v10.20.2"' > Cartfile.resolved
+  - license-plist --suppress-opening-directory | grep 'None 🎉'

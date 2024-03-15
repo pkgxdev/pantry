@@ -69,13 +69,16 @@ build:
         ARGS+=" --disable-hotspot-gtest --with-jvm-features=shenandoahgc --with-conf-name=release"
         MAKE_ARGS+=" CONF=release"
 
-        LLVM_VERSION_MAJOR='12'
-        pkgx "+llvm.org^${LLVM_VERSION_MAJOR}"
-        LLVM_BIN_PATH="$(realpath "{{deps.llvm.org.prefix}}/../v${LLVM_VERSION_MAJOR}/bin")"
-        PATH_WITHOUT_LLVM="$(echo "${PATH}" | tr ':' '\n' | grep -v '/llvm.org/' | tr '\n' ':')"
-        export PATH="${LLVM_BIN_PATH}:${PATH_WITHOUT_LLVM}"
-        clang --version | grep "clang version ${LLVM_VERSION_MAJOR}"
-        unset LLVM_VERSION_MAJOR LLVM_BIN_PATH PATH_WITHOUT_.LLVM
+        # This is hacky, but it's necessary to version the LLVM dependency by openjdk version.
+        if test {{hw.platform}} = "linux"; then
+          LLVM_VERSION_MAJOR='12'
+          pkgx "+llvm.org^${LLVM_VERSION_MAJOR}"
+          LLVM_BIN_PATH="$(realpath "{{deps.llvm.org.prefix}}/../v${LLVM_VERSION_MAJOR}/bin")"
+          PATH_WITHOUT_LLVM="$(echo "${PATH}" | tr ':' '\n' | grep -v '/llvm.org/' | tr '\n' ':')"
+          export PATH="${LLVM_BIN_PATH}:${PATH_WITHOUT_LLVM}"
+          clang --version | grep "clang version ${LLVM_VERSION_MAJOR}"
+          unset LLVM_VERSION_MAJOR LLVM_BIN_PATH PATH_WITHOUT_.LLVM
+        fi
       if: <12
     - bash configure $ARGS
       --with-boot-jdk="$BOOT_JDK_DIR"
