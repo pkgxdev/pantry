@@ -27,19 +27,15 @@ build:
     linux:
       llvm.org: '<16'
       gnu.org/make: '*'
-    python.org: ~3.9
     freedesktop.org/pkg-config: ^0.29
   script:
-    - run: |
-        # https://github.com/pkgxdev/brewkit/issues/319
-        PYTHON_VERSION_MAJOR='2'
-        pkgx "+python.org^${PYTHON_VERSION_MAJOR}"
-        PYTHON_BIN_PATH="$(realpath "{{deps.python.org.prefix}}/../v${PYTHON_VERSION_MAJOR}/bin")"
-        PATH_WITHOUT_PYTHON="$(echo "${PATH}" | tr ':' '\n' | grep -v '/python.org/' | tr '\n' ':')"
-        export PATH="${PYTHON_BIN_PATH}:${PATH_WITHOUT_PYTHON}"
-        python --version 2>&1 | grep "Python ${PYTHON_VERSION_MAJOR}"
-        unset PYTHON_VERSION_MAJOR PYTHON_BIN_PATH PATH_WITHOUT_PYTHON
+    # https://github.com/pkgxdev/brewkit/issues/319
+    - set -a
+    - run: source <(pkgx +python.org@2)
       if: <11
+    - run: source <(pkgx +python.org~3.9)
+      if: '>=11'
+    - set +a
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
   env:
