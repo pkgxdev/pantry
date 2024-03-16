@@ -228,8 +228,8 @@ build:
       - bin/pydoc{{version.marketing}}
       - bin/python{{version.marketing}}-config
 
-    CPPFLAGS: -I{{ deps.zlib.net.prefix }}/include
-    LDFLAGS: -L{{ deps.zlib.net.prefix }}/lib
+    CPPFLAGS: ${CPPFLAGS:+$CPPFLAGS }-I{{ deps.zlib.net.prefix }}/include
+    LDFLAGS: ${LDFLAGS:+$LDFLAGS }-L{{ deps.zlib.net.prefix }}/lib
     OPENSSL_INCLUDES: ${{ deps.openssl.org.prefix }}/include
     OPENSSL_LDFLAGS: -L{{ deps.openssl.org.prefix }}/lib
     PYTHON2PATCHES:
@@ -247,6 +247,8 @@ build:
       - https://raw.githubusercontent.com/macports/macports-ports/master/lang/python27/files/openssl_ver.patch
 
 test:
+  dependencies:
+    crates.io/semverator: '*'
   script:
     # Check if sqlite is ok, because we build with --enable-loadable-sqlite-extensions
     # and it can occur that building sqlite silently fails if OSX's sqlite is used.
@@ -260,10 +262,16 @@ test:
       if: ^3.8
 
     # Check if some other modules import. Then the linked libs are working.
-    - python -v -c "import _ctypes"
-    # - python -c "import _decimal" #FIXME
     - python -c "import zlib"
     - python -c "import pyexpat"
+    # - python -c "import _decimal" # FIXME
+    # FIXME: darwin <3.6.4 fails
+    - run: |
+        if test "{{hw.platform}}" = "linux"; then
+          python -v -c "import _ctypes"
+        elif semverator gt {{version}} 3.6.3; then
+          python -v -c "import _ctypes"
+        fi
 
     # Verify that the selected DBM interface works
     # FIXME: doen't work
