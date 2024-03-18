@@ -35,11 +35,11 @@ build:
       # https://github.com/llvm/llvm-project/issues/56854
       llvm.org: '<15'
     perl.org: '>=5'
-  script: |
-    export ERL_TOP=$(pwd)
-    ./configure $ARGS
-    make -j {{hw.concurrency}}
-    make install
+  script:
+    - export ERL_TOP=$(pwd)
+    - ./configure $ARGS
+    - make
+    - make install
   env:
     CC: cc
     CXX: c++
@@ -63,11 +63,11 @@ build:
         - --with-dynamic-trace=dtrace
 
 test:
-  script: |
-    epmd -kill || true
-    epmd -daemon -address 127.0.0.1 -relaxed_command_check
-    test "$(escript $FIXTURE 10)" = "factorial 10 = 3628800"
-    epmd -kill || true
+  script:
+    - epmd -kill || true
+    - epmd -daemon -address 127.0.0.1 -relaxed_command_check
+    - test "$(escript $FIXTURE 10)" = "factorial 10 = 3628800"
+    - epmd -kill || true
 
   env:
     ERL_DIST_PORT: 8001
