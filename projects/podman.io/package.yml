@@ -18,6 +18,9 @@ dependencies:
   qemu.org: '*'
   github.com/containers/gvisor-tap-vsock: '*'
 
+companions:
+  openssh.com: '*' # ssh-keygen
+
 build:
   dependencies:
     go.dev: ^1.18
@@ -28,8 +31,7 @@ build:
     - run: |
         sed -i.bak -f $PROP config_{darwin,linux}.go
         rm config_{darwin,linux}.go.bak
-      working-directory:
-        vendor/github.com/containers/common/pkg/config
+      working-directory: vendor/github.com/containers/common/pkg/config
       prop: |-
         s_\(^var defaultHelperBinariesDir.*\)_\
         \1\n        "$BINDIR/../../../github.com/containers/gvisor-tap-vsock/v{{deps.github.com/containers/gvisor-tap-vsock.version.major}}/bin",_
@@ -56,8 +58,12 @@ test:
   script:
     - podman-remote -v | grep "podman-remote version {{ version }}"
     - (podman info 2>&1 || true) | grep "Cannot connect to Podman."
+
     # won't run as root
     - |
-      if test $(id -g) != 0; then
-        (podman machine init --image-path fake-testimage fake-testvm 2>&1 || true) | grep 'Error: open fake-testimage: no such file or directory'
+      if test $(id -g) = 0; then
+        exit 0
       fi
+
+    # error message changed in v5
+    - "(podman machine init --image-path fake-testimage fake-testvm 2>&1 || true) | grep -E 'Error: (open|stat) fake-testimage: no such file or directory'"
