@@ -12,7 +12,7 @@ companions:
   python.org: '*'
 
 dependencies:
-  libgit2.org: ^1.7
+  libgit2.org: ~1.7 # links to libgit2.so.1.7
 
 build:
   dependencies:
@@ -43,21 +43,21 @@ test:
             return "<p>Hello, World!</p>"
         extname: .py
       run:
-      - |
-        if which flask; then
-          false
-        fi
-      - |
-        uv venv
-        source .venv/bin/activate
-        uv pip install flask
-      - |
-        mv $FIXTURE app.py
-        set -m
-        flask run &
-        PID=$!
-      # otherwise the server may not be ready
-      - sleep 4
-      - test "$(curl 127.0.0.1:5000)" = "<p>Hello, World!</p>"
-      # TODO need to install a signal handler or our build servers could be left with a running flask process
-      - kill $PID
+        - |
+          if which flask; then
+            false
+          fi
+        - |
+          uv venv
+          source .venv/bin/activate
+          uv pip install flask
+        - |
+          mv $FIXTURE app.py
+          set -m
+          flask run &
+          PID=$!
+        # otherwise the server may not be ready
+        - sleep 4
+        - test "$(curl 127.0.0.1:5000)" = "<p>Hello, World!</p>"
+        # TODO need to install a signal handler or our build servers could be left with a running flask process
+        - kill $PID
