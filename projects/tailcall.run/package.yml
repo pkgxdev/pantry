@@ -11,12 +11,15 @@ versions:
 
 build:
   env:
-    APP_VERSION: "{{ version }}"
+    APP_VERSION: '{{ version }}'
   dependencies:
-    rust-lang.org: ">=1.65"
-    rust-lang.org/cargo: "*"
+    rust-lang.org: '>=1.65'
+    rust-lang.org/cargo: '*'
   script: cargo install --locked --path . --root {{prefix}}
 
 test:
   script:
+    # required file
+    - run: touch .env
+      if: '>=0.66.0'
     - test "$(tailcall --version)" = "tailcall {{version}}"
