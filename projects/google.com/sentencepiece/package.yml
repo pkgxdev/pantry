@@ -4,20 +4,27 @@ distributable:
 
 versions:
   github: google/sentencepiece/releases/tags
-  ignore: '1.0.0'  # whoops, who tagged this then?
+  ignore: '1.0.0' # whoops, who tagged this then?
 
 build:
   dependencies:
     cmake.org: ^3
-    python.org: '>=3<3.12'
+    python.org: ~3.11
     pip.pypa.io: '*'
     freedesktop.org/pkg-config: ~0.29
   working-directory: build
-  script: |
-    cmake .. -DCMAKE_INSTALL_PREFIX="{{prefix}}" -DCMAKE_BUILD_TYPE=Release
-    make --jobs {{ hw.concurrency }} install
+  script:
+    - CMAKE_ARGS=($CMAKE_ARGS)
+    - cmake .. "${CMAKE_ARGS[@]}"
+    - make --jobs {{ hw.concurrency }} install
 
-    pip install ../python --verbose  --prefix="{{prefix}}"
+    - pip install ../python --verbose  --prefix="{{prefix}}"
+  env:
+    linux:
+      LDFLAGS: $LDFLAGS -Wl,-latomic
+    CMAKE_ARGS:
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
+      - -DCMAKE_BUILD_TYPE=Release
 
 provides:
   - bin/spm_decode
@@ -33,7 +40,7 @@ runtime:
 test:
   dependencies:
     gnu.org/wget: '*'
-    python.org: '>=3<3.12'
+    python.org: ~3.11
   script: |
     wget https://raw.githubusercontent.com/google/sentencepiece/master/data/botchan.txt
     spm_train --input=botchan.txt --model_prefix=m --vocab_size=1000
