@@ -1,0 +1,22 @@
+distributable:
+  url: https://github.com/royreznik/rexi/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: royreznik/rexi
+dependencies:
+  pkgx.sh: ^1
+
+build:
+  dependencies:  
+    python.org: '>=3.8'
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} rexi
+
+test:
+  - rexi --help
+
+provides:
+  - bin/rexi
