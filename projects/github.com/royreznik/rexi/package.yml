@@ -5,10 +5,15 @@ distributable:
 versions:
   github: royreznik/rexi
 dependencies:
-  python.org: '>=3.8'
+  pkgx.sh: ^1
 
 build:
-  python-venv.sh {{prefix}}/bin/rexi
+  dependencies:  
+    python.org: '>=3.8'
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} rexi
 
 test:
   - rexi --help
