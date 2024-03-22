@@ -15,6 +15,12 @@ build:
   dependencies:
     rust-lang.org: '>=1.60'
     rust-lang.org/cargo: '*'
-  script: cargo install --path . --root {{prefix}}
+  script:
+    # this was missed in 1.1.0
+    - sed -i 's/^version = "1\.0\.0"$/version = "{{version}}"/' Cargo.toml
+    - cargo install --path . --root {{prefix}}
 
-test: test "$(lsd --oneline)" = "xyz.tea.test.sh"
+test:
+  - test "$(lsd --version)" = "lsd {{version}}"
+  - touch testfile
+  - test "$(lsd --oneline)" = "testfile"
