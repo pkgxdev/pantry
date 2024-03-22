@@ -11,18 +11,11 @@ dependencies:
 
 build:
   dependencies:
-    rust-lang.org: ^1.66
+    rust-lang.org: ^1.77
     rust-lang.org/cargo: '*'
     cmake.org: ^3.12
     protobuf.dev: '*'
-  script:
-    # curve25519-dalek 4.1.2 introduces some odd simd issues on x86-64
-    - run: sed -i
-        -e 's/version = "4.1.2"/version = "4.1.1"/'
-        -e 's/0a677b8922c94e01bdbb12126b0bc852f00447528dee1782229af9c720c3f348/e89b8c6a2e4b1f45971ad09761aafb85514a84744b67a95e32c3cc1352d1f65c/'
-        Cargo.lock
-      if: '>=5.0.0'
-    - make CARGO_INSTALL_EXTRA_FLAGS="--root {{prefix}}"
+  script: make CARGO_INSTALL_EXTRA_FLAGS="--root {{prefix}}"
   test: make test-release
 
 provides:
