@@ -21,6 +21,8 @@ build:
     - go generate ./...
     - go build -ldflags="$GO_LDFLAGS" -o '{{prefix}}/bin/ollama' .
   env:
+    GO_LDFLAGS:
+      - -X github.com/jmorganca/ollama/version.Version={{version}}
     linux:
       GO_LDFLAGS:
         # else segfaults
@@ -35,6 +37,7 @@ test:
     linux:
       gitlab.com/procps-ng/procps: '*'
   script:
+    - ollama --version | grep 'client version is {{version}}'
     # 0.0.19 complains about a missing blobs directory
     - run: mkdir -p ~/.ollama/models/blobs
       if: =0.0.19
