@@ -1,0 +1,35 @@
+distributable:
+  url: https://github.com/sigoden/argc/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/argc
+
+versions:
+  github: sigoden/argc
+  strip: /v/
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path . --root {{prefix}}
+
+test:
+  - test "$(argc --argc-version)" = "argc {{version}}"
+  - run: cat $FIXTURE && bash $FIXTURE -F --bar=xyz --baz a --baz b v1 v2 >test.out
+    fixture: |
+      # @flag -F --foo  Flag value
+      # @option --bar   Option value
+      # @option --baz*  Option values
+      # @arg val*       Positional values
+
+      eval "$(argc --argc-eval "$0" "$@")"
+      echo foo: $argc_foo
+      echo bar: $argc_bar
+      echo baz: ${argc_baz[@]}
+      echo val: ${argc_val[@]}
+  - "grep 'foo: 1' test.out"
+  - "grep 'bar: xyz' test.out"
+  - "grep 'baz: a b' test.out"
+  - "grep 'val: v1 v2' test.out"
