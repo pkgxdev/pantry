@@ -10,11 +10,17 @@ build:
     rust-lang.org/cargo: '*'
     rust-lang.org: '^1.70'
   script:
-    - run: cargo install --path . --root {{prefix}}
+    # curve25519-dalek 4.1.2 introduces some odd simd issues on x86-64
+    - run: sed -i
+        -e 's/version = "4.1.2"/version = "4.1.1"/'
+        -e 's/0a677b8922c94e01bdbb12126b0bc852f00447528dee1782229af9c720c3f348/e89b8c6a2e4b1f45971ad09761aafb85514a84744b67a95e32c3cc1352d1f65c/'
+        Cargo.lock
+    - run: cargo install --path . --locked --root {{prefix}}
       if: <0.6.0
-    - run: cargo install --path . --root {{prefix}}
-      working-directory: iroh
-      if: '>=0.6.0'
+    - run: cargo install --path iroh --locked --root {{prefix}}
+      if: '>=0.6.0<0.13.0'
+    - run: cargo install --path iroh-cli --locked --root {{prefix}}
+      if: '>=0.13.0'
 
 provides:
   - bin/iroh
