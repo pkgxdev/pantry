@@ -19,9 +19,11 @@ build:
     x.org/util-macros: '*'
     x.org/xtrans: ^1
     gnu.org/sed: '*' # or build fails on macOS
-  script: |
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }} install
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+    - run: sed -i 's/\+brewing//g' *.la
+      working-directory: ${{prefix}}/lib
   env:
     SHELF: ${{pkgx.prefix}}/x.org
     ARGS:
