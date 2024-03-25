@@ -20,10 +20,12 @@ build:
     google.com/googletest: '*'
     boost.org: ^1
 
-  script: |
-    cmake -S . -B _build $ARGS
-    cmake --build _build
-    cmake --install _build
+  script:
+    # omit building py library
+    - sed -i 's/COMPONENTS cpp2 py)/COMPONENTS cpp2)/' CMakeLists.txt
+    - cmake -S . -B _build $ARGS
+    - cmake --build _build
+    - cmake --install _build
   env:
     ARGS:
       - -DBUILD_SHARED_LIBS=ON
