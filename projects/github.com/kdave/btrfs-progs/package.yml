@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/kdave/btrfs-progs/archive/v{{version}}.tar.gz
+  url: https://github.com/kdave/btrfs-progs/archive/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
@@ -28,7 +28,7 @@ build:
     gnu.org/automake: '*'
     gnu.org/libtool: '*'
   script:
-    - patch -p1 < props/patch.diff # remove sphinx-rtd-theme extension for html docs
+    - sed -i '/sphinx_rtd_theme/s/^/#/' Documentation/conf.py
     - ./autogen.sh
     - ./configure $ARGS
     - make --jobs {{hw.concurrency}} install V=1 udevdir={{prefix}}/lib/udev
@@ -53,7 +53,7 @@ provides:
   - bin/mkfs.btrfs
 
 test:
-  - btrfs --version | grep {{version}}
+  - btrfs --version | grep {{version.tag}}
   - truncate -s 128M test.img
   - mkfs.btrfs test.img | grep '128.00MiB'
   - btrfs filesystem show test.img | grep 'Total devices 1 FS'
