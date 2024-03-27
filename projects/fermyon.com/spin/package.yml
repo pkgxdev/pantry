@@ -1,0 +1,31 @@
+distributable:
+  url: https://github.com/fermyon/spin/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/spin
+
+versions:
+  github: fermyon/spin
+  strip: /v/
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.68'
+    rust-lang.org/cargo: '*'
+    rust-lang.org/rustup: '*' # required for wasm targets
+  script: cargo install --locked --path . --root {{prefix}}
+  env:
+    darwin/aarch64:
+      RUSTUP_TOOLCHAIN: ${{deps.rust-lang.org.version.marketing}}-aarch64-apple-darwin
+    darwin/x86-64:
+      RUSTUP_TOOLCHAIN: ${{deps.rust-lang.org.version.marketing}}-x86_64-apple-darwin
+    linux/aarch64:
+      RUSTUP_TOOLCHAIN: ${{deps.rust-lang.org.version.marketing}}-aarch64-unknown-linux-gnu
+    linux/x86-64:
+      RUSTUP_TOOLCHAIN: ${{deps.rust-lang.org.version.marketing}}-x86_64-unknown-linux-gnu
+
+test:
+  script:
+    - spin new --accept-defaults -t http-rust hello-rust
+    - spin build
