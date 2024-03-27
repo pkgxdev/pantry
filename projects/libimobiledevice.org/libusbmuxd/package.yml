@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/libimobiledevice/libusbmuxd/archive/refs/tags/{{version}}.tar.gz
+  url: https://github.com/libimobiledevice/libusbmuxd/releases/download/{{version.tag}}/libusbmuxd-{{version.tag}}.tar.bz2
   strip-components: 1
 
 versions:
@@ -7,21 +7,17 @@ versions:
 
 dependencies:
   libimobiledevice.org/libplist: ^2.4
+  libimobiledevice.org/libimobiledevice-glue: ^1.2
 
 build:
   dependencies:
-    gnu.org/autoconf: '*'
-    gnu.org/automake: '*'
     gnu.org/libtool: '*'
-    # ./configure: line 18023: syntax error near unexpected token `libplist,'
-    # ./configure: line 18023: `PKG_CHECK_MODULES(libplist, libplist-2.0 >= $LIBPLIST_VERSION)'
-    freedesktop.org/pkg-config: '*'
   script:
-    - ./autogen.sh $ARGS
+    - ./configure $ARGS
     - make --jobs {{hw.concurrency}} install
     # FIXME: this is a hack; we need to fix fixup.ts
-    - run: sed -i 's/\+brewing//g' *.pc
-      working-directory: '{{prefix}}/lib/pkgconfig'
+    - run: sed -i 's/\+brewing//g' *.la pkgconfig/*.pc
+      working-directory: '{{prefix}}/lib'
   env:
     ARGS:
       - --disable-debug
