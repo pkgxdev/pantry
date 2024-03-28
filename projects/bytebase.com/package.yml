@@ -27,19 +27,15 @@ test:
     pkgx.sh: ^1
   script:
     - bytebase version | grep {{version}}
-    - FREE_PORT=$(pkgx get-port)
-    # ERROR: please run Bytebase as non-root user
-    # CI runs as root, so we can't run the server
-    - |
-        if test "{{hw.platform}}+{{hw.arch}}" != "linux+x86-64"; then
-          bytebase --port $FREE_PORT > out.log 2>&1 &
-          PID=$!
-          sleep 35
-          curl -L http://localhost:$FREE_PORT | grep 'Bytebase' || cat out.log
-          kill $PID
-          cat out.log | grep "has started on port $FREE_PORT"
-        fi
-  env:
-    # initdb: error: invalid locale settings; check LANG and LC_* environment variables
-    LC_ALL: C
+    # we'd love to test this more on linux, but we have issues running initdb as root;
+    # so, we'll satisfy ourselves with the above and testing on darwin
+    - run: exit 0
+      if: linux
 
+    - FREE_PORT=$(pkgx get-port)
+    - bytebase --port $FREE_PORT > out.log 2>&1 &
+    - PID=$!
+    - sleep 35
+    - curl -L http://localhost:$FREE_PORT | grep 'Bytebase' || cat out.log
+    - kill $PID
+    - cat out.log | grep "has started on port $FREE_PORT"
