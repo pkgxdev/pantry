@@ -1,9 +1,9 @@
 distributable:
-  url: git+https://github.com/jmorganca/ollama
+  url: git+https://github.com/ollama/ollama
   ref: v{{version}}
 
 versions:
-  github: jmorganca/ollama
+  github: ollama/ollama
 
 dependencies:
   curl.se/ca-certs: '*'
@@ -22,7 +22,10 @@ build:
     - go build -ldflags="$GO_LDFLAGS" -o '{{prefix}}/bin/ollama' .
   env:
     GO_LDFLAGS:
+      # versions older than 0.1.30
       - -X github.com/jmorganca/ollama/version.Version={{version}}
+      # new versions
+      - -X github.com/ollama/ollama/version.Version={{version}}
     linux:
       GO_LDFLAGS:
         # else segfaults
