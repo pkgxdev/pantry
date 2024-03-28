@@ -1,0 +1,33 @@
+distributable: ~
+
+# opted to use the pre-built binary from the official release instead of building from source to
+# not require a nodejs runtime to run tailwindcss as otherwise it would. We could also try to
+# reproduce their build process to build the self-contained binary ourselves in the future.
+warnings:
+  - vendored
+
+versions:
+  github: tailwindlabs/tailwindcss
+  strip: /^v/
+
+build:
+  dependencies:
+    curl.se: "*"
+  working-directory: ${{prefix}}
+  script: |
+    curl -Lfo tailwindcss https://github.com/tailwindlabs/tailwindcss/releases/download/v{{version}}/tailwindcss-$PLATFORM
+    chmod +x tailwindcss
+    mkdir -p bin
+    mv tailwindcss bin
+  env:
+    darwin/aarch64: { PLATFORM: macos-arm64 }
+    darwin/x86-64: { PLATFORM: macos-x64 }
+    linux/aarch64: { PLATFORM: linux-arm64 }
+    linux/x86-64: { PLATFORM: linux-x64 }
+
+provides:
+  - bin/tailwindcss
+
+test:
+  script:
+    - tailwindcss --help | grep -q "tailwindcss v{{version}}"
