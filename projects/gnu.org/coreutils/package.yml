@@ -90,7 +90,6 @@ provides:
   - bin/sort
   - bin/split
   - bin/stat
-  - bin/stdbuf
   - bin/stty
   - bin/sum
   - bin/sync
@@ -118,8 +117,12 @@ provides:
   - bin/yes
 
 build:
-  script: |
-    ./configure --prefix={{ prefix }}
-    make --jobs {{ hw.concurrency }} install
+  script:
+    - ./configure --prefix={{ prefix }}
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    FORCE_UNSAFE_CONFIGURE: 1 # some gha runners run as root
 
-test: test "$(ls -1)" = "xyz.tea.test.sh"
+test:
+  - touch test-file
+  - test "$(ls -1)" = "test-file"
