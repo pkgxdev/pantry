@@ -31,15 +31,15 @@ build:
         - -buildmode=pie
 
 test:
-  - run: freeze $FIXTURE -l go
-    fixture:
-      extname: go
-      contents: |
-        package main
+  - run: cat $FIXTURE >main.go
+    fixture: |
+      package main
 
-        import "fmt"
+      import "fmt"
 
-        func main() {
-          fmt.Println("hello world")
-        }
+      func main() {
+        fmt.Println("hello world")
+      }
+  - cat main.go
+  - freeze main.go -l go
   - test -s freeze.png
