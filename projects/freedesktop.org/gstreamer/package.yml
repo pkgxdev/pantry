@@ -1,0 +1,163 @@
+distributable:
+  url: https://gitlab.freedesktop.org/gstreamer/gstreamer/-/archive/{{version}}/gstreamer-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  gitlab: gitlab.freedesktop.org:gstreamer/gstreamer/tags
+
+dependencies:
+  cairographics.org: ^1.16
+  cairographics.org/pycairo: ^1.25
+  code.videolan.org/videolan/dav1d: ^1.2
+  sourceforge.net/faac: ^1.30
+  sourceforge.net/faad2: ^2.11
+  sourceforge.net/opencore-amr: ^2.0
+  ffmpeg.org: ^6.1
+  xiph.org/flac: ^1.4
+  gnu.org/gettext: ^0.21
+  gnome.org/glib: ^2.78
+  gnome.org/glib-networking: ^2.78
+  ebassi.github.io/graphene: ^1.10
+  gtk.org/gtk3: ^3.24
+  gtk.org/gtk4: ^4.13
+  libjpeg-turbo.org: ^2
+  gnome.org/json-glib: ^1.8
+  lame.sourceforge.io: ^3.100
+  xiph.org/ogg: ^1.3
+  libpng.org: ^1.6
+  x.org/libpthread-stubs: ^0.5
+  xiph.org/libshout: ^2.4
+  libsodium.org: ^1.0
+  libsoup.org: ^3.4
+  github.com/sctplab/usrsctp: ^0.9.5
+  xiph.org/vorbis: ^1.3
+  webmproject.org/libvpx: ^1.13
+  openexr.com: ^3.2
+  openssl.org: ^1.1
+  opus-codec.org: ^1.4
+  gstreamer.freedesktop.org/orc: ^0.4
+  gnome.org/pango: ^1.50
+  gnome.org/PyGObject: ^3.46
+  python.org: ~3.11
+  github.com/xiph/rav1e: ^0.6
+  rtmpdump.mplayerhq.hu: ^2.3
+  speex.org: ^1.2
+  cisco.com/libsrtp: ^2.5
+  taglib.org: ^1.13
+  theora.org: ^1.1
+  videolan.org/x264: ^0.164
+  tukaani.org/xz: ^5.4
+  curl.se: ^8.4
+  darwin:
+    musepack.net: ^475
+  linux:
+    freeglut.sourceforge.io: ^3.4
+
+runtime:
+  env:
+    PYTHONPATH: ${{prefix}}/lib/python3.11/site-packages:$PYTHONPATH
+
+build:
+  dependencies:
+    gnu.org/bison: '*'
+    github.com/lu-zero/cargo-c: '*'
+    rust-lang.org/cargo: '*'
+    mesonbuild.com: '*'
+    nasm.us: '*'
+    ninja-build.org: '*'
+    freedesktop.org/pkg-config: '*'
+    rust-lang.org: '*'
+    yasm.tortall.net: '*'
+    github.com/westes/flex: '*'
+  script:
+    - run: curl -L "$RES_RS" | tar -xz --strip-components=1
+      working-directory: subprojects/gst-plugins-rs
+    - run: |
+        sed -i.bak "s|subproject('macos-bison-binary')||g" meson.build
+        rm meson.build.bak
+    - meson setup build $MESON_ARGS
+    - meson compile -C build --verbose
+    - meson install -C build
+  env:
+    linux/x86-64:
+      # ld.lld: error: relocation
+      CFLAGS: $CFLAGS -fPIC
+    OPENSSL_NO_VENDOR: 1
+    OPENSSL_DIR: "{{deps.openssl.org.prefix}}"
+    RES_RS: https://gitlab.freedesktop.org/gstreamer/gst-plugins-rs/-/archive/gstreamer-{{version}}/gst-plugins-rs-gstreamer-{{version}}.tar.gz
+    MESON_ARGS:
+      - --prefix="{{prefix}}"
+      - --libdir="{{prefix}}/lib"
+      - --buildtype=release
+      - --wrap-mode=nofallback
+      - -Dpython=enabled
+      - -Dlibav=enabled
+      - -Dlibnice=disabled
+      - -Dbase=enabled
+      - -Dgood=enabled
+      - -Dugly=enabled
+      - -Dbad=enabled
+      - -Ddevtools=enabled
+      - -Dges=enabled
+      - -Drtsp_server=enabled
+      - -Drs=enabled
+      - -Dtls=enabled
+      - -Dqt5=disabled
+      - -Dtools=enabled
+      - -Dorc-source=system
+      - -Dgpl=enabled
+      - -Dtests=disabled
+      - -Dexamples=disabled
+      - -Dnls=enabled
+      - -Dorc=enabled
+      - -Ddoc=disabled
+      - -Dgtk_doc=disabled
+      - -Dintrospection=enabled
+      - -Dgst-devtools:validate=enabled
+      - -Dgst-devtools:cairo=enabled
+      - -Dgst-editing-services:pygi-overrides-dir={{prefix}}/lib/python3.11/site-packages/gi/overrides
+      - -Dgst-python:pygi-overrides-dir={{prefix}}/lib/python3.11/site-packages/gi/overrides
+      - -Dgst-python:python={{deps.python.org.prefix}}/bin/python
+      - -Dgst-plugins-bad:opencv=disabled
+      - -Dgst-plugins-bad:sctp=enabled
+      - -Dgst-plugins-bad:sctp-internal-usrsctp=disabled
+      - -Dgst-plugins-good:soup=enabled
+      - -Dgst-plugins-rs:closedcaption=enabled
+      - -Dgst-plugins-rs:dav1d=enabled
+      - -Dgst-plugins-rs:sodium=enabled
+      - -Dgst-plugins-rs:csound=disabled
+      - -Dgst-plugins-rs:gtk4=enabled
+      - -Dgst-plugins-rs:sodium-source=system
+      - -Dgstreamer:ptp-helper-permissions=none
+
+provides:
+  - bin/ges-launch-1.0
+  - bin/gst-device-monitor-1.0
+  - bin/gst-discoverer-1.0
+  - bin/gst-inspect-1.0
+  - bin/gst-launch-1.0
+  - bin/gst-play-1.0
+  - bin/gst-stats-1.0
+  - bin/gst-transcoder-1.0
+  - bin/gst-typefind-1.0
+  - bin/gst-validate-1.0
+  - bin/gst-validate-images-check-1.0
+  - bin/gst-validate-launcher
+  - bin/gst-validate-media-check-1.0
+  - bin/gst-validate-rtsp-server-1.0
+  - bin/gst-validate-transcoding-1.0
+  - bin/gst-webrtc-signalling-server
+
+test:
+  script:
+    - ges-launch-1.0 --ges-version | grep {{version}}
+    - gst-inspect-1.0 libav | grep {{prefix}}
+    - gst-inspect-1.0 --plugin dvbsuboverlay | grep 'DVB subtitle renderer'
+    - gst-inspect-1.0 --plugin fdkaac | grep 'FDK AAC audio decoder'
+    - gst-inspect-1.0 --plugin volume | grep 'plugin for controlling audio volume'
+    - gst-inspect-1.0 --plugin cairo | grep 'Cairo-based elements'
+    - gst-inspect-1.0 --plugin dvdsub | grep 'DVD subtitle parser and decoder'
+    - gst-inspect-1.0 --plugin x264 | grep 'libx264-based H.264 encoder plugin'
+    - gst-inspect-1.0 --plugin rtspclientsink | grep 'RTSP client sink element'
+    - gst-inspect-1.0 --plugin rsfile | grep 'GStreamer Rust File Source/Sink Plugin'
+    - python test.py
