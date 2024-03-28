@@ -1,0 +1,41 @@
+distributable:
+  url: https://github.com/bytebase/bytebase/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: bytebase/bytebase
+
+dependencies:
+  nodejs.org: '>=20.10'
+
+build:
+  dependencies:
+    go.dev: ^1.22
+    pnpm.io: '*'
+    linux:
+      # error: invalid linker name in argument '-fuse-ld=gold'
+      gnu.org/gcc: '*'
+  script:
+    ./scripts/build_bytebase.sh {{prefix}}/bin
+
+provides:
+  - bin/bytebase
+
+test:
+  dependencies:
+    curl.se: '*'
+    pkgx.sh: ^1
+  script:
+    - bytebase version | grep {{version}}
+    # we'd love to test this more on linux, but we have issues running initdb as root;
+    # so, we'll satisfy ourselves with the above and testing on darwin
+    - run: exit 0
+      if: linux
+
+    - FREE_PORT=$(pkgx get-port)
+    - bytebase --port $FREE_PORT > out.log 2>&1 &
+    - PID=$!
+    - sleep 35
+    - curl -L http://localhost:$FREE_PORT | grep 'Bytebase' || cat out.log
+    - kill $PID
+    - cat out.log | grep "has started on port $FREE_PORT"
