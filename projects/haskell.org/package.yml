@@ -42,7 +42,7 @@ dependencies:
   sourceware.org/libffi: 3
   linux:
     github.com/numactl/numactl: ^2
-    llvm.org: '*'
+    gnu.org/gcc: '*'
 
 warnings:
   - vendored
@@ -79,18 +79,12 @@ build:
     - run: find . -type f -name \*.conf -print0 | xargs -0 sed -i -e 's|{{prefix}}|${pkgroot}/../../../../..|g' -e 's/\+brewing//g'
       working-directory: ${{prefix}}/ghc/{{version}}/lib/ghc-{{version}}/package.conf.d
       if: <9.4
-
-    - run: cat settings
-      working-directory: ${{prefix}}/ghc/{{version}}/lib/ghc-{{version}}/lib
   env:
     BOOTSTRAP_HASKELL_NONINTERACTIVE: 1
     BOOTSTRAP_HASKELL_NO_UPGRADE: 1
     BOOTSTRAP_HASKELL_MINIMAL: 1
     GHCUP_INSTALL_BASE_PREFIX: ${{prefix}}
     GHCUP_SKIP_UPDATE_CHECK: 1
-    linux:
-      CC: clang
-      LD: ld.lld
 
 test:
   script:
