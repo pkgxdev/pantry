@@ -15,7 +15,9 @@ build:
     rust-lang.org: '>=1.65'
     rust-lang.org/cargo: '*'
   script:
-    cargo install --locked --path . --root {{prefix}}
+    # version bump got missed in 3.1.1
+    - sed -i 's/^version = ".*"$/version = "{{version}}"/' Cargo.toml
+    - cargo install --locked --path . --root {{prefix}}
 
 test:
   script:
