@@ -1,0 +1,51 @@
+distributable:
+  url: https://github.com/pgdr/moreutils/archive/refs/tags/{{version.raw}}.tar.gz
+  strip-components: 1
+
+display-name: moreutils
+
+versions:
+  github: pgdr/moreutils/tags
+
+dependencies:
+  perl.org: '*'
+
+build:
+  dependencies:
+    cmake.org: ^3
+    gnome.org/libxslt: '*'
+    docbook.org/xsl: '*'
+  env:
+    PREFIX: "{{ prefix }}"
+    DOCBOOKXSL: "{{ deps.docbook.org/xsl.prefix }}/libexec/docbook-xsl"
+  script: |
+    #make
+    #make install
+    make --jobs {{ hw.concurrency }} install
+
+provides:
+  - bin/chronic
+  - bin/combine
+  - bin/errno
+  - bin/ifdata
+  - bin/ifne
+  - bin/lckdo
+  - bin/mispipe
+  - bin/parallel
+  - bin/pee
+  - bin/physmem
+  - bin/sponge
+  - bin/ts
+  - bin/vidir
+  - bin/vipe
+  - bin/zrun
+
+test:
+  dependencies:
+    foo.com: '*'  # asterisk means “any version, usually the latest”
+  script:
+    test "$(foo --version)" = {{version}}
+    # if it’s a tool check the version matches
+    # you should run the tool to check it works!
+    # if it's a library then you should *use* the library
+    # don’t forget to check other package.ymls in the pantry for examples!
