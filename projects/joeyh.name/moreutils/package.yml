@@ -19,8 +19,6 @@ build:
     PREFIX: "{{ prefix }}"
     DOCBOOKXSL: "{{ deps.docbook.org/xsl.prefix }}/libexec/docbook-xsl"
   script: |
-    #make
-    #make install
     make --jobs {{ hw.concurrency }} install
 
 provides:
@@ -42,10 +40,11 @@ provides:
 
 test:
   dependencies:
-    foo.com: '*'  # asterisk means “any version, usually the latest”
-  script:
-    test "$(foo --version)" = {{version}}
-    # if it’s a tool check the version matches
-    # you should run the tool to check it works!
-    # if it's a library then you should *use* the library
-    # don’t forget to check other package.ymls in the pantry for examples!
+    gnu.org/coreutils: '*'
+    stedolan.github.io/jq: ^1.6
+
+  script: |
+    jq --null-input \
+       'type|if "null" then {A:3} else .+={A:3} end' db.json \
+    | sponge db.json
+    cat db.json
