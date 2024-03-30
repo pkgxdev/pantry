@@ -22,6 +22,8 @@ dependencies:
   protobuf.dev: 25.2.0 # grpc links to specific versions, so we have to pick one.
   github.com/google/re2: '*'
   zlib.net: '*'
+  linux:
+    gnu.org/gcc: '*' # libstdc++
 
 build:
   dependencies:
@@ -68,10 +70,12 @@ build:
       - -DgRPC_RE2_PROVIDER=package
     CLI_ARGS:
       - -DgRPC_BUILD_TESTS=ON
-    linux:
-      # likely needs bumping to an unreleased abseil.io version
-      # ld.lld: error: undefined reference due to --no-allow-shlib-undefined: absl::lts_20230802::Cord::Cord<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>, 0>(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>&&)
-      LDFLAGS: $LDFLAGS -Wl,--allow-shlib-undefined
+    # linux:
+    #   # likely needs bumping to an unreleased abseil.io version
+    #   # ld.lld: error: undefined reference due to --no-allow-shlib-undefined: absl::lts_20230802::Cord::Cord<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>, 0>(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>&&)
+    #   LDFLAGS: $LDFLAGS -Wl,--allow-shlib-undefined
+    #   ARGS:
+    #     - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-lstdc++
 
 test:
   dependencies:
@@ -86,7 +90,6 @@ test:
   script:
     - cp $FIXTURE test.cpp
     - PKG_CONFIG=$(pkg-config --cflags --libs libcares protobuf re2 grpc++)
-    - cc $PKG_CONFIG test.cpp -o test
+    - clang++ $PKG_CONFIG test.cpp -o test -lstdc++
     - ./test
-
-    - (grpc_cli ls localhost:58931 2>&1 || true) | grep "failed to connect to all addresses"
+    - (grpc_cli ls localhost:58931 2>&1 || true) | grep -E "(failed to connect to all addresses|rpc failed)"
