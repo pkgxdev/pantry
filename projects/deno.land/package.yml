@@ -18,12 +18,19 @@ runtime:
     DENO_NO_UPDATE_CHECK: 'true'
     DENORT_BIN: '{{prefix}}/bin/denort'
 
-dependencies:
-  x86-64:
-    llvm.org: 17 # libunwind
+# dependencies:
+#   darwin/x86-64:
+#     llvm.org: 17 # libunwind
 
 build:
   script:
+    - |
+      if test "{{hw.platform}}+{{ hw.arch }}" = "darwin+aarch64"; then
+        set -a
+        source <(pkgx +llvm.org@17)
+        set +a
+      fi
+
     # https://github.com/denoland/deno/issues/15596 -- reported fixed in 1.25.3
     - run: |
         find ext/ffi/tinycc -maxdepth 0 -empty -exec \
@@ -45,7 +52,6 @@ build:
     git-scm.org: 2 # to build tinycc
     rust-lang.org: ^1.70
     rust-lang.org/cargo: ^0
-    llvm.org: 17 # macOS/aarch64 requires (FIXME only dep where needed)
     curl.se: '*' # required to download v8 (python is another option)
     cmake.org: ^3 # deno.land>=1.36.1 requires cmake
     protobuf.dev: '*' # deno.land>=1.36.4 requires protoc
