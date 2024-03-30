@@ -1,0 +1,40 @@
+distributable:
+  url: https://github.com/brucedom/bruce/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+display-name: Basic Runtime for Uniform Compute Environments
+
+versions:
+# - 1.2.8
+#
+# need to exclude the 1.11 tag otherwise we got an error
+#
+  github: brucedom/bruce/releases
+  strip: /^v/
+  ignore: [1.11]
+
+companions:
+  linux:
+    systemd.io: '*' # needs syscontrol
+
+build:
+  dependencies:
+    go.dev: '*'
+  env:
+    CGO_ENABLED: 0
+    LDFLAGS:
+    - -s
+    - -w
+    linux:
+      LDFLAGS:
+      - -buildmode=pie
+  script: go build -v -ldflags="${LDFLAGS}" -o "{{ prefix }}"/bin/bruce cmd/main.go
+
+provides:
+- bin/bruce
+
+test: bruce version | grep v{{version}}
+  # dependencies:
+    # gnu.org/coreutils: '*'
+  #script: test $(bruce version|tail -1|cut -d' ' -f3) = v{{version}}
+  # script: test $(bruce version) = v{{version}}
