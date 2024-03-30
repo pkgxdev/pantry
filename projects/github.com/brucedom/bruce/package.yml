@@ -5,13 +5,17 @@ distributable:
 display-name: Basic Runtime for Uniform Compute Environments
 
 versions:
-- 1.2.8
+# - 1.2.8
 #
 # need to exclude the 1.11 tag otherwise we got an error
 #
-#github: brucedom/bruce/releases
-#strip:
-#  - /^v/
+  github: brucedom/bruce/releases
+  strip: /^v/
+  ignore: [1.11]
+
+companions:
+  linux:
+    systemd.io: '*' # needs syscontrol
 
 build:
   dependencies:
@@ -29,8 +33,8 @@ build:
 provides:
 - bin/bruce
 
-test:
-  dependencies:
-    gnu.org/coreutils: '*'
+test: bruce version | grep v{{version}}
+  # dependencies:
+    # gnu.org/coreutils: '*'
   #script: test $(bruce version|tail -1|cut -d' ' -f3) = v{{version}}
-  script: test $(bruce version) = v{{version}}
+  # script: test $(bruce version) = v{{version}}
