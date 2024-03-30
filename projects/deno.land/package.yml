@@ -16,10 +16,7 @@ interprets:
 runtime:
   env:
     DENO_NO_UPDATE_CHECK: 'true'
-
-companions:
-  # denort added in v1.41.0 requires `unzip`
-  info-zip.org/unzip: '*'
+    DENORT_BIN: '{{prefix}}/bin/denort'
 
 dependencies:
   x86-64:
@@ -27,18 +24,6 @@ dependencies:
 
 build:
   script:
-    # https://github.com/denoland/deno/pull/22298
-    # deno.land 1.41.0 will currently _not_ run deno compile on linux/aarch64
-    # for their first official release, they're using ubuntu 22.04, which means
-    # a newer glibc. Patching via the https://github.com/LukeChannings/deno-arm64
-    # repo may be possible, but lets not delay the three usable arches for the rare
-    # one. Revist this.
-
-    # Obviously, I'd just skip the test, except everything we _do_ relies on
-    # deno compile, so that'd just break the unholy everything out of pkgx.
-    - run: test "{{hw.platform}}+{{ hw.arch }}" != "linux+aarch64"
-      if: 1.41.0
-
     # https://github.com/denoland/deno/issues/15596 -- reported fixed in 1.25.3
     - run: |
         find ext/ffi/tinycc -maxdepth 0 -empty -exec \
@@ -76,5 +61,7 @@ test:
     - test "$($HOME/.local/bin/test)" = "Hello, world!"
     - deno compile test.ts
     - test "$(./test)" = "Hello, world!"
+    # human readable size of ./test should be equal to the size of denort to ensure our denort is being used
+    - test "$(stat -c %s ./test | numfmt --to=iec-i)" = "$(stat -c %s "{{prefix}}/bin/denort" | numfmt --to=iec-i)"
   fixture: |
     console.log("Hello, world!");
