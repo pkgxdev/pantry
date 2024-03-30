@@ -18,9 +18,9 @@ runtime:
     DENO_NO_UPDATE_CHECK: 'true'
     DENORT_BIN: '{{prefix}}/bin/denort'
 
-# dependencies:
-#   darwin/x86-64:
-#     llvm.org: 17 # libunwind
+dependencies:
+  darwin/x86-64:
+    llvm.org: 17 # libunwind
 
 build:
   script:
@@ -54,9 +54,6 @@ build:
     curl.se: '*' # required to download v8 (python is another option)
     cmake.org: ^3 # deno.land>=1.36.1 requires cmake
     protobuf.dev: '*' # deno.land>=1.36.4 requires protoc
-  # env:
-  #   linux:
-  #     LD: clang
 
 test:
   script:
@@ -68,6 +65,7 @@ test:
     - test "$(./test)" = "Hello, world!"
     # human readable size of ./test should be equal to the size of denort to ensure our denort is being used
     - test "$(stat -c %s ./test | numfmt --to=iec-i)" = "$(stat -c %s "{{prefix}}/bin/denort" | numfmt --to=iec-i)"
+    # tests download of dependencies
+    - deno eval 'import { VERSION } from "https://deno.land/std@0.221.0/version.ts"; console.log(VERSION);' | tee /dev/stderr | grep -q ^0.221.0$
   fixture: |
-    import { test } from "https://deno.land/std/testing/mod.ts";
     console.log("Hello, world!");
