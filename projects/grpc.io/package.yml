@@ -91,8 +91,6 @@ test:
     - cp $FIXTURE test.cpp
     - PKG_CONFIG=$(pkg-config --cflags --libs libcares protobuf re2 grpc++)
     - clang++ $PKG_CONFIG test.cpp -o test -lstdc++
-    - clang++ $PKG_CONFIG test.cpp -o test1 -std=c++17
-    - clang++ $PKG_CONFIG test.cpp -o test2 -lstdc++ -std=c++17
-    - ./test || ./test1 || ./test2
-
+    - ./test
+    - grpc_cli ls localhost:58931
     - (grpc_cli ls localhost:58931 2>&1 || true) | grep "failed to connect to all addresses"
