@@ -37,6 +37,12 @@ build:
 
     - |
       rust_version=$(yq -er .toolchain.channel rust-toolchain.toml)
+      if semverator lt "$rust_version" 1.67.0; then
+        # older versions of pkgx's rustc --print=split-debuginfo fails with:
+        # error: unknown print request `split-debuginfo`
+        # maybe due to newer cargo?
+        rust_version=1.67.0
+      fi
       set -o allexport
       source <(pkgx "+rust-lang.org~${rust_version}" +rust-lang.org/cargo^0)
       set +o allexport
@@ -65,6 +71,7 @@ build:
     cmake.org: ^3 # deno.land>=1.36.1 requires cmake
     protobuf.dev: '*' # deno.land>=1.36.4 requires protoc
     github.com/mikefarah/yq: ^4
+    crates.io/semverator: ^0
 
 test:
   dependencies:
