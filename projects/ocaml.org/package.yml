@@ -11,24 +11,22 @@ dependencies:
   invisible-island.net/ncurses: "*"
 
 build:
-  script: |
-    # Recommended flags in the Arch Linux PKGBUILD. Remove if not necessary.
-    CFLAGS+=' -ffat-lto-objects'
-    CXXFLAGS+=' -ffat-lto-objects'
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }} --debug=v world.opt
-    make DESTDIR="{{prefix}}" -j {{ hw.concurrency }} install
-    rm -rf "{{prefix}}/lib/ocaml/compiler-libs"
-    ls -l {{prefix}}
-    ls -l {{prefix}}/bin
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} --debug=v world.opt
+    - make -j {{ hw.concurrency }} install
+    - run: rm -rf compiler-libs
+      working-directory: "{{prefix}}/lib/ocaml"
   env:
+    # Recommended flags in the Arch Linux PKGBUILD. Remove if not necessary.
+    CFLAGS: $CFLAGS -ffat-lto-objects
+    CXXFLAGS: $CXXFLAGS -ffat-lto-objects
     ARGS:
       - --prefix="{{prefix}}"
     # Frame Pointers don't work in macOS and Linux ARM64. Only for Linux x86_64
     linux/x86-64:
       ARGS:
         - --enable-frame-pointers
-
 
 provides:
   - bin/ocaml
@@ -61,12 +59,10 @@ provides:
   - bin/ocamlobjinfo.opt
   - bin/ocamlprof
 
-
 test:
-  script: |
-    ls -l {{prefix}}
-    ls -l {{prefix}}/bin
-    test "$(ocaml --version)" = "The OCaml toplevel, version {{version.raw}}"
-    test "$(ocamlc --version)" = {{version.raw}}
-    ocamlc fixture.ml -o fixture
-    test "$(./fixture)" = "Hello, World!"
+  - ls -l {{prefix}}
+  - ls -l {{prefix}}/bin
+  - test "$(ocaml --version)" = "The OCaml toplevel, version {{version.raw}}"
+  - test "$(ocamlc --version)" = {{version.raw}}
+  - ocamlc fixture.ml -o fixture
+  - test "$(./fixture)" = "Hello, World!"
