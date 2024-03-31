@@ -1,0 +1,66 @@
+distributable:
+  url: https://github.com/ocaml/ocaml/archive/refs/tags/{{version.raw}}.tar.gz
+  strip-components: 1
+
+display-name: ocaml
+
+versions:
+  github: ocaml/ocaml
+
+dependencies:
+  invisible-island.net/ncurses: "*"
+
+build:
+  script: |
+    # Recommended flags in the Arch Linux PKGBUILD. Remove if not necessary.
+    CFLAGS+=' -ffat-lto-objects'
+    CXXFLAGS+=' -ffat-lto-objects'
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} --debug=v world.opt
+    make DESTDIR="{{prefix}}" -j {{ hw.concurrency }} install
+    rm -rf "{{prefix}}/lib/ocaml/compiler-libs"
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      # Idk if frame pointers are fine on macOS. Remove if not.
+      - --enable-frame-pointers
+
+
+provides:
+  - ocaml
+  - ocamlcp
+  - ocamldoc
+  - ocamlmklib
+  - ocamlopt
+  - ocamlrun
+  - ocamlc
+  - ocamldebug
+  - ocamldoc.opt
+  - ocamlmktop
+  - ocamlopt.byte
+  - ocamlrund
+  - ocamlc.byte
+  - ocamldep
+  - ocamllex
+  - ocamlobjinfo
+  - ocamlopt.opt
+  - ocamlruni
+  - ocamlcmt
+  - ocamldep.byte
+  - ocamllex.byte
+  - ocamlobjinfo.byte
+  - ocamloptp
+  - ocamlyacc
+  - ocamlc.opt
+  - ocamldep.opt
+  - ocamllex.opt
+  - ocamlobjinfo.opt
+  - ocamlprof
+
+
+test:
+  script: |
+    test "$(ocaml --version)" = "The OCaml toplevel, version {{version.raw}}"
+    test "$(ocamlc --version)" = {{version.raw}}
+    ocamlc fixture.ml -o fixture
+    test "$(./fixture)" = "Hello, World!"
