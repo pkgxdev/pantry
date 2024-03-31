@@ -35,6 +35,13 @@ build:
         set +o allexport
       fi
 
+    - |
+      rust_version=$(yq -er .toolchain.channel rust-toolchain.toml)
+      set -o allexport
+      source <(pkgx "+rust-lang.org~${rust_version}" +rust-lang.org/cargo^0)
+      set +o allexport
+      unset rust_version
+
     # https://github.com/denoland/deno/issues/15596 -- reported fixed in 1.25.3
     - run: |
         find ext/ffi/tinycc -maxdepth 0 -empty -exec \
@@ -54,13 +61,14 @@ build:
     - cargo install --locked --path cli --root "{{ prefix }}"
   dependencies:
     git-scm.org: 2 # to build tinycc
-    rust-lang.org: ^1.70
-    rust-lang.org/cargo: ^0
     curl.se: '*' # required to download v8 (python is another option)
     cmake.org: ^3 # deno.land>=1.36.1 requires cmake
     protobuf.dev: '*' # deno.land>=1.36.4 requires protoc
+    github.com/mikefarah/yq: ^4
 
 test:
+  dependencies:
+    crates.io/semverator: ^0
   script:
     - deno --version | grep {{version}}
     - mv $FIXTURE test.ts
@@ -69,7 +77,10 @@ test:
     - deno compile test.ts
     - test "$(./test)" = "Hello, world!"
     # human readable size of ./test should be equal to the size of denort to ensure our denort is being used
-    - test "$(stat -c %s ./test | numfmt --to=iec-i)" = "$(stat -c %s "{{prefix}}/bin/denort" | numfmt --to=iec-i)"
+    - |
+      if semverator gt {{version}} 1.40.4; then
+        test "$(stat -c %s ./test | numfmt --to=iec-i)" = "$(stat -c %s "{{prefix}}/bin/denort" | numfmt --to=iec-i)"
+      fi
     # tests download of dependencies
     - deno eval 'import { VERSION } from "https://deno.land/std@0.221.0/version.ts"; console.log(VERSION);' | tee /dev/stderr | grep -q ^0.221.0$
   fixture: |
