@@ -20,22 +20,27 @@ runtime:
 
 dependencies:
   darwin/x86-64:
+    # FIXME try removing this after new builds are available
     llvm.org: 17 # libunwind
 
 build:
   script:
-    - run: |
+    # deno does not need llvm to build on darwin+x86-64, and if it is present,
+    # deno will be linked to its libunwind, which then causes deno to need llvm
+    # in runtime.
+    - |
+      if test "{{hw.platform}}+{{ hw.arch }}" != "darwin+x86-64"; then
         set -o allexport
         source <(pkgx +llvm.org@17)
         set +o allexport
-      if: darwin/aarch64
+      fi
 
     # https://github.com/denoland/deno/issues/15596 -- reported fixed in 1.25.3
     - run: |
         find ext/ffi/tinycc -maxdepth 0 -empty -exec \
           git clone https://github.com/TinyCC/tinycc.git {} \;
 
-        if test {{ hw.target }} = x86_64-apple-darwin; then
+        if test "{{hw.platform}}+{{ hw.arch }}" = "darwin+x86-64"; then
           # our LLVM cannot build with deployment target set to 10.6
           sed -i.bak s/MACOSX_DEPLOYMENT_TARGET/\#/ ext/ffi/tinycc/Makefile
         fi
