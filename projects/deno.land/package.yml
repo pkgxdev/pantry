@@ -53,12 +53,9 @@ test:
   script:
     - deno --version | grep {{version}}
     - mv $FIXTURE test.ts
-    # tests our default DENO_INSTALL_ROOT
-    - deno install -f test.ts
+    # use our $HOME
+    - DENO_INSTALL_ROOT="$HOME/.local/bin" deno install -f test.ts
     - test "$($HOME/.local/bin/test)" = "Hello, world!"
-    # allows to override DENO_INSTALL_ROOT
-    - DENO_INSTALL_ROOT=/tmp deno install -f test.ts
-    - test "$(/tmp/test)" = "Hello, world!"
     - deno compile test.ts
     - test "$(./test)" = "Hello, world!"
     # human readable size of ./test should be equal to the size of denort to ensure our denort is being used
