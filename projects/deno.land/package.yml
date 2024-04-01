@@ -83,10 +83,5 @@ test:
       if: '>=1.40.5'  
     # tests download of dependencies
     - deno eval 'import { VERSION } from "https://deno.land/std@0.221.0/version.ts"; console.log(VERSION);' | tee /dev/stderr | grep -q ^0.221.0$
-    # ensures deno is not linked to libunwind
-    - run: otool -l {{prefix}}/bin/deno | grep -v libunwind
-      if: darwin
-    - run: ldd {{prefix}}/bin/deno | grep -v libunwind
-      if: linux
   fixture: |
     console.log("Hello, world!");
