@@ -38,7 +38,7 @@ build:
     - |
       rust_version=$(yq -er .toolchain.channel rust-toolchain.toml)
       if semverator lt "$rust_version" 1.67.0; then
-        # older versions of pkgx's rustc --print=split-debuginfo fails with:
+        # older versions of rustc --print=split-debuginfo fails with:
         # error: unknown print request `split-debuginfo`
         # maybe due to newer cargo?
         rust_version=1.67.0
@@ -74,8 +74,6 @@ build:
     crates.io/semverator: ^0
 
 test:
-  dependencies:
-    crates.io/semverator: ^0
   script:
     - deno --version | grep {{version}}
     - mv $FIXTURE test.ts
@@ -84,10 +82,8 @@ test:
     - deno compile test.ts
     - test "$(./test)" = "Hello, world!"
     # human readable size of ./test should be equal to the size of denort to ensure our denort is being used
-    - |
-      if semverator gt {{version}} 1.40.4; then
-        test "$(stat -c %s ./test | numfmt --to=iec-i)" = "$(stat -c %s "{{prefix}}/bin/denort" | numfmt --to=iec-i)"
-      fi
+    - run: test "$(stat -c %s ./test | numfmt --to=iec-i)" = "$(stat -c %s "{{prefix}}/bin/denort" | numfmt --to=iec-i)"  
+      if: '>=1.40.5'  
     # tests download of dependencies
     - deno eval 'import { VERSION } from "https://deno.land/std@0.221.0/version.ts"; console.log(VERSION);' | tee /dev/stderr | grep -q ^0.221.0$
   fixture: |
