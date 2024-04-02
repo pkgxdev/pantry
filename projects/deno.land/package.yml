@@ -17,7 +17,7 @@ runtime:
   env:
     DENO_NO_UPDATE_CHECK: 'true'
     DENORT_BIN: '{{prefix}}/bin/denort'
-    DENO_INSTALL_ROOT: '${{home}}/.local/bin'
+    DENO_INSTALL_ROOT: '${{home}}/.local'
 
 dependencies:
   x86-64:
@@ -54,8 +54,7 @@ test:
     - deno --version | grep {{version}}
     - mv $FIXTURE test.ts
     # use our $HOME
-    - export DENO_INSTALL_ROOT="$HOME/.local/bin"
-    - deno install -f test.ts
+    - DENO_INSTALL_ROOT="$HOME/.local" deno install -f test.ts
     - test "$($HOME/.local/bin/test)" = "Hello, world!"
     - deno compile test.ts
     - test "$(./test)" = "Hello, world!"
