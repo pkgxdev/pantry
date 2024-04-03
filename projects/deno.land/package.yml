@@ -18,13 +18,18 @@ runtime:
     DENO_NO_UPDATE_CHECK: 'true'
     DENORT_BIN: '{{prefix}}/bin/denort'
 
-dependencies:
-  darwin/x86-64:
-    # FIXME try removing this after new builds are available
-    llvm.org: 17 # libunwind
-
 build:
   script:
+    # deno does not need llvm to build on darwin+x86-64, and if it is present,
+    # deno will be linked to its libunwind, which then causes deno to need llvm
+    # in runtime.
+    - |
+      if test "{{hw.platform}}+{{ hw.arch }}" != "darwin+x86-64"; then
+        set -o allexport
+        source <(pkgx +llvm.org^17)
+        set +o allexport
+      fi
+
     - |
       rust_version=$(yq -er .toolchain.channel rust-toolchain.toml)
       if semverator lt "$rust_version" 1.67.0; then
@@ -34,7 +39,7 @@ build:
         rust_version=1.67.0
       fi
       set -o allexport
-      source <(pkgx "+rust-lang.org~${rust_version}" +rust-lang.org/cargo^0 +llvm.org^17)
+      source <(pkgx "+rust-lang.org~${rust_version}" +rust-lang.org/cargo^0)
       set +o allexport
       unset rust_version
 
@@ -78,10 +83,5 @@ test:
       if: '>=1.40.5'  
     # tests download of dependencies
     - deno eval 'import { VERSION } from "https://deno.land/std@0.221.0/version.ts"; console.log(VERSION);' | tee /dev/stderr | grep -q ^0.221.0$
-    # ensures deno is not linked to libunwind
-    - run: otool -l {{prefix}}/bin/deno | grep -v libunwind
-      if: darwin
-    - run: ldd {{prefix}}/bin/deno | grep -v libunwind
-      if: linux
   fixture: |
     console.log("Hello, world!");
