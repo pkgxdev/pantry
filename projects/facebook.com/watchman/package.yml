@@ -1,8 +1,10 @@
 distributable:
   url: https://github.com/facebook/watchman/archive/refs/tags/v{{version.raw}}.tar.gz
   strip-components: 1
+
 versions:
   github: facebook/watchman
+
 dependencies:
   boost.org: ^1.84
   facebook.com/edencommon: '>=2023.12.25.0'
@@ -16,6 +18,9 @@ dependencies:
   openssl.org: ^1.1
   pcre.org/v2: ^10
   python.org: ~3.11
+  linux:
+    llvm.org: ~17 # libunwind
+
 build:
   dependencies:
     cmake.org: '*'
@@ -41,6 +46,7 @@ build:
       - -DENABLE_EDEN_SUPPORT=ON
       - -DWATCHMAN_VERSION_OVERRIDE={{version}}
     linux:
+      CC: clang
       CXXFLAGS:
         - -fPIC
         - -latomic
@@ -48,6 +54,7 @@ build:
       CMAKE_ARGS:
         - -DCMAKE_C_FLAGS=-fPIC
         - -DCMAKE_EXE_LINKER_FLAGS=-pie
+
 provides:
   - bin/watchman
   - bin/watchman-diag
@@ -55,6 +62,7 @@ provides:
   - bin/watchman-wait
   - bin/watchman-replicate-subscription
   - bin/watchmanctl
+
 test:
   script:
     - watchman -v | grep {{version}}

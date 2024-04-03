@@ -19,17 +19,31 @@ runtime:
     DENORT_BIN: '{{prefix}}/bin/denort'
 
 dependencies:
-  x86-64:
+  darwin/x86-64:
+    # FIXME try removing this after new builds are available
     llvm.org: 17 # libunwind
 
 build:
   script:
+    - |
+      rust_version=$(yq -er .toolchain.channel rust-toolchain.toml)
+      if semverator lt "$rust_version" 1.67.0; then
+        # older versions of rustc --print=split-debuginfo fails with:
+        # error: unknown print request `split-debuginfo`
+        # maybe due to newer cargo?
+        rust_version=1.67.0
+      fi
+      set -o allexport
+      source <(pkgx "+rust-lang.org~${rust_version}" +rust-lang.org/cargo^0 +llvm.org^17)
+      set +o allexport
+      unset rust_version
+
     # https://github.com/denoland/deno/issues/15596 -- reported fixed in 1.25.3
     - run: |
         find ext/ffi/tinycc -maxdepth 0 -empty -exec \
           git clone https://github.com/TinyCC/tinycc.git {} \;
 
-        if test {{ hw.target }} = x86_64-apple-darwin; then
+        if test "{{hw.platform}}+{{ hw.arch }}" = "darwin+x86-64"; then
           # our LLVM cannot build with deployment target set to 10.6
           sed -i.bak s/MACOSX_DEPLOYMENT_TARGET/\#/ ext/ffi/tinycc/Makefile
         fi
@@ -43,17 +57,15 @@ build:
     - cargo install --locked --path cli --root "{{ prefix }}"
   dependencies:
     git-scm.org: 2 # to build tinycc
-    rust-lang.org: ^1.70
-    rust-lang.org/cargo: ^0
-    llvm.org: 17 # macOS/aarch64 requires (FIXME only dep where needed)
     curl.se: '*' # required to download v8 (python is another option)
     cmake.org: ^3 # deno.land>=1.36.1 requires cmake
     protobuf.dev: '*' # deno.land>=1.36.4 requires protoc
-  env:
-    linux:
-      LD: clang
+    github.com/mikefarah/yq: ^4
+    crates.io/semverator: ^0
 
 test:
+  dependencies:
+    gnu.org/coreutils: '*' # for stat and numfmt
   script:
     - deno --version | grep {{version}}
     - mv $FIXTURE test.ts
@@ -62,6 +74,14 @@ test:
     - deno compile test.ts
     - test "$(./test)" = "Hello, world!"
     # human readable size of ./test should be equal to the size of denort to ensure our denort is being used
-    - test "$(stat -c %s ./test | numfmt --to=iec-i)" = "$(stat -c %s "{{prefix}}/bin/denort" | numfmt --to=iec-i)"
+    - run: test "$(stat -c %s ./test | numfmt --to=iec-i)" = "$(stat -c %s "{{prefix}}/bin/denort" | numfmt --to=iec-i)"  
+      if: '>=1.40.5'  
+    # tests download of dependencies
+    - deno eval 'import { VERSION } from "https://deno.land/std@0.221.0/version.ts"; console.log(VERSION);' | tee /dev/stderr | grep -q ^0.221.0$
+    # ensures deno is not linked to libunwind
+    - run: otool -l {{prefix}}/bin/deno | grep -v libunwind
+      if: darwin
+    - run: ldd {{prefix}}/bin/deno | grep -v libunwind
+      if: linux
   fixture: |
     console.log("Hello, world!");
