@@ -10,9 +10,9 @@ versions:
     - /^v/
 
 platforms:
-# not compiling presently
-# looks like canonical's fork of go-flags (several years old) doesn't support unix.Prctl properly on darwin
-#  - darwin
+  # not compiling presently
+  # looks like canonical's fork of go-flags (several years old) doesn't support unix.Prctl properly on darwin
+  #  - darwin
   - linux
 
 build:
@@ -24,16 +24,23 @@ build:
   env:
     CGO_ENABLED: 0
     LDFLAGS:
-    - -w
-    - -s
+      - -w
+      - -s
     linux:
       LDFLAGS:
-      - -buildmode=pie
+        - -buildmode=pie
   script:
-  - go generate ./cmd
-  - go build -v -ldflags="${LDFLAGS}" -o "{{ prefix }}/bin/pebble" --trimpath ./cmd/pebble
+    - go generate ./cmd
+    - run: sed -i 's/Version = ".*"/Version = "v{{version}}"/' version_generated.go
+      working-directory: cmd
+      if: <1.2
+    - go build -v -ldflags="${LDFLAGS}" -o "{{ prefix }}/bin/pebble" --trimpath ./cmd/pebble
 
 provides:
-- bin/pebble
+  - bin/pebble
 
-test: test "$(pebble version --client)" = v{{version}}
+test:
+  - run: pebble version | grep 'client  v{{version}}'
+    if: <1.2
+  - run: test "$(pebble version --client)" = v{{version}}
+    if: '>=1.2'
