@@ -11,6 +11,10 @@ build:
     cmake.org: '*'
   working-directory: build
   script:
+    # our llvm doesn't like this flag
+    - run: sed -i 's/ -exhaustive-register-search//g' system.cmake
+      if: linux/x86-64
+      working-directory: ../cmake
     - cmake .. $ARGS
     - make --jobs {{ hw.concurrency }}
     - make install
