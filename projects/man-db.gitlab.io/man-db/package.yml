@@ -37,6 +37,13 @@ build:
         ln -s ../libexec/bin/lexgrog lexgrog
         ln -s ../libexec/bin/man-recode man-recode
       working-directory: '{{prefix}}/bin'
+    - run: |
+        if test -d man-db; then
+          mv man-db/* .
+          rmdir man-db
+          ln -s . man-db
+        fi
+      working-directory: '{{prefix}}/lib'
   env:
     CONFIGURE_ARGS:
       - --disable-debug
