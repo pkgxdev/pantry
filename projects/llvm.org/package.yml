@@ -83,7 +83,6 @@ build:
       - -DLLVM_INCLUDE_TESTS=OFF
       - -DLLVM_ENABLE_RTTI=ON
       - -DLLVM_BUILD_LLVM_DYLIB=ON
-      - -DCOMPILER_RT_BUILD_SANITIZERS:BOOL=ON
     linux:
       ARGS:
         # the default is `ld` however clang when handling linking itself
@@ -100,6 +99,9 @@ build:
         #FIXME this is no good for systems with only Xcode installed
         #NOTE how do Apple make their LLVM find both? we want the same trick
         - -DDEFAULT_SYSROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
+      # Xcode 15 has a new linker, which isn't behaving
+      # https://github.com/golang/go/issues/61229#issuecomment-1988965927
+      LDFLAGS: $LDFLAGS -Wl,-ld_classic
     linux/x86-64:
       ARGS:
         # required to build something that works on linux/x86-64
@@ -129,23 +131,14 @@ test:
     # Building compiler-rt on darwin+aarch64 fails for versions less than
     # 14 with the below configuration
     # FIXME if possible, of course.
-    - run: LINUX=1
-      if: linux
-    - run: AARCH64=1
-      if: aarch64
-    - run: GT13=1
-      if: '>=13'
-    - run: GT14=1
-      if: '>=14'
-    # cases
-    # "1,*" => linux
-    # ",,1,*" => darwin+x86-64 >=13
-    # ",1,1,1" => darwin+aarch64 >=14
     - run: |
-        case "$LINUX,$AARCH64,$GT13,$GT14" in
-          "1,*"|",,1,*"|",1,1,1") ARGS="$ARGS -fsanitize=address,undefined";;
-          *) ;;
-        esac
+        if test "{{hw.platform}}" = "linux"; then
+          ARGS="$ARGS -fsanitize=address,undefined"
+        elif test "{{hw.arch}}" = "x86_64" && semverator satisfies '>=13' {{version}}; then
+          ARGS="$ARGS -fsanitize=address,undefined"
+        elif semverator satisfies '>=14'; then
+          ARGS="$ARGS -fsanitize=address,undefined"
+        fi
       # if: linux || >=14 || (x86-64 && >=13)  ## Brewkit can't do this. Yet.
 
     - mv $FIXTURE $FIXTURE.c
