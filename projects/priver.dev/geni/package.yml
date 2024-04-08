@@ -14,9 +14,11 @@ build:
     rust-lang.org: '>=1.65'
     rust-lang.org/cargo: '*'
   script:
-    # 0.0.4 got released without a version bump
-    - run: sed -i -e 's/"0\.0\.3"/"{{version}}"/g' Cargo.toml src/main.rs
-      if: '=0.0.4'
+    # 0.0.4, 1.0.2 got released without a version bump
+    - run: sed -i -e 's/^version = ".*"/version = "{{version}}"/' Cargo.toml
+    - run: sed -i -e 's/"0\.0\.3"/"{{version}}"/' main.rs
+      working-directory: src
+      if: =0.0.4
     - cargo install --locked --path . --root {{prefix}}
 
 test:
