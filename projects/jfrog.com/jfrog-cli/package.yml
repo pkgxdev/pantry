@@ -5,22 +5,24 @@ distributable:
 versions:
   github: jfrog/jfrog-cli
 
-platforms:
-  - darwin
-  - linux
-
 build:
   dependencies:
-    go.dev: ^1
+    go.dev: ^1.20
   script:
     - go mod tidy
-    - go build $ARGS
+    - go build -ldflags="$GO_LDFLAGS" $ARGS
     - run: ln -s jf jfrog
       working-directory: '{{prefix}}/bin'
   env:
     ARGS:
       - -trimpath
       - -o {{prefix}}/bin/jf
+    GO_LDFLAGS:
+      - -s
+      - -w
+    linux:
+      GO_LDFLAGS:
+        - -buildmode=pie
 
 provides:
   - bin/jf
