@@ -16,7 +16,11 @@ build:
       # error: invalid linker name in argument '-fuse-ld=gold'
       gnu.org/gcc: '*'
   script:
-    ./scripts/build_bytebase.sh {{prefix}}/bin
+    # otherwise segfaults
+    - run: sed -i 's/-ldflags "/-ldflags "-buildmode=pie /' build_bytebase.sh
+      if: linux
+      working-directory: scripts
+    - ./scripts/build_bytebase.sh {{prefix}}/bin
 
 provides:
   - bin/bytebase
