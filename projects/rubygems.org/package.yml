@@ -14,14 +14,15 @@ runtime:
 
 build:
   dependencies:
-    ruby-lang.org: ~3.1  # testing a theory
-                         # NOTE ^^ we don’t know what this comment means either!
+    ruby-lang.org:
+      ~3.1 # testing a theory
+      # NOTE ^^ we don’t know what this comment means either!
   script:
     - ruby setup.rb
-        --prefix={{prefix}}
-        --env-shebang
-        --no-ri
-        --no-rdoc
+      --prefix={{prefix}}
+      --env-shebang
+      --no-ri
+      --no-rdoc
 
     # 3.5.5 fixed this
     - run: patch -p1 --no-backup-if-mismatch < $PROP
@@ -47,6 +48,14 @@ build:
            ##
 
     - run: patch -p1 --no-backup-if-mismatch < "$SRCROOT"/props/fit-n-finish.patch
+      working-directory: ${{prefix}}
+
+    # 3.5.7 removed some redunant parens, breaking patching
+    - run: patch -p1 --no-backup-if-mismatch < "$SRCROOT"/props/fit-n-finish2-pre357.patch
+      if: <3.5.7
+      working-directory: ${{prefix}}
+    - run: patch -p1 --no-backup-if-mismatch < "$SRCROOT"/props/fit-n-finish2-post357.patch
+      if: '>=3.5.7'
       working-directory: ${{prefix}}
 
     # makes ruby’s default system dir be fixed in /usr/local/lib/ruby
@@ -102,8 +111,7 @@ build:
           export GEM_PATH="$d:$GEM_PATH"
         fi
         exec ruby "$0" "$@"
-      working-directory:
-        ${{prefix}}
+      working-directory: ${{prefix}}
 
     # no longer needed
     - rm -rf {{prefix}}/gems
@@ -149,8 +157,7 @@ test:
         gem 'warbler', platforms: :jruby
 
     # verifies that our bundler can be used as a gem
-    - run:
-        rm -rf {{deps.ruby-lang.org.prefix}}/lib/ruby/gems/*/bundler*
+    - run: rm -rf {{deps.ruby-lang.org.prefix}}/lib/ruby/gems/*/bundler*
         rm -rf {{deps.ruby-lang.org.prefix}}/lib/ruby/gems/*/rubygems*
         GEM_HOME=$HOME/.bundler ruby $FIXTURE
       fixture:
