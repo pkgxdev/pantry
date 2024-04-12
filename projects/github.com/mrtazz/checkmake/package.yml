@@ -1,0 +1,56 @@
+distributable:
+  url: https://github.com/mrtazz/checkmake/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: mrtazz/checkmake
+
+build:
+  dependencies:
+    go.dev: ^1.21
+  script: go build $ARGS -ldflags="$GO_LDFLAGS -X 'main.buildTime=$(date)' -X 'main.builder=pkgx'" ./
+  env:
+    ARGS:
+      - -trimpath
+      - -o={{prefix}}/bin/checkmake
+    GO_LDFLAGS:
+      - -s
+      - -w
+      - -X 'main.version={{version}}'
+      - -X 'main.goversion=go{{deps.go.dev.version}}'
+    linux:
+      GO_LDFLAGS:
+        - -buildmode=pie
+
+provides:
+  - bin/checkmake
+
+test:
+  - checkmake --version | grep {{version}}
+  - run: (checkmake $FIXTURE || true) | grep 'Missing required phony target'
+    fixture:
+      extname: make
+      content: |
+        # this is a comment
+
+        expanded = "$(simple)"
+        simple := "foo"
+
+        clean:
+          rm bar
+          rm foo
+
+        foo: bar
+          touch foo
+
+        bar:
+          touch bar
+
+        all: foo
+
+        test:
+          @echo lolnah
+
+        .PHONY: clean
+
+        .DEFAULT_GOAL: all
