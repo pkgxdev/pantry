@@ -1,0 +1,27 @@
+distributable:
+  url: https://github.com/loft-sh/devpod/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: loft-sh/devpod
+
+build:
+  dependencies:
+    go.dev: ^1.21
+  script: go build $ARGS -ldflags="$GO_LDFLAGS" ./
+  env:
+    ARGS:
+      - -trimpath
+      - -o={{prefix}}/bin/devpod
+    GO_LDFLAGS:
+      - -s
+      - -w
+      - -X=github.com/loft-sh/devpod/pkg/version.version="v{{version}}"
+    linux:
+      GO_LDFLAGS:
+        - -buildmode=pie
+
+provides:
+  - bin/devpod
+
+test: test "$(devpod version)" = "v{{version}}"
