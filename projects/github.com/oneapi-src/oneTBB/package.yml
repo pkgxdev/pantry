@@ -27,10 +27,6 @@ build:
     cmake.org: '*'
     swig.org: '*'
     freedesktop.org/pkg-config: '*'
-    linux:
-      llvm.org: '*'
-      gnu.org/gcc: '>=4.8.5<11.2.1'
-      gnu.org/make: '*'
   working-directory: build
   script:
     #build shared
@@ -47,27 +43,22 @@ build:
         install ./*/libtbb*.a {{prefix}}/lib/
       working-directory: static
 
-    # build python
+    # build irml
     - run: |
         cmake -S ../.. $CMAKE_ARGS -DTBB4PY_BUILD=ON
         make irml
-        install gnu*/* {{prefix}}/lib
+        install clang*/* {{prefix}}/lib
         export LDFLAGS="-L{{prefix}}/lib/libirml.so -lirml $LDFLAGS"
         export PYTHONPATH="$PWD/build/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH"
-        export CXX=clang++
         python ../../python/setup.py install --prefix=$PWD/build
       working-directory: python
       if: linux
 
-    - run: |
-        python3 -m pip install --prefix={{prefix}} .
+    - run: python3 -m pip install --prefix={{prefix}} .
       working-directory: ../python
 
     # python 3.xx => 3 symlink
-    - run: |
-        if [ ! -L "python{{deps.python.org.version.major}}" ]; then
-          ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
-        fi
+    - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
       working-directory: ${{prefix}}/lib
 
   env:
@@ -81,8 +72,8 @@ build:
       - -DTBB_TEST=OFF
     PYTHONPATH: '{{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH'
     linux:
-      CC: gcc
-      CXX: g++
+      # undefined symbol errors in newer llvms prevent building shared libs
+      CFLAGS: $CFLAGS -Wl,--undefined-version
 
 test:
   dependencies:
