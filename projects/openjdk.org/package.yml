@@ -90,6 +90,11 @@ build:
     - make images $MAKE_ARGS
     - mkdir -p {{prefix}}
     - mv $JDK_DIR {{prefix}}/
+    - run: |
+        # jni.h:45:10: fatal error: 'jni_md.h' file not found
+        ln -s ./{{ hw.platform }}/jawt_md.h jawt_md.h
+        ln -s ./{{ hw.platform }}/jni_md.h jni_md.h
+      working-directory: ${{prefix}}/include
   env:
     MAKE_ARGS: 'JOBS={{ hw.concurrency }}'
     darwin:
