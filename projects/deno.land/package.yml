@@ -17,6 +17,7 @@ runtime:
   env:
     DENO_NO_UPDATE_CHECK: 'true'
     DENORT_BIN: '{{prefix}}/bin/denort'
+    DENO_INSTALL_ROOT: '${{home}}/.local'
 
 build:
   script:
@@ -54,11 +55,6 @@ build:
         fi
       if: '>=1.25.0<1.25.4'
 
-    # change default bindir to ~/.local/bin per our conventions
-    - sed -i'' -e 's/home_path.push(".deno")/home_path.push(".local")/' cli/tools/installer.rs
-
-    - grep home_path cli/tools/installer.rs
-
     - cargo install --locked --path cli --root "{{ prefix }}"
   dependencies:
     git-scm.org: 2 # to build tinycc
@@ -74,7 +70,8 @@ test:
   script:
     - deno --version | grep {{version}}
     - mv $FIXTURE test.ts
-    - deno install -f test.ts
+    # use our $HOME
+    - DENO_INSTALL_ROOT="$HOME/.local" deno install -f test.ts
     - test "$($HOME/.local/bin/test)" = "Hello, world!"
     - deno compile test.ts
     - test "$(./test)" = "Hello, world!"
