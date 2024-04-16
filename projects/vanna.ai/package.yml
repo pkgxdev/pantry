@@ -32,7 +32,9 @@ build:
       if: '>=0.2'
     # additional requirements as of 0.3.0
     - run: python -m pip install anthropic --prefix={{prefix}}
-      if: '>=0.2'
+      if: '>=0.3'
+    # additional requirements as of 0.4.0
+    - run: python -m pip install google-generativeai --prefix={{prefix}}
 
     - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
       working-directory: ${{prefix}}/lib
@@ -53,6 +55,7 @@ test:
     SNOWFLAKE_ACCOUNT: FAKE_ACCOUNT
     SNOWFLAKE_USERNAME: FAKE_USERNAME
     SNOWFLAKE_PASSWORD: FAKE_PASSWORD
+    GEMINI_API_KEY: FAKE_API_KEY
   script:
     - curl -L "https://raw.githubusercontent.com/vanna-ai/vanna/main/tests/test_vanna.py" -o test_vanna.py
     - python test_vanna.py
