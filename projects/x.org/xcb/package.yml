@@ -24,7 +24,8 @@ build:
       if: <1.16
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
-    - run: sed -i 's/\+brewing//g' *.la
+    # .la are unrelocatable, but only used if found
+    - run: rm *.la
       working-directory: ${{prefix}}/lib
   env:
     SHELF: ${{pkgx.prefix}}/x.org
