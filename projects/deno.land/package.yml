@@ -59,6 +59,12 @@ build:
 
     - grep home_path cli/tools/installer.rs
 
+    # curve25519-dalek 4.1.2 introduces some odd simd issues on x86-64 on Rust <1.78 (unreleased)
+    - run: sed -i
+        -e 's/version = "4.1.2"/version = "4.1.1"/'
+        -e 's/0a677b8922c94e01bdbb12126b0bc852f00447528dee1782229af9c720c3f348/e89b8c6a2e4b1f45971ad09761aafb85514a84744b67a95e32c3cc1352d1f65c/'
+        Cargo.lock
+
     - cargo install --locked --path cli --root "{{ prefix }}"
   dependencies:
     git-scm.org: 2 # to build tinycc
@@ -79,8 +85,8 @@ test:
     - deno compile test.ts
     - test "$(./test)" = "Hello, world!"
     # human readable size of ./test should be equal to the size of denort to ensure our denort is being used
-    - run: test "$(stat -c %s ./test | numfmt --to=iec-i)" = "$(stat -c %s "{{prefix}}/bin/denort" | numfmt --to=iec-i)"  
-      if: '>=1.40.5'  
+    - run: test "$(stat -c %s ./test | numfmt --to=iec-i)" = "$(stat -c %s "{{prefix}}/bin/denort" | numfmt --to=iec-i)"
+      if: '>=1.40.5'
     # tests download of dependencies
     - deno eval 'import { VERSION } from "https://deno.land/std@0.221.0/version.ts"; console.log(VERSION);' | tee /dev/stderr | grep -q ^0.221.0$
   fixture: |
