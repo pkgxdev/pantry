@@ -11,8 +11,7 @@ dependencies:
 build:
   dependencies:
     npmjs.com: '*'
-  script:
-    npm i $ARGS .
+  script: npm i $ARGS .
   env:
     ARGS:
       - -ddd
@@ -32,7 +31,7 @@ test:
         def wrong_types(a: int, b: int) -> str:
           return a + b
       extname: py
-  - cat out.log | grep 'Expression of type "int" cannot be assigned to return type "str"'
+  - cat out.log | grep -E 'Expression of type "int" (cannot be assigned to|is incompatible with) return type "str"'
   - run: pyright $FIXTURE 2>&1 | grep '0 errors, 0 warnings, 0 informations'
     fixture:
       content: |
