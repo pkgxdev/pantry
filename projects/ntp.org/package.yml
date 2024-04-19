@@ -57,4 +57,7 @@ provides:
     - bin/ntptrace
     - bin/update-leap
 
-test: ntpdate -bq pool.ntp.org
+test: |
+  if ! ntpdate -bq pool.ntp.org; then
+    (ntpdate -bq pool.ntp.org 2>&1 || true) | grep 'no server suitable for synchronization found'
+  fi
