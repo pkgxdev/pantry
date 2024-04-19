@@ -1,0 +1,28 @@
+distributable:
+  url: https://www.eecis.udel.edu/~ntp/ntp_spool/ntp4/ntp-4.2/ntp-4.2.8p17.tar.gz
+  strip-components: 1
+
+versions:
+  - 4.2.8.17
+
+dependencies:
+  openssl.org: ^3
+
+build:
+  script:
+    - ./configure
+        --disable-debug
+        --disable-dependency-tracking
+        --disable-silent-rules
+        --prefix={{prefix}}
+        --with-openssl-libdir={{deps.openssl.org.prefix}}/lib
+        --with-openssl-incdir={{deps.openssl.org.prefix}}/include
+        --with-net-snmp-config=no
+    - run: LDADD_LIBNTP="-undefined dynamic_lookup $LDADD_LIBNTP"
+      if: darwin
+    - make install LDADD_LIBNTP="$LDADD_LIBNTP"
+  env:
+    LDADD_LIBNTP: -lresolv
+
+provides:
+  - bin/ntp
