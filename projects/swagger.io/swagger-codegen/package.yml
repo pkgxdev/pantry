@@ -27,7 +27,8 @@ provides:
 
 test:
   - run: swagger-codegen generate -i $FIXTURE -l html
-    fixture: 
+    if: '>=3'
+    fixture:
       content: |
         openapi: 3.0.0
         info:
@@ -40,5 +41,28 @@ test:
                 200:
                   description: OK
       extname: yaml
+  - run: swagger-codegen generate -i $FIXTURE -l html
+    if: <3
+    fixture:
+      content: |
+        {
+          "swaggerVersion": "2.0.0",
+          "info": {
+            "version": "0.0.0",
+            "title": "Simple API"
+          },
+          "paths": {
+            "/": {
+              "get": {
+                "responses": {
+                  "200": {
+                    "description": "OK"
+                  }
+                }
+              }
+            }
+          }
+        }
+      extname: json
   - cat index.html | grep "Simple API"
   - swagger-codegen version | grep {{version}}
