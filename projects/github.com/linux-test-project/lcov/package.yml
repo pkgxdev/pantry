@@ -13,10 +13,9 @@ provides:
   - bin/gendesc
   - bin/genpng
 
-platforms: linux
-
 dependencies:
-  perl.org: ">=5"
+  perl.org: '>=5'
+  python.org: 3
 
 runtime:
   env:
@@ -31,27 +30,25 @@ build:
     - fix-shebangs.ts {{prefix}}/bin/*
 
     # v2 installs to lib/lcov
-    - |
-      if test -d "{{prefix}}/lib/lcov"; then
-        cd "{{prefix}}/lib"
-        test -d perl5 || mkdir perl5
-        mv lcov/* perl5
-        rmdir lcov
-        ln -s perl5 lcov
-      fi
+    - run: |
+        if test -d lcov; then
+          mv lcov/* perl5/
+          rmdir lcov
+          ln -s perl5 lcov
+        fi
+      if: '>=2'
+      working-directory: ${{prefix}}/lib
 
     # cpanm installs without write perms
-    - chmod -R +w "{{prefix}}/lib/perl5"
+    - run: chmod -Rf +w *
+      working-directory: ${{prefix}}/lib/perl5
 
     # need to clean up paths in the scripts
-    - |
-      cd "{{prefix}}/bin"
-
-      sed -i.bak \
-          -e '2i use File::Basename qw(dirname);' \
-          -e 's|"{{prefix}}|dirname($0) . "/..|g' \
-          * ../lib/perl5/lcovutil.pm
-      rm *.bak ../lib/perl5/lcovutil.pm.bak
+    - run: sed -i
+        -e '2i use File::Basename qw(dirname);'
+        -e 's|"{{prefix}}|dirname($0) . "/..|g'
+        ../lib/perl5/lcovutil.pm *
+      working-directory: ${{prefix}}/bin
   env:
     PKGS:
       - Capture::Tiny
@@ -64,10 +61,12 @@ build:
       - File::Spec
       - IPC::System::Simple
       - JSON::XS
-      - Memory::Process
       - Module::Build::Tiny
       - Readonly
       - Time::HiRes
+    linux:
+      PKGS:
+        - Memory::Process
     ARGS:
       - PREFIX="{{prefix}}"
       - BIN_DR="{{prefix}}/bin"
@@ -75,13 +74,13 @@ build:
 test:
   dependencies:
     gnu.org/gcc: '*'
-  script: |
-    mv $FIXTURE hello_world.c
-    gcc -g -O2 --coverage -o hello_world hello_world.c
-    ./hello_world
-    lcov --gcov-tool gcov --directory . --capture --output-file all_coverage.info
-    test -f all_coverage.info
-    grep hello_world.c all_coverage.info
+  script:
+    - mv $FIXTURE hello_world.c
+    - gcc -g -O2 --coverage -o hello_world hello_world.c
+    - ./hello_world
+    - lcov --gcov-tool gcov --directory . --capture --output-file all_coverage.info
+    - test -f all_coverage.info
+    - grep hello_world.c all_coverage.info
   fixture: |
     #include <stdio.h>
     int main(void)
