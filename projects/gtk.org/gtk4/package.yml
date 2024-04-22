@@ -46,6 +46,8 @@ build:
     linux:
       gnu.org/binutils: '*'
   script:
+    - run: export MESON_ARGS="$MESON_ARGS -Dgtk_doc=false"
+      if: <4.15.0
     - meson setup build $MESON_ARGS
     - meson compile -C build --verbose
     - meson install -C build
@@ -55,7 +57,6 @@ build:
       - --libdir="{{prefix}}/lib"
       - --buildtype=release
       - --wrap-mode=nofallback
-      - -Dgtk_doc=false
       - -Dbuild-examples=false
       - -Dbuild-tests=false
       - -Dmedia-gstreamer=disabled
