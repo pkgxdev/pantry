@@ -11,25 +11,27 @@ versions:
 
 dependencies:
   openssl.org: ^1.1
+  pcre.org/v2: ^10
 
 build:
   dependencies:
     gnu.org/patch: '*'
-    crates.io/semverator: '*'
   script:
     # https://github.com/openresty/openresty/issues/372
-    - >
-      semverator satisfies '<7.94.0' {{version}} &&
-      patch -p1 <props/openssl-1.1.1.patch
+    - run: patch -p1 <props/openssl-1.1.1.patch
+      if: '<7.94.0'
 
-    - ./configure --prefix={{prefix}}
+    - ./configure $ARGS
     - make -j {{hw.concurrency}}
     - make install
-  test:
-    make test
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --with-libpcre={{deps.pcre.org/v2.prefix}}
+      - --without-zenmap
+  test: make test
 
-test:
-  script: nmap -vvvv localhost
+test: nmap -vvvv localhost
 
 provides:
   - bin/nmap
