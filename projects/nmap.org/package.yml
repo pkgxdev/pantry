@@ -16,10 +16,16 @@ dependencies:
 build:
   dependencies:
     gnu.org/patch: '*'
+    python.org: 3
   script:
     # https://github.com/openresty/openresty/issues/372
     - run: patch -p1 <props/openssl-1.1.1.patch
       if: '<7.94.0'
+
+    # missing python modules
+    - python -m venv $HOME/venv
+    - source $HOME/venv/bin/activate
+    - python -m pip install build setuptools
 
     - ./configure $ARGS
     - make -j {{hw.concurrency}}
