@@ -37,7 +37,11 @@ build:
       if: linux
       working-directory: include/ruby/internal/attr
 
-    - make --jobs {{hw.concurrency}} install
+    # 3.1.5 doesn't succeed with concurrent jobs
+    - run: make --jobs {{hw.concurrency}} install
+      if: <3.1.5 || >=3.2
+    - run: make install
+      if: ^3.1.5
 
     # we provide these as `rubygems.org`
     - run: rm -f bundle bundler gem
