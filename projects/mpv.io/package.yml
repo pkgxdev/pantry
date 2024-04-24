@@ -21,6 +21,9 @@ dependencies:
     alsa-project.org/alsa-lib: 1
     github.com/adah1972/libunibreak: 5
 
+warnings:
+  - macOS12+
+
 build:
   dependencies:
     mesonbuild.com: 1
@@ -75,6 +78,13 @@ build:
       LD: clang
 
 test:
+  # the swift bits rely on a lib not available on macOS 11; we've seen this before.
+  # no point in holding it out just for that, though
+  - run: |
+      if test "$(sw_vers --productVersion | cut -d . -f 1)" -lt 12; then
+        exit 0
+      fi
+    if: darwin
   - mpv --ao=null --vo=null test.wav
   - mpv --vf=help | grep vapoursynth
 
