@@ -27,6 +27,8 @@ build:
     ninja-build.org: 1
     git-scm.org: 2
     invisible-island.net/ncurses: 6
+    linux:
+      nixos.org/patchelf: 0
   script:
     # FIXME: this is an extreme measure, but otherwise swift tries to mix apple's 2008
     # ncurses with ours; believe me, i tried many workarounds here.
@@ -48,6 +50,11 @@ build:
           mv ${NCURSES_INCLUDE}.bak $NCURSES_INCLUDE
         fi
       if: darwin
+
+    # for some reason, fix-elf.ts doesn't catch this:
+    - run: patchelf --replace-needed {{deps.mujs.com.prefix}}/lib/pkgconfig/../../lib/libmujs.so libmujs.so mpv
+      working-directory: ${{prefix}}/bin
+      if: linux
   env:
     ARGS:
       - -Djavascript=enabled
