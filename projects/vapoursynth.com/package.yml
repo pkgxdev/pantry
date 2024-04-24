@@ -33,10 +33,10 @@ build:
     - make --jobs {{ hw.concurrency }} install
     - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}} || true
       working-directory: '{{prefix}}/lib'
-    - run: |
-        sed -i.bak "s|$PKGX_DIR|\${prefix}/../..|g" *.pc
-        sed -i.bak "s|python.org/v{{deps.python.org.version}}|python.org/v{{deps.python.org.version.marketing}}|g" *.pc
-        rm *.bak
+    - run: sed -i
+        -e "s|$PKGX_DIR|\${prefix}/../..|g"
+        -e "s|python.org/v{{deps.python.org.version}}|python.org/v{{deps.python.org.version.marketing}}|g"
+        -e 's/\+brewing//g' *.pc
       working-directory: '{{prefix}}/lib/pkgconfig'
     - run: |
         mv vapoursynth/* .
