@@ -15,8 +15,8 @@ runtime:
   env:
     # Fix: Could not find platform independent libraries
     #      PYTHONHOME = (not set)
-    PYTHONHOME: "{{deps.python.org.prefix}}"
-    PYTHONPATH: "{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages:$PYTHONPATH"
+    PYTHONHOME: '{{deps.python.org.prefix}}'
+    PYTHONPATH: '{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages:$PYTHONPATH'
 build:
   dependencies:
     gnu.org/autoconf: '*'
@@ -32,12 +32,17 @@ build:
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
     - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}} || true
-      working-directory: "{{prefix}}/lib"
+      working-directory: '{{prefix}}/lib'
     - run: |
         sed -i.bak "s|$PKGX_DIR|\${prefix}/../..|g" *.pc
         sed -i.bak "s|python.org/v{{deps.python.org.version}}|python.org/v{{deps.python.org.version.marketing}}|g" *.pc
         rm *.bak
-      working-directory: "{{prefix}}/lib/pkgconfig"
+      working-directory: '{{prefix}}/lib/pkgconfig'
+    - run: |
+        mv vapoursynth/* .
+        rmdir vapoursynth
+        ln -s . vapoursynth
+      working-directory: '{{prefix}}/include'
   env:
     ARGS:
       - --prefix={{prefix}}
