@@ -26,14 +26,20 @@ build:
     # otherwise, we hit https://reviews.llvm.org/D131307
     linux:
       llvm.org: '<16'
-      gnu.org/make: '*'
     python.org: ~3.9
-    freedesktop.org/pkg-config: ^0.29
   script:
     - run: python configure.py $ARGS
       if: <14
     - run: ./configure $ARGS
       if: '>=14'
+    # v22 didn't include iomanip for std::precision in one file
+    - run: |
+        sed -i '/wasm-disassembler.h/a\
+        \
+        #include <iomanip>' wasm-disassembler.cc
+      working-directory: deps/v8/src/wasm
+      if: ^22
+
     - make --jobs {{ hw.concurrency }} install
   env:
     ARGS:
