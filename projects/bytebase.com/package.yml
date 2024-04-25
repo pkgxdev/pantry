@@ -8,11 +8,25 @@ versions:
 dependencies:
   nodejs.org: '>=20.10'
 
+platforms:
+  - linux
+  - darwin/aarch64
+# this changed in 2.16.0:
+# case runtime.GOOS == "darwin" && runtime.GOARCH == "arm64":
+# 	tarName = "mongoutil-1.6.1-darwin-arm64.txz"
+# case runtime.GOOS == "linux" && runtime.GOARCH == "amd64":
+# 	tarName = "mongoutil-1.6.1-linux-amd64.txz"
+# case runtime.GOOS == "linux" && runtime.GOARCH == "arm64":
+# 	tarName = "mongoutil-1.6.1-linux-arm64.txz"
+# default:
+# 	return "", "", errors.Errorf("unsupported platform: %s/%s", runtime.GOOS, runtime.GOARCH)
+
 build:
   dependencies:
-    go.dev: ^1.22
+    go.dev: =1.21.6
     pnpm.io: '*'
     linux:
+      kerberos.org: 1 # added in 2.16.0
       # error: invalid linker name in argument '-fuse-ld=gold'
       gnu.org/gcc: '*'
   script:
