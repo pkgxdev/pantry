@@ -48,9 +48,17 @@ build:
     - cp grpc_cli "{{prefix}}/bin"
     - cp libgrpc++_test_config.* "{{prefix}}/lib"
 
-    - run: install_name_tool -add_rpath @loader_path libgrpc++_test_config.dylib
-      working-directory: '{{prefix}}/lib'
+    # grpc has libs and binaries that end up with name @rpath/libgrpc_plugin_support.{{version}}.dylib (offset 24)
+    # so we need to add @loader_path to the rpath
+    - run: |
+        for f in bin/* lib/libgrpc++_test_config.dylib; do
+          if test -f $f; then
+            install_name_tool -add_rpath @loader_path/../lib $f
+          fi
+        done
+      working-directory: '{{prefix}}'
       if: darwin
+
   env:
     COMMON_ARGS:
       - -DCMAKE_BUILD_TYPE=Release
