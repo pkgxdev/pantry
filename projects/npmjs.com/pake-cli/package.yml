@@ -1,0 +1,45 @@
+distributable:
+  url: https://github.com/tw93/Pake/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/pake
+
+versions:
+  github: tw93/Pake
+  strip: /V/
+
+platforms: [darwin]
+# linux needs webkit2gtk and possibly other tauri deps packaged
+
+dependencies:
+  nodejs.org: '>=16'
+  npmjs.com: '*'
+  rust-lang.org: '>=1.63'
+  rust-lang.org/cargo: '*'
+  darwin:
+    github.com/create-dmg/create-dmg: 1
+  linux:
+    freedesktop.org/pkg-config: ^0.29
+    cairographics.org: 1
+    gnome.org/pango: 1
+    gnome.org/gdk-pixbuf: 2
+    gnome.org/atk: 2
+    libsoup.org: ~2.74
+    gnome.org/librsvg: 2
+    gnome.org/vala: 0
+    gtk.org/gtk3: 3
+    # needs webkit2gtk as well
+
+build:
+  - run: sed -i 's/var version = ".*";/var version = "{{version}}";/' cli.js
+    working-directory: dist
+  - npm install --global --prefix={{prefix}} --install-links .
+
+test:
+  # we'd love to do this, but it opens the DMG in finder, which fails headless.
+  # pake --name pkgx pkgx.sh
+  - run: test "$(pake --version)" = "{{version}}"
+    if: darwin
+  - run: pake --name pkgx pkgx.sh --targets=deb
+    if: linux
