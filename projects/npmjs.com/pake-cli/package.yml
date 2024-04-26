@@ -9,6 +9,9 @@ versions:
   github: tw93/Pake
   strip: /V/
 
+platforms: [darwin]
+# linux needs webkit2gtk and possibly other tauri deps packaged
+
 dependencies:
   nodejs.org: '>=16'
   npmjs.com: '*'
@@ -22,12 +25,21 @@ dependencies:
     gnome.org/pango: 1
     gnome.org/gdk-pixbuf: 2
     gnome.org/atk: 2
+    libsoup.org: ~2.74
+    gnome.org/librsvg: 2
+    gnome.org/vala: 0
+    gtk.org/gtk3: 3
+    # needs webkit2gtk as well
 
-build: npm install --global --prefix={{prefix}} --install-links .
+build:
+  - run: sed -i 's/var version = ".*";/var version = "{{version}}";/' cli.js
+    working-directory: dist
+  - npm install --global --prefix={{prefix}} --install-links .
 
 test:
-  script: pake --name pkgx pkgx.sh $ARGS
-  env:
-    linux:
-      ARGS:
-        - --targets=deb
+  # we'd love to do this, but it opens the DMG in finder, which fails headless.
+  # pake --name pkgx pkgx.sh
+  - run: test "$(pake --version)" = "{{version}}"
+    if: darwin
+  - run: pake --name pkgx pkgx.sh --targets=deb
+    if: linux
