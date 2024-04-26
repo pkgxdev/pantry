@@ -3,14 +3,19 @@ distributable:
   strip-components: 1
 
 versions:
-  github: pypa/virtualenv/releases/tags  # reads github *releases* but uses the tags of those releases
+  github: pypa/virtualenv/releases/tags # reads github *releases* but uses the tags of those releases
   strip: /^v/
 
 dependencies:
-  python.org: '>=3.7<3.12'
+  pkgx.sh: ^1
 
 build:
-  python-venv.sh {{prefix}}/bin/virtualenv
+  dependencies:
+    python.org: '>=3.7<3.12'
+  script:
+    - bkpyvenv stage '{{prefix}}' {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal '{{prefix}}' virtualenv
 
 test:
   script: |
