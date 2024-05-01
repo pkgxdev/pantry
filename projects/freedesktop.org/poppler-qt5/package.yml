@@ -25,12 +25,26 @@ dependencies:
   openjpeg.org: ^2
   qt.io: ~5
   curl.se: ^8
+  linux:
+    gnu.org/gcc: '*' # apparently, clang c++20 std isn't good enough
 
 build:
   dependencies:
     cmake.org: '*'
     gnome.org/gobject-introspection: '*'
+    linux:
+      gnu.org/binutils: ^2
   script:
+    # FIXME:
+    # llvm.org from a dep is infecting our build env for linux, where we _need_ gcc;
+    # all methods of overriding assembler detection are failing; so we have this nonsense
+    - run: |
+        ORIG_AS="$(command -v as)"
+        if echo $ORIG_AS | grep llvm.org; then
+          mv ${ORIG_AS}{,.bak}
+        fi
+      if: linux
+
     - cmake . $CMAKE_ARGS
     - make --jobs {{ hw.concurrency }} install
     - make clean
@@ -41,10 +55,13 @@ build:
         curl -L "$FONT_DATA" | tar -xz --strip-components=1
         make install prefix={{prefix}}
       working-directory: font-data
+
+    - run: |
+        if test -e "${ORIG_AS}.bak"; then
+          mv ${ORIG_AS}{.bak,}
+        fi
+      if: linux
   env:
-    CC: clang
-    CXX: clang++
-    LD: clang
     FONT_DATA: https://poppler.freedesktop.org/poppler-data-0.4.12.tar.gz
     CMAKE_ARGS:
       - -DCMAKE_INSTALL_PREFIX="{{prefix}}
@@ -63,10 +80,14 @@ build:
       - -DENABLE_UNSTABLE_API_ABI_HEADERS=ON
       - -DRUN_GPERF_IF_PRESENT=OFF
       - -DWITH_GObjectIntrospection=ON
-    CXXFLAGS: '$CXXFLAGS -std=c++11'
+    darwin:
+      CXXFLAGS: '$CXXFLAGS -std=c++11'
     linux:
       # ld.lld: error: undefined symbol: std::filesystem::__cxx11::path::_M_split_cmpts()
       LDFLAGS: '$LDFLAGS -lstdc++fs'
+      CC: gcc
+      CXX: g++
+      LD: ld.gold
 
 provides:
   - bin/pdfattach
