@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/extrawurst/gitui/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/extrawurst/gitui/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 provides:
@@ -7,7 +7,6 @@ provides:
 
 versions:
   github: extrawurst/gitui/tags
-  strip: /v/
 
 dependencies:
   perl.org: '*'
@@ -17,20 +16,14 @@ dependencies:
 
 build:
   dependencies:
-    rust-lang.org: '>=1.60'
+    rust-lang.org: ^1.78 # stdsimd changes
     rust-lang.org/cargo: '*'
-  script:
-    # curve25519-dalek 4.1.2 introduces some odd simd issues on x86-64
-    - run: sed -i
-        -e 's/version = "4.1.2"/version = "4.1.1"/'
-        -e 's/0a677b8922c94e01bdbb12126b0bc852f00447528dee1782229af9c720c3f348/e89b8c6a2e4b1f45971ad09761aafb85514a84744b67a95e32c3cc1352d1f65c/'
-        Cargo.lock
-    - cargo install --path . --locked --root {{prefix}}
+  script: cargo install --path . --locked --root {{prefix}}
   env:
     linux:
       RUSTFLAGS: '-C linker=cc'
       # See: https://docs.rs/openssl/latest/openssl/#manual
       OPENSSL_NO_VENDOR: true # Always find OpenSSL in the system, even if the vendored feature is enabled.
-      OPENSSL_DIR: '{{ deps.openssl.org.prefix }}' # Use tea's openssl installation directory
+      OPENSSL_DIR: '{{ deps.openssl.org.prefix }}' # Use pkgx's openssl installation directory
 
 test: gitui --version
