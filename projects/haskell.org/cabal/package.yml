@@ -16,7 +16,7 @@ provides:
 
 build:
   dependencies:
-    haskell.org: 9.6.3 # later version pass invalid linker flags on darwin clang-14
+    haskell.org: <9.6.4 # later versions pass invalid linker flags on darwin clang-14
     curl.se: '*'
     linux/aarch64:
       github.com/numactl/numactl: ^2 # downloaded cabal needs this
@@ -25,6 +25,19 @@ build:
     # utf-8 issues
     - run: export HOME="$(mktemp -d)"
       if: linux
+
+    # FIXME: this isn't great, but it'll fix any ghc install at build time
+    # needs install-time customization for a true fix
+    - run: |
+        if ! grep -q 'rpath,{{pkgx.prefix}}' settings; then
+          sed -i \
+            -e 's|\(C compiler flags.*\)")|\1 -Wl,-rpath,{{pkgx.prefix}}")|' \
+            -e 's|\(C++ compiler flags.*\)")|\1 -Wl,-rpath,{{pkgx.prefix}}")|' \
+            -e 's|\(C compiler link flags.*\)")|\1 -Wl,-rpath,{{pkgx.prefix}}")|' \
+            settings
+        fi
+      if: darwin
+      working-directory: ${{deps.haskell.org.prefix}}/.ghcup/ghc/{{deps.haskell.org.version}}/lib/ghc-{{deps.haskell.org.version}}/lib
 
     - run: |
         if test ! -e .bootstrap/cabal; then
@@ -47,8 +60,6 @@ build:
     - |
       sed -i \
         -e 's/build-depends: base.*/build-depends: base >=4.10 \&\& <5/' \
-        -e 's/text.*>=.*/text       >= 1.2.3    \&\& < 3,/' \
-        -e 's/zlib.*< .*/zlib       >= 0.5.3    \&\& < 0.7,/' \
         cabal-install.cabal
     # ^^ SEE https://github.com/haskell/cabal/issues/8118
     - mkdir -p "{{prefix}}/bin"
