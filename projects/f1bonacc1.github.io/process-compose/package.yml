@@ -28,7 +28,7 @@ provides:
 test:
   env:
     PC_DISABLE_TUI: false
-    PC_PORT_NUM: $(pkgx get-port)
+    PC_PORT_NUM: $(pkgx get-port | tail -n1)
   dependencies:
     pkgx.sh: ^1
   script:
@@ -45,6 +45,9 @@ test:
               hello:
                 condition: process_completed
     - SETTINGS="$(process-compose info | sed '/^Settings/!d;s/^Settings. *//')"
-    - mkdir -p "$(dirname "$SETTINGS")"
-    - touch "$SETTINGS"
+    - |
+      if test -n "$SETTINGS"; then
+        mkdir -p "$(dirname "$SETTINGS")"
+        touch "$SETTINGS"
+      fi
     - process-compose up
