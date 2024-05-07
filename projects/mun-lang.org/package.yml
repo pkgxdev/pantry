@@ -1,0 +1,57 @@
+distributable:
+  url: https://github.com/mun-lang/mun/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: mun-lang/mun/tags
+
+dependencies:
+  invisible-island.net/ncurses: 6
+  sourceware.org/libffi: 3
+  gnome.org/libxml2: 2
+
+platforms:
+  - darwin
+  - linux/x86-64 # no linux/aarch64 support yet
+
+companions:
+  llvm.org: ^14
+
+build:
+  dependencies:
+    rust-lang.org: ^1.74.1
+    llvm.org: ^14 # requires this specifically
+  script: cargo install --path crates/mun --root {{prefix}} --locked
+
+provides:
+  - bin/mun
+
+test:
+  - mun new hello_fibonacci
+  - run: cp $FIXTURE mod.mun
+    working-directory: hello_fibonacci/src
+    fixture: |
+      pub fn main() {
+        fibonacci_n();
+      }
+
+      pub fn fibonacci_n() -> i64 {
+          let n = arg();
+          fibonacci(n)
+      }
+
+      fn arg() -> i64 {
+          5
+      }
+
+      fn fibonacci(n: i64) -> i64 {
+          if n <= 1 {
+              n
+          } else {
+              fibonacci(n - 1) + fibonacci(n - 2)
+          }
+      }
+  - run: mun build
+    working-directory: hello_fibonacci
+  - run: mun start target/mod.munlib
+    working-directory: hello_fibonacci
