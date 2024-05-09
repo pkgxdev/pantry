@@ -19,11 +19,21 @@ build:
     python-poetry.org: ^1.7
   script:
     - bkpyvenv stage --engine=poetry {{prefix}} {{version}}
+
     # cv2 libs are compiled for MACOSX_DEPLOYMENT_TARGET=12.0
     - run: poetry config --local installer.no-binary opencv-python
       if: darwin
+
+    # torch removed darwin/x86-64 binaries in 2.3.0
+    # https://github.com/pytorch/pytorch/pull/116726
+    - run: |
+        if test "{{hw.platform}}/{{hw.arch}}" = "darwin/x86-64"; then
+          sed -i 's/^torch.*/torch = "=2.2.2"/' pyproject.toml
+          poetry lock
+        fi
+      if: '>=0.4.4'
+
     - poetry install
-    # - run: 'poetry run pip install --no-binary :all: opencv-python'
     - bkpyvenv seal --engine=poetry {{prefix}} surya_detect
 
 provides:
