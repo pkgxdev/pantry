@@ -73,12 +73,7 @@ test:
     gnu.org/gcc: '*'
     curl.se: '*'
   script:
+    - run: EXTRA_ARGS="RT_LIBDIR=$(dirname $(find /usr/lib -name librt.a | head -n1))"
+      if: linux
     - test "$(luarocks --version | awk 'NR==1 {print $NF}')" = "{{version.raw}}"
     - luarocks install busted $EXTRA_ARGS
-  env:
-    # some of lua components want this set to build, even though librt has been
-    # part of glibc since 2.35
-    linux/aarch64:
-      EXTRA_ARGS: RT_LIBDIR=/usr/lib/aarch64-linux-gnu
-    linux/x86-64:
-      EXTRA_ARGS: RT_LIBDIR=/usr/lib/x86_64-linux-gnu
