@@ -1,0 +1,24 @@
+distributable:
+  url: https://github.com/buildpacks/pack/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: buildpacks/pack
+
+build:
+  dependencies:
+    go.dev: ^1.22
+  script: go build -v -ldflags="${GO_LDFLAGS}" -o "{{ prefix }}"/bin/pack ./cmd/pack
+  env:
+    GO_LDFLAGS:
+      - -s
+      - -w
+      - -X github.com/buildpacks/pack.Version={{ version }}
+    linux:
+      GO_LDFLAGS:
+        - -buildmode=pie
+
+provides:
+  - bin/pack
+
+test: test "$(pack version)" = "{{ version }}"
