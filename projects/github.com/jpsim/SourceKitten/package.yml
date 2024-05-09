@@ -1,0 +1,29 @@
+distributable:
+  url: git+https://github.com/jpsim/SourceKitten.git
+  ref: ${{version.tag}}
+
+versions:
+  github: jpsim/SourceKitten
+
+platforms:
+  - darwin
+
+build:
+  # https://github.com/jpsim/SourceKitten/pull/794 remove in release > 0.34.1
+  # fix this issue https://github.com/jpsim/SourceKitten/issues/793
+  - run: patch -p1 < props/patch.diff
+    if: <0.34.2
+  - make prefix_install PREFIX={{prefix}} TEMPORARY_FOLDER=$PWD/SourceKitten.dst --jobs={{hw.concurrency}}
+
+provides:
+  - bin/sourcekitten
+
+test:
+  env:
+    IN_PROCESS_SOURCEKIT: YES
+  script:
+    # FIXME: this is fine on MacOS12, but not on 11, due to libswiftfoundation.dylib
+    - run: exit 0
+      if: darwin/x86-64
+    - sourcekitten version | grep {{version}}
+    - sourcekitten syntax --text "import Foundation"

@@ -8,7 +8,6 @@ versions:
 provides:
   darwin:
     - bin/cal
-    - bin/col
     - bin/colcrt
     - bin/colrm
     - bin/column
@@ -27,8 +26,6 @@ provides:
     - bin/rev
     - bin/scriptreplay
     - bin/setsid
-    - bin/uuidgen
-    - bin/uuidparse
     - bin/wall
     - bin/whereis
   linux:
@@ -99,6 +96,7 @@ provides:
 
 dependencies:
   gnu.org/gettext: ^0
+  sqlite.org: ^3
 
 build:
   dependencies:
@@ -106,6 +104,8 @@ build:
     freedesktop.org/pkg-config: '*'
     gnu.org/patch: '*'
     crates.io/semverator: '*'
+    linux:
+      linux-pam.org: '*'
   script:
     # thanks to MacPorts
     - |
@@ -125,25 +125,33 @@ build:
     - |
       cd "{{prefix}}/include"
       for x in $HEADERS; do
-        mv "$x/$x.h" .
-        ln -s "../$x.h" "$x/"
+        if test -f "$x/$x.h"; then
+          mv "$x/$x.h" .
+          ln -s "../$x.h" "$x/"
+        fi
       done
   env:
     ARGS:
       - --prefix={{prefix}}
       - --disable-makeinstall-chown
       - --disable-makeinstall-setuid
+      - --disable-liblastlog2 # appears not to compile in 2.40
     HEADERS:
       - blkid
       - libfdisk
       - libsmartcols
       - uuid
+    darwin:
+      ARGS:
+        - --disable-pam-lastlog2
+        - --disable-libuuid # error: aliases are not supported on darwin
     linux:
       HEADERS:
-      - libmount
+        - libmount
+      # undefined symbol errors in newer llvms prevent building shared libs
+      CFLAGS: $CFLAGS -Wl,--undefined-version
 
 test:
   dependencies:
     stedolan.github.io/jq: '*'
-  script:
-    test "$(echo 5 6 7 | column -tJN first,second,third | jq .table[0].second)" = '"6"'
+  script: test "$(echo 5 6 7 | column -tJN first,second,third | jq .table[0].second)" = '"6"'

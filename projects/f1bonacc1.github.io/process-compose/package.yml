@@ -1,0 +1,53 @@
+distributable:
+  url: https://github.com/F1bonacc1/process-compose/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: F1bonacc1/process-compose
+
+build:
+  dependencies:
+    go.dev: ^1.21
+  script: go build $ARGS -ldflags="$GO_LDFLAGS" ./src
+  env:
+    COMMIT: $(git describe --always --abbrev=8 --dirty)
+    DATE: $(date -u +%FT%TZ)
+    ARGS:
+      - -trimpath
+      - -o={{prefix}}/bin/process-compose
+    GO_LDFLAGS:
+      - -s
+      - -w
+    linux:
+      GO_LDFLAGS:
+        - -buildmode=pie
+
+provides:
+  - bin/process-compose
+
+test:
+  env:
+    PC_DISABLE_TUI: false
+    PC_PORT_NUM: $(pkgx get-port | tail -n1)
+  dependencies:
+    pkgx.sh: ^1
+  script:
+    - run: cp $FIXTURE process-compose.yaml
+      fixture: |
+        version: "0.5"
+
+        processes:
+          hello:
+            command: echo 'Hello World'
+          pc:
+            command: echo 'From Process Compose'
+            depends_on:
+              hello:
+                condition: process_completed
+    - SETTINGS="$(process-compose info | sed '/^Settings/!d;s/^Settings. *//')"
+    - |
+      if test -n "$SETTINGS"; then
+        mkdir -p "$(dirname "$SETTINGS")"
+        touch "$SETTINGS"
+      fi
+    - process-compose up

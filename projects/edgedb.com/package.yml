@@ -13,24 +13,20 @@ build:
     perl.org: ^5
   env:
     RUSTFLAGS:
-    # Ignore warnings (to focus on errors)
-    - -A warnings
-    # Reduce build size by excluding debug symbols.
-    - -C debuginfo=0
+      # Ignore warnings (to focus on errors)
+      - -A warnings
+      # Reduce build size by excluding debug symbols.
+      - -C debuginfo=0
   script:
     # Required to avoid conflicts
     - mv build.rs build.rs.bak || true
     # match contains an unknown arm
-    - run: |
-        sed -i.bak -e's|T::Argument => None|// T::Argument => None|' \
-          highlight.rs
-        rm highlight.rs.bak
+    - run: sed -i -e's|T::Argument => None|// T::Argument => None|' highlight.rs
       working-directory: src
       if: '>=4'
-    - cargo install --path . --root {{prefix}}
+    - cargo install --locked --path . --root {{prefix}}
 
-test:
-  test "$(edgedb --version)" = "EdgeDB CLI {{version.raw}}"
+test: test "$(edgedb --version)" = "EdgeDB CLI {{version.raw}}"
 
 provides:
   - bin/edgedb

@@ -1,0 +1,37 @@
+distributable:
+  url: https://github.com/libimobiledevice/libimobiledevice-glue/releases/download/{{version.tag}}/libimobiledevice-glue-{{version.tag}}.tar.bz2
+  strip-components: 1
+
+versions:
+  github: libimobiledevice/libimobiledevice-glue
+
+dependencies:
+  libimobiledevice.org/libplist: ^2.4
+
+build:
+  dependencies:
+    gnu.org/libtool: '*'
+  script:
+    - ./configure $ARGS
+    - make --jobs {{hw.concurrency}} install
+    - run: |
+        mv libimobiledevice-glue/* .
+        rmdir libimobiledevice-glue
+        ln -s . libimobiledevice-glue
+      working-directory: '{{prefix}}/include'
+    # FIXME: this is a hack; we need to fix fixup.ts
+    - run: sed -i 's/\+brewing//g' *.la
+      working-directory: '{{prefix}}/lib'
+  env:
+    ARGS:
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --disable-silent-rules
+      - --prefix={{prefix}}
+      - --libdir={{prefix}}/lib
+
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script:
+    - test "$(pkg-config --modversion libimobiledevice-glue-1.0)" = '{{version.tag}}'

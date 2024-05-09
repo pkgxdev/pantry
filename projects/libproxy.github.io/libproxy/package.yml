@@ -23,6 +23,13 @@ build:
     - meson setup build $MESON_ARGS
     - meson compile -C build --verbose
     - meson install -C build
+    - run: |
+        if test -d libproxy; then
+          mv libproxy/* .
+          rmdir libproxy
+          ln -s . libproxy
+        fi
+      working-directory: '{{prefix}}/lib'
   env:
     MESON_ARGS:
       - --prefix="{{prefix}}"

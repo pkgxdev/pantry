@@ -34,7 +34,6 @@ interprets:
   args: python
 
 dependencies:
-  # recommended (but none are actually required)
   zlib.net: 1
   sourceware.org/bzip2: 1
   openssl.org: ^1.1
@@ -183,6 +182,7 @@ build:
         for key in build_time_vars:
           if isinstance(build_time_vars[key], str):
             build_time_vars[key] = re.sub(r'(\s|^)/opt/', r'\g<1>{}/'.format(pkgx_prefix), build_time_vars[key])
+            build_time_vars[key] = re.sub(r'\+brewing', r'', build_time_vars[key])
 
     # force pip to user-install mode without sudo
     - ln -s /dev {{prefix}}/lib/python{{version.marketing}}/site-packages
@@ -229,6 +229,8 @@ build:
       - bin/pydoc{{version.marketing}}
       - bin/python{{version.marketing}}-config
 
+    CPPFLAGS: ${CPPFLAGS:+$CPPFLAGS }-I{{ deps.zlib.net.prefix }}/include
+    LDFLAGS: ${LDFLAGS:+$LDFLAGS }-L{{ deps.zlib.net.prefix }}/lib
     OPENSSL_INCLUDES: ${{ deps.openssl.org.prefix }}/include
     OPENSSL_LDFLAGS: -L{{ deps.openssl.org.prefix }}/lib
     PYTHON2PATCHES:
@@ -246,6 +248,8 @@ build:
       - https://raw.githubusercontent.com/macports/macports-ports/master/lang/python27/files/openssl_ver.patch
 
 test:
+  dependencies:
+    crates.io/semverator: '*'
   script:
     # Check if sqlite is ok, because we build with --enable-loadable-sqlite-extensions
     # and it can occur that building sqlite silently fails if OSX's sqlite is used.
@@ -259,14 +263,16 @@ test:
       if: ^3.8
 
     # Check if some other modules import. Then the linked libs are working.
-    - run: |
-        python -v -c "import _ctypes"
-        # python -c "import _decimal" #FIXME
-        python -c "import zlib"
-      # FIXME: v2, <=3.6.4
-      if: ^3.6.4
-
+    - python -c "import zlib"
     - python -c "import pyexpat"
+    # - python -c "import _decimal" # FIXME
+    # FIXME: darwin <3.6.4 fails
+    - run: |
+        if test "{{hw.platform}}" = "linux"; then
+          python -v -c "import _ctypes"
+        elif semverator gt {{version}} 3.6.3; then
+          python -v -c "import _ctypes"
+        fi
 
     # Verify that the selected DBM interface works
     # FIXME: doen't work

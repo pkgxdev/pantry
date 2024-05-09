@@ -1,0 +1,24 @@
+distributable:
+  url: https://github.com/streamlink/streamlink/releases/download/{{version}}/streamlink-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: streamlink/streamlink
+
+dependencies:
+  pkgx.sh: ^1
+
+build:
+  dependencies:
+    python.org: ~3.12
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} streamlink
+
+provides:
+  - bin/streamlink
+
+test:
+  - streamlink --version | grep {{version}}
+  - streamlink --ffmpeg-no-validation -l debug 'https://www.youtube.com/watch?v=Hs_T71CxaPI' | grep '720p (best)'

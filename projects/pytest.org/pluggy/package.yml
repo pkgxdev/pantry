@@ -1,0 +1,23 @@
+distributable:
+  # Make sure you're either building from a fully intact git repository or PyPI tarballs
+  url: git+https://github.com/pytest-dev/pluggy.git
+  ref: ${{version.tag}}
+
+versions:
+  github: pytest-dev/pluggy/tags
+
+dependencies:
+  python.org: ^3.12
+
+runtime:
+  env:
+    PYTHONPATH: ${{prefix}}/lib/python3.12/site-packages:$PYTHONPATH
+
+build:
+  dependencies:
+    pypa.io/setuptools: '*'
+  script:
+    python -m pip install --prefix={{prefix}} .
+
+test:
+  python -c 'import pluggy; print(pluggy.__version__)' | grep {{version}}

@@ -1,0 +1,62 @@
+distributable: ~
+
+versions:
+  url: https://developer.android.com/studio
+  match: /commandlinetools-mac-\d+_latest\.zip/
+  strip:
+    - /^commandlinetools-mac-/
+    - /_latest\.zip/
+
+warnings:
+  - vendored
+
+dependencies:
+  openjdk.org: '>=17'
+
+runtime:
+  env:
+    ANDROID_HOME: ${{prefix}}/libexec
+    PATH: $PATH:$ANDROID_HOME/platform-tools:$ANDROID_HOME/tools:$ANDROID_HOME/tools/bin:$ANDROID_HOME/emulator
+
+build:
+  dependencies:
+    info-zip.org/unzip: '*'
+    curl.se: '*'
+  script:
+    - curl -L "$DIST_URL" -o android-commandlinetools.zip
+    - unzip android-commandlinetools.zip
+    # we need to use `cmdline-tools/latest` path to avoid:
+    # Error: Either specify it explicitly with --sdk_root=
+    - run: mkdir -p libexec/cmdline-tools/latest
+      working-directory: ${{prefix}}
+    - run: cp -r * {{prefix}}/libexec/cmdline-tools/latest/
+      working-directory: cmdline-tools
+    - run: |
+        ln -s ../libexec/cmdline-tools/latest/bin/apkanalyzer apkanalyzer
+        ln -s ../libexec/cmdline-tools/latest/bin/avdmanager avdmanager
+        ln -s ../libexec/cmdline-tools/latest/bin/lint lint
+        ln -s ../libexec/cmdline-tools/latest/bin/profgen profgen
+        ln -s ../libexec/cmdline-tools/latest/bin/resourceshrinker resourceshrinker
+        ln -s ../libexec/cmdline-tools/latest/bin/retrace retrace
+        ln -s ../libexec/cmdline-tools/latest/bin/screenshot2 screenshot2
+        ln -s ../libexec/cmdline-tools/latest/bin/sdkmanager sdkmanager
+      working-directory: ${{prefix}}/bin
+  env:
+    linux:
+      DIST_URL: https://dl.google.com/android/repository/commandlinetools-linux-{{version.raw}}_latest.zip
+    darwin:
+      DIST_URL: https://dl.google.com/android/repository/commandlinetools-mac-{{version.raw}}_latest.zip
+
+provides:
+  - bin/apkanalyzer
+  - bin/avdmanager
+  - bin/lint
+  - bin/profgen
+  - bin/resourceshrinker
+  - bin/retrace
+  - bin/screenshot2
+  - bin/sdkmanager
+
+test:
+  - echo y | sdkmanager --install "platforms;android-30"
+  - cat $ANDROID_HOME/platforms/android-30/source.properties | grep "AndroidVersion.ApiLevel=30"

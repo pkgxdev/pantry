@@ -1,0 +1,26 @@
+distributable:
+  url: https://github.com/ansible/ansible-lint/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: ansible/ansible-lint
+
+dependencies:
+  pkgx.sh: ^1
+
+build:
+  dependencies:
+    python.org: ~3.11
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} ansible-lint
+
+test:
+  fixture: |
+    [defaults]
+    fact_caching_timeout=invalid-value
+  script: ansible-lint $FIXTURE
+
+provides:
+  - bin/ansible-lint

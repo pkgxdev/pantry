@@ -14,7 +14,7 @@ dependencies:
 build:
   script: |
     ./configure $ARGS
-    make --jobs {{ hw.concurrency }} 
+    make --jobs {{ hw.concurrency }}
     make install
   env:
     ARGS:
@@ -26,6 +26,9 @@ provides:
   - sbin/nginx
 
 test:
-  script: |
-    sed -i.bak -e 's/80/8080/g' {{prefix}}/conf/nginx.conf
-    nginx -p {{prefix}} -c {{prefix}}/conf/nginx.conf -t
+  script:
+    # won't run without `nogroup`
+    - run: if ! getent group nogroup; then exit 0; fi
+      if: linux
+    - sed -i.bak -e 's/80/8080/g' {{prefix}}/conf/nginx.conf
+    - nginx -p {{prefix}} -c {{prefix}}/conf/nginx.conf -t

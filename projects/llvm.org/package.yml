@@ -27,7 +27,9 @@ dependencies:
 
 build:
   dependencies:
-    cmake.org: 3
+    # doesn't seem to install a bunch of the libs
+    # with cmake 3.29
+    cmake.org: '>=3<3.29'
     ninja-build.org: 1
     python.org: '>=3<3.12'
     crates.io/semverator: '*'
@@ -36,12 +38,13 @@ build:
     # Building compiler-rt on darwin+aarch64 fails for versions less than
     # 14 with the below configuration. FIXME if possible, of course.
     - run: |
+        RUNTIMES="-DLLVM_ENABLE_RUNTIMES='compiler-rt;libcxx;libcxxabi;libunwind'"
         if test "{{hw.platform}}" = "linux"; then
-          ARGS="$ARGS -DLLVM_ENABLE_RUNTIMES='compiler-rt'"
+          ARGS="$ARGS $RUNTIMES"
         elif semverator satisfies '>=14' {{version}}; then
-          ARGS="$ARGS -DLLVM_ENABLE_RUNTIMES='compiler-rt'"
+          ARGS="$ARGS $RUNTIMES"
         elif test "{{hw.arch}}" = "x86-64" && semverator satisfies '>=14' {{version}}; then
-          ARGS="$ARGS -DLLVM_ENABLE_RUNTIMES='compiler-rt'"
+          ARGS="$ARGS $RUNTIMES"
         fi
       # if: linux || >=14 || (x86-64 && >=13)  ## Brewkit can't do this. Yet.
     - cmake ../llvm -G Ninja $ARGS
@@ -59,6 +62,17 @@ build:
           ln -sf llvm-$x $x
         done
       working-directory: ${{prefix}}/bin
+
+    # move linux libs into /lib
+    - run: |
+        TARGET="$(find . -maxdepth 1 -type d -name \*-unknown-linux-gnu)"
+        if test -n "$TARGET"; then
+          mv "$TARGET"/* .
+          rmdir "$TARGET"
+          ln -s . "$TARGET"
+        fi
+      working-directory: ${{prefix}}/lib
+      if: linux
 
   receipt:
     - LLVMConfig.cmake
@@ -114,16 +128,18 @@ test:
     crates.io/semverator: '*'
   script:
     # Building compiler-rt on darwin+aarch64 fails for versions less than
-    # 14 with the below configuration. FIXME if possible, of course.
+    # 14 with the below configuration
+    # FIXME if possible, of course.
     - run: |
         if test "{{hw.platform}}" = "linux"; then
           ARGS="$ARGS -fsanitize=address,undefined"
-        elif semverator satisfies '>=14' {{version}}; then
+        elif test "{{hw.arch}}" = "x86_64" && semverator satisfies '>=13' {{version}}; then
           ARGS="$ARGS -fsanitize=address,undefined"
-        elif test "{{hw.arch}}" = "x86-64" && semverator satisfies '>=14' {{version}}; then
+        elif semverator satisfies '>=14' {{version}}; then
           ARGS="$ARGS -fsanitize=address,undefined"
         fi
       # if: linux || >=14 || (x86-64 && >=13)  ## Brewkit can't do this. Yet.
+
     - mv $FIXTURE $FIXTURE.c
     - clang $ARGS $FIXTURE.c
     - ./a.out

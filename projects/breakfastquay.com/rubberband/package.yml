@@ -1,0 +1,50 @@
+distributable:
+  url: https://breakfastquay.com/files/releases/rubberband-{{version}}.tar.bz2
+  strip-components: 1
+
+display-name: rubberband
+
+versions:
+  url: https://breakfastquay.com/files/releases/
+  match: /rubberband-\d+\.\d+\.\d+\.tar\.bz2/
+  strip:
+    - /^rubberband-/
+    - /\.tar\.bz2$/
+
+dependencies:
+  github.com/libsndfile/libsamplerate: ^0.2
+  github.com/libsndfile/libsndfile: ^1.2
+  linux:
+    fftw.org: ^3.3
+    ladspa.org: ^1.17
+    vamp-plugins.org: ^2.9
+
+build:
+  dependencies:
+    mesonbuild.com: ^1.3.2
+    ninja-build.org: '*'
+  script:
+    - meson setup build $ARGS
+    - meson compile -C build --verbose
+    - meson install -C build
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --libdir={{prefix}}/lib
+      - --buildtype=release
+      - --wrap-mode=nofallback
+      - -Dresampler=libsamplerate
+    linux:
+      # undefined reference to `main'
+      # error: ld returned 1 exit status
+      LDFLAGS: -fPIC
+      ARGS:
+        - -Dfft=fftw
+
+provides:
+  - bin/rubberband
+
+test:
+  - rubberband -V 2>&1 | grep {{version}}
+  - rubberband -t2 test.wav out.wav 2>&1 | grep 'Processing...'
+  - ls | grep out.wav

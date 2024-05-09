@@ -1,24 +1,28 @@
 distributable:
   url: https://downloads.sourceforge.net/project/tcl/Tcl/{{version}}/tcl{{version}}-src.tar.gz
   strip-components: 1
+
 versions:
   url: https://www.tcl-lang.org/software/tcltk/download.html
   match: /tcl\d+\.\d+\.\d+-src\.tar\.gz/
   strip:
     - /^tcl/
     - /-src\.tar\.gz/
+
 dependencies:
-  openssl.org: '*'
-  zlib.net: '*'
-  freetype.org: '*'
-  freedesktop.org/pkg-config: '*'
-  x.org/x11: '*'
-  x.org/exts: '*'
+  openssl.org: ^1.1
+  zlib.net: ^1.3
+  freetype.org: ^2
+  freedesktop.org/pkg-config: ^0.29
+  x.org/x11: ^1
+  x.org/exts: ^1
+
 build:
   dependencies:
     gnu.org/patch: '*'
     linux:
       curl.se: '*'
+      tukaani.org/xz: '*' # for tar -xJ
   script:
     - run: |
         ./configure $ARGS
@@ -26,25 +30,35 @@ build:
         make --jobs {{hw.concurrency}} install
         make --jobs {{hw.concurrency}} install-private-headers
       working-directory: unix
+
     - run: ln -s tclsh{{version.marketing}} tclsh
-      working-directory: "{{prefix}}/bin"
+      working-directory: '{{prefix}}/bin'
+
+    # fixed in 8.6.14
     - run: |
-        curl -L "$res_tk" | tar -xz --strip-components=1
         curl -L "$patch_1" | patch -p0
         curl -L "$patch_2" | patch -p0
+      working-directory: tk
+      if: <8.6.14
+
+    - run: |
+        curl -L "$res_tk" | tar -xz --strip-components=1
         cd unix
         ./configure $ARGS --without-x --with-tcl={{prefix}}/lib
         make --jobs {{hw.concurrency}}
         make --jobs {{hw.concurrency}} install
         make --jobs {{hw.concurrency}} install-private-headers
       working-directory: tk
+
     - run: ln -s wish{{version.marketing}} wish
-      working-directory: "{{prefix}}/bin"
+      working-directory: '{{prefix}}/bin'
+
     - run: |
         curl -L "$res_critcl" | tar -xz --strip-components=1
         sed -i.bak "s|package require Tcl 8.6|package require Tcl 8|g" build.tcl && rm *.bak
         tclsh build.tcl install
       working-directory: critcl
+
     - run: |
         curl -L "$res_tcllib" | tar -xJ --strip-components=1
         ./configure --prefix={{prefix}} --mandir={{prefix}}/share/man
@@ -52,11 +66,13 @@ build:
         make --jobs {{hw.concurrency}} critcl
         cp -r modules/tcllibc {{prefix}}/lib/
       working-directory: tcllib
+
     - run: |
         curl -L "$res_tcltls" | tar -xz --strip-components=1
         ./configure $TLS_ARGS
         make --jobs {{hw.concurrency}} install
       working-directory: tcltls
+
     - run: |
         curl -L "$res_itk4" | tar -xz --strip-components=1
         itcl_dir=$(ls -d {{prefix}}/lib/itcl* | tail -n 1)
@@ -64,6 +80,7 @@ build:
         make --jobs {{hw.concurrency}}
         make --jobs {{hw.concurrency}} install
       working-directory: itk4
+
     - rm {{prefix}}/bin/sqlite3_analyzer
   env:
     res_critcl: https://github.com/andreas-kupries/critcl/archive/refs/tags/3.2.tar.gz
@@ -78,8 +95,8 @@ build:
       - --includedir={{prefix}}/include/tcl-tk
       - --mandir={{prefix}}/share/man
       - --enable-threads
-    TCL_PACKAGE_PATH: "{{prefix}}/lib"
-    PATH: "{{prefix}}/bin:$PATH"
+    TCL_PACKAGE_PATH: '{{prefix}}/lib'
+    PATH: '{{prefix}}/bin:$PATH'
     TLS_ARGS:
       - --with-ssl=openssl
       - --with-openssl-dir={{deps.openssl.org.prefix}}
@@ -109,7 +126,7 @@ provides:
   - bin/page
   - bin/pt
   - bin/tcldocstrip
+
 test:
-  script:
-    - tclsh test.tcl
-    - tclsh version.tcl | grep {{version}}
+  - tclsh test.tcl
+  - tclsh version.tcl | grep {{version}}

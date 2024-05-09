@@ -1,0 +1,51 @@
+distributable:
+  url: https://github.com/python-pillow/Pillow/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: python-pillow/Pillow
+
+runtime:
+  env:
+    PYTHONPATH: ${{prefix}}/lib/python3.12/site-packages:$PYTHONPATH
+
+dependencies:
+  libjpeg-turbo.org: ^2
+  pngquant.org/lib: ^4
+  simplesystems.org/libtiff: ^4
+  x.org/xcb: ^1
+  littlecms.com: ^2
+  openjpeg.org: ^2
+  tcl.tk/tcl: ^8
+  google.com/webp: ^1
+  zlib.net: ^1
+  python.org: ~3.12
+
+build:
+  dependencies:
+    pypa.io/setuptools: '*'
+  script:
+    python -m pip install $ARGS .
+  env:
+    MAX_CONCURRENCY: ${{hw.concurrency}}
+    ARGS:
+      - --prefix={{prefix}}
+      - -C debug=true
+      - -C tiff=enable
+      - -C freetype=enable
+      - -C lcms=enable
+      - -C webp=enable
+      - -C xcb=enable
+
+test:
+  dependencies:
+    curl.se: '*'
+  script:
+    - curl -L 'https://pkgx.dev/banner.png' -o test.png
+    - run: python $FIXTURE | grep 'PNG (1959, 520)'
+      fixture:
+        content: |
+          from PIL import Image
+          im = Image.open("./test.png")
+          print(im.format, im.size, im.mode)
+        extname: py

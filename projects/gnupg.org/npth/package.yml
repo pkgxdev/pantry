@@ -9,15 +9,12 @@ versions:
     - /npth-/
     - /.tar.bz2/
 
-provides:
-  - bin/npth-config
-
 build:
-  script: |
-    ./configure --prefix={{prefix}}
-    make
-    make check
-    make install
+  script:
+    - ./configure --prefix={{prefix}}
+    - make
+    - make check
+    - make install
 
 #FIXME we test using our version, not theirs
-test: test "$(npth-config --version).0" = "{{version.raw}}"
+test: test "$(pkg-config --modversion npth)" = "{{version.marketing}}"

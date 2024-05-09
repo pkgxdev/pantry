@@ -13,15 +13,29 @@ dependencies:
 
 build:
   dependencies:
-    haskell.org: ^9
+    haskell.org: <9.6.4 # later versions pass invalid linker flags on darwin clang-14
     haskell.org/cabal: ^3
     openssl.org: ^1.1
-  script: |-
-    cabal update
-    mkdir -p "{{prefix}}/bin"
-    cabal install --install-method=copy --installdir={{prefix}}/bin
+  script:
+    # FIXME: this isn't great, but it'll fix any ghc install at build time
+    # needs install-time customization for a true fix
+    - run: |
+        if ! grep -q 'rpath,{{pkgx.prefix}}' settings; then
+          sed -i \
+            -e 's|\(C compiler flags.*\)")|\1 -Wl,-rpath,{{pkgx.prefix}}")|' \
+            -e 's|\(C++ compiler flags.*\)")|\1 -Wl,-rpath,{{pkgx.prefix}}")|' \
+            -e 's|\(C compiler link flags.*\)")|\1 -Wl,-rpath,{{pkgx.prefix}}")|' \
+            settings
+        fi
+      if: darwin
+      working-directory: ${{deps.haskell.org.prefix}}/.ghcup/ghc/{{deps.haskell.org.version}}/lib/ghc-{{deps.haskell.org.version}}/lib
 
-test: true  #FIXME
+    - cabal update
+    - mkdir -p "{{prefix}}/bin"
+    - cabal install --install-method=copy --installdir={{prefix}}/bin
+
+test:
+  - 'true' #FIXME
 
 provides:
   - bin/pandoc-crossref

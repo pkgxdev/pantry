@@ -16,6 +16,8 @@ build:
     gnu.org/wget: ^1
     gnu.org/coreutils: ^9
     git-scm.org: ^2
+    google.com/protobuf-go: ^1
+    grpc.io/grpc-go: ^1
   env:
     linux:
       # one of these will do it. probably.
@@ -30,4 +32,8 @@ build:
 provides:
   - bin/local-ai
 
-test: local-ai --version | grep {{version}}
+test:
+  - run: local-ai --version | grep {{version}}
+    if: <2.13
+  - run: "local-ai --help | grep 'Version: v{{version}}'"
+    if: '>=2.13'

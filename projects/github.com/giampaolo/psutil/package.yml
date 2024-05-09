@@ -1,0 +1,17 @@
+distributable:
+  url: git+https://github.com/giampaolo/psutil.git
+  ref: ${{version.tag}}
+
+versions:
+  github: giampaolo/psutil/tags
+  strip: /^release-/
+
+dependencies:
+  python.org: ~3.11
+
+runtime:
+  env:
+    PYTHONPATH: ${{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH
+
+build: python -m pip install --prefix={{prefix}} .
+test: python -c 'import psutil; print(psutil.__version__)' | grep {{version}}

@@ -1,0 +1,43 @@
+distributable:
+  url: https://github.com/dbcli/litecli/archive/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: dbcli/litecli/tags
+
+dependencies:
+  pkgx.sh: ^1
+  sqlite.org: ^3.45
+
+build:
+  dependencies:
+    python.org: ~3.12
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} litecli
+
+provides:
+  - bin/litecli
+
+test:
+  - run: cp $FIXTURE config
+    fixture: |
+      [main]
+      table_format = tsv
+      less_chatty = True
+    working-directory: .config/litecli
+  - run: cp $FIXTURE test.sql
+    fixture: |
+      CREATE TABLE IF NOT EXISTS package_manager (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name VARCHAR(256)
+      );
+      INSERT INTO
+        package_manager (name)
+      VALUES
+        ('PKGX');
+  - sqlite3 test.db < test.sql
+  - litecli --version | grep {{version}}
+  - litecli --help | grep 'A SQLite terminal client with auto-completion and syntax highlighting.'
+  - litecli test.db -e "SELECT * FROM package_manager" | grep PKGX

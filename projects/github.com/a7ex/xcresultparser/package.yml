@@ -1,0 +1,27 @@
+distributable:
+  url: git+https://github.com/a7ex/xcresultparser.git
+  ref: ${{version.tag}}
+
+versions:
+  github: a7ex/xcresultparser
+
+platforms:
+  - darwin
+
+build:
+  - swift build -c release --disable-sandbox --arch $(uname -m)
+  - install -D .build/release/xcresultparser {{prefix}}/bin/xcresultparser
+
+provides:
+  - bin/xcresultparser
+
+test:
+  dependencies:
+    curl.se: '*'
+  script:
+    - xcresultparser --version | grep {{version}}
+    - curl -L "${TESTDATA}" | tar -xz
+    - xcresultparser -o txt SanityResults.xcresult > output.txt
+    - cat output.txt | grep 'Number of tests = 1'
+  env:
+    TESTDATA: https://pub-0b56a3a43f5b4adc91c743afc384fe1a.r2.dev/SanityResults.xcresult.tar.gz

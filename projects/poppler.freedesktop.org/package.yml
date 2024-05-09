@@ -1,10 +1,13 @@
 distributable:
-  url: https://poppler.freedesktop.org/poppler-{{version}}.tar.xz
+  url: https://poppler.freedesktop.org/poppler-{{version.raw}}.tar.xz
   strip-components: 1
 
 versions:
-  github: freedesktop/poppler/tags
-  strip: /^poppler-/
+  url: https://poppler.freedesktop.org/releases.html
+  match: /poppler-(\d+\.\d+\.\d+)\.tar\.xz/
+  strip:
+    - /^poppler-/
+    - /\.tar\.xz$/
 
 provides:
   - bin/pdfattach
@@ -34,28 +37,49 @@ dependencies:
   poppler.freedesktop.org/poppler-data: '*'
   simplesystems.org/libtiff: '*'
   zlib.net: '*'
+  mozilla.org/nss: '>=3.68'
+  gnupg.org/gpgme: '>=1.19'
+  gnupg.org/libgpg-error: 1
+  gnupg.org/libassuan: 2
+  littlecms.com: ^2.9
+  linux:
+    gnu.org/gcc: '*' # apparently, clang c++20 std isn't good enough
 
 build:
   dependencies:
     cmake.org: '>=3.16.0'
     freedesktop.org/pkg-config: '*'
     gnome.org/gobject-introspection: '>=1.64.0'
-  script: |
-    cmake -S . -B build_shared $ARGS
-    cmake --build build_shared
-    cmake --install build_shared
+  script:
+    - cmake -S . -B build_shared $ARGS
+    - cmake --build build_shared
+    - cmake --install build_shared
 
-    cmake -S . -B build_static $ARGS -DBUILD_SHARED_LIBS=OFF
-    cmake --build build_static
-    install -c build_static/libpoppler.a build_static/cpp/libpoppler-cpp.a build_static/glib/libpoppler-glib.a {{prefix}}/lib
+    - cmake -S . -B build_static $ARGS -DBUILD_SHARED_LIBS=OFF
+    - cmake --build build_static
+    - install -c build_static/libpoppler.a build_static/cpp/libpoppler-cpp.a build_static/glib/libpoppler-glib.a {{prefix}}/lib
+    - run: |
+        for d in poppler cpp glib; do
+          if [ -d $d ]; then
+            mv $d/* .
+            rmdir $d
+            ln -s . $d
+          fi
+        done
+      working-directory: ${{prefix}}/include
   env:
     ARGS:
       - -DCMAKE_BUILD_TYPE=Release
       - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
+      - -DENABLE_QT5=OFF
+      - -DENABLE_QT6=OFF
     linux/x86-64:
       ARGS:
         - -DCMAKE_C_FLAGS=-fPIC
         - -DCMAKE_CXX_FLAGS=-fPIC
-        - -DCMAKE_EXE_LINKER_FLAGS=-pie
+        - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-pie,-lstdc++fs
+    linux/aarch64:
+      ARGS:
+        - -DCMAKE_EXE_LINKER_FLAGS=-lstdc++fs
 
 test: pdfinfo test.pdf

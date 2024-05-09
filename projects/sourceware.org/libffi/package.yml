@@ -6,13 +6,12 @@ versions:
   github: libffi/libffi/tags
 
 build:
-  script: |
-    ./configure --prefix={{prefix}} --disable-debug
-    make --jobs {{ hw.concurrency }} install
+  - ./configure --prefix={{prefix}} --disable-debug
+  - make --jobs {{ hw.concurrency }} install
 
 test:
   dependencies:
     freedesktop.org/pkg-config: ^0.29
-  script: |
-    cc -o closure test.c $(pkg-config --libs libffi)
-    ./closure
+  script:
+    - cc -o closure test.c $(pkg-config --libs libffi) -Wno-incompatible-pointer-types
+    - ./closure

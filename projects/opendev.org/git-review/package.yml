@@ -11,6 +11,8 @@ versions:
 
 dependencies:
   python.org: ^3
+  linux:
+    gnu.org/which: '*'
 
 build:
   script: |
@@ -26,7 +28,9 @@ test:
     git-scm.org: '*'
   working-directory: test
   script:
-    - git-review --version | tee /dev/stderr | grep -q -w '{{version}}'
+    # broken in 2.4.0
+    - run: git-review --version | tee /dev/stderr | grep -q -w '{{version}}'
+      if: <2.4.0 || >=2.4.1
 
     - git init --initial-branch main
     - git config user.name PkgxTestBot

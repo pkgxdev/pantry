@@ -1,0 +1,68 @@
+distributable:
+  url: https://github.com/swagger-api/swagger-codegen/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: swagger-api/swagger-codegen
+
+dependencies:
+  openjdk.org: ^11
+
+build:
+  dependencies:
+    maven.apache.org: '*'
+  script:
+    - mvn clean package
+    - install -D modules/swagger-codegen-cli/target/swagger-codegen-cli.jar {{prefix}}/libexec/lib/swagger-codegen-cli.jar
+    - run: |
+        cat > swagger-codegen <<EOF
+        #!/bin/sh
+        exec java -jar \$(dirname \$0)/../libexec/lib/swagger-codegen-cli.jar "\$@"
+        EOF
+        chmod +x swagger-codegen
+      working-directory: ${{prefix}}/bin
+
+provides:
+  - bin/swagger-codegen
+
+test:
+  - run: swagger-codegen generate -i $FIXTURE -l html
+    if: '>=3'
+    fixture:
+      content: |
+        openapi: 3.0.0
+        info:
+          version: 0.0.0
+          title: Simple API
+        paths:
+          /:
+            get:
+              responses:
+                200:
+                  description: OK
+      extname: yaml
+  - run: swagger-codegen generate -i $FIXTURE -l html
+    if: <3
+    fixture:
+      content: |
+        {
+          "swaggerVersion": "2.0.0",
+          "info": {
+            "version": "0.0.0",
+            "title": "Simple API"
+          },
+          "paths": {
+            "/": {
+              "get": {
+                "responses": {
+                  "200": {
+                    "description": "OK"
+                  }
+                }
+              }
+            }
+          }
+        }
+      extname: json
+  - cat index.html | grep "Simple API"
+  - swagger-codegen version | grep {{version}}

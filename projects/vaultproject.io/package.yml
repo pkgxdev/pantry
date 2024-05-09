@@ -21,6 +21,11 @@ build:
     # TODO: gox
   script:
     - go mod tidy
+    # required tooling; no releases to package
+    - run: |
+        go install github.com/loggerhead/enumer@latest
+        export PATH=$HOME/go/bin:$PATH
+      if: '>=1.16.2'
     - make bootstrap static-dist dev-ui
     - install -D bin/vault {{prefix}}/bin/vault
 

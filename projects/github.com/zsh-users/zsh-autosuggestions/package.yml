@@ -1,0 +1,26 @@
+distributable:
+  url: https://github.com/zsh-users/zsh-autosuggestions/archive/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: zsh-users/zsh-autosuggestions/tags
+
+warnings:
+  - vendored
+
+runtime:
+  ZSH_AUTOSUGGESTIONS_ROOT: ${{prefix}}
+
+build:
+  install -D zsh-autosuggestions.zsh {{prefix}}/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+
+test:
+  - run: zsh $FIXTURE | grep zsh-autosuggestions
+    fixture:
+      contents: |
+        fpath=($ZSH_AUTOSUGGESTIONS_ROOT/share $fpath)
+        autoload -Uz compinit
+        compinit
+        autoload -Uz zsh-autosuggestions
+        which zsh-autosuggestions
+      extname: zsh

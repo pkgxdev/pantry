@@ -1,0 +1,20 @@
+distributable:
+  url: https://mpmath.org/files/mpmath-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://mpmath.org
+  match: /mpmath-\d+\.\d+\.\d+\.tar\.gz/
+  strip:
+    - /^mpmath-/
+    - /\.tar\.gz$/
+
+dependencies:
+  python.org: ~3.11
+
+runtime:
+  env:
+    PYTHONPATH: ${{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH
+
+build: python -m pip install --prefix={{prefix}} .
+test: python -c 'import mpmath; print(mpmath.__version__)' | grep {{version}}

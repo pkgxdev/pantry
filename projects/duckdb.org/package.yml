@@ -9,19 +9,20 @@ build:
   dependencies:
     cmake.org: ^3
     git-scm.org: '*'
+    python.org: ^3
   working-directory: build
-  script: |
+  script:
     # duckdb uses git to get its version
-    git init ..
-    git config user.email "bot@pkgx.dev"
-    git config user.name "pkgxbot"
-    git commit --allow-empty -mnil
-    git tag v{{version}}
+    - git init ..
+    - git config user.email "bot@pkgx.dev"
+    - git config user.name "pkgxbot"
+    - git commit --allow-empty -mnil
+    - git tag v{{version}}
 
-    cmake ..
-    make --jobs {{ hw.concurrency }}
-    mkdir -p "{{prefix}}"/bin
-    mv duckdb "{{prefix}}"/bin
+    - cmake ..
+    - make --jobs {{ hw.concurrency }}
+    - mkdir -p "{{prefix}}"/bin
+    - mv duckdb "{{prefix}}"/bin
   env:
     ARGS:
       - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
@@ -38,20 +39,22 @@ test:
     CREATE TABLE weather (temp INTEGER);
     INSERT INTO weather (temp) VALUES (40), (45), (50);
     SELECT AVG(temp) FROM weather;
-  script: |
-    out="$(duckdb < $FIXTURE)"
-    exp=$(cat <<EOS
-    ┌─────────────┐
-    │ avg("temp") │
-    │   double    │
-    ├─────────────┤
-    │        45.0 │
-    └─────────────┘
-    EOS)
+  script:
+    - out="$(duckdb < $FIXTURE)"
+    - |
+      exp=$(cat <<EOS
+      ┌─────────────┐
+      │ avg("temp") │
+      │   double    │
+      ├─────────────┤
+      │        45.0 │
+      └─────────────┘
+      EOS)
 
-    test "$out" = "$exp"
+    - test "$out" = "$exp"
 
-    if [[ "$(duckdb --version)" != "v{{version}}"* ]]; then
-      echo "invalid version" >&2
-      exit 1
-    fi
+    - |
+      if [[ "$(duckdb --version)" != "v{{version}}"* ]]; then
+        echo "invalid version" >&2
+        exit 1
+      fi

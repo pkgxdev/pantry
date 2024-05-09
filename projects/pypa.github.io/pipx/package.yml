@@ -6,13 +6,17 @@ versions:
   github: pypa/pipx
 
 dependencies:
-  python.org: '>=3<3.12'
+  pkgx.sh: ^1
 
 build:
-  python-venv.sh "{{prefix}}"/bin/pipx
+  dependencies:
+    python.org: '>=3<3.12'
+  script:
+    - bkpyvenv stage '{{prefix}}' {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal '{{prefix}}' pipx
 
-test:
-  pipx run pycowsay moooo!
+test: pipx run pycowsay moooo!
 
 provides:
   - bin/pipx

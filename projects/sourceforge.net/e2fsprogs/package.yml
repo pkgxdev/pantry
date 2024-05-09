@@ -1,0 +1,74 @@
+distributable:
+  url: https://downloads.sourceforge.net/project/e2fsprogs/e2fsprogs/v{{version}}/e2fsprogs-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://sourceforge.net/projects/e2fsprogs/rss
+  match: /e2fsprogs-(\d+\.\d+\.\d+)\.tar\.gz/
+  strip:
+    - /^e2fsprogs-/
+    - /\.tar\.gz$/
+
+dependencies:
+  darwin:
+    gnu.org/gettext: ^0.22
+  linux:
+    github.com/util-linux/util-linux: ^2.39
+
+build:
+  script:
+    - run: ./configure $ARGS
+      if: linux
+    # Enforce MKDIR_P to work around a configure bug
+    # https://sourceforge.net/p/e2fsprogs/discussion/7053/thread/edec6de279/
+    - run: ./configure $ARGS MKDIR_P='mkdir -p'
+      if: darwin
+    - make --jobs {{hw.concurrency}}
+    # Deparallelize: lib/libcom_err.1.1.dylib: No such file or directory
+    - make install
+    - make install-libs
+    - run: sed -i 's|{{prefix}}|\$(dirname \$0)/..|g' compile_et mk_cmds
+      working-directory: ${{prefix}}/bin
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --exec-prefix={{prefix}}
+      - --disable-e2initrd-helper
+      - --without-udev-rules-dir
+      - --without-systemd-unit-dir
+    linux:
+      CC: clang
+      CXX: clang++
+      LD: clang
+      ARGS:
+        - --enable-elf-shlibs
+        - --disable-fsck
+        - --disable-uuidd
+        - --disable-libuuid
+        - --disable-libblkid
+        - --without-crond-dir
+    darwin:
+      ARGS:
+        - --enable-bsd-shlibs
+
+provides:
+  linux:
+    - bin/chattr
+    - bin/compile_et
+    - bin/lsattr
+    - bin/mk_cmds
+  darwin:
+    - bin/chattr
+    - bin/compile_et
+    - bin/lsattr
+    - bin/mk_cmds
+    - bin/uuidgen
+
+test:
+  - run: lsattr -al | grep Extents
+    if: linux
+  - run: |
+      lsattr -al | grep '\-\-\-'
+      uuidgen | wc -c | grep 37 # 36 + 1 newline
+    if: darwin
+  # for more tests we need sudo

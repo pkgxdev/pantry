@@ -30,9 +30,9 @@ test:
     - mv $FIXTURE traefik.toml
     - traefik --configfile=$PWD/traefik.toml &
     - sleep 5
-    - curl -sIm3 -XGET http://127.0.0.1:2020/ | grep "HTTP/1.1 404 Not Found"
+    - ( curl -sIm3 -XGET http://127.0.0.1:2020/ || true ) | grep "HTTP/1.1 404 Not Found"
     - sleep 1
-    - curl -sIm3 -XGET http://127.0.0.1:2030/dashboard/ | grep "HTTP/1.1 200 OK"
+    - ( curl -sIm3 -XGET http://127.0.0.1:2030/dashboard/ || true ) | grep "HTTP/1.1 200 OK"
     - killall traefik || true
   fixture: |
     [entryPoints]

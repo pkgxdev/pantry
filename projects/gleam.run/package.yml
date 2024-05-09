@@ -13,21 +13,20 @@ build:
   dependencies:
     rust-lang.org: '>=1.60'
     rust-lang.org/cargo: '*'
-  script:
-    cargo install --path compiler-cli --force --locked --root {{prefix}}
+  script: cargo install --path compiler-cli --force --locked --root {{prefix}}
 
 test:
   dependencies:
     erlang.org: '*'
-  script: |
-    gleam --version
-    gleam new test
-    cp $FIXTURE test/src/test.gleam
-    cd test
-    gleam run | grep "Hello, world!"
-  fixture: |
-    import gleam/io
+  script:
+    - gleam --version
+    - gleam new pkgx_test_project
+    - run: cp $FIXTURE pkgx_test_project/src/pkgx_test_project.gleam
+      fixture: |
+        import gleam/io
 
-    pub fn main() {
-      io.print("Hello, world!")
-    }
+        pub fn main() {
+          io.print("Hello, world!")
+        }
+    - run: gleam run | grep "Hello, world!"
+      working-directory: pkgx_test_project

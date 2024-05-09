@@ -1,0 +1,30 @@
+distributable: ~
+
+versions:
+  url: https://pypi.org/rss/project/certifi/releases.xml
+  match: /<title>\d+\.\d+\.\d+<\/title>/
+  strip:
+    - /^<title>/
+    - /<\/title>$/
+
+dependencies:
+  python.org: ~3.11
+
+runtime:
+  env:
+    PYTHONPATH: ${{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH
+
+build:
+  dependencies:
+    curl.se: '*'
+  script:
+    - curl -L 'https://pypi.org/project/certifi/{{version.raw}}/#files' > page.html
+    - cat page.html | grep -o 'https://files.pythonhosted.org/packages/[^"]*certifi-{{version.raw}}.tar.gz' > url.txt
+    - curl -L $(cat url.txt) | tar -xz --strip-components=1
+    - python -m pip install --prefix={{prefix}} .
+
+test: 
+  - python -c 'import certifi;'
+  - python -m certifi | grep '{{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages/certifi/cacert.pem'
+  - python -m certifi -h | grep 'usage'
+  

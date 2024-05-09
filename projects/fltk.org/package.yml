@@ -1,0 +1,55 @@
+distributable:
+  url: https://www.fltk.org/pub/fltk/{{version}}/fltk-{{version}}-source.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://www.fltk.org/software.php
+  match: /VERSION=\d+\.\d+\.\d+/
+  strip: /^VERSION=/
+
+dependencies:
+  libjpeg-turbo.org: ^3
+  libpng.org: ^1
+  linux:
+    x.org/xft: ^2
+    x.org/xt: ^1
+    freedesktop.org/mesa-glu: ^9
+
+build:
+  script:
+    - ./configure $ARGS
+    - make --jobs {{hw.concurrency}} install
+    - run: |
+        sed -i 's|{{prefix}}|\$(dirname \$0)/..|g' fltk-config
+        sed -i 's|{{pkgx.prefix}}|\$(dirname \$0)/../../..|g' fltk-config
+      working-directory: ${{prefix}}/bin
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --enable-threads
+      - --enable-shared
+
+provides:
+  - bin/fluid
+  - bin/fltk-config
+
+test:
+  - run: c++ $FIXTURE -lfltk -o test
+    fixture:
+      content: |
+        #include <FL/Fl.H>
+        #include <FL/Fl_Window.H>
+        #include <FL/Fl_Box.H>
+        int main(int argc, char **argv) {
+          Fl_Window *window = new Fl_Window(340,180);
+          Fl_Box *box = new Fl_Box(20,40,300,100,"Hello, World!");
+          box->box(FL_UP_BOX);
+          box->labelfont(FL_BOLD+FL_ITALIC);
+          box->labelsize(36);
+          box->labeltype(FL_SHADOW_LABEL);
+          window->end();
+          return 0;
+        }
+      extname: cpp
+  - ./test
+  - fltk-config --version | grep {{version}}

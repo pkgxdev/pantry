@@ -6,15 +6,15 @@ versions:
   github: libexpat/libexpat/releases
 
 build:
-  script: |
-    ./configure --prefix={{ prefix }}
-    make --jobs {{ hw.concurrency }} install
+  - ./configure --prefix={{ prefix }}
+  - make --jobs {{ hw.concurrency }} install
+  - run: rm *.la
+    working-directory: ${{ prefix }}/lib
 
 test:
-  script: |
-    cc test.c -lexpat -o test
-    OUTPUT="$(./test)"
-    test "$OUTPUT" = "tag:str|data:Hello, world!|"
+  - cc test.c -lexpat -o test
+  - OUTPUT="$(./test)"
+  - test "$OUTPUT" = "tag:str|data:Hello, world!|"
 
 provides:
   - bin/xmlwf

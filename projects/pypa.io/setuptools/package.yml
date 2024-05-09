@@ -1,0 +1,19 @@
+distributable:
+  url: https://github.com/pypa/setuptools/archive/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: pypa/setuptools
+
+dependencies:
+  python.org: ~3.12
+
+runtime:
+  env:
+    PYTHONPATH: ${{prefix}}/lib/python3.12/site-packages:$PYTHONPATH
+
+build:
+  python -m pip install --prefix={{prefix}} .
+
+test:
+  python -c 'import setuptools; print(setuptools.__version__)' | grep {{version}}

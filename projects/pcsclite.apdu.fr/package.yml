@@ -1,5 +1,5 @@
 distributable:
-  url: https://pcsclite.apdu.fr/files/pcsc-lite-{{ version }}.tar.bz2
+  url: https://pcsclite.apdu.fr/files/pcsc-lite-{{ version }}.tar.xz
   strip-components: 1
   ref: v{{version}}}
 
@@ -20,16 +20,56 @@ dependencies:
 build:
   dependencies:
     cmake.org: ^3
+    mesonbuild.com: ^1
+    ninja-build.org: ^1
     github.com/westes/flex: '*'
     perl.org: ^5 # pod2man
   script:
-    - ./configure $ARGS
-    - make install
     - run: |
+        ./configure $ARGS
+        make install
+
+        cd '{{prefix}}/include'
+
         mv PCSC/* .
         rmdir PCSC
         ln -s . PCSC
-      working-directory: ${{ prefix }}/include
+      if: <2.2
+
+    # everything changes in 2.2
+    - run: |
+        meson setup . .. $MESON_ARGS
+        meson compile --verbose
+
+        # this tries to write to /sbin regardless of options;
+        # so we do it by hand
+        # meson install
+
+        mkdir -p '{{prefix}}'/{bin,include,lib/pkgconfig,sbin,share/man/man{1,8}}
+
+        # bin
+        cp ../src/spy/pcsc-spy '{{prefix}}/bin/pcscd-spy'
+
+        # include
+        cp pcsclite.h ../src/PCSC/*.h '{{prefix}}/include/'
+        ln -s . '{{prefix}}/include/PCSC'
+
+        # lib
+        if test "{{hw.platform}}" = "darwin"; then
+          cp libpcsc{lite,spy}.*dylib '{{prefix}}/lib/'
+        else
+          cp libpcsc{lite,spy}.so{,.?} '{{prefix}}/lib/'
+        fi
+        cp meson-private/libpcsclite.pc '{{prefix}}/lib/pkgconfig/'
+
+        # sbin
+        cp pcscd '{{prefix}}/sbin/pcscd'
+
+        # share
+        cp ../pcsc-spy.1 '{{prefix}}/share/man/man1/'
+        cp pcscd.8 '{{prefix}}/share/man/man8/'
+      working-directory: build
+      if: '>=2.2'
   env:
     ARGS:
       - --disable-dependency-tracking
@@ -38,9 +78,19 @@ build:
       - --sysconfdir=/etc
       # TODO: freedesktop.org/polkit
       - --disable-polkit
+    MESON_ARGS:
+      - --prefix={{prefix}}
+      - --sbindir={{prefix}}/sbin
+      - --buildtype=release
+      - -Dpolkit=false
+    linux:
+      LDFLAGS: $LDFLAGS -ldl
     darwin:
       ARGS:
         - --disable-libsystemd
+      MESON_ARGS:
+        - -Dlibsystemd=false
+        - -Dlibudev=false
 
 provides:
   - bin/pcscd

@@ -17,6 +17,10 @@ build:
     cmake .. $ARGS
     make --jobs {{ hw.concurrency }} install
   env:
+    linux:
+      # likely needs bumping to an unreleased abseil.io version
+      # ld.lld: error: undefined reference due to --no-allow-shlib-undefined: absl::lts_20240116::log_internal::LogMessage& absl::lts_20240116::log_internal::LogMessage::operator<<<int, 0>(int const&)
+      LDFLAGS: $LDFLAGS -Wl,--allow-shlib-undefined
     ARGS:
       - -Dprotobuf_BUILD_LIBPROTOC=ON
       - -Dprotobuf_BUILD_SHARED_LIBS=ON

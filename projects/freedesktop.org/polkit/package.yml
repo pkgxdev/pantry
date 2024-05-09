@@ -1,0 +1,53 @@
+distributable:
+  url: https://www.freedesktop.org/software/polkit/releases/polkit-{{version.raw}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://www.freedesktop.org/software/polkit/releases/
+  match: /polkit-\d+(\.\d+)?\.tar\.gz/
+  strip:
+    - /^polkit-/
+    - /\.tar\.gz/
+
+platforms:
+  # linux-pam requirement
+  - linux
+
+dependencies:
+  gnome.org/glib: ^2.78
+  duktape.org: ^2.7
+  gnome.org/gobject-introspection: ^1.72
+  freedesktop.org/dbus: ^1.12
+  linux-pam.org: ^1.4
+
+build:
+  dependencies:
+    mesonbuild.com: '*'
+    ninja-build.org: '*'
+    gnu.org/gettext: '*'
+    gnome.org/libxslt: '*'
+  script:
+    - meson setup $MESON_ARGS build
+    - meson compile -C build
+    - meson install -C build
+  env:
+    MESON_ARGS:
+      - --prefix="{{prefix}}"
+      - --libdir="{{prefix}}/lib"
+      - --buildtype=release
+      - --wrap-mode=nofallback
+
+provides:
+  - bin/pkaction
+  - bin/pkcheck
+  - bin/pkexec
+  - bin/pkttyagent
+
+test:
+  - pkttyagent --version | grep {{version.major}}
+  # FIXME: we should be able to start and query dbus, but it seems reluctant in docker
+  # the internet suggests that mount points might be at issue. in any case, this shouldn't
+  # hold up this project.
+  # - export DBUS_SESSION_BUS_ADDRESS=$(dbus-daemon --config-file={{deps.freedesktop.org/dbus.prefix}}/share/dbus-1/session.conf --fork --print-address)
+  # - pkaction --verbose
+  # - pkcheck --list-temp

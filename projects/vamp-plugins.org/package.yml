@@ -1,0 +1,49 @@
+distributable: ~
+
+versions:
+  url: https://vamp-plugins.org/develop.html
+  match: /vamp-plugin-sdk-\d+\.\d+\.\d+\.tar\.gz/
+  strip:
+    - /^vamp-plugin-sdk-/
+    - /\.tar\.gz$/
+
+dependencies:
+  xiph.org/flac: ^1.4
+  xiph.org/ogg: ^1.3
+  github.com/libsndfile/libsndfile: ^1.2
+
+build:
+  dependencies:
+    gnu.org/automake: '*'
+    curl.se: '*'
+  script:
+    # get archive url
+    # ex: https://code.soundsoftware.ac.uk/attachments/download/2588/vamp-plugin-sdk-2.9.0.tar.gz
+    # we need to find url from the page because it's not a fixed url
+    - DIST_URL=$(curl -s https://vamp-plugins.org/develop.html | grep -o 'https://code.soundsoftware.ac.uk/attachments/download/[0-9]*/vamp-plugin-sdk-{{version}}.tar.gz')
+    - curl -L $DIST_URL | tar -xz --strip-components 1
+    - ./configure $ARGS
+    - make --jobs {{hw.concurrency}}
+    - make --jobs {{hw.concurrency}} install
+  env:
+    ARGS:
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --prefix={{prefix}}
+      - --libdir={{prefix}}/lib
+
+provides:
+  - bin/vamp-simple-host
+  - bin/vamp-rdf-template-generator
+
+test:
+  script:
+    - vamp-simple-host -v | grep {{version.marketing}}
+    - cp {{prefix}}/lib/vamp/vamp-example-plugins.so $OUT
+    - vamp-simple-host -l | grep 'Amplitude Follower'
+  env:
+    VAMP_PATH: $PWD
+    darwin:
+      OUT: vamp-example-plugins.dylib
+    linux:
+      OUT: vamp-example-plugins.so

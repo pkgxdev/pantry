@@ -19,6 +19,8 @@ interprets:
 runtime:
   env:
     TCLLIBPATH: ${{prefix}}/lib
+    TCL_LIBRARY: ${{deps.tcl.tk/tcl.prefix}}/lib/tcl{{deps.tcl.tk/tcl.version.marketing}}
+    TK_LIBRARY: ${{deps.tcl.tk/tcl.prefix}}/lib/tcl{{deps.tcl.tk/tcl.version.marketing}}
 
 build:
   dependencies:
@@ -45,6 +47,9 @@ build:
       # Works around Apple Clang 12+ "bug"
       # https://core.tcl-lang.org/expect/tktview/0d5b33c00e5b4bbedb835498b0360d7115e832a0
       CFLAGS: $CFLAGS -Wno-implicit-function-declaration
+    linux:
+      # otherwise configure complains
+      CFLAGS: $CFLAGS -Wno-implicit-int -Wno-implicit-function-declaration
 
 test:
   script: test "$(echo 'Hello, World!' | timed-read 1)" = 'Hello, World!'

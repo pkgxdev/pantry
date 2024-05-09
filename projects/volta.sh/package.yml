@@ -1,0 +1,32 @@
+distributable:
+  url: https://github.com/volta-cli/volta/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: volta-cli/volta
+
+dependencies:
+  linux:
+    curl.se/ca-certs: '*'
+
+build:
+  dependencies:
+    rust-lang.org: ^1.75
+    rust-lang.org/cargo: '*'
+  script:
+    - cargo install $ARGS
+  env:
+    ARGS:
+      # no --locked flag because it was failing on proc_macro_span_shrink
+      - --root={{prefix}}
+      - --path=.
+    
+provides:
+  - bin/volta
+
+test:
+  - volta --version | grep {{version}}
+  - volta install node@19.0.1
+  - volta which node | grep $HOME/.volta/tools/image/node/19.0.1/bin/node
+  - echo 'console.log("Hello World!");' > test.js
+  - volta run node test.js | grep 'Hello World!'

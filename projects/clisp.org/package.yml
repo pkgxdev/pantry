@@ -1,0 +1,82 @@
+distributable:
+  url: https://alpha.gnu.org/gnu/clisp/clisp-{{version}}.tar.bz2
+  strip-components: 1
+
+versions:
+  url: https://alpha.gnu.org/gnu/clisp/
+  match: /clisp-\d+\.\d+(\.\d+)?\.tar\.bz2/
+  strip:
+    - /^clisp-/
+    - /\.tar\.bz2$/
+
+dependencies:
+  gnu.org/libsigsegv: ^2.14
+  gnu.org/readline: ^8.2
+  github.com/besser82/libxcrypt: ^4.4
+
+# runtime:
+#   env:
+#     CLISP_HOME: ${{prefix}}
+
+build:
+  script:
+    # Fix build on ARM
+    # Remove once https://gitlab.com/gnu-clisp/clisp/-/commit/39b68a14d9a1fcde8a357c088c7317b19ff598ad is released,
+    # which contains the necessary patch to the bundled gnulib
+    # https://git.savannah.gnu.org/gitweb/?p=gnulib.git;a=commit;h=00e688fc22c7bfb0bba2bd8a7b2a7d22d21d31ef
+    - run: sed -i 's/__ppc64__/__aarch64__ || __ppc64__/' vma-iter.c
+      if: aarch64
+      working-directory: src/gllib
+
+    - ./configure $ARGS
+
+    # configure misses this on linux/aarch64
+    - run: sed -i 's/^FALIGNFLAGS =/FALIGNFLAGS = -falign-functions=8/' Makefile
+      working-directory: src
+      if: linux/aarch64
+
+    - run: |
+        make --jobs {{ hw.concurrency }}
+        make --jobs {{ hw.concurrency }} install
+      working-directory: src
+
+    # otherwise we have a bunch of rpath fix issues
+    - run: rm -rf {{prefix}}/bin/*.dSYM
+      if: darwin
+
+    # clisp bakes prefix into the bin, but it has a flag to override it
+    - run: |
+        mkdir -p ../tbin
+        mv clisp ../tbin
+        cat $PROP > clisp
+        chmod +x clisp
+      prop: |
+        #!/bin/sh
+
+        d="$(cd "$(dirname "$0")"/.. && pwd)"
+
+        "$d"/tbin/clisp -B "$d/lib/clisp-{{version}}" "$@"
+      working-directory: '{{prefix}}/bin'
+  env:
+    FORCE_UNSAFE_CONFIGURE: 1
+    ARGS:
+      - --prefix={{prefix}}
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --disable-silent-rules
+      - --with-readline=yes
+      - --with-libsigsegv-prefix={{deps.gnu.org/libsigsegv.prefix}}
+      - --enable-portability
+    darwin:
+      ARGS:
+        - --disable-rpath
+
+provides:
+  - bin/clisp
+
+test:
+  - clisp --version | grep {{version.marketing}}
+  - run: clisp $FIXTURE
+    fixture:
+      extname: lisp
+      content: (format t "Hello, world!")

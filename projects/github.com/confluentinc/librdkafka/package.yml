@@ -3,7 +3,13 @@ distributable:
   strip-components: 1
 
 versions:
-  github: confluentinc/librdkafka
+  # wtf? this works locally but not in GHA. we've seen this before...
+  # github: confluentinc/librdkafka
+  url: https://api.github.com/repos/confluentinc/librdkafka/releases?per_page=100&page=1
+  match: '/"tag_name":"v\d+\.\d+\.\d+",/'
+  strip:
+    - '/^"tag_name":"v/'
+    - /",$/
 
 dependencies:
   lz4.org: '*'
@@ -14,22 +20,22 @@ dependencies:
 
 build:
   dependencies:
-    freedesktop.org/pkg-config: '*'
     python.org: ~3.11
-    llvm.org: <17
-    gnu.org/make: '*'
-  script: |
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }}
-    make --jobs {{ hw.concurrency }} install
+    linux:
+      llvm.org: '*'
+  script:
+    - ./configure --prefix="{{prefix}}"
+    - make --jobs {{ hw.concurrency }}
+    - make --jobs {{ hw.concurrency }} install
   env:
-    CC: clang
-    CXX: clang++
-    LD: clang
-    AR: llvm-ar
-    AS: llvm-as
-    ARGS:
-      - --prefix="{{prefix}}"
+    linux:
+      # undefined symbol errors in newer llvms prevent building shared libs
+      LDFLAGS: $LDFLAGS -Wl,--undefined-version
+      CC: clang
+      CXX: clang++
+      LD: clang
+      AR: llvm-ar
+      AS: llvm-as
 
 test:
   dependencies:

@@ -11,12 +11,21 @@ versions:
 
 build:
   env:
-    APP_VERSION: "{{ version }}"
+    APP_VERSION: '{{ version }}'
   dependencies:
-    rust-lang.org: ">=1.65"
-    rust-lang.org/cargo: "*"
-  script: cargo install --locked --path . --root {{prefix}}
+    rust-lang.org: '>=1.65'
+    rust-lang.org/cargo: '*'
+    protobuf.dev: '*'
+  script:
+    # tries to load a vendored `protoc` with the wrong architecture
+    # removed in 0.75.0
+    - run: sed -i 's|protoc_bin_vendored::protoc_bin_path().expect("Failed to find protoc binary")|Path::new("{{deps.protobuf.dev.prefix}}/bin/protoc")|' build.rs
+      if: <0.75.0
+    - cargo install --locked --path . --root {{prefix}}
 
 test:
   script:
-    - test "$(tailcall --version)" = "tailcall {{version}}"
+    # required file
+    - run: touch .env
+      if: '>=0.65.0'
+    - tailcall --version | grep "tailcall {{version}}"

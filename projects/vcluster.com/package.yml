@@ -1,0 +1,47 @@
+distributable:
+  url: git+https://github.com/loft-sh/vcluster.git
+  ref: ${{version.tag}}
+
+versions:
+  github: loft-sh/vcluster
+
+dependencies:
+  kubernetes.io/kubectl: ^1
+  linux:
+    curl.se/ca-certs: '*'
+
+build:
+  dependencies:
+    go.dev: ^1.21
+    linux:
+      # gcc: error: invalid linker name in argument '-fuse-ld=gold'
+      gnu.org/gcc: '*'
+  script:
+    - go generate ./...
+    - go build $ARGS -ldflags="$LDFLAGS" ./cmd/vclusterctl/main.go
+  env:
+    COMMIT_SHA: "$(git describe --always --abbrev=8 --dirty)"
+    VERSION_DATE: "$(date -u +%FT%TZ)"
+    LDFLAGS:
+      - -s
+      - -w
+      - -X main.commitHash=${COMMIT_SHA}
+      - -X main.buildDate=${VERSION_DATE}
+      - -X main.version={{version}}
+    ARGS:
+      - -mod vendor
+      - -trimpath
+      - -o={{prefix}}/bin/vcluster
+    linux:
+      ARGS:
+        - -buildmode=pie
+
+provides:
+  - bin/vcluster
+
+test:
+  - export PATH={{deps.helm.sh.prefix}}/bin:$PATH
+  - vcluster --version | grep {{version}}
+  - vcluster --help | grep 'vcluster root command'
+  - vcluster create vcluster -n vcluster --create-namespace 2>out.log || true
+  - cat out.log | grep 'please make sure you have access to a kubernetes cluster and the command'

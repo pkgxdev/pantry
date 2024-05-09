@@ -9,6 +9,10 @@ dependencies:
   gnome.org/glib: '*'
   libexpat.github.io: '*'
 
+runtime:
+  env:
+    SCHEMADIR: '{{prefix}}/share/glib-2.0/schemas'
+
 build:
   dependencies:
     gnome.org/gobject-introspection: '*'
@@ -16,10 +20,12 @@ build:
     ninja-build.org: '*'
     freedesktop.org/pkg-config: '*'
     python.org: ~3.11
-  script: |
-    meson setup build $ARGS
-    meson compile -C build --verbose
-    meson install -C build
+  script:
+    - meson setup build $ARGS
+    - meson compile -C build --verbose
+    - meson install -C build
+    - run: glib-compile-schemas .
+      working-directory: '{{prefix}}/share/glib-2.0/schemas'
   env:
     DESTDIR: '/'
     ARGS:

@@ -1,6 +1,9 @@
 distributable:
-  url: https://downloads.sourceforge.net/project/docutils/docutils/{{version.marketing}}/docutils-{{version.marketing}}.tar.gz
-  strip-components: 1
+  - url: https://downloads.sourceforge.net/project/docutils/docutils/{{version.marketing}}/docutils-{{version.marketing}}.tar.gz
+    strip-components: 1
+  # 0.21 named its source distribution oddly
+  - url: https://downloads.sourceforge.net/project/docutils/docutils/{{version.marketing}}/docutils-{{version.marketing}}.post1.tar.gz
+    strip-components: 1
 
 versions:
   url: https://sourceforge.net/projects/docutils/files/docutils/
@@ -10,12 +13,16 @@ versions:
     - /\/"/
 
 dependencies:
-  python.org: ~3.11
+  pkgx.sh: ^1
 
 build:
-  script: |
-    python-venv.sh {{prefix}}/bin/docutils
-
+  dependencies:
+    python.org: ~3.11
+  script:
+    # python-venv.sh {{prefix}}/bin/docutils
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} docutils
 
 provides:
   - bin/docutils
@@ -24,6 +31,4 @@ test:
   fixture: |
     - This is a bullet list.
     - Bullets can be "*", "+", or "-".
-
-  script: |
-    docutils $FIXTURE test.html
+  script: docutils $FIXTURE test.html

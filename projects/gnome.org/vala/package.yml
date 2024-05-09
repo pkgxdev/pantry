@@ -17,10 +17,29 @@ build:
     gnu.org/bison: '*'
     github.com/westes/flex: '*'
     gnome.org/libxslt: '*'
+    gnome.org/gobject-introspection: '*'
   script:
     - ./configure $CONFIGURE_ARGS
     - make --jobs {{hw.concurrency}}
     - make --jobs {{hw.concurrency}} install
+    - run: |
+        for d in vala-{{version.marketing}} valadoc-{{version.marketing}}; do
+          if [ -d $d ]; then
+            mv $d/* .
+            rmdir $d
+            ln -s . $d
+          fi
+        done
+      working-directory: ${{prefix}}/include
+    - run: |
+        for d in vala-{{version.marketing}} valadoc-{{version.marketing}}; do
+          if [ -d $d ]; then
+            mv $d/* .
+            rmdir $d
+            ln -s . $d
+          fi
+        done
+      working-directory: ${{prefix}}/lib
   env:
     CONFIGURE_ARGS:
       - --disable-debug

@@ -1,0 +1,26 @@
+distributable:
+  url: git+https://github.com/essembeh/gnome-extensions-cli.git
+  ref: ${{version.tag}}
+
+versions:
+  github: essembeh/gnome-extensions-cli/tags
+
+dependencies:
+  pkgx.sh: ^1
+
+build:
+  dependencies:
+    python.org: ~3.11
+    python-poetry.org: ^1
+  script:
+    - bkpyvenv stage --engine=poetry {{prefix}} {{version}}
+    - poetry install
+    - bkpyvenv seal --engine=poetry {{prefix}} gnome-extensions-cli gext
+
+provides:
+  - bin/gnome-extensions-cli
+  - bin/gext
+
+test:
+  - test "$(gext --version)" = "gext {{version}}"
+  - gext search code

@@ -1,0 +1,20 @@
+distributable:
+  url: git+https://github.com/cpburnz/python-pathspec.git
+  ref: ${{version.tag}}
+
+versions:
+  github: cpburnz/python-pathspec
+
+dependencies:
+  python.org: ~3.11
+
+runtime:
+  env:
+    PYTHONPATH: ${{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH
+
+build:
+  dependencies:
+    flit.pypa.io: '*'
+  script: python -m pip install --prefix={{prefix}} .
+
+test: python -c 'import pathspec; print(pathspec.__version__)' | grep {{version}}

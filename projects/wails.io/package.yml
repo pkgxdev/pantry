@@ -1,0 +1,49 @@
+distributable:
+  url: https://github.com/wailsapp/wails/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: wailsapp/wails
+  strip: /^v/
+
+platforms: [darwin]
+
+dependencies:
+  go.dev: ^1.18
+  npmjs.com: "*"
+  linux:
+    gnu.org/gcc: "*"
+    gtk.org/gtk3: "*"
+    freedesktop.org/pkg-config: "*"
+    # we are missing dependencies for:
+    #   - libgtk-3
+    #   - libwebkit
+
+build:
+  working-directory: v2
+  script:
+    - go build -v -ldflags="$LDFLAGS" -o wails ./cmd/wails
+    - install -D wails {{prefix}}/bin/wails
+  env:
+    CGO_ENABLED: 0
+    LDFLAGS:
+      - -extldflags=-static
+      - -w
+      - -s
+
+provides:
+  - bin/wails
+
+test:
+  depdendencies:
+    gnu.org/coreutils: "*"
+    gnu.org/grep: "*"
+  script:
+    - wails version | grep "v{{version}}"
+    - wails doctor -nocolour | tee doctor.txt
+    - test "$(cat doctor.txt | grep "Your system has missing dependencies!" | wc -l)" != "1"
+    # ^^ only works as soon as all dependencies are fulfilled
+    - wails init -n example -t vanilla
+    - cd example
+    - wails build
+    # ^^ only works as soon as all dependencies are fulfilled

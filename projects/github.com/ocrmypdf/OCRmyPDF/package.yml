@@ -16,6 +16,8 @@ dependencies:
     x.org/xcb: ^1
     gnome.org/libxml2: ~2.12
     gnome.org/libxslt: ^1
+    littlecms.com: ^2
+    github.com/strukturag/libheif: ^1
 
 build:
   dependencies:
@@ -23,8 +25,8 @@ build:
   script:
     - bkpyvenv stage {{prefix}} {{version}}
     - ${{prefix}}/venv/bin/pip install .
-    # pikepdf libs are compiled for MACOSX_DEPLOYMENT_TARGET=12.0
-    - run: '{{prefix}}/venv/bin/pip install --no-cache-dir --force-reinstall --no-binary :all: pikepdf'
+    # pikepdf/pi_heif libs are compiled for MACOSX_DEPLOYMENT_TARGET=12.0
+    - run: '{{prefix}}/venv/bin/pip install --no-cache-dir --force-reinstall --no-binary :all: pikepdf pi_heif'
       if: darwin
     - bkpyvenv seal {{prefix}} ocrmypdf
   env:

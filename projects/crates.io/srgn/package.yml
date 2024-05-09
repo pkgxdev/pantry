@@ -1,0 +1,59 @@
+distributable:
+  url: https://github.com/alexpovel/srgn/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/srgn
+
+versions:
+  github: alexpovel/srgn
+  strip: /v/
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path . --root {{prefix}}
+
+test:
+  script:
+    - test "$(srgn --version)" = "srgn {{version}}"
+    - run: cat $FIXTURE | srgn --python 'doc-strings' '(?<!The )GNU' 'GNU 🐂 is not Unix' | srgn --symbols >test.out
+      fixture: |
+        """GNU module."""
+
+        def GNU_says_moo():
+            """The GNU -> say moo -> ✅"""
+
+            GNU = """
+              GNU
+            """  # the GNU...
+
+            print(GNU + " says moo")  # ...says moo
+    - run: cmp $FIXTURE test.out
+      if: darwin
+      fixture: |
+        """GNU 🐂 is not Unix module."""
+
+        def GNU_says_moo():
+            """The GNU → say moo → ✅"""
+
+            GNU = """
+              GNU
+            """  # the GNU...
+
+            print(GNU + " says moo")  # ...says moo
+    # archlinux doesn't have cmp or diff, but it has sha256sum
+    - run: test "$(sha256sum test.out | awk '{print $1}')" = "$(sha256sum $FIXTURE | awk '{print $1}')"
+      if: linux
+      fixture: |
+        """GNU 🐂 is not Unix module."""
+
+        def GNU_says_moo():
+            """The GNU → say moo → ✅"""
+
+            GNU = """
+              GNU
+            """  # the GNU...
+
+            print(GNU + " says moo")  # ...says moo

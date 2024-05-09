@@ -1,0 +1,46 @@
+distributable:
+  url: https://github.com/libimobiledevice/libplist/releases/download/{{version}}/libplist-{{version}}.tar.bz2
+  strip-components: 1
+
+versions:
+  github: libimobiledevice/libplist
+
+build:
+  script:
+    - ./configure $ARGS
+    - make
+    - make install
+    # FIXME: this is a hack; we need to fix fixup.ts
+    - run: sed -i 's/\+brewing//g' *.la pkgconfig/*.pc
+      working-directory: '{{prefix}}/lib'
+  env:
+    ARGS:
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --prefix={{prefix}}
+      - --libdir={{prefix}}/lib
+      - --disable-silent-rules
+      - --without-cython
+
+provides:
+  - bin/plistutil
+
+test:
+  - run: plistutil -i $FIXTURE -o test_binary.plist
+    fixture:
+      content: |
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+          <key>Label</key>
+          <string>test</string>
+          <key>ProgramArguments</key>
+          <array>
+            <string>/bin/echo</string>
+          </array>
+        </dict>
+        </plist>
+      extname: plist
+  - ls | grep test_binary.plist
+  - plistutil --version | grep {{version}}

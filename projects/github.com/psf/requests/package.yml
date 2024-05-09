@@ -1,0 +1,23 @@
+distributable:
+  url: https://github.com/psf/requests/releases/download/{{version.tag}}/requests-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: psf/requests
+
+dependencies:
+  python.org: ~3.11
+  github.com/Ousret/charset_normalizer: ^3
+  github.com/kjd/idna: ^3
+  github.com/urllib3/urllib3: ^2
+  certifi.io/python-certifi: ^2024
+
+runtime:
+  env:
+    PYTHONPATH: ${{prefix}}/lib/python3.11/site-packages:$PYTHONPATH
+
+build:
+  pip install --prefix={{prefix}} .
+
+test:
+  python -c 'import requests; print(requests.__version__)' | grep {{version}}

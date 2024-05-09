@@ -1,0 +1,63 @@
+distributable:
+  url: https://www.eecis.udel.edu/~ntp/ntp_spool/ntp4/ntp-4.2/ntp-4.2.8p17.tar.gz
+  strip-components: 1
+
+versions:
+  # FIXME: X.Y.ZpA; needed in the url
+  - 4.2.8.17
+
+dependencies:
+  openssl.org: ^3
+
+build:
+  dependencies:
+    perl.org: ^5
+  script:
+    # fixes: `#! /ntpbuild/bin/perl -w`
+    - run: sed -i 's_^#!.*perl_#!{{deps.perl.org.prefix}}/bin/perl_' nl.pl
+      working-directory: ntpdc
+    - ./configure
+      --disable-debug
+      --disable-dependency-tracking
+      --disable-silent-rules
+      --prefix={{prefix}}
+      --with-openssl-libdir={{deps.openssl.org.prefix}}/lib
+      --with-openssl-incdir={{deps.openssl.org.prefix}}/include
+      --with-net-snmp-config=no
+    - run: LDADD_LIBNTP="-undefined dynamic_lookup $LDADD_LIBNTP"
+      if: darwin
+    - make install LDADD_LIBNTP="$LDADD_LIBNTP"
+  env:
+    LDADD_LIBNTP: -lresolv
+    linux:
+      # conftest.c:166:16: error: incompatible pointer to integer conversion passing 'void *' to parameter of type 'pthread_t' (aka 'unsigned long') [-Wint-conversion]
+      CFLAGS: $CFLAGS -Wno-int-conversion
+
+provides:
+  darwin:
+    - bin/ntpq
+    - bin/sntp
+    - bin/ntp-keygen
+    - sbin/ntp-wait
+    - sbin/ntpd
+    - sbin/ntpdate
+    - sbin/ntpdc
+    - sbin/ntptime
+    - sbin/ntptrace
+    - sbin/update-leap
+  linux:
+    - bin/ntpq
+    - bin/sntp
+    - bin/ntp-keygen
+    - bin/ntp-wait
+    - bin/ntpd
+    - bin/ntpdate
+    - bin/ntpdc
+    - bin/ntptime
+    - bin/ntptrace
+    - bin/update-leap
+
+test: |
+  if ! ntpdate -bq pool.ntp.org; then
+    (ntpdate -bq pool.ntp.org 2>&1 || true) | grep 'no server suitable for synchronization found'
+  fi

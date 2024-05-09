@@ -1,0 +1,40 @@
+diff --git a/lib/rubygems/defaults.rb b/lib/rubygems/defaults.rb
+index b186375..de168c4 100644
+--- a/lib/rubygems/defaults.rb
++++ b/lib/rubygems/defaults.rb
+@@ -111,18 +104,17 @@ def self.user_dir
+   # The path to standard location of the user's configuration directory.
+
+   def self.config_home
+-    @config_home ||= (ENV["XDG_CONFIG_HOME"] || File.join(Gem.user_home, ".config"))
++    @config_home ||= (ENV["XDG_CONFIG_HOME"] || File.join(Gem.user_home, ".gem"))
+   end
+
+   ##
+   # Finds the user's config file
+
+   def self.find_config_file
+-    gemrc = File.join Gem.user_home, ".gemrc"
+-    if File.exist? gemrc
+-      gemrc
++    @gemrc = if ENV["XDG_CONFIG_HOME"]
++      File.join ENV["XDG_CONFIG_HOME"], "gemrc"
+     else
+-      File.join Gem.config_home, "gem", "gemrc"
++      File.join Gem.user_home, ".gemrc"
+     end
+   end
+
+@@ -151,7 +143,11 @@ def self.cache_home
+   # The path to standard location of the user's data directory.
+
+   def self.data_home
+-    @data_home ||= (ENV["XDG_DATA_HOME"] || File.join(Gem.user_home, ".local", "share"))
++    @data_home ||= if ENV["XDG_DATA_HOME"]
++      File.join(ENV["XDG_DATA_HOME"], "gem")
++    else
++      File.join(Gem.user_home, ".gem")
++    end
+   end
+
+   ##

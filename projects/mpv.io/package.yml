@@ -1,0 +1,92 @@
+distributable:
+  url: git+https://github.com/mpv-player/mpv
+  ref: ${{version.tag}}
+
+versions:
+  github: mpv-player/mpv
+
+dependencies:
+  ffmpeg.org: '*'
+  libjpeg-turbo.org: 2
+  libarchive.org: 3
+  github.com/libass/libass: ^0.17
+  videolan.org/libplacebo: 6
+  littlecms.com: 2
+  luajit.org: 2
+  mujs.com: 1
+  freedesktop.org/uchardet: 0
+  vapoursynth.com: 66
+  yt-dlp.org: '*'
+  linux:
+    alsa-project.org/alsa-lib: 1
+    github.com/adah1972/libunibreak: 5
+
+warnings:
+  - macOS12+
+
+build:
+  dependencies:
+    mesonbuild.com: 1
+    ninja-build.org: 1
+    git-scm.org: 2
+    invisible-island.net/ncurses: 6
+    linux:
+      nixos.org/patchelf: 0
+  script:
+    # FIXME: this is an extreme measure, but otherwise swift tries to mix apple's 2008
+    # ncurses with ours; believe me, i tried many workarounds here.
+    # ncurses isn't even used by us; it's brought in as part of python being used by
+    # meson and even if we remove it right here, the bkpyvenv script brings it back when
+    # running meson using `pkgx +python~3.11`. :(((
+    - run: |
+        if test -d $NCURSES_INCLUDE; then
+          mv $NCURSES_INCLUDE ${NCURSES_INCLUDE}.bak
+        fi
+      if: darwin
+
+    - meson setup build $ARGS
+    - meson compile -C build
+    - meson install -C build
+
+    - run: |
+        if test -d ${NCURSES_INCLUDE}.bak; then
+          mv ${NCURSES_INCLUDE}.bak $NCURSES_INCLUDE
+        fi
+      if: darwin
+
+    # for some reason, fix-elf.ts doesn't catch this:
+    - run: patchelf --replace-needed {{deps.mujs.com.prefix}}/lib/pkgconfig/../../lib/libmujs.so libmujs.so mpv
+      working-directory: ${{prefix}}/bin
+      if: linux
+  env:
+    ARGS:
+      - -Djavascript=enabled
+      - -Dlibmpv=true
+      - -Dlua=luajit
+      - -Dlibarchive=enabled
+      - -Duchardet=enabled
+      - -Dvapoursynth=enabled
+      - -Dmanpage-build=disabled
+      - --sysconfdir={{prefix}}/etc
+      - --datadir={{prefix}}/share
+      - --prefix={{prefix}}
+      - --buildtype=release
+    darwin:
+      NCURSES_INCLUDE: ${{deps.invisible-island.net/ncurses.prefix}}/include
+    linux:
+      CC: clang
+      LD: clang
+
+test:
+  # the swift bits rely on a lib not available on macOS 11; we've seen this before.
+  # no point in holding it out just for that, though
+  - run: |
+      if test "$(sw_vers -productVersion | cut -d . -f 1)" -lt 12; then
+        exit 0
+      fi
+    if: darwin
+  - mpv --ao=null --vo=null test.wav
+  - mpv --vf=help | grep vapoursynth
+
+provides:
+  - bin/mpv

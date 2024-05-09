@@ -1,0 +1,46 @@
+distributable:
+  url: https://gitlab.com/lvmteam/lvm2/-/archive/{{version.tag}}/lvm2-{{version.tag}}.tar.gz
+  strip-components: 1
+
+display-name: device-mapper
+
+platforms:
+  - linux
+
+versions:
+  gitlab: lvmteam/lvm2/tags
+
+dependencies:
+  pagure.io/libaio: ^0.3
+
+build:
+  script:
+    # the make file uses sed over the bindir, our +brewing messes that up.
+    - TMP_PREFIX=$(mktemp -d)
+    - ./configure $ARGS --prefix="$TMP_PREFIX"
+    - make device-mapper
+    - make install_device-mapper
+    - mkdir -p "{{prefix}}"
+    - cp -a "$TMP_PREFIX"/* "{{prefix}}"
+  env:
+    ARGS:
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --disable-silent-rules
+      - --enable-pkgconfig
+    linux:
+      # undefined symbol errors in newer llvms prevent building shared libs
+      CFLAGS: $CFLAGS -Wl,--undefined-version
+      CC: clang
+      LD: clang
+test:
+  - run: cc $FIXTURE -ldevmapper -o test && ./test
+    fixture:
+      content: |
+        #include <libdevmapper.h>
+  
+        int main() {
+          if (DM_STATS_REGIONS_ALL != UINT64_MAX)
+            exit(1);
+        }
+      extname: c

@@ -1,0 +1,40 @@
+distributable:
+  url: https://github.com/leethomason/tinyxml2/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: leethomason/tinyxml2
+
+build:
+  dependencies:
+    cmake.org: '*'
+  script:
+    - cmake -S . -B build $ARGS
+    - cmake --build build
+    - cmake --install build
+  env:
+    ARGS:
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_INSTALL_LIBDIR=lib
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_FIND_FRAMEWORK=LAST
+      - -DCMAKE_VERBOSE_MAKEFILE=ON
+      - -Wno-dev
+      - -DBUILD_TESTING=OFF
+      - -Dtinyxml2_SHARED_LIBS=ON
+
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script:
+    - run: cc $FIXTURE -ltinyxml2 -o test
+      fixture:
+        content: |
+          #include <tinyxml2.h>
+          int main() {
+            tinyxml2::XMLDocument doc (false);
+            return 0;
+          }
+        extname: cpp
+    - ./test
+    - pkg-config --modversion tinyxml2 | grep {{version}}

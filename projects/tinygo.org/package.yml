@@ -1,0 +1,49 @@
+distributable:
+  url: git+https://github.com/tinygo-org/tinygo.git
+  ref: ${{version.tag}}
+
+versions:
+  github: tinygo-org/tinygo
+
+dependencies:
+  go.dev: '*'
+
+companions:
+  llvm.org: '*'
+
+build:
+  dependencies:
+    go.dev: ^1.18
+    git-scm.org: 2
+    cmake.org: 3
+    ninja-build.org: 1
+    nodejs.org: '*'
+    python.org: '>=3.6'
+  script:
+    - git submodule update --init --recursive
+    - make llvm-source
+    - make llvm-build
+    - make
+    - make release
+    - mkdir -p '{{prefix}}'
+    - tar -zxf build/release.tar.gz -C "{{prefix}}" --strip-components=1
+  env:
+    linux:
+      CC: clang
+      CXX: clang++
+
+provides:
+  - bin/tinygo
+
+test:
+  script:
+    - mv $FIXTURE test.go
+    - test "$(tinygo run test.go)" = "Hello World"
+    - tinygo build -o my-artifact test.go
+    - test "$(./my-artifact)" = "Hello World"
+  fixture: |
+    package main
+    import "fmt"
+    func main() {
+      fmt.Println("Hello World")
+    }

@@ -1,0 +1,24 @@
+distributable:
+  url: https://github.com/Nike-Inc/gimme-aws-creds/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: Nike-Inc/gimme-aws-creds
+
+dependencies:
+  pkgx.sh: ^1
+
+build:
+  dependencies:
+    python.org: ^3.11
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} gimme-aws-creds
+
+provides:
+  - bin/gimme-aws-creds
+
+test:
+  - touch ~/.okta_aws_login_config
+  - test "$(gimme-aws-creds --version)" = "gimme-aws-creds {{version}}"

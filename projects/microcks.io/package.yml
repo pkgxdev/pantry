@@ -1,0 +1,31 @@
+distributable:
+  url: git+https://github.com/microcks/microcks-cli.git
+  ref: ${{version.tag}}
+
+versions:
+  github: microcks/microcks-cli
+
+dependencies:
+  curl.se/ca-certs: '*'
+
+build:
+  dependencies:
+    go.dev: ^1.21
+  script:
+    go build $ARGS -ldflags="$LDFLAGS" .
+  env:
+    ARGS:
+      - -trimpath
+      - -o={{prefix}}/bin/microcks-cli
+    linux:
+      ARGS:
+        - -buildmode=pie
+    LDFLAGS:
+      - -s
+      - -w
+
+provides:
+  - bin/microcks-cli
+
+test:
+  microcks-cli version | grep {{version}}

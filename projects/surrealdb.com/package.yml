@@ -13,17 +13,20 @@ dependencies:
 
 build:
   dependencies:
-    rust-lang.org: ">=1.60"
-    rust-lang.org/cargo: "*"
+    rust-lang.org: '>=1.60'
+    rust-lang.org/cargo: '*'
     freedesktop.org/pkg-config: ^0.29
-    gnu.org/patch: "*" # rquickjs-sys:build.rs:L132
-  script: |
-    cargo install --path . --root {{prefix}}
+    gnu.org/patch: '*' # rquickjs-sys:build.rs:L132
+  script: cargo install --path . --locked --root {{prefix}}
   env:
-    SURREAL_BUILD_METADATA: "pkgx"
+    SURREAL_BUILD_METADATA: 'pkgx'
+    RUSTFLAGS:
+      # required as of v1.4.0
+      - --cfg surrealdb_unstable
     linux:
-      # Needed to build `generic-array` for some odd reason
-      RUSTFLAGS: "-C linker=cc"
+      RUSTFLAGS:
+        # Needed to build `generic-array` for some odd reason
+        - -C linker=cc
 
 # FIXME: a better test needs to spin up the db server...
 test: surreal version

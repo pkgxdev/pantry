@@ -18,6 +18,12 @@ build:
     haskell.org: '*'
     haskell.org/cabal: '*'
   script:
+    - run: |
+        sed -i '/unordered-containers/i\
+                -- zlib 0.7.0 fails to find zlib.dylib on macOS\
+                zlib                        >= 0.6.0    \&\& < 0.7 ,' \
+        dhall.cabal
+      if: darwin
     - cabal v2-update
     - mkdir -p {{prefix}}/bin
     - cabal v2-install $ARGS

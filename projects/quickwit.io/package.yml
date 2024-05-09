@@ -18,11 +18,17 @@ build:
   working-directory: quickwit/quickwit-cli
   dependencies:
     # https://github.com/quickwit-oss/tantivy/issues/2260
-    rust-lang.org: '>=1.65<1.74'
+    rust-lang.org: '>=1.74.1'
     rust-lang.org/cargo: '*'
   script:
-    - run: 'sed -i'''' -e''s/version,$/version: "{{version}}".to_string(),/'' build_info.rs'
+    - run: 'sed -i -e''s/ version,$/version: "{{version}}".to_string(),/'' build_info.rs'
       working-directory: ../quickwit-serve/src
+    # crc32c v0.6.5 requires rustc 1.78-nightly
+    - run: sed -i
+        -e '/crc32c/{n; s/version = "0\.6\.5"/version = "0.6.4"/;}'
+        -e 's/89254598aa9b9fa608de44b3ae54c810f0f06d755e24c50177f1f8f31ff50ce2/d8f48d60e5b4d2c53d5c2b1d8a58c849a70ae5e5509b08a48d047e3b65714a74/'
+        Cargo.lock
+      working-directory: ..
     - cargo install --locked --path . --root {{prefix}}
 
 test:

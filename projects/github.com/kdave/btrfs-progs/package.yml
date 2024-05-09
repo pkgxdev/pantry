@@ -1,0 +1,60 @@
+distributable:
+  url: https://github.com/kdave/btrfs-progs/archive/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: kdave/btrfs-progs
+
+platforms:
+  - linux
+
+dependencies:
+  python.org: ~3.11
+  sourceforge.net/e2fsprogs: ^1.47
+  oberhumer.com/lzo: ^2.10
+  systemd.io: ^255 # for libudev
+  github.com/util-linux/util-linux: ^2.39
+  zlib.net: ^1.3
+  facebook.com/zstd: ^1.5
+
+runtime:
+  env:
+    PYTHONPATH: ${{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH
+
+build:
+  dependencies:
+    sphinx-doc.org: '*'
+    gnu.org/autoconf: '*'
+    gnu.org/automake: '*'
+    gnu.org/libtool: '*'
+  script:
+    - sed -i '/sphinx_rtd_theme/s/^/#/' Documentation/conf.py
+    - ./autogen.sh
+    - ./configure $ARGS
+    - make --jobs {{hw.concurrency}} install V=1 udevdir={{prefix}}/lib/udev
+    - python -m pip install --prefix={{prefix}} ./libbtrfsutil/python
+  env:
+    ARGS:
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --prefix={{prefix}}
+      - --libdir={{prefix}}/lib
+
+provides:
+  - bin/btrfs
+  - bin/btrfsck
+  - bin/btrfs-convert
+  - bin/btrfs-find-root
+  - bin/btrfs-image
+  - bin/btrfs-map-logical
+  - bin/btrfs-select-super
+  - bin/btrfstune
+  - bin/fsck.btrfs
+  - bin/mkfs.btrfs
+
+test:
+  - btrfs --version | grep {{version.tag}}
+  - truncate -s 128M test.img
+  - mkfs.btrfs test.img | grep '128.00MiB'
+  - btrfs filesystem show test.img | grep 'Total devices 1 FS'
+  - python -c 'import btrfsutil'

@@ -1,0 +1,27 @@
+distributable:
+  url: git+https://github.com/jaraco/keyring.git
+  ref: ${{version.tag}}
+
+versions:
+  github: jaraco/keyring
+
+dependencies:
+  pkgx.sh: ^1
+  github.com/python-cffi/cffi: ^1.16
+  github.com/eliben/pycparser: ^2.21
+  cryptography.io: ^42
+
+build:
+  dependencies:
+    python.org: '>=3.11'
+  script:
+    # pip doesn't like this *at all*
+    - if test -d props; then rm -rf props; fi
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} keyring
+
+provides:
+  - bin/keyring
+
+test: keyring --list-backends | grep 'keyring'

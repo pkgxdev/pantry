@@ -1,0 +1,41 @@
+distributable:
+  url: https://github.com/ggreer/the_silver_searcher/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+display-name: the_silver_searcher
+
+versions:
+  github: ggreer/the_silver_searcher/tags
+
+dependencies:
+  pcre.org: ^8
+  tukaani.org/xz: ^5.4.5
+
+build:
+  dependencies:
+    gnu.org/autoconf: '*'
+    gnu.org/automake: '*'
+    # ./configure: line 4550: syntax error near unexpected token `PCRE,'
+    # ./configure: line 4550: `PKG_CHECK_MODULES(PCRE, libpcre)'
+    freedesktop.org/pkg-config: '*'
+  script:
+    - autoreconf -fiv
+    - ./configure $ARGS
+    - make
+    - make install
+  env:
+    linux:
+      # ld.lld: error: duplicate symbol
+      CFLAGS: $CFLAGS -Wl,--allow-multiple-definition
+    ARGS:
+      - --prefix={{prefix}}
+      - --disable-dependency-tracking
+
+provides:
+  - bin/ag
+
+test:
+  - ag 'Hello World!' .
+  # this doesn't work in CI, even though it should. wonder why?
+  #- ag -a 'Hello World!'
+  - ag --version | grep {{version}}

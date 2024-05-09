@@ -1,0 +1,36 @@
+distributable:
+  url: https://download.gnome.org/sources/adwaita-icon-theme/{{version.major}}/adwaita-icon-theme-{{version.raw}}.tar.xz
+  strip-components: 1
+
+versions:
+  url: https://download.gnome.org/sources/adwaita-icon-theme/cache.json
+  match: /adwaita-icon-theme-(\d+\.\d+)\.tar.xz/
+  strip:
+    - /^adwaita-icon-theme-/
+    - /\.tar.xz$/
+
+build:
+  dependencies:
+    gnu.org/gettext: '*'
+    gtk.org/gtk4: '*'
+    freedesktop.org/intltool: '*'
+    mesonbuild.com: '*'
+    ninja-build.org: '*'
+  script:
+    - meson setup build $ARGS
+    - meson compile -C build --verbose
+    - meson install -C build
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --libdir={{prefix}}/lib
+      - --buildtype=release
+      - --wrap-mode=nofallback
+
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script:
+    - ls {{prefix}}/share/icons/Adwaita/16x16/devices | grep 'audio-headphones.png'
+    - ls {{prefix}}/share/icons/Adwaita | grep 'index.theme'
+    - pkg-config --modversion adwaita-icon-theme | grep {{version.raw}}

@@ -24,29 +24,27 @@ build:
   working-directory: build
   script:
     # If we have a patch, apply it
-    - |
-      if test "{{hw.platform}}+{{hw.arch}}" = "darwin+aarch64"; then
+    - run: |
         if test -n "$PATCH{{version.major}}{{version.minor}}"; then
-          curl "$PATCH{{version.major}}{{version.minor}}" | patch -p1 -d..
+          curl "$PATCH{{version.major}}{{version.minor}}" | patch -p1
         fi
-      fi
+      if: darwin/aarch64
+      working-directory: ..
 
     # if there's no diff yet, unpack iains' source over ours
-    - |
-      if test "{{hw.platform}}+{{hw.arch}}" = "darwin+aarch64"; then
+    - run: |
         if test -n "$BRANCH{{version.major}}{{version.minor}}"; then
-          curl -L "$BRANCH{{version.major}}{{version.minor}}" | tar xz --strip-components=1 -C ..
+          curl -L "$BRANCH{{version.major}}{{version.minor}}" | tar xz --strip-components=1
         fi
-      fi
+      if: darwin/aarch64
+      working-directory: ..
 
     # The spaces mess things up in the env key
-    - ARGS=($ARGS --with-pkgversion="tea GCC {{version}}")
+    - ARGS=($ARGS --with-pkgversion="pkgx GCC {{version}}")
 
     # On Linux, we need to statically link libstdc++ and libgcc
-    - |
-      if test {{hw.platform}} = "linux"; then
-        export ARGS=("${ARGS[@]}" --with-boot-ldflags="-static-libstdc++ -static-libgcc $LDFLAGS")
-      fi
+    - run: export ARGS=("${ARGS[@]}" --with-boot-ldflags="-static-libstdc++ -static-libgcc $LDFLAGS")
+      if: linux
 
     - ../configure "${ARGS[@]}"
     - make --jobs {{ hw.concurrency }}
@@ -83,11 +81,12 @@ build:
     BRANCH114: https://github.com/iains/gcc-11-branch/archive/refs/tags/gcc-11.4-darwin-r0.tar.gz
     BRANCH123: https://github.com/iains/gcc-12-branch/archive/refs/tags/gcc-12.3-darwin-r0.tar.gz
     BRANCH132: https://github.com/iains/gcc-13-branch/archive/refs/heads/gcc-13-2-darwin.tar.gz
+    BRANCH141: https://github.com/iains/gcc-14-branch/archive/refs/heads/gcc-14-1-darwin-pre-0.tar.gz
     ARGS:
       - --prefix={{ prefix }}
       - --libdir={{ prefix }}/lib
       - --enable-languages=c,c++,objc,obj-c++,fortran
-      - --with-bugurl="https://github.com/teaxyz/pantry/issues"
+      - --with-bugurl="https://github.com/pkgxdev/pantry/issues"
       - --disable-bootstrap
       - --disable-nls
     linux:
@@ -95,10 +94,11 @@ build:
         - --disable-multilib
         - --enable-default-pie
         - --enable-pie-tools
+        - --enable-host-pie
     linux/x86-64:
       LDFLAGS: $LDFLAGS -pie
-      CFLAGS: $CFLAGS -fPIC
-      CXXFLAGS: $CXXFLAGS -fPIC
+      CFLAGS: $CFLAGS -fPIC -fPIE
+      CXXFLAGS: $CXXFLAGS -fPIC -fPIE
     darwin:
       ARGS:
         # Reliance on CLT hard path is yuck.
@@ -118,7 +118,7 @@ build:
       and CXXFLAGS_FOR_TARGET: -Wa,-mmacos-version-min=10.5
 
 test:
-  - gcc --version | grep -q "tea GCC {{version}}"
+  - gcc --version | grep -q "pkgx GCC {{version}}"
   - gcc -print-libgcc-file-name
   - gcc -print-multiarch
   - gcc -dumpspecs

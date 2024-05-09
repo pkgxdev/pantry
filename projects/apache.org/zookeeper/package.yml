@@ -11,7 +11,7 @@ dependencies:
   openssl.org: '*'
 runtime:
   env:
-    ZOODIR: "{{prefix}}"
+    ZOODIR: '{{prefix}}'
 build:
   dependencies:
     gnu.org/autoconf: '*'
@@ -25,10 +25,10 @@ build:
   script:
     - cd ..
     - rm -rf ./zookeeper || true
-    - mv apache.org*zookeeper* zookeeper
+    - mv $SRCROOT zookeeper
     - cd zookeeper
     - run: mkdir -p etc/zookeeper var/log/zookeeper var/run/zookeeper/data
-      working-directory: "{{prefix}}"
+      working-directory: '{{prefix}}'
     - mvn install -Pfull-build -DskipTests
     - tar -xf zookeeper-assembly/target/apache-zookeeper-{{version}}-bin.tar.gz
     - run: |
@@ -41,7 +41,7 @@ build:
         cp -r usr/lib {{prefix}}/
       working-directory: apache-zookeeper-{{version}}-lib
     - run: rm -f *.txt *.md
-      working-directory: "{{prefix}}"
+      working-directory: '{{prefix}}'
     - run: |
         ln -s zkCleanup.sh zkCleanup
         ln -s zkCli.sh zkCli
@@ -52,12 +52,12 @@ build:
         ln -s zkSnapshotRecursiveSummaryToolkit.sh zkSnapshotRecursiveSummaryToolkit
         ln -s zkSnapShotToolkit.sh zkSnapShotToolkit
         ln -s zkTxnLogToolkit.sh zkTxnLogToolkit
-      working-directory: "{{prefix}}/bin"
+      working-directory: '{{prefix}}/bin'
     - run: |
         cp zoo_sample.cfg zoo.cfg
         sed -i.bak 's|dataDir=/tmp/zookeeper|dataDir=\$ZOODIR/var/run/zookeper|' zoo.cfg
         rm -f zoo.cfg.bak
-      working-directory: "{{prefix}}/conf"
+      working-directory: '{{prefix}}/conf'
 provides:
   - bin/zkCleanup
   - bin/zkCli

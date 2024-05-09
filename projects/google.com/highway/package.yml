@@ -7,16 +7,14 @@ versions:
 
 build:
   dependencies:
-    linux/x86-64:
-      llvm.org: <16  # ld.lld: error: undefined reference due to --no-allow-shlib-undefined: __extendhfsf2
     cmake.org: '*'
-  script: |
-    cmake -S . -B builddir $ARGS
-    cmake --build builddir
-    cmake --install builddir
+  script:
+    - cmake -S . -B builddir $ARGS
+    - cmake --build builddir
+    - cmake --install builddir
 
-    mkdir -p {{prefix}}/share/hwy/examples
-    cp -R hwy/examples {{prefix}}/share/hwy/
+    - mkdir -p {{prefix}}/share/hwy/examples
+    - cp -R hwy/examples {{prefix}}/share/hwy/
   env:
     ARGS:
       - -DBUILD_SHARED_LIBS=ON
@@ -24,14 +22,20 @@ build:
       - -DHWY_ENABLE_TESTS=OFF
       - -DHWY_ENABLE_EXAMPLES=OFF
       - -DCMAKE_BUILD_TYPE=Release
+    linux/x86-64:
+      ARGS:
+        # ld.lld: error: undefined reference due to --no-allow-shlib-undefined: __extendhfsf2
+        - -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined
 
 test:
-  dependencies:
-    curl.se: '*'
-  script: |
-    mkdir -p hwy/examples
-    curl -LO --output-dir hwy/examples https://github.com/google/highway/raw/master/hwy/examples/benchmark.cc
-    c++ -std=c++11 -lhwy -I. hwy/examples/benchmark.cc
-    ./a.out
-  # ^^ the -I. is because bizarely benchmark.cc configures other headers to
-  # include itself but only on intel…
+  env:
+    linux/x86-64:
+      # ld.lld: error: undefined reference due to --no-allow-shlib-undefined: __extendhfsf2
+      CXXFLAGS: $CXXFLAGS -Wl,--allow-shlib-undefined
+  script:
+    - mkdir -p hwy
+    - cp -R {{prefix}}/share/hwy/examples hwy/
+    - c++ -std=c++11 -lhwy -I. hwy/examples/profiler_example.cc $CXXFLAGS
+    - ./a.out
+    # ^^ the -I. is because bizarely profiler_example.cc configures other headers to
+    # include itself but only on intel…

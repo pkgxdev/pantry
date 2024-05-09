@@ -17,25 +17,30 @@ provides:
   - bin/ld.musl-clang
   - bin/musl-clang
 
+dependencies:
+  llvm.org: '*' # needs clang
+
 build:
-  script: |
-    ./configure --prefix={{ prefix }} --syslibdir={{ prefix }}/lib
+  script:
+    - ./configure --prefix={{ prefix }} --syslibdir={{ prefix }}/lib
 
-    make --jobs {{ hw.concurrency }}
-    make install
+    - make --jobs {{ hw.concurrency }}
+    - make install
 
-    ln -sf libc.so {{prefix}}/lib/ld-musl-{{hw.arch}}.so.1
+    - run: ln -sf libc.so ld-musl-{{hw.arch}}.so.1
+      working-directory: '{{prefix}}/lib'
 
     # fix script paths; might be a better way
     #FIXME probably: dynamic linker causes segfaults
-    sed -i.bak \
-      -e 's/-dynamic-linker "\$ldso"//' \
-      -e 's/^sflags=$/sflags="-static"/' \
-      -e 's/^libc=".*/libc="$(dirname $(dirname $(which ld.musl-clang)))"/' \
-      -e 's#^libc_inc=".*#libc_inc="$libc/include"#' \
-      -e 's#^libc_lib=".*#libc_lib="$libc/lib"#' \
-      {{prefix}}/bin/musl-clang \
-      {{prefix}}/bin/ld.musl-clang
+    - run: sed -i
+        -e 's/-dynamic-linker "\$ldso"//'
+        -e 's/^sflags=$/sflags="-static"/'
+        -e 's/^libc=".*/libc="$(dirname $(dirname $(command -v ld.musl-clang)))"/'
+        -e 's#^libc_inc=".*#libc_inc="$libc/include"#'
+        -e 's#^libc_lib=".*#libc_lib="$libc/lib"#'
+        -e 's/print-prog-name=ld/print-prog-name=ld.lld/'
+        musl-clang ld.musl-clang
+      working-directory: '{{prefix}}/bin'
   env:
     CC: clang
 

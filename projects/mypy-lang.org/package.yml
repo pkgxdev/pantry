@@ -1,21 +1,27 @@
 distributable:
-  url: https://github.com/python/mypy/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/python/mypy/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
   github: python/mypy/tags
 
 dependencies:
-  python.org: '>=3<3.12'
+  pkgx.sh: ^1
 
 build:
+  dependencies:
+    python.org: '>=3<3.12'
   env:
     MYPY_USE_MYPYC: 1
     MYPYC_OPT_LEVEL: 3
-  script: |
-    python-venv.sh {{prefix}}/bin/mypy
-    cp {{prefix}}/bin/mypy {{prefix}}/bin/mypyc
-    cp {{prefix}}/bin/mypy {{prefix}}/bin/dmypy
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} mypy
+    - run: |
+        ln -s mypy mypyc
+        ln -s mypy dmypy
+      working-directory: '{{prefix}}/bin'
 
 provides:
   - bin/mypy
@@ -23,10 +29,8 @@ provides:
   - bin/dmypy
 
 test:
-  fixture: |
-    a: str = 1
-  script: |
-    mypy --version | grep {{version}}
-    mypyc --version | grep {{version}}
-    dmypy --version | grep {{version}}
-    echo $(mypy $FIXTURE || true) | grep "Incompatible types in assignment"
+  - mypy --version | grep {{version}}
+  - mypyc --version | grep {{version}}
+  - dmypy --version | grep {{version}}
+  - run: echo $(mypy $FIXTURE || true) | grep "Incompatible types in assignment"
+    fixture: 'a: str = 1'

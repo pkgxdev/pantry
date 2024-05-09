@@ -1,0 +1,42 @@
+distributable:
+  url: https://www.ladspa.org/download/ladspa_sdk_{{version.raw}}.tgz
+  strip-components: 1
+
+versions:
+  url: https://www.ladspa.org/download/index.html
+  match: /ladspa_sdk_\d+\.\d+\.tgz/
+  strip:
+    - /^ladspa_sdk_/
+    - /\.tgz$/
+
+platforms:
+  - linux
+
+dependencies:
+  github.com/libsndfile/libsndfile: ^1.2
+
+runtime:
+  env:
+    LADSPA_PATH: ${{prefix}}/lib/ladspa:$LADSPA_PATH
+
+build:
+  working-directory: src
+  script: make install $ARGS
+  env:
+    ARGS:
+      - INSTALL_PLUGINS_DIR={{prefix}}/lib/ladspa
+      - INSTALL_INCLUDE_DIR={{prefix}}/include
+      - INSTALL_BINARY_DIR={{prefix}}/bin
+
+provides:
+  - bin/analyseplugin
+  - bin/applyplugin
+  - bin/listplugins
+
+test:
+  - listplugins | grep 'Sine Oscillator'
+  - analyseplugin amp | grep 'Richard Furse (LADSPA example plugins)'
+
+
+
+# git config --global user.email "

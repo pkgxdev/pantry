@@ -53,6 +53,17 @@ build:
     linux:
       gnu.org/make: '*'
   script:
+    # try to force PIC binaries
+    - run: install -D $PROP {{prefix}}/.ghcup/config.yaml
+      prop: |
+        platform-override:
+          arch: A_64
+          platform:
+            contents: Ubuntu
+            tag: Linux
+          version: '18.04'
+      if: linux/x86-64
+
     - curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | sh
     - PATH={{prefix}}/.ghcup/bin:$PATH
     - ghcup install ghc {{version}}

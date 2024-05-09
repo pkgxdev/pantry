@@ -1,0 +1,62 @@
+distributable:
+  url: https://github.com/openpmix/openpmix/releases/download/v{{version}}/pmix-{{version}}.tar.bz2
+  strip-components: 1
+
+versions:
+  github: openpmix/openpmix
+
+dependencies:
+  open-mpi.org/hwloc: ^2.10
+  libevent.org: ^2.1
+  zlib.net: ^1.3
+
+runtime:
+  PMIX_PREFIX: ${{prefix}}
+
+build:
+  dependencies:
+    python.org: ^3.11
+  script:
+    - ./configure $ARGS
+    - make --jobs {{hw.concurrency}} install
+  env:
+    ARGS:
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --prefix={{prefix}}
+      - --libdir={{prefix}}/lib
+      - --disable-silent-rules
+      - --enable-ipv6
+      - --sysconfdir={{prefix}}/etc
+      - --with-hwloc={{deps.open-mpi.org/hwloc.prefix}}
+      - --with-libevent={{deps.libevent.org.prefix}}
+      - --with-sge
+
+provides:
+  - bin/palloc
+  - bin/pattrs
+  - bin/pctrl
+  - bin/pevent
+  - bin/plookup
+  - bin/pmix_info
+  - bin/pmixcc
+  - bin/pps
+  - bin/pquery
+
+test:
+  - run: cc $FIXTURE -lpmix -o test
+    fixture:
+      content: |
+        #include <stdio.h>
+        #include <pmix.h>
+
+        int main(int argc, char **argv) {
+          pmix_value_t *val;
+          pmix_proc_t myproc;
+          pmix_status_t rc;
+
+          return 0;
+        }
+      extname: .c
+  - ./test
+  - pmix_info --pretty-print | grep {{version}}

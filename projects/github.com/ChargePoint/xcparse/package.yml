@@ -1,0 +1,28 @@
+distributable:
+  url: https://github.com/ChargePoint/xcparse/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: ChargePoint/xcparse
+
+platforms:
+  - darwin
+
+build:
+  - mkdir -p {{prefix}}/bin
+  - make prefix={{prefix}} install
+
+provides:
+  - bin/xcparse
+
+test:
+  dependencies:
+    curl.se: '*'
+  script:
+    - xcparse --help
+    - xcparse version | grep {{version}}
+    - curl -L "${TESTDATA}" | tar -xz
+    - xcparse screenshots --os --model --test-plan-config SanityResults.xcresult .
+    - ls | grep 'iPhone 12 (17.0)'
+  env:
+    TESTDATA: https://pub-0b56a3a43f5b4adc91c743afc384fe1a.r2.dev/SanityResults.xcresult.tar.gz

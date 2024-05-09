@@ -1,0 +1,36 @@
+distributable:
+  url: https://github.com/libtom/libtommath/releases/download/{{version.tag}}/ltm-{{version}}.tar.xz
+  strip-components: 1
+
+display-name: LibTomMath
+
+versions:
+  github: libtom/libtommath
+
+build:
+  dependencies:
+    gnu.org/libtool: ^2.4.7
+  env:
+    PREFIX: ${{prefix}}
+  script:
+    - make
+        --file makefile.shared
+        --jobs {{ hw.concurrency }}
+        install
+
+test:
+  linux:
+    llvm.org: '*'
+  script:
+    - fixture:
+        content: |
+          #include <tommath.h>
+          #include <stdio.h>
+          int main() {
+            printf("%s", mp_error_to_string(1));
+            return 0;
+          }
+        extname: .c
+      run:
+        - cc $FIXTURE -ltommath
+        - test "$(./a.out)" = "Invalid error code"

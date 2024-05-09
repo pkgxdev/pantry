@@ -1,0 +1,33 @@
+distributable:
+  url: https://registry.npmjs.org/snyk/-/snyk-{{version}}.tgz
+  strip-components: 1
+
+versions:
+  npm: snyk
+
+dependencies:
+  nodejs.org: ^20
+
+build:
+  dependencies:
+    npmjs.com: ^10
+  script:
+    - npm i $ARGS .
+    - run: ln -s ../libexec/bin/snyk snyk
+      working-directory: '{{prefix}}/bin'
+  env:
+    ARGS:
+      - -ddd
+      - --global
+      - --build-from-source
+      - --prefix={{prefix}}/libexec
+      - --install-links
+      - --unsafe-perm
+
+provides:
+  - bin/snyk
+
+test:
+  - snyk version | grep {{version}}
+  - snyk auth test > out.log || true
+  - cat out.log | grep 'Authentication failed. Please check the API token on https://snyk.io'

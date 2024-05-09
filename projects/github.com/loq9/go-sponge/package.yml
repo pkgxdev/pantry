@@ -1,0 +1,37 @@
+distributable:
+  url: https://github.com/LOQ9/go-sponge/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+display-name: go-sponge
+
+versions:
+  github: LOQ9/go-sponge
+  strip:
+    - /^v/
+
+build:
+  dependencies:
+    go.dev: ^1.20
+  env:
+    CGO_ENABLED: 0
+    LDFLAGS:
+    - -s
+    - -w
+    linux:
+      LDFLAGS:
+      - -buildmode=pie
+  script: go build -v -ldflags="${LDFLAGS}" -o "{{ prefix }}"/bin/go-sponge
+
+provides:
+- bin/go-sponge
+
+test:
+  dependencies:
+    gnu.org/coreutils: '*'
+    stedolan.github.io/jq: ^1.6
+
+  script: |
+    jq --null-input \
+       'type|if "null" then {A:3} else .+={A:3} end' db.json \
+    | go-sponge db.json
+    cat db.json

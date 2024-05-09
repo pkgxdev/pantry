@@ -1,0 +1,36 @@
+distributable:
+  url: https://github.com/google/jsonnet/archive/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: google/jsonnet
+
+build:
+  script:
+    - make --jobs={{hw.concurrency}}
+    - install -D jsonnet {{prefix}}/bin/jsonnet
+    - install -D jsonnetfmt {{prefix}}/bin/jsonnetfmt
+  env:
+    linux:
+      CC: clang
+      CXX: clang++
+      LD: clang
+
+provides:
+  - bin/jsonnet
+  - bin/jsonnetfmt
+
+test:
+  - run: jsonnet $FIXTURE | grep 'Hello Alice!'
+    fixture:
+      content: |
+        {
+          person1: {
+            name: "Alice",
+            welcome: "Hello " + self.name + "!",
+          },
+          person2: self.person1 { name: "Bob" },
+        }
+      extname: jsonnet
+  - jsonnetfmt --version | grep {{version}}
+  
