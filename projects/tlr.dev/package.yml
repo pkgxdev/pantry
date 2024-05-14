@@ -8,18 +8,22 @@ versions:
 build:
   dependencies:
     go.dev: ^1.21
+    rust-lang.org: ^1.65
   script:
-    go build $ARGS -ldflags="$LDFLAGS" .
+    - run: go build $GO_ARGS -ldflags="$GO_LDFLAGS" .
+      if: <2
+    - run: cargo install --locked --path teller-cli --root {{prefix}}
+      if: '>=2'
   env:
-    COMMIT_SHA: "$(git describe --always --abbrev=8 --dirty)"
-    VERSION_DATE: "$(date -u +%FT%TZ)"
-    ARGS:
+    COMMIT_SHA: '$(git describe --always --abbrev=8 --dirty)'
+    VERSION_DATE: '$(date -u +%FT%TZ)'
+    GO_ARGS:
       - -trimpath
       - -o={{prefix}}/bin/teller
     linux:
-      ARGS:
+      GO_ARGS:
         - -buildmode=pie
-    LDFLAGS:
+    GO_LDFLAGS:
       - -s
       - -w
       - -X main.version={{version}}
@@ -30,9 +34,11 @@ provides:
   - bin/teller
 
 test:
-  - |
-    echo 'foo: var' > test.env
-  - run: teller -c $FIXTURE show  2>&1 | grep 'foo'
+  - run: |
+      echo 'foo: var' > test.env
+      teller -c $FIXTURE show  2>&1 | grep 'foo'
+      teller version | grep {{version}}
+    if: <2
     fixture:
       content: |
         project: test
@@ -43,4 +49,17 @@ test:
             env_sync:
               path: test.env
       extname: .yml
-  - teller version | grep {{version}}
+  - run: |
+      echo 'foo=var' > test.env
+      teller -c $FIXTURE show  2>&1 | grep 'foo'
+      test "$(teller --version)" = "teller {{version}}"
+    if: '>=2'
+    fixture:
+      content: |
+        providers:
+          dot_1:
+            kind: dotenv
+            maps:
+              - id: foo
+                path: test.env
+      extname: .yml
