@@ -13,19 +13,19 @@ dependencies:
 
 build:
   dependencies:
-    cmake.org: "*"
-    git-scm.org: "*"
-    gnu.org/wget: "*"
+    cmake.org: '*'
+    git-scm.org: '*'
+    gnu.org/wget: '*'
     gradle.org: '*'
     openjdk.org: ^17
     gnu.org/gcc: ^12 # for gfortran
     linux:
       # on mac we use the Accelerate framework instead, on linux this is linked statically
-      openblas.net: "*"
+      openblas.net: '*'
 
   script:
-      # there seems to be a loader bug with trying to dlopen libc on macos 12 and earlier.
-      # remove this step when macos 12 and under are no longer supported.
+    # there seems to be a loader bug with trying to dlopen libc on macos 12 and earlier.
+    # remove this step when macos 12 and under are no longer supported.
     - run: |
         sed -i 's|JNAKernel32Library.getInstance();|//JNAKernel32Library.getInstance();|' server/src/main/java/org/opensearch/bootstrap/Bootstrap.java
       if: darwin/x86-64
@@ -52,6 +52,8 @@ build:
         git reset --hard
         git submodule foreach --recursive git reset --hard
         git submodule update --init --recursive
+        git config user.email "hello@pkgx.dev"
+        git config user.name "pkgx"
       working-directory: k-NN
 
     # workarounds for m1 build. see: https://github.com/opensearch-project/k-NN/blob/main/DEVELOPER_GUIDE.md#extra-setup-for-mac-m1-machines
@@ -63,17 +65,7 @@ build:
       working-directory: k-NN/jni/external
 
     - run: |
-        IFS=:
-        for p in ${LD_LIBRARY_PATH}; do
-          if [ -e "${p}/libomp.dylib" ]; then
-            libomp_path="${p}/.."
-            break
-          fi
-        done
-        unset IFS
-        [ -z "${libomp_path}" ] && echo "libomp.dylib not found" && exit 1
-
-        sed -i -e "s|/usr/local/opt/libomp/|${libomp_path}/|g" jni/CMakeLists.txt
+        sed -i -e "s|/usr/local/opt/libomp/|{{deps.openmp.llvm.org.prefix}}/|g" jni/CMakeLists.txt
         sed -i -e 's/pragma message WARN/pragma message /g' jni/external/nmslib/similarity_search/src/distcomp_scalar.cc
         export CC=clang
         export CXX=clang++
@@ -121,9 +113,9 @@ provides:
 
 test:
   dependencies:
-     gnu.org/coreutils: ^9
-     stedolan.github.io/jq: "*"
-     curl.se: "*"
+    gnu.org/coreutils: ^9
+    stedolan.github.io/jq: '*'
+    curl.se: '*'
   script:
     - opensearch-plugin list
 
