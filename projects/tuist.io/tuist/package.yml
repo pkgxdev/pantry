@@ -14,15 +14,15 @@ provides:
 build:
   dependencies:
     github.com/unsignedapps/swift-create-xcframework: "*"
-    swift.org: 5.9.2
-  script: |
-    swift build -c release --product tuist
-    swift create-xcframework ProjectDescription
-    swift create-xcframework ProjectAutomation
-    mkdir -p {{prefix}}/bin
-    mv $(swift build --configuration release --show-bin-path)/tuist {{prefix}}/bin
-    mv $(swift build --configuration release --show-bin-path)/ProjectDescription.xcframework {{prefix}}/bin
-    mv $(swift build --configuration release --show-bin-path)/ProjectAutomation.xcframework {{prefix}}/bin
-    cp -R Templates {{prefix}}/bin
+  script:
+    - swift --version
+    - swift build -c release --product tuist
+    - swift create-xcframework ProjectDescription
+    - swift create-xcframework ProjectAutomation
+    - mkdir -p {{prefix}}/bin
+    - mv $(swift build --configuration release --show-bin-path)/tuist {{prefix}}/bin
+    - mv $(swift build --configuration release --show-bin-path)/ProjectDescription.xcframework {{prefix}}/bin
+    - mv $(swift build --configuration release --show-bin-path)/ProjectAutomation.xcframework {{prefix}}/bin
+    - cp -R Templates {{prefix}}/bin
 
 test: tuist version | grep {{version}}
