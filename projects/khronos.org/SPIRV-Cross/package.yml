@@ -29,5 +29,8 @@ provides:
   - bin/spirv-cross
 
 test:
+  dependencies:
+    khronos.org/glslang: '*'
   script:
-    - spirv-cross --help | grep "Prints this help message."
+    - glslangValidator -H -V -o test.spv test.frag
+    - spirv-cross --version 310 --es test.spv
