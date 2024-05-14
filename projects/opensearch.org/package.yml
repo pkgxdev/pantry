@@ -52,8 +52,8 @@ build:
         git reset --hard
         git submodule foreach --recursive git reset --hard
         git submodule update --init --recursive
-        git config user.email "hello@pkgx.dev"
-        git config user.name "pkgx"
+        git config --global user.email "hello@pkgx.dev"
+        git config --global user.name "pkgx"
       working-directory: k-NN
 
     # workarounds for m1 build. see: https://github.com/opensearch-project/k-NN/blob/main/DEVELOPER_GUIDE.md#extra-setup-for-mac-m1-machines
@@ -65,7 +65,7 @@ build:
       working-directory: k-NN/jni/external
 
     - run: |
-        sed -i -e "s|/usr/local/opt/libomp/|{{deps.openmp.llvm.org.prefix}}/|g" jni/CMakeLists.txt
+        sed -i -e "s|/usr/local/opt/libomp/|{{deps.openmp.llvm.org.prefix}}/|g" jni/CMakeLists.txt jni/cmake/*.cmake
         sed -i -e 's/pragma message WARN/pragma message /g' jni/external/nmslib/similarity_search/src/distcomp_scalar.cc
         export CC=clang
         export CXX=clang++
