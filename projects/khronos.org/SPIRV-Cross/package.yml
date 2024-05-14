@@ -1,0 +1,36 @@
+distributable:
+  url: https://github.com/KhronosGroup/SPIRV-Cross/archive/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: KhronosGroup/SPIRV-Cross
+
+build:
+  dependencies:
+    cmake.org: '*'
+  script:
+    - cmake -S . -B build $ARGS
+    - cmake --build build
+    - cmake --install build
+  env:
+    ARGS:
+      - -DSPIRV_CROSS_SHARED=ON
+      - -DSPIRV_CROSS_ENABLE_TESTS=OFF
+      - -DSPIRV_CROSS_STATIC=ON
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_INSTALL_LIBDIR={{prefix}}/lib
+      - -DCMAKE_BUILD_TYPE=Release
+      - -Wno-dev
+    linux:
+      ARGS:
+        - -DCMAKE_EXE_LINKER_FLAGS=-lstdc++fs
+
+provides:
+  - bin/spirv-cross
+
+test:
+  dependencies:
+    khronos.org/glslang: '*'
+  script:
+    - glslangValidator -H -V -o test.spv test.frag
+    - spirv-cross --version 310 --es test.spv
