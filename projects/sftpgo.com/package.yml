@@ -10,11 +10,11 @@ versions:
 
 build:
   dependencies:
-    go.dev: '*'
+    go.dev: ^1.22.2
   env:
     CGO_ENABLED: 0
-    COMMIT_SHA: "$(git describe --always --abbrev=8 --dirty)"
-    VERSION_DATE: "$(date -u +%FT%TZ)"
+    COMMIT_SHA: '$(git describe --always --abbrev=8 --dirty)'
+    VERSION_DATE: '$(date -u +%FT%TZ)'
     LDFLAGS:
       - -s
       - -w
@@ -23,7 +23,11 @@ build:
     linux:
       LDFLAGS:
         - -buildmode=pie
-  script: go build -v -trimpath -ldflags="${LDFLAGS}" -o {{prefix}}/bin/sftpgo
+  script:
+    # fails to find sqlite3.Error
+    - run: TAGS="-tags nosqlite"
+      if: 2.6.0
+    - go build -v $TAGS -trimpath -ldflags="${LDFLAGS}" -o {{prefix}}/bin/sftpgo
 
 provides:
   - bin/sftpgo
