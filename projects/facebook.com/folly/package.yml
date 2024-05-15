@@ -31,6 +31,15 @@ build:
     cmake.org: ^3.0.2
     freedesktop.org/pkg-config: ^0.29
   script:
+    # jemalloc has a long-running issue on clang
+    # https://github.com/jemalloc/jemalloc/issues/1557
+    - run: |
+        sed -i '/jemalloc\/jemalloc.h/i\
+        #undef JEMALLOC_USE_CXX_THROW' \
+        Malloc.h
+      working-directory: folly/portability
+      if: linux
+
     - cmake $ARGS -DBUILD_SHARED_LIBS=ON -S . -B shared
     - cmake --build shared
     - cmake --install shared
