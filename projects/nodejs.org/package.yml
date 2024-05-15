@@ -26,7 +26,7 @@ build:
     # otherwise, we hit https://reviews.llvm.org/D131307
     linux:
       llvm.org: '<16'
-      kernel.org/linux-headers: ^5 # since 22.2.0 for version.h
+      gnu.org/gcc: '*' # since 22.2.0 for version.h
     python.org: ~3.9
   script:
     - run: python configure.py $ARGS
@@ -53,9 +53,11 @@ build:
       CXX: clang++
       AS: llvm-as
     linux/x86-64:
-      CFLAGS: -fPIC
+      CFLAGS: -fPIC --gcc-toolchain={{deps.gnu.org/gcc.prefix}}
       CXXFLAGS: -fPIC
       LDFLAGS: -pie
+    linux/aarch64:
+      CFLAGS: --gcc-toolchain={{deps.gnu.org/gcc.prefix}}
 
 test:
   script: |
