@@ -22,6 +22,10 @@ dependencies:
   zlib.net: ^1
   darwin:
     sourceware.org/bzip2: '*'
+  linux:
+    llvm.org: ^17 # libunwind, since 2024.5.13.0
+    jemalloc.net: ^5 # since 2024.5.13.0
+    elfutils.org: ^0 # for dwarf.h, since 2024.5.13.0
 
 build:
   dependencies:
@@ -66,11 +70,15 @@ build:
       - -DCMAKE_BUILD_TYPE=Release
       - -DBUILD_TESTING=OFF
       - -DCMAKE_VERBOSE_MAKEFILE=ON
+      - -DFOLLY_USE_JEMALLOC=OFF
     linux/aarch64:
       ARGS:
         - -DCMAKE_C_FLAGS=-fPIC
         - -DCMAKE_CXX_FLAGS=-fPIC
-        - -DCMAKE_EXE_LINKER_FLAGS=-pie
+        - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-pie,-lrt,-lunwind
+    linux/x86-64:
+      ARGS:
+        - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-pie,-lrt,-lunwind
 
 test:
   fixture: |
