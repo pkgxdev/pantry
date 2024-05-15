@@ -9,10 +9,21 @@ build:
   dependencies:
     gnu.org/autoconf: '*'
     docbook.org: '*'
-  script: |
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }}
-    make install
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
+    - run: |
+        mv jemalloc/* .
+        rmdir jemalloc
+        ln -s . jemalloc
+      working-directory: ${{prefix}}/include
+
+    # jemalloc has a long-running issue on clang
+    # https://github.com/jemalloc/jemalloc/issues/1557
+    - run: sed -i 's/defined(JEMALLOC_USE_CXX_THROW)/defined(JEMALLOC_USE_CXX_THROW) \&\& \!defined(__clang__)/g' jemalloc.h
+      working-directory: ${{prefix}}/include
+      if: linux
   env:
     ARGS:
       - --prefix="{{prefix}}"
@@ -20,6 +31,5 @@ build:
       - --with-jemalloc-prefix=
 
 test:
-  script: |
-    cc test.c -L {{prefix}}/lib -ljemalloc -o test
-    ./test
+  - cc test.c -L {{prefix}}/lib -ljemalloc -o test
+  - ./test
