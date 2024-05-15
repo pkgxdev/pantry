@@ -26,7 +26,6 @@ build:
     # otherwise, we hit https://reviews.llvm.org/D131307
     linux:
       llvm.org: '<16'
-      gnu.org/gcc: '*' # since 22.2.0 for version.h
     python.org: ~3.9
   script:
     - run: python configure.py $ARGS
@@ -41,6 +40,15 @@ build:
       working-directory: deps/v8/src/wasm
       if: ^22
 
+    # some deps want a GCC-specific header
+    - run: |
+        sed -i 's/#include <version>/#ifndef __clang__\
+        #include <version>\
+        #endif/' \
+        v8/third_party/abseil-cpp/absl/base/config.h \
+        googletest/include/gtest/internal/gtest-port.h
+      working-directory: deps
+
     - make --jobs {{ hw.concurrency }} install
   env:
     ARGS:
@@ -54,10 +62,8 @@ build:
       AS: llvm-as
     linux/x86-64:
       CFLAGS: -fPIC
-      CXXFLAGS: -fPIC --gcc-toolchain={{deps.gnu.org/gcc.prefix}}
+      CXXFLAGS: -fPIC
       LDFLAGS: -pie
-    linux/aarch64:
-      CXXFLAGS: --gcc-toolchain={{deps.gnu.org/gcc.prefix}}
 
 test:
   script: |
