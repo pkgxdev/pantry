@@ -23,6 +23,7 @@ dependencies:
   darwin:
     sourceware.org/bzip2: '*'
   linux:
+    llvm.org: ^17 # libunwind, since 2024.5.13.0
     jemalloc.net: ^5 # since 2024.5.13.0
     elfutils.org: ^0 # for dwarf.h, since 2024.5.13.0
 
@@ -31,15 +32,6 @@ build:
     cmake.org: ^3.0.2
     freedesktop.org/pkg-config: ^0.29
   script:
-    # jemalloc has a long-running issue on clang
-    # https://github.com/jemalloc/jemalloc/issues/1557
-    - run: |
-        sed -i '/jemalloc\/jemalloc.h/i\
-        #undef JEMALLOC_USE_CXX_THROW' \
-        Malloc.h
-      working-directory: folly/portability
-      if: linux
-
     - cmake $ARGS -DBUILD_SHARED_LIBS=ON -S . -B shared
     - cmake --build shared
     - cmake --install shared
