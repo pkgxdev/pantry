@@ -25,6 +25,9 @@ build:
       gnu.org/make: '*'
       kernel.org/linux-headers: '*'
   script:
+    # llvm's `as` likes to be first, wrongly
+    - run: export PATH={{deps.gnu.org/binutils.prefix}}/bin:$PATH
+      if: linux
     - cmake -S . -B _build $CMAKE_ARGS
     - cmake --build _build
     - cmake --install _build
@@ -43,7 +46,6 @@ build:
       CC: gcc
       CXX: g++
       LD: gcc
-      AS: ${{deps.gnu.org/binutils.prefix}}/bin/as
       CMAKE_ARGS:
         - -DCMAKE_CXX_FLAGS=-fPIC
         - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-pie
