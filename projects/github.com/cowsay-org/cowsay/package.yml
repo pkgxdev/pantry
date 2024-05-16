@@ -1,27 +1,23 @@
 distributable:
-  url: git+https://github.com/cowsay-org/cowsay.git
-  ref: ${{version.tag}}
+  url: https://github.com/cowsay-org/cowsay/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
 
 display-name: cowsay
 
 versions:
   github: cowsay-org/cowsay
 
-platforms:
-  - darwin
-  - linux/x86-64
-
 dependencies:
   perl.org: '*'
 
 build:
   script:
-    - run: cpan File::Find
+    - run: cpanm -l {{prefix}} File::Find
       if: linux
     - make install prefix={{prefix}}
 
 provides:
-  - cowsay
+  - bin/cowsay
 
 test:
   script:
