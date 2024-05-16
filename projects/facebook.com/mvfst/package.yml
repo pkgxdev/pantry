@@ -59,6 +59,7 @@ test:
     curl.se: '*'
     linux:
       gnu.org/gcc: '*'
+      gnu.org/binutils: '*'
       gnu.org/make: '*'
   env:
     linux:
@@ -67,6 +68,10 @@ test:
       LD: gcc
       CXXFLAGS: -Wl,-latomic,-lrt
   script:
+    # llvm's `as` likes to be first, wrongly
+    - run: export PATH={{deps.gnu.org/binutils.prefix}}/bin:$PATH
+      if: linux
+
     # The best test we know is to build the echo client/server sample from the source.
     - PADDED_VERSION=$(echo "{{version}}" | gawk -F. '{printf "%04d.%02d.%02d.%02d\n", $1, $2, $3, $4}')
     - curl -L "https://github.com/facebook/mvfst/archive/v$PADDED_VERSION.tar.gz" | tar -xz --strip-components=1
