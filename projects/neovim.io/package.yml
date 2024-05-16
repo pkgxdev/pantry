@@ -20,12 +20,13 @@ build:
     info-zip.org/unzip: '*'
   script:
     - run: |
-        sed -i.bak \
-          -e "1i\
-          set(RT_LIBDIR \"$RT_LIBDIR\")" \
-          -e 's/\(build busted [0-9]\+\.[0-9]\+\.[0-9]\+\)/\1 RT_LIBDIR=${RT_LIBDIR}/' \
-          BuildLuarocks.cmake
-        rm BuildLuarocks.cmake.bak
+        if test -f BuildLuarocks.cmake; then
+          sed -i.bak \
+            -e "1i\
+            set(RT_LIBDIR \"$RT_LIBDIR\")" \
+            -e 's/\(build busted [0-9]\+\.[0-9]\+\.[0-9]\+\)/\1 RT_LIBDIR=${RT_LIBDIR}/' \
+            BuildLuarocks.cmake
+        fi
       working-directory: cmake.deps/cmake
       if: linux
     - make
