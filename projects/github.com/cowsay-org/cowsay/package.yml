@@ -1,0 +1,53 @@
+# this is a basic template for packages we strongly recommend looking at the
+# contents of both:
+#
+# * https://github.com/pkgxdev/pantry
+#
+# as a learning guide and reference. For example, if you are package a `go`
+# project, then browse the listings and find a go package.
+
+
+# this is the source tarball. Swap the version out for {{version}} or we won’t
+# be able to upgrade the package when it updates!
+# distributable:
+#   url: https://github.com/cowsay-org/cowsay/archive/refs/tags/v{{version}}.tar.gz
+#   # this obscure option dictates how many components are removed from the
+#   # extracted tarball. It only works with tarballs. You almost always want
+#   # `1`. If after extraction the src-directory is funky try `0` or `2`.
+#   strip-components: 1
+
+distributable:
+  url: git+https://github.com/cowsay-org/cowsay.git
+  ref: ${{version.tag}}
+
+# if omitted, most tools will work by looking at either the provides: list, or require the
+# fully-qualified name of the package. providing a display-name looks better in `pkgxdev/ossapp`
+# and allows simpler commands like `pkgx install common-package-name`. this _should never_ conflict
+# with any other display-name, or we will become upset and probably yell and stuff.
+display-name: cowsay
+
+versions:
+  github: cowsay-org/cowsay
+
+# this is an key/list of platforms that the package supports
+# usually omitted, which will default to all platforms
+platforms:
+  - darwin
+  - linux/x86-64
+
+build:
+  script: |
+
+    mkdir -p $PKGX_DIR/github.com/cowsay-org/cowsay/v{{version}}+brewing
+    cp cowsay $PKGX_DIR/github.com/cowsay-org/cowsay/v{{version}}+brewing/cowsay
+  # ^^ it’s extremely common for packages to require the above
+
+provides:
+  - cowsay
+
+test:
+  dependencies:
+    github.com/cowsay-org/cowsay: '*'
+  script:
+    test "$(cowsay --version)" = {{version}}
+
