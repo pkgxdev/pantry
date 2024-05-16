@@ -1,0 +1,28 @@
+distributable:
+  url: https://github.com/cowsay-org/cowsay/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+display-name: cowsay
+
+versions:
+  github: cowsay-org/cowsay
+
+runtime:
+  env:
+    PERL5LIB: "{{prefix}}/lib/perl5:$PERL5LIB"
+
+dependencies:
+  perl.org: ^5
+
+build:
+  dependencies:
+    cpanmin.us: '*'
+  script:
+    - run: cpanm -l {{prefix}} File::Find
+      if: linux
+    - make install prefix={{prefix}}
+
+provides:
+  - bin/cowsay
+
+test: cowsay "hi"
