@@ -1,0 +1,27 @@
+distributable:
+  url: https://github.com/henriklovhaug/md-tui/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/mdt
+
+versions:
+  github: henriklovhaug/md-tui
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
+  script:
+    # no features that don't run the TUI; add a --version flag for testing
+    - run: |
+        sed -i '/fn main() /a\
+            if std::env::args().nth(1) == Some("--version".to_string()) {\
+                println!("mdt v{{ version }}");\
+                return Ok(());\
+            }\
+        ' main.rs
+      working-directory: src
+    - cargo install --locked --path . --root {{prefix}}
+
+test: test "$(mdt --version)" = "mdt v{{ version }}"
