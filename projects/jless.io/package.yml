@@ -1,0 +1,22 @@
+distributable:
+  url: https://github.com/PaulJuliusMartinez/jless/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/jless
+
+versions:
+  github: PaulJuliusMartinez/jless
+
+dependencies:
+  linux:
+    x.org/xcb: 1
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
+    python.org: 3
+  script: cargo install --locked --path . --root {{prefix}}
+
+test: test "$(jless --version)" = "jless {{ version }}"
