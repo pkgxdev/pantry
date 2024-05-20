@@ -24,6 +24,10 @@ versions:
 dependencies:
   openssl.org: ^1.1
   invisible-island.net/ncurses: '*'
+  unixodbc.org: '*'
+  wxwidgets.org: '*'
+  linux/x86-64:
+    llvm.org: ^17 # libc++
 
 runtime:
   env:
@@ -51,15 +55,18 @@ build:
       - --enable-smp-support
       - --enable-threads
       - --enable-pie
+      - --enable-wx
       - --with-ssl={{deps.openssl.org.prefix}}
+      - --with-odbc={{deps.unixodbc.org.prefix}}
       - --without-javac
+    linux/x86-64:
+      CXFLAGS: -stdlib=libc++ $CXXFLAGS
+      LDFLAGS: $LDFLAGS -Wl,--no-allow-shlib-undefined
     darwin:
       ARGS:
         - --enable-darwin-64bit
         - --enable-kernel-poll
         - --with-dynamic-trace=dtrace
-    linux/x86-64:
-      LDFLAGS: $LDFLAGS -Wl,--no-allow-shlib-undefined
 
 test:
   script: |
