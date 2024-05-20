@@ -9,7 +9,7 @@ dependencies:
   github.com/facebookincubator/fizz: '*'
   facebook.com/folly: '*'
   facebook.com/wangle: '*'
-  fmt.dev: ^10
+  fmt.dev: ^9
   gflags.github.io: ^2.2.2
   google.com/glog: ^0.6
   openssl.org: ^1.1
@@ -25,6 +25,7 @@ build:
     github.com/westes/flex: '*'
     linux:
       gnu.org/gcc: '*' # since 2024.5.20.0, for version.h
+      llvm.org: ^17
   script:
     - cmake -S . -B build/shared $CMAKE_ARGS
     - cmake --build build/shared
@@ -41,6 +42,9 @@ build:
       # breaks the build
       - -DBUILD_SHARED_LIBS=OFF
     linux:
+      CC: clang
+      CXX: clang++
+      LD: clang
       CMAKE_ARGS:
         - -DCMAKE_C_FLAGS=-fPIC
         - -DCMAKE_CXX_FLAGS=-fPIC
