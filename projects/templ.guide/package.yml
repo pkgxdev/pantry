@@ -1,10 +1,9 @@
 distributable:
-  url: https://github.com/a-h/templ/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/a-h/templ/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
   github: a-h/templ
-  strip: /^v/
 
 build:
   dependencies:
@@ -16,9 +15,8 @@ build:
       - -w
       - -s
   script:
-    - go build -v -ldflags="$LDFLAGS" -o templ ./cmd/templ
-    - mkdir -p "{{ prefix }}"/bin
-    - mv templ "{{ prefix }}"/bin
+    - echo -n {{ version }} >.version
+    - go build -v -ldflags="$LDFLAGS" -o "{{ prefix }}"/bin/templ ./cmd/templ
 
 provides:
   - bin/templ
