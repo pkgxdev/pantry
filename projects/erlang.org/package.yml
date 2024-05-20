@@ -35,11 +35,14 @@ build:
       # https://github.com/llvm/llvm-project/issues/56854
       llvm.org: '<15'
     perl.org: '>=5'
-  script: |
-    export ERL_TOP=$(pwd)
-    ./configure $ARGS
-    make -j {{hw.concurrency}}
-    make install
+  script:
+    # 27.0 doesn't like being relocated with selinux
+    - run: sudo setenforce 0
+      if: linux/x86-64
+    - export ERL_TOP=$(pwd)
+    - ./configure $ARGS
+    - make -j {{hw.concurrency}}
+    - make install
   env:
     CC: cc
     CXX: c++
