@@ -33,12 +33,9 @@ build:
   dependencies:
     linux/x86-64:
       # https://github.com/llvm/llvm-project/issues/56854
-      llvm.org: '<15'
+      # llvm.org: '<15'
     perl.org: '>=5'
   script:
-    # 27.0 doesn't like being relocated with selinux
-    - run: setenforce 0
-      if: linux/x86-64
     - export ERL_TOP=$(pwd)
     - ./configure $ARGS
     - make -j {{hw.concurrency}}
