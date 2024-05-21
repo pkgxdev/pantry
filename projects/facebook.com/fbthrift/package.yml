@@ -9,7 +9,7 @@ dependencies:
   github.com/facebookincubator/fizz: '*'
   facebook.com/folly: '*'
   facebook.com/wangle: '*'
-  fmt.dev: ^9
+  fmt.dev: '>=10'
   gflags.github.io: ^2.2.2
   google.com/glog: ^0.6
   openssl.org: ^1.1
@@ -17,17 +17,18 @@ dependencies:
   facebook.com/zstd: ^1.5.5
   zlib.net: ^1.3
   libsodium.org: ^1.0.19
+  linux:
+    llvm.org: ^17 # libc++
 build:
   dependencies:
     cmake.org: '*'
     facebook.com/mvfst: '*'
     gnu.org/bison: '*'
     github.com/westes/flex: '*'
-    linux:
-      gnu.org/gcc: '*' # since 2024.5.20.0, for version.h
-      llvm.org: ^17
   script:
-    - cmake -S . -B build/shared $CMAKE_ARGS
+    - run: LINUX_ARGS="-DCMAKE_CXX_FLAGS=-fPIC -stdlib=libc++"
+      if: linux
+    - cmake -S . -B build/shared $CMAKE_ARGS "$LINUX_ARGS"
     - cmake --build build/shared
     - cmake --install build/shared
   env:
@@ -47,7 +48,6 @@ build:
       LD: clang
       CMAKE_ARGS:
         - -DCMAKE_C_FLAGS=-fPIC
-        - -DCMAKE_CXX_FLAGS=-fPIC
         - -DCMAKE_EXE_LINKER_FLAGS=-pie
 provides:
   - bin/thrift1
