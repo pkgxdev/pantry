@@ -23,12 +23,14 @@ build:
     github.com/westes/flex: '*'
   working-directory: build
   script:
+    # Applying ians patches on x86-64 too, since he sometimes gets fixes in faster, like:
+    # https://github.com/orgs/Homebrew/discussions/5216
     # If we have a patch, apply it
     - run: |
         if test -n "$PATCH{{version.major}}{{version.minor}}"; then
           curl "$PATCH{{version.major}}{{version.minor}}" | patch -p1
         fi
-      if: darwin/aarch64
+      if: darwin
       working-directory: ..
 
     # if there's no diff yet, unpack iains' source over ours
@@ -36,7 +38,7 @@ build:
         if test -n "$BRANCH{{version.major}}{{version.minor}}"; then
           curl -L "$BRANCH{{version.major}}{{version.minor}}" | tar xz --strip-components=1
         fi
-      if: darwin/aarch64
+      if: darwin
       working-directory: ..
 
     # The spaces mess things up in the env key
