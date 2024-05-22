@@ -29,6 +29,7 @@ build:
         ln -s ./../libexec/bin/dart dart
         ln -s ./../libexec/bin/dartaotruntime dartaotruntime
       working-directory: '{{prefix}}/bin'
+  skip: fix-patchelf
   env:
     DEPOT_TOOLS_UPDATE: 0
     PATH: $SRCROOT/resources/depot_tools:$PATH
@@ -42,8 +43,6 @@ provides:
 test:
   script:
     - dart create dart-test
-    - run: dart pub cache repair
-      working-directory: dart-test
     - run: dart run
       working-directory: dart-test
     - run: dart run | grep "Hello world"
