@@ -1,10 +1,9 @@
 distributable:
   strip-components: 1
-  url: https://github.com/wasmerio/wasmer/archive/refs/tags/v{{version.raw}}.tar.gz
+  url: https://github.com/wasmerio/wasmer/archive/refs/tags/{{version.tag}}.tar.gz
 
 versions:
   github: wasmerio/wasmer/tags
-  strip: /v/
 
 interprets:
   extensions: wasm
@@ -22,14 +21,16 @@ build:
       - -A warnings
       # Remove debug information (to reduce binary size)
       - -C debuginfo=0
-  script: |
-    mkdir -p "{{prefix}}"/bin
-    make build-wasmer
-    mv target/release/wasmer "{{prefix}}"/bin
+    linux:
+      CC: clang
+      CXX: clang++
+      LD: clang
+  script:
+    - mkdir -p "{{prefix}}"/bin
+    - make build-wasmer
+    - mv target/release/wasmer "{{prefix}}"/bin
 
 provides:
   - bin/wasmer
 
-test:
-  script: |
-    test "$(wasmer --version)" = "wasmer {{version.raw}}"
+test: test "$(wasmer --version)" = "wasmer {{version.raw}}"
