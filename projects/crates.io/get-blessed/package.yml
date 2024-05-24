@@ -1,0 +1,31 @@
+distributable:
+  url: https://github.com/josueBarretogit/get_blessed_rs/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/get-blessed
+
+versions:
+  github: josueBarretogit/get_blessed_rs
+
+dependencies:
+  linux:
+    openssl.org: '*'
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
+  script:
+    # no features that don't run the TUI; add a --version flag for testing
+    - run: |
+        sed -i '/fn main()/a\
+            if std::env::args().nth(1) == Some("--version".to_string()) {\
+                println!("get-blessed v{{ version }}");\
+                return Ok(());\
+            }\
+        ' main.rs
+      working-directory: src
+    - cargo install --locked --path . --root {{prefix}}
+
+test: test "$(get-blessed --version)" = "get-blessed v{{ version }}"
