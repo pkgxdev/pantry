@@ -1,0 +1,35 @@
+distributable:
+  url: https://github.com/Ph0enixKM/Amber/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/amber
+
+interprets:
+  extensions: ab
+  args: amber
+
+versions:
+  github: Ph0enixKM/Amber
+  strip: /-alpha/ # until there's a stable release
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path . --root {{prefix}}
+
+test:
+  dependencies:
+    pkgx.sh: ^1
+  script:
+    - run: |
+        test "$(amber $FIXTURE)" = "Hello, world!"
+        test "$(pkgx $FIXTURE)" = "Hello, world!"
+        amber $FIXTURE hello.sh
+      fixture:
+        extname: ab
+        content: |
+          let hello = "Hello, world!"
+          echo hello
+    - test "$(./hello.sh)" = "Hello, world!"
