@@ -26,13 +26,12 @@ test:
   dependencies:
     pkgx.sh: ^1
   script:
-    - run: |
-        test "$(amber $FIXTURE)" = "Hello, world!"
-        test "$(pkgx $FIXTURE)" = "Hello, world!"
-        amber $FIXTURE hello.sh
+    - run: cat $FIXTURE >test.ab
       fixture:
         extname: ab
         content: |
-          let hello = "Hello, world!"
-          echo hello
-    - test "$(./hello.sh)" = "Hello, world!"
+          echo ((12 + 34) * 9) % 4
+    - test "$(amber test.ab)" = 2
+    - test "$(pkgx test.ab)" = 2
+    - amber test.ab test.sh
+    - test "$(./test.sh)" = 2
