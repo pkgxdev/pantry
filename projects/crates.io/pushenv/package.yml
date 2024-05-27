@@ -1,0 +1,21 @@
+distributable:
+  url: https://github.com/JensGM/pushenv/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/pushenv
+
+versions:
+  github: JensGM/pushenv
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path . --root {{prefix}}
+
+test:
+  - run: test "$(pushenv $FIXTURE -- sh -c 'echo $FOO')" = "bar"
+    fixture:
+      extname: .env
+      content: FOO=bar
