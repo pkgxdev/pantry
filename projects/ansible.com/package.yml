@@ -1,40 +1,33 @@
 distributable:
-  url: https://github.com/ansible/ansible/archive/v{{version}}.tar.gz
+  url: https://github.com/ansible/ansible/archive/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
-  github: ansible/ansible/tags  # reads github *tags*
-  strip: /^v/
+  github: ansible/ansible/tags # reads github *tags*
 
 dependencies:
-  python.org: '>=3.7<3.12'
+  pkgx.sh: 1
 
 build:
-  script: |
-    python-venv.sh {{prefix}}/bin/ansible
+  dependencies:
+    python.org: '>=3.7<3.12'
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
 
-    # manually register all the ansible-* executables with tea
-    #FIXME dirty hack, replace with a proper solution
-    for _EXEC in {{prefix}}/venv/bin/ansible-*; do
-      CMD_NAME="${_EXEC##*/}" # get text after the last slash (the command name)
-      TRG_BIN_NAME="{{prefix}}/bin/$CMD_NAME"
-      cp -v  {{prefix}}/bin/ansible $TRG_BIN_NAME # copy the tea-configured executable with the correct name
-      # replace the original 'ansible' with the correct $CMD_NAME
-      sed -i.bak -e \
-        "s|/bin/ansible|/bin/$CMD_NAME|" \
-        $TRG_BIN_NAME
-    done
-
+    - ${{prefix}}/venv/bin/pip install .
     # install paramiko, a python ssh library sometimes used with ansible
-    {{prefix}}/venv/bin/pip install paramiko #FIXME should we pin a version?
+    - ${{prefix}}/venv/bin/pip install paramiko
 
-    rm -v {{prefix}}/bin/ansible-*.bak
+    - bkpyvenv seal {{prefix}} ansible ansible-config ansible-connection ansible-console ansible-doc ansible-galaxy ansible-inventory ansible-playbook ansible-pull ansible-test ansible-vault
 
+    # needs libpython
+    - run: cp -a {{deps.python.org.prefix}}/lib/libpython* .
+      working-directory: ${{prefix}}/lib/
 
 test:
-  script: |
-    ansible --version
-    ansible-playbook playbook.yml -i hosts.ini
+  script:
+    - ansible --version
+    - ansible-playbook playbook.yml -i hosts.ini
 
     #FIXME below is a test from the brew formula, but I'm not sure what it's testing
     # ^ especially considering that 'requests' is not a part of ansible's dependencies
@@ -43,22 +36,20 @@ test:
     # {{prefix}}/venv/bin/python -c "$py_script"
 
     # Ensure ansible-vault can encrypt/decrypt files.
-    echo $SECRET_MESSAGE > vault-test-file.txt
-    echo $VAULT_PASSWORD > vault-password.txt
+    - echo $SECRET_MESSAGE > vault-test-file.txt
+    - echo $VAULT_PASSWORD > vault-password.txt
 
-    ansible-vault encrypt --vault-password-file vault-password.txt vault-test-file.txt
-    test "$(cat vault-test-file.txt)" != "$SECRET_MESSAGE" # encrypted
+    - ansible-vault encrypt --vault-password-file vault-password.txt vault-test-file.txt
+    - test "$(cat vault-test-file.txt)" != "$SECRET_MESSAGE" # encrypted
 
-    ansible-vault decrypt --vault-password-file vault-password.txt vault-test-file.txt
-    test "$(cat vault-test-file.txt)" = "$SECRET_MESSAGE" # decrypted
+    - ansible-vault decrypt --vault-password-file vault-password.txt vault-test-file.txt
+    - test "$(cat vault-test-file.txt)" = "$SECRET_MESSAGE" # decrypted
 
     # ensure paramiko is installed
-    {{prefix}}/venv/bin/python -c "import paramiko"
-
+    - ${{prefix}}/venv/bin/python -c "import paramiko"
   env:
-    VAULT_PASSWORD: "123456789"
-    SECRET_MESSAGE: "Hello world!"
-
+    VAULT_PASSWORD: '123456789'
+    SECRET_MESSAGE: 'Hello world!'
 
 provides:
   - bin/ansible
