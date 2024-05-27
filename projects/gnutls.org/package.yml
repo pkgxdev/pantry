@@ -21,20 +21,20 @@ build:
     linux:
       gnu.org/gcc: '*'
     freedesktop.org/pkg-config: '*'
-  script: |
+  script:
     # clang doesn't like the -march=all flag
-    if test "{{hw.platform}}+{{hw.arch}}" = "linux+aarch64"; then
-      cd lib/accelerated/aarch64/
-      sed -i.bak -e 's/-march=all/-mcpu=generic/' Makefile.am Makefile.in
-      rm Makefile.am.bak Makefile.in.bak
-      cd ../../..
-    fi
+    - run: sed -i -e 's/-march=all/-mcpu=generic/' Makefile.am Makefile.in
+      if: linux/aarch64
+      working-directory: lib/accelerated/aarch64/
 
     #FIXME: use similar logic to the one in openssl.org/x509_def.c to
     # locate {{deps.curl.se/ca-certs.prefix}}/ssl/cert.pem
 
-    ./configure --prefix={{ prefix }} --disable-guile
-    make --jobs {{ hw.concurrency }} install
+    - ./configure --prefix={{ prefix }} --disable-guile
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    darwin:
+      CFLAGS: $CFLAGS -Wno-implicit-int
 
 test: gnutls-cli --x509cafile={{deps.curl.se/ca-certs.prefix}}/ssl/cert.pem tea.xyz <<< "GET /"
 
