@@ -54,7 +54,15 @@ build:
       mkdir -p {{prefix}}/share
       mv prompts {{prefix}}/share
 
-    - install -D convert.py $VIRTUAL_ENV/bin/convert.py
+    - |
+      if test -f convert.py; then
+        install -D convert.py $VIRTUAL_ENV/bin/convert.py
+      elif test -f examples/convert-legacy-llama.py; then
+        install -D examples/convert-legacy-llama.py $VIRTUAL_ENV/bin/convert.py
+      else
+        echo "No convert.py found"
+        false
+      fi
 
     - |
       bkpyvenv stage {{prefix}} {{version}}
