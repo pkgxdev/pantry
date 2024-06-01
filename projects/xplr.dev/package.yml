@@ -12,9 +12,14 @@ build:
   dependencies:
     rust-lang.org: '>=1.56'
     rust-lang.org/cargo: '*'
-    linux:
-      gnu.org/gcc: '*' # wants gcc linker
-  script: cargo install --locked --path . --root {{prefix}}
+  script:
+    # linux/aarch64 wants aarch64-linux-gnu-gcc
+    - run: |
+        mkdir .bin
+        ln -s "$(command -v clang)" .bin/aarch64-linux-gnu-gcc
+        export PATH="$PWD/.bin:$PATH"
+      if: linux/aarch64
+    - cargo install --path . --root {{prefix}}
 
 test:
   - xplr --help
