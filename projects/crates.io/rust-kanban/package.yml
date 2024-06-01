@@ -1,0 +1,22 @@
+distributable:
+  url: https://github.com/yashs662/rust_kanban/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/rust-kanban
+
+versions:
+  github: yashs662/rust_kanban/tags
+
+dependencies:
+  openssl.org: ^1.1
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
+  script: cargo install --path . --root {{prefix}}
+
+test:
+  - rust-kanban --help
+  - test "$(rust-kanban --version)" = "rust-kanban {{version}}"
