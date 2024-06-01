@@ -1,0 +1,26 @@
+distributable:
+  url: https://github.com/sayanarijit/xplr/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/xplr
+
+versions:
+  github: sayanarijit/xplr
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
+  script:
+    # linux/aarch64 wants aarch64-linux-gnu-gcc
+    - run: |
+        mkdir .bin
+        ln -s "$(command -v clang)" .bin/aarch64-linux-gnu-gcc
+        export PATH="$PWD/.bin:$PATH"
+      if: linux/aarch64
+    - cargo install --path . --root {{prefix}}
+
+test:
+  - xplr --help
+  - test "$(xplr --version)" = "xplr {{version}}"
