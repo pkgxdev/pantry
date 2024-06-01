@@ -1,0 +1,22 @@
+distributable:
+  url: https://github.com/ynqa/jnv/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/jnv
+
+versions:
+  github: ynqa/jnv
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
+    gnu.org/autoconf: 2
+    gnu.org/automake: 1
+    gnu.org/libtool: 2
+  script: cargo install --path . --root {{prefix}}
+
+test:
+  - jnv --help
+  - test "$(jnv --version)" = "jnv {{version}}"
