@@ -1,0 +1,66 @@
+distributable:
+  url: https://github.com/snowplow/factotum/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/factotum
+
+versions:
+  github: snowplow/factotum
+
+dependencies:
+  openssl.org: ^1.1
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path . --root {{prefix}}
+
+test:
+  - test "$(factotum --version)" = "Factotum version {{version}}"
+  - run: factotum run $FIXTURE
+    fixture:
+      extname: .factfile
+      content: |
+        {
+            "schema": "iglu:com.snowplowanalytics.factotum/factfile/jsonschema/1-0-0",
+            "data": {
+                "name": "Factotum demo",
+                "tasks": [
+                    {
+                        "name": "echo alpha",
+                        "executor": "shell",
+                        "command": "echo",
+                        "arguments": [ "alpha" ],
+                        "dependsOn": [],
+                        "onResult": {
+                            "terminateJobWithSuccess": [],
+                            "continueJob": [ 0 ]
+                        }
+                    },
+                    {
+                        "name": "echo beta",
+                        "executor": "shell",
+                        "command": "echo",
+                        "arguments": [ "beta" ],
+                        "dependsOn": [ "echo alpha" ],
+                        "onResult": {
+                            "terminateJobWithSuccess": [],
+                            "continueJob": [ 0 ]
+                        }
+                    },
+                    {
+                        "name": "echo omega",
+                        "executor": "shell",
+                        "command": "echo",
+                        "arguments": [ "and omega!" ],
+                        "dependsOn": [ "echo beta" ],
+                        "onResult": {
+                            "terminateJobWithSuccess": [],
+                            "continueJob": [ 0 ]
+                        }
+                    }
+                ]
+            }
+        }
