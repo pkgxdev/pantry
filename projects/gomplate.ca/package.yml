@@ -7,19 +7,10 @@ versions:
 
 build:
   dependencies:
-    # panic: Something in this program imports
-    # go4.org/unsafe/assume-no-moving-gc to declare that it assumes a non-moving
-    # garbage collector, but your version of go4.org/unsafe/assume-no-moving-gc
-    # hasn't been updated to assert that it's safe against the go1.20 runtime.
-    # If you want to risk it, run with environment variable
-    # ASSUME_NO_MOVING_GC_UNSAFE_RISK_IT_WITH=go1.20 set. Notably, if go1.20
-    # adds a moving garbage collector, this program is unsafe to use.
-    go.dev: ~1.19
-  script: |
-    go mod download
-    go build -v -ldflags="$LDFLAGS" ./cmd/gomplate
-    mkdir -p "{{prefix}}"/bin
-    mv gomplate "{{prefix}}"/bin
+    go.dev: ~1.22.3
+  script:
+    - go mod download
+    - go build -v -ldflags="$LDFLAGS" -o "{{prefix}}"/bin/gomplate ./cmd/gomplate
   env:
     LDFLAGS:
       - -s
@@ -29,7 +20,7 @@ build:
       # or segmentation fault
       # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
       LDFLAGS:
-      - -buildmode=pie
+        - -buildmode=pie
 
 provides:
   - bin/gomplate
@@ -37,6 +28,6 @@ provides:
 test:
   fixture: |
     Hello, {{ .Env.USER }}
-  script: |
-    test "$(gomplate < $FIXTURE)" = "Hello, $USER"
-    test "$(gomplate --version)" = "gomplate version {{version}}"
+  script:
+    - test "$(gomplate < $FIXTURE)" = "Hello, $USER"
+    - test "$(gomplate --version)" = "gomplate version {{version}}"
