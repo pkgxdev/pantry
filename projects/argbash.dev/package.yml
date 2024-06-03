@@ -6,22 +6,23 @@ versions:
   github: matejak/argbash
 
 dependencies:
-  gnu.org/bash: '>=3.0'
+  gnu.org/bash: '>=3'
+  gnu.org/autoconf: '*'
 
 build:
-  dependencies:
-    gnu.org/autoconf: '*'
   script:
-    - make install PREFIX={{prefix}}
-  working-directory: resources
-  
+    - mkdir -p '{{prefix}}'
+    - cp -r bin src '{{prefix}}'
+
 provides:
   - bin/argbash
   - bin/argbash-init
   - bin/argbash-1to2
 
 test:
-  - argbash-init --pos positional-arg --opt option --opt-bool print minimal.m4
-  - cat minimal.m4 | grep 'This is just a script template'
   - argbash --version | grep {{version}}
   - argbash --help | grep 'Argbash is an argument parser generator for Bash'
+  - argbash-init --pos positional-arg --opt option --opt-bool print minimal.m4
+  - cat minimal.m4 | grep 'This is just a script template'
+  - argbash minimal.m4 -o minimal.sh
+  - ./minimal.sh --help | grep 'Usage:'
