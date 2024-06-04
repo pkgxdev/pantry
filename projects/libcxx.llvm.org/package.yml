@@ -6,11 +6,6 @@ versions:
   github: llvm/llvm-project
   strip: /^llvmorg-/
 
-runtime:
-  env:
-    linux:
-      CPATH: $CPATH:{{prefix}}/include/c++/v1
-
 build:
   dependencies:
     cmake.org: '>=3<3.29'
@@ -46,6 +41,12 @@ test:
   dependencies:
     llvm.org: '*'
   script:
+    # installed libc++ causes header conflict
+    - run: |
+        if ! ldconfig -p | grep -q libc++.so; then
+          ARGS="$ARGS -cxx-isystem {{prefix}}/include/c++/v1"
+        fi
+      if: linux
     - run: clang++ $ARGS $FIXTURE
       fixture:
         extname: cpp
