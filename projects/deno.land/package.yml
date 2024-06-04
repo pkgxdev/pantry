@@ -20,16 +20,6 @@ runtime:
 
 build:
   script:
-    # deno does not need llvm to build on darwin+x86-64, and if it is present,
-    # deno will be linked to its libunwind, which then causes deno to need llvm
-    # in runtime.
-    - |
-      if test "{{hw.platform}}+{{ hw.arch }}" != "darwin+x86-64"; then
-        set -o allexport
-        source <(pkgx +llvm.org^17)
-        set +o allexport
-      fi
-
     - |
       rust_version=$(yq -er .toolchain.channel rust-toolchain.toml)
       if semverator lt "$rust_version" 1.67.0; then
@@ -70,6 +60,9 @@ build:
 
     - cargo install --locked --path cli --root "{{ prefix }}"
   dependencies:
+    darwin:
+      llvm.org: '*'
+    # rust-lang.org: various
     git-scm.org: 2 # to build tinycc
     curl.se: '*' # required to download v8 (python is another option)
     cmake.org: ^3 # deno.land>=1.36.1 requires cmake
@@ -92,5 +85,12 @@ test:
       if: '>=1.40.5'
     # tests download of dependencies
     - deno eval 'import { VERSION } from "https://deno.land/std@0.221.0/version.ts"; console.log(VERSION);' | tee /dev/stderr | grep -q ^0.221.0$
+    # ensure we haven't linked libunwind
+    - if $LIST_LIBS {{prefix}}/bin/deno | grep libunwind; then false; fi
   fixture: |
     console.log("Hello, world!");
+  env:
+    darwin:
+      LIST_LIBS: otool -l
+    linux:
+      LIST_LIBS: ldd
