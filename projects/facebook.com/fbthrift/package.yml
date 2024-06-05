@@ -20,20 +20,18 @@ dependencies:
   zlib.net: ^1.3
   libsodium.org: ^1.0.19
   linux:
-    gnu.org/gcc: 13 # libstdc++
+    libcxx.llvm.org: '*' # libstdc++
 build:
   dependencies:
     cmake.org: '*'
     facebook.com/mvfst: '*'
     gnu.org/bison: '*'
     github.com/westes/flex: '*'
-    linux:
-      gnu.org/binutils: '*'
   script:
-    # llvm's `as` likes to be first, wrongly
-    - run: export PATH={{deps.gnu.org/binutils.prefix}}/bin:$PATH
+    # use libc++ from llvm
+    - run: export EXTRA_ARGS="-DCMAKE_CXX_FLAGS=-fPIC -stdlib=libc++ -cxx-isystem {{deps.libcxx.llvm.org.prefix}}/include/c++/v1"
       if: linux
-    - cmake -S . -B build/shared $CMAKE_ARGS
+    - cmake -S . -B build/shared $CMAKE_ARGS "$EXTRA_ARGS"
     - cmake --build build/shared
     - cmake --install build/shared
   env:
@@ -48,13 +46,9 @@ build:
       # breaks the build
       - -DBUILD_SHARED_LIBS=OFF
     linux:
-      CC: gcc
-      CXX: g++
-      LD: gcc
       CMAKE_ARGS:
         - -DCMAKE_C_FLAGS=-fPIC
-        - -DCMAKE_CXX_FLAGS=-fPIC
-        - -DCMAKE_EXE_LINKER_FLAGS=-pie
+        - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-pie,-lc++
 provides:
   - bin/thrift1
 test:
