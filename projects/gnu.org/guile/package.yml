@@ -1,0 +1,62 @@
+distributable:
+  url: https://ftp.gnu.org/gnu/guile/guile-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://ftp.gnu.org/gnu/guile/
+  match: /guile-\d+\.\d+\.\d+\.tar\.gz/
+  strip:
+    - /^guile-/
+    - /\.tar\.gz$/
+
+runtime:
+  env:
+    GUILE_LOAD_PATH: ${{prefix}}/share/guile/{{version.marketing}}
+    GUILE_LOAD_COMPILED_PATH: ${{prefix}}/lib/guile/${{version.marketing}}/ccache
+    GUILE_SYSTEM_EXTENSIONS_PATH: ${{prefix}}/lib/guile/${{version.marketing}}/extensions
+
+dependencies:
+  hboehm.info/gc: ^8
+  gnu.org/gmp: ^6
+  gnu.org/libtool: ^2
+  gnu.org/libunistring: ^1
+  freedesktop.org/pkg-config: ^0.29 # guile-config is a wrapper around pkg-config.
+  gnu.org/readline: ^8
+  gnu.org/gperf: ^3
+  sourceware.org/libffi: ^3
+  github.com/besser82/libxcrypt: ^4
+
+build:
+  script:
+    - ./configure $ARGS
+    - make --jobs {{hw.concurrency}} install
+    - sed -i "s|{{prefix}}|\$(dirname \$0)/..|g" {{prefix}}/bin/guile-config
+    - sed -i "s|${GUILE:-{{prefix}}/bin/guile}|\$(dirname \$0)/guile|g" {{prefix}}/bin/guild
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --libdir={{prefix}}/lib
+      - --disable-dependency-tracking
+      - --with-libreadline-prefix={{deps.gnu.org/readline.prefix}}
+      - --with-libgmp-prefix={{deps.gnu.org/gmp.prefix}}
+      - --disable-nls
+
+provides:
+  - bin/guild
+  - bin/guile
+  - bin/guile-config
+  - bin/guile-snarf
+  - bin/guile-tools
+
+test:
+  script:
+    - guile --version | grep {{version}}
+    - run: guile $FIXTURE | grep "Hello World"
+      fixture:
+        contents: |
+          (display "Hello World")
+          (newline)
+        extname: scm
+    - guile-config --help
+  env:
+    GUILE_AUTO_COMPILE: 0
