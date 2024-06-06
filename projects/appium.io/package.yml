@@ -19,7 +19,10 @@ build:
       python.org: ^3 # node-gyp needs python to build
   script:
     - chmod +x lib/appium.js
-    - npm install .
+    # required but not added
+    - run: EXTRA_PACKAGES="@appium/logger"
+      if: '>=2.7'
+    - npm install . $EXTRA_PACKAGES
       --global
       --prefix="{{prefix}}"
       --install-links
@@ -27,6 +30,6 @@ build:
 provides:
   - bin/appium
 
-test: 
+test:
   - appium --version | grep {{version}}
   - appium driver install uiautomator2
