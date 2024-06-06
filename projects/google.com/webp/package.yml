@@ -1,7 +1,6 @@
-
 distributable:
-   url: https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-{{version}}.tar.gz
-   strip-components: 1
+  url: https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-{{version}}.tar.gz
+  strip-components: 1
 
 versions:
   github: webmproject/libwebp/tags # this is a mirror of the official repo
@@ -13,38 +12,32 @@ dependencies:
   simplesystems.org/libtiff: ^4
 
 build:
-  dependencies:
-    # gnu.org/autoconf: '*'
-    # gnu.org/automake: '*'
-    # gnu.org/libtool.org: '*'
-  script: |
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }}
-    make install
-  env:
-    ARGS:
-      - --prefix="{{prefix}}"
+  - ./configure --prefix="{{prefix}}"
+  - make --jobs {{ hw.concurrency }}
+  - make install
+  - run: rm *.la
+    working-directory: '{{prefix}}/lib'
 
 provides:
   darwin:
-  - bin/cwebp
-  - bin/dwebp
-  - bin/gif2webp
-  - bin/img2webp
-  - bin/vwebp
-  - bin/webpinfo
-  - bin/webpmux
+    - bin/cwebp
+    - bin/dwebp
+    - bin/gif2webp
+    - bin/img2webp
+    - bin/vwebp
+    - bin/webpinfo
+    - bin/webpmux
   linux:
-  - bin/cwebp
-  - bin/dwebp
-  - bin/gif2webp
-  - bin/img2webp
-  - bin/webpinfo
-  - bin/webpmux
+    - bin/cwebp
+    - bin/dwebp
+    - bin/gif2webp
+    - bin/img2webp
+    - bin/webpinfo
+    - bin/webpmux
 
 test:
   dependencies:
     gnu.org/wget: '*'
-  script: |
-    wget https://webkit.org/blog-files/color-gamut/Shoes-sRGB.jpg
-    img2webp Shoes-sRGB.jpg -o out.webp
+  script:
+    - wget https://webkit.org/blog-files/color-gamut/Shoes-sRGB.jpg
+    - img2webp Shoes-sRGB.jpg -o out.webp
