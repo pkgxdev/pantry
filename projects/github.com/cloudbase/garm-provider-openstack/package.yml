@@ -12,18 +12,16 @@ build:
     go.dev: ^1.20
   env:
     CGO_ENABLED: 0
-    LDFLAGS:
+    GO_LDFLAGS:
     - -s
     - -w
     - -X main.Version={{ version }}
     linux:
       LDFLAGS:
       - -buildmode=pie
-  script: go build -v -ldflags="${LDFLAGS}" -o "{{ prefix }}"/bin/garm-provider-openstack
+  script: go build -v -ldflags="${GO_LDFLAGS}" -o "{{ prefix }}"/bin/garm-provider-openstack
 
 provides:
-- bin/garm-provider-openstack
+  - bin/garm-provider-openstack
 
-test:
-  script:
-    test "$(garm-provider-openstack --version)" = {{version}}
+test: test "$(garm-provider-openstack --version)" = {{version}}
