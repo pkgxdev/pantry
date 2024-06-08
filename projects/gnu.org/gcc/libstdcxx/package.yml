@@ -107,7 +107,20 @@ test:
     linux:
       gnu.org/gcc: '*'
   script:
-    - g++ -o test test.cc -lstdc++
+    - run: g++ -o test $FIXTURE -std=c++20 -lstdc++
+      fixture:
+        extname: cc
+        content: |
+          #include <iostream>
+          struct exception { };
+          int main()
+          {
+            std::cout << "Hello, world!" << std::endl;
+            try { throw exception{}; }
+              catch (exception) { }
+              catch (...) { }
+            return 0;
+          }
     - test "$(./test)" = "Hello, world!"
     - run: ldd test | grep "{{prefix}}/lib/libstdc++.so"
       if: linux
