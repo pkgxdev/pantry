@@ -42,8 +42,10 @@ build:
       working-directory: ..
 
     # On Linux, we need to statically link libstdc++ and libgcc
-    - run: export ARGS=("${ARGS[@]}" --with-boot-ldflags="-static-libstdc++ -static-libgcc $LDFLAGS")
+    - run: export ARGS=($ARGS --with-boot-ldflags="-static-libstdc++ -static-libgcc $LDFLAGS")
       if: linux
+    - run: export ARGS=($ARGS)
+      if: darwin
 
     - ../configure "${ARGS[@]}"
     - make --jobs {{ hw.concurrency }}
