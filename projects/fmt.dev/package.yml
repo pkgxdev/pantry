@@ -8,10 +8,13 @@ versions:
 build:
   dependencies:
     cmake.org: ^3
-  working-directory: build
-  script: |
-    cmake .. $ARGS
-    make --jobs {{ hw.concurrency }} install
+  script:
+    - cmake . -B build $ARGS -DBUILD_SHARED_LIBS=ON
+    - run: make --jobs {{ hw.concurrency }} install
+      working-directory: build
+    - cmake . -B build-static $ARGS -DBUILD_SHARED_LIBS=OFF
+    - run: make --jobs {{ hw.concurrency }} install
+      working-directory: build-static
   env:
     ARGS:
       - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
@@ -23,17 +26,17 @@ build:
         - -DCMAKE_EXE_LINKER_FLAGS=-pie
 
 test:
-  fixture: |
-    #include <iostream>
-    #include <string>
-    #include <fmt/format.h>
-    int main()
-    {
-      std::string str = fmt::format("The answer is {}", 42);
-      std::cout << str;
-      return 0;
-    }
-  script: |
-    mv $FIXTURE fixture.cc
-    c++ fixture.cc -lfmt -std=c++11
-    test "$(./a.out)" = "The answer is 42"
+  - run: c++ $FIXTURE -lfmt -std=c++11
+    fixture:
+      extname: cc
+      content: |
+        #include <iostream>
+        #include <string>
+        #include <fmt/format.h>
+        int main()
+        {
+          std::string str = fmt::format("The answer is {}", 42);
+          std::cout << str;
+          return 0;
+        }
+  - test "$(./a.out)" = "The answer is 42"
