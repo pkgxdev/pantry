@@ -22,7 +22,7 @@ dependencies:
   zlib.net: ^1.3
   libsodium.org: ^1.0.19
   linux:
-    libcxx.llvm.org: '*'
+    gnu.org/gcc/libstdcxx: '*'
 
 build:
   dependencies:
@@ -31,7 +31,7 @@ build:
     gnu.org/bison: '*'
     github.com/westes/flex: '*'
   script:
-    - cmake -S . -B build/shared $CMAKE_ARGS "-DCMAKE_CXX_FLAGS=$CXXFLAGS"
+    - cmake -S . -B build/shared $CMAKE_ARGS "-DCMAKE_CXX_FLAGS=$CXXFLAGS" "-DCMAKE_C_FLAGS=$CFLAGS"
     - cmake --build build/shared
     - cmake --install build/shared
   env:
@@ -53,13 +53,14 @@ build:
       CXX: clang++
       LD: clang
       CMAKE_ARGS:
-        - -DCMAKE_C_FLAGS=-fPIC
-        - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-pie,-lc++,--allow-shlib-undefined
-        - -DCMAKE_SHARED_LINKER_FLAGS=-Wl,-lc++,--allow-shlib-undefined
+        - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-pie,-lstdc++,--allow-shlib-undefined
+        - -DCMAKE_SHARED_LINKER_FLAGS=-Wl,-lstdc++,--allow-shlib-undefined
+      CFLAGS:
+        - -fPIC
+        - -isystem {{deps.gnu.org/gcc/libstdcxx.prefix}}/include/c++/v{{deps.gnu.org/gcc/libstdcxx.version}}
       CXXFLAGS:
         - -fPIC
-        - -stdlib=libc++
-        - -cxx-isystem {{deps.libcxx.llvm.org.prefix}}/include/c++/v1
+        - -cxx-isystem {{deps.gnu.org/gcc/libstdcxx.prefix}}/include/c++/v{{deps.gnu.org/gcc/libstdcxx.version}}
 
 provides:
   - bin/thrift1
