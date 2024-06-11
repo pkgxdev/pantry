@@ -6,7 +6,7 @@ versions:
   npm: code-server
 
 dependencies:
-  nodejs.org: ^18
+  nodejs.org: ~20.6 # requires ^20, before .6 there were napi issues, and .14 also manifests
   linux:
     gnome.org/libsecret: ^0.21
     x.org/x11: ^1.8
@@ -15,7 +15,6 @@ dependencies:
 
 build:
   dependencies:
-    nodejs.org: <18.20 # node-gyp doesn't build with 18.20.x
     npmjs.com: '*'
     python.org: '>=3.11'
   script:
@@ -39,6 +38,9 @@ build:
       - '@vscode/spdlog'
       - yauzl
     linux:
+      CC: clang
+      CXX: clang++
+      LD: clang
       CXXFLAGS: $CXXFLAGS -D__NO_INLINE__
 
 provides:
