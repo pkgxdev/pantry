@@ -24,6 +24,8 @@ versions:
 dependencies:
   openssl.org: ^1.1
   invisible-island.net/ncurses: '*'
+  linux/x86-64:
+    gnu.org/gcc/libstdcxx: '*'
 
 runtime:
   env:
@@ -31,20 +33,19 @@ runtime:
 
 build:
   dependencies:
-    linux/x86-64:
-      # https://github.com/llvm/llvm-project/issues/56854
-      llvm.org: '<15'
     perl.org: '>=5'
-  script: |
-    export ERL_TOP=$(pwd)
-    ./configure $ARGS
-    make -j {{hw.concurrency}}
-    make install
+    linux/x86-64:
+      gnu.org/gcc: '*'
+  script:
+    - ./configure $ARGS
+    - make -j {{hw.concurrency}}
+    - make install
   env:
     CC: cc
     CXX: c++
     LD: ld
     CFLAGS: -O2 -g $CFLAGS
+    ERL_TOP: $SRCROOT
     ARGS:
       - --disable-debug
       - --disable-silent-rules
@@ -56,6 +57,10 @@ build:
       - --enable-pie
       - --with-ssl={{deps.openssl.org.prefix}}
       - --without-javac
+    linux/x86-64:
+      CC: gcc
+      CXX: g++
+      LD: gcc
     darwin:
       ARGS:
         - --enable-darwin-64bit
@@ -63,32 +68,35 @@ build:
         - --with-dynamic-trace=dtrace
 
 test:
-  script: |
-    epmd -kill || true
-    epmd -daemon -address 127.0.0.1 -relaxed_command_check
-    test "$(escript $FIXTURE 10)" = "factorial 10 = 3628800"
-    epmd -kill || true
+  dependencies:
+    pkgx.sh: 1
+  script:
+    - epmd -kill || true
+    - epmd -daemon -address 127.0.0.1 -relaxed_command_check
+    - run: test "$(escript $FIXTURE 10)" = "factorial 10 = 3628800"
+      fixture:
+        extname: erl
+        content: |
+          #!/usr/bin/env escript
+          %% -*- erlang -*-
+          %%! -smp enable -sname factorial -mnesia debug verbose
+          main([String]) ->
+              try
+                  N = list_to_integer(String),
+                  F = fac(N),
+                  io:format("factorial ~w = ~w\n", [N,F])
+              catch
+                  _:_ ->
+                      usage()
+              end;
+          main(_) ->
+              usage().
 
+          usage() ->
+              io:format("usage: factorial integer\n").
+
+          fac(0) -> 1;
+          fac(N) -> N * fac(N-1).
+    - epmd -kill || true
   env:
-    ERL_DIST_PORT: 8001
-  fixture: |
-    #!/usr/bin/env escript
-    %% -*- erlang -*-
-    %%! -smp enable -sname factorial -mnesia debug verbose
-    main([String]) ->
-        try
-            N = list_to_integer(String),
-            F = fac(N),
-            io:format("factorial ~w = ~w\n", [N,F])
-        catch
-            _:_ ->
-                usage()
-        end;
-    main(_) ->
-        usage().
-
-    usage() ->
-        io:format("usage: factorial integer\n").
-
-    fac(0) -> 1;
-    fac(N) -> N * fac(N-1).
+    ERL_DIST_PORT: $(pkgx get-port | tail -n1)
