@@ -1,7 +1,7 @@
 distributable:
   #FIXME: pandoc and pandoc-cli have been split :/
   # url: https://hackage.haskell.org/package/pandoc-cli{{ version }}/pandoc-cli-{{ version }}.tar.gz
-  url: https://github.com/jgm/pandoc/archive/refs/tags/{{ version }}.tar.gz
+  url: https://github.com/jgm/pandoc/archive/refs/tags/{{ version.tag }}.tar.gz
   strip-components: 1
 
 #FIXME pandoc has 4 digit versions : /
@@ -20,9 +20,8 @@ dependencies:
 
 build:
   dependencies:
-    haskell.org: '>=8.6.5'
+    haskell.org: ~9.4
     haskell.org/cabal: ^3
-    crates.io/semverator: ^0
   working-directory: pandoc-cli
   script:
     # pandoc 2.x - no pandoc-cli subdirectory
@@ -31,11 +30,23 @@ build:
 
     - cabal update
     - mkdir -p {{prefix}}/bin
-    # digest versions above 0.0.1.4 have RPATH issues for us.
+
+    # FIXME: this isn't great, but it'll fix any ghc install at build time
+    # needs install-time customization for a true fix
     - run: |
-        sed -i.bak -e's/text$/text, digest <0.0.1.4/' pandoc-cli.cabal
-        rm pandoc-cli.cabal.bak
+        if ! grep -q 'rpath,{{pkgx.prefix}}' settings; then
+          sed -i \
+            -e 's|\(C compiler flags.*\)")|\1 -Wl,-rpath,{{pkgx.prefix}}")|' \
+            -e 's|\(C++ compiler flags.*\)")|\1 -Wl,-rpath,{{pkgx.prefix}}")|' \
+            -e 's|\(C compiler link flags.*\)")|\1 -Wl,-rpath,{{pkgx.prefix}}")|' \
+            settings
+        fi
+      if: darwin
+      working-directory: ${{deps.haskell.org.prefix}}/.ghcup/ghc/{{deps.haskell.org.version}}/lib/ghc-{{deps.haskell.org.version}}/lib
+
     - cabal v2-install $ARGS
+  # else x86-64 segfaults
+  skip: fix-patchelf
   env:
     ARGS:
       - --install-method=copy
