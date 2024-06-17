@@ -1,0 +1,28 @@
+distributable:
+  url: https://github.com/rucio/rucio/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+display-name: rucio-client
+
+versions:
+  github: rucio/rucio 
+
+dependencies:
+  pkgx.sh: ^1
+build:
+  dependencies:
+    gnu.org/bash: ^5
+    python.org: ">=3.9"
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    #- ${{prefix}}/venv/bin/pip install -v setuptools
+    - ./tools/build_sdist.sh clients
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} rucio rucio-admin
+
+provides:
+  - bin/rucio
+  - bin/rucio-admin
+
+test:
+  script:
+    test "$(rucio --version)" = {{version}}
