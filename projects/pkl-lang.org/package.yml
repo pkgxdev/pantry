@@ -1,17 +1,35 @@
-distributable: ~
-
-warnings:
-  - vendored
+distributable:
+  url: https://github.com/apple/pkl/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
 
 versions:
   github: apple/pkl
 
+companions:
+  openjdk.org: '*'
+
 build:
   dependencies:
-    curl.se: '*'
+    openjdk.org: ^17
+    linux:
+      zlib.net: 1
+      llvm.org: '*'
   script:
-    - curl -L "https://github.com/apple/pkl/releases/download/{{version}}/pkl-${SYS_NAME}-${ARCH_NAME}" -o "pkl"
-    - install -D pkl {{prefix}}/bin/pkl
+    # graalvm fails to understand our compiler environment
+    - run: |
+        sed -i '/-H:Class=org.pkl.cli.Main/i\
+              add("--static")\
+              add("--native-compiler-path={{deps.llvm.org.prefix}}/bin/clang")\
+              add("-H:CCompilerOption=-Wl,-L{{deps.zlib.net.prefix}}/lib")\
+              add("-H:-CheckToolchain")' \
+              pkl-cli.gradle.kts
+      if: linux
+      working-directory: pkl-cli
+    - ./gradlew -DreleaseBuild=true :pkl-cli:javaExecutable :pkl-cli:${SYS_NAME%os}ExecutableA${ARCH_NAME#a}
+    - run: |
+        install -D jpkl {{prefix}}/bin/jpkl
+        install -D pkl-${SYS_NAME}-${ARCH_NAME} {{prefix}}/bin/pkl
+      working-directory: pkl-cli/build/executable
   env:
     darwin:
       SYS_NAME: macos
@@ -23,9 +41,15 @@ build:
       ARCH_NAME: aarch64
 
 provides:
+  - bin/jpkl
   - bin/pkl
 
 test:
+  - pkl --version
+  - jpkl --version
   - pkl --version | grep {{version}}
+  - jpkl --version | grep {{version}}
   - pkl eval template.pkl | grep 'Writing a Template'
+  - jpkl eval template.pkl | grep 'Writing a Template'
   - pkl eval class.pkl | grep 'bestForConfig'
+  - jpkl eval class.pkl | grep 'bestForConfig'
