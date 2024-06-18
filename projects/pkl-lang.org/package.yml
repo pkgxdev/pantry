@@ -5,9 +5,8 @@ distributable:
 versions:
   github: apple/pkl
 
-platforms:
-  - darwin
-  - linux/aarch64 # can't resolve the segfault on x86-64 (PIC, almost certainly)
+warnings:
+  - vendored-linux-x86-64
 
 companions:
   openjdk.org: '*'
@@ -18,6 +17,8 @@ build:
     linux:
       zlib.net: 1
       llvm.org: '*'
+    linux/x86-64:
+      curl.se: '*'
   script:
     # graalvm fails to understand our compiler environment
     - run: |
@@ -55,20 +56,40 @@ build:
       if: '>=0.26.0'
       working-directory: pkl-cli
 
-    - ./gradlew -DreleaseBuild=true :pkl-cli:javaExecutable :pkl-cli:${SYS_NAME%os}ExecutableA${ARCH_NAME#a}
+    - ./gradlew -DreleaseBuild=true $TARGETS
+
+    # vendor pkl-linux-x86-64 to deal with PIC issues
+    - run: curl -LO "https://github.com/apple/pkl/releases/download/{{version.tag}}/pkl-linux-amd64"
+      working-directory: pkl-cli/build/executable
+
     - run: |
         install -D jpkl {{prefix}}/bin/jpkl
         install -D pkl-${SYS_NAME}-${ARCH_NAME} {{prefix}}/bin/pkl
       working-directory: pkl-cli/build/executable
+  skip: fix-patchelf
   env:
-    darwin:
-      SYS_NAME: macos
-    linux:
+    TARGETS:
+      - :pkl-cli:javaExecutable
+    linux/x86-64:
       SYS_NAME: linux
-    x86-64:
       ARCH_NAME: amd64
-    aarch64:
+      # TARGETS:
+      #   - :pkl-cli:linuxExecutableAmd64
+    linux/aarch64:
+      SYS_NAME: linux
       ARCH_NAME: aarch64
+      TARGETS:
+        - :pkl-cli:linuxExecutableAarch64
+    darwin/aarch64:
+      SYS_NAME: macos
+      ARCH_NAME: aarch64
+      TARGETS:
+        - :pkl-cli:macExecutableAarch64
+    darwin/x86-64:
+      SYS_NAME: macos
+      ARCH_NAME: amd64
+      TARGETS:
+        - :pkl-cli:macExecutableAmd64
 
 provides:
   - bin/jpkl
