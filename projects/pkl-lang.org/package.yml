@@ -16,12 +16,19 @@ build:
       llvm.org: '*'
   script:
     # graalvm fails to understand our compiler environment
+    - run: LINE_PREFIX=","
+      if: <0.26.0
     - run: |
-        sed -i '/-H:Class=org.pkl.cli.Main/i\
-              add("--static")\
-              add("--native-compiler-path={{deps.llvm.org.prefix}}/bin/clang")\
-              add("-H:CCompilerOption=-Wl,-L{{deps.zlib.net.prefix}}/lib")\
-              add("-H:-CheckToolchain")' \
+        LINE_PREFIX="add("
+        LINE_SUFFIX=")"
+      if: '>=0.26.0'
+    - run: |
+        sed -i "/-H:Class=org.pkl.cli.Main/i\
+              ${LINE_PREFIX}\"--static\"${LINE_SUFFIX}\
+              ${LINE_PREFIX}\"--native-compiler-path={{deps.llvm.org.prefix}}/bin/clang\"${LINE_SUFFIX}\
+              ${LINE_PREFIX}\"-H:CCompilerOption=-fPIC\"${LINE_SUFFIX}\
+              ${LINE_PREFIX}\"-H:CCompilerOption=-Wl,-pie,-L{{deps.zlib.net.prefix}}/lib\"${LINE_SUFFIX}\
+              ${LINE_PREFIX}\"-H:-CheckToolchain\"${LINE_SUFFIX}" \
               pkl-cli.gradle.kts
       if: linux
       working-directory: pkl-cli
@@ -30,8 +37,6 @@ build:
         install -D jpkl {{prefix}}/bin/jpkl
         install -D pkl-${SYS_NAME}-${ARCH_NAME} {{prefix}}/bin/pkl
       working-directory: pkl-cli/build/executable
-  # otherwise segfaults
-  skip: fix-patchelf
   env:
     darwin:
       SYS_NAME: macos
