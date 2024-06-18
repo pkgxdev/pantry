@@ -7,11 +7,6 @@ display-name: Vanna
 versions:
   github: vanna-ai/vanna
 
-# /Users/runner/work/pantry/pantry/testbeds/vanna.ai-0.2.1.sh: line 38:  4897 Illegal instruction: 4  python test_vanna.py
-platforms:
-  - darwin/aarch64
-  - linux
-
 dependencies:
   python.org: ^3.12
   linux:
@@ -39,11 +34,14 @@ build:
     # additional requirements as of 0.4.1
     - run: python -m pip install qdrant-client fastembed --prefix={{prefix}}
       if: '>=0.4.1'
+    # additional requirements as of 0.6.1
+    - run: python -m pip install 'pymilvus[model]' --prefix={{prefix}}
+      if: '>=0.6.1'
     # protobuf ^5.27 (transient dep) currently not playing nicely with other components
     - run: |
         rm -rf ${{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages/proto
         python -m pip install proto-plus==1.24.0.dev1 --prefix={{prefix}}
-      if: 0.6.0
+      if: '>=0.6.0'
 
     - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
       working-directory: ${{prefix}}/lib
@@ -56,15 +54,6 @@ build:
 test:
   dependencies:
     curl.se: '*'
-  env:
-    VANNA_API_KEY: FAKE_API_KEY
-    OPENAI_API_KEY: FAKE_API_KEY
-    MISTRAL_API_KEY: FAKE_API_KEY
-    ANTHROPIC_API_KEY: FAKE_API_KEY
-    SNOWFLAKE_ACCOUNT: FAKE_ACCOUNT
-    SNOWFLAKE_USERNAME: FAKE_USERNAME
-    SNOWFLAKE_PASSWORD: FAKE_PASSWORD
-    GEMINI_API_KEY: FAKE_API_KEY
   script:
-    - curl -L "https://raw.githubusercontent.com/vanna-ai/vanna/{{ version.tag }}/tests/test_vanna.py" -o test_vanna.py
-    - python test_vanna.py
+    - curl -LO "https://raw.githubusercontent.com/vanna-ai/vanna/{{ version.tag }}/tests/test_imports.py"
+    - python test_imports.py
