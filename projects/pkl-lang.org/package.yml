@@ -16,22 +16,31 @@ build:
       llvm.org: '*'
   script:
     # graalvm fails to understand our compiler environment
-    - run: LINE_PREFIX=","
+    - run: |
+        if test "{{hw.platform}}" = "darwin"; then
+          sed -i '/-H:Class=org.pkl.cli.Main/i\
+                ,"--static"\
+                ,"--native-compiler-path={{deps.llvm.org.prefix}}/bin/clang"\
+                ,"-H:CCompilerOption=-fPIC"\
+                ,"-H:CCompilerOption=-Wl,-pie,-L{{deps.zlib.net.prefix}}/lib"\
+                ,"-H:-CheckToolchain"' \
+            pkl-cli.gradle.kts
+        fi
       if: <0.26.0
-    - run: |
-        LINE_PREFIX="add("
-        LINE_SUFFIX=")"
-      if: '>=0.26.0'
-    - run: |
-        sed -i "/-H:Class=org.pkl.cli.Main/i\
-              ${LINE_PREFIX}\"--static\"${LINE_SUFFIX}\
-              ${LINE_PREFIX}\"--native-compiler-path={{deps.llvm.org.prefix}}/bin/clang\"${LINE_SUFFIX}\
-              ${LINE_PREFIX}\"-H:CCompilerOption=-fPIC\"${LINE_SUFFIX}\
-              ${LINE_PREFIX}\"-H:CCompilerOption=-Wl,-pie,-L{{deps.zlib.net.prefix}}/lib\"${LINE_SUFFIX}\
-              ${LINE_PREFIX}\"-H:-CheckToolchain\"${LINE_SUFFIX}" \
-              pkl-cli.gradle.kts
-      if: linux
       working-directory: pkl-cli
+    - run: |
+        if test "{{hw.platform}}" = "darwin"; then
+          sed -i '/-H:Class=org.pkl.cli.Main/i\
+              add("--static")\
+              add("--native-compiler-path={{deps.llvm.org.prefix}}/bin/clang")\
+              add("-H:CCompilerOption=-fPIC")\
+              add("-H:CCompilerOption=-Wl,-pie,-L{{deps.zlib.net.prefix}}/lib")\
+              add("-H:-CheckToolchain")' \
+            pkl-cli.gradle.kts
+        fi
+      if: '>=0.26.0'
+      working-directory: pkl-cli
+
     - ./gradlew -DreleaseBuild=true :pkl-cli:javaExecutable :pkl-cli:${SYS_NAME%os}ExecutableA${ARCH_NAME#a}
     - run: |
         install -D jpkl {{prefix}}/bin/jpkl
