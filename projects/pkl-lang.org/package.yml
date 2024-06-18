@@ -5,6 +5,10 @@ distributable:
 versions:
   github: apple/pkl
 
+platforms:
+  - darwin
+  - linux/aarch64 # can't resolve the segfault on x86-64 (PIC, almost certainly)
+
 companions:
   openjdk.org: '*'
 
@@ -21,10 +25,15 @@ build:
           sed -i '/-H:Class=org.pkl.cli.Main/i\
                 ,"--static"\
                 ,"--native-compiler-path={{deps.llvm.org.prefix}}/bin/clang"\
-                ,"-H:CCompilerOption=-fPIC"\
-                ,"-H:CCompilerOption=-Wl,-pie,-L{{deps.zlib.net.prefix}}/lib"\
+                ,"-H:CCompilerOption=-Wl,-L{{deps.zlib.net.prefix}}/lib"\
                 ,"-H:-CheckToolchain"' \
             pkl-cli.gradle.kts
+          if test "{{hw.arch}}" = "x86-64"; then
+            sed -i '/-H:Class=org.pkl.cli.Main/i\
+                ,"-H:CCompilerOption=-fPIC"\
+                ,"-H:CCompilerOption=-Wl,-pie"' \
+              pkl-cli.gradle.kts
+          fi
         fi
       if: <0.26.0
       working-directory: pkl-cli
@@ -33,10 +42,15 @@ build:
           sed -i '/-H:Class=org.pkl.cli.Main/i\
               add("--static")\
               add("--native-compiler-path={{deps.llvm.org.prefix}}/bin/clang")\
-              add("-H:CCompilerOption=-fPIC")\
-              add("-H:CCompilerOption=-Wl,-pie,-L{{deps.zlib.net.prefix}}/lib")\
+              add("-H:CCompilerOption=-Wl,-L{{deps.zlib.net.prefix}}/lib")\
               add("-H:-CheckToolchain")' \
             pkl-cli.gradle.kts
+          if test "{{hw.arch}}" = "x86-64"; then
+            sed -i '/-H:Class=org.pkl.cli.Main/i\
+              add("-H:CCompilerOption=-fPIC")\
+              add("-H:CCompilerOption=-Wl,-pie")' \
+              pkl-cli.gradle.kts
+          fi
         fi
       if: '>=0.26.0'
       working-directory: pkl-cli
