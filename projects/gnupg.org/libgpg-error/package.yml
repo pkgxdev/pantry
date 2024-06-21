@@ -17,11 +17,20 @@ provides:
   - bin/yat2m
 
 build:
-  script: |
-    ./configure --prefix={{prefix}} --enable-install-gpg-error-config
-    make
-    make check
-    make install
+  script:
+    - run: |
+        sed -i -e '/#include "gpgrt-int.h"/a\
+        \
+        #if defined (__APPLE__)\
+        extern char** environ;\
+        #endif' \
+        spawn-posix.c
+      if: '>=1.50'
+      working-directory: src
+    - ./configure --prefix={{prefix}} --enable-install-gpg-error-config
+    - make
+    - make check
+    - make install
 
 test:
   script: test "$(gpg-error 56)" = "$OUTPUT"
