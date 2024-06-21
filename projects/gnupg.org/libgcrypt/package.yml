@@ -17,12 +17,12 @@ provides:
 
 build:
   dependencies:
-    gnupg.org/libgpg-error: 1
+    gnupg.org/libgpg-error: ^1.49
     darwinsys.com/file: '*' # needed for configure to build dylibs
-    linux:
-      llvm.org: <17 # symbol not defined
+    llvm.org: '*'
   script:
     - ./configure $ARGS
+    - CFLAGS="$CFLAGS -O0" make -C random rndjent.o rndjent.lo
     - make
     - make check
     - make install
@@ -30,16 +30,12 @@ build:
     CC: clang
     CXX: clang++
     ARGS:
-    - --prefix={{prefix}}
-    - --enable-static
-    - --enable-shared
+      - --prefix={{prefix}}
+      - --enable-static
+      - --enable-shared
+      - --disable-asm
     linux:
       LD: ld.lld
-    linux/x86-64:
-      ARGS:
-        # basic.c:317:16: error: inline assembly requires more registers than available
-        #   asm volatile("movdqu %[data0], %%xmm0\n"
-        - --disable-asm
 
 test:
   script: |
