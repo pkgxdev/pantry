@@ -47,6 +47,7 @@ async function get_config(pkg: {project: string}) {
   }
 }
 
+// https://github.com/actions/runner-images#available-images
 function get_matrix(platform: string) {
   const name = platform.replace('/', '+')
   switch (platform) {
@@ -54,7 +55,7 @@ function get_matrix(platform: string) {
       const os = ["self-hosted", "macOS", "ARM64"]
       return {
         os, name,
-        "test-os": [os],
+        "test-os": ["macos-13-xlarge", "macos-14"],
         "test-container": [null],
         tinyname: "²"
       }}
@@ -62,7 +63,7 @@ function get_matrix(platform: string) {
       const os = ["self-hosted", "macOS", "X64"]
       return {
         os, name,
-        "test-os": ["macos-11", "macos-12"],
+        "test-os": ["macos-12", "macos-13", "macos-14-large"],
         "test-container": [null],
         tinyname: "x64"
       }}

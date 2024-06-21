@@ -1,19 +1,30 @@
 distributable:
   url: https://github.com/aws-cloudformation/cfn-lint/archive/v{{version}}.tar.gz
   strip-components: 1
+
 versions:
   github: aws-cloudformation/cfn-lint
+
 dependencies:
-  python.org: ~3.11
+  pkgx.sh: 1
   pyyaml.org: '*'
   github.com/benjaminp/six: '*'
+
 build:
   dependencies:
     rust-lang.org: '*'
+    python.org: ~3.11
   script:
-    - python-venv.sh {{prefix}}/bin/cfn-lint
+    # wrong version shipped
+    - run: sed -i 's/__version__ = ".*"/__version__ = "{{version}}"/' version.py
+      working-directory: src/cfnlint
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} cfn-lint
+
 provides:
   - bin/cfn-lint
+
 test:
   script:
     - cfn-lint test.yml

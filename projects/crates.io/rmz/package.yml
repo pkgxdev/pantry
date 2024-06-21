@@ -1,0 +1,32 @@
+distributable:
+  url: https://github.com/SUPERCILEX/fuc/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/rmz
+
+versions:
+  github: SUPERCILEX/fuc
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.60'
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path rmz --root {{prefix}}
+
+test:
+  # there is some odd bug that seems to prevent the full test from running
+  # on linux/x86-64 runners always and aarch64 runners sometimes,
+  # so we'll do a short one
+  # https://github.com/SUPERCILEX/fuc/issues/34
+  - run: |
+      touch a
+      rmz a
+      test ! -f a
+      exit
+    if: linux
+  - mkdir a
+  - touch a/b
+  - test -f a/b
+  - rmz a
+  - test ! -d a

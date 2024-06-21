@@ -1,26 +1,36 @@
 distributable:
-  url: https://github.com/google/re2/archive/refs/tags/{{version.major}}-0{{version.minor}}-0{{version.patch}}.tar.gz
+  url: https://github.com/google/re2/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
-  - 2023.3.1 # FIXME: the versions are "yyyy-mm-dd" but no idea how I can parse this without regex
+  github: google/re2
+
+dependencies:
+  abseil.io: ^20240116
 
 build:
   dependencies:
     cmake.org: '*'
-  script: |
+  script:
+    # escaping. sigh
+    - sed -i
+      -e 's/\$(includedir)#/$(subst +brewing,,$(includedir))#/'
+      -e 's/\$(libdir)#/$(subst +brewing,,\$(libdir))#/'
+      -e "s/sed -i ''/sed -i/g"
+      Makefile
+
     # Run this for pkg-config files
-    make common-install prefix={{prefix}}
+    - make common-install prefix={{prefix}}
 
     # Build and install static library
-    cmake -B build-static $ARGS
-    make --jobs={{ hw.concurrency }} -C build-static
-    make -C build-static install
+    - cmake -B build-static $ARGS
+    - make --jobs={{ hw.concurrency }} -C build-static
+    - make -C build-static install
 
     # Build and install shared library
-    cmake -B build-shared -DBUILD_SHARED_LIBS=ON $ARGS
-    make --jobs={{ hw.concurrency }} -C build-shared
-    make -C build-shared install
+    - cmake -B build-shared -DBUILD_SHARED_LIBS=ON $ARGS
+    - make --jobs={{ hw.concurrency }} -C build-shared
+    - make -C build-shared install
   env:
     ARGS:
       - -DCMAKE_BUILD_TYPE=Release
@@ -28,15 +38,19 @@ build:
       - -DRE2_BUILD_TESTING=OFF
 
 test:
-  fixture: |
-    #include <re2/re2.h>
-    #include <assert.h>
-    int main() {
-      assert(!RE2::FullMatch("hello", "e"));
-      assert(RE2::PartialMatch("hello", "e"));
-      return 0;
-    }
-  script: |
-    mv $FIXTURE test.cpp
-    c++ -std=c++11 test.cpp -lre2 -o test
-    ./test
+  dependencies:
+    linux:
+      gnu.org/gcc: '*' # version.h
+  script:
+    - run: c++ -std=c++20 $FIXTURE -lre2 -o test
+      fixture:
+        extname: cpp
+        content: |
+          #include <re2/re2.h>
+          #include <assert.h>
+          int main() {
+            assert(!RE2::FullMatch("hello", "e"));
+            assert(RE2::PartialMatch("hello", "e"));
+            return 0;
+          }
+    - ./test

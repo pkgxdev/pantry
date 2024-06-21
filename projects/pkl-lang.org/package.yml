@@ -1,31 +1,108 @@
-distributable: ~
-
-warnings:
-  - vendored
+distributable:
+  url: https://github.com/apple/pkl/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
 
 versions:
   github: apple/pkl
 
+warnings:
+  - vendored-linux-x86-64
+
+companions:
+  openjdk.org: '*'
+
 build:
   dependencies:
-    curl.se: '*'
-  script:
-    - curl -L "https://github.com/apple/pkl/releases/download/{{version}}/pkl-${SYS_NAME}-${ARCH_NAME}" -o "pkl"
-    - install -D pkl {{prefix}}/bin/pkl
-  env:
-    darwin:
-      SYS_NAME: macos
+    openjdk.org: ^17
     linux:
+      zlib.net: 1
+      llvm.org: '*'
+    linux/x86-64:
+      curl.se: '*'
+  script:
+    # graalvm fails to understand our compiler environment
+    - run: |
+        if test "{{hw.platform}}" = "linux"; then
+          sed -i '/-H:Class=org.pkl.cli.Main/i\
+                ,"--static"\
+                ,"--native-compiler-path={{deps.llvm.org.prefix}}/bin/clang"\
+                ,"-H:CCompilerOption=-Wl,-L{{deps.zlib.net.prefix}}/lib"\
+                ,"-H:-CheckToolchain"' \
+            pkl-cli.gradle.kts
+          if test "{{hw.arch}}" = "x86-64"; then
+            sed -i '/-H:Class=org.pkl.cli.Main/i\
+                ,"-H:CCompilerOption=-fPIC"\
+                ,"-H:CCompilerOption=-Wl,-pie"' \
+              pkl-cli.gradle.kts
+          fi
+        fi
+      if: <0.26.0
+      working-directory: pkl-cli
+    - run: |
+        if test "{{hw.platform}}" = "linux"; then
+          sed -i '/-H:Class=org.pkl.cli.Main/i\
+              add("--static")\
+              add("--native-compiler-path={{deps.llvm.org.prefix}}/bin/clang")\
+              add("-H:CCompilerOption=-Wl,-L{{deps.zlib.net.prefix}}/lib")\
+              add("-H:-CheckToolchain")' \
+            pkl-cli.gradle.kts
+          if test "{{hw.arch}}" = "x86-64"; then
+            sed -i '/-H:Class=org.pkl.cli.Main/i\
+              add("-H:CCompilerOption=-fPIC")\
+              add("-H:CCompilerOption=-Wl,-pie")' \
+              pkl-cli.gradle.kts
+          fi
+        fi
+      if: '>=0.26.0'
+      working-directory: pkl-cli
+
+    - ./gradlew -DreleaseBuild=true $TARGETS
+
+    # vendor pkl-linux-x86-64 to deal with PIC issues
+    - run: curl -LO "https://github.com/apple/pkl/releases/download/{{version.tag}}/pkl-linux-amd64"
+      if: linux/x86-64
+      working-directory: pkl-cli/build/executable
+
+    - run: |
+        install -D jpkl {{prefix}}/bin/jpkl
+        install -D pkl-${SYS_NAME}-${ARCH_NAME} {{prefix}}/bin/pkl
+      working-directory: pkl-cli/build/executable
+  skip: fix-patchelf
+  env:
+    TARGETS:
+      - :pkl-cli:javaExecutable
+    linux/x86-64:
       SYS_NAME: linux
-    x86-64:
       ARCH_NAME: amd64
-    aarch64:
+      # TARGETS:
+      #   - :pkl-cli:linuxExecutableAmd64
+    linux/aarch64:
+      SYS_NAME: linux
       ARCH_NAME: aarch64
+      TARGETS:
+        - :pkl-cli:linuxExecutableAarch64
+    darwin/aarch64:
+      SYS_NAME: macos
+      ARCH_NAME: aarch64
+      TARGETS:
+        - :pkl-cli:macExecutableAarch64
+    darwin/x86-64:
+      SYS_NAME: macos
+      ARCH_NAME: amd64
+      TARGETS:
+        - :pkl-cli:macExecutableAmd64
 
 provides:
+  - bin/jpkl
   - bin/pkl
 
 test:
+  - pkl --version
+  - jpkl --version
   - pkl --version | grep {{version}}
+  - jpkl --version | grep {{version}}
+  - pkl eval template.pkl
   - pkl eval template.pkl | grep 'Writing a Template'
+  - jpkl eval template.pkl | grep 'Writing a Template'
   - pkl eval class.pkl | grep 'bestForConfig'
+  - jpkl eval class.pkl | grep 'bestForConfig'

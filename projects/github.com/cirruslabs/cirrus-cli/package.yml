@@ -1,0 +1,46 @@
+distributable:
+  url: https://github.com/cirruslabs/cirrus-cli/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: cirruslabs/cirrus-cli
+
+build:
+  dependencies:
+    go.dev: ^1.22
+  env:
+    GO_LDFLAGS:
+      - -s
+      - -w
+      - -X github.com/cirruslabs/cirrus-cli/internal/version.Version={{ version }}
+      - -X github.com/cirruslabs/cirrus-cli/internal/version.Commit=release
+    linux:
+      GO_LDFLAGS:
+        - -buildmode=pie
+    darwin:
+      CGO_ENABLED: 1
+  script: go build -v -ldflags="${GO_LDFLAGS}" -o "{{ prefix }}"/bin/cirrus ./cmd/cirrus
+
+provides:
+  - bin/cirrus
+
+test:
+  - test "$(cirrus --version)" = "cirrus version {{version}}-release"
+  - run: cirrus validate -f $FIXTURE
+    fixture:
+      extname: yml
+      content: |
+        task:
+          env:
+            matrix:
+              VERSION: 1.21
+              VERSION: 1.22
+          name: Tests (Go $VERSION)
+          container:
+            image: golang:$VERSION
+          modules_cache:
+            fingerprint_script: cat go.sum
+            folder: $GOPATH/pkg/mod
+          get_script: go get ./...
+          build_script: go build ./...
+          test_script: go test ./...

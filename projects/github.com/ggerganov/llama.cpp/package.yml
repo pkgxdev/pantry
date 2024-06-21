@@ -43,7 +43,14 @@ build:
     - make --jobs {{hw.concurrency}}
 
     - |
-      install -D main {{prefix}}/bin/llama.cpp
+      if test -f main; then
+        install -D main {{prefix}}/bin/llama.cpp
+      elif test -f llama-cli; then
+        install -D llama-cli {{prefix}}/bin/llama.cpp
+      else
+        echo "No binary found"
+        exit 1
+      fi
       install -D props/entrypoint.sh {{prefix}}/entrypoint.sh
       install -D ggml-metal.metal {{prefix}}/bin/ggml-metal.metal
 

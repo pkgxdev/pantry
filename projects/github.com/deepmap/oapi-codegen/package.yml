@@ -1,10 +1,12 @@
 distributable:
-  url: https://github.com/deepmap/oapi-codegen/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/oapi-codegen/oapi-codegen/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
-  github: deepmap/oapi-codegen
-  strip: /^v/
+  github: oapi-codegen/oapi-codegen
+
+warnings:
+  - renamed
 
 build:
   dependencies:
@@ -16,17 +18,15 @@ build:
       - -w
       - -s
       - -X=main.noVCSVersionOverride=v{{version}}
-  script: |
-    go mod download
-    go build -v -ldflags="$LDFLAGS" -o oapi-codegen ./cmd/oapi-codegen
-    mkdir -p "{{ prefix }}"/bin
-    mv oapi-codegen "{{ prefix }}"/bin
+  script:
+    - go mod download
+    - go build -v -ldflags="$LDFLAGS" -o '{{prefix}}'/bin/oapi-codegen ./cmd/oapi-codegen
 
-provides:
-  - bin/oapi-codegen
+# package renamed to github.com/oapi-codegen/oapi-codegen
+# provides:
+#   - bin/oapi-codegen
 
 test:
-  script: |
-    oapi-codegen -version | grep v{{version}}
-    oapi-codegen -package petstore petstore-expanded.yml > petstore.gen.go
-    test -f petstore.gen.go
+  - oapi-codegen -version | grep v{{version}}
+  - oapi-codegen -package petstore petstore-expanded.yml > petstore.gen.go
+  - test -f petstore.gen.go

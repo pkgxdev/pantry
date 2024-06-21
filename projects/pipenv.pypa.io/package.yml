@@ -14,7 +14,7 @@ dependencies:
 
 build:
   dependencies:
-    python.org: ~3.11  # approx. 3 older versions won’t work with python 3.12
+    python.org: ~3.11 # approx. 3 older versions won’t work with python 3.12
     crates.io/semverator: '*'
   script:
     - bkpyvenv stage {{prefix}} {{version}}
@@ -22,8 +22,7 @@ build:
     - bkpyvenv seal {{prefix}} pipenv
 
     # create exec scripts for pipenv so it can auto install and use the pythons it wants
-    - working-directory:
-        ${{prefix}}/bin
+    - working-directory: ${{prefix}}/bin
       run: |
         v=3.6
         vMax=3.12  #FIXME determine dynamically or even script this in the shim
@@ -33,6 +32,10 @@ build:
           echo "exec pkgx python~$v \"\$@\"" >> python$v
           chmod +x python$v
         done
+
+    # needs libpython
+    - run: cp -a {{deps.python.org.prefix}}/lib/libpython* .
+      working-directory: ${{prefix}}/lib/
 
 runtime:
   env:
@@ -44,18 +47,18 @@ test:
 
   # changed to python3.8; 3.7 generates a lockfile resolver error
   - run: |
+      source <(pkgx +python@3.8)
       pipenv --python 3.8
       pipenv --verbose install pycowsay
       pipenv run pycowsay "Hello World"
-    working-directory:
-      a
+    working-directory: a
 
   - run: |
+      source <(pkgx +python@3.10)
       pipenv --python 3.10
       pipenv install pycowsay
       pipenv run pycowsay "Hello World"
-    working-directory:
-      b
+    working-directory: b
 
 provides:
   - bin/pipenv
