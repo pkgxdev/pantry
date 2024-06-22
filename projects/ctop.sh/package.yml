@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/bcicen/ctop/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/bcicen/ctop/archive/refs/tags/{{ version.tag }}.tar.gz
   strip-components: 1
 
 display-name: ctop
@@ -13,9 +13,8 @@ build:
 
   script:
     - go mod download
-    - go build -tags release -ldflags="$GO_LDFLAGS" -o "$BUILDLOC"
+    - go build -tags release -ldflags="$GO_LDFLAGS" -o "{{prefix}}/bin/ctop"
   env:
-    BUILDLOC: "{{prefix}}/bin/ctop"
     GO_LDFLAGS:
       - -s
       - -w
@@ -28,4 +27,5 @@ build:
 provides:
   - bin/ctop
 
-test: test "$(ctop -v | awk '{print $3}')" = {{version}},
+# comma is intentional (part of the awk slice)
+test: test "$(ctop -v | awk '{print $3}')" = "{{version}},"
