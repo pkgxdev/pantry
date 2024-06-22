@@ -14,12 +14,12 @@ build:
 
   script: |
     go mod download
-    CGO_ENABLED="$CGO_ENABLED" go build -tags release -ldflags="$LDFLAGS" -o "$BUILDLOC"
+    CGO_ENABLED="$CGO_ENABLED" go build -tags release -ldflags="$GO_LDFLAGS" -o "$BUILDLOC"
   env:
     CGO_ENABLED: 0
     BUILDLOC: "{{prefix}}/bin/ctop"
     BUILD: "$(git rev-parse --short HEAD)"
-    LDFLAGS:
+    GO_LDFLAGS:
       - -s
       - -w
       - -X main.version={{version}}
