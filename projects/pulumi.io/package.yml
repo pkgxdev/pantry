@@ -36,6 +36,10 @@ build:
     - run: go mod download
       working-directory: pkg
 
+    # needs this fix to prevent segfaults
+    - run: sed -i 's/-ldflags "/-ldflags "-buildmode=pie /' */Makefile
+      working-directory: sdk
+
     - run: |
         for DIR in go nodejs python; do
           make -C $DIR install_plugin PULUMI_BIN={{prefix}}/bin
