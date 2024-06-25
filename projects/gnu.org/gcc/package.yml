@@ -126,6 +126,13 @@ test:
   - gcc -print-libgcc-file-name
   - gcc -print-multiarch
   - gcc -dumpspecs
+  # gha mac runners have broken SDKs...
+  - run: |
+      if ! -f /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/AvailabilityInternalLegacy.h; then
+        echo "Missing SDK; skipping remaining tests"
+        exit 0
+      fi
+    if: darwin
   - gcc -o test1 test.c -lgmp
   - ./test1
   - g++ -o test2 test.cc
