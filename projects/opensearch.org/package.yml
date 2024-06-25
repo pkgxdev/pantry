@@ -16,7 +16,6 @@ build:
     cmake.org: '*'
     git-scm.org: '*'
     gnu.org/wget: '*'
-    gradle.org: '*'
     openjdk.org: ^17
     gnu.org/gcc: ^12 # for gfortran
     linux:
@@ -29,7 +28,7 @@ build:
     - run: |
         sed -i 's|JNAKernel32Library.getInstance();|//JNAKernel32Library.getInstance();|' server/src/main/java/org/opensearch/bootstrap/Bootstrap.java
       if: darwin/x86-64
-    - gradle -Dbuild.snapshot=false ":distribution:archives:no-jdk-{{hw.platform}}-tar:assemble"
+    - ./gradlew -Dbuild.snapshot=false ":distribution:archives:no-jdk-{{hw.platform}}-tar:assemble"
     - run: tar --strip-components=1 -xf $SRCROOT/distribution/archives/no-jdk-{{hw.platform}}-tar/build/distributions/opensearch-*.tar.gz
       working-directory: ${{prefix}}
     # there seems to be a loader bug with trying to dlopen libc on macos 12 and earlier.
