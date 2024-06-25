@@ -9,7 +9,7 @@ dependencies:
   boost.org: ^1.84
   facebook.com/edencommon: '>=2023.12.25.0'
   facebook.com/fb303: '>=2023.12.25.0'
-  fmt.dev: '>=9'
+  fmt.dev: ^10
   facebook.com/folly: '>=2023.12.25.0'
   gflags.github.io: ^2
   google.com/glog: ^0.6
@@ -19,7 +19,7 @@ dependencies:
   pcre.org/v2: ^10
   python.org: ~3.11
   linux:
-    llvm.org: ~17 # libunwind
+    libcxx.llvm.org: '*'
 
 build:
   dependencies:
@@ -30,7 +30,8 @@ build:
     facebook.com/mvfst: '>=2023.12.25.0'
     rust-lang.org: '*'
   script:
-    - cmake -S . -B build $CMAKE_ARGS -DCMAKE_CXX_FLAGS="$CXXFLAGS"
+    - sed -i 's/set(IS_SHIPPED_IT TRUE)/set(IS_SHIPPED_IT FALSE)/' CMakeLists.txt
+    - cmake -S . -B build $CMAKE_ARGS "-DCMAKE_CXX_FLAGS=$CXXFLAGS"
     - cmake --build build
     - cmake --install build
     - mkdir -p {{prefix}}/var/run/watchman
@@ -43,17 +44,16 @@ build:
       - -DCMAKE_VERBOSE_MAKEFILE=ON
       - -Wno-dev
       - -DBUILD_TESTING=OFF
-      - -DENABLE_EDEN_SUPPORT=ON
+      - -DENABLE_EDEN_SUPPORT=OFF
       - -DWATCHMAN_VERSION_OVERRIDE={{version}}
     linux:
-      CC: clang
-      CXXFLAGS:
-        - -fPIC
-        - -latomic
-        - -Wl,--allow-shlib-undefined
       CMAKE_ARGS:
         - -DCMAKE_C_FLAGS=-fPIC
-        - -DCMAKE_EXE_LINKER_FLAGS=-pie
+        - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-pie,--allow-shlib-undefined,-lc++
+      CXXFLAGS:
+        - -fPIC
+        - -stdlib=libc++
+        - -cxx-isystem {{deps.libcxx.llvm.org.prefix}}/include/c++/v1
 
 provides:
   - bin/watchman
