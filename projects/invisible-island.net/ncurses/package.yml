@@ -46,19 +46,13 @@ build:
       sed -i.bak 's|{{prefix}}|\$(dirname "\$0")/..|g' {{prefix}}/bin/ncursesw{{version.major}}-config
       rm {{prefix}}/bin/ncursesw{{version.major}}-config.bak
 
-    # libtermcap and libtinfo are provided by ncurses and have the
-    # same api. Help some older packages to find these dependencies.
-    # https://bugs.centos.org/view.php?id=11423
-    # https://bugs.launchpad.net/ubuntu/+source/ncurses/+bug/259139
-    - run: |
-        ln -s libncurses.so libtermcap.so
-        ln -s libncursesw.so libtinfow.so
-        ln -s libncurses.so libtinfo.so
+    - run:
+        # libtermcap is provided by ncurses and has the
+        # same api. Help some older packages to find this dependencies.
+        - ln -s libncurses.so libtermcap.so
         # ghc needs to find libtinfo.so.5, which is built from v6 on ubuntu 18.04...
-        ln -s libncurses.so libtinfo.so.5
-        ln -s libncurses.so libtinfo.so.{{version.major}}
-        ln -s libncursesw.so libtinfow.so.5
-        ln -s libncursesw.so libtinfow.so.{{version.major}}
+        - ln -s libtinfo.so libtinfo.so.5
+        - ln -s libtinfow.so libtinfow.so.5
       working-directory: ${{prefix}}/lib
       if: linux
 
@@ -74,6 +68,10 @@ build:
       - --with-gpm=no
       - --without-ada
       - --with-pkg-config-libdir=$PCDIR
+    linux:
+      ARGS:
+        - --with-termlib
+        - --enable-symlinks
 
 runtime:
   env:
