@@ -54,13 +54,15 @@ build:
     # other tools simply expect these symlinks and often fail without them
     # NOTE forcing symlinks because we build with ourselves and sometimes that
     # means we're building with the exact same version FIXME
-    - run: |
-        ln -sf clang cc
-        ln -sf clang++ c++
-        ln -sf clang-cpp cpp
-        for x in ar as nm objcopy ranlib readelf strings strip; do
-          ln -sf llvm-$x $x
-        done
+    - run:
+        - ln -sf clang cc
+        - ln -sf clang++ c++
+        - ln -sf clang-cpp cpp
+        # omitting ar and as as these often mess up gnu.org/gcc builds
+        - |
+          for x in nm objcopy ranlib readelf strings strip; do
+            ln -sf llvm-$x $x
+          done
       working-directory: ${{prefix}}/bin
 
     # move linux libs into /lib
