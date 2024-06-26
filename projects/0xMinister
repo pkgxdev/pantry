@@ -1,0 +1,23 @@
+distributable:
+  url: https://github.com/pinterest/minister/releases/download/{{version}}/minister-{{version}}.zip
+
+versions:
+  github: pinterest/minister
+
+warnings:
+  - vendored
+
+dependencies:
+  openjdk.org: '*'
+
+build:
+  - install -D minister-{{version}}/bin/minister {{prefix}}/bin/minister
+
+provides:
+  - bin/minister
+
+test:
+  - minister --version | grep {{version}}
+  - echo 'fun main(   )  {}' > Main.kt
+  - minister -F Main.kt
+  - cat Main.kt | grep 'fun main() {}'
