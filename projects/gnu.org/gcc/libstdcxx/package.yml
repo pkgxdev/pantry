@@ -57,6 +57,10 @@ build:
         rmdir lib64
       if: linux
       working-directory: ${{prefix}}
+
+    # these don't always match {{version}}
+    - run: ln -s {{version.major}}.* {{version.major}}
+      working-directory: ${{prefix}}/include/c++
   env:
     # Branch from the Darwin maintainer of GCC, with a few generic fixes and
     # Apple Silicon support, located at https://github.com/iains/gcc-12-branch
@@ -104,10 +108,17 @@ build:
       and CXXFLAGS_FOR_TARGET: -Wa,-mmacos-version-min=10.5
 
 test:
-  dependencies:
-    gnu.org/gcc: '*'
+  env:
+    FLAGS:
+      - -std=c++20
+      - -lstdc++
+    darwin:
+      FLAGS:
+        - -cxx-isystem {{prefix}}/include/c++/{{version.major}}
+        - -cxx-isystem {{prefix}}/include/c++/{{version.major}}/*-apple-darwin*
+        - -stdlib=libstdc++
   script:
-    - run: g++ -o test $FIXTURE -std=c++20 -lstdc++
+    - run: clang++ -o test $FIXTURE $FLAGS
       fixture:
         extname: cc
         content: |
