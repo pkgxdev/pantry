@@ -19,7 +19,7 @@ dependencies:
   abseil.io: ^20240116
   c-ares.org: '*'
   openssl.org: ^1.1
-  protobuf.dev: 25.2.0 # grpc links to specific versions, so we have to pick one.
+  protobuf.dev: 26.1.0 # grpc links to specific versions, so we have to pick one.
   github.com/google/re2: '*'
   zlib.net: '*'
   linux:
@@ -30,6 +30,8 @@ build:
     gnu.org/autoconf: '*'
     gnu.org/automake: '*'
     gnu.org/libtool: '*'
+    darwin:
+      gnu.org/patch: '*'
     cmake.org: ^3
     freedesktop.org/pkg-config: ^0
     git-scm.org: ^2
@@ -37,6 +39,34 @@ build:
   script:
     - run: git submodule update --init --recursive
       working-directory: ../..
+
+    # darwin issues:
+    # https://github.com/grpc/grpc/issues/36654
+    - run: |
+        if test "{{hw.platform}}" = "darwin"; then
+          patch -i $PROP || true
+        fi
+      if: '>=1.63'
+      working-directory: ../..
+      prop: |
+        --- CMakeLists.txt.orig	2024-05-16 01:01:03.000000000 +0000
+        +++ CMakeLists.txt
+        @@ -3682,6 +3682,7 @@ target_include_directories(upb_json_lib
+         )
+         target_link_libraries(upb_json_lib
+           ${_gRPC_ALLTARGETS_LIBRARIES}
+        +  grpc++_unsecure
+           utf8_range_lib
+           upb_message_lib
+         )
+        @@ -3883,6 +3884,7 @@ target_include_directories(upb_textforma
+         )
+         target_link_libraries(upb_textformat_lib
+           ${_gRPC_ALLTARGETS_LIBRARIES}
+        +  grpc++_unsecure
+           utf8_range_lib
+           upb_message_lib
+         )
 
     - cmake $COMMON_ARGS $ARGS ../..
     - make install
@@ -52,7 +82,7 @@ build:
     # so we need to add @loader_path to the rpath
     - run: |
         for f in bin/* lib/libgrpc++_test_config.dylib; do
-          if test -f $f; then
+          if test -f $f && ! otool -l $f | grep @loader_path/../lib; then
             install_name_tool -add_rpath @loader_path/../lib $f
           fi
         done
@@ -72,22 +102,23 @@ build:
       - -DgRPC_INSTALL=ON
       - -DgRPC_ABSL_PROVIDER=package
       - -DgRPC_CARES_PROVIDER=package
-      - -DgRPC_PROTOBUF_PROVIDER=package
       - -DgRPC_SSL_PROVIDER=package
       - -DgRPC_ZLIB_PROVIDER=package
       - -DgRPC_RE2_PROVIDER=package
     CLI_ARGS:
       - -DgRPC_BUILD_TESTS=ON
+    darwin:
+      ARGS:
+        - -DgRPC_PROTOBUF_PROVIDER=module
     linux:
       CC: clang
       CXX: clang++
       LD: clang
-    # linux:
-    #   # likely needs bumping to an unreleased abseil.io version
-    #   # ld.lld: error: undefined reference due to --no-allow-shlib-undefined: absl::lts_20230802::Cord::Cord<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>, 0>(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>&&)
-    #   LDFLAGS: $LDFLAGS -Wl,--allow-shlib-undefined
-    #   ARGS:
-    #     - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-lstdc++
+      ARGS:
+        - -DgRPC_PROTOBUF_PROVIDER=package
+      CLI_ARGS:
+        # otherwise we get linker errors
+        - -DCMAKE_EXE_LINKER_FLAGS=-W,-labsl_log_internal_message
 
 test:
   dependencies:
@@ -102,6 +133,9 @@ test:
   script:
     - cp $FIXTURE test.cpp
     - PKG_CONFIG=$(pkg-config --cflags --libs libcares protobuf re2 grpc++)
-    - clang++ $PKG_CONFIG test.cpp -o test -lstdc++
+    - clang++ $PKG_CONFIG test.cpp -o test $LIBS
     - ./test
     - (grpc_cli ls localhost:58931 2>&1 || true) | grep -E "(failed to connect to all addresses|rpc failed)"
+  env:
+    linux:
+      LIBS: -lstdc++
