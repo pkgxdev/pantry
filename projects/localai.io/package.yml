@@ -7,6 +7,10 @@ display-name: LocalAI
 versions:
   github: mudler/LocalAI
 
+companions:
+  linux:
+    openssl.org: '*'
+
 build:
   dependencies:
     go.dev: ^1.21
@@ -36,4 +40,6 @@ test:
   - run: local-ai --version | grep {{version}}
     if: <2.13
   - run: "local-ai --help | grep 'Version: v{{version}}'"
-    if: '>=2.13'
+    if: '>=2.13<2.16'
+  - run: local-ai models list | grep ' - localai@'
+    if: '>=2.16'
