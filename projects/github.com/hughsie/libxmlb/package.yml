@@ -1,0 +1,50 @@
+distributable:
+  url: https://github.com/hughsie/libxmlb/releases/download/{{version.tag}}/libxmlb-{{version.tag}}.tar.xz
+  strip-components: 1
+
+versions:
+  github: hughsie/libxmlb
+
+dependencies:
+  gnome.org/glib: 2
+  tukaani.org/xz: 5
+  facebook.com/zstd: 1
+
+build:
+  dependencies:
+    gnome.org/gobject-introspection: '*'
+    mesonbuild.com: '>=0.61'
+    ninja-build.org: '*'
+    python.org: 3
+    gnome.org/vala: '*'
+  script:
+    - meson setup build --prefix={{prefix}} -Dgtkdoc=false
+    - meson compile -C build
+    - meson install -C build
+    - run: |
+        mv libxmlb-2/* .
+        rmdir libxmlb-2
+        ln -s . libxmlb-2
+      working-directory: ${{prefix}}/include
+  env:
+    linux:
+      CC: clang
+      CXX: clang++
+      LD: clang
+
+test:
+  script:
+    - run: cc -o test $FIXTURE $(pkg-config --cflags --libs xmlb)
+      fixture:
+        extname: c
+        content: |
+          #include <xmlb.h>
+          int main(int argc, char *argv[]) {
+            XbBuilder *builder = xb_builder_new();
+            g_assert_nonnull(builder);
+            return 0;
+          }
+    - ./test
+
+provides:
+  - bin/xb-tool
