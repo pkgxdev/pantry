@@ -1,0 +1,36 @@
+distributable:
+  url: https://github.com/pwmt/girara/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: pwmt/girara/tags
+
+dependencies:
+  gtk.org/gtk3: 3
+  gnome.org/glib: ^2.72
+  gnome.org/json-glib: ^1
+
+build:
+  dependencies:
+    mesonbuild.com: '>=0.61'
+    ninja-build.org: '*'
+    gnu.org/gettext: '*'
+  script:
+    - meson setup build --prefix={{prefix}}
+    - ninja -C build
+    - ninja -C build install
+
+test:
+  - run: cc -o test $FIXTURE $(pkg-config --cflags --libs girara-gtk3)
+    fixture:
+      extname: c
+      content: |
+        #include <stdio.h>
+
+        int main() {
+          printf("Hello, World!\n");
+          return 0;
+        }
+  - ./test
+
+provides:
