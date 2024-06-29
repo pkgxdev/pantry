@@ -1,0 +1,85 @@
+distributable:
+  url: https://github.com/ximion/appstream/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: ximion/appstream/tags
+
+dependencies:
+  gnome.org/glib: 2
+  github.com/hughsie/libxmlb: 0
+  pyyaml.org/libyaml: 0
+  curl.se: 8
+  gnome.org/libxml2: 2
+  linux:
+    systemd.io: '*'
+
+build:
+  dependencies:
+    cmake.org: 3
+    mesonbuild.com: '>=0.61'
+    ninja-build.org: '*'
+    gnome.org/gobject-introspection: '*'
+    itstool.org: '*'
+    gnome.org/vala: '*'
+    gnome.org/libxslt: '*'
+    docbook.org/xsl: '*'
+    linux:
+      gnu.org/gperf: '*'
+  script:
+    # use our local xsl
+    - run: sed -i 's_http://docbook.sourceforge.net/release/xsl/current_{{deps.docbook.org/xsl.prefix}}/libexec/docbook-xsl_' meson.build
+      working-directory: docs
+    - meson setup build $ARGS
+    - meson compile -C build
+    - meson install -C build
+  env:
+    linux:
+      CC: clang
+      CXX: clang++
+      LD: clang
+    ARGS:
+      - --prefix={{prefix}}
+      - -Dstemming=false
+      - -Dvapi=true
+      - -Dgir=true
+      - -Ddocs=false
+      - -Dapidocs=false
+      - -Dinstall-docs=false
+    darwin:
+      ARGS:
+        - -Dsystemd=false
+
+test:
+  - run: cc -o test $FIXTURE $(pkg-config --cflags --libs appstream)
+    fixture:
+      extname: c
+      content: |
+        #include "appstream.h"
+
+        int main(int argc, char *argv[]) {
+          GFile *appdata_file;
+          char *appdata_uri;
+          AsMetadata *metadata;
+          GError *error = NULL;
+          char *resource_path = "appdata.xml";
+          appdata_file = g_file_new_for_path (resource_path);
+          metadata = as_metadata_new ();
+          if (!as_metadata_parse_file (metadata, appdata_file, AS_FORMAT_KIND_UNKNOWN, &error)) {
+            g_error ("Could not parse metadata file: %s", error->message);
+            g_clear_error (&error);
+          }
+        }
+  - run: cp $FIXTURE appdata.xml
+    fixture:
+      extname: xml
+      content: |
+        <?xml version="1.0" encoding="UTF-8"?>
+        <component type="desktop-application">
+          <id>org.test.test-app</id>
+          <name>Test App</name>
+        </component>
+  - ./test
+
+provides:
+  - bin/appstreamcli
