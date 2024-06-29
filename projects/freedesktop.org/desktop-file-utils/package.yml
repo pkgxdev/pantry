@@ -1,0 +1,49 @@
+distributable:
+  url: https://www.freedesktop.org/software/desktop-file-utils/releases/desktop-file-utils-{{ version.raw }}.tar.xz
+  strip-components: 1
+
+versions:
+  gitlab: gitlab.freedesktop.org:xdg/desktop-file-utils/tags
+
+dependencies:
+  gnome.org/glib: 2
+
+build:
+  dependencies:
+    mesonbuild.com: '>=0.61'
+    ninja-build.org: '*'
+  script:
+    - meson setup build --prefix={{prefix}}
+    - meson compile -C build
+    - meson install -C build
+
+test:
+  - run: desktop-file-validate $FIXTURE
+    fixture:
+      extname: desktop
+      content: |
+        [Desktop Entry]
+        Version=1.0
+        Type=Application
+        Name=Foo Viewer
+        Comment=The best viewer for Foo objects available!
+        TryExec=fooview
+        Exec=fooview %F
+        Icon=fooview
+        MimeType=image/x-foo;
+        Actions=Gallery;Create;
+
+        [Desktop Action Gallery]
+        Exec=fooview --gallery
+        Name=Browse Gallery
+
+        [Desktop Action Create]
+        Exec=fooview --create-new
+        Name=Create a new Foo!
+        Icon=fooview-new
+
+provides:
+  - bin/desktop-file-edit
+  - bin/desktop-file-install
+  - bin/desktop-file-validate
+  - bin/update-desktop-database
