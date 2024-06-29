@@ -1,0 +1,47 @@
+distributable:
+  url: https://download.gnome.org/sources/gtk-mac-integration/{{version.marketing}}/gtk-mac-integration-{{version.raw}}.tar.xz
+  strip-components: 1
+
+versions:
+  url: https://download.gnome.org/sources/gtk-mac-integration/cache.json
+  match: /gtk-mac-integration-(\d+\.\d+\.\d+)\.tar.xz/
+  strip:
+    - /^gtk-mac-integration-/
+    - /\.tar.xz$/
+
+platforms:
+  - darwin
+
+dependencies:
+  gnu.org/gettext: '*'
+  gtk.org/gtk3: '*'
+
+build:
+  dependencies:
+    gnome.org/gobject-introspection: '*'
+    freedesktop.org/intltool: '*'
+    mesonbuild.com: '*'
+    ninja-build.org: '*'
+  script:
+    - ./configure $ARGS
+    - make install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --without-gtk2
+      - --with-gtk3
+      - --enable-introspection=yes
+      - --enable-python=no
+
+test:
+  - run: cc -o test $FIXTURE $(pkg-config --cflags --libs gtk-mac-integration-gtk3)
+    fixture:
+      extname: c
+      content: |
+        #include <gtkosxapplication.h>
+
+        int main(int argc, char *argv[]) {
+          gchar *bundle = gtkosx_application_get_bundle_path();
+          return 0;
+        }
+  - ./test
