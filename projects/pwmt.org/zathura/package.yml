@@ -1,0 +1,38 @@
+distributable:
+  url: https://github.com/pwmt/zathura/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: pwmt/zathura/tags
+
+dependencies:
+  gnome.org/glib: ^2.72
+  gnome.org/adwaita-icon-theme: '*'
+  gnu.org/gettext: '*'
+  freedesktop.org/appstream: '*'
+  pwmt.org/girara: 0
+  freedesktop.org/intltool: '*'
+  freedesktop.org/desktop-file-utils: '*'
+  darwinsys.com/file: '*'
+  gtk.org/gtk3: ^3.22
+  darwin:
+    gnome.org/gtk-mac-integration-gtk3: '*'
+
+build:
+  dependencies:
+    mesonbuild.com: '>=0.61'
+    ninja-build.org: '*'
+  script:
+    - meson setup build --prefix={{prefix}} -Dmanpages=disabled
+    - ninja -C build
+    - ninja -C build install
+  env:
+    # dyld[] missing symbol called
+    darwin:
+      MACOSX_DEPLOYMENT_TARGET: 14.0
+
+test:
+  - zathura --help
+
+provides:
+  - bin/zathura
