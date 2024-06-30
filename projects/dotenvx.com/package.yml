@@ -9,13 +9,21 @@ dependencies:
   nodejs.org: ^16 || ^18 || ^20
 
 build:
+  # 1.2.0 adds this and expects it on the path
+  - run: |
+      npm i -g patch-package
+      export PATH="$HOME/.local/bin:$PATH"
+    if: '>=1.2.0'
   - npm install .
-      --global
-      --install-links
-      --prefix="{{prefix}}"
+    --global
+    --install-links
+    --prefix="{{prefix}}"
 
 test:
   - dotenvx --version | grep {{version}}
+  - echo "HELLO=World" > .env
+  - run: test "$(dotenvx -q run -- sh $FIXTURE)" = "Hello, World!"
+    fixture: echo "Hello, $HELLO!"
 
 provides:
   - bin/dotenvx
