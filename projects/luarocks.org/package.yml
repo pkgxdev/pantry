@@ -10,6 +10,11 @@ dependencies:
   lua.org: '*'
   info-zip.org/unzip: '*'
 
+runtime:
+  env:
+    LUA_PATH: $LUA_PATH;{{prefix}}/share/lua/{{deps.lua.org.version.marketing}}/?.lua;{{prefix}}/share/lua/{{deps.lua.org.version.marketing}}/?/init.lua;{{prefix}}/lib/lua/{{deps.lua.org.version.marketing}}/?.lua;{{prefix}}/lib/lua/{{deps.lua.org.version.marketing}}/?/init.lua
+    LUA_CPATH: $LUA_CPATH;{{prefix}}/lib/lua/{{deps.lua.org.version.marketing}}/?.so;{{prefix}}/lib/lua/{{deps.lua.org.version.marketing}}/loadall.so
+
 build:
   dependencies:
     gnu.org/make: ^4
@@ -77,3 +82,17 @@ test:
       if: linux
     - test "$(luarocks --version | awk 'NR==1 {print $NF}')" = "{{version.raw}}"
     - luarocks install busted $EXTRA_ARGS
+    - run:
+        - luarocks install luasocket
+        - lua $FIXTURE
+      fixture:
+        extname: lua
+        content: |
+          local status, socket = pcall(require, "socket")
+          if status then
+              print("Socket module loaded successfully.")
+          else
+              print("Failed to load socket module.")
+              print("Error: " .. socket)
+              os.exit(1)
+          end
