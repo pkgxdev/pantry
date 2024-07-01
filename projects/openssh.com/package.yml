@@ -27,27 +27,25 @@ build:
       gnu.org/gcc: '*'
       gnu.org/make: '*'
   script:
-    - run: |
-        curl -L "$PATCH1" | patch
-        curl -L "$PATCH2" | patch
+    - run: curl -L "$PATCH1" | patch
       if: darwin
-    - sed -i.bak "s|@PREFIX@/share/openssh|{{prefix}}/etc/ssh|g" sandbox-darwin.c
-    - rm -f sandbox-darwin.c.bak
     - run: |
-        sed -i.bak "s|-fzero-call-used-regs=all|-fzero-call-used-regs=used|g" configure
-        rm -f configure.bak
+        if test "{{hw.platform}}" = "darwin"; then
+          curl -L "$PATCH2" | patch
+        fi
+      if: <9.8
+    - sed -i "s|@PREFIX@/share/openssh|{{prefix}}/etc/ssh|g" sandbox-darwin.c
+    - run: sed -i "s|-fzero-call-used-regs=all|-fzero-call-used-regs=used|g" configure
       if: darwin/x86-64
     - ./configure $CONFIGURE_ARGS
-    - run: |
-        sed -i.bak "s|prefix=/usr/local|prefix={{prefix}}|g" Makefile
-        rm -f Makefile.bak
+    - run: sed -i "s|prefix=/usr/local|prefix={{prefix}}|g" Makefile
       if: linux
     - make --jobs {{ hw.concurrency }}
     - make --jobs 1 install
     - run: ln -s ssh slogin
-      working-directory: "{{prefix}}/bin"
+      working-directory: '{{prefix}}/bin'
     - run: curl -L "$RES_SSHD" -o org.openssh.sshd.sb
-      working-directory: "{{prefix}}/etc/ssh"
+      working-directory: '{{prefix}}/etc/ssh'
   env:
     PATCH1: https://raw.githubusercontent.com/Homebrew/patches/1860b0a745f1fe726900974845d1b0dd3c3398d6/openssh/patch-sandbox-darwin.c-apple-sandbox-named-external.diff
     PATCH2: https://raw.githubusercontent.com/Homebrew/patches/d8b2d8c2612fd251ac6de17bf0cc5174c3aab94c/openssh/patch-sshd.c-apple-sandbox-named-external.diff
@@ -65,10 +63,9 @@ build:
       - --with-ssl-dir={{deps.openssl.org.prefix}}
       - --with-security-key-builtin
     linux:
-      CONFIGURE_ARGS:
-        --with-privsep-path={{prefix}}/var/lib/sshd
+      CONFIGURE_ARGS: --with-privsep-path={{prefix}}/var/lib/sshd
     darwin:
-      CPPFLAGS: "$CPPFLAGS -D__APPLE_SANDBOX_NAMED_EXTERNAL__"
+      CPPFLAGS: '$CPPFLAGS -D__APPLE_SANDBOX_NAMED_EXTERNAL__'
 provides:
   - bin/scp
   - bin/sftp
