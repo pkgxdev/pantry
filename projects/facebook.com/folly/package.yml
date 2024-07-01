@@ -73,10 +73,11 @@ build:
       - -DFOLLY_USE_JEMALLOC=OFF
     linux/aarch64:
       ARGS:
+        # otherwise, we don't build the memcpy extensions properly
+        - -DFOLLY_MEMCPY_IS_MEMCPY=ON
         - -DCMAKE_C_FLAGS=-fPIC
         - -DCMAKE_CXX_FLAGS=-fPIC
-        - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-pie,-lrt,-lunwind
-    linux/x86-64:
+    linux:
       ARGS:
         - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-pie,-lrt,-lunwind
 
