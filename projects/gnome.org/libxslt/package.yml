@@ -10,21 +10,22 @@ dependencies:
 
 build:
   dependencies:
-    freedesktop.org/pkg-config: ^0.29
     gnu.org/patch: '*'
-  script: |
-    patch -p1 < props/xslt-config.patch.in
+  script:
+    - patch -p1 < props/xslt-config.patch.in
 
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }}
-    make install
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
 
-    cd "{{prefix}}/bin"
-    sed -i.bak \
-      -e 's|{{prefix}}|"$prefix"|g' \
-      -e 's|{{deps.gnome.org/libxml2.prefix}}|""$libxml2_prefix""|g' \
-      xslt-config
-    rm xslt-config.bak
+    - run: sed -i
+        -e 's|{{prefix}}|"$prefix"|g'
+        -e 's|{{deps.gnome.org/libxml2.prefix}}|""$libxml2_prefix""|g'
+        xslt-config
+      working-directory: '{{prefix}}/bin'
+
+    - run: find . -name \*.la -exec rm {} \;
+      working-directory: '{{prefix}}/lib'
   env:
     ARGS:
       - --prefix={{prefix}}
