@@ -1,0 +1,39 @@
+distributable:
+  url: https://github.com/laravel/installer/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: laravel/installer
+
+dependencies:
+  php.net: ^8.2
+  getcomposer.org: ^2.7
+
+build:
+  script:
+    - composer install --no-dev
+    - mkdir -p {{prefix}}/libexec
+    - cp -r ./* {{prefix}}/libexec
+    - run: ln -s ../libexec/bin/laravel laravel
+      working-directory: ${{prefix}}/bin
+
+provides:
+  - bin/laravel
+
+test:
+  dependencies:
+    curl.se: '*'
+    pkgx.dev: 1
+  script:
+    - laravel --version | grep {{version}}
+    - laravel new blog --quiet
+    - run: |
+        php artisan serve --port=$PORT > server.log &
+        PID=$!
+        sleep 5
+        curl -s http://localhost:$PORT | grep Laravel
+        kill $PID
+        cat server.log | grep 'Server running'
+      working-directory: blog
+  env:
+    PORT: $(pkgx get-port | tail -n1)
