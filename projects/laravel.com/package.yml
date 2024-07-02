@@ -28,13 +28,14 @@ test:
   script:
     - laravel --version | grep {{version}}
     - laravel new blog --no-interaction
-    - run: |
-        php artisan serve --port=$PORT > server.log &
-        PID=$!
-        sleep 5
-        curl -s http://localhost:$PORT | grep Laravel
-        kill $PID
-        cat server.log | grep 'Server running'
+    - run:
+        - php artisan serve --port=$PORT > server.log &
+        - PID=$!
+        - sleep 5
+        - curl -s http://localhost:$PORT
+        - curl -s http://localhost:$PORT | grep Laravel
+        - kill $PID
+        - grep 'Server running' server.log
       working-directory: blog
   env:
     PORT: $(pkgx get-port | tail -n1)
