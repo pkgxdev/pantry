@@ -12,14 +12,19 @@ dependencies:
   openssl.org: ^1.1
   curl.se/ca-certs: '*'
   zlib.net: ^1.2.11
-  rockdaboot.github.io/libpsl: ^0 # added in 8.6.0
 
 build:
-  - ./configure
-    --prefix={{prefix}}
-    --with-openssl
-    --with-ca-fallback # uses openssl’s certs (which we control)
-  - make --jobs {{ hw.concurrency }} install
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --with-openssl
+      # causes weird downstream bugs in php
+      - --without-libpsl
+      # uses openssl’s certs (which we control)
+      - --with-ca-fallback
 
 test:
   - curl -i pkgx.sh
