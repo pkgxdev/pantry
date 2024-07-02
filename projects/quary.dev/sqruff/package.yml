@@ -1,0 +1,29 @@
+distributable:
+  url: https://github.com/quarylabs/sqruff/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: quarylabs/sqruff
+
+build:
+  dependencies:
+    rust-lang.org: ^1.79
+    rust-lang.org/cargo: '*'
+  script: cargo install sqruff --locked --path crates/cli --root {{prefix}}
+
+provides:
+  - bin/bench
+  - bin/sqruff
+
+test:
+  - test "$(sqruff -V)" = "sqruff {{version}}"
+  - run: sqruff lint $FIXTURE
+    fixture:
+      extname: sql
+      content: SELECT 1;
+  - run: if sqruff lint $FIXTURE; then true; fi
+    fixture:
+      extname: sql
+      content: |
+        SELECT 1
+        SELECT 2
