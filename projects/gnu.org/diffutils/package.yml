@@ -17,10 +17,15 @@ provides:
 
 build:
   script:
-    - ./configure --prefix={{ prefix }}
+    - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
   env:
     FORCE_UNSAFE_CONFIGURE: 1 # some gha runners run as root
+    ARGS:
+      - --prefix={{prefix}}
+    linux/aarch64:
+      ARGS:
+        - --build=aarch64-unknown-linux-gnu
 
 test:
   - echo "aaaa" > test-file
