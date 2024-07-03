@@ -1,0 +1,28 @@
+distributable:
+  url: https://github.com/sagiegurari/duckscript/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/duck
+
+versions:
+  github: sagiegurari/duckscript
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path duckscript_cli --root {{prefix}}
+
+test:
+  dependencies:
+    pkgx.sh: ^1
+  fixture: echo "Hello World!"
+  script:
+    - cp $FIXTURE hello.ds
+    - duck hello.ds
+    - pkgx hello.ds
+
+interprets:
+  extensions: ds
+  args: duck
