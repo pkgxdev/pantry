@@ -1,0 +1,35 @@
+distributable:
+  url: https://github.com/kivikakk/comrak/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/comrak
+
+versions:
+  github: kivikakk/comrak
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path . --root {{prefix}}
+
+test:
+  dependencies:
+    gnu.org/coreutils: '*' # tee
+    gnu.org/diffutils: '*' # cmp
+  script:
+    - run: comrak $FIXTURE | tee out
+      fixture:
+        extname: md
+        content: |
+          # Hello, world!
+          This is a test.
+    # trailing newline
+    - echo >>out
+    - run: cmp out $FIXTURE
+      fixture:
+        extname: html
+        content: |
+          <h1>Hello, world!</h1>
+          <p>This is a test.</p>
