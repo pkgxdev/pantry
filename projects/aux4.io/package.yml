@@ -1,0 +1,52 @@
+distributable:
+  url: https://github.com/aux4/aux4/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: aux4/aux4
+
+build:
+  dependencies:
+    go.dev: ~1.21.5
+  script: go build $ARGS -ldflags="$GO_LDFLAGS" .
+  env:
+    GO_LDFLAGS:
+      - -s
+      - -w
+      - -X main.version={{version}}
+    linux:
+      GO_LDFLAGS:
+        - -buildmode=pie
+    ARGS:
+      - -v
+      - -trimpath
+      - -o "{{prefix}}/bin/aux4"
+
+test:
+  fixture: |
+    {
+      "profiles": [
+        {
+          "name": "main",
+          "commands": [
+            {
+              "name": "hello",
+              "execute": [
+                "echo 'Hello World'"
+              ],
+              "help": {
+                "text": "say hello world"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  script:
+    - aux4 aux4 version | grep {{version}}
+    - cp $FIXTURE .aux4
+    - aux4
+    - test "$(aux4 hello)" = "Hello World"
+
+provides:
+  - bin/aux4
