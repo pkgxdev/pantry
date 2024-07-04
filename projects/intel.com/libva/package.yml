@@ -1,36 +1,39 @@
 distributable:
-  url: https://github.com/intel/libva/releases/download/{{version}}/libva-{{version}}.tar.bz2
+  url: https://github.com/intel/libva/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
+
 versions:
   github: intel/libva
+
 platforms:
   - linux
+
 dependencies:
   dri.freedesktop.org: '*'
   x.org/x11: '*'
   x.org/exts: '*'
   x.org/xfixes: '*'
   wayland.freedesktop.org: '*'
+
 build:
   dependencies:
-    gnu.org/make: '*'
-    freedesktop.org/pkg-config: '*'
+    mesonbuild.com: '*'
+    ninja-build.org: '*'
+  working-directory: build
   script:
-    - ./configure $ARGS
-    - make --jobs {{hw.concurrency}}
-    - make --jobs {{hw.concurrency}} install
+    - meson .. $ARGS
+    - ninja
+    - ninja install
   env:
     ARGS:
-      - --prefix={{prefix}}
-      - --sysconfdir={{prefix}}/etc
-      - --libdir={{prefix}}/lib
-      - --localstatedir={{prefix}}/var
-      - --disable-dependency-tracking
-      - --disable-silent-rules
-      - --enable-drm
-      - --enable-x11
-      - --disable-glx
-      - --enable-wayland
+      - -Dprefix={{prefix}}
+      - -Dsysconfdir={{prefix}}/etc
+      - -Dlibdir={{prefix}}/lib
+      - -Dlocalstatedir={{prefix}}/var
+      - -Dwith_x11=yes
+      - -Dwith_glx=no
+      - -Dwith_wayland=yes
+
 test:
   dependencies:
     freedesktop.org/pkg-config: '*'
