@@ -1,22 +1,26 @@
 distributable:
   url: https://github.com/vapoursynth/vapoursynth/archive/R{{version.major}}.tar.gz
   strip-components: 1
+
 versions:
   github: vapoursynth/vapoursynth
   strip:
     - /^R/
+
 dependencies:
   python.org: ~3.11
   github.com/sekrit-twc/zimg: '*'
   linux:
     # Fix: version `GLIBCXX_3.4.30' not found (required by vspipe)
-    gnu.org/gcc: '*'
+    gnu.org/gcc/libstdcxx: '*'
+
 runtime:
   env:
     # Fix: Could not find platform independent libraries
     #      PYTHONHOME = (not set)
     PYTHONHOME: '{{deps.python.org.prefix}}'
     PYTHONPATH: '{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages:$PYTHONPATH'
+
 build:
   dependencies:
     gnu.org/autoconf: '*'
@@ -26,8 +30,11 @@ build:
     nasm.us: '*'
     freedesktop.org/pkg-config: '*'
     linux:
-      gnu.org/make: '*'
+      gnu.org/gcc: '*'
   script:
+    # error: 'to_chars' is unavailable: introduced in macOS 13.3
+    - run: export MACOSX_DEPLOYMENT_TARGET=13.3
+      if: '>=69'
     - ./autogen.sh
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
@@ -51,9 +58,10 @@ build:
       - --with-cython={{deps.cython.org.prefix}}/bin/cython
       - --with-python_prefix={{prefix}}
       - --with-python_exec_prefix={{prefix}}
+
 provides:
   - bin/vspipe
+
 test:
-  script:
-    - vspipe --version | grep {{version.major}}
-    - python -c 'import vapoursynth'
+  - vspipe --version | grep {{version.major}}
+  - python -c 'import vapoursynth'
