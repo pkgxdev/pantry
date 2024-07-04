@@ -16,35 +16,43 @@ dependencies:
   invisible-island.net/ncurses: '>=6.3'
   perl.org: '>=5.36'
   ruby-lang.org: '>=3.2'
+
 build:
   dependencies:
     gnu.org/make: ^4.3
-  script: |
-    ./configure \
-      --prefix={{prefix}} \
-      --enable-multibyte \
-      --with-tlib=ncurses \
-      --with-compiledby=tea.xyz \
-      --enable-cscope \
-      --enable-terminal \
-      --enable-perlinterp \
-      --enable-rubyinterp \
-      --enable-python3interp \
-      --disable-gui \
-      --without-x \
-      --enable-luainterp
-    make
-    make install prefix={{prefix}}
+  script:
+    - ./configure $ARGS
 
-    cd {{prefix}}/bin
-    ln -s vim vi
+    - make
+    - make install prefix={{prefix}}
+
+    - run: ln -s vim vi
+      working-directory: ${{prefix}}/bin
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --enable-multibyte
+      - --with-compiledby=tea.xyz
+      - --enable-cscope
+      - --enable-terminal
+      - --enable-perlinterp
+      - --enable-rubyinterp
+      - --enable-python3interp
+      - --disable-gui
+      - --without-x
+      - --enable-luainterp
+    linux:
+      ARGS:
+        - --with-tlib=tinfow
+    darwin:
+      ARGS:
+        - --with-tlib=ncurses
 test:
-  script: |
-    vim --version
-    vi --version
-    echo "hello world" >> ./test.txt
-    echo ":s/hello/test/" >> ./commands.vim
-    echo ":wq" >> ./commands.vim
-    touch $HOME/.exrc
-    vim -T dumb -S ./commands.vim ./test.txt
-    test "$(cat ./test.txt)" = "test world"
+  - vim --version
+  - vi --version
+  - echo "hello world" >> ./test.txt
+  - echo ":s/hello/test/" >> ./commands.vim
+  - echo ":wq" >> ./commands.vim
+  - touch $HOME/.exrc
+  - vim -T dumb -S ./commands.vim ./test.txt
+  - test "$(cat ./test.txt)" = "test world"
