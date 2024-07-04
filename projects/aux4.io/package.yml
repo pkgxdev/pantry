@@ -1,0 +1,35 @@
+display-name: aux4
+
+versions:
+  github: aux4/aux4/releases/tags
+
+platforms:
+  - darwin
+  - linux/x86-64
+
+build:
+  dependencies:
+    curl.se: '*'
+
+  working-directory: ${{prefix}}
+  script:
+    - 'mkdir bin'
+    - 'curl -L $DISTRIBUTABLE_URL -o "{{prefix}}"/bin/aux4'
+    - 'chmod +x "{{prefix}}"/bin/aux4'
+ 
+  env:
+    linux/aarch64:
+      DISTRIBUTABLE_URL: 'https://github.com/aux4/aux4/releases/download/v{{version}}/aux4-linux-amd64'
+    linux/x86-64:
+      DISTRIBUTABLE_URL: 'https://github.com/aux4/aux4/releases/download/v{{version}}/aux4-linux-amd64'
+    darwin/aarch64:
+      DISTRIBUTABLE_URL: 'https://github.com/aux4/aux4/releases/download/v{{version}}/aux4-darwin-arm64'
+    darwin/x86-64:
+      DISTRIBUTABLE_URL: 'https://github.com/aux4/aux4/releases/download/v{{version}}/aux4-darwin-amd64'
+
+test:
+  script:
+    - aux4 aux4 version
+
+provides:
+  - bin/aux4
