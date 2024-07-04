@@ -1,0 +1,17 @@
+distributable:
+  url: https://github.com/fnichol/names/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/names
+
+versions:
+  github: fnichol/names
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path . --root {{prefix}}
+
+test: test $(names 10 | wc -l) = 10
