@@ -63,5 +63,19 @@ provides:
   - bin/vspipe
 
 test:
-  - vspipe --version | grep {{version.major}}
-  - python -c 'import vapoursynth'
+  dependencies:
+    crates.io/semverator: '*'
+  script:
+    - run: |
+        if test "{{hw.platform}}" = "darwin"; then
+          MACOS_VERSION=$(sw_vers -productVersion)
+          if semverator lt $MACOS_VERSION 13.3; then
+            echo "Skipping test on macOS $MACOS_VERSION"
+            echo "'to_chars' is unavailable: introduced in macOS 13.3"
+            exit 0
+          fi
+        fi
+      if: '>=69'
+    - vspipe --version
+    - vspipe --version | grep {{version.major}}
+    - python -c 'import vapoursynth'
