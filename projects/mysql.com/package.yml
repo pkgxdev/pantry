@@ -23,13 +23,16 @@ dependencies:
   linux:
     # llvm cannot find #include <bit>
     # use our libstdc++ instead
-    gnu.org/gcc: '*'
+    gnu.org/gcc/libstdcxx: 14
 
 build:
   dependencies:
     cmake.org: ^3
-    freedesktop.org/pkg-config: ^0.29
     gnu.org/bison: '>=3.0.4'
+    linux:
+      # llvm cannot find #include <bit>
+      # use our libstdc++ instead
+      gnu.org/gcc: '*'
   working-directory: build
   script:
     # https://www.mail-archive.com/ports@freebsd.org/msg00418.html
@@ -43,7 +46,7 @@ build:
     # Call Stack (most recent call first):
     # CMakeLists.txt:1742 (MYSQL_CHECK_ZLIB)
     - run: export ARGS="$(echo $ARGS | sed 's/WITH_ZLIB=system/WITH_ZLIB=bundled/g')"
-      if: '>=8.0.33<8.1'
+      if: '>=8.0.33<8.0.38'
 
     - run: export ARGS="$ARGS -DCMAKE_C_STANDARD=17"
       if: ^8.4
