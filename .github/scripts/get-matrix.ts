@@ -55,7 +55,7 @@ function get_matrix(platform: string) {
       const os = ["self-hosted", "macOS", "ARM64"]
       return {
         os, name,
-        "test-os": ["macos-13-xlarge", "macos-14"],
+        "test-os": os,
         "test-container": [null],
         tinyname: "²"
       }}
