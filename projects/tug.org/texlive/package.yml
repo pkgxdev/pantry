@@ -1,0 +1,177 @@
+distributable:
+  - url: https://github.com/TeX-Live/texlive-source/archive/refs/heads/tags/texlive-{{version.raw}}.tar.gz
+    strip-components: 1
+
+versions:
+  url: https://api.github.com/repos/TeX-Live/texlive-source/branches?per_page=100
+  match: /tags\/texlive-\d+\.\d+/
+  strip: /tags\/texlive-/
+
+runtime:
+  env:
+    PERL5LIB: '{{prefix}}/lib/perl5:{{prefix}}/libexec/lib/perl5:$PERL5LIB'
+    LUATEXDIR: '{{prefix}}/share/texmf-dist/scripts/context/lua'
+
+dependencies:
+  perl.org: ^5
+  cairographics.org: 1
+  clisp.org: 2
+  freedesktop.org/fontconfig: 2
+  libgd.github.io: 2
+  ghostscript.com: 10
+  pygments.org: 2
+  gnu.org/gmp: 6
+  graphite.sil.org: 1
+  harfbuzz.org: 8
+  libpng.org: 1
+  x.org/x11: 1
+  x.org/xft: 2
+  lua.org: 5
+  luajit.org: 2
+  gnu.org/mpfr: 4
+  openjdk.org: 21
+  openssl.org: 1.1
+  pixman.org: 0
+  sourceforge.net/potrace: 1
+  python.org: ~3.11
+  unicode.org: 71
+  invisible-island.net/ncurses: 6
+  ruby-lang.org: 3
+  zlib.net: 1
+
+build:
+  dependencies:
+    cpanmin.us: ^1
+    darwinsys.com/file: '*'
+  script:
+    # - cpanm -l {{prefix}} $PKGS
+    # - cpanm --configure-args='X11={{deps.x.org/x11.prefix}}' Tk
+    # - ./configure $ARGS
+    # - make -j {{hw.concurrency}}
+    # - make install
+    - run: file * | grep script | xargs fix-shebangs.ts
+      working-directory: '{{prefix}}/bin'
+    - PATH={{prefix}}/bin:$PATH {{prefix}}/bin/fmtutil-sys --all
+    - ${{prefix}}/bin/luatex --luaonly mtxrun.lua --generate
+    - ${{prefix}}/bin/mktexlsr
+  env:
+    # needed for Net::SSLeay
+    OPENSSL_PREFIX: '{{deps.openssl.org.prefix}}'
+    PERL5LIB: '{{prefix}}/lib/perl5:{{prefix}}/libexec/lib/perl5:$PERL5LIB'
+    LUATEXDIR: '{{prefix}}/share/texmf-dist/scripts/context/lua'
+    ARGS:
+      - --prefix={{prefix}}
+      - --disable-dvisvgm
+      - --disable-missing
+      - --disable-native-texlive-build
+      - --disable-static
+      - --disable-ps2eps
+      - --disable-psutils
+      - --disable-t1utils
+      - --enable-build-in-source-tree
+      - --enable-shared
+      - --enable-compiler-warnings=yes
+      - --with-system-clisp-runtime=system
+      - --with-system-cairo
+      - --with-system-freetype2
+      - --with-system-gd
+      - --with-system-gmp
+      - --with-system-graphite2
+      - --with-system-harfbuzz
+      - --with-system-icu
+      - --with-system-libpng
+      - --with-system-mpfr
+      - --with-system-ncurses
+      - --with-system-pixman
+      - --with-system-potrace
+      - --with-system-zlib
+      - --without-x
+    PKGS:
+      - Module::Build
+      - ExtUtils::Config
+      - ExtUtils::Helpers
+      - ExtUtils::InstallPaths
+      - Module::Build::Tiny
+      - Digest::SHA1
+      - Try::Tiny
+      - Path::Tiny
+      - File::Copy::Recursive
+      - File::Which
+      - IPC::System::Simple
+      - URI
+      - TimeDate
+      - Crypt::RC4
+      - Digest::Perl::MD5
+      - IO::Scalar
+      - OLE::Storage_Lite
+      - Spreadsheet::ParseExcel
+      - Encode::Locale
+      - HTTP::Date
+      - LWP::MediaTypes
+      - IO::HTML
+      - HTTP::Request::Common
+      - HTML::Tagset
+      - HTML::Parser
+      - HTML::TreeBuilder
+      - File::Slurper
+      - Font::AFM
+      - HTML::FormatText
+      - File::Listing
+      - HTTP::Cookies
+      - HTTP::Daemon
+      - HTTP::Negotiate
+      - Net::HTTP
+      - WWW::RobotRules
+      - LWP
+      - CGI
+      - HTML::Form
+      - HTTP::Server::Simple
+      - WWW::Mechanize
+      - Mozilla::CA
+      - Net::SSLeay
+      - IO::Socket::SSL
+      - LWP::Protocol::https
+
+provides:
+  - bin/latex
+  - bin/pdflatex
+
+test:
+  - tex --help | grep Usage
+  - tlmgr --version | grep revision
+  - tlmgr info amsmath | grep 'AMS mathematical facilities for LaTeX'
+
+  - run: cp $FIXTURE test.latex
+    fixture: |
+      \documentclass[12pt]{article}
+      \usepackage[utf8]{inputenc}
+      \usepackage{amsmath}
+      \usepackage{lipsum}
+
+      \title{\LaTeX\ test}
+      \author{\TeX\ Team}
+      \date{September 2021}
+
+      \begin{document}
+
+      \maketitle
+
+      \section*{An equation with amsmath}
+      \begin{equation} \label{eu_eqn}
+      e^{\pi i} + 1 = 0
+      \end{equation}
+      The beautiful equation \ref{eu_eqn} is known as Euler's identity.
+
+      \section*{Lorem Ipsum}
+      \lipsum[3]
+
+      \lipsum[5]
+
+      \end{document}
+
+  - latex test.latex | grep 'Output written on test.dvi'
+  - test -f test.dvi
+  - pdflatex test.latex | grep 'Output written on test.pdf'
+  - test -f test.pdf
+  - dvips test.dvi 2>&1 | grep 'This is dvips'
+  - test -f test.ps
