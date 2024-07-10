@@ -16,16 +16,15 @@ dependencies:
 build:
   dependencies:
     cmake.org: '*'
-    freedesktop.org/pkg-config: '*'
-  script: |
-    cmake -S . -B build $ARGS
-    cmake --build build
-    cmake --install build
-    mkdir -p {{prefix}}/pkgshare
-    mv ./examples/example.heic {{prefix}}/pkgshare/
-    mv ./examples/example.avif {{prefix}}/pkgshare/
-    mkdir -p {{prefix}}/share/mime/packages
-    update-mime-database {{prefix}}/share/mime
+  script:
+    - cmake -S . -B build $ARGS
+    - cmake --build build
+    - cmake --install build
+    - mkdir -p {{prefix}}/pkgshare
+    - mv ./examples/example.heic {{prefix}}/pkgshare/
+    - mv ./examples/example.avif {{prefix}}/pkgshare/
+    - mkdir -p {{prefix}}/share/mime/packages
+    - update-mime-database {{prefix}}/share/mime
   env:
     ARGS:
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
@@ -35,7 +34,6 @@ build:
       - -DBUILD_TESTING=OFF
 
 provides:
-  - bin/heif-convert
   - bin/heif-enc
   - bin/heif-info
   - bin/heif-thumbnailer
@@ -43,5 +41,4 @@ provides:
 test:
   dependencies:
     freedesktop.org/pkg-config: '*'
-  script:
-    pkg-config --modversion libheif | grep {{version}}
+  script: pkg-config --modversion libheif | grep {{version}}
