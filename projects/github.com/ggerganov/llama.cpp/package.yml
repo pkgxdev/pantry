@@ -9,9 +9,10 @@ versions:
 display-name: LLaMA.cpp
 
 provides:
+  - bin/llama-cli
   - bin/llama.cpp
   # NOTE! we do not “provide” convert.py. ∵ it’s too generic
-  # do `tea +github.com∕ggerganov∕llama.cpp convert.py`
+  # do `pkgx +github.com∕ggerganov∕llama.cpp convert.py`
 
 platforms:
   - linux
@@ -42,11 +43,16 @@ build:
 
     - make --jobs {{hw.concurrency}}
 
+    # https://github.com/ggerganov/llama.cpp/blob/master/examples/deprecation-warning/README.md
     - |
-      if test -f main; then
+      if test -f llama-cli; then
+        install -D llama-cli {{prefix}}/bin/llama-cli
+        # legacy name
+        ln -s llama-cli {{prefix}}/bin/llama.cpp
+      elif test -f main; then
         install -D main {{prefix}}/bin/llama.cpp
-      elif test -f llama-cli; then
-        install -D llama-cli {{prefix}}/bin/llama.cpp
+        # new name
+        ln -s llama.cpp {{prefix}}/bin/llama-cli
       else
         echo "No binary found"
         exit 1
@@ -82,10 +88,16 @@ build:
       $VIRTUAL_ENV/bin/pip install -r requirements.txt
       bkpyvenv seal {{prefix}} convert.py
 
-test:
-  llama.cpp --version
-  # broke in 2453, difficult to filter due to calver tweaks
-  # llama.cpp --help
+test: |
+  # broke in v2453
+  if test {{version.major}} -lt 2453; then
+    llama.cpp --help
+  elif test {{version.major}} -lt 3368; then
+    llama.cpp --version
+  # llama.cpp deprecated in v3368
+  else
+    llama-cli --version
+  fi
   # ^^ testing more than this requires downloading the models 😬
 
 entrypoint: ./entrypoint.sh
