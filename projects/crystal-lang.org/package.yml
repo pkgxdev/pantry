@@ -45,6 +45,9 @@ build:
       working-directory: .bootstrap
     - mkdir -p .build
     - make deps
+    # tinfow isn't being picked up by the linker after splitting up ncurses
+    - run: export LDFLAGS="$LDFLAGS -Wl,-ltinfow"
+      if: linux
     - make crystal $ARGS
     - mkdir -p "{{prefix}}/bin"
     - cp .build/crystal "{{prefix}}/bin/crystal.bin"
