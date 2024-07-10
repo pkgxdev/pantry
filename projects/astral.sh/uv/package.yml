@@ -32,6 +32,9 @@ build:
 test:
   dependencies:
     curl.se: '*'
+    pkgx.sh: 1
+  env:
+    PORT: $(pkgx get-port | tail -n1)
   script:
     - uv --version | grep {{version}}
     - fixture:
@@ -44,7 +47,7 @@ test:
         extname: .py
       run:
         - |
-          if which flask; then
+          if command -v flask; then
             false
           fi
         - |
@@ -54,10 +57,10 @@ test:
         - |
           mv $FIXTURE app.py
           set -m
-          flask run &
+          flask run --port $PORT &
           PID=$!
         # otherwise the server may not be ready
-        - sleep 4
-        - test "$(curl 127.0.0.1:5000)" = "<p>Hello, World!</p>"
+        - sleep 10
+        - test "$(curl 127.0.0.1:$PORT)" = "<p>Hello, World!</p>"
         # TODO need to install a signal handler or our build servers could be left with a running flask process
         - kill $PID
