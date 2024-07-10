@@ -1,0 +1,32 @@
+distributable:
+  url: https://github.com/tmate-io/tmate/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: tmate-io/tmate
+
+dependencies:
+  libevent.org: ^2.0
+  invisible-island.net/ncurses: 6
+  msgpack.org: 6
+  libssh.org: 0
+
+build:
+  dependencies:
+    gnu.org/bison: '*'
+    gnu.org/autoconf: '*'
+    gnu.org/automake: '*'
+    freedesktop.org/pkg-config: '*' # otherwise, autoconf fails with a misleading error
+  script:
+    - autoupdate
+    - ./autogen.sh
+    - ./configure --prefix={{prefix}}
+    - make
+    - make install
+  env:
+    CFLAGS: $CFLAGS -Wno-implicit-function-declaration
+
+test: tmate -V
+
+provides:
+  - bin/tmate
