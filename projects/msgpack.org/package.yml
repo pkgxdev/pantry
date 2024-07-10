@@ -15,6 +15,9 @@ build:
     - cmake -S . -B build $ARGS
     - cmake --build build
     - cmake --install build
+    # some old software, like tmate, wants `msgpack.pc`
+    - run: ln -s msgpack-c.pc msgpack.pc
+      working-directory: ${{prefix}}/lib/pkgconfig/
   env:
     ARGS:
       - -DMSGPACK_BUILD_TESTS=OFF
@@ -33,4 +36,3 @@ test:
     - cc test.c -lmsgpack-c -o test
     - ./test
     - pkg-config --modversion msgpack-c | grep {{version}}
-  
