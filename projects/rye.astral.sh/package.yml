@@ -1,0 +1,26 @@
+distributable:
+  url: https://github.com/astral-sh/rye/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/rye
+
+versions:
+  github: astral-sh/rye
+
+dependencies:
+  curl.se/ca-certs: '*'
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path rye --root {{prefix}}
+
+test:
+  - rye init --script my-project
+  - run:
+      - rye sync
+      - rye run my-project
+      - test "$(rye run my-project)" = "Hello from my-project!"
+    working-directory: my-project
