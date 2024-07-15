@@ -1,0 +1,60 @@
+distributable:
+  url: https://github.com/opencollab/arpack-ng/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: opencollab/arpack-ng/tags
+
+dependencies:
+  eigen.tuxfamily.org: 3
+  gnu.org/gcc: '*' # for gfortran
+  open-mpi.org: 5
+  netlib.org/lapack: 3
+
+build:
+  dependencies:
+    gnu.org/autoconf: '*'
+    gnu.org/automake: '*'
+    gnu.org/libtool: '*'
+    freedesktop.org/pkg-config: '*' # must be explicit or configure will fail
+  script:
+    - ./bootstrap
+    - ./configure $ARGS
+    - make
+    - make install
+    - run:
+        - mv arpack/* .
+        - rmdir arpack
+        - ln -s . arpack
+      working-directory: ${{prefix}}/include
+    - run: cp $SRCROOT/TESTS/{testA.mtx,dnsimp.f,mmio.f,debug.h} .
+      working-directory: ${{prefix}}/share
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --disable-dependency-tracking
+      - --with-blas=-lblas
+      - F77=mpif77
+      - --enable-mpi
+      - --enable-icb
+      - --enable-icb-exmm
+    darwin:
+      # it's not clear that just ldflags works with mpi/fortran
+      CFLAGS: $CFLAGS -Wl,-rpath,{{pkgx.prefix}},-headerpad_max_install_names
+      CXXFLAGS: $CXXFLAGS -Wl,-rpath,{{pkgx.prefix}},-headerpad_max_install_names
+      FCFLAGS: $FCFLAGS -Wl,-rpath,{{pkgx.prefix}},-headerpad_max_install_names
+      LDFLAGS: $LDFLAGS -Wl,-headerpad_max_install_names
+
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script:
+    - gfortran $ARGS -o test
+    - cp {{prefix}}/share/testA.mtx .
+    - ./test
+    - ./test | grep reached
+  env:
+    ARGS:
+      - ${{prefix}}/share/dnsimp.f
+      - ${{prefix}}/share/mmio.f
+      - $(pkg-config --cflags --libs lapack arpack blas)
