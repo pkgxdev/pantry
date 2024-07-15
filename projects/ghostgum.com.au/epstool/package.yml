@@ -1,0 +1,56 @@
+distributable:
+  # file permissions are all messed up in the source tarball
+  # url: http://www.ghostgum.com.au/download/epstool-{{version.raw}}.tar.gz
+  url: https://ftp.debian.org/debian/pool/main/e/epstool/epstool_{{version.raw}}.orig.tar.xz
+  strip-components: 1
+
+versions:
+  url: https://ftp.debian.org/debian/pool/main/e/epstool/
+  match: /epstool_\d+(\.\d+)+\.orig\.tar\.xz/
+  strip:
+    - /epstool_/
+    - /.orig.tar.xz/
+
+provides:
+  - bin/epstool
+
+dependencies:
+  ghostscript.com: '*'
+
+build:
+  # permissions are all messed up in the source tarball
+  - chmod -R u+rwX .
+  - make install EPSTOOL_ROOT={{prefix}} EPSTOOL_MANDIR={{prefix}}/man
+
+test:
+  - run: epstool --add-tiff-preview --device tiffg3 $FIXTURE out.eps
+    fixture:
+      extname: eps
+      content: |
+        %!PS-Adobe-2.0 EPSF-2.0
+        %%BoundingBox: 73 499 211 513
+        %%HiResBoundingBox: 73.000000 499.500000 211.000000 512.500000
+        %%EndComments
+        % EPSF created by ps2eps 1.68
+        %%BeginProlog
+        save
+        countdictstack
+        mark
+        newpath
+        /showpage {} def
+        /setpagedevice {pop} def
+        %%EndProlog
+        %%Page 1 1
+        /Courier
+        20 selectfont
+        72 500 moveto
+        (Hello World!) show
+        showpage
+        %%Trailer
+        cleartomark
+        countdictstack
+        exch sub { end } repeat
+        restore
+        %%EOF
+
+  - test -f out.eps
