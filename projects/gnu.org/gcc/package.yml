@@ -73,6 +73,10 @@ build:
         ln -sf ../../../binutils/v\*/bin/ranlib ranlib
       working-directory: ${{prefix}}/bin
 
+    # .la archives aren't relocatable
+    - run: find . -name '*.la' -exec rm {} \;
+      working-directory: ${{prefix}}/lib
+
   env:
     # Branch from the Darwin maintainer of GCC, with a few generic fixes and
     # Apple Silicon support, located at https://github.com/iains/gcc-12-branch
