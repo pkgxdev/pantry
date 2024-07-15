@@ -44,6 +44,10 @@ build:
       working-directory: '{{prefix}}/share/openmpi'
 
     - install {{prefix}}/lib/*.mod {{prefix}}/include/
+
+    # .la files are not relocatable
+    - run: find . -name '*.la' -exec {} \;
+      working-directory: '{{prefix}}/lib'
   env:
     CXXFLAGS: $CXXFLAGS -std=c++11
     darwin:
