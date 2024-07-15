@@ -5,49 +5,47 @@ distributable:
 versions:
   gitlab: libeigen/eigen/tags
 
+dependencies:
+  linux:
+    gnu.org/gcc/libstdcxx: 14
+
 build:
   working-directory: build
   dependencies:
     cmake.org: '^3'
-  script: |
-    cmake .. -DCMAKE_INSTALL_PREFIX={{prefix}}
-    make install
+  script:
+    - cmake .. -DCMAKE_INSTALL_PREFIX={{prefix}}
+    - make install
 
     # stuff expects `Eigen` to be in `include` rather than namespaced
-    cd "{{prefix}}"
-    mv include/eigen3/* include
-    cd include
-    rmdir eigen3
-    # but work for stuff that expects the namespace too
-    ln -s . eigen3
-  test:
-    make test
+    - run:
+        - mv eigen3/* .
+        - rmdir eigen3
+        - ln -s . eigen3
+      working-directory: ${{prefix}}/include
+    # the libraries are in share for some reason
+    - run: ln -s share lib
+      working-directory: ${{prefix}}
+  test: make test
 
 test:
   dependencies:
     freedesktop.org/pkg-config: ^0.29
-  env:
-    cxxflags: $(pkg-config --cflags eigen3)
-  fixture: |
-    #include <iostream>
-    #include <Eigen/Dense>
-    using Eigen::MatrixXd;
-    int main()
-    {
-      MatrixXd m(2,2);
-      m(0,0) = 3;
-      m(1,0) = 2.5;
-      m(0,1) = -1;
-      m(1,1) = m(1,0) + m(0,1);
-      std::cout << m << std::endl;
-    }
-  script: |
-    mv $FIXTURE test.cpp
-    g++ test.cpp ${cxxflags} -o test
-    ./test > output.txt
-    out=$(./test)
-    if test "$out" = $'  3  -1\n2.5 1.5'; then
-      echo "PASS"
-    else
-      echo "FAIL"
-    fi
+  script:
+    - run: g++ $FIXTURE $(pkg-config --cflags eigen3) -o test
+      fixture:
+        extname: cpp
+        content: |
+          #include <iostream>
+          #include <Eigen/Dense>
+          using Eigen::MatrixXd;
+          int main()
+          {
+            MatrixXd m(2,2);
+            m(0,0) = 3;
+            m(1,0) = 2.5;
+            m(0,1) = -1;
+            m(1,1) = m(1,0) + m(0,1);
+            std::cout << m << std::endl;
+          }
+    - test "$(./test | tr '\n' ':')" = '  3  -1:2.5 1.5:'
