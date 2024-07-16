@@ -1,0 +1,40 @@
+distributable:
+  url: https://github.com/etcd-io/etcd/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: etcd-io/etcd
+
+provides:
+  - bin/etcd
+  - bin/etcdctl
+  - bin/etcdutl
+
+build:
+  dependencies:
+    go.dev: ^1.22
+  script:
+    - make
+    - mkdir -p {{prefix}}/bin
+    - cp bin/* {{prefix}}/bin
+  env:
+    GO_LDFLAGS:
+      - -s
+      - -w
+    linux:
+      # or segmentation fault
+      # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
+      GO_LDFLAGS:
+        - -buildmode=pie
+
+test:
+  dependencies:
+    crates.io/killport: '*'
+  script:
+    - killport 2379
+    - etcd &
+    - PID=$!
+    - sleep 5
+    - etcdctl put foo bar
+    - test "$(etcdctl get foo | tr '\n' :)" = "foo:bar:"
+    - kill $PID
