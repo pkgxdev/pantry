@@ -1,32 +1,30 @@
 distributable:
-  url: https://github.com/opentofu/opentofu/archive/refs/tags/v1.6.0-alpha3.tar.gz
+  url: https://github.com/opentofu/opentofu/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
+
 versions:
-  # github: opentofu/opentofu
-  # 1.6.0-alpha3
-  - '1.6.0.3'
+  github: opentofu/opentofu
+
 dependencies:
   linux:
-    # Needs libraries at runtime:
-    # /usr/lib/x86_64-linux-gnu/libstdc++.so.6: version `GLIBCXX_3.4.29' not found (required by node)
-    gnu.org/gcc: '*'
+    gnu.org/gcc/libstdcxx: '*'
+
 build:
   dependencies:
-    go.dev: '*'
-  script:
-    - go build $GO_ARGS -ldflags="$LD_FLAGS" ./cmd/tofu
+    go.dev: ~1.21
+  script: go build -o "{{prefix}}/bin/" -ldflags="$GO_LDFLAGS" ./cmd/tofu
   env:
-    GO_ARGS:
-      - -o="{{prefix}}/bin/"
-    LD_FLAGS:
+    GO_LDFLAGS:
       - -s
       - -w
+      - -X github.com/opentofu/opentofu/version.dev=no
     linux:
       CGO_ENABLED: 0
+
 provides:
   - bin/tofu
+
 test:
-  script:
-    - tofu init
-    - tofu graph
-    - tofu --version | grep {{version.marketing}}
+  - tofu init
+  - tofu graph
+  - tofu --version | grep "OpenTofu {{version.tag}}"
