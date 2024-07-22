@@ -34,13 +34,11 @@ build:
       working-directory: ..
 
     # if there's no diff yet, unpack iains' source over ours
-    # only applying on aarch64, since, for 11.5 at least, there's no branch
-    # so we minimize the risk
     - run: |
         if test -n "$BRANCH{{version.major}}{{version.minor}}"; then
           curl -L "$BRANCH{{version.major}}{{version.minor}}" | tar xz --strip-components=1
         fi
-      if: darwin/aarch64
+      if: darwin
       working-directory: ..
 
     # The spaces mess things up in the env key
@@ -87,8 +85,7 @@ build:
     PATCH131: https://raw.githubusercontent.com/Homebrew/formula-patches/master/gcc/gcc-13.1.0.diff
     BRANCH105: https://github.com/iains/gcc-10-branch/archive/refs/heads/gcc-10-5Dr0-pre-0.tar.gz
     BRANCH114: https://github.com/iains/gcc-11-branch/archive/refs/tags/gcc-11.4-darwin-r0.tar.gz
-    # no branch for 11.5; let's assume this is still relevant
-    BRANCH115: https://github.com/iains/gcc-11-branch/archive/refs/tags/gcc-11.4-darwin-r0.tar.gz
+    BRANCH115: https://github.com/iains/gcc-11-branch/archive/refs/tags/gcc-11.5-darwin-r0.tar.gz
     BRANCH123: https://github.com/iains/gcc-12-branch/archive/refs/tags/gcc-12.3-darwin-r0.tar.gz
     BRANCH124: https://github.com/iains/gcc-12-branch/archive/refs/heads/gcc-12-4-darwin.tar.gz
     BRANCH132: https://github.com/iains/gcc-13-branch/archive/refs/heads/gcc-13-2-darwin.tar.gz
