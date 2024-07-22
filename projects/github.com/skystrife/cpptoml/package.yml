@@ -7,20 +7,33 @@ versions:
 
 build:
   dependencies:
-    gnu.org/gcc: '*'
     cmake.org: '*'
-  script: |
-    cmake -S . -B build $ARGS
-    cmake --build build
-    cmake --install build
+    linux:
+      gnu.org/gcc: 13
+  script:
+    - cmake -S . -B build $ARGS
+    - cmake --build build
+    - cmake --install build
+
+    # std::numeric_limits needs to include <limits>
+    - run: |
+        sed -i '/#include <iomanip>/a\
+        // missing include -pkgx\
+        \#include <limits>' cpptoml.h
+      working-directory: ${{prefix}}/include
   env:
-    LD_LIBRARY_PATH: '{{deps.gnu.org/gcc.prefix}}'
     ARGS:
       - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
       - -DENABLE_LIBCXX="ON"
       - -DCPPTOML_BUILD_EXAMPLES=OFF
+    linux:
+      CC: gcc
+      CXX: g++
+      LD: gcc
 
 test:
-  script: |
-    g++ -std=c++11 -I {{prefix}}/include test.cc -o test
-    ./test | grep "Hello, Tea"
+  dependencies:
+    gnu.org/gcc/libstdcxx: '*'
+  script:
+    - g++ -std=c++11 test.cc -o test
+    - test "$(./test)" = "Hello, pkgx."

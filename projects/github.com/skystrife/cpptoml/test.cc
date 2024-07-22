@@ -2,7 +2,7 @@
 #include <iostream>
 
 int main() {
-    auto tea = cpptoml::parse_file("tea.toml");
+    auto tea = cpptoml::parse_file("pkgx.toml");
     auto s = tea->get_as<std::string>("str");
 
     if (s) {
