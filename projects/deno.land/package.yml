@@ -16,7 +16,13 @@ interprets:
 runtime:
   env:
     DENO_NO_UPDATE_CHECK: 'true'
-    DENORT_BIN: '{{prefix}}/bin/denort'
+    # we cannot do this, as it breaks cross-compilation.
+    # linux/aarch64:
+    # theirs doesn't support glibc old enough
+    #   DENORT_BIN: '{{prefix}}/bin/denort'
+
+companions:
+  info-zip.org/unzip: '*' # needed to download the compilation runtime
 
 build:
   script:
@@ -72,7 +78,8 @@ build:
 
 test:
   dependencies:
-    gnu.org/coreutils: '*' # for stat and numfmt
+    linux/aarch64:
+      gnu.org/coreutils: '*' # for stat and numfmt
   script:
     - deno --version | grep {{version}}
     - mv $FIXTURE test.ts
@@ -80,17 +87,26 @@ test:
     - test "$($HOME/.local/bin/test)" = "Hello, world!"
     - deno compile test.ts
     - test "$(./test)" = "Hello, world!"
+
     # human readable size of ./test should be equal to the size of denort to ensure our denort is being used
-    - run: test "$(stat -c %s ./test | numfmt --to=iec-i)" = "$(stat -c %s "{{prefix}}/bin/denort" | numfmt --to=iec-i)"
+    # only on linux/aarch64 (whose's public denort doesn't support glibc old enough)
+    - run: |
+        if test "{{hw.platform}}/{{hw.arch}}" = "linux/aarch64"; then
+          test "$(stat -c %s ./test | numfmt --to=iec-i)" = "$(stat -c %s "{{prefix}}/bin/denort" | numfmt --to=iec-i)"
+        fi
       if: '>=1.40.5'
+
     # tests download of dependencies
     - deno eval 'import { VERSION } from "https://deno.land/std@0.221.0/version.ts"; console.log(VERSION);' | tee /dev/stderr | grep -q ^0.221.0$
+
     # ensure we haven't linked libunwind
     - if $LIST_LIBS {{prefix}}/bin/deno | grep libunwind; then false; fi
-  fixture: |
-    console.log("Hello, world!");
+  fixture: console.log("Hello, world!");
   env:
     darwin:
       LIST_LIBS: otool -l
     linux:
       LIST_LIBS: ldd
+    linux/aarch64:
+      # their downloadable runtime doesn't support glibc old enough
+      DENORT_BIN: '{{prefix}}/bin/denort'

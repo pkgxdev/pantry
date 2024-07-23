@@ -24,6 +24,10 @@ build:
     - mkdir -p "{{ prefix }}"/bin
     - cp fluentci "{{ prefix }}"/bin
   skip: fix-patchelf
+  env:
+    linux/aarch64:
+      # deno's pre-built runtime doesn't support glibc old enough
+      DENORT_BIN: '{{deps.deno.land.prefix}}/bin/denort'
 
 provides:
   - bin/fluentci

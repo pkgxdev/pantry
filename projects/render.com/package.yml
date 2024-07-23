@@ -12,26 +12,31 @@ build:
   # patchelf messes with Deno's ability to find the DATA block, making it
   # operate as only a bloated Deno binary
   skip: fix-patchelf
-  script: |
+  script:
     # Something is wrong with their deps-lock.json.
     # Two of the ajv packages fail to install correctly,
     # and others have hash mismatches.
-    rm deps-lock.json
-    sed -i.bak \
-        -e "s/ajv-formats@2.1.1/ajv-formats@2.1.0/" \
-        -e "s/ajv@8.11.0/ajv@8.11.1/" \
-        deps.ts
-    rm deps.ts.bak
-    deno compile \
-      --unstable \
-      --allow-net \
-      --allow-read \
-      --allow-run \
-      --allow-write \
-      --allow-env \
-      --output='{{prefix}}/bin/render' \
+    - rm deps-lock.json
+
+    - sed
+      -e "s/ajv-formats@2.1.1/ajv-formats@2.1.0/"
+      -e "s/ajv@8.11.0/ajv@8.11.1/"
+      deps.ts
+
+    - deno compile
+      --unstable
+      --allow-net
+      --allow-read
+      --allow-run
+      --allow-write
+      --allow-env
+      --output='{{prefix}}/bin/render'
       ./entry-point.ts
   test: deno test --allow-write --allow-read --allow-net --allow-env --allow-run
+  env:
+    linux/aarch64:
+      # deno's pre-built runtime doesn't support glibc old enough
+      DENORT_BIN: '{{deps.deno.land.prefix}}/bin/denort'
 
 provides:
   - bin/render
