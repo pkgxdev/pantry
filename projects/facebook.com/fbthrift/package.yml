@@ -36,6 +36,13 @@ build:
     - cmake -S . -B build/shared $CMAKE_ARGS
     - cmake --build build/shared
     - cmake --install build/shared
+
+    - run: sed -i -E
+        -e "s:{{pkgx.prefix}}:\$\{_IMPORT_PREFIX\}/../../..:g"
+        -e '/^  INTERFACE_INCLUDE_DIRECTORIES/ s|/v([0-9]+)(\.[0-9]+)*[a-z]?/include|/v\1/include|g'
+        -e '/^  INTERFACE_LINK_LIBRARIES/ s|/v([0-9]+)(\.[0-9]+)*[a-z]?/lib|/v\1/lib|g'
+        FBThriftTargets.cmake
+      working-directory: ${{prefix}}/lib/cmake/fbthrift
   env:
     CMAKE_ARGS:
       - -DCMAKE_INSTALL_PREFIX="{{prefix}}
