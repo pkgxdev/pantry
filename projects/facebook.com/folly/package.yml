@@ -59,7 +59,10 @@ build:
         folly-targets.cmake
       working-directory: ${{prefix}}/lib/cmake/folly
 
-    - run: sed -i -e 's/-I[^ ]* *//g' libfolly.pc
+    - run: sed -i
+        -e 's/-I[^ ]* *//g'
+        -e 's:{{pkgx.prefix}}:\${prefix}/../../..:g'
+        libfolly.pc
       working-directory: ${{prefix}}/lib/pkgconfig
 
     # folly has libs that end up with name @rpath/libfolly.{{version}}.dylib (offset 24)
