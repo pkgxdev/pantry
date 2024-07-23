@@ -7,15 +7,20 @@ display-name: tea/cli
 
 versions:
   github: teaxyz/cli
+  ignore: /^v[1-9]/
 
 build:
   dependencies:
     deno.land: '>=1.23 <1.25 || ^1.25.3'
     # ^^ 1.25.0 - 1.25.2 panics on Linux for us
   working-directory: ${{prefix}}/bin
-  script:
-    deno task --config "$SRCROOT"/deno.jsonc compile
+  script: deno task --config "$SRCROOT"/deno.jsonc compile
+  skip: fix-patchelf # else segfaults
+  env:
+    linux/aarch64:
+      # deno's pre-built runtime doesn't support glibc old enough
+      DENORT_BIN: '{{deps.deno.land.prefix}}/bin/denort'
 
-test: |
-  tea --version
-  test "$(tea --version)" = "tea {{ version }}"
+test:
+  - tea --version
+  - test "$(tea --version)" = "tea {{ version }}"
