@@ -8,16 +8,15 @@ versions:
 build:
   dependencies:
     go.dev: ^1.21
-  script:
-    go build $ARGS -ldflags="$LDFLAGS" ./cmd/daytona
+  script: go build $ARGS -ldflags="$GO_LDFLAGS" ./cmd/daytona
   env:
     ARGS:
       - -trimpath
-      - -o={{prefix}}/bin/daytona
+      - -o {{prefix}}/bin/daytona
     linux:
       ARGS:
         - -buildmode=pie
-    LDFLAGS:
+    GO_LDFLAGS:
       - -s
       - -w
       - -X github.com/daytonaio/daytona/internal.Version={{version}}
@@ -28,4 +27,7 @@ provides:
 test:
   - daytona version | grep {{version}}
   - daytona help | grep 'Daytona is a Dev Environment Manager'
-  - daytona completion bash | grep '__daytona_init_completion'
+  - run: daytona completion bash | grep '__daytona_init_completion'
+    if: <0.23
+  - run: daytona autocomplete bash | grep 'Autocomplete script generated and injected successfully.'
+    if: '>=0.23'
