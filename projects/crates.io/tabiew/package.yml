@@ -16,6 +16,9 @@ build:
   dependencies:
     rust-lang.org: ^1.78
     rust-lang.org/cargo: '*'
-  script: cargo install --locked --path . --root {{prefix}}
+  script:
+    # missed version bump
+    - sed -i 's/^version = .*/version = "{{ version }}"/' Cargo.toml
+    - cargo install --locked --path . --root {{prefix}}
 
 test: test "$(tw --version)" = "tabiew {{ version }}"
