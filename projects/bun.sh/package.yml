@@ -1,6 +1,3 @@
-distributable:
-  url: https://github.com/oven-sh/bun/archive/refs/tags/bun-v{{version}}.tar.gz
-
 warnings:
   - vendored
 
@@ -19,28 +16,26 @@ build:
   dependencies:
     curl.se: '*'
     info-zip.org/unzip: '*'
-  working-directory: ${{prefix}}
-  script: |
-    curl -Lfo bun.zip "https://github.com/oven-sh/bun/releases/download/bun-v{{version}}/bun-$PLATFORM.zip"
-    unzip bun.zip
-    mv bun-$PLATFORM bin
-    rm bun.zip
-    cd bin
-    ln -s bun bunx
+  working-directory: ${{prefix}}/bin
+  script:
+    - curl -Lfo bun.zip "https://github.com/oven-sh/bun/releases/download/bun-v{{version}}/bun-$PLATFORM.zip"
+    - unzip -j bun.zip
+    - rm bun.zip
+    - ln -s bun bunx
+  # otherwise we get segfaults on v1.1.21+
+  skip: fix-patchelf
   env:
-    darwin/aarch64: {PLATFORM: darwin-aarch64}
-    darwin/x86-64:  {PLATFORM: darwin-x64}
-    linux/aarch64:  {PLATFORM: linux-aarch64}
-    linux/x86-64:   {PLATFORM: linux-x64}
+    darwin/aarch64: { PLATFORM: darwin-aarch64 }
+    darwin/x86-64: { PLATFORM: darwin-x64 }
+    linux/aarch64: { PLATFORM: linux-aarch64 }
+    linux/x86-64: { PLATFORM: linux-x64 }
 
-test: |
-  if test "{{hw.platform}}+{{hw.arch}}" != "darwin+x86-64"; then
-    # bun hangs in CI/CD for this platform (BUT WORKS LOCALLY LOL)
-    bun --help
-  fi
-# bunx shx ls
-# ^^ tries to run `node` for some reason
-#TODO a reasonable test for `bunx` that works ffs
+test:
+  - test "$(bun --version)" = "{{version}}"
+  - test "$(bun -e 'console.log("hello world")')" = "hello world"
+  # - bunx shx ls
+  # ^^ tries to run `node` for some reason
+  #TODO a reasonable test for `bunx` that works ffs
 
 provides:
   - bin/bun
