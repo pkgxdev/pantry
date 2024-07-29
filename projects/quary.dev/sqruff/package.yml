@@ -7,9 +7,16 @@ versions:
 
 build:
   dependencies:
-    rust-lang.org: ^1.79
-    rust-lang.org/cargo: '*'
-  script: cargo install --locked --path crates/cli --root {{prefix}}
+    rust-lang.org/rustup: '*'
+  script:
+    # requires nightly features
+    - mkdir -p $HOME/.cargo/bin
+    - export PATH=$HOME/.cargo/bin:$PATH
+    - ln -sf {{deps.rust-lang.org/rustup.prefix}}/bin/rustup $HOME/.cargo/bin/rustup
+    - rustup default $(grep channel rust-toolchain.toml | sed 's/channel = "//;s/"//')
+    - ln -sf $HOME/.rustup/toolchains/*/bin/* $HOME/.cargo/bin/
+
+    - cargo install --locked --path crates/cli --root {{prefix}}
 
 provides:
   - bin/bench
@@ -21,7 +28,7 @@ test:
     fixture:
       extname: sql
       content: SELECT 1;
-  - run: if sqruff lint $FIXTURE; then true; fi
+  - run: if ! sqruff lint $FIXTURE; then true; else false; fi
     fixture:
       extname: sql
       content: |
