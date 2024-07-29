@@ -1,0 +1,57 @@
+distributable:
+  url: https://mkvtoolnix.download/sources/mkvtoolnix-{{version.raw}}.tar.xz
+  strip-components: 1
+
+versions:
+  url: https://mkvtoolnix.download/sources/
+  match: /mkvtoolnix-\d+(\.\d+)+\.tar\.xz/
+  strip:
+    - /^mkvtoolnix-/
+    - /.tar.xz$/
+
+dependencies:
+  boost.org: 1
+  xiph.org/flac: 1
+  xiph.org/ogg: 1
+  xiph.org/vorbis: 1
+  fmt.dev: 11
+  gnu.org/gettext: 0
+  gnu.org/gmp: 6
+  pugixml.org: 1
+  github.com/nemtrif/utfcpp: 4
+  zlib.net: 1
+  # TODO:
+  qt.io: '>=6.2' # https://github.com/Homebrew/homebrew-core/blob/master/Formula/q/qt.rb
+  # libebml: https://github.com/Homebrew/homebrew-core/blob/master/Formula/lib/libebml.rb
+  # libmatroska: https://github.com/Homebrew/homebrew-core/blob/master/Formula/lib/libmatroska.rb
+
+build: # https://github.com/Homebrew/homebrew-core/blob/master/Formula/m/mkvtoolnix.rb
+  dependencies:
+    ruby-lang.org: '*'
+    docbook.org/xsl: '*'
+    gnome.org/libxslt: '*'
+  script:
+    - ./configure $ARGS
+    - rake -j {{ hw.concurrency }}
+    - rake install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --disable-debug
+      - --with-boost={{deps.boost.org.prefix}}
+      - --with-docbook-xsl-root
+      - --disable-gui
+
+provides:
+  - bin/foo
+  # ^^ specify the binaries or pkgx shell integration won’t work
+
+test:
+  dependencies:
+    foo.com: '*' # asterisk means “any version, usually the latest”
+  script:
+    test "$(foo --version)" = {{version}}
+    # if it’s a tool check the version matches
+    # you should run the tool to check it works!
+    # if it's a library then you should *use* the library
+    # don’t forget to check other package.ymls in the pantry for examples!
