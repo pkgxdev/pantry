@@ -1,0 +1,38 @@
+distributable:
+  url: https://github.com/GyulyVGC/sniffnet/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/sniffnet
+
+versions:
+  github: GyulyVGC/sniffnet
+
+dependencies:
+  openssl.org: 1
+  tcpdump.org: 1
+  linux:
+    alsa-project.org/alsa-lib: 1
+    freedesktop.org/fontconfig: 2
+
+build:
+  dependencies:
+    rust-lang.org: ^1.78
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path . --root {{prefix}}
+
+test:
+  script:
+    # gui program, can't test in linux without a DISPLAY,
+    # and running Xvfb seems like too much
+    - run:
+        - sniffnet &
+        - PID=$!
+        - sleep 5
+        # test that it's still running
+        - kill -0 $PID
+        - kill $PID
+      if: darwin
+    - run: if ldd {{prefix}}/bin/sniffnet | grep 'not found'; then exit 1; fi
+      if: linux
+    - test "$(sniffnet --version)" = "sniffnet {{version}}"
