@@ -1,0 +1,56 @@
+distributable:
+  url: https://github.com/plougher/squashfs-tools/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: plougher/squashfs-tools
+
+dependencies:
+  lz4.org: 1
+  oberhumer.com/lzo: 2
+  tukaani.org/xz: 5
+  facebook.com/zstd: 1
+  zlib.net: 1
+
+build:
+  working-directory: squashfs-tools
+  script:
+    - make $ARGS
+    - mkdir -p {{prefix}}/bin
+    - install mksquashfs unsquashfs sqfscat sqfstar {{prefix}}/bin
+  env:
+    ARGS:
+      - EXTRA_CFLAGS=-std=gnu89
+      - LZ4_SUPPORT=1
+      - LZO_SUPPORT=1
+      - XZ_SUPPORT=1
+      - LZMA_XZ_SUPPORT=1
+      - ZSTD_SUPPORT=1
+      - XATTR_SUPPORT=1
+
+provides:
+  - bin/mksquashfs
+  - bin/unsquashfs
+  - bin/sqfscat
+  - bin/sqfstar
+
+test:
+  dependencies:
+    gnu.org/diffutils: '*'
+  script:
+    - mksquashfs -version | grep "mksquashfs version {{version}}"
+    - (unsquashfs -v || true) | grep "unsquashfs version {{version}}"
+    - run:
+        - echo 1 >test1
+        - echo 2 >test2
+        - echo 3 >test3
+      working-directory: in
+    - mksquashfs in/test1 in/test2 in/test3 test.xz.sqsh -comp xz
+    - test -f test.xz.sqsh
+    - unsquashfs -s test.xz.sqsh | grep 'Found a valid SQUASHFS 4:0 superblock on test.xz.sqsh'
+
+    - unsquashfs -d out test.xz.sqsh
+    - test -f out/test1
+    - test -f out/test2
+    - test -f out/test3
+    - diff -r in/ out/
