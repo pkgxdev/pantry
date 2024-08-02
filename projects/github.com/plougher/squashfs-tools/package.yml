@@ -15,10 +15,11 @@ dependencies:
 build:
   working-directory: squashfs-tools
   script:
+    - run: make $ARGS
+      if: darwin
     # else apptainer messes up our LD_LIBRARY_PATH
-    - run: EXTRA_ARGS="LDFLAGS=-static -pie"
+    - run: make $ARGS "LDFLAGS=-static -pie"
       if: linux
-    - make $ARGS "$EXTRA_ARGS"
     - mkdir -p {{prefix}}/bin
     - install mksquashfs unsquashfs sqfscat sqfstar {{prefix}}/bin
   env:
