@@ -15,15 +15,12 @@ dependencies:
 build:
   working-directory: squashfs-tools
   script:
-    - run: make $ARGS EXTRA_CFLAGS=-std=gnu89
-      if: darwin
-    # else apptainer messes up our LD_LIBRARY_PATH
-    - run: make $ARGS "EXTRA_CFLAGS=-std=gnu89 -fPIC" "LDFLAGS=-static -pie"
-      if: linux
+    - make $ARGS
     - mkdir -p {{prefix}}/bin
     - install mksquashfs unsquashfs sqfscat sqfstar {{prefix}}/bin
   env:
     ARGS:
+      - EXTRA_CFLAGS=-std=gnu89
       - LZ4_SUPPORT=1
       - LZO_SUPPORT=1
       - XZ_SUPPORT=1
