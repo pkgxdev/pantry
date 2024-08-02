@@ -15,7 +15,10 @@ dependencies:
 build:
   working-directory: squashfs-tools
   script:
-    - make $ARGS
+    # else apptainer messes up our LD_LIBRARY_PATH
+    - run: EXTRA_ARGS="LDFLAGS=-static -pie"
+      if: linux
+    - make $ARGS "$EXTRA_ARGS"
     - mkdir -p {{prefix}}/bin
     - install mksquashfs unsquashfs sqfscat sqfstar {{prefix}}/bin
   env:
@@ -27,10 +30,6 @@ build:
       - LZMA_XZ_SUPPORT=1
       - ZSTD_SUPPORT=1
       - XATTR_SUPPORT=1
-    linux:
-      ARGS:
-        # else apptainer messes up our LD_LIBRARY_PATH
-        - LDFLAGS=-static
 
 provides:
   - bin/mksquashfs
@@ -44,12 +43,6 @@ test:
   script:
     - mksquashfs -version | grep "mksquashfs version {{version}}"
     - (unsquashfs -v || true) | grep "unsquashfs version {{version}}"
-    # FIXME: static binaries fail on archlinux. likely need to link our specific
-    # libc++.
-    - |
-      if test -f /etc/arch-release; then
-        exit 0
-      fi
     - run:
         - echo 1 >test1
         - echo 2 >test2
