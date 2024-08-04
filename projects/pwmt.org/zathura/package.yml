@@ -24,16 +24,18 @@ build:
     mesonbuild.com: '>=0.61'
     ninja-build.org: '*'
   script:
+    # Fix build with newer girara
+    - run: sed -i 's/girara_warn(/girara_warning(/g' main.c
+      working-directory: zathura
     - meson setup build --prefix={{prefix}} -Dmanpages=disabled
     - ninja -C build
     - ninja -C build install
   env:
-    # dyld[] missing symbol called
     darwin:
+      # dyld[] missing symbol called
       MACOSX_DEPLOYMENT_TARGET: 14.0
 
-test:
-  - zathura --help
+test: zathura --help
 
 provides:
   - bin/zathura
