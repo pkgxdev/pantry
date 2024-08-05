@@ -1,17 +1,23 @@
-distributable:
-  url: https://github.com/apache/avro/archive/release-{{version}}.tar.gz
-  strip-components: 1
+# 1.12.0 has a non-unpackable tarball!
+# distributable:
+#   url: https://github.com/apache/avro/archive/release-{{version}}.tar.gz
+#   strip-components: 1
+
 versions:
   github: apache/avro
   strip:
     - /^release-/
+
 dependencies:
   digip.org/jansson: '*'
   google.github.io/snappy: '*'
   tukaani.org/xz: '*'
   zlib.net: '*'
+
 build:
   dependencies:
+    gnu.org/tar: '*'
+    curl.se: '*'
     cmake.org: '*'
     freedesktop.org/pkg-config: '*'
     linux:
@@ -19,6 +25,9 @@ build:
       gnu.org/make: '*'
   working-directory: lang/c
   script:
+    # 1.12.0 has a non-unpackable tarball!
+    - run: curl -LsS https://github.com/apache/avro/archive/release-{{version}}.tar.gz | tar -xz --strip-components=1 -C ../..
+
     - cmake -S . -B build $CMAKE_ARGS
     - cmake --build build
     - cmake --install build
@@ -31,17 +40,19 @@ build:
       - -DCMAKE_VERBOSE_MAKEFILE=ON
       - -Wno-dev
       - -DBUILD_TESTING=OFF
+
 provides:
   - bin/avroappend
   - bin/avrocat
   - bin/avromod
   - bin/avropipe
+
 test:
   dependencies:
     freedesktop.org/pkg-config: '*'
     linux:
       gnu.org/gcc: '*'
   script:
-    - cc quickstop.c -o test -lavro
+    - cc quickstop.c -o test -lavro -Wno-incompatible-pointer-types
     - ./test
     - pkg-config --modversion avro-c | grep {{version}}
