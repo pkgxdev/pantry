@@ -32,7 +32,19 @@ test:
             includes = ["#_ts", "#_in", "*"]
         [[outlets.file]]
             path  = "-"
+    if: <0.0.3
+  - run: cp $FIXTURE config.toml
+    fixture:
+      extname: toml
+      content: |
+        [[inlets.cpu]]
+            interval = "3s"
+        [[flows.select]]
+            includes = ["#*", "*"]  # all tags and all fields
+        [[outlets.file]]
+            path  = "-"
+    if: '>=0.0.3'
   - tine run --pid tine.pid config.toml > out &
   - sleep 6
-  - grep ,cpu, out
+  - grep cpu, out
   - kill $(cat tine.pid)
