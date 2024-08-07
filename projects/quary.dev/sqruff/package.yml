@@ -8,15 +8,25 @@ versions:
 build:
   dependencies:
     rust-lang.org/rustup: '*'
+  working-directory: crates/cli
   script:
     # requires nightly features
-    - mkdir -p $HOME/.cargo/bin
-    - export PATH=$HOME/.cargo/bin:$PATH
-    - ln -sf {{deps.rust-lang.org/rustup.prefix}}/bin/rustup $HOME/.cargo/bin/rustup
-    - rustup default $(grep channel rust-toolchain.toml | sed 's/channel = "//;s/"//')
-    - ln -sf $HOME/.rustup/toolchains/*/bin/* $HOME/.cargo/bin/
+    - run:
+        - ln -sf {{deps.rust-lang.org/rustup.prefix}}/bin/rustup .
+        - rustup default $(grep channel $SRCROOT/rust-toolchain.toml | sed 's/channel = "//;s/"//')
+        - ln -sf $HOME/.rustup/toolchains/*/bin/* .
+      working-directory: $HOME/.cargo/bin
 
-    - cargo install --locked --path crates/cli --root {{prefix}}
+    # jemalloc breaks linux/aarch64 build
+    - run:
+        - sed -i '/jemallocator/{N;N;d;}' cli/Cargo.toml lib/Cargo.toml
+        - sed -i 's/target_arch = "aarch64", //' cli/src/main.rs
+      working-directory: ..
+      if: linux/aarch64
+
+    - cargo install --locked --path . --root {{prefix}}
+  env:
+    PATH: $HOME/.cargo/bin:$PATH
 
 provides:
   - bin/bench
