@@ -1,0 +1,47 @@
+distributable:
+  url: https://github.com/creativeprojects/resticprofile/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: creativeprojects/resticprofile
+
+provides:
+  - bin/resticprofile
+
+companions:
+  restic.net/restic: '*'
+
+build:
+  dependencies:
+    go.dev: ~1.22
+  script: go build -v -ldflags="$GO_LDFLAGS" -o '{{prefix}}/bin/resticprofile' .
+  env:
+    GO_LDFLAGS:
+      - -s
+      - -w
+      - -X main.commit=pantry
+      - -X main.date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+      - -X main.buildBy=pkgx
+      - -X main.version={{version}}
+    linux:
+      GO_LDFLAGS:
+        - -buildmode=pie
+
+test:
+  - test "$(resticprofile version)" = "resticprofile version {{version}} commit pantry"
+  - run: resticprofile -c $FIXTURE show | grep 'local:/backup'
+    fixture:
+      extname: yaml
+      content: |
+        # yaml-language-server: $schema=https://creativeprojects.github.io/resticprofile/jsonschema/config-1.json
+
+        version: "1"
+
+        default:
+          repository: "local:/backup"
+          password-file: "password.txt"
+
+          backup:
+            verbose: true
+            source:
+              - "/home"
