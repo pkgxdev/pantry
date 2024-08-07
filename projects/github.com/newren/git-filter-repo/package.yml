@@ -1,0 +1,27 @@
+distributable:
+  url: https://github.com/newren/git-filter-repo/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/git-filter-repo
+
+versions:
+  github: newren/git-filter-repo
+
+companions:
+  git-scm.org: '*'
+
+dependencies:
+  python.org: '>=3.6'
+
+build: install -D git-filter-repo {{prefix}}/bin/git-filter-repo
+
+test:
+  dependencies:
+    git-scm.org: '*'
+  script:
+    - git clone https://github.com/pkgxdev/pantry
+    - run:
+        - git filter-repo --path projects/pkgx.sh
+        - test "$(find projects | grep -v projects/pkgx.sh)" = "projects"
+      working-directory: pantry
