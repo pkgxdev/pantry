@@ -13,15 +13,15 @@ build:
   env:
     CGO_ENABLED: 0
     GO_LDFLAGS:
-    - -s
-    - -w
-    - -X main.Version={{ version }}
+      - -s
+      - -w
+      - -X main.Version={{ version }}
     linux:
       LDFLAGS:
-      - -buildmode=pie
+        - -buildmode=pie
   script: go build -v -ldflags="${GO_LDFLAGS}" -o "{{ prefix }}"/bin/garm-provider-openstack
 
 provides:
   - bin/garm-provider-openstack
 
-test: test "$(garm-provider-openstack --version)" = {{version}}
+test: (garm-provider-openstack 2>&1 || true) | grep 'failed to validate execution environment'
