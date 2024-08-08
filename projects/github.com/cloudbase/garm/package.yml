@@ -16,13 +16,14 @@ build:
     #
     CGO_ENABLED: 1
     GO_LDFLAGS:
-    - -s
-    - -w
-    - -X main.Version={{ version }}
-    - -X github.com/cloudbase/garm/cmd/garm-cli/cmd.Version={{ version }}
+      - -s
+      - -w
+      - -X main.Version={{ version }}
+      - -X github.com/cloudbase/garm/cmd/garm-cli/cmd.Version={{ version }}
+      - -X github.com/cloudbase/garm/util/appdefaults.Version={{ version }}
     linux:
       GO_LDFLAGS:
-      - -buildmode=pie
+        - -buildmode=pie
     ARGS:
       - -v
       - -mod vendor
@@ -31,9 +32,9 @@ build:
     - go build $ARGS -ldflags="${GO_LDFLAGS}" -o "{{ prefix }}"/bin/garm-cli ./cmd/garm-cli
 
 provides:
-- bin/garm
-- bin/garm-cli
+  - bin/garm
+  - bin/garm-cli
 
 test:
   - test "$(garm --version)" = {{version}}
-  - test "$(garm-cli version)" = {{version}}
+  - garm-cli version | grep {{version}}
