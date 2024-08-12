@@ -1,13 +1,14 @@
 distributable:
   url: https://github.com/xeol-io/xeol/archive/v{{version}}.tar.gz
   strip-components: 1
+
 versions:
   github: xeol-io/xeol
+
 build:
   dependencies:
     go.dev: '*'
-  script:
-    - go build $GO_ARGS -ldflags="$LD_FLAGS" ./cmd/xeol
+  script: go build $GO_ARGS -ldflags="$LD_FLAGS" ./cmd/xeol
   env:
     GO_ARGS:
       - -trimpath
@@ -17,8 +18,11 @@ build:
       - -w
       - -X main.version={{version}}
       - -X main.buildDate=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    linux:
+      LD_FLAGS:
+        - -buildmode=pie
+
 provides:
   - bin/xeol
-test:
-  script:
-    - xeol version | grep {{version}}
+
+test: xeol version | grep {{version}}
