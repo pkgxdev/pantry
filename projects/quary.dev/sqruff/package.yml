@@ -26,8 +26,12 @@ build:
       working-directory: ..
       if: linux
 
+    # -Ctarget-cpu is breaking darwin/x86-64
+    - run: if test -f config.toml; then sed -i '/-Ctarget-cpu=native/d' config.toml; fi
+      working-directory: ../../.cargo
+      # if: darwin/x86-64
+
     - cargo install --locked --path . --root {{prefix}}
-  skip: fix-machos # or segfaults on newer darwin/x86-64
   env:
     PATH: $HOME/.cargo/bin:$PATH
 
