@@ -9,6 +9,9 @@ platforms:
   - darwin
 
 build:
+  # shipped with old version
+  - run: sed -i 's/^let version = ".*"/let version = "{{version}}"/' Version.swift
+    working-directory: Sources/XCTestHTMLReport
   - swift build --disable-sandbox -c release
   - install -D .build/release/xchtmlreport {{prefix}}/bin/xchtmlreport
 
@@ -19,6 +22,7 @@ test:
   dependencies:
     curl.se: '*'
   script:
+    - xchtmlreport --version
     - xchtmlreport --version | grep {{version}}
     - curl -L "${TESTDATA}" | tar -xz
     - xchtmlreport SanityResults.xcresult
