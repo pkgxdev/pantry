@@ -9,7 +9,6 @@ versions:
 
 dependencies:
   pkgx.sh: ^1
-  numpy.org: 2
   linux:
     mesa3d.org: ^23.3
     gnome.org/glib: ^2
@@ -35,6 +34,11 @@ build:
       if: '>=0.4.4'
 
     - poetry install
+
+    # not found in some installs post 0.5
+    - run: poetry add 'numpy<2'
+      if: ^0.5
+
     - bkpyvenv seal --engine=poetry {{prefix}} surya_detect
 
 provides:
