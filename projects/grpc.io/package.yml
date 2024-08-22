@@ -44,29 +44,13 @@ build:
     # https://github.com/grpc/grpc/issues/36654
     - run: |
         if test "{{hw.platform}}" = "darwin"; then
-          patch -i $PROP || true
+          cat $PROP >> CMakeLists.txt
         fi
       if: '>=1.63'
       working-directory: ../..
       prop: |
-        --- CMakeLists.txt.orig	2024-05-16 01:01:03.000000000 +0000
-        +++ CMakeLists.txt
-        @@ -3682,6 +3682,7 @@ target_include_directories(upb_json_lib
-         )
-         target_link_libraries(upb_json_lib
-           ${_gRPC_ALLTARGETS_LIBRARIES}
-        +  grpc++_unsecure
-           utf8_range_lib
-           upb_message_lib
-         )
-        @@ -3883,6 +3884,7 @@ target_include_directories(upb_textforma
-         )
-         target_link_libraries(upb_textformat_lib
-           ${_gRPC_ALLTARGETS_LIBRARIES}
-        +  grpc++_unsecure
-           utf8_range_lib
-           upb_message_lib
-         )
+        target_link_options(upb_textformat_lib PRIVATE -Wl,-undefined,dynamic_lookup)
+        target_link_options(upb_json_lib PRIVATE -Wl,-undefined,dynamic_lookup)
 
     - cmake $COMMON_ARGS $ARGS ../..
     - make install
