@@ -25,9 +25,12 @@ build:
       working-directory: src
     - cargo install --locked --path . --root {{prefix}}
     # bin name changed in 0.8.5
-    - run:
-        - if test -f mdt; then ln -s mdt md-tui; fi
-        - if test -f md-tui; then ln -s md-tui mdt; fi
+    - run: |
+        if test -f mdt; then
+          ln -s mdt md-tui
+        elif test -f md-tui; then
+          ln -s md-tui mdt
+        fi
       working-directory: ${{prefix}}/bin
 
 test:
