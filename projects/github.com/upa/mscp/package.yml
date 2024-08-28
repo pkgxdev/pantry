@@ -23,12 +23,18 @@ build:
     #kerberos.org: '*'
   env:
     CMAKE_INSTALL_PREFIX: "{{ prefix }}"
+    BUILD_TYPE: Release
   script: |
     pip install libnacl
+    #
+    # this produce an error
+    #
+    # pip install abimap
     git submodule update --init
     patch -d libssh -p1 < patch/$(git --git-dir=./libssh/.git describe).patch
     mkdir build && cd build
-    cmake ..
+    cmake .. -D OPENSSL_ROOT_DIR={{deps.openssl.org.prefix}} \
+             -D CMAKE_BUILD_TYPE=${BUILD_TYPE}
     make
     make install
 
