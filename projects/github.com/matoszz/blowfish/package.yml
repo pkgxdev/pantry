@@ -1,0 +1,29 @@
+distributable:
+  url: git+https://github.com/matoszz/blowfish
+  # git rev-parse main
+  #ref: 752674271fdbee54998bd3aed2a08c44bafb2d06
+  ref: main
+
+display-name: blowfish
+
+versions:
+- 0.0.0
+
+build:
+  dependencies:
+    go.dev: '*'
+  script: go build -v -ldflags="${GO_LDFLAGS}" -o "{{ prefix }}"/bin/blowfish main.go
+  env:
+    CGO_ENABLED: 0
+    GO_LDFLAGS:
+      - -s
+      - -w
+      - -X github.com/matoszz/blowfish/cmd.BuildVersion={{ version }}
+    linux:
+      GO_LDFLAGS:
+        - -buildmode=pie
+
+provides:
+  - bin/blowfish
+
+test: test "$( blowfish version 2>&1)" = {{version}}
