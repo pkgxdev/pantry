@@ -1,0 +1,38 @@
+distributable:
+  url: git+https://github.com/upa/mscp
+  ref: ${{version.tag}}
+
+display-name: mscp
+
+versions:
+  github: upa/mscp
+
+dependencies:
+  zlib.net: ^1.2.11
+  openssl.org: ^1.1.1
+  #  kerberos.org: '*'
+
+build:
+  dependencies:
+    gnu.org/bash: '*'
+    gnu.org/make: '*'
+    gnu.org/gcc: '*'
+    cmake.org: '*'
+    git-scm.org: '*'
+    python.org: '*'
+    #kerberos.org: '*'
+  env:
+    CMAKE_INSTALL_PREFIX: "{{ prefix }}"
+  script: |
+    pip install libnacl
+    git submodule update --init
+    patch -d libssh -p1 < patch/$(git --git-dir=./libssh/.git describe).patch
+    mkdir build && cd build
+    cmake ..
+    make
+    make install
+
+provides:
+  - bin/mscp
+
+test: test "$(mscp|head -1|cut -d':' -f1|cut -d' ' -f2)" = v{{version}}
