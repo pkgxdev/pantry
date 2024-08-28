@@ -29,5 +29,5 @@ provides:
 
 test:
   - snyk version | grep {{version}}
-  - snyk auth test > out.log || true
-  - cat out.log | grep 'Authentication failed. Please check the API token on https://snyk.io'
+  - (snyk test || true) | tee out.log
+  - grep 'requires an authenticated account.' out.log
