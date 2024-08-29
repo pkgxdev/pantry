@@ -11,6 +11,7 @@ build:
   dependencies:
     go.dev: '*'
     gnu.org/coreutils: '*'
+    git-scm.org: '*'
 
   env:
     CGO_ENABLED: 0
@@ -18,7 +19,8 @@ build:
     - -s
     - -w
     - -X github.com/openbao/openbao/version.fullVersion={{version}}
-    - -X github.com/openbao/openbao/version.GitCommit=$(git log -1 --format='%H')
+    #- -X github.com/openbao/openbao/version.GitCommit=$(git log -1 --format='%H')
+    - -X github.com/openbao/openbao/version.GitCommit=$(git rev-parse HEAD --prefix ${SRCROOT})
     - -X github.com/openbao/openbao/version.BuildDate=$(date --iso-8601=seconds)
     linux:
       GO_LDFLAGS:
