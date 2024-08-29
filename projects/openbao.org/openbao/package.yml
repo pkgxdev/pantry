@@ -34,7 +34,7 @@ build:
     OPENBAO_SERVICE_FILE: openbao.service
   script: |
     go build -v -ldflags="${GO_LDFLAGS}" -o "{{ prefix }}"/bin/${OPENBAO_BINARY}
-    install -D props/${OPENBAO_SETUP_SCRIPT} {{prefix}}/bin/${OPENBAO_SETUP_SCRIPT%.*}
+    install -D props/${OPENBAO_SETUP_SCRIPT} {{prefix}}/bin/bao-setup
     install -D props/${OPENBAO_README_FILE} {{prefix}}/doc/${OPENBAO_README_FILE}
     install -D props/${OPENBAO_CONFIG_FILE} {{prefix}}/etc/openbao/${OPENBAO_CONFIG_FILE}
     install -D props/${OPENBAO_SERVICE_ENVIRONMENT_FILE} {{prefix}}/etc/openbao/${OPENBAO_SERVICE_ENVIRONMENT_FILE}
@@ -46,6 +46,6 @@ provides:
   - bin/bao
   # too bad, does not work
   # - bin/${OPENBAO_SETUP_SCRIPT%.*}
-  - bin/setup
+  - bin/bao-setup
 
 test: test "$(bao version|cut -d' ' -f2)" = {{version.tag}}
