@@ -1,6 +1,8 @@
 distributable:
-  url: https://github.com/openbao/openbao/archive/refs/tags/{{version.tag}}.tar.gz
-  strip-components: 1
+  #url: https://github.com/openbao/openbao/archive/refs/tags/{{version.tag}}.tar.gz
+  #strip-components: 1
+  url: git+https://github.com/openbao/openbao
+  ref: {{version.tag}}
 
 display-name: openbao
 
@@ -20,8 +22,9 @@ build:
     - -w
     - -X github.com/openbao/openbao/version.fullVersion={{version}}
     #- -X github.com/openbao/openbao/version.GitCommit=$(git log -1 --format='%H')
-    - -X github.com/openbao/openbao/version.GitCommit=$(git rev-parse HEAD --prefix ${SRCROOT})
-    - -X github.com/openbao/openbao/version.BuildDate=$(date --iso-8601=seconds)
+    #- -X github.com/openbao/openbao/version.GitCommit=$(git rev-parse HEAD --prefix ${SRCROOT})
+    - -X github.com/openbao/openbao/version.GitCommit=$( git rev-parse HEAD )
+    - -X github.com/openbao/openbao/version.BuildDate=$( date --iso-8601=seconds )
     linux:
       GO_LDFLAGS:
       - -buildmode=pie
