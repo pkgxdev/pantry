@@ -1,0 +1,28 @@
+distributable:
+  url: https://github.com/ko-build/ko/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: ko-build/ko
+
+build:
+  dependencies:
+    go.dev: ^1.22
+  script: |
+    go mod download
+    mkdir -p "{{ prefix }}"/bin
+    go build -v -trimpath -ldflags="$LDFLAGS" -o $BUILDLOC .
+  env:
+    GO111MODULE: on
+    BUILDLOC: '{{prefix}}/bin/ko'
+    LDFLAGS:
+      - -s
+      - -w 
+      - -X github.com/google/ko/pkg/commands.Version={{version}}
+
+provides:
+  - bin/ko
+
+test:
+  script:
+    test "$(ko version)" = {{version}}
