@@ -1,0 +1,30 @@
+distributable:
+  url: https://github.com/rmj1001/albion-rpg/archive/68b1a93152b8dcd6b1cf536f6634dc0ff86da1de.tar.gz
+  # url: https://github.com/rmj1001/albion-rpg/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/albionrpg
+
+versions:
+  # FIXME: no versions tagged/released yet
+  # github: rmj1001/albion-rpg
+  - 2024.5.7
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
+  script:
+    # no features that don't run the TUI; add a --version flag for testing
+    - run: |
+        sed -i '/fn main() {/a\
+            if std::env::args().nth(1) == Some("--version".to_string()) {\
+                println!("albionrpg v{{ version }}");\
+                return;\
+            }\
+        ' main.rs
+      working-directory: src
+    - cargo install --locked --path . --root {{prefix}}
+
+test: test "$(albionrpg --version)" = "albionrpg v{{ version }}"

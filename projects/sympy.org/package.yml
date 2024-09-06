@@ -14,6 +14,9 @@ runtime:
     PYTHONPATH: $PYTHONPATH:{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages
 
 build:
+  # versions not updated
+  - run: sed -i 's/__version__ =.*/__version__ = "{{version.raw}}"/' release.py
+    working-directory: sympy
   - python -m pip install --prefix={{prefix}} .
   - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
     working-directory: ${{prefix}}/lib

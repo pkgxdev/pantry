@@ -54,21 +54,19 @@ build:
       working-directory: ${{ prefix }}/include
 
     - run: |
-        tmp_dir=$(ls)
+        if [ -d cairo ]; then
+          tmp_dir=cairo
+        else
+          tmp_dir=$(ls)
+        fi
         mv $tmp_dir/* .
         rmdir $tmp_dir
+        ln -s . $tmp_dir
       working-directory: ${{ prefix }}/lib
-      if: linux
-      
-    - run: |
-        mv cairo/* .
-        rmdir cairo
-        ln -s . cairo
-      working-directory: ${{ prefix }}/lib
-      if: darwin
   env:
     ARGS:
       - -Dfreetype=enabled
+      - -Dfontconfig=enabled
       - -Dpng=enabled
       - -Dglib=enabled
       - -Dxcb=enabled

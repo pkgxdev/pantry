@@ -16,10 +16,17 @@ dependencies:
   zlib.net: 1
 
 build:
-  script: |
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }}
-    make install
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
+
+    # https://github.com/libarchive/libarchive/issues/1819
+    - run: 'sed -i ''/Requires\.private: iconv/d'' libarchive.pc'
+      working-directory: '{{prefix}}/lib/pkgconfig'
+
+    - run: find . -name \*.la -exec rm {} \;
+      working-directory: '{{prefix}}/lib'
   env:
     ARGS:
       - --prefix={{prefix}}

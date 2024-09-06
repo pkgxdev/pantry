@@ -1,6 +1,9 @@
 distributable:
-  url: https://downloads.sourceforge.net/project/docutils/docutils/{{version.marketing}}/docutils-{{version.marketing}}.tar.gz
-  strip-components: 1
+  - url: https://downloads.sourceforge.net/project/docutils/docutils/{{version.marketing}}/docutils-{{version.marketing}}.tar.gz
+    strip-components: 1
+  # 0.21 named its source distribution oddly
+  - url: https://downloads.sourceforge.net/project/docutils/docutils/{{version.marketing}}/docutils-{{version.marketing}}.post1.tar.gz
+    strip-components: 1
 
 versions:
   url: https://sourceforge.net/projects/docutils/files/docutils/
@@ -10,20 +13,44 @@ versions:
     - /\/"/
 
 dependencies:
-  python.org: ~3.11
+  pkgx.sh: ^1
 
 build:
-  script: |
-    python-venv.sh {{prefix}}/bin/docutils
-
+  dependencies:
+    python.org: ~3.11
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} $BINS
+  env:
+    BINS:
+      - docutils
+      - rst2html
+      - rst2html4
+      - rst2html5
+      - rst2latex
+      - rst2man
+      - rst2odt
+      - rst2pseudoxml
+      - rst2s5
+      - rst2xetex
+      - rst2xml
 
 provides:
   - bin/docutils
+  - bin/rst2html
+  - bin/rst2html4
+  - bin/rst2html5
+  - bin/rst2latex
+  - bin/rst2man
+  - bin/rst2odt
+  - bin/rst2pseudoxml
+  - bin/rst2s5
+  - bin/rst2xetex
+  - bin/rst2xml
 
 test:
   fixture: |
     - This is a bullet list.
     - Bullets can be "*", "+", or "-".
-
-  script: |
-    docutils $FIXTURE test.html
+  script: docutils $FIXTURE test.html

@@ -1,0 +1,33 @@
+distributable:
+  url: https://ftp.gnu.org/gnu/diffutils/diffutils-{{ version.raw }}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://ftp.gnu.org/gnu/diffutils/
+  match: /diffutils-(\d+\.\d+(\.\d+)?)\.tar\.gz/
+  strip:
+    - /diffutils-/
+    - /.tar.gz/
+
+provides:
+  - bin/cmp
+  - bin/diff
+  - bin/diff3
+  - bin/sdiff
+
+build:
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    FORCE_UNSAFE_CONFIGURE: 1 # some gha runners run as root
+    ARGS:
+      - --prefix={{prefix}}
+    linux/aarch64:
+      ARGS:
+        - --build=aarch64-unknown-linux-gnu
+
+test:
+  - echo "aaaa" > test-file
+  - run: cmp test-file $FIXTURE
+    fixture: aaaa

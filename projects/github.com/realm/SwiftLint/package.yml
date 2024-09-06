@@ -23,4 +23,11 @@ build:
     mv swiftlint "{{prefix}}/bin"
 
 test:
-  script: test "$(swiftlint --version)" = {{version}}
+  # MacOS 11 doesn't have the necessary library
+  - run: |
+      if ! test -f /usr/lib/swift/libswift_Concurrency.dylib; then
+        echo "warning: skipping tests because libswift_Concurrency.dylib is missing"
+        exit 0
+      fi
+    if: darwin
+  - test "$(swiftlint --version)" = {{version}}

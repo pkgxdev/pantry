@@ -1,0 +1,40 @@
+distributable:
+  url: https://github.com/cloudbase/garm/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+display-name: cloudbase/garm
+
+versions:
+  github: cloudbase/garm
+
+build:
+  dependencies:
+    go.dev: ^1.20
+  env:
+    #
+    # Jun 10 13:32:43 github-actions-runner-manager pkgx[8965]: time=2024-06-10T13:32:43.011Z level=INFO msg="creating DB connection: connecting to database: Binary was compiled with 'CGO_ENABLED=0', go-sqlite3 requires cgo to work. This is a stub"
+    #
+    CGO_ENABLED: 1
+    GO_LDFLAGS:
+      - -s
+      - -w
+      - -X main.Version={{ version }}
+      - -X github.com/cloudbase/garm/cmd/garm-cli/cmd.Version={{ version }}
+      - -X github.com/cloudbase/garm/util/appdefaults.Version={{ version }}
+    linux:
+      GO_LDFLAGS:
+        - -buildmode=pie
+    ARGS:
+      - -v
+      - -mod vendor
+  script:
+    - go build $ARGS -ldflags="${GO_LDFLAGS}" -o "{{ prefix }}"/bin/garm ./cmd/garm
+    - go build $ARGS -ldflags="${GO_LDFLAGS}" -o "{{ prefix }}"/bin/garm-cli ./cmd/garm-cli
+
+provides:
+  - bin/garm
+  - bin/garm-cli
+
+test:
+  - test "$(garm --version)" = {{version}}
+  - garm-cli version | grep {{version}}

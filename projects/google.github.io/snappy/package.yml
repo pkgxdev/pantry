@@ -12,11 +12,8 @@ build:
     gnu.org/patch: '*'
   script:
     # disable -Werror (because there are warnings lol)
-    - patch -p1 <props/CMakeLists.txt.patch
     # disable no-rtti, since it messes up folly
-    - run: |
-        sed -i.bak -e '/# Disable RTTI./{N;N;d;}' CMakeLists.txt
-        rm CMakeLists.txt.bak
+    - sed -i -e 's/ -Werror//g' -e '/# Disable RTTI./{N;N;d;}' CMakeLists.txt
     - cmake . $ARGS
     - make install
     - make clean

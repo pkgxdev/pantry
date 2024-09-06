@@ -9,7 +9,7 @@ dependencies:
   facebook.com/wangle: '*'
   facebook.com/folly: '*'
   facebook.com/fbthrift: '>=2023.12.18.0'
-  fmt.dev: ^9
+  fmt.dev: ^10
   gflags.github.io: ^2.2.2
   google.com/glog: ^0.6
   libsodium.org: ^1.0.19
@@ -37,13 +37,26 @@ build:
       - -DPYTHON_EXTENSIONS=OFF
       - -DBUILD_SHARED_LIBS=ON
     linux:
+      CC: clang
+      CXX: clang++
+      LD: clang
       CMAKE_ARGS:
         - -DCMAKE_C_FLAGS=-fPIC
         - -DCMAKE_CXX_FLAGS=-fPIC
-        - -DCMAKE_EXE_LINKER_FLAGS=-pie
+    linux/x86-64:
+      CMAKE_ARGS:
+        - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-pie
+    linux/aarch64:
+      CMAKE_ARGS:
+        - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-pie,-latomic
 test:
   dependencies:
     boost.org: ^1.84
   script:
-    - c++ -std=c++17 test.cpp -o test -lfb303_thrift_cpp -lfolly -lglog -lthriftprotocol -lthriftcpp2 -ldl -lboost_context
+    - $CXX -std=c++17 test.cpp -o test $EXTRA_LIBS -lfb303_thrift_cpp -lfolly -lglog -lthriftprotocol -lthriftcpp2 -ldl -lboost_context
     - ./test | grep 'BaseService'
+  env:
+    CXX: c++
+    linux:
+      CXX: clang++
+      EXTRA_LIBS: -latomic

@@ -1,22 +1,31 @@
 distributable:
   url: https://github.com/AleoHQ/leo/archive/v{{version}}.tar.gz
   strip-components: 1
+
 versions:
   github: AleoHQ/leo
+
 dependencies:
   openssl.org: ^1.1
   curl.se: ^8.4
+
 build:
   dependencies:
     rust-lang.org: ^1.65
     rust-lang.org/cargo: '*'
-  script:
-    - cargo install --locked --path . --root {{prefix}}
+    cmake.org: ^3 # as of 1.12.0 for libz-ng-sys crate
+  script: cargo install --locked --path . --root {{prefix}}
+
 provides:
   - bin/leo
+
 test:
-  script:
-    - leo new helloworld
-    - cd helloworld
-    - leo build | grep "Compiled 'main.leo' into Aleo instructions"
-    - leo --version | grep {{version}}
+  - leo new helloworld
+  - cd helloworld
+  - leo build
+  - run: leo build | grep "Compiled 'main.leo' into Aleo instructions"
+    if: <2
+  - run: leo build | grep "Compiled 'helloworld.aleo' into Aleo instructions"
+    if: '>=2'
+  - leo run main 21u32 32u32 | grep "53u32"
+  - leo --version | grep {{version}}

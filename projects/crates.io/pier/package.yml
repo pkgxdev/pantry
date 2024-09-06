@@ -1,0 +1,23 @@
+distributable:
+  url: https://github.com/pier-cli/pier/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/pier
+
+versions:
+  github: pier-cli/pier
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path . --root {{prefix}}
+
+test:
+  - pier --help
+  - test "$(pier --version)" = "pier {{version}}"
+  - touch pier.toml
+  - pier add "ls -la" --alias ls
+  - cat pier.toml
+  - pier run ls

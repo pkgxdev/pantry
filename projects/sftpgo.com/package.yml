@@ -10,20 +10,24 @@ versions:
 
 build:
   dependencies:
-    go.dev: '*'
+    go.dev: =1.22.2
   env:
-    CGO_ENABLED: 0
-    COMMIT_SHA: "$(git describe --always --abbrev=8 --dirty)"
-    VERSION_DATE: "$(date -u +%FT%TZ)"
-    LDFLAGS:
+    CGO_ENABLED: 1
+    COMMIT_SHA: '$(git describe --always --abbrev=8 --dirty)'
+    VERSION_DATE: '$(date -u +%FT%TZ)'
+    GO_LDFLAGS:
       - -s
       - -w
       - -X github.com/drakkan/sftpgo/v2/internal/version.commit=${COMMIT_SHA}
       - -X github.com/drakkan/sftpgo/v2/internal/version.date=${VERSION_DATE}
     linux:
-      LDFLAGS:
+      GO_LDFLAGS:
         - -buildmode=pie
-  script: go build -v -trimpath -ldflags="${LDFLAGS}" -o {{prefix}}/bin/sftpgo
+  script:
+    # fails to find sqlite3.Error
+    - run: TAGS="-tags nosqlite"
+      if: 2.6.0
+    - go build -v $TAGS -trimpath -ldflags="${GO_LDFLAGS}" -o {{prefix}}/bin/sftpgo
 
 provides:
   - bin/sftpgo

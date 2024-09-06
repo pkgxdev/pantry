@@ -1,0 +1,32 @@
+distributable:
+  url: https://github.com/rucio/rucio/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+display-name: rucio-client
+
+versions:
+  github: rucio/rucio
+
+dependencies:
+  pkgx.sh: ^1
+
+build:
+  dependencies:
+    gnu.org/bash: ^5
+    python.org: '>=3.9'
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install setuptools
+    - ./tools/build_sdist.sh clients
+    - ${{prefix}}/venv/bin/pip install .
+    # missing req
+    - run: ${{prefix}}/venv/bin/pip install dogpile.cache
+      if: '>=35'
+    - bkpyvenv seal {{prefix}} rucio rucio-admin
+
+provides:
+  - bin/rucio
+  - bin/rucio-admin
+
+test:
+  - test "$(rucio --version|cut -d' ' -f 2)" = {{version}}
+  - test "$(rucio-admin --version|cut -d' ' -f 2)" = {{version}}

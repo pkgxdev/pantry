@@ -1,26 +1,32 @@
 distributable:
   url: https://github.com/rrthomas/libpaper/releases/download/v{{version}}/libpaper-{{version}}.tar.gz
   strip-components: 1
+
 versions:
   github: rrthomas/libpaper
+
 build:
   dependencies:
     gnu.org/make: '*'
     gnu.org/help2man: '*'
   script:
     - ./configure $CONFIGURE_ARGS
+    - make check
     - make install
   env:
     CONFIGURE_ARGS:
+      - --enable-relocatable
       - --disable-debug
       - --disable-dependency-tracking
       - --prefix="{{prefix}}"
       - --libdir="{{prefix}}/lib"
       - --sysconfdir="{{prefix}}/etc"
+
 provides:
   - bin/paper
+
 test:
-  script:
-    - paper --version | grep {{version}}
-    - cc test.c -lpaper -o test
-    - ./test
+  - paper --version | grep {{version}}
+  - paper --all
+  - cc test.c -lpaper -o test
+  - ./test

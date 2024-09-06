@@ -10,7 +10,7 @@ dependencies:
 
 build:
   dependencies:
-    rust-lang.org: ^1.65
+    rust-lang.org: '>=1.65<1.78'
     rust-lang.org/cargo: '*'
   script:
     - cargo install $ARGS
@@ -26,4 +26,4 @@ provides:
 test:
   - sentry-cli --version | grep {{version}}
   - sentry-cli --url='https://sentry.io/' --auth-token='testtoken' releases list > out.log 2>&1 || true
-  - cat out.log | grep 'Did you copy your token correctly?'
+  - cat out.log | grep -E '(Ensure you copied|Did you copy) your token correctly'

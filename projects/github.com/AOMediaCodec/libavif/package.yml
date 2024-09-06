@@ -14,9 +14,9 @@ build:
   dependencies:
     cmake.org: ^3
   working-directory: build
-  script: |
-    cmake .. $ARGS
-    make --jobs {{ hw.concurrency }} install
+  script:
+    - cmake .. $ARGS
+    - make --jobs {{ hw.concurrency }} install
   env:
     ARGS:
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
@@ -25,18 +25,20 @@ build:
       - -DAVIF_BUILD_APPS=ON
       - -DAVIF_BUILD_EXAMPLES=OFF
       - -DAVIF_BUILD_TESTS=OFF
+      # as of 1.1.0
+      - -DAVIF_LIBYUV=OFF
 
 provides:
   - bin/avifenc
   - bin/avifdec
 
 test:
-  script: |
-    avifenc fixture.png test.avif
-    test -f test.avif
+  script:
+    - avifenc fixture.png test.avif
+    - test -f test.avif
 
-    avifdec test.avif test.jpg
-    test -f test.jpg
+    - avifdec test.avif test.jpg
+    - test -f test.jpg
 
-    cc example.c -lavif
-    ./a.out test.avif
+    - cc example.c -lavif
+    - ./a.out test.avif

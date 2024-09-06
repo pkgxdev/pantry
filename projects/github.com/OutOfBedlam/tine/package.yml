@@ -1,0 +1,50 @@
+distributable:
+  url: https://github.com/OutOfBedlam/tine/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: OutOfBedlam/tine
+
+build:
+  dependencies:
+    go.dev: ^1.22
+  script:
+    - go mod download
+    - go run magefiles/mage.go buildx v{{version}} _pkgx_
+    - mkdir -p {{prefix}}/bin
+    - cp ./tmp/tine {{prefix}}/bin/tine
+
+provides:
+  - bin/tine
+
+test:
+  - test $(tine version | cut -d" " -f 1) = {{version}}
+  - run: cp $FIXTURE config.toml
+    fixture:
+      extname: toml
+      content: |
+        [log]
+            level = "WARN"
+        [defaults]
+            interval = "3s"
+        [[inlets.cpu]]
+        [[flows.select]]
+            includes = ["#_ts", "#_in", "*"]
+        [[outlets.file]]
+            path  = "-"
+    if: <0.0.3
+  - run: cp $FIXTURE config.toml
+    fixture:
+      extname: toml
+      content: |
+        [[inlets.cpu]]
+            interval = "3s"
+        [[flows.select]]
+            includes = ["#*", "*"]  # all tags and all fields
+        [[outlets.file]]
+            path  = "-"
+    if: '>=0.0.3'
+  - tine run --pid tine.pid config.toml > out &
+  - sleep 6
+  - grep cpu, out
+  - kill $(cat tine.pid)

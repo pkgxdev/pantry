@@ -1,0 +1,48 @@
+distributable:
+  url: https://download.gnome.org/sources/gi-docgen/{{version.major}}/gi-docgen-{{version.marketing}}.tar.xz
+  strip-components: 1
+
+versions:
+  gitlab: gitlab.gnome.org:GNOME/gi-docgen
+  strip: /^gi-docgen /
+
+dependencies:
+  pkgx.sh: ^1
+
+build:
+  dependencies:
+    python.org: ~3.12
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} gi-docgen
+
+test:
+  script:
+    - run: cp $FIXTURE pkgx.toml
+      fixture: |
+        [library]
+        description = "pkgx gi-docgen formula test"
+        authors = "pkgx"
+        license = "BSD-2-Clause"
+        browse_url = "https://github.com/pkgxdev/pantry"
+        repository_url = "https://github.com/pkgxdev/pantry.git"
+        website_url = "https://pkgx.sh/"
+    - run: gi-docgen generate -C pkgx.toml $FIXTURE | grep 'Creating namespace index file for pkgx-1.0'
+      fixture:
+        extname: gir
+        content: |
+          <?xml version="1.0"?>
+          <repository version="1.2"
+                      xmlns="http://www.gtk.org/introspection/core/1.0"
+                      xmlns:c="http://www.gtk.org/introspection/c/1.0">
+            <namespace name="pkgx" version="1.0" c:identifier-prefixes="pkgx" c:symbol-prefixes="pkgx">
+              <record name="Formula" c:type="Formula">
+                <field name="name" writable="1">
+                  <type name="utf8" c:type="char*"/>
+                </field>
+              </record>
+            </namespace>
+          </repository>
+    - run: grep "Website.*>https://pkgx.sh/" pkgx-1.0/index.html
+    - run: grep "struct.*Formula.*{" pkgx-1.0/struct.Formula.html

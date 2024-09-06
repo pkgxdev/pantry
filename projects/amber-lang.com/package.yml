@@ -1,0 +1,48 @@
+distributable:
+  url: https://github.com/Ph0enixKM/Amber/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/amber
+
+interprets:
+  extensions: ab
+  args: amber
+
+versions:
+  github: Ph0enixKM/Amber
+  strip: /-alpha/ # until there's a stable release
+
+companions:
+  # complex math
+  gnu.org/bc: 1
+  # string functions in `std`
+  gnu.org/sed: 4
+  # tr for `std:lower()`, `std:upper()`
+  gnu.org/coreutils: 9
+  # awk for `std:sum()`
+  gnu.org/gawk: 5
+  # this should be necessary, but compiler.rs hardcodes the
+  # path to /bin/bash
+  # https://github.com/Ph0enixKM/Amber/issues/109
+  # gnu.org/bash: 5
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path . --root {{prefix}}
+
+test:
+  dependencies:
+    pkgx.sh: ^1
+  script:
+    - run: cat $FIXTURE >test.ab
+      fixture:
+        extname: ab
+        content: |
+          echo ((12 + 34) * 9) % 4
+    - test "$(amber test.ab)" = 2
+    - test "$(pkgx test.ab)" = 2
+    - amber test.ab test.sh
+    - test "$(./test.sh)" = 2

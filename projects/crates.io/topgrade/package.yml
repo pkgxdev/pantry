@@ -1,0 +1,22 @@
+distributable:
+  url: https://github.com/topgrade-rs/topgrade/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/topgrade
+
+versions:
+  github: topgrade-rs/topgrade
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path . --root {{prefix}}
+
+test:
+  - test "$(topgrade --version)" = "Topgrade {{version}}"
+  # prevents an unskippable prompt
+  - run: echo -n {{version}} > topgrade_keep
+    working-directory: $HOME/.local/share
+  - topgrade --dry-run --disable system

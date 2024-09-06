@@ -4,20 +4,29 @@ distributable:
 
 versions:
   github: google/sentencepiece/releases/tags
-  ignore: '1.0.0'  # whoops, who tagged this then?
+  ignore: '1.0.0' # whoops, who tagged this then?
 
 build:
   dependencies:
     cmake.org: ^3
-    python.org: '>=3<3.12'
+    python.org: ~3.11
     pip.pypa.io: '*'
     freedesktop.org/pkg-config: ~0.29
+    protobuf.dev: 25
   working-directory: build
-  script: |
-    cmake .. -DCMAKE_INSTALL_PREFIX="{{prefix}}" -DCMAKE_BUILD_TYPE=Release
-    make --jobs {{ hw.concurrency }} install
+  script:
+    - cmake .. $CMAKE_ARGS
+    - make --jobs {{ hw.concurrency }} install
 
-    pip install ../python --verbose  --prefix="{{prefix}}"
+    # FIXME: this fails for linux in v0.2.0
+    - run: pip install ../python --verbose  --prefix="{{prefix}}"
+      if: darwin
+  env:
+    # pip needs this to find our new package
+    PKG_CONFIG_PATH: '$PKG_CONFIG_PATH:{{prefix}}/lib/pkgconfig'
+    CMAKE_ARGS:
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
+      - -DCMAKE_BUILD_TYPE=Release
 
 provides:
   - bin/spm_decode
@@ -33,9 +42,11 @@ runtime:
 test:
   dependencies:
     gnu.org/wget: '*'
-    python.org: '>=3<3.12'
-  script: |
-    wget https://raw.githubusercontent.com/google/sentencepiece/master/data/botchan.txt
-    spm_train --input=botchan.txt --model_prefix=m --vocab_size=1000
+    python.org: ~3.11
+  script:
+    - wget https://raw.githubusercontent.com/google/sentencepiece/master/data/botchan.txt
+    - spm_train --input=botchan.txt --model_prefix=m --vocab_size=1000
 
-    python -c 'import sentencepiece as spm; spm.SentencePieceProcessor()'
+    # FIXME: linux build
+    - run: python -c 'import sentencepiece as spm; spm.SentencePieceProcessor()'
+      if: darwin

@@ -1,0 +1,68 @@
+distributable:
+  url: https://github.com/DannyBen/bashly/archive/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: DannyBen/bashly
+
+dependencies:
+  ruby-lang.org: ^3.1
+  rubygems.org: '*'
+
+companions:
+  gnu.org/bash: '>=4' # requires newers bashes to work properly
+
+build:
+  dependencies:
+    rubygems.org: '*'
+  env:
+    GEM_HOME: ${{prefix}}
+    GEM_PATH: ${{prefix}}
+  script:
+    - gem build bashly.gemspec
+
+    - gem install
+      --no-user-install
+      --bindir={{prefix}}/gems/bin
+      --no-document
+      bashly-{{version}}.gem
+
+    - run: |
+        cat $PROP >bashly
+        chmod +x bashly
+      working-directory: ${{prefix}}/bin
+      prop: |
+        #!/bin/sh
+        export GEM_HOME="$(cd "$(dirname "$0")"/.. && pwd)"
+        export GEM_PATH="$GEM_HOME"
+        export PATH="$GEM_HOME/gems/bin:$PATH"
+        exec "$GEM_HOME"/gems/bin/bashly "$@"
+
+provides:
+  - bin/bashly
+
+test:
+  - bashly init --minimal
+  - run: cp $FIXTURE bashly.yml
+    fixture: |
+      name: download
+      help: Sample minimal application without commands
+      version: 0.1.0
+
+      args:
+      - name: source
+        required: true
+        help: URL to download from
+      - name: target
+        help: "Target filename (default: same as source)"
+
+      flags:
+      - long: --force
+        short: -f
+        help: Overwrite existing files
+
+      examples:
+      - download example.com
+      - download example.com ./output -f
+  - bashly generate
+  - ./download --help

@@ -1,0 +1,39 @@
+distributable:
+  url: https://github.com/dotenv-linter/dotenv-linter/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/dotenv-linter
+
+versions:
+  github: dotenv-linter/dotenv-linter
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path . --root {{prefix}}
+
+test:
+  # success
+  - run: dotenv-linter $FIXTURE -s ExtraBlankLine
+    fixture:
+      extname: env
+      content: |
+        BAZ=2
+        BAR=$BAZ
+        FOO=$BAR
+  # failure
+  - run: dotenv-linter $FIXTURE >out || true
+    fixture:
+      extname: env
+      content: |
+        FOO=$BAR
+        BAR=$BAZ
+        BAZ=2
+        FOO=2
+  - "grep 'UnorderedKey: The BAR key should go before the FOO key' out"
+  - "grep 'UnorderedKey: The BAZ key should go before the FOO key' out"
+  - "grep 'DuplicatedKey: The FOO key is duplicated' out"
+  - "grep 'UnorderedKey: The FOO key should go before the FOO key' out"
+  - "grep 'ExtraBlankLine: Extra blank line detected' out"

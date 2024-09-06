@@ -1,0 +1,29 @@
+distributable:
+  url: https://github.com/robscott/kube-capacity/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: robscott/kube-capacity
+
+build:
+  dependencies:
+    go.dev: ~1.21
+  env:
+    GO_LDFLAGS:
+      - -s
+      - -w
+    linux:
+      GO_LDFLAGS:
+        - -buildmode=pie
+  script:
+    - run: sed -i 's/"kube-capacity version v.*"/"kube-capacity version v{{version}}"/' version.go
+      working-directory: pkg/cmd
+    - go build -v -ldflags="${GO_LDFLAGS}" -o "{{ prefix }}"/bin/kube-capacity .
+
+provides:
+  - bin/kube-capacity
+
+test:
+  - test "$(kube-capacity version)" = "kube-capacity version v{{version}}"
+  - kube-capacity help
+  - kube-capacity completion bash

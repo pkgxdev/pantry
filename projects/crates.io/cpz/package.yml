@@ -1,0 +1,29 @@
+distributable:
+  url: https://github.com/SUPERCILEX/fuc/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/cpz
+
+versions:
+  github: SUPERCILEX/fuc
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.60'
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path cpz --root {{prefix}}
+
+test:
+  dependencies:
+    wilfred.me.uk/difftastic: '*'
+  script:
+    - mkdir -p a/b/c/d/e
+    - echo aaa > a/b/c/d/e/f
+    - echo aaa > a/b/c/d/e/g
+    - cpz a a2
+    - difft a a2 --check-only --exit-code
+  env:
+    # secret option to prevent issues in docker
+    # https://github.com/SUPERCILEX/fuc/commit/ef296f106dd29097e8b88bd706597c79d3ed7e1d
+    NO_UNSHARE: 1

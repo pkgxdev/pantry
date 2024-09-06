@@ -1,0 +1,67 @@
+distributable:
+  url: git+https://github.com/awslabs/llrt
+  ref: ${{version.tag}}
+
+provides:
+  - bin/llrt
+
+versions:
+  github: awslabs/llrt
+  strip:
+    - /v/
+    - /-beta/ # not great practice, but it's all they have atm
+
+build:
+  dependencies:
+    rust-lang.org/rustup: '*' # manages its own rust :/
+    facebook.com/zstd: '*' # builds its own, still needs our cli
+    ziglang.org: ~0.11
+    nodejs.org: '*'
+    yarnpkg.com: '*'
+    cmake.org: '*'
+    git-scm.org: '*'
+    linux:
+      info-zip.org/zip: '*'
+      llvm.org: ^17
+  script:
+    - mkdir -p $HOME/.cargo/bin
+    - ln -sf {{deps.rust-lang.org/rustup.prefix}}/bin/rustup $HOME/.cargo/bin/rustup
+    - git submodule update --init
+    - yarn
+    - rustup default nightly
+    - make stdlib
+    - run: |
+        OLD_LDFLAGS="$LDFLAGS"
+        unset LDFLAGS
+      if: linux
+    - make libs-$ARCH
+    - run: |
+        LDFLAGS="$OLD_LDFLAGS"
+      if: linux
+
+    # the mapping from x86_64 > x64 exists for linux, but not darwin, oddly
+    # https://github.com/awslabs/llrt/pull/336
+    - run: |
+        sed -i '/^llrt-linux-x86_64.zip/a\
+        llrt-darwin-x86_64.zip: llrt-darwin-x64.zip' Makefile
+
+    - make release
+    - install -D target/*/release/llrt {{prefix}}/bin/llrt
+  env:
+    PATH: $HOME/.cargo/bin:$PATH # rustup
+    x86-64:
+      ARCH: x64
+    aarch64:
+      ARCH: arm64
+    linux:
+      CC: clang
+      CXX: clang++
+      LD: clang
+      AS: llvm-as
+
+test:
+  - llrt --version | grep {{version}}
+  - run: test "$(llrt $FIXTURE)" = "Hello, world!"
+    fixture:
+      extname: js
+      content: console.log("Hello, world!")

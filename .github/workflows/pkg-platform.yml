@@ -107,7 +107,7 @@ jobs:
     env:
       PKGX_PANTRY_PATH: ${{ github.workspace }}
     steps:
-      - uses: pkgxdev/setup@v2
+      - uses: pkgxdev/setup@fix-archlinux
       - uses: actions/checkout@v4
       - uses: pkgxdev/brewkit/download-build-artifact@v1
         with:
@@ -228,8 +228,9 @@ jobs:
           echo "$SCRIPT" > script.ts
           pkgx deno run -A script.ts ./remote-versions.txt ${{ needs.build.outputs.version }} > versions.txt
         env:
+          # FIXME: revert to v0.18.1 since v0.19 changed deps.ts
           SCRIPT: |
-            import SemVer, { compare } from "https://raw.githubusercontent.com/pkgxdev/libpkgx/main/src/utils/semver.ts"
+            import SemVer, { compare } from "https://raw.githubusercontent.com/pkgxdev/libpkgx/v0.18.1/src/utils/semver.ts"
             const versions = new Set(Deno.readTextFileSync(Deno.args[0]).trim().split("\n").filter(x => x))
             versions.add(Deno.args[1])
             const out = [...versions].map(x => new SemVer(x)).sort(compare).join("\n")

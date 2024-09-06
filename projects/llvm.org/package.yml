@@ -13,8 +13,6 @@ provides:
   - bin/cc
   - bin/c++
   - bin/cpp
-  - bin/ar
-  - bin/as
   - bin/nm
   - bin/objcopy
   - bin/ranlib
@@ -27,7 +25,9 @@ dependencies:
 
 build:
   dependencies:
-    cmake.org: 3
+    # doesn't seem to install a bunch of the libs
+    # with cmake 3.29
+    cmake.org: '>=3<3.29'
     ninja-build.org: 1
     python.org: '>=3<3.12'
     crates.io/semverator: '*'
@@ -36,7 +36,7 @@ build:
     # Building compiler-rt on darwin+aarch64 fails for versions less than
     # 14 with the below configuration. FIXME if possible, of course.
     - run: |
-        RUNTIMES="-DLLVM_ENABLE_RUNTIMES='compiler-rt;libcxx;libcxxabi;libunwind'"
+        RUNTIMES="-DLLVM_ENABLE_RUNTIMES='compiler-rt'"
         if test "{{hw.platform}}" = "linux"; then
           ARGS="$ARGS $RUNTIMES"
         elif semverator satisfies '>=14' {{version}}; then
@@ -52,21 +52,25 @@ build:
     # other tools simply expect these symlinks and often fail without them
     # NOTE forcing symlinks because we build with ourselves and sometimes that
     # means we're building with the exact same version FIXME
-    - run: |
-        ln -sf clang cc
-        ln -sf clang++ c++
-        ln -sf clang-cpp cpp
-        for x in ar as nm objcopy ranlib readelf strings strip; do
-          ln -sf llvm-$x $x
-        done
+    - run:
+        - ln -sf clang cc
+        - ln -sf clang++ c++
+        - ln -sf clang-cpp cpp
+        # omitting ar and as as these often mess up gnu.org/gcc builds
+        - |
+          for x in nm objcopy ranlib readelf strings strip; do
+            ln -sf llvm-$x $x
+          done
       working-directory: ${{prefix}}/bin
 
     # move linux libs into /lib
     - run: |
         TARGET="$(find . -maxdepth 1 -type d -name \*-unknown-linux-gnu)"
-        mv "$TARGET"/* .
-        rmdir "$TARGET"
-        ln -s . "$TARGET"
+        if test -n "$TARGET"; then
+          mv "$TARGET"/* .
+          rmdir "$TARGET"
+          ln -s . "$TARGET"
+        fi
       working-directory: ${{prefix}}/lib
       if: linux
 
@@ -124,16 +128,18 @@ test:
     crates.io/semverator: '*'
   script:
     # Building compiler-rt on darwin+aarch64 fails for versions less than
-    # 14 with the below configuration. FIXME if possible, of course.
+    # 14 with the below configuration
+    # FIXME if possible, of course.
     - run: |
         if test "{{hw.platform}}" = "linux"; then
           ARGS="$ARGS -fsanitize=address,undefined"
-        elif semverator satisfies '>=14' {{version}}; then
+        elif test "{{hw.arch}}" = "x86_64" && semverator satisfies '>=13' {{version}}; then
           ARGS="$ARGS -fsanitize=address,undefined"
-        elif test "{{hw.arch}}" = "x86-64" && semverator satisfies '>=14' {{version}}; then
+        elif semverator satisfies '>=14' {{version}}; then
           ARGS="$ARGS -fsanitize=address,undefined"
         fi
       # if: linux || >=14 || (x86-64 && >=13)  ## Brewkit can't do this. Yet.
+
     - mv $FIXTURE $FIXTURE.c
     - clang $ARGS $FIXTURE.c
     - ./a.out

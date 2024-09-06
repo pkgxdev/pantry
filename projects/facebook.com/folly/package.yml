@@ -18,16 +18,31 @@ dependencies:
   google.github.io/snappy: '*'
   google.com/double-conversion: ^3
   google.com/googletest: ^1
-  fmt.dev: ^9
+  fmt.dev: ^10
   zlib.net: ^1
+  github.com/fastfloat/fast_float: '*' # as of 2024.08.26.0
   darwin:
     sourceware.org/bzip2: '*'
+  linux:
+    libcxx.llvm.org: ^18 # libunwind, since 2024.5.13.0
+    jemalloc.net: ^5 # since 2024.5.13.0
+    elfutils.org: ^0 # for dwarf.h, since 2024.5.13.0
 
 build:
   dependencies:
     cmake.org: ^3.0.2
-    freedesktop.org/pkg-config: ^0.29
+    linux/aarch64:
+      curl.se: '*'
+      gnu.org/patch: '*'
   script:
+    # recent change broke linking for linux/aarch64
+    - run: |
+        if test "{{hw.platform}}/{{hw.arch}}" = "linux/aarch64"; then
+          curl -LS https://github.com/facebook/folly/commit/93525a1b4c395e6afc2fb1c0019f8537916dd4c3.patch | patch -R -p1
+          curl -LS https://github.com/facebook/folly/commit/5dccf473579645f2b022bd9eeb6c7a42ea1eb1cb.patch | patch -R -p1 || true
+        fi
+      if: '>=2024.07<2024.07.15'
+
     - cmake $ARGS -DBUILD_SHARED_LIBS=ON -S . -B shared
     - cmake --build shared
     - cmake --install shared
@@ -38,18 +53,17 @@ build:
     - run: cp $SRCROOT/static/libfolly.a libfollybenchmark.a
       working-directory: ${{prefix}}/static/folly
 
-    - run: |
-        sed -E -i.bak \
-          -e "s:{{pkgx.prefix}}:\$\{_IMPORT_PREFIX\}/../../..:g" \
-          -e '/^  INTERFACE_INCLUDE_DIRECTORIES/ s|/v([0-9]+)(\.[0-9]+)*[a-z]?/include|/v\1/include|g' \
-          -e '/^  INTERFACE_LINK_LIBRARIES/ s|/v([0-9]+)(\.[0-9]+)*[a-z]?/lib|/v\1/lib|g' \
-          folly-targets.cmake
-        rm folly-targets.cmake.bak
+    - run: sed -i -E
+        -e "s:{{pkgx.prefix}}:\$\{_IMPORT_PREFIX\}/../../..:g"
+        -e '/^  INTERFACE_INCLUDE_DIRECTORIES/ s|/v([0-9]+)(\.[0-9]+)*[a-z]?/include|/v\1/include|g'
+        -e '/^  INTERFACE_LINK_LIBRARIES/ s|/v([0-9]+)(\.[0-9]+)*[a-z]?/lib|/v\1/lib|g'
+        folly-targets.cmake
       working-directory: ${{prefix}}/lib/cmake/folly
 
-    - run: |
-        sed -i.bak -e 's/-I[^ ]* *//g' libfolly.pc
-        rm libfolly.pc.bak
+    - run: sed -i
+        -e 's/-I[^ ]* *//g'
+        -e 's:{{pkgx.prefix}}:\${prefix}/../../..:g'
+        libfolly.pc
       working-directory: ${{prefix}}/lib/pkgconfig
 
     # folly has libs that end up with name @rpath/libfolly.{{version}}.dylib (offset 24)
@@ -66,11 +80,16 @@ build:
       - -DCMAKE_BUILD_TYPE=Release
       - -DBUILD_TESTING=OFF
       - -DCMAKE_VERBOSE_MAKEFILE=ON
+      - -DFOLLY_USE_JEMALLOC=OFF
     linux/aarch64:
       ARGS:
+        - -DCMAKE_LIBRARY_ARCHITECTURE=aarch64
         - -DCMAKE_C_FLAGS=-fPIC
         - -DCMAKE_CXX_FLAGS=-fPIC
-        - -DCMAKE_EXE_LINKER_FLAGS=-pie
+        - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-pie,-lrt,-lunwind
+    linux/x86-64:
+      ARGS:
+        - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-pie,-lrt,-lunwind
 
 test:
   fixture: |

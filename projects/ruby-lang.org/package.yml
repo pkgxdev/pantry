@@ -37,7 +37,14 @@ build:
       if: linux
       working-directory: include/ruby/internal/attr
 
-    - make --jobs {{hw.concurrency}} install
+    # ^3.1.4 can't find rubygems without help on linux
+    - run: |
+        if test "{{hw.platform}}" = "linux"; then
+          sed -i "s_^RUBYLIB.*=.*\$_RUBYLIB = ${RUBYLIB}_" uncommon.mk
+        fi
+      if: '>=3.1.4<3.2'
+
+    - make install
 
     # we provide these as `rubygems.org`
     - run: rm -f bundle bundler gem
@@ -77,7 +84,7 @@ build:
       working-directory: ${{prefix}}/lib
       if: '>=2.6'
 
-    - run: sed -i.bak
+    - run: sed -i
         -e 's|$(DESTDIR){{prefix}}|$(topdir)|g'
         -e 's|CONFIG\["topdir"\] = .*|CONFIG\["topdir"\] = TOPDIR|g'
         -e 's|CONFIG\["INSTALL"\] =.*|CONFIG\["INSTALL"\] = "/usr/bin/install"|g'
@@ -98,6 +105,7 @@ build:
       - --with-vendorarchdir=no # ^^
       - --with-sitearchdir=no   # ^^
       - --enable-yjit  # https://github.com/pkgxdev/pantry/issues/3538
+      - --disable-install-doc
 
 test:
   dependencies:

@@ -1,0 +1,27 @@
+distributable:
+  url: https://github.com/kamiyaa/joshuto/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/joshuto
+
+dependencies:
+  libgit2.org: 1
+
+companions:
+  github.com/junegunn/fzf: '*'
+  crates.io/zoxide: '*'
+
+versions:
+  github: kamiyaa/joshuto/tags
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path . --root {{prefix}}
+
+test:
+  - joshuto version | grep joshuto-{{version}}
+  - joshuto completions zsh
+  - joshuto config joshuto

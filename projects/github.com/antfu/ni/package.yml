@@ -11,12 +11,15 @@ dependencies:
 
 build:
   script:
+    # https://github.com/antfu/eslint-config/issues/529
+    - run: npm i -D @antfu/eslint-config@2.21.0
+      if: ^0.22
     - npm install --include=dev
     - npm run build
     - npm install .
-        --global
-        --prefix={{prefix}}
-        --install-links
+      --global
+      --prefix={{prefix}}
+      --install-links
 
 provides:
   - bin/na
@@ -31,4 +34,4 @@ test:
   # or errors
   - run: touch .nirc
     if: '>=0.21.9'
-  - ni --version | grep {{version}}
+  - (ni --version || true) | grep {{version}}

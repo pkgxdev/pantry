@@ -1,0 +1,40 @@
+distributable:
+  url: https://github.com/hykilpikonna/hyfetch/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: hykilpikonna/hyfetch
+
+dependencies:
+  pkgx.sh: ^1
+
+build:
+  dependencies:
+    python.org: ~3.12
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} hyfetch
+
+provides:
+  - bin/hyfetch
+
+test:
+  - run: hyfetch -C $FIXTURE --args="--config none --color-blocks off --disable wm de term gpu"
+    fixture: |
+      {
+        "preset": "genderfluid",
+        "mode": "rgb",
+        "light_dark": "dark",
+        "lightness": 0.5,
+        "color_align": {
+          "mode": "horizontal",
+          "custom_colors": [],
+          "fore_back": null
+        },
+        "backend": "neofetch",
+        "distro": null,
+        "pride_month_shown": [],
+        "pride_month_disable": false
+      }
+  - hyfetch --version | grep {{version}}

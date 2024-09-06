@@ -1,0 +1,53 @@
+distributable:
+  url: https://github.com/fornwall/rust-script/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/rust-script
+
+versions:
+  github: fornwall/rust-script
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.64'
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path . --root {{prefix}}
+
+companions:
+  rust-lang.org: '*'
+  rust-lang.org/cargo: '*'
+
+test:
+  dependencies:
+    pkgx.sh: ^1
+    gnu.org/sed: '*'
+  fixture: |
+    #!/usr/bin/env rust-script
+    //! Dependencies can be specified in the script file itself as follows:
+    //!
+    //! ```cargo
+    //! [dependencies]
+    //! rand = "0.8.0"
+    //! ```
+
+    use rand::prelude::*;
+
+    fn main() {
+        let x: u64 = random();
+        println!("A random number: {}", x);
+    }
+  script:
+    - cp $FIXTURE rand.rs
+    - chmod +x rand.rs
+    - rust-script rand.rs
+    - rust-script rand.rs | grep -E 'A random number:'
+    - ./rand.rs | grep -E 'A random number:'
+    # ensure pkgx will run it without the shebang
+    - sed -i '1d' rand.rs
+    - chmod -x rand.rs
+    - pkgx rand.rs | grep -E 'A random number:'
+
+interprets:
+  extensions: rs
+  args: rust-script

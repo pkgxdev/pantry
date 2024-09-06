@@ -9,9 +9,10 @@ versions:
 display-name: LLaMA.cpp
 
 provides:
+  - bin/llama-cli
   - bin/llama.cpp
   # NOTE! we do not “provide” convert.py. ∵ it’s too generic
-  # do `tea +github.com∕ggerganov∕llama.cpp convert.py`
+  # do `pkgx +github.com∕ggerganov∕llama.cpp convert.py`
 
 platforms:
   - linux
@@ -20,6 +21,8 @@ platforms:
 
 dependencies:
   pkgx.sh: ^1
+  linux:
+    gnu.org/gcc: '*' # clang doesn't provide omp.h, and we need libstdc++
 
 build:
   dependencies:
@@ -29,14 +32,9 @@ build:
     python.org: ~3.11
   env:
     VIRTUAL_ENV: ${{prefix}}/venv
-    CC: clang
-    CXX: clang++
-    LD: clang
   script:
     # segfaults on some GHA runners
-    - run: |
-        sed -i.bak -e's/\(MK_.* -march=native -mtune=native\)/#\1/g' Makefile
-        rm Makefile.bak
+    - run: sed -i -e's/\(MK_.* -march=native -mtune=native\)/#\1/g' Makefile
       if: linux/x86-64
 
     # this commit breaks linux/aarch64 - fixed in 1732
@@ -45,26 +43,61 @@ build:
 
     - make --jobs {{hw.concurrency}}
 
+    # https://github.com/ggerganov/llama.cpp/blob/master/examples/deprecation-warning/README.md
     - |
-      install -D main {{prefix}}/bin/llama.cpp
+      if test -f llama-cli; then
+        install -D llama-cli {{prefix}}/bin/llama-cli
+        # legacy name
+        ln -s llama-cli {{prefix}}/bin/llama.cpp
+      elif test -f main; then
+        install -D main {{prefix}}/bin/llama.cpp
+        # new name
+        ln -s llama.cpp {{prefix}}/bin/llama-cli
+      else
+        echo "No binary found"
+        exit 1
+      fi
       install -D props/entrypoint.sh {{prefix}}/entrypoint.sh
-      install -D ggml-metal.metal {{prefix}}/bin/ggml-metal.metal
+      if test -f ggml-metal.metal; then
+        install -D ggml-metal.metal {{prefix}}/bin/ggml-metal.metal
+      elif test -f ggml/src/ggml-metal.metal; then
+        install -D ggml/src/ggml-metal.metal {{prefix}}/bin/ggml-metal.metal
+      else
+        echo "No ggml-metal.metal found"
+        exit 1
+      fi
 
     - |
       mkdir -p {{prefix}}/share
       mv prompts {{prefix}}/share
 
-    - install -D convert.py $VIRTUAL_ENV/bin/convert.py
+    - |
+      if test -f convert.py; then
+        install -D convert.py $VIRTUAL_ENV/bin/convert.py
+      elif test -f examples/convert-legacy-llama.py; then
+        install -D examples/convert-legacy-llama.py $VIRTUAL_ENV/bin/convert.py
+      elif test -f examples/convert_legacy_llama.py; then
+        install -D examples/convert_legacy_llama.py $VIRTUAL_ENV/bin/convert.py
+      else
+        echo "No convert.py found"
+        false
+      fi
 
     - |
       bkpyvenv stage {{prefix}} {{version}}
       $VIRTUAL_ENV/bin/pip install -r requirements.txt
       bkpyvenv seal {{prefix}} convert.py
 
-test:
-  llama.cpp --version
-  # broke in 2453, difficult to filter due to calver tweaks
-  # llama.cpp --help
+test: |
+  # broke in v2453
+  if test {{version.major}} -lt 2453; then
+    llama.cpp --help
+  elif test {{version.major}} -lt 3368; then
+    llama.cpp --version
+  # llama.cpp deprecated in v3368
+  else
+    llama-cli --version
+  fi
   # ^^ testing more than this requires downloading the models 😬
 
 entrypoint: ./entrypoint.sh

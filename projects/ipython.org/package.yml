@@ -10,14 +10,24 @@ provides:
   - bin/ipython3
 
 dependencies:
-  python.org: '>=3.7<3.12'
-  gnu.org/which: 2 # used by the script
+  pkgx.sh: ^1
 
 build:
-  script: |
-    python-venv.py {{prefix}}/bin/ipython
-    cp {{prefix}}/bin/ipython {{prefix}}/bin/ipython3
+  dependencies:
+    python.org: '>=3.7<3.12'
+  script:
+    # broken version number in 8.19.1
+    - run: sed -i
+        -e 's/^_version_major = .*/_version_major = {{version.major}}/'
+        -e 's/^_version_minor = .*/_version_minor = {{version.minor}}/'
+        -e 's/^_version_patch = .*/_version_patch = {{version.patch}}/'
+        -e 's/^_version_extra = .*/_version_extra = ""/'
+        release.py
+      working-directory: IPython/core
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/python -m pip install .
+    - bkpyvenv seal {{prefix}} ipython
+    - run: ln -s ipython ipython3
+      working-directory: ${{prefix}}/bin
 
-test:
-  script: |
-    test "$(ipython --version)" = "{{ version }}"
+test: test "$(ipython --version)" = "{{ version }}"

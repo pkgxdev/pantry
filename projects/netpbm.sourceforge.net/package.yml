@@ -1,12 +1,14 @@
 distributable:
   url: https://downloads.sourceforge.net/project/netpbm/super_stable/{{version}}/netpbm-{{version}}.tgz
   strip-components: 1
+
 versions:
   url: https://sourceforge.net/projects/netpbm/files/super_stable/
   match: /super_stable\/\d+\.\d+\.\d+\//
   strip:
     - /^super_stable\//
     - /\//
+
 dependencies:
   github.com/jasper-software/jasper: '*'
   libjpeg-turbo.org: '*'
@@ -14,9 +16,11 @@ dependencies:
   simplesystems.org/libtiff: '*'
   gnome.org/libxml2: '*'
   zlib.net: '*'
+
 runtime:
   env:
-    RGBDEF: "{{prefix}}/misc/rgb.txt"
+    RGBDEF: '{{prefix}}/misc/rgb.txt'
+
 build:
   dependencies:
     gnu.org/make: '*'
@@ -32,16 +36,15 @@ build:
             -e 's|JASPERLIB = NONE|JASPERLIB = -ljasper|g' \
             config.mk.in >config.mk
     - run: |
-        sed -i.bak \
+        sed -i \
             -e 's|CFLAGS_SHLIB = |CFLAGS_SHLIB = -fno-common|g' \
             -e 's|NETPBMLIBTYPE = unixshared|NETPBMLIBTYPE = dylib|g' \
             -e 's|NETPBMLIBSUFFIX = so|NETPBMLIBSUFFIX = dylib|g' \
             -e 's|LDSHLIB = -shared -Wl,-soname,$(SONAME)|LDSHLIB = --shared -o $(SONAME)|g' \
             config.mk
       if: darwin
-    - run: sed -i.bak 's|CFLAGS_SHLIB = |CFLAGS_SHLIB = -fPIC|g' config.mk
+    - run: sed -i 's|CFLAGS_SHLIB = |CFLAGS_SHLIB = -fPIC|g' config.mk
       if: linux
-    - rm config.mk.bak
 
     - make --jobs {{hw.concurrency}}
     - make --jobs {{hw.concurrency}} package pkgdir=$SRCROOT/stage
@@ -64,7 +67,10 @@ build:
         Libs: -L${libdir} -lmylibrary
         Cflags: -I${includedir}
   env:
-    CFLAGS: "-Wno-implicit-function-declaration $CFLAGS"
+    CFLAGS: '-Wno-implicit-function-declaration $CFLAGS'
+    darwin:
+      LDFLAGS: '$LDFLAGS -Wl,-headerpad_max_install_names'
+
 provides:
   - bin/411toppm
   - bin/asciitopgm
@@ -381,6 +387,7 @@ provides:
   - bin/yuvtoppm
   - bin/yuy2topam
   - bin/zeisstopnm
+
 test:
   dependencies:
     freedesktop.org/pkg-config: '*'

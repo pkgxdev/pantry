@@ -1,0 +1,30 @@
+distributable:
+  url: git+https://github.com/JamesWoolfenden/pike
+  ref: v{{version}}
+
+versions:
+  github: JamesWoolfenden/pike
+  strip: /^v/
+
+build:
+  dependencies:
+    go.dev: ^1.22
+    git-scm.org: "*"
+  script:
+    - ./set-version.sh
+    - go mod download
+    - go build -v -ldflags="$LDFLAGS" -o {{prefix}}/bin/pike main.go
+  env:
+    CGO_ENABLED: 0
+    LDFLAGS:
+      - -extldflags=-static
+      - -w
+      - -s
+
+provides:
+  - bin/pike
+
+test:
+  script:
+    - test "$(pike --version)" = "pike version v{{version}}"
+    - pike scan -d .

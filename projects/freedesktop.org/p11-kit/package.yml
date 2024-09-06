@@ -19,9 +19,12 @@ dependencies:
 build:
   dependencies:
     freedesktop.org/pkg-config: '*'
-  script: |-
-    ./configure --prefix={{prefix}} --with-trust-paths={{deps.curl.se/ca-certs}}/ssl
-    make -j {{ hw.concurrency }} install
+    python.org: 3
+  script:
+    - ./configure --prefix={{prefix}} --with-trust-paths={{deps.curl.se/ca-certs}}/ssl
+    - make -j {{ hw.concurrency }} install
+    - run: find . -name '*.la' -exec rm {} \;
+      working-directory: '{{prefix}}/lib'
 
 test:
   script: p11-kit list-modules

@@ -3,7 +3,7 @@ distributable:
   strip-components: 1
 
 versions:
-  github: nodejs/node/releases/tags
+  github: nodejs/node/tags
 
 companions:
   npmjs.com: '*'
@@ -13,6 +13,8 @@ dependencies:
   unicode.org: ^71
   openssl.org: 1.1
   zlib.net: 1
+  linux:
+    gnu.org/gcc: '*' # libc++, since 22.2.0
 
 provides:
   - bin/node
@@ -23,17 +25,20 @@ interprets:
 
 build:
   dependencies:
-    # otherwise, we hit https://reviews.llvm.org/D131307
-    linux:
-      llvm.org: '<16'
-      gnu.org/make: '*'
     python.org: ~3.9
-    freedesktop.org/pkg-config: ^0.29
   script:
     - run: python configure.py $ARGS
       if: <14
     - run: ./configure $ARGS
       if: '>=14'
+    # v22 didn't include iomanip for std::precision in one file
+    - run: |
+        sed -i '/wasm-disassembler.h/a\
+        \
+        #include <iomanip>' wasm-disassembler.cc
+      working-directory: deps/v8/src/wasm
+      if: ^22
+
     - make --jobs {{ hw.concurrency }} install
   env:
     ARGS:
@@ -41,10 +46,6 @@ build:
       - --prefix={{ prefix }}
       - --shared-openssl
       - --shared-zlib
-    linux:
-      CC: clang
-      CXX: clang++
-      AS: llvm-as
     linux/x86-64:
       CFLAGS: -fPIC
       CXXFLAGS: -fPIC

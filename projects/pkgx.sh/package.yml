@@ -12,12 +12,15 @@ provides:
 
 build:
   dependencies:
-    deno.land: ~1.39  # 1.40 shouts unskippable deprecation warnings
+    deno.land: ~1.39 # 1.40 shouts unskippable deprecation warnings
   working-directory: ${{prefix}}/bin
   # patchelf messes with Deno's ability to find the DATA block, making it
   # operate as only a bloated Deno binary
   skip: fix-patchelf
-  script: |
-    deno task --config "$SRCROOT"/deno.jsonc compile
+  script: deno task --config "$SRCROOT"/deno.jsonc compile
+  env:
+    linux/aarch64:
+      # deno's pre-built runtime doesn't support glibc old enough
+      DENORT_BIN: '{{deps.deno.land.prefix}}/bin/denort'
 
 test: test "$(pkgx --version)" = "pkgx {{ version }}"

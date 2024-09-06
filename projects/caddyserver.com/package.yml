@@ -19,33 +19,26 @@ provides:
 test:
   dependencies:
     curl.se: '*'
+    pkgx.sh: 1
+  env:
+    PORT1: $(pkgx get-port | tail -n1)
+    PORT2: $(pkgx get-port | tail -n1)
   script:
     - caddy version | grep {{version}}
-    - run: |
-        port=8080
-
-        while lsof -i:$port >/dev/null 2>&1; do
-          ((port++))
-        done
-
-        port1=$port
-        port2=$((port + 1))
-
-        # Create the Caddyfile
-        cat > Caddyfile <<EOF
+    # Create the Caddyfile
+    - run: sed -e "s/PORT1/$PORT1/" -e "s/PORT2/$PORT2/" $FIXTURE > Caddyfile
+      fixture: |
         {
-          admin 127.0.0.1:$port1
+          admin 127.0.0.1:PORT1
         }
 
-        http://127.0.0.1:$port2 {
+        http://127.0.0.1:PORT2 {
           respond "Hello, Caddy!"
         }
-        EOF
+    - cat Caddyfile
     # Run Caddy server in the background with its input redirected from an empty stream
-    - run: |
-        caddy run --config Caddyfile > /dev/null 2>&1 <<EOF &
-        EOF
+    - run: echo | caddy run --config Caddyfile --adapter caddyfile &
     # Add a 5-second pause to allow time for the server to start up.
     - sleep 5
-    - curl -s http://127.0.0.1:$port1/config/apps/http/servers/srv0/listen/0 | grep $port2
-    - curl -s http://127.0.0.1:$port2 | grep "Hello, Caddy!"
+    - curl -s http://127.0.0.1:$PORT1/config/apps/http/servers/srv0/listen/0 | grep $PORT2
+    - curl -s http://127.0.0.1:$PORT2 | grep "Hello, Caddy!"

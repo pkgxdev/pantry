@@ -18,7 +18,10 @@ build:
     - gclient config --name sdk https://dart.googlesource.com/sdk.git@{{version}}
     - gclient sync --no-history
 
-    - run: ./tools/build.py --no-goma --mode=release --arch=$ARCH create_sdk
+    # removed in 3.5.0
+    - run: ARGS="--no-goma $ARGS"
+      if: <3.5.0
+    - run: ./tools/build.py $ARGS create_sdk
       working-directory: sdk
     - mkdir -p {{prefix}}/libexec
     - run: cp -r ./sdk/out/Release*/dart-sdk/* {{prefix}}/libexec/
@@ -29,13 +32,18 @@ build:
         ln -s ./../libexec/bin/dart dart
         ln -s ./../libexec/bin/dartaotruntime dartaotruntime
       working-directory: '{{prefix}}/bin'
+  skip: fix-patchelf
   env:
     DEPOT_TOOLS_UPDATE: 0
     PATH: $SRCROOT/resources/depot_tools:$PATH
+    ARGS:
+      - --mode=release
     aarch64:
-      ARCH: arm64
+      ARGS:
+        - --arch=arm64
     x86-64:
-      ARCH: x64
+      ARGS:
+        - --arch=x64
 provides:
   - bin/dart
   - bin/dartaotruntime

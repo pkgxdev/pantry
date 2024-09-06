@@ -29,6 +29,7 @@ dependencies:
     xkbcommon.org: ^1.6
     github.com/KhronosGroup/Vulkan-Loader: ^1
     github.com/google/shaderc: ^2023
+    cairographics.org: ^1.18
 
 build:
   dependencies:
@@ -44,7 +45,10 @@ build:
     cmake.org: '*'
     linux:
       gnu.org/binutils: '*'
+      kernel.org/linux-headers: '*'
   script:
+    - run: export MESON_ARGS="$MESON_ARGS -Dgtk_doc=false"
+      if: <4.15.0
     - meson setup build $MESON_ARGS
     - meson compile -C build --verbose
     - meson install -C build
@@ -54,7 +58,6 @@ build:
       - --libdir="{{prefix}}/lib"
       - --buildtype=release
       - --wrap-mode=nofallback
-      - -Dgtk_doc=false
       - -Dbuild-examples=false
       - -Dbuild-tests=false
       - -Dmedia-gstreamer=disabled

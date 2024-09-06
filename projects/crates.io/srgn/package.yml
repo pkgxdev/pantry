@@ -16,6 +16,8 @@ build:
   script: cargo install --locked --path . --root {{prefix}}
 
 test:
+  dependencies:
+    gnu.org/diffutils: '*' # cmp
   script:
     - test "$(srgn --version)" = "srgn {{version}}"
     - run: cat $FIXTURE | srgn --python 'doc-strings' '(?<!The )GNU' 'GNU 🐂 is not Unix' | srgn --symbols >test.out
@@ -31,21 +33,6 @@ test:
 
             print(GNU + " says moo")  # ...says moo
     - run: cmp $FIXTURE test.out
-      if: darwin
-      fixture: |
-        """GNU 🐂 is not Unix module."""
-
-        def GNU_says_moo():
-            """The GNU → say moo → ✅"""
-
-            GNU = """
-              GNU
-            """  # the GNU...
-
-            print(GNU + " says moo")  # ...says moo
-    # archlinux doesn't have cmp or diff, but it has sha256sum
-    - run: test "$(sha256sum test.out | awk '{print $1}')" = "$(sha256sum $FIXTURE | awk '{print $1}')"
-      if: linux
       fixture: |
         """GNU 🐂 is not Unix module."""
 

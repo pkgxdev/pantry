@@ -8,7 +8,7 @@ versions:
 dependencies:
   boost.org: '*'
   github.com/facebookincubator/fizz: '*'
-  fmt.dev: '*'
+  fmt.dev: ^10
   facebook.com/folly: '*'
   gflags.github.io: '*'
   google.com/glog: '*'
@@ -21,9 +21,13 @@ build:
     cmake.org: '*'
     linux:
       gnu.org/gcc: '*'
+      gnu.org/binutils: '*'
       gnu.org/make: '*'
       kernel.org/linux-headers: '*'
   script:
+    # llvm's `as` likes to be first, wrongly
+    - run: export PATH={{deps.gnu.org/binutils.prefix}}/bin:$PATH
+      if: linux
     - cmake -S . -B _build $CMAKE_ARGS
     - cmake --build _build
     - cmake --install _build
@@ -39,6 +43,9 @@ build:
       - -DBUILD_TESTS=OFF
       - -DCMAKE_POSITION_INDEPENDENT_CODE=ON
     linux:
+      CC: gcc
+      CXX: g++
+      LD: gcc
       CMAKE_ARGS:
         - -DCMAKE_CXX_FLAGS=-fPIC
         - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-pie
@@ -52,8 +59,19 @@ test:
     curl.se: '*'
     linux:
       gnu.org/gcc: '*'
+      gnu.org/binutils: '*'
       gnu.org/make: '*'
+  env:
+    linux:
+      CC: gcc
+      CXX: g++
+      LD: gcc
+      CXXFLAGS: -Wl,-latomic,-lrt
   script:
+    # llvm's `as` likes to be first, wrongly
+    - run: export PATH={{deps.gnu.org/binutils.prefix}}/bin:$PATH
+      if: linux
+
     # The best test we know is to build the echo client/server sample from the source.
     - PADDED_VERSION=$(echo "{{version}}" | gawk -F. '{printf "%04d.%02d.%02d.%02d\n", $1, $2, $3, $4}')
     - curl -L "https://github.com/facebook/mvfst/archive/v$PADDED_VERSION.tar.gz" | tar -xz --strip-components=1
@@ -90,7 +108,7 @@ test:
       if: linux
 
     # Find a free port
-    - PORT=$(pkgx get-port)
+    - PORT=$(pkgx get-port | tail -n1)
 
     - ./echo --mode server --port $PORT -use_datagrams=true &
     - sleep 5

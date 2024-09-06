@@ -24,11 +24,14 @@ build:
       LDFLAGS: '$LDFLAGS -lncursesw'
 
 test:
-  - run: ldd {{prefix}}/lib/libreadline.so | grep ncurses
+  - run:
+      - ldd {{prefix}}/lib/libreadline.so | grep ncurses
+      - cc -lreadline -lncurses -ltinfo fixture.c
     if: linux
-  - run: otool -L {{prefix}}/lib/libreadline.dylib | grep ncurses
+  - run:
+      - otool -L {{prefix}}/lib/libreadline.dylib | grep ncurses
+      - cc -lreadline -lncurses fixture.c
     if: darwin
-  - cc -lreadline -lncurses fixture.c
   - |
     test "$(echo "Hello, World!" | ./a.out)" = "test> Hello, World!
     Hello, World!\\n"

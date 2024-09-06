@@ -1,4 +1,4 @@
-distributable:    
+distributable:
   url: https://github.com/go-task/task/archive/refs/tags/v{{version}}.tar.gz
   strip-components: 1
 
@@ -13,7 +13,10 @@ provides:
 build:
   dependencies:
     go.dev: ^1.19
-  script: go build -o {{prefix}}/bin/task -ldflags="$LDFLAGS"  ./cmd/task
+  script:
+    - run: sed -i 's/info.Main.Version/"{{version}}"/g' version.go
+      working-directory: internal/version
+    - go build -o {{prefix}}/bin/task -ldflags="$LDFLAGS" ./cmd/task
   env:
     GOBIN: ${{prefix}}/bin
     LDFLAGS:
@@ -27,7 +30,6 @@ build:
         - -buildmode=pie
 
 test:
-  script: |
-    task --init
-    test -f Taskfile.yml
-    task --version | grep 'Task version: {{version}}'
+  - task --init
+  - test -f Taskfile.yml
+  - "task --version | grep 'Task version: {{version}}'"

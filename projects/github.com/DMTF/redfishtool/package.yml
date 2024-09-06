@@ -1,0 +1,24 @@
+display-name: redfishtool
+distributable:
+  url: https://github.com/DMTF/Redfishtool/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: DMTF/Redfishtool
+
+dependencies:
+  pkgx.sh: ^1
+
+build:
+  dependencies:
+    python.org: ">=3<3.12"
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install -r requirements.txt
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} redfishtool
+
+provides:
+- bin/redfishtool
+
+test: redfishtool about

@@ -23,30 +23,30 @@ build:
     github.com/westes/flex: '*'
   working-directory: build
   script:
+    # Applying ians patches on x86-64 too, since he sometimes gets fixes in faster, like:
+    # https://github.com/orgs/Homebrew/discussions/5216
     # If we have a patch, apply it
-    - |
-      if test "{{hw.platform}}+{{hw.arch}}" = "darwin+aarch64"; then
+    - run: |
         if test -n "$PATCH{{version.major}}{{version.minor}}"; then
-          curl "$PATCH{{version.major}}{{version.minor}}" | patch -p1 -d..
+          curl "$PATCH{{version.major}}{{version.minor}}" | patch -p1
         fi
-      fi
+      if: darwin
+      working-directory: ..
 
     # if there's no diff yet, unpack iains' source over ours
-    - |
-      if test "{{hw.platform}}+{{hw.arch}}" = "darwin+aarch64"; then
+    - run: |
         if test -n "$BRANCH{{version.major}}{{version.minor}}"; then
-          curl -L "$BRANCH{{version.major}}{{version.minor}}" | tar xz --strip-components=1 -C ..
+          curl -L "$BRANCH{{version.major}}{{version.minor}}" | tar xz --strip-components=1
         fi
-      fi
+      if: darwin
+      working-directory: ..
 
     # The spaces mess things up in the env key
-    - ARGS=($ARGS --with-pkgversion="tea GCC {{version}}")
+    - ARGS=($ARGS --with-pkgversion="pkgx GCC {{version}}")
 
     # On Linux, we need to statically link libstdc++ and libgcc
-    - |
-      if test {{hw.platform}} = "linux"; then
-        export ARGS=("${ARGS[@]}" --with-boot-ldflags="-static-libstdc++ -static-libgcc $LDFLAGS")
-      fi
+    - run: export ARGS=("${ARGS[@]}" --with-boot-ldflags="-static-libstdc++ -static-libgcc $LDFLAGS")
+      if: linux
 
     - ../configure "${ARGS[@]}"
     - make --jobs {{ hw.concurrency }}
@@ -73,6 +73,10 @@ build:
         ln -sf ../../../binutils/v\*/bin/ranlib ranlib
       working-directory: ${{prefix}}/bin
 
+    # .la archives aren't relocatable
+    - run: find . -name '*.la' -exec rm {} \;
+      working-directory: ${{prefix}}/lib
+
   env:
     # Branch from the Darwin maintainer of GCC, with a few generic fixes and
     # Apple Silicon support, located at https://github.com/iains/gcc-12-branch
@@ -81,13 +85,18 @@ build:
     PATCH131: https://raw.githubusercontent.com/Homebrew/formula-patches/master/gcc/gcc-13.1.0.diff
     BRANCH105: https://github.com/iains/gcc-10-branch/archive/refs/heads/gcc-10-5Dr0-pre-0.tar.gz
     BRANCH114: https://github.com/iains/gcc-11-branch/archive/refs/tags/gcc-11.4-darwin-r0.tar.gz
+    BRANCH115: https://github.com/iains/gcc-11-branch/archive/refs/tags/gcc-11.5-darwin-r0.tar.gz
     BRANCH123: https://github.com/iains/gcc-12-branch/archive/refs/tags/gcc-12.3-darwin-r0.tar.gz
+    BRANCH124: https://github.com/iains/gcc-12-branch/archive/refs/heads/gcc-12-4-darwin.tar.gz
     BRANCH132: https://github.com/iains/gcc-13-branch/archive/refs/heads/gcc-13-2-darwin.tar.gz
+    BRANCH133: https://github.com/iains/gcc-13-branch/archive/refs/heads/gcc-13-3-darwin-pre-0.tar.gz
+    BRANCH141: https://github.com/iains/gcc-14-branch/archive/refs/heads/gcc-14-1-darwin-pre-0.tar.gz
+    BRANCH142: https://github.com/iains/gcc-14-branch/archive/refs/heads/gcc-14-2-darwin-pre-0.tar.gz
     ARGS:
       - --prefix={{ prefix }}
       - --libdir={{ prefix }}/lib
       - --enable-languages=c,c++,objc,obj-c++,fortran
-      - --with-bugurl="https://github.com/teaxyz/pantry/issues"
+      - --with-bugurl="https://github.com/pkgxdev/pantry/issues"
       - --disable-bootstrap
       - --disable-nls
     linux:
@@ -95,10 +104,11 @@ build:
         - --disable-multilib
         - --enable-default-pie
         - --enable-pie-tools
+        - --enable-host-pie
     linux/x86-64:
       LDFLAGS: $LDFLAGS -pie
-      CFLAGS: $CFLAGS -fPIC
-      CXXFLAGS: $CXXFLAGS -fPIC
+      CFLAGS: $CFLAGS -fPIC -fPIE
+      CXXFLAGS: $CXXFLAGS -fPIC -fPIE
     darwin:
       ARGS:
         # Reliance on CLT hard path is yuck.
@@ -118,10 +128,17 @@ build:
       and CXXFLAGS_FOR_TARGET: -Wa,-mmacos-version-min=10.5
 
 test:
-  - gcc --version | grep -q "tea GCC {{version}}"
+  - gcc --version | grep -q "pkgx GCC {{version}}"
   - gcc -print-libgcc-file-name
   - gcc -print-multiarch
   - gcc -dumpspecs
+  # gha mac runners have broken SDKs...
+  - run: |
+      if ! test -f /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/AvailabilityInternalLegacy.h; then
+        echo "Missing SDK; skipping remaining tests"
+        exit 0
+      fi
+    if: darwin
   - gcc -o test1 test.c -lgmp
   - ./test1
   - g++ -o test2 test.cc

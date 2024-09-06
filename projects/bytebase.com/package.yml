@@ -8,15 +8,33 @@ versions:
 dependencies:
   nodejs.org: '>=20.10'
 
+platforms:
+  - linux
+  - darwin/aarch64
+# this changed in 2.16.0:
+# case runtime.GOOS == "darwin" && runtime.GOARCH == "arm64":
+# 	tarName = "mongoutil-1.6.1-darwin-arm64.txz"
+# case runtime.GOOS == "linux" && runtime.GOARCH == "amd64":
+# 	tarName = "mongoutil-1.6.1-linux-amd64.txz"
+# case runtime.GOOS == "linux" && runtime.GOARCH == "arm64":
+# 	tarName = "mongoutil-1.6.1-linux-arm64.txz"
+# default:
+# 	return "", "", errors.Errorf("unsupported platform: %s/%s", runtime.GOOS, runtime.GOARCH)
+
 build:
   dependencies:
-    go.dev: ^1.22
+    go.dev: ~1.22
     pnpm.io: '*'
     linux:
+      kerberos.org: 1 # added in 2.16.0
       # error: invalid linker name in argument '-fuse-ld=gold'
       gnu.org/gcc: '*'
   script:
-    ./scripts/build_bytebase.sh {{prefix}}/bin
+    # otherwise segfaults
+    - run: sed -i 's/-ldflags "/-ldflags "-buildmode=pie /' build_bytebase.sh
+      if: linux
+      working-directory: scripts
+    - ./scripts/build_bytebase.sh {{prefix}}/bin
 
 provides:
   - bin/bytebase
@@ -32,7 +50,7 @@ test:
     - run: exit 0
       if: linux
 
-    - FREE_PORT=$(pkgx get-port)
+    - FREE_PORT=$(pkgx get-port | tail -n1)
     - bytebase --port $FREE_PORT > out.log 2>&1 &
     - PID=$!
     - sleep 35

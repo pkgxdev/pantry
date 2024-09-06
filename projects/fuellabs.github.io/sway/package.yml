@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/FuelLabs/sway/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/FuelLabs/sway/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
@@ -14,24 +14,17 @@ dependencies:
 
 build:
   dependencies:
-    rust-lang.org: 1
+    rust-lang.org: ^1.78 # stdsimd changes
     rust-lang.org/cargo: ^0
     # needed to build openssl module
     perl.org: '*'
     gnu.org/make: '*'
-  script:
-    # curve25519-dalek 4.1.2 introduces some odd simd issues on x86-64
-    - run: sed -i
-        -e 's/version = "4.1.2"/version = "4.1.1"/'
-        -e 's/0a677b8922c94e01bdbb12126b0bc852f00447528dee1782229af9c720c3f348/e89b8c6a2e4b1f45971ad09761aafb85514a84744b67a95e32c3cc1352d1f65c/'
-        Cargo.lock
-      if: '>=0.51.0'
-    - cargo install --locked --path forc --root {{prefix}}
+  script: cargo install --locked --path forc --root {{prefix}}
 
 test:
   script:
-    - forc new tea_test
-    - cd tea_test
+    - forc new pkgx_test
+    - cd pkgx_test
     - cat $FIXTURE >src/main.sw
     - forc test
   fixture: |

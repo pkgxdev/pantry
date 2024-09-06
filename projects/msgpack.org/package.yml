@@ -1,10 +1,10 @@
 distributable:
-  url: https://github.com/msgpack/msgpack-c/releases/download/c-{{version}}/msgpack-c-{{version}}.tar.gz
+  url: https://github.com/msgpack/msgpack-c/releases/download/{{version.tag}}/msgpack-{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
   github: msgpack/msgpack-c
-  strip: /^cpp-/
+  strip: /^c-/
 
 build:
   dependencies:
@@ -15,6 +15,9 @@ build:
     - cmake -S . -B build $ARGS
     - cmake --build build
     - cmake --install build
+    # some old software, like tmate, wants `msgpack.pc`
+    - run: ln -s msgpack-c.pc msgpack.pc
+      working-directory: ${{prefix}}/lib/pkgconfig/
   env:
     ARGS:
       - -DMSGPACK_BUILD_TESTS=OFF
@@ -33,4 +36,3 @@ test:
     - cc test.c -lmsgpack-c -o test
     - ./test
     - pkg-config --modversion msgpack-c | grep {{version}}
-  

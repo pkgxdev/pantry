@@ -12,6 +12,8 @@ dependencies:
   libevent.org: ^2
   zeromq.org: ^4
   sqlite.org: ^3
+  linux:
+    gnu.org/gcc/libstdcxx: '*' # c++20 support and libc++
 
 build:
   dependencies:
@@ -19,15 +21,14 @@ build:
     gnu.org/automake: ^1
     freedesktop.org/pkg-config: ^0.29
     gnu.org/libtool: ^2
-  script: |
-    ./autogen.sh
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }} install
+    linux:
+      gnu.org/gcc: '*' # c++20 support and libc++
+  script:
+    - ./autogen.sh
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
   env:
     linux:
-      CC: clang
-      CXX: clang++
-      LD: clang
       LDFLAGS: $LDFLAGS -lstdc++fs
     ARGS:
       - --prefix={{prefix}}

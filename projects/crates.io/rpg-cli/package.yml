@@ -1,0 +1,29 @@
+distributable:
+  url: https://github.com/facundoolano/rpg-cli/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/rpg-cli
+
+versions:
+  github: facundoolano/rpg-cli
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.65'
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path . --root {{prefix}}
+
+test:
+  - rpg-cli
+  - rpg-cli todo
+  - rpg-cli ls
+  - rpg-cli cd
+  - rpg-cli buy
+  - mkdir foo
+  # don't fail on death
+  - rpg-cli cd foo --run || true
+  - mkdir bar
+  # don't fail on death
+  - rpg-cli cd bar --run || true
+  - rpg-cli

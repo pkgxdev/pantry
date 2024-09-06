@@ -1,9 +1,12 @@
 distributable:
   url: https://github.com/DrTimothyAldenDavis/SuiteSparse/archive/v{{version}}.tar.gz
   strip-components: 1
+
 display-name: suite-sparse
+
 versions:
   github: DrTimothyAldenDavis/SuiteSparse
+
 dependencies:
   glaros.dtc.umn.edu/metis: '*'
   gnu.org/m4: '*'
@@ -12,6 +15,7 @@ dependencies:
   openmp.llvm.org: '*'
   gnu.org/mpfr: '*'
   gnu.org/gcc: '*' # libfortran
+
 build:
   dependencies:
     cmake.org: '*'
@@ -65,13 +69,22 @@ build:
       CMAKE_ARGS:
         - -DLAPACK_LIBRARIES={{deps.netlib.org/lapack.prefix}}/lib/liblapack.{{deps.netlib.org/lapack.version.major}}.dylib
         - -DBLAS_LIBRARIES={{deps.netlib.org/lapack.prefix}}/lib/libblas.{{deps.netlib.org/lapack.version.major}}.dylib
+
 provides:
   - bin/mongoose
   - bin/suitesparse_mongoose
+
 test:
   dependencies:
     freedesktop.org/pkg-config: '*'
   script:
     - pkg-config --modversion SuiteSparse_config | grep {{version}}
+    # gha mac runners have broken SDKs...
+    - run: |
+        if ! test -f /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/AvailabilityInternalLegacy.h; then
+          echo "Missing SDK; skipping remaining tests"
+          exit 0
+        fi
+      if: darwin
     - cc test.c -lsuitesparseconfig -lklu -o test -Wl,-rpath,{{pkgx.prefix}}
     - ./test

@@ -1,0 +1,66 @@
+distributable:
+  url: https://github.com/llvm/llvm-project/releases/download/llvmorg-{{ version }}/llvm-project-{{ version }}.src.tar.xz
+  strip-components: 1
+
+versions:
+  github: llvm/llvm-project
+  strip: /^llvmorg-/
+
+build:
+  dependencies:
+    cmake.org: '>=3<3.29'
+    ninja-build.org: 1
+    python.org: '>=3<3.12'
+    llvm.org: '*'
+  working-directory: build
+  script:
+    - cmake ../runtimes -G Ninja $ARGS
+    - ninja cxx cxxabi unwind
+    - ninja install-cxx install-cxxabi install-unwind
+
+    # move linux libs into /lib
+    - run: |
+        TARGET="$(find . -maxdepth 1 -type d -name \*-unknown-linux-gnu)"
+        if test -n "$TARGET"; then
+          mv "$TARGET"/* .
+          rmdir "$TARGET"
+          ln -s . "$TARGET"
+        fi
+      working-directory: ${{prefix}}/lib
+      if: linux
+  env:
+    ARGS:
+      - -DCMAKE_INSTALL_PREFIX="{{ prefix }}"
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DLLVM_INCLUDE_DOCS=OFF
+      - -DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi;libunwind"
+      - -DLLVM_INCLUDE_TESTS=OFF
+      - -DLLVM_ENABLE_RTTI=ON
+
+test:
+  dependencies:
+    llvm.org: '*'
+  script:
+    # installed libc++ causes header conflict
+    - run: |
+        if ! ldconfig -p | grep -q libc++.so; then
+          ARGS="$ARGS -cxx-isystem {{prefix}}/include/c++/v1"
+        fi
+      if: linux
+    - run: clang++ $ARGS $FIXTURE
+      fixture:
+        extname: cpp
+        content: |
+          #include <iostream>
+
+          int main() {
+            std::cout << "Hello, World!" << std::endl;
+            return 0;
+          }
+    - ./a.out
+  env:
+    ARGS:
+      - -Wl,-rpath,$PKGX_DIR
+      - -std=c++11
+      - -stdlib=libc++
+      - -lc++

@@ -1,22 +1,26 @@
 distributable:
   url: https://github.com/vapoursynth/vapoursynth/archive/R{{version.major}}.tar.gz
   strip-components: 1
+
 versions:
   github: vapoursynth/vapoursynth
   strip:
     - /^R/
+
 dependencies:
   python.org: ~3.11
   github.com/sekrit-twc/zimg: '*'
   linux:
     # Fix: version `GLIBCXX_3.4.30' not found (required by vspipe)
-    gnu.org/gcc: '*'
+    gnu.org/gcc/libstdcxx: '*'
+
 runtime:
   env:
     # Fix: Could not find platform independent libraries
     #      PYTHONHOME = (not set)
-    PYTHONHOME: "{{deps.python.org.prefix}}"
-    PYTHONPATH: "{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages:$PYTHONPATH"
+    PYTHONHOME: '{{deps.python.org.prefix}}'
+    PYTHONPATH: '{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages:$PYTHONPATH'
+
 build:
   dependencies:
     gnu.org/autoconf: '*'
@@ -26,18 +30,26 @@ build:
     nasm.us: '*'
     freedesktop.org/pkg-config: '*'
     linux:
-      gnu.org/make: '*'
+      gnu.org/gcc: '*'
   script:
+    # error: 'to_chars' is unavailable: introduced in macOS 13.3
+    - run: export MACOSX_DEPLOYMENT_TARGET=13.3
+      if: '>=69'
     - ./autogen.sh
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
     - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}} || true
-      working-directory: "{{prefix}}/lib"
+      working-directory: '{{prefix}}/lib'
+    - run: sed -i
+        -e "s|{{pkgx.prefix}}|\${pcfiledir}/../../../..|g"
+        -e "s|python.org/v{{deps.python.org.version}}|python.org/v{{deps.python.org.version.marketing}}|g"
+        -e 's/\+brewing//g' *.pc
+      working-directory: '{{prefix}}/lib/pkgconfig'
     - run: |
-        sed -i.bak "s|$PKGX_DIR|\${prefix}/../..|g" *.pc
-        sed -i.bak "s|python.org/v{{deps.python.org.version}}|python.org/v{{deps.python.org.version.marketing}}|g" *.pc
-        rm *.bak
-      working-directory: "{{prefix}}/lib/pkgconfig"
+        mv vapoursynth/* .
+        rmdir vapoursynth
+        ln -s . vapoursynth
+      working-directory: '{{prefix}}/include'
   env:
     ARGS:
       - --prefix={{prefix}}
@@ -46,9 +58,24 @@ build:
       - --with-cython={{deps.cython.org.prefix}}/bin/cython
       - --with-python_prefix={{prefix}}
       - --with-python_exec_prefix={{prefix}}
+
 provides:
   - bin/vspipe
+
 test:
+  dependencies:
+    crates.io/semverator: '*'
   script:
+    - run: |
+        if test "{{hw.platform}}" = "darwin"; then
+          MACOS_VERSION=$(sw_vers -productVersion)
+          if semverator lt $MACOS_VERSION 13.3; then
+            echo "Skipping test on macOS $MACOS_VERSION"
+            echo "'to_chars' is unavailable: introduced in macOS 13.3"
+            exit 0
+          fi
+        fi
+      if: '>=69'
+    - vspipe --version
     - vspipe --version | grep {{version.major}}
     - python -c 'import vapoursynth'

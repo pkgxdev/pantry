@@ -1,0 +1,36 @@
+distributable:
+  url: https://github.com/akuity/kargo/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: akuity/kargo
+
+provides:
+  - bin/kargo
+
+build:
+  dependencies:
+    go.dev: ^1.19
+    linux/aarch64:
+      # error: invalid linker name in argument '-fuse-ld=gold'
+      gnu.org/gcc: '*'
+  script:
+    - go mod download
+    - go build -v -trimpath -ldflags="$GO_LDFLAGS" -o {{prefix}}/bin/kargo ./cmd/cli
+  env:
+    GO_LDFLAGS:
+      - -s
+      - -w
+      - -X github.com/akuity/kargo/internal/version.version={{version}}
+      - -X github.com/akuity/kargo/internal/version.buildDate=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+      - -X github.com/akuity/kargo/internal/version.gitCommit=pkgx
+      - -X github.com/akuity/kargo/internal/version.gitTreeState=clean
+    linux:
+      # or segmentation fault
+      # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
+      GO_LDFLAGS:
+        - -buildmode=pie
+
+test:
+  - kargo version
+  - 'test "$(kargo version)" = "Client Version: {{version}}"'

@@ -10,6 +10,11 @@ dependencies:
   lua.org: '*'
   info-zip.org/unzip: '*'
 
+runtime:
+  env:
+    LUA_PATH: $LUA_PATH;{{prefix}}/share/lua/{{deps.lua.org.version.marketing}}/?.lua;{{prefix}}/share/lua/{{deps.lua.org.version.marketing}}/?/init.lua;{{prefix}}/lib/lua/{{deps.lua.org.version.marketing}}/?.lua;{{prefix}}/lib/lua/{{deps.lua.org.version.marketing}}/?/init.lua
+    LUA_CPATH: $LUA_CPATH;{{prefix}}/lib/lua/{{deps.lua.org.version.marketing}}/?.so;{{prefix}}/lib/lua/{{deps.lua.org.version.marketing}}/loadall.so
+
 build:
   dependencies:
     gnu.org/make: ^4
@@ -19,11 +24,43 @@ build:
     - make --jobs {{ hw.concurrency }} install
     - run: |
         fix-shebangs.ts luarocks-admin luarocks
-        sed -i.bak \
+        sed -i \
             -e 's|\[\[{{prefix}}|debug.getinfo(1).source:match("@?(.*/)") .. \[\[..|g' \
             luarocks-admin luarocks
-        rm luarocks-admin.bak luarocks.bak
       working-directory: ${{prefix}}/bin
+
+    # luarocks config has fixed paths
+    - run: |
+        mv bin tbin
+        mkdir bin
+      working-directory: ${{prefix}}
+    - run: |
+        cat $PROP >luarocks
+        cat $PROP >luarocks-admin
+        chmod +x luarocks luarocks-admin
+      working-directory: ${{prefix}}/bin
+      prop: |
+        #!/bin/sh
+
+        d="$(cd "$(dirname "$0")"/.. && pwd)"
+        x="$(basename "$0")"
+
+        cat >"$d/etc/luarocks/config-{{deps.lua.org.version.marketing}}.lua" <<EOF
+        -- LuaRocks configuration
+
+        rocks_trees = {
+          { name = "user", root = home .. "/.luarocks" };
+          { name = "system", root = "${PKGX_DIR:-$HOME/.pkgx}/luarocks.org/v{{version}}" };
+        }
+        variables = {
+          LUA_DIR = "${PKGX_DIR:-$HOME/.pkgx}/lua.org/v{{deps.lua.org.version.marketing}}";
+          LUA_BINDIR = "${PKGX_DIR:-$HOME/.pkgx}/lua.org/v{{deps.lua.org.version.marketing}}/bin";
+          LUA_VERSION = "{{deps.lua.org.version.marketing}}";
+          LUA = "${PKGX_DIR:-$HOME/.pkgx}/lua.org/v{{deps.lua.org.version.marketing}}/bin/lua";
+        }
+        EOF
+
+        exec "$d/tbin/$x" "$@"
   env:
     ARGS:
       - --prefix="{{prefix}}"
@@ -36,4 +73,26 @@ provides:
   - bin/luarocks
   - bin/luarocks-admin
 
-test: test "$(luarocks --version | awk 'NR==1 {print $NF}')" = "{{version.raw}}"
+test:
+  dependencies:
+    gnu.org/gcc: '*'
+    curl.se: '*'
+  script:
+    - run: EXTRA_ARGS="RT_LIBDIR=$(dirname $(find /usr/lib -name librt.a | head -n1))"
+      if: linux
+    - test "$(luarocks --version | awk 'NR==1 {print $NF}')" = "{{version.raw}}"
+    - luarocks install busted $EXTRA_ARGS
+    - run:
+        - luarocks install luasocket
+        - lua $FIXTURE
+      fixture:
+        extname: lua
+        content: |
+          local status, socket = pcall(require, "socket")
+          if status then
+              print("Socket module loaded successfully.")
+          else
+              print("Failed to load socket module.")
+              print("Error: " .. socket)
+              os.exit(1)
+          end

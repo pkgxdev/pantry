@@ -1,0 +1,54 @@
+distributable:
+  url: https://github.com/quarylabs/sqruff/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: quarylabs/sqruff
+
+build:
+  dependencies:
+    rust-lang.org/rustup: '*'
+    linux:
+      llvm.org: '*' # else toolchain failures in build.rs
+  working-directory: crates/cli
+  script:
+    # requires nightly features
+    - run:
+        - ln -sf {{deps.rust-lang.org/rustup.prefix}}/bin/rustup .
+        - rustup default $(grep channel $SRCROOT/rust-toolchain.toml | sed 's/channel = "//;s/"//')
+        - ln -sf $HOME/.rustup/toolchains/*/bin/* .
+      working-directory: $HOME/.cargo/bin
+
+    # jemalloc breaks linux build
+    - run:
+        - sed -i '/jemallocator/{N;N;d;}' cli/Cargo.toml lib/Cargo.toml
+        - sed -i 's/any(target_arch = "x86_64", target_arch = "aarch64", target_arch = "powerpc64")/any(target_arch = "powerpc64")/' cli/src/main.rs
+      working-directory: ..
+      if: linux
+
+    # -Ctarget-cpu is breaking darwin/x86-64
+    - run: if test -f config.toml; then sed -i '/-Ctarget-cpu=native/d' config.toml; fi
+      working-directory: ../../.cargo
+      # if: darwin/x86-64
+
+    - cargo install --locked --path . --root {{prefix}}
+  env:
+    PATH: $HOME/.cargo/bin:$PATH
+
+provides:
+  - bin/bench
+  - bin/sqruff
+
+test:
+  - sqruff --help
+  - test "$(sqruff -V)" = "sqruff {{version}}"
+  - run: sqruff lint $FIXTURE
+    fixture:
+      extname: sql
+      content: SELECT 1;
+  - run: if ! sqruff lint $FIXTURE; then true; else false; fi
+    fixture:
+      extname: sql
+      content: |
+        SELECT 1
+        SELECT 2

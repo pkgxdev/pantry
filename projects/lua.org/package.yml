@@ -13,17 +13,80 @@ provides:
   - bin/lua
   - bin/luac
 
+companions:
+  luarocks.org: '*'
+
+runtime:
+  env:
+    LUA_PATH: $LUA_PATH;{{prefix}}/share/lua/{{version.marketing}}/?.lua;{{prefix}}/share/lua/{{version.marketing}}/?/init.lua;{{prefix}}/lib/lua/{{version.marketing}}/?.lua;{{prefix}}/lib/lua/{{version.marketing}}/?/init.lua
+    LUA_CPATH: $LUA_CPATH;{{prefix}}/lib/lua/{{version.marketing}}/?.so;{{prefix}}/lib/lua/{{version.marketing}}/loadall.so
+
 interprets:
   extensions: lua
   args: lua
 
+dependencies:
+  gnu.org/readline: '*'
+
 build:
-  script: |
-    make all INSTALL_TOP={{prefix}}
-    make install INSTALL_TOP={{prefix}}
-    make test
+  script:
+    - run: sed -i -e "s_\$(MYCFLAGS)_${CFLAGS} -fPIC_" -e "s_\$(MYLDFLAGS)_${LDFLAGS}_" Makefile
+      working-directory: src
+    - make $OS INSTALL_TOP={{prefix}}
+    - make install INSTALL_TOP={{prefix}}
+    # lua doesn't build liblua via makefile
+    - run:
+        - OBJS="$(grep ^CORE_O= Makefile | sed -e 's/^CORE_O=//')"
+        - OBJS="$OBJS $(grep ^LIB_O= Makefile | sed -e 's/^LIB_O=//')"
+        - cc $CFLAGS $LDFLAGS -o {{prefix}}/lib/liblua.$EXT -shared $OBJS
+      working-directory: src
+    - run: cp $PROP lua.pc
+      prop: |
+        V= {{version.marketing}}
+        R= {{version}}
+        prefix={{prefix}}
+        INSTALL_BIN= ${prefix}/bin
+        INSTALL_INC= ${prefix}/include/lua
+        INSTALL_LIB= ${prefix}/lib
+        INSTALL_MAN= ${prefix}/share/man/man1
+        INSTALL_LMOD= ${prefix}/share/lua/${V}
+        INSTALL_CMOD= ${prefix}/lib/lua/${V}
+        exec_prefix=${prefix}
+        libdir=${exec_prefix}/lib
+        includedir=${prefix}/include/lua
+
+        Name: Lua
+        Description: An Extensible Extension Language
+        Version: {{version}}
+        Requires:
+        Libs: -L${libdir} -llua -lm
+        Cflags: -I${includedir}
+      working-directory: ${{prefix}}/lib/pkgconfig
+    - run: sed -i 's/-lm/-lm -ldl/' lua.pc
+      working-directory: ${{prefix}}/lib/pkgconfig
+      if: linux
+    - make test
+  env:
+    darwin:
+      OS: macosx
+      EXT: dylib
+    linux:
+      OS: linux-readline
+      EXT: so
 
 test:
-  script: |
-    lua -v
-    lua -e 'print("Hello World!")'
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script:
+    - lua -v
+    - lua -e 'print("Hello World!")'
+    - run: cc $FIXTURE -o test $(pkg-config --cflags --libs lua)
+      fixture:
+        extname: c
+        content: |
+          #include <stdio.h>
+          int main() {
+            printf("Hello World!\n");
+            return 0;
+          }
+    - ./test

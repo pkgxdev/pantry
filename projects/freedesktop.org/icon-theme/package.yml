@@ -10,9 +10,20 @@ versions:
     - /.tar.xz/
 
 build:
-  script: |
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }} install
+  dependencies:
+    mesonbuild.com: '*'
+    ninja-build.org: '*'
+  script:
+    - run: |
+        ./configure $ARGS
+        make --jobs {{ hw.concurrency }} install
+      if: <0.18
+    - run: |
+        meson setup build $ARGS
+        meson compile -C build --verbose
+        meson install -C build
+      if: '>=0.18'
+
   env:
     ARGS:
       - --prefix="{{prefix}}"

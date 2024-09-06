@@ -1,5 +1,5 @@
 distributable:
-  url: https://ftp.gnu.org/gnu/automake/automake-{{ version }}.tar.gz
+  url: https://ftp.gnu.org/gnu/automake/automake-{{ version.raw }}.tar.gz
   strip-components: 1
 
 versions:
@@ -20,31 +20,36 @@ dependencies:
 build:
   dependencies:
     gnu.org/patch: '*'
-  script: |-
-    ./configure \
-      --build={{ hw.target }} \
+  script:
+    - ./configure
+      --build={{ hw.target }}
       --prefix="{{ prefix }}"
-    make -j {{ hw.concurrency }} install
-
-    cd "{{prefix}}"
+    - make -j {{ hw.concurrency }} install
 
     # fix hardcoded paths
-    perl -pi -e "s|'{{prefix}}/|\\\$prefix.'/|" bin/* share/automake-{{version.marketing}}/Automake/Config.pm
-    patch -p1 <"$SRCROOT"/props/relocatable.diff
-    ln -sf aclocal bin/aclocal-{{version.marketing}}
-    ln -sf automake bin/automake-{{version.marketing}}
+    - run:
+        # note that \Q and \E are used to escape the path, which now includes a + character
+        - perl -pi -e "s|'\Q{{prefix}}\E/|\\\$prefix.'/|" bin/* share/automake-{{version.marketing}}/Automake/Config.pm
+        - sed 's/automake-1.16/automake-{{version.marketing}}/g' "$SRCROOT"/props/relocatable.diff | patch -p1
+        - ln -sf aclocal bin/aclocal-{{version.marketing}}
+        - ln -sf automake bin/automake-{{version.marketing}}
 
-    fix-shebangs.ts bin/*
+        - fix-shebangs.ts bin/*
+      working-directory: '{{prefix}}'
+
   env:
     PERL5LIB: '{{prefix}}/share/automake-{{version.marketing}}'
 
 # TODO to prove automake doesn't require autoconf we should
 # use “depend” on the autoconf test to generate our `configure` separately
 test:
-  script: |
-    aclocal
-    automake --add-missing --foreign
-    autoconf
-    ./configure
-    make
-    ./test
+  dependencies:
+    gnu.org/make: '*'
+    llvm.org: '*'
+  script:
+    - aclocal
+    - automake --add-missing --foreign
+    - autoconf
+    - ./configure
+    - make
+    - ./test

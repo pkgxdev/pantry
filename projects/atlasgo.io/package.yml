@@ -12,10 +12,9 @@ build:
   dependencies:
     go.dev: ^1.20
   working-directory: cmd/atlas
-  script: |
-    go mod download
-    mkdir -p "{{ prefix }}"/bin
-    go build -v -trimpath -ldflags="$LDFLAGS" -o $BUILDLOC .
+  script:
+    - go mod download
+    - go build -v -trimpath -ldflags="$LDFLAGS" -o $BUILDLOC .
   env:
     GOPROXY: https://proxy.golang.org,direct
     GOSUMDB: sum.golang.org
@@ -29,8 +28,11 @@ build:
       # or segmentation fault
       # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
       LDFLAGS:
-      - -buildmode=pie
+        - -buildmode=pie
 
 test:
   script:
-    - test "$(atlas version | head -n1)" = "atlas version v{{version}}"
+    - run: test "$(atlas version | head -n1)" = "atlas version v{{version}}"
+      if: <0.23
+    - run: test "$(atlas version | head -n1)" = "atlas unofficial version v{{version}}"
+      if: '>=0.23'

@@ -1,0 +1,32 @@
+distributable:
+  url: https://www.wavpack.com/wavpack-{{version}}.tar.xz
+  strip-components: 1
+
+versions:
+  github: dbry/WavPack/tags
+
+build:
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+
+provides:
+  - bin/wavpack
+  - bin/wvunpack
+  - bin/wvtag
+  - bin/wvgain
+
+test:
+  dependencies:
+    gnu.org/diffutils: '*' # cmp
+  script:
+    # Testing lossless encoding and decoding on random file
+    - dd if=/dev/zero of=test.raw bs=4 count=22050
+    - dd if=/dev/urandom bs=4 count=22050 >> test.raw
+    - dd if=/dev/zero bs=4 count=22050 >> test.raw
+    - wavpack --raw-pcm=44100,16s,2,le -y test.raw
+    - wvunpack test.wv -o out.raw -r -y
+    - cmp -s test.raw out.raw

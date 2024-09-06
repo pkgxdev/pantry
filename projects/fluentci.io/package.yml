@@ -8,18 +8,26 @@ versions:
   github: fluentci-io/fluentci
 
 dependencies:
-  dagger.io: ^0.8.8
-  deno.land: ^1.36
+  dagger.io: ^0.10
+  deno.land: ^1.42
   charm.sh/glow: ^1.5.1
 
 build:
-  dependencies:
-    deno.land: ~1.37
-  script: |
-    deno compile -A --unstable --import-map="$SRCROOT"/import_map.json --output fluentci ./main.ts
-    mkdir -p "{{ prefix }}"/bin
-    cp fluentci "{{ prefix }}"/bin
+  script:
+    # 0.12.0 didn't bump version
+    - run: sed -i -e 's/export const VERSION = ".*";/export const VERSION = "{{ version }}";/' consts.ts
+      working-directory: src
+    # 0.12.7+ shipped with a deno.lock that prevents building
+    - run: rm deno.lock
+      if: '>=0.12.7<0.14'
+    - deno compile -A --unstable --import-map="$SRCROOT"/import_map.json --output fluentci ./main.ts
+    - mkdir -p "{{ prefix }}"/bin
+    - cp fluentci "{{ prefix }}"/bin
   skip: fix-patchelf
+  env:
+    linux/aarch64:
+      # deno's pre-built runtime doesn't support glibc old enough
+      DENORT_BIN: '{{deps.deno.land.prefix}}/bin/denort'
 
 provides:
   - bin/fluentci

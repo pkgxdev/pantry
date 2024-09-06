@@ -35,7 +35,16 @@ build:
       - -DCMAKE_VERBOSE_MAKEFILE=ON
       - -Wno-dev
       - -DBUILD_TESTING=OFF
+    linux:
+      CC: clang
+      CXX: clang++
+      LD: clang
+    linux/aarch64:
+      ARGS:
+        - -DCMAKE_C_FLAGS=-fPIC
+        - -DCMAKE_CXX_FLAGS=-fPIC
+        - -DCMAKE_EXE_LINKER_FLAGS=-pie
 
 test:
-  - clang++ -std=c++17 test.cc -o test -ledencommon_utils -lfolly -lglog
+  - clang++ -std=c++17 test.cc -o test -ledencommon_utils -lfolly -lglog -lfmt
   - ./test 1

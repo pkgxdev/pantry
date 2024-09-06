@@ -1,0 +1,22 @@
+distributable:
+  url: https://github.com/Limeth/ethaddrgen/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/ethaddrgen
+
+versions:
+  github: Limeth/ethaddrgen
+
+dependencies:
+  openssl.org: ^1.1
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
+  script: cargo install --path . --root {{prefix}}
+
+test:
+  - test "$(ethaddrgen --version)" = "ethaddrgen {{version}}"
+  - ethaddrgen 7ea

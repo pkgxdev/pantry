@@ -16,7 +16,7 @@ dependencies:
 build:
   script:
     - ./configure $ARGS
-    - make shared
+    - make
     - make install
   env:
     ARGS:
@@ -24,14 +24,10 @@ build:
       - --enable-reentrant
 
 test:
-  - cc testprog.c -o testprog -lcfitsio
-  - ./testprog > testprog.lis
-  - run: |
-      cmp testprog.lis testprog.out
-      cmp testprog.fit testprog.std
-    if: darwin
-  # archlinux doesn't have cmp or diff, but it has sha256sum
-  - run: |
-      test "$(sha256sum testprog.lis | awk '{print $1}')" = "$(sha256sum testprog.out | awk '{print $1}')"
-      test "$(sha256sum testprog.fit | awk '{print $1}')" = "$(sha256sum testprog.std | awk '{print $1}')"
-    if: linux
+  dependencies:
+    gnu.org/diffutils: '*' # cmp
+  script:
+    - cc testprog.c -o testprog -lcfitsio
+    - ./testprog > testprog.lis
+    - cmp testprog.lis testprog.out
+    - cmp testprog.fit testprog.std

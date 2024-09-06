@@ -1,6 +1,6 @@
 distributable:
-   url: https://gitlab.com/api/v4/projects/4207231/packages/generic/graphviz-releases/{{ version }}/graphviz-{{ version }}.tar.gz
-   strip-components: 1
+  url: https://gitlab.com/api/v4/projects/4207231/packages/generic/graphviz-releases/{{ version }}/graphviz-{{ version }}.tar.gz
+  strip-components: 1
 
 versions:
   gitlab: graphviz/graphviz/tags
@@ -18,14 +18,24 @@ dependencies:
   zlib.net: '^1.2.3'
 
 build:
-  dependencies:
-    freedesktop.org/pkg-config: '>=0.20<1'
-  script: |
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }} install
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+    - run: rm *.la
+      working-directory: ${{prefix}}/lib
   env:
     ARGS:
       - --prefix={{prefix}}
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --disable-swig
+      - --disable-tcl
+      - --without-quartz
+      - --without-gdk
+      - --without-gtk
+      - --without-qt
+      - --without-x
+      - --with-freetype2
 
 provides:
   - bin/acyclic
@@ -64,6 +74,4 @@ provides:
   - bin/twopi
   - bin/unflatten
 
-test:
-  script: |
-    dot -Tpdf -o test.pdf test.dot
+test: dot -Tpdf -o test.pdf test.dot

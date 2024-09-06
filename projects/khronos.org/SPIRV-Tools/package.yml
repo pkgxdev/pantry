@@ -1,0 +1,52 @@
+distributable:
+  url: https://github.com/KhronosGroup/SPIRV-Tools/archive/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: KhronosGroup/SPIRV-Tools
+
+build:
+  dependencies:
+    cmake.org: '*'
+    python.org: ~3.11
+    git-scm.org: 2
+  script:
+    - git clone https://github.com/KhronosGroup/SPIRV-Headers external/spirv-headers
+    - cmake -S . -B build $ARGS
+    - cmake --build build
+    - cmake --install build
+  env:
+    ARGS:
+      - -DBUILD_SHARED_LIBS=ON
+      - -DPython3_EXECUTABLE={{deps.python.org.prefix}}/bin/python
+      - -DSPIRV_SKIP_TESTSS=ON
+      - -DSPIRV_TOOLS_BUILD_STATIC=ON
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_INSTALL_LIBDIR={{prefix}}/lib
+      - -DCMAKE_BUILD_TYPE=Release
+      - -Wno-dev
+    linux:
+      ARGS:
+        - -DCMAKE_EXE_LINKER_FLAGS=-lstdc++fs
+
+provides:
+  - bin/spirv-as
+  - bin/spirv-cfg
+  - bin/spirv-dis
+  - bin/spirv-lesspipe.sh
+  - bin/spirv-link
+  - bin/spirv-lint
+  - bin/spirv-objdump
+  - bin/spirv-opt
+  - bin/spirv-reduce
+  - bin/spirv-val
+
+test:
+  script:
+    - clang -o test main.cpp -std=c++11 -lSPIRV-Tools -lSPIRV-Tools-link -lSPIRV-Tools-opt $LIBS
+    - ./test
+  env:
+    linux:
+      LIBS: -lstdc++ -lm
+    darwin:
+      LIBS: -lc++

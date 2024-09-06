@@ -1,0 +1,141 @@
+distributable:
+  url: https://ftp.gnu.org/gnu/gcc/gcc-{{version.raw}}/gcc-{{ version.raw }}.tar.xz
+  strip-components: 1
+
+versions:
+  github: gcc-mirror/gcc/tags
+  strip: /^releases\/gcc-/
+
+dependencies:
+  gnu.org/binutils: '*' # linker needs `as`
+  gnu.org/gmp: '>=4.2'
+  gnu.org/mpfr: '>=2.4.0'
+  gnu.org/mpc: '>=0.8.0'
+
+build:
+  dependencies:
+    linux:
+      gnu.org/gcc: '*'
+    gnu.org/make: '*'
+    perl.org: '^5.6.1'
+    gnu.org/patch: '*'
+    curl.se: '*'
+    github.com/westes/flex: '*'
+  working-directory: build
+  script:
+    # Applying ians patches on x86-64 too, since he sometimes gets fixes in faster, like:
+    # https://github.com/orgs/Homebrew/discussions/5216
+    # If we have a patch, apply it
+    - run: |
+        if test -n "$PATCH{{version.major}}{{version.minor}}"; then
+          curl "$PATCH{{version.major}}{{version.minor}}" | patch -p1
+        fi
+      if: darwin
+      working-directory: ..
+
+    # if there's no diff yet, unpack iains' source over ours
+    - run: |
+        if test -n "$BRANCH{{version.major}}{{version.minor}}"; then
+          curl -L "$BRANCH{{version.major}}{{version.minor}}" | tar xz --strip-components=1
+        fi
+      if: darwin
+      working-directory: ..
+
+    # On Linux, we need to statically link libstdc++ and libgcc
+    - run: export ARGS=($ARGS --with-boot-ldflags="-static-libstdc++ -static-libgcc $LDFLAGS")
+      if: linux
+    - run: export ARGS=($ARGS)
+      if: darwin
+
+    - ../configure "${ARGS[@]}"
+    - make --jobs {{ hw.concurrency }}
+    - make install-target-libstdc++-v3 install-target-libgcc
+
+    # On Linux, we need to move the libraries to the lib directory.
+    - run: |
+        mv lib64/* lib/
+        rmdir lib64
+      if: linux
+      working-directory: ${{prefix}}
+
+    # these don't always match {{version}}
+    - run: ln -s {{version.major}}.* {{version.major}}
+      working-directory: ${{prefix}}/include/c++
+  env:
+    # Branch from the Darwin maintainer of GCC, with a few generic fixes and
+    # Apple Silicon support, located at https://github.com/iains/gcc-12-branch
+    PATCH122: https://raw.githubusercontent.com/Homebrew/formula-patches/1d184289/gcc/gcc-12.2.0-arm.diff
+    # https://github.com/iains/gcc-darwin-arm64
+    PATCH131: https://raw.githubusercontent.com/Homebrew/formula-patches/master/gcc/gcc-13.1.0.diff
+    BRANCH105: https://github.com/iains/gcc-10-branch/archive/refs/heads/gcc-10-5Dr0-pre-0.tar.gz
+    BRANCH114: https://github.com/iains/gcc-11-branch/archive/refs/tags/gcc-11.4-darwin-r0.tar.gz
+    BRANCH115: https://github.com/iains/gcc-11-branch/archive/refs/tags/gcc-11.5-darwin-r0.tar.gz
+    BRANCH123: https://github.com/iains/gcc-12-branch/archive/refs/tags/gcc-12.3-darwin-r0.tar.gz
+    BRANCH124: https://github.com/iains/gcc-12-branch/archive/refs/heads/gcc-12-4-darwin.tar.gz
+    BRANCH132: https://github.com/iains/gcc-13-branch/archive/refs/heads/gcc-13-2-darwin.tar.gz
+    BRANCH133: https://github.com/iains/gcc-13-branch/archive/refs/heads/gcc-13-3-darwin-pre-0.tar.gz
+    BRANCH141: https://github.com/iains/gcc-14-branch/archive/refs/heads/gcc-14-1-darwin-pre-0.tar.gz
+    BRANCH142: https://github.com/iains/gcc-14-branch/archive/refs/heads/gcc-14-2-darwin-pre-0.tar.gz
+    ARGS:
+      - --prefix={{ prefix }}
+      - --libdir={{ prefix }}/lib
+      - --disable-bootstrap
+      - --disable-nls
+    linux:
+      ARGS:
+        - --disable-multilib
+        - --enable-default-pie
+        - --enable-pie-tools
+        - --enable-host-pie
+    linux/x86-64:
+      LDFLAGS: $LDFLAGS -pie
+      CFLAGS: $CFLAGS -fPIC -fPIE
+      CXXFLAGS: $CXXFLAGS -fPIC -fPIE
+    darwin:
+      ARGS:
+        # Reliance on CLT hard path is yuck.
+        - --with-sysroot=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
+    darwin/aarch64:
+      ARGS:
+        # https://en.wikipedia.org/wiki/Darwin_(operating_system)#Darwin_16%E2%80%9319;_OS_X_rebranded_into_macOS
+        - --build=aarch64-apple-darwin20.0.0
+    darwin/x86-64:
+      ARGS:
+        - --build=x86_64-apple-darwin20.0.0
+      # llvm-as generates __compact_unwind sections, even when told not to. this causes build errors
+      # for ^10 on darwin+x86-64
+      # https://stackoverflow.com/questions/52211390/trouble-building-gcc-on-mac-cant-find-system-headers
+      BOOT_CFLAGS: -Wa,-mmacos-version-min=10.5
+      CFLAGS_FOR_TARGET: -Wa,-mmacos-version-min=10.5
+      and CXXFLAGS_FOR_TARGET: -Wa,-mmacos-version-min=10.5
+
+test:
+  env:
+    FLAGS:
+      - -std=c++20
+      - -lstdc++
+    darwin:
+      FLAGS:
+        - -cxx-isystem {{prefix}}/include/c++/{{version.major}}
+        - -cxx-isystem {{prefix}}/include/c++/{{version.major}}/*-apple-darwin*
+        - -stdlib=libstdc++
+  script:
+    - run: clang++ -o test $FIXTURE $FLAGS
+      fixture:
+        extname: cc
+        content: |
+          #include <iostream>
+          struct exception { };
+          int main()
+          {
+            std::cout << "Hello, world!" << std::endl;
+            try { throw exception{}; }
+              catch (exception) { }
+              catch (...) { }
+            return 0;
+          }
+    - test "$(./test)" = "Hello, world!"
+    - run: ldd test | grep "{{prefix}}/lib/libstdc++.so"
+      if: linux
+    - run: otool -L test | grep 'gnu.org/gcc/libstdcxx/.*/lib/libstdc++\..*\.dylib'
+      if: darwin

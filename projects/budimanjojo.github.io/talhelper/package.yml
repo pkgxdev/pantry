@@ -8,8 +8,7 @@ versions:
 build:
   dependencies:
     go.dev: ^1.21
-  script:
-    go build $ARGS -ldflags="$LDFLAGS"
+  script: go build $ARGS -ldflags="$LDFLAGS"
   env:
     ARGS:
       - -trimpath
@@ -26,5 +25,7 @@ provides:
   - bin/talhelper
 
 test:
-  - talhelper --version | grep {{version}}
+  # removed in v3, oddly
+  - run: talhelper --version | grep {{version}}
+    if: <3
   - talhelper gensecret | grep 'bootstraptoken'

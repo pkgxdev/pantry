@@ -44,13 +44,17 @@ build:
       working-directory: '{{prefix}}/share/openmpi'
 
     - install {{prefix}}/lib/*.mod {{prefix}}/include/
+
+    # .la files are not relocatable
+    - run: find . -name '*.la' -exec rm {} \;
+      working-directory: '{{prefix}}/lib'
   env:
     CXXFLAGS: $CXXFLAGS -std=c++11
     darwin:
-      CFLAGS: $CFLAGS -Wl,-rpath,{{pkgx.prefix}}
-      CXXFLAGS: $CXXFLAGS -Wl,-rpath,{{pkgx.prefix}}
-      FCFLAGS: $FCFLAGS -Wl,-rpath,{{pkgx.prefix}}
-      LDFLAGS: $LDFLAGS -headerpad_max_install_names
+      CFLAGS: $CFLAGS -Wl,-rpath,{{pkgx.prefix}},-headerpad_max_install_names
+      CXXFLAGS: $CXXFLAGS -Wl,-rpath,{{pkgx.prefix}},-headerpad_max_install_names
+      FCFLAGS: $FCFLAGS -Wl,-rpath,{{pkgx.prefix}},-headerpad_max_install_names
+      LDFLAGS: $LDFLAGS -Wl,-headerpad_max_install_names
     CONFIGURE_ARGS:
       - --disable-debug
       - --disable-dependency-tracking
@@ -81,6 +85,13 @@ test:
   dependencies:
     freedesktop.org/pkg-config: '*'
   script:
+    # some gha mac runners have broken SDKs...
+    - run: |
+        if ! test -f /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/AvailabilityInternalLegacy.h; then
+          echo "Missing SDK; skipping remaining tests"
+          exit 0
+        fi
+      if: darwin
     - mpicc hello.c -o hello
     - ./hello
     - mpirun ./hello

@@ -1,0 +1,30 @@
+distributable:
+  url: https://github.com/crazy-max/diun/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+display-name: diun
+
+versions:
+  github: crazy-max/diun
+
+build:
+  dependencies:
+    go.dev: ^1.20
+  env:
+    CGO_ENABLED: 0
+    GO_LDFLAGS:
+    - -s
+    - -w
+    - -X main.version={{ version }}
+    linux:
+      GO_LDFLAGS:
+      - -buildmode=pie
+    ARGS:
+      - -v
+  script:
+    - go build $ARGS -ldflags="${GO_LDFLAGS}" -o "{{ prefix }}"/bin/diun ./cmd
+
+provides:
+  - bin/diun
+
+test: test "$(diun --version)" = {{ version }}

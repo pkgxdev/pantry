@@ -19,5 +19,16 @@ build:
   script: cargo install --locked --path . --root {{prefix}}
 
 test:
+  dependencies:
+    git-scm.org: '*'
   script:
-    - test "$(git-absorb --version)" = "git-absorb {{version}}"
+    - git init
+    - git config user.email "hello@pkgx.dev"
+    - git config user.name "pkgx"
+    - touch foo
+    - git add foo
+    - git commit -m "Add foo"
+    - echo a > foo
+    - git add foo
+    - git absorb
+    - test -z "$(git status --porcelain)"

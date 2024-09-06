@@ -17,6 +17,10 @@ dependencies:
   # ref: https://gitlab.gnome.org/GNOME/glib/-/issues/1085
   pcre.org: 8
   pcre.org/v2: 10
+  python.org: 3 # several of the bins are scripts
+
+companions:
+  gnome.org/gsettings-desktop-schemas: '*'
 
 runtime:
   env:
@@ -69,6 +73,14 @@ build:
     - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
       working-directory: '{{prefix}}/lib'
 
+    - run:
+        sed -i -e 's_{{deps.mesonbuild.com.prefix}}/venv/bin/python_/usr/bin/env python_'
+        gdbus-codegen
+        glib-genmarshal
+        glib-mkenums
+        gtester-report
+      working-directory: '{{prefix}}/bin'
+
   #REF https://github.com/Homebrew/homebrew-core/blob/d0e65698ccd502335bea68ce879ae02e1735db0d/Formula/glib.rb#L66-L67
   #FIXME hardcoded paths ^^
   env:
@@ -96,6 +108,8 @@ test:
     - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH_BAK
     - export DYLD_FALLBACK_LIBRARY_PATH=$DYLD_FALLBACK_LIBRARY_PATH_BAK
     - ./a.out
+
+    - glib-mkenums --help
   env:
     # using pkg-config as pixman puts its headers in `include/pixman-1`
     LDFLAGS: $(pkg-config --libs glib-2.0)

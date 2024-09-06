@@ -1,0 +1,56 @@
+distributable: ~
+
+# TODO: build from source (complicated)
+warnings: [vendored]
+
+versions:
+  github: mongodb/mongo/tags
+  strip: /^r/
+
+dependencies:
+  curl.se: 8
+  openssl.org: 1.1
+
+build:
+  dependencies:
+  script:
+    - curl -L "$DIST" | tar xzf - --strip-components=1
+    - mkdir -p "{{prefix}}/bin"
+    - cp -a bin/* "{{prefix}}/bin"
+  env:
+    darwin/aarch64:
+      DIST: https://fastdl.mongodb.org/osx/mongodb-macos-arm64-{{version}}.tgz
+    darwin/x86-64:
+      DIST: https://fastdl.mongodb.org/osx/mongodb-macos-x86_64-{{version}}.tgz
+    linux/aarch64:
+      DIST: https://fastdl.mongodb.org/linux/mongodb-linux-aarch64-ubuntu2004-{{version}}.tgz
+    linux/x86-64:
+      DIST: https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2004-{{version}}.tgz
+
+provides:
+  - bin/install_compass
+  - bin/mongod
+  - bin/mongos
+
+test:
+  dependencies:
+    mongodb.com/shell: '*'
+    pkgx.sh: 1
+    linux:
+      crates.io/semverator: '*'
+  script:
+    # Mongo offers back to ubuntu20.04; we can't test on older versions due to libc issues
+    - run: |
+        LIBCV=$(getconf GNU_LIBC_VERSION | sed 's/^glibc //')
+        if ! semverator gt $LIBCV 2.30; then
+          echo "Skipping test on glibc $LIBCV"
+          exit 0
+        fi
+      if: linux
+
+    - mkdir -p data/{db,log/mongodb}
+    - mongod --dbpath data/db --logpath data/log/mongodb/mongo.log --port $PORT --fork
+    - mongosh --port $PORT --eval 'db.version()'
+    - "mongosh --port $PORT --eval 'db.adminCommand({ shutdown: 1 })' || true"
+  env:
+    PORT: $(pkgx get-port | tail -n1)

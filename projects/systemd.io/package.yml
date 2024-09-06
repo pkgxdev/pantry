@@ -1,10 +1,9 @@
 distributable:
-  url: https://github.com/systemd/systemd/archive/refs/tags/v{{version.raw}}.tar.gz
+  url: https://github.com/systemd/systemd/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
   github: systemd/systemd
-  strip: /v/
 
 platforms:
   - linux
@@ -44,7 +43,18 @@ build:
     - meson setup $ARGS build
     - meson compile -C build
     - meson install -C build
-    - make --jobs {{ hw.concurrency }} install
+    - run: |
+        if test -d systemd; then
+          mv systemd/* .
+          rmdir systemd
+          ln -s . systemd
+        fi
+      working-directory: '{{prefix}}/include'
+    - run: |
+        if test -d systemd; then
+          ln -s systemd/lib* .
+        fi
+      working-directory: '{{prefix}}/lib'
   env:
     ARGS:
       - --sysconfdir={{prefix}}/etc
@@ -117,5 +127,4 @@ provides:
   - sbin/shutdown
   - sbin/telinit
 
-test: |
-  systemd-path | grep 'temporary: /tmp'
+test: "systemd-path | grep 'temporary: /tmp'"

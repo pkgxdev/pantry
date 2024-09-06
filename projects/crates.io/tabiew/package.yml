@@ -1,0 +1,24 @@
+distributable:
+  url: https://github.com/shshemi/tabiew/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/tw
+
+versions:
+  github: shshemi/tabiew
+
+dependencies:
+  linux:
+    openssl.org: '*'
+
+build:
+  dependencies:
+    rust-lang.org: ^1.78
+    rust-lang.org/cargo: '*'
+  script:
+    # missed version bump
+    - sed -i 's/^version = .*/version = "{{ version }}"/' Cargo.toml
+    - cargo install --locked --path . --root {{prefix}}
+
+test: test "$(tw --version)" = "tabiew {{ version }}"
