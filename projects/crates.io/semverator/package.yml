@@ -14,7 +14,19 @@ build:
     rust-lang.org: '>=1.56'
     rust-lang.org/cargo: '*'
   script:
-    cargo install --locked --path . --root {{prefix}}
+    - run: cargo install --locked --path . --root {{prefix}}
+      if: <0.6.0
+    # split up bin/lib v0.6.0
+    - run:
+        - cargo install --locked --path cli --root {{prefix}}
+        - cargo build --release --locked --package libsemverator
+        - mkdir -p {{prefix}}/lib
+        - |
+          cd target/release
+          for x in liblibsemverator.*; do
+            cp $x {{prefix}}/lib/${x#lib}
+          done
+      if: '>=0.6.0'
 
 test:
   script:
