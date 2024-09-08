@@ -1,6 +1,6 @@
 ![pkgx](https://pkgx.dev/banner.png)
 
-pkg metadata and build instructions.
+pkgx metadata and build instructions.
 
 # Contributing
 
