@@ -1,0 +1,21 @@
+distributable:
+  url: https://github.com/moonrepo/moon/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/moon
+
+versions:
+  github: moonrepo/moon
+  strip: /v/
+
+build:
+  dependencies:
+    rust-lang.org: '*'
+    freedesktop.org/pkg-config: '*'
+  script: cargo install --locked --path crates/cli --root {{prefix}}
+
+test:
+  script: |
+    moon init --minimal --yes
+    [ -f ".moon/workspace.yml" ]
