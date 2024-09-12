@@ -1,0 +1,23 @@
+distributable:
+  url: https://github.com/ReagentX/imessage-exporter/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/imessage-exporter
+
+versions:
+  github: ReagentX/imessage-exporter
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
+  working-directory: imessage-exporter
+  script:
+    # version unset
+    - sed -i 's/^version = ".*"$/version = "{{version}}"/' Cargo.toml
+    - cargo install --locked --path . --root {{prefix}}
+
+test:
+  - test "$(imessage-exporter --version)" = "iMessage Exporter {{version}}"
+  - "imessage-exporter --diagnostics 2>&1 | grep 'Invalid configuration: Database not found at'"
