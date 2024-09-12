@@ -13,7 +13,14 @@ build:
   dependencies:
     rust-lang.org: '*'
     freedesktop.org/pkg-config: '*'
-  script: cargo install --locked --path crates/cli --root {{prefix}}
+  script: |
+    if test -d crates/cli; then
+      cargo install --locked --path crates/cli --root {{prefix}}
+    elif test -d legacy/cli; then
+      cargo install --locked --path legacy/cli --root {{prefix}}
+    else
+      cargo install --locked --path . --root {{prefix}}
+    fi
 
 test:
   script: |
