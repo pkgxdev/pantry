@@ -22,12 +22,16 @@ build:
 
   script: 
   - go build -v -ldflags="${GO_LDFLAGS}" -o "{{ prefix }}"/bin/sparsecat ./cmd/sparsecat
+  #
+  # needed to check version as there is no version option
+  #
   - ln -s sparsecat "{{ prefix }}"/bin/sparsecat-{{version}}
+  #
+  # needed by d2vm
+  #
   - ln -s sparsecat "{{ prefix }}"/bin/sparsecat-${PLATFORM}
 
 provides:
-- bin/sparsecat-{{version}}
-- bin/sparsecat-${PLATFORM}
 - bin/sparsecat
 
 test: test "$(sparsecat-{{version}} 2>&1|grep Usage|cut -d':' -f 1|cut -d' ' -f 3|cut -d '-' -f2)" = {{version}}
