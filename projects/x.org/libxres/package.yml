@@ -15,28 +15,22 @@ dependencies:
   x.org/protocol: '*'
 
 build:
-  dependencies:
-    freedesktop.org/pkg-config: ~0.29
-    x.org/exts: '*'
-  script: |
-    ./configure \
-      --prefix="{{prefix}}" \
-      --sysconfdir="$SHELF"/etc \
-      --localstatedir="$SHELF"/var \
-      --enable-spec=no
-    make --jobs {{ hw.concurrency }} install
-  env:
-    SHELF: ${{pkgx.prefix}}/x.org
+  - ./configure
+    --prefix="{{prefix}}"
+    --sysconfdir="{{prefix}}"/etc
+    --localstatedir="{{prefix}}"/var
+    --enable-spec=no
+  - make --jobs {{ hw.concurrency }} install
 
 test:
-  script: |
-    mv $FIXTURE x.c
-    cc x.c
-    ./a.out
-  fixture: |
-    #include <X11/Xlib.h>
-    #include <X11/extensions/XRes.h>
-    int main(int argc, char* argv[]) {
-      XResClient *clients;
-      return 0;
-    }
+  - run: cc $FIXTURE
+    fixture:
+      extname: c
+      content: |
+        #include <X11/Xlib.h>
+        #include <X11/extensions/XRes.h>
+        int main(int argc, char* argv[]) {
+          XResClient *clients;
+          return 0;
+        }
+  - ./a.out
