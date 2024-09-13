@@ -1,0 +1,42 @@
+distributable:
+  url: https://www.x.org/archive/individual/lib/libXres-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://www.x.org/archive/individual/lib/
+  match: /libXres-\d+\.\d+\.\d+.tar.gz/
+  strip:
+    - /libXres-/
+    - /.tar.gz/
+
+dependencies:
+  x.org/x11: ^1
+  x.org/exts: '*'
+  x.org/protocol: '*'
+
+build:
+  dependencies:
+    freedesktop.org/pkg-config: ~0.29
+    x.org/exts: '*'
+  script: |
+    ./configure \
+      --prefix="{{prefix}}" \
+      --sysconfdir="$SHELF"/etc \
+      --localstatedir="$SHELF"/var \
+      --enable-spec=no
+    make --jobs {{ hw.concurrency }} install
+  env:
+    SHELF: ${{pkgx.prefix}}/x.org
+
+test:
+  script: |
+    mv $FIXTURE x.c
+    cc x.c
+    ./a.out
+  fixture: |
+    #include <X11/Xlib.h>
+    #include <X11/extensions/XRes.h>
+    int main(int argc, char* argv[]) {
+      XResClient *clients;
+      return 0;
+    }
