@@ -8,7 +8,6 @@ versions:
 provides:
   - bin/etcd
   - bin/etcdctl
-  - bin/etcdutl
 
 build:
   dependencies:
@@ -26,6 +25,9 @@ build:
       # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
       GO_LDFLAGS:
         - -buildmode=pie
+    # etcd on unsupported platform without ETCD_UNSUPPORTED_ARCH=arm64 set
+    #   which has long been excluded from the compatibility promise.
+    ETCD_UNSUPPORTED_ARCH: arm64
 
 test:
   dependencies:

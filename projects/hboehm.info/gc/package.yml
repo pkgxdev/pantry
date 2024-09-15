@@ -23,11 +23,17 @@ build:
       - --enable-cplusplus
       - --enable-static
       - --enable-large-config
+    linux:
+      # error: ISO C++17 does not allow dynamic exception specifications
+      CXXFLAGS: $CXXFLAGS -std=c++14
+    darwin:
+      # error: incompatible function pointer types passing
+      CFLAGS: $CFLAGS -Wno-incompatible-function-pointer-types
 
 test:
   dependencies:
     freedesktop.org/pkg-config: '*'
   script:
-    - pkg-config --modversion bdw-gc | grep {{version}}
+    - pkg-config --modversion bdw-gc | grep {{version.marketing}}
     - cc test.cc -lgc -o test
     - ./test

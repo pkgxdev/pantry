@@ -1,0 +1,51 @@
+distributable:
+  #url: https://github.com/openbao/openbao/archive/refs/tags/{{version.tag}}.tar.gz
+  #strip-components: 1
+  url: git+https://github.com/openbao/openbao
+  ref: ${{version.tag}}
+
+display-name: openbao
+
+versions:
+  github: openbao/openbao
+
+build:
+  dependencies:
+    go.dev: '*'
+    gnu.org/coreutils: '*'
+    git-scm.org: '*'
+
+  env:
+    CGO_ENABLED: 0
+    GO_LDFLAGS:
+    - -s
+    - -w
+    - -X github.com/openbao/openbao/version.fullVersion={{version}}
+    - -X github.com/openbao/openbao/version.GitCommit=$( git rev-parse HEAD )
+    - -X github.com/openbao/openbao/version.BuildDate=$( date --iso-8601=seconds )
+    linux:
+      GO_LDFLAGS:
+      - -buildmode=pie
+    OPENBAO_BINARY: bao
+    OPENBAO_SETUP_SCRIPT: setup.bash
+    OPENBAO_README_FILE: README.md
+    OPENBAO_CONFIG_FILE: openbao.hcl
+    OPENBAO_SERVICE_ENVIRONMENT_FILE: openbao.env
+    OPENBAO_SERVICE_FILE: openbao.service
+  script: |
+    go build -v -ldflags="${GO_LDFLAGS}" -o "{{ prefix }}"/bin/${OPENBAO_BINARY}
+    install -D props/${OPENBAO_SETUP_SCRIPT} {{prefix}}/bin/bao-setup
+    install -D props/${OPENBAO_README_FILE} {{prefix}}/doc/${OPENBAO_README_FILE}
+    install -D props/${OPENBAO_CONFIG_FILE} {{prefix}}/etc/openbao/${OPENBAO_CONFIG_FILE}
+    install -D props/${OPENBAO_SERVICE_ENVIRONMENT_FILE} {{prefix}}/etc/openbao/${OPENBAO_SERVICE_ENVIRONMENT_FILE}
+    install -D props/${OPENBAO_SERVICE_FILE} {{prefix}}/etc/systemd/system/${OPENBAO_SERVICE_FILE}
+
+provides:
+  # too bad, does not work
+  # - bin/${OPENBAO_BINARY}
+  - bin/bao
+  # too bad, does not work
+  # - bin/${OPENBAO_SETUP_SCRIPT%.*}
+  - bin/bao-setup
+
+test: test "$(bao version|cut -d' ' -f2)" = {{version.tag}}
