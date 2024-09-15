@@ -7,21 +7,31 @@ versions:
 
 build:
   dependencies:
+    cmake.org: ^3
     gnu.org/libtool: '*'
   darwin:
     invisible-island.net/ncurses: '*'
-  script: |
-    make --jobs {{ hw.concurrency }}
-    make --jobs {{ hw.concurrency }} install $ARGS
-
+  script:
+    - run:
+        - make --jobs {{ hw.concurrency }}
+        - make --jobs {{ hw.concurrency }} install PREFIX={{prefix}}
+      if: <2.1.2
+    - run:
+        - cmake -B build $CMAKE_ARGS
+        - cmake --build build
+        - cmake --install build
+      if: '>=2.1.2'
   env:
-    ARGS:
-      - PREFIX="{{prefix}}"
+    CMAKE_ARGS:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DBUILD_SHARED_LIBS=ON
 
 test:
   dependencies:
     freedesktop.org/pkg-config: '*'
-  script: |
-    pkg-config --modversion unibilium | grep {{version}}
-    cc test.c -lunibilium -o test
-    ./test
+  script:
+    - run: pkg-config --modversion unibilium | grep {{version}}
+      if: <2.1.2
+    - cc test.c -lunibilium -o test
+    - ./test

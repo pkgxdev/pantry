@@ -25,13 +25,13 @@ provides:
   - bin/pyright
 
 test:
-  - run: pyright $FIXTURE 2>&1>out.log || true
+  - run: (pyright $FIXTURE 2>&1 || true) | tee out.log
     fixture:
       content: |
         def wrong_types(a: int, b: int) -> str:
           return a + b
       extname: py
-  - cat out.log | grep -E 'Expression of type "int" (cannot be assigned to|is incompatible with) return type "str"'
+  - cat out.log | grep -E 'ype "int" (cannot be assigned to|is incompatible with|is not assignable to) return type "str"'
   - run: pyright $FIXTURE 2>&1 | grep '0 errors, 0 warnings, 0 informations'
     fixture:
       content: |

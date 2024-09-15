@@ -10,8 +10,13 @@ versions:
 build:
   dependencies:
     go.dev: ^1.22
-  script: |
-    make install BINDIR={{ prefix }}/bin VERSION=v{{ version }}
+  script:
+    # variable path changed in 0.16.16
+    - run: sed -i 's|github.com/cilium/cilium-cli|github.com/cilium/cilium/cilium-cli|' Makefile
+      if: 0.16.16
+    - run: sed -i 's/^CLI_VERSION=.*/CLI_VERSION=v{{ version }}/' Makefile
+      if: '>=0.16.17'
+    - make install BINDIR={{ prefix }}/bin VERSION=v{{ version }}
 
 provides:
   - bin/cilium

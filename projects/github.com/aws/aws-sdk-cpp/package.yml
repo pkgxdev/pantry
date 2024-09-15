@@ -8,6 +8,7 @@ versions:
 dependencies:
   curl.se: '*'
   zlib.net: 1
+  openssl.org: 1.1
 
 build:
   dependencies:
@@ -35,6 +36,16 @@ build:
       - -DCMAKE_BUILD_TYPE=Release
       - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
       - -DENABLE_TESTING=OFF
+      - -DZLIB_INCLUDE_DIR={{deps.zlib.net.prefix}}/include
+      - -Dcrypto_INCLUDE_DIR={{deps.openssl.org.prefix}}/include
+    linux:
+      ARGS:
+        - -DZLIB_LIBRARY={{deps.zlib.net.prefix}}/lib/libz.so
+        - -Dcrypto_LIBRARY={{deps.openssl.org.prefix}}/lib/libcrypto.so
+    darwin:
+      ARGS:
+        - -DZLIB_LIBRARY={{deps.zlib.net.prefix}}/lib/libz.dylib
+        - -Dcrypto_LIBRARY={{deps.openssl.org.prefix}}/lib/libcrypto.dylib
 
 test:
   fixture: |

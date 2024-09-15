@@ -1,0 +1,118 @@
+distributable:
+  url: https://gnupg.org/ftp/gcrypt/gnupg/gnupg-{{version}}.tar.bz2
+  strip-components: 1
+
+versions:
+  url: https://gnupg.org/ftp/gcrypt/gnupg/
+  match: /gnupg-((2\.[5-9]\d*)|([3-9]\.\d+)|([1-9]\d+\.\d+))(\.\d+)?\.tar\.bz2/
+  strip:
+    - /gnupg-/
+    - /.tar.bz2/
+
+# FIXME: currently not ready for darwin, it seems. homebrew still
+# working on thiers, too
+platforms: [linux]
+
+runtime:
+  env:
+    # allows us to be relocatable provided `gpgconf.ctl` exists alongside
+    # the `gpgconf` binary. NOTE causes warning messages on Darwin:
+    #     error reading symlink '/proc/curproc/file': No such file or directory
+    # which seemingly cannot be avoided without a patch
+    GNUPG_BUILD_ROOT: '{{prefix}}'
+
+dependencies:
+  zlib.net: ^1.1
+  sourceware.org/bzip2: '*'
+  gnupg.org/npth: '*'
+  gnupg.org/libgpg-error: '*'
+  gnupg.org/libksba: '*'
+  gnupg.org/libassuan: 3
+  gnupg.org/libgcrypt: ^1.11
+  gnupg.org/pinentry: '*'
+  gnutls.org: ^3
+  openldap.org: ^2
+  gnu.org/readline: ^8
+  sqlite.org: ^3
+  darwin: # nobody added a comment to say why this is Darwin only
+    gnu.org/gettext: ^0.21
+
+build:
+  darwin:
+    gnu.org/patch: '*'
+  linux:
+    gnu.org/gcc: '*'
+  script:
+    # extern not defined on Darwin
+    - run: |
+        sed -i -e '/#include "exechelp.h"/a\
+        \
+        #if defined (__APPLE__)\
+        extern char** environ;\
+        #endif' \
+        exechelp-posix.c
+      working-directory: common
+
+    # fix /proc dependency on Darwin
+    # FIXME: in theory this is good, but the subsequent code uses
+    # readlink, so more work is needed
+    - run: patch -p1 < props/proc-fix.diff
+      if: darwin
+
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make --jobs {{ hw.concurrency }} install
+
+    # this makes the lookup machinery relocatable, see above
+    - cp props/gpgconf.ctl {{prefix}}/bin
+
+    - run: sed -i "s|{{prefix}}|\$(dirname \$0)/..|g" gpg-wks-client
+      working-directory: '{{prefix}}/libexec'
+
+    - run: |
+        mkdir -p var/run etc/gnupg
+        chmod 700 etc/gnupg
+      working-directory: '{{prefix}}'
+
+    # nobody added a comment explaining why this conf is required
+    - run: cp props/gpg.conf {{prefix}}/etc/gnupg/gpg.conf
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --libdir={{prefix}}/lib
+      - --sysconfdir={{prefix}}/etc
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --disable-silent-rules
+      - --with-pinentry-pgm={{deps.gnupg.org/pinentry.prefix}}/bin/pinentry
+    CFLAGS: $CFLAGS -Wno-implicit-function-declaration
+
+# let's not complicate a low-level tool by providing two different options
+# since that'll prompt people, annoyingly. we'll promote to v2.5 when we're
+# confident.
+# provides:
+#   - bin/gpg
+#   - bin/gpg-agent
+#   - bin/gpg-connect-agent
+#   - bin/gpg-wks-server
+#   - bin/gpgconf
+#   - bin/gpgparsemail
+#   - bin/gpgscm
+#   - bin/gpgsm
+#   - bin/gpgsplit
+#   - bin/gpgtar
+#   - bin/gpgv
+#   - bin/kbxutil
+#   - bin/watchgnupg
+
+test:
+  - killall gpg-agent || true
+  - gpg --version | grep {{version}}
+
+  # FIXME: regression in 2.5
+  - gpgconf --launch keyboxd
+  - gpgconf --launch gpg-agent
+
+  - gpg --quick-gen-key --batch --passphrase ""  "Testing" default default never
+  - gpg --detach-sign test.txt
+  - gpg --verify test.txt.sig

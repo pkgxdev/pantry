@@ -1,0 +1,36 @@
+distributable:
+  url: https://github.com/fastfloat/fast_float/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: fastfloat/fast_float
+
+build:
+  dependencies:
+    cmake.org: '*'
+  script:
+    - cmake -S . -B build $CMAKE_ARGS
+    - cmake --install build
+  env:
+    CMAKE_ARGS:
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}
+      - -DCMAKE_BUILD_TYPE=Release
+      - -Wno-dev
+
+test:
+  - run: c++ -std=c++11 $FIXTURE -o test
+    fixture:
+      extname: cpp
+      content: |
+        #include "fast_float/fast_float.h"
+        #include <iostream>
+
+        int main() {
+            const std::string input =  "3.1416 xyz ";
+            double result;
+            auto answer = fast_float::from_chars(input.data(), input.data()+input.size(), result);
+            if(answer.ec != std::errc()) { std::cerr << "parsing failure\\n"; return EXIT_FAILURE; }
+            std::cout << "parsed the number " << result << std::endl;
+            return EXIT_SUCCESS;
+        }
+  - test "$(./test)" = "parsed the number 3.1416"
