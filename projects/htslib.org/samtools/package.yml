@@ -18,6 +18,9 @@ build:
     ARGS:
       - --prefix="{{prefix}}"
       - --with-htslib={{deps.htslib.org.prefix}}
+    linux:
+      # because we split up ncurses
+      LDFLAGS: $LDFLAGS -Wl,-ltinfo
 
 provides:
   - bin/ace2sam
@@ -43,6 +46,6 @@ provides:
   - bin/wgsim_eval.pl
   - bin/zoom2sam.pl
 
-test: |
-  samtools faidx test.fasta
-  test "$(cat test.fasta.fai)" = "U00096.2:1-70	70	15	70	71"
+test:
+  - samtools faidx test.fasta
+  - test "$(cat test.fasta.fai)" = "U00096.2:1-70	70	15	70	71"

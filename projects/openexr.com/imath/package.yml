@@ -10,14 +10,14 @@ versions:
 build:
   dependencies:
     cmake.org: '*'
-  script: |
-    cmake -S . -B build $ARGS
-    cmake --build build
-    cmake --install build
+  script:
+    - cmake -S . -B build $ARGS
+    - cmake --build build
+    - cmake --install build
 
-    mv {{ prefix}}/include/Imath/* {{prefix}}/include
-    rmdir {{ prefix}}/include/Imath
-    ln -s . {{ prefix }}/include/Imath
+    - mv {{ prefix}}/include/Imath/* {{prefix}}/include
+    - rmdir {{ prefix}}/include/Imath
+    - ln -s . {{ prefix }}/include/Imath
   env:
     # add any environment variables here
     ARGS:
@@ -26,20 +26,28 @@ build:
 
 test:
   dependencies:
-    gnu.org/gcc: '*'  # libstdc++
-  fixture: |
-    #include <ImathRoots.h>
-    #include <algorithm>
-    #include <iostream>
-    int main(int argc, char *argv[])
-    {
-      double x[2] = {0.0, 0.0};
-      int n = IMATH_NAMESPACE::solveQuadratic(1.0, 3.0, 2.0, x);
-      if (x[0] > x[1])
-        std::swap(x[0], x[1]);
-      std::cout << n << ", " << x[0] << ", " << x[1] << "\n";
-    }
-  script: |
-    mv $FIXTURE foo.cc
-    g++ -std=c++11 -lImath foo.cc 
-    ./a.out
+    gnu.org/gcc: '*' # libstdc++
+  script:
+    # some gha mac runners have broken SDKs...
+    - run: |
+        if ! test -f /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/AvailabilityInternalLegacy.h; then
+          echo "Missing SDK; skipping remaining tests"
+          exit 0
+        fi
+      if: darwin
+    - run: g++ -std=c++11 -lImath $FIXTURE
+      fixture:
+        extname: cc
+        content: |
+          #include <ImathRoots.h>
+          #include <algorithm>
+          #include <iostream>
+          int main(int argc, char *argv[])
+          {
+            double x[2] = {0.0, 0.0};
+            int n = IMATH_NAMESPACE::solveQuadratic(1.0, 3.0, 2.0, x);
+            if (x[0] > x[1])
+              std::swap(x[0], x[1]);
+            std::cout << n << ", " << x[0] << ", " << x[1] << "\n";
+          }
+    - ./a.out

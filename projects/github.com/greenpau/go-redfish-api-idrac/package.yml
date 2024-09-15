@@ -1,0 +1,31 @@
+distributable:
+  url: https://github.com/greenpau/go-redfish-api-idrac/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+display-name: go-redfish-api-idrac
+
+versions:
+  github: greenpau/go-redfish-api-idrac
+# strip:
+#    - /^prefixed-garbage-/
+#    - /-suffixed-garbage$/
+
+build:
+  dependencies:
+    go.dev: '*'
+  script: go build -v -ldflags="${GO_LDFLAGS}" -o "{{ prefix }}"/bin/go-redfish-api-idrac-client ./cmd/go-redfish-api-idrac-client/main.go
+  env:
+    CGO_ENABLED: 0
+    GO_LDFLAGS:
+      - -s
+      - -w
+      - -X github.com/greenpau/go-redfish-api-idrac/cmd.appVersion={{ version }}
+    linux:
+      GO_LDFLAGS:
+        - -buildmode=pie
+
+
+provides:
+  - bin/go-redfish-api-idrac-client
+
+test: test "$(go-redfish-api-idrac-client --version|cut -d',' -f1|cut -d' ' -f2)" = {{version}}

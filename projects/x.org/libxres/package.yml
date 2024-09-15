@@ -1,0 +1,36 @@
+distributable:
+  url: https://www.x.org/archive/individual/lib/libXres-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://www.x.org/archive/individual/lib/
+  match: /libXres-\d+\.\d+\.\d+.tar.gz/
+  strip:
+    - /libXres-/
+    - /.tar.gz/
+
+dependencies:
+  x.org/x11: ^1
+  x.org/exts: '*'
+  x.org/protocol: '*'
+
+build:
+  - ./configure
+    --prefix="{{prefix}}"
+    --sysconfdir="{{prefix}}"/etc
+    --localstatedir="{{prefix}}"/var
+    --enable-spec=no
+  - make --jobs {{ hw.concurrency }} install
+
+test:
+  - run: cc $FIXTURE
+    fixture:
+      extname: c
+      content: |
+        #include <X11/Xlib.h>
+        #include <X11/extensions/XRes.h>
+        int main(int argc, char* argv[]) {
+          XResClient *clients;
+          return 0;
+        }
+  - ./a.out

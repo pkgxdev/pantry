@@ -31,6 +31,6 @@ test:
     - git init
     - git add README
     - git commit -m 'Initial commit'
-    - gitleaks detect 2>output.log || true
-    - cat output.log | grep '1 commits scanned'
+    - (gitleaks detect 2>&1 || true) | tee output.log
+    - grep '1 commits scanned' output.log
     - gitleaks version | grep {{version}}
