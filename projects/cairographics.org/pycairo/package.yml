@@ -17,6 +17,16 @@ build:
     - mv {{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages/*/* {{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages/
     - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
       working-directory: "{{prefix}}/lib"
+    - run: |
+        echo "prefix={{prefix}}" > {{prefix}}/lib/pkgconfig/py3cairo.pc
+        echo "" >> {{prefix}}/lib/pkgconfig/py3cairo.pc
+        echo "Name: Pycairo" >> {{prefix}}/lib/pkgconfig/py3cairo.pc
+        echo "Description: Python bindings for cairo" >> {{prefix}}/lib/pkgconfig/py3cairo.pc
+        echo "Version: {{version}}" >> {{prefix}}/lib/pkgconfig/py3cairo.pc
+        echo "Requires: cairo" >> {{prefix}}/lib/pkgconfig/py3cairo.pc
+        echo "Cflags: -I@includedir@/pycairo" >> {{prefix}}/lib/pkgconfig/py3cairo.pc
+        echo "Libs:" >> {{prefix}}/lib/pkgconfig/py3cairo.pc
+      working-directory: "{{prefix}}/lib/pkgconfig"
   env:
     ARGS:
       - --verbose
