@@ -1,0 +1,37 @@
+distributable:
+  url: https://github.com/svenwiltink/sparsecat/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+display-name: sparsecat
+
+versions:
+  github: svenwiltink/sparsecat
+
+build:
+  dependencies:
+    go.dev: '*'
+  env:
+    CGO_ENABLED: 0
+    GO_LDFLAGS:
+    - -s
+    - -w
+    linux:
+      GO_LDFLAGS:
+      - -buildmode=pie
+    darwin/x86-64: { PLATFORM: darwin-amd64 }
+    linux/x86-64: { PLATFORM: linux-amd64 }
+
+  script: 
+  - go build -v -ldflags="${GO_LDFLAGS}" -o "{{ prefix }}"/bin/sparsecat ./cmd/sparsecat
+  #
+  # needed to check version as there is no version option
+  #
+  - ln -s sparsecat "{{ prefix }}"/bin/sparsecat-{{version}}
+  #
+  # needed by d2vm
+  #
+  - ln -s sparsecat "{{ prefix }}"/bin/sparsecat-${PLATFORM}
+
+provides:
+- bin/sparsecat
+
+test: test "$(sparsecat-{{version}} 2>&1|grep Usage|cut -d':' -f 1|cut -d' ' -f 3|cut -d '-' -f2)" = {{version}}
