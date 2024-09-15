@@ -1,0 +1,19 @@
+distributable:
+  url: https://github.com/openresty/openresty/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/openresty
+
+versions:
+  github: openresty/openresty
+  strip: /v/
+
+build:
+  dependencies:
+  script: |
+    make
+
+test:
+  script:
+    - test "$(openresty --version)" = "openresty {{version}}"
