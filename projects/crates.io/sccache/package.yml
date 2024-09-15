@@ -1,0 +1,21 @@
+distributable:
+  url: https://github.com/mozilla/sccache/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/sccache
+
+versions:
+  github: mozilla/sccache
+  strip: /v/
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
+  script: |
+    cargo install --locked --path . --root {{prefix}}
+
+test:
+  script:
+    - test "$(sccache --version)" = "sccache {{version}}"
