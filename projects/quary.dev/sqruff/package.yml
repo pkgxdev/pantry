@@ -26,6 +26,11 @@ build:
       working-directory: ..
       if: linux
 
+    # -Ctarget-cpu is breaking darwin/x86-64
+    - run: if test -f config.toml; then sed -i '/-Ctarget-cpu=native/d' config.toml; fi
+      working-directory: ../../.cargo
+      # if: darwin/x86-64
+
     - cargo install --locked --path . --root {{prefix}}
   env:
     PATH: $HOME/.cargo/bin:$PATH
@@ -35,6 +40,7 @@ provides:
   - bin/sqruff
 
 test:
+  - sqruff --help
   - test "$(sqruff -V)" = "sqruff {{version}}"
   - run: sqruff lint $FIXTURE
     fixture:

@@ -1,0 +1,19 @@
+distributable:
+  url: https://github.com/ducaale/xh/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/xh
+
+versions:
+  github: ducaale/xh
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path . --root {{prefix}}
+
+test:
+  - xh github.com -Fh | tee out.txt
+  - grep 'HTTP/2.0 200 OK' out.txt

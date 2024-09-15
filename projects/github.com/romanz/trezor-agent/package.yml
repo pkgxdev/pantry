@@ -8,6 +8,9 @@ versions:
 dependencies:
   python.org: ~3.12
   libusb.info: ^1
+  darwin:
+    # use ours since pillows' headers are too small to rewrite
+    libpng.org: ~1.6
 
 runtime:
   env:
@@ -24,6 +27,12 @@ build:
         done
     - run: fix-shebangs.ts *
       working-directory: ${{prefix}}/bin
+
+    # Pillow ships dylibs that don't have room for our header rewrites.
+    # If we delete them, we can use ours.
+    - run: rm libpng16.16.dylib
+      working-directory: ${{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages/PIL/.dylibs
+      if: darwin
   skip: fix-patchelf # doesn't like the paths in the libs
   env:
     AGENTS:

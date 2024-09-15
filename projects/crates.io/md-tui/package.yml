@@ -4,6 +4,7 @@ distributable:
 
 provides:
   - bin/mdt
+  - bin/md-tui
 
 versions:
   github: henriklovhaug/md-tui
@@ -17,11 +18,21 @@ build:
     - run: |
         sed -i '/fn main() /a\
             if std::env::args().nth(1) == Some("--version".to_string()) {\
-                println!("mdt v{{ version }}");\
+                println!("md-tui v{{ version }}");\
                 return Ok(());\
             }\
         ' main.rs
       working-directory: src
     - cargo install --locked --path . --root {{prefix}}
+    # bin name changed in 0.8.5
+    - run: |
+        if test -f mdt; then
+          ln -s mdt md-tui
+        elif test -f md-tui; then
+          ln -s md-tui mdt
+        fi
+      working-directory: ${{prefix}}/bin
 
-test: test "$(mdt --version)" = "mdt v{{ version }}"
+test:
+  - test "$(mdt --version)" = "md-tui v{{ version }}"
+  - test "$(md-tui --version)" = "md-tui v{{ version }}"

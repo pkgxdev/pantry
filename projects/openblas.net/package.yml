@@ -1,20 +1,17 @@
 distributable:
-  url: https://github.com/xianyi/OpenBLAS/releases/download/v{{version}}/OpenBLAS-{{version}}.tar.gz
+  url: https://github.com/xianyi/OpenBLAS/releases/download/{{version.tag}}/OpenBLAS-{{version}}.tar.gz
   strip-components: 1
 
 versions:
   github: xianyi/OpenBLAS/releases/tags
-  strip: /^v/
 
 build:
   dependencies:
     cmake.org: '*'
+    linux/x86-64:
+      gnu.org/gcc: '*' # uses some gcc-specific flags
   working-directory: build
   script:
-    # our llvm doesn't like this flag
-    - run: sed -i 's/ -exhaustive-register-search//g' system.cmake
-      if: linux/x86-64
-      working-directory: ../cmake
     - cmake .. $ARGS
     - make --jobs {{ hw.concurrency }}
     - make install
