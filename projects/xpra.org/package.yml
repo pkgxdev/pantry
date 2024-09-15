@@ -1,0 +1,84 @@
+distributable:
+  url: https://github.com/Xpra-org/xpra/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: Xpra-org/xpra
+  strip: /^xpra /
+
+dependencies:
+  python.org: '>=3.10'
+  cython.org: '*'
+  tukaani.org/xz: '*'
+  cairographics.org: '*'
+  cairographics.org/pycairo: '*'
+  freedesktop.org/pkg-config: ~0.29
+
+  x.org/x11: '*'
+  x.org/protocol: '*'
+  x.org/exts: '*'
+
+  x.org/xkbfile: '*'
+  x.org/xdamage: '*'
+  x.org/xrandr: '*'
+  x.org/xcomposite: '*'
+
+  x.org/xtst: '*'
+  x.org/libxres: '*'
+  x.org/xfixes : '*'
+
+  videolan.org/x264: '*'
+  webmproject.org/libvpx: '*'
+  github.com/AOMediaCodec/libavif: '*'
+
+  github.com/Cyan4973/xxHash: '*'
+
+
+build: 
+  dependencies:
+    freedesktop.org/pkg-config: ~0.29 
+    python.org: '>=3.10'
+    cython.org: '*'
+    tukaani.org/xz: '*'
+    cairographics.org: '*'
+    cairographics.org/pycairo: '*'
+    
+
+    x.org/x11: '*'
+    x.org/protocol: '*'
+    x.org/exts: '*'
+
+    x.org/xkbfile: '*'
+    x.org/xdamage: '*'
+    x.org/xrandr: '*'
+    x.org/xcomposite: '*'
+
+    x.org/xtst: '*'
+    x.org/libxres: '*'
+    x.org/xfixes : '*'
+
+    videolan.org/x264: '*'
+    webmproject.org/libvpx: '*'
+    github.com/AOMediaCodec/libavif: '*'
+
+    github.com/Cyan4973/xxHash: '*'
+
+    gtk.org/gtk3: '*'
+
+  script:
+    - python3 -m pip install pycairo 
+    - python3 setup.py install $ARGS
+
+  env:
+    ARGS:
+      - --verbose
+      - --prefix={{prefix}}
+
+provides:
+  - bin/xpra
+
+test:
+  dependencies:
+    x.org: '*'
+  script:
+    test "$(foo --version)" = {{version}}
