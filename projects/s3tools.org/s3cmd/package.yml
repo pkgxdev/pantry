@@ -1,0 +1,25 @@
+distributable:
+  url: https://github.com/s3tools/s3cmd/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+display-name: s3cmd
+
+versions:
+  github: s3tools/s3cmd
+
+dependencies:
+  pkgx.sh: ^1
+
+build:
+  dependencies:
+    python.org: ^3
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} s3cmd
+
+
+provides:
+  - bin/s3cmd
+
+test: test "$(s3cmd --version|cut -d' ' -f 3)" = {{version}}

@@ -1,0 +1,55 @@
+distributable:
+  url: https://github.com/fermyon/spin/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/spin
+
+versions:
+  github: fermyon/spin
+
+companions:
+  rust-lang.org: '*'
+  rust-lang.org/cargo: '*'
+  git-scm.org: '*'
+
+build:
+  dependencies:
+    rust-lang.org/rustup: '*' # required for wasm targets
+    linux:
+      llvm.org: '*' # line 30: /home/builder/actions-runner/_work/pantry/pantry/homes/fermyon.com__spin-2.7.0/toolchain/cc: No such file or directory
+  script:
+    # https://developer.fermyon.com/spin/v2/contributing-spin#making-code-contributions-to-spin
+    - run:
+        - ln -sf {{deps.rust-lang.org/rustup.prefix}}/bin/rustup .
+        - rustup default stable
+        - rustup target add wasm32-wasi
+        - rustup target add wasm32-unknown-unknown
+        - ln -sf $HOME/.rustup/toolchains/*/bin/* .
+      working-directory: $HOME/.cargo/bin
+
+    - cargo install --locked --path . --root {{prefix}}
+  env:
+    PATH: $HOME/.cargo/bin:$PATH
+    linux:
+      AR: llvm-ar
+
+test:
+  dependencies:
+    rust-lang.org/rustup: '*' # required for wasm targets
+  script:
+    - spin templates install --git https://github.com/fermyon/spin
+    - spin new --accept-defaults -t http-rust hello-rust
+
+    - run:
+        - ln -sf {{deps.rust-lang.org/rustup.prefix}}/bin/rustup .
+        - rustup default stable
+        - rustup target add wasm32-wasi
+        - rustup target add wasm32-unknown-unknown
+        - ln -sf $HOME/.rustup/toolchains/*/bin/* .
+      working-directory: $HOME/.cargo/bin
+
+    - run: spin build
+      working-directory: hello-rust
+  env:
+    PATH: $HOME/.cargo/bin:$PATH

@@ -1,12 +1,14 @@
 distributable:
   url: https://mesa.freedesktop.org/archive/mesa-{{version}}.tar.xz
   strip-components: 1
+
 versions:
   url: https://mesa.freedesktop.org/archive
   match: /mesa-\d+\.\d+\.\d+\.tar\.xz/
   strip:
     - /^mesa-/
     - /\.tar\.xz/
+
 dependencies:
   libexpat.github.io: '*'
   x.org/x11: '*'
@@ -33,6 +35,7 @@ dependencies:
     github.com/lm-sensors/lm-sensors: '*'
     wayland.freedesktop.org: '*'
     wayland.freedesktop.org/protocols: '*'
+
 build:
   dependencies:
     gnu.org/bison: '*'
@@ -43,35 +46,47 @@ build:
     python.org: ~3.11
     x.org/protocol: '*'
     github.com/westes/flex: '*'
+    llvm.org: '*' # since 24.2, for llvmpipe
     linux:
       curl.se: '*'
   script:
     - curl -L "$Mako" | tar zxf -
     - curl -L "$MarkupSafe" | tar zxf -
-    - run: |
-        python -m venv venv
-        source venv/bin/activate
-        python setup.py install
-        deactivate
-        export PYTHONPATH=$PWD/venv/lib/python3.11/site-packages/Mako-1.2.4-py3.11.egg:$PYTHONPATH
-        export PATH=$PWD/venv/bin/mako-render:$PATH
+
+    - run:
+        - python -m venv venv
+        - source venv/bin/activate
+        - python setup.py install
+        - deactivate
+        - export PYTHONPATH=$PWD/venv/lib/python{{deps.python.org.version.marketing}}/site-packages/Mako-1.2.4-py3.11.egg:$PYTHONPATH
+        - export PATH=$PWD/venv/bin/mako-render:$PATH
       working-directory: Mako-1.2.4
-    - run: |
-        python -m venv venv
-        source venv/bin/activate
-        python setup.py install
-        deactivate
-        cd venv/lib/python3.11/site-packages
-        EGG="$(echo MarkupSafe*)"
-        export PYTHONPATH=$PWD/$EGG:$PYTHONPATH
+
+    - run:
+        - python -m venv venv
+        - source venv/bin/activate
+        - python setup.py install
+        - deactivate
+        - cd venv/lib/python{{deps.python.org.version.marketing}}/site-packages
+        - EGG="$(echo MarkupSafe*)"
+        - export PYTHONPATH=$PWD/$EGG:$PYTHONPATH
       working-directory: MarkupSafe-2.1.2
+
+    - run:
+        - python -m venv venv
+        - source venv/bin/activate
+        - python -m pip install pyyaml
+        - deactivate
+        - export PYTHONPATH=$SRCROOT/venv/lib/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH
+      if: '>=24.2'
+
     - meson setup build $MESON_ARGS
     - meson compile -C build --verbose
     - meson install -C build
   env:
     Mako: https://files.pythonhosted.org/packages/05/5f/2ba6e026d33a0e6ddc1dddf9958677f76f5f80c236bd65309d280b166d3e/Mako-1.2.4.tar.gz
     MarkupSafe: https://files.pythonhosted.org/packages/95/7e/68018b70268fb4a2a605e2be44ab7b4dd7ce7808adae6c5ef32e34f4b55a/MarkupSafe-2.1.2.tar.gz
-    PYTHONPATH: '{{deps.pygments.org.prefix}}/venv/lib/python3.11/site-packages:$PYTHONPATH'
+    PYTHONPATH: '{{deps.pygments.org.prefix}}/venv/lib/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH'
     MESON_ARGS:
       - --libdir=lib
       - --prefix={{prefix}}
@@ -98,6 +113,7 @@ build:
         - -Dtools=drm-shim,etnaviv,freedreno,glsl,nir,nouveau,lima
       # https://gitlab.freedesktop.org/mesa/mesa/-/issues/8003#note_1781344
       LDFLAGS: $LDFLAGS -Wl,--undefined-version
+
 test:
   dependencies:
     freedesktop.org/pkg-config: '*'

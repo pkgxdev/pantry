@@ -1,0 +1,56 @@
+distributable:
+  url: git+https://github.com/imazen/imageflow.git
+  ref: v2.0.0-preview8
+
+provides:
+  - bin/imageflow_tool
+
+versions:
+  - 2023.9.25
+
+# https://github.com/imazen/imageflow/issues/592
+platforms:
+  - linux/x86-64
+  # FIXME: should work on darwin/x86-64, but gives
+  # /Users/runner/work/pantry/pantry/testbeds/imageflow.io__imageflow_tool-2023.9.25.sh: line 49:
+  #  3175 Illegal instruction: 4  imageflow_tool v1/querystring --in hi.png --out hi.jpg --command
+  #    "width=100&height=100&scale=both&format=jpg"
+  #  3176 Done                    | tee imageflow.out
+  # - darwin/x86-64
+
+dependencies:
+  openssl.org: 1.1
+
+companions:
+  info-zip.org/zip: '*'
+  kornel.ski/dssim: '*'
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.65<1.78' # uses feature(stdsimd)
+    rust-lang.org/cargo: '*'
+    nasm.us: '*'
+    info-zip.org/zip: '*'
+    kornel.ski/dssim: '*'
+  script:
+    - ./build.sh release
+    - mkdir -p '{{prefix}}'/{bin,lib,include}
+    - ./artifacts/staging/install.sh
+  skip: fix-machos # or illegal instructions
+  env:
+    INSTALL_BASE: ${{prefix}}
+
+test:
+  dependencies:
+    gnome.org/pango: '*'
+    darwinsys.com/file: '*'
+  script:
+    - run: pango-view --height=50 --width=50 -qo hi.png $FIXTURE
+      fixture:
+        extname: txt
+        content: hi
+    - imageflow_tool v1/querystring --in hi.png --out hi.jpg --command "width=100&height=100&scale=both&format=jpg" | tee imageflow.out
+    - 'grep "\"success\": true," imageflow.out'
+    - file hi.jpg | tee file.out
+      grep 'JPEG image' file.out
+    - grep 100x100 file.out

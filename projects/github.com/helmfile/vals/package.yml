@@ -12,17 +12,18 @@ build:
   dependencies:
     go.dev: '*'
   script:
-   - go mod download
-   - mkdir -p "{{ prefix }}"/bin
-   - go build $GOARGS -trimpath -ldflags="$LDFLAGS" -o "{{ prefix }}"/bin/vals ./cmd/vals
+    - go mod download
+    - go build -v -trimpath -ldflags="$GO_LDFLAGS" -o "{{ prefix }}"/bin/vals ./cmd/vals
   env:
-    LDFLAGS:
+    GO_LDFLAGS:
       - -w
       - -s
       - -X main.version=v{{version}}
     linux:
-      GOARGS:
+      GO_LDFLAGS:
         - -buildmode=pie
+        # else undefined ref to `pow`
+        - -extldflags=-lm
 
 test:
   - vals --help 2>&1 | grep "vals is a Helm-like configuration"

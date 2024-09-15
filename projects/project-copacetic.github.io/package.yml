@@ -10,23 +10,23 @@ display-name: copa
 build:
   dependencies:
     go.dev: ^1.21
-  script:
-    go build $ARGS -ldflags="$LDFLAGS"
+    linux/aarch64:
+      # error: invalid linker name in argument '-fuse-ld=gold'
+      gnu.org/gcc: '*'
+  script: go build $ARGS -ldflags="$GO_LDFLAGS"
   env:
-    COMMIT: $(git describe --always --abbrev=8 --dirty)
-    DATE: $(date -u +%FT%TZ)
     ARGS:
       - -trimpath
       - -o={{prefix}}/bin/copa
-    LDFLAGS:
+    GO_LDFLAGS:
       - -s
       - -w
       - -X github.com/project-copacetic/copacetic/pkg/version.GitVersion={{version.tag}}
-      - -X github.com/project-copacetic/copacetic/pkg/version.GitCommit=${COMMIT}
-      - -X github.com/project-copacetic/copacetic/pkg/version.BuildDate=${DATE}
+      - -X github.com/project-copacetic/copacetic/pkg/version.GitCommit=$(git describe --always --abbrev=8 --dirty)
+      - -X github.com/project-copacetic/copacetic/pkg/version.BuildDate=$(date -u +%FT%TZ)
       - -X main.version={{version}}
     linux:
-      LDFLAGS:
+      GO_LDFLAGS:
         - -buildmode=pie
 
 provides:
