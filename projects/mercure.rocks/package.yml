@@ -1,0 +1,28 @@
+distributable:
+  url: git+https://github.com/dunglas/mercure
+  ref: ${{version.tag}}
+
+versions:
+  github: dunglas/mercure
+
+platforms:
+  - linux
+
+build:
+  dependencies:
+    go.dev: ^1.19
+    goreleaser.com: '*'
+    git-scm.org: '*'
+  script:
+    - goreleaser build --clean --single-target --skip=validate
+    - mkdir -p "{{ prefix }}"/bin
+    - mv dist/caddy_{{hw.platform}}_$ARCH/mercure "{{ prefix }}"/bin
+  env:
+    CGO_ENABLED: 0
+    aarch64: { ARCH: arm64 }
+    x86-64: { ARCH: amd64_v1 }
+
+provides:
+  - bin/mercure
+
+test: mercure --version | grep -q "Mercure.rocks {{version}}"
