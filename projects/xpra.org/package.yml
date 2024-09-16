@@ -1,0 +1,115 @@
+distributable:
+  url: https://github.com/Xpra-org/xpra/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: Xpra-org/xpra
+  strip: /^xpra /
+
+dependencies:
+  python.org: '~3.11'
+  cython.org: '*'
+  tukaani.org/xz: '*'
+  cairographics.org: '*'
+  cairographics.org/pycairo: '1.26.1'
+  freedesktop.org/pkg-config: ~0.29
+
+  x.org/x11: '*'
+  x.org/protocol: '*'
+  x.org/exts: '*'
+
+  x.org/xkbfile: '*'
+  x.org/xdamage: '*'
+  x.org/xrandr: '*'
+  x.org/xcomposite: '*'
+
+  x.org/xtst: '*'
+  x.org/libxres: '*'
+  x.org/xfixes : '*'
+
+  videolan.org/x264: '*'
+  webmproject.org/libvpx: '*'
+  github.com/AOMediaCodec/libavif: '*'
+
+  github.com/Cyan4973/xxHash: '*'
+
+
+build: 
+  dependencies:
+    freedesktop.org/pkg-config: ~0.29 
+    python.org: '~3.11'
+    cython.org: '*'
+    tukaani.org/xz: '*'
+    cairographics.org: '*'
+    cairographics.org/pycairo: '1.26.1'
+    gnome.org/PyGObject: '*'
+
+    x.org/x11: '*'
+    x.org/protocol: '*'
+    x.org/exts: '*'
+
+    x.org/xkbfile: '*'
+    x.org/xdamage: '*'
+    x.org/xrandr: '*'
+    x.org/xcomposite: '*'
+
+    x.org/xtst: '*'
+    x.org/libxres: '*'
+    x.org/xfixes : '*'
+
+    videolan.org/x264: '*'
+    webmproject.org/libvpx: '*'
+    github.com/AOMediaCodec/libavif: '*'
+
+    github.com/Cyan4973/xxHash: '*'
+
+    gtk.org/gtk3: '*'
+
+  script:
+    # - echo {{prefix}}
+    # - exit 1
+    # The following part generates a py3cairo.pc file for pkg-config to pick up the py3cairo.h file.
+    # Unfortunatelly, this is needed because the pycairo package does not provide a .pc file (see: https://github.com/pygobject/pycairo/issues/270)
+    # At the same time, the xpra maintainers do not want to rely on another method to find the py3cairo.h file (see: https://github.com/Xpra-org/xpra/issues/4358)
+    # For reference, some distributions provide a py3cairo.pc file in a separate package (e.g. https://packages.debian.org/buster/all/python3-cairo-dev/filelist)
+    # Discussion in pkgx/pantry: https://github.com/pkgxdev/pantry/issues/7290
+    - run: |
+        # PKGX_ROOT="${HOME}/.pkgx"
+        PKGX_ROOT="/home/vscode/.pkgx"
+        PYCAIRO_INCLUDE_FILE=$(find ${PKGX_ROOT} -name 'py3cairo.h' -exec echo {} \; | grep 'cairographics.org/pycairo')
+        PYCAIRO_INCLUDE_DIR=$(dirname $PYCAIRO_INCLUDE_FILE)
+        PYCAIRO_PREFIX=$(dirname "${PYCAIRO_INCLUDE_DIR}/../../../../../..")
+        # PYCAIRO_VERSION=$(grep -oP 'Version: \K.*' $PYCAIRO_INCLUDE_DIR/py3cairo.h)
+        PYCAIRO_VERSION="1.26.1"
+        mkdir -p $PYCAIRO_INCLUDE_DIR/pycairo
+        ln -s $PYCAIRO_INCLUDE_DIR/py3cairo.h $PYCAIRO_INCLUDE_DIR/pycairo/py3cairo.h || true
+        echo "prefix=${PYCAIRO_PREFIX}" > py3cairo.pc
+        echo "" >> py3cairo.pc
+        echo "Name: Pycairo" >> py3cairo.pc 
+        echo "Description: Python bindings for the cairo graphics library" >> py3cairo.pc
+        echo "Version: ${PYCAIRO_VERSION}" >> py3cairo.pc
+        echo "Requires: cairo" >> py3cairo.pc
+        echo "Cflags: -I${PYCAIRO_INCLUDE_DIR}" >> py3cairo.pc
+        echo "Libs:" >> py3cairo.pc
+    
+    - PWD=$(pwd)
+    - PKG_CONFIG_PATH=$PWD:$PKG_CONFIG_PATH python3 setup.py install $ARGS
+
+    - mv {{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages/*/* {{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages/
+    - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
+      working-directory: "{{prefix}}/lib"
+  env:
+    ARGS:
+      - --verbose
+      - --prefix={{prefix}}
+
+provides:
+  - bin/xpra
+  - bin/xpra_launcher
+  - bin/run_scaled
+
+test:
+  dependencies:
+    x.org: '*'
+  script:
+    xpra
