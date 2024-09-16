@@ -1,0 +1,20 @@
+distributable:
+  url: https://github.com/sharkdp/pastel/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/pastel
+
+versions:
+  github: sharkdp/pastel
+  strip: /v/
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
+  script: |
+    cargo install --locked --path . --root {{prefix}}
+test:
+  script:
+    - test "$(pastel --version)" = "pastel {{version}}"
