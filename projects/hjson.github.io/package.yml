@@ -1,0 +1,43 @@
+distributable:
+  url: https://github.com/hjson/hjson-rust/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/hjson
+
+versions:
+  github: hjson/hjson-rust
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path hjson_cli --root {{prefix}}
+
+test:
+  dependencies:
+    gnu.org/diffutils: '*'
+  script:
+    - test "$(hjson --version)" = "Hjson CLI {{version}}"
+    - run: cat $FIXTURE | hjson -c > test.json
+      fixture:
+        extname: hjson
+        content: |
+          {
+            // comments
+            key: value
+            key2: value
+          }
+    - run: diff -wu test.json $FIXTURE
+      fixture:
+        extname: json
+        content: '{"key":"value","key2":"value"}'
+    - cat test.json | hjson > test.hjson
+    - run: diff -wu test.hjson $FIXTURE
+      fixture:
+        extname: hjson
+        content: |
+          {
+            key: value
+            key2: value
+          }\

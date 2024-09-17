@@ -1,12 +1,16 @@
 distributable:
-  url: https://www.openssl.org/source/openssl-{{version.raw}}.tar.gz
-  sha: ${{url}}.sha256
-  sig: ${{url}}.asc
-  strip-components: 1
+  - url: https://www.openssl.org/source/openssl-{{version.raw}}.tar.gz
+    sha: ${{url}}.sha256
+    sig: ${{url}}.asc
+    strip-components: 1
+  - url: https://github.com/openssl/openssl/releases/download/{{version.tag}}/{{version.tag}}.tar.gz
+    sha: ${{url}}.sha256
+    sig: ${{url}}.asc
+    strip-components: 1
 
 versions:
-  github: openssl/openssl/releases
-  strip: /^OpenSSL /
+  github: openssl/openssl
+  strip: /^openssl-/
 
 provides:
   - bin/openssl
@@ -32,15 +36,14 @@ build:
     fi
 
   env:
-    darwin/aarch64: {ARCH: 'darwin64-arm64-cc'}
-    darwin/x86-64:  {ARCH: 'darwin64-x86_64-cc'}
-    linux/aarch64:  {ARCH: 'linux-aarch64'}
-    linux/x86-64:   {ARCH: 'linux-x86_64'}
+    darwin/aarch64: { ARCH: 'darwin64-arm64-cc' }
+    darwin/x86-64: { ARCH: 'darwin64-x86_64-cc' }
+    linux/aarch64: { ARCH: 'linux-aarch64' }
+    linux/x86-64: { ARCH: 'linux-x86_64' }
     darwin:
       # supposedly enables important optimizations
       ARGS: enable-ec_nistp_64_gcc_128
-  test:
-    make test
+  test: make test
 
 #TODO need to test the SSL certs work
 # otherwise we are basically relying on wget etc. to test for it

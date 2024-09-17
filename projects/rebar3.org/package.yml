@@ -1,0 +1,20 @@
+distributable:
+  url: https://github.com/erlang/rebar3/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: erlang/rebar3
+
+dependencies:
+  erlang.org: '*'
+
+build:
+  - ./bootstrap
+  - install -D rebar3 {{prefix}}/bin/rebar3
+  - run: cp -a $SRCROOT/apps/rebar/priv/shell-completion .
+    working-directory: ${{prefix}}/share
+
+provides:
+  - bin/rebar3
+
+test: rebar3 --version | grep '^rebar {{version}} on Erlang/OTP {{deps.erlang.org.version.major}}'

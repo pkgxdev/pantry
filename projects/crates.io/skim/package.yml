@@ -1,0 +1,25 @@
+distributable:
+  url: https://github.com/lotabout/skim/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/sk
+
+versions:
+  github: lotabout/skim
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
+  script:
+    - cargo install --path . --root {{prefix}}
+    - cp bin/sk-tmux {{prefix}}/bin
+    - mkdir -p {{prefix}}/share
+    - cp -a shell man {{prefix}}/share/
+
+test:
+  - run: test "$(cat $FIXTURE | sk -f wld)" = "world"
+    fixture: |
+      hello
+      world

@@ -13,8 +13,11 @@ build:
   working-directory: build
   script:
     - ../utils/git-sync-deps
-    # don't install third-party stuff if possible
-    - run: sed -i -e 's/\${SHADERC_SKIP_INSTALL}/ON/g' CMakeLists.txt
+    - run:
+        # don't install third-party stuff if possible
+        - sed -i 's/\${SHADERC_SKIP_INSTALL}/ON/g' CMakeLists.txt
+        # fix a cmake bug in 2024.1
+        - sed -i '/GLSLANG_ENABLE_INSTALL/s/^/#/' CMakeLists.txt
       working-directory: ../third_party
     - cmake .. $CMAKE_ARGS
     - cmake --build .
@@ -35,18 +38,19 @@ provides:
   - bin/glslc
 
 test:
-  fixture: |
-    #include <shaderc/shaderc.h>
-    int main() {
-      int version;
-      shaderc_profile profile;
-      if (!shaderc_parse_version_profile("450core", &version, &profile))
-        return 1;
-      return (profile == shaderc_profile_core) ? 0 : 1;
-    }
   dependencies:
     freedesktop.org/pkg-config: ^0.29
   script:
-    - cat $FIXTURE > test.c
-    - clang -o test test.c $(pkg-config --cflags --libs shaderc)
+    - run: clang -o test $FIXTURE $(pkg-config --cflags --libs shaderc)
+      fixture:
+        extname: c
+        content: |
+          #include <shaderc/shaderc.h>
+          int main() {
+            int version;
+            shaderc_profile profile;
+            if (!shaderc_parse_version_profile("450core", &version, &profile))
+              return 1;
+            return (profile == shaderc_profile_core) ? 0 : 1;
+          }
     - ./test

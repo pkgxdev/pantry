@@ -20,9 +20,26 @@ build:
     freedesktop.org/pkg-config: ^0.29
     gnome.org/gobject-introspection: 1
     python.org: '>=3<3.12'
+    # since 2.59
+    mesonbuild.com: '*'
+    ninja-build.org: '*'
+    github.com/lu-zero/cargo-c: '*'
   script:
-    - ./configure $ARGS
-    - make --jobs {{hw.concurrency}} install
+    - run:
+        - ./configure $ARGS
+        - make --jobs {{hw.concurrency}} install
+      if: <2.59
+
+    - run:
+        # it weirdly expects to find this where it installs
+        - mkdir -p {{prefix}}/bin
+        - ln -s {{deps.gnome.org/gdk-pixbuf.prefix}}/bin/gdk-pixbuf-query-loaders {{prefix}}/bin/
+        - mkdir -p build
+        - meson setup build $MESON_ARGS
+        - meson compile -C build
+        - meson install -C build
+        - rm {{prefix}}/bin/gdk-pixbuf-query-loaders
+      if: '>=2.59'
 
     - run: |
         mv librsvg-{{version.major}}.0/* .
@@ -35,6 +52,15 @@ build:
       - --enable-pixbuf-loader=yes
       - --enable-introspection=yes
       - --disable-Bsymbolic
+    MESON_ARGS:
+      - --prefix={{prefix}}
+      - --buildtype=release
+      - -Ddocs=disabled
+      - -Dpixbuf-loader=enabled
+      - -Dintrospection=enabled
+    linux:
+      # ld.lld: error: undefined symbol: dlsym
+      LDFLAGS: $LDFLAGS -Wl,-ldl
 
 test:
   dependencies:
