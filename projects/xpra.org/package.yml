@@ -13,6 +13,8 @@ dependencies:
   cairographics.org: '*'
   cairographics.org/pycairo: '1.26.1'
   freedesktop.org/pkg-config: ~0.29
+  gnome.org/PyGObject: '*'
+  gnome.org/glib: '*'
 
   x.org/x11: '*'
   x.org/protocol: '*'
@@ -36,6 +38,7 @@ dependencies:
 
 build: 
   dependencies:
+    pkgx.sh: ^1
     freedesktop.org/pkg-config: ~0.29 
     python.org: '~3.11'
     cython.org: '*'
@@ -43,6 +46,7 @@ build:
     cairographics.org: '*'
     cairographics.org/pycairo: '1.26.1'
     gnome.org/PyGObject: '*'
+    gnome.org/glib: '*'
 
     x.org/x11: '*'
     x.org/protocol: '*'
@@ -71,6 +75,7 @@ build:
     # At the same time, the xpra maintainers do not want to rely on another method to find the py3cairo.h file (see: https://github.com/Xpra-org/xpra/issues/4358)
     # For reference, some distributions provide a py3cairo.pc file in a separate package (e.g. https://packages.debian.org/buster/all/python3-cairo-dev/filelist)
     # Discussion in pkgx/pantry: https://github.com/pkgxdev/pantry/issues/7290
+    # TODO: Find a better solution – e.g. Introduce a cairographics.org/pycairo-dev package
     - run: |
         PKGX_ROOT="{{pkgx.prefix}}"
         PYCAIRO_INCLUDE_FILE=$(find ${PKGX_ROOT} -name 'py3cairo.h' -exec echo {} \; | grep 'cairographics.org/pycairo')
@@ -89,16 +94,16 @@ build:
         echo "Cflags: -I${PYCAIRO_INCLUDE_DIR}" >> py3cairo.pc
         echo "Libs:" >> py3cairo.pc
     
-    - bkpyvenv stage {{prefix}} {{version}}
-    - PWD=$(pwd)
-    - PKG_CONFIG_PATH=$PWD:$PKG_CONFIG_PATH python3 setup.py install $ARGS
-    - bkpyvenv seal {{prefix}} xpra
-
     # - bkpyvenv stage {{prefix}} {{version}}
     # - PWD=$(pwd)
-    # # - PKG_CONFIG_PATH=$PWD:$PKG_CONFIG_PATH python3 setup.py install $ARGS
-    # - ${{prefix}}/venv/bin/pip install .
+    # - PKG_CONFIG_PATH=$PWD:$PKG_CONFIG_PATH python3 setup.py install $ARGS
     # - bkpyvenv seal {{prefix}} xpra
+
+    - bkpyvenv stage {{prefix}} {{version}}
+    - PWD=$(pwd)
+    # - PKG_CONFIG_PATH=$PWD:$PKG_CONFIG_PATH python3 setup.py install $ARGS
+    - PKG_CONFIG_PATH=$PWD:$PKG_CONFIG_PATH {{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} xpra
 
     # - mv {{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages/*/* {{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages/
     # - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
@@ -114,7 +119,5 @@ provides:
   - bin/run_scaled
 
 test:
-  dependencies:
-    x.org: '*'
   script:
     xpra
