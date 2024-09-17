@@ -9,6 +9,10 @@ versions:
 platforms:
   - linux
 
+runtime:
+  env:
+    GI_TYPELIB_PATH: "{{pkgx.prefix}}/gnome.org/gobject-introspection/v1.72.0/lib/girepository-1.0:{{pkgx.prefix}}/gtk.org/gtk3/v3.24.38/lib/girepository-1.0:{{pkgx.prefix}}/gnome.org/pango/v1.54.0/lib/girepository-1.0:{{pkgx.prefix}}/harfbuzz.org/v8.5.0/lib/girepository-1.0:{{pkgx.prefix}}/gnome.org/gdk-pixbuf/v2.42.9/lib/girepository-1.0:{{pkgx.prefix}}/gnome.org/atk/v2.38.0/lib/girepository-1.0"
+
 dependencies:
   python.org: '~3.11'
   cython.org: '*'
@@ -45,10 +49,8 @@ dependencies:
   gnome.org/gdk-pixbuf: '*'
   gnome.org/atk: '*'
 
-
 build: 
   dependencies:
-    # pkgx.sh: ^1
     freedesktop.org/pkg-config: ~0.29 
     python.org: '~3.11'
     cython.org: '*'
@@ -84,9 +86,6 @@ build:
     gnome.org/gdk-pixbuf: '*'
     gnome.org/atk: '*'
 
-    # gnome.org/gdk-pixbuf
-
-
   script:
     # The following part generates a py3cairo.pc file for pkg-config to pick up the py3cairo.h file.
     # Unfortunatelly, this is needed because the pycairo package does not provide a .pc file (see: https://github.com/pygobject/pycairo/issues/270)
@@ -111,47 +110,16 @@ build:
         echo "Requires: cairo" >> py3cairo.pc
         echo "Cflags: -I${PYCAIRO_INCLUDE_DIR}" >> py3cairo.pc
         echo "Libs:" >> py3cairo.pc
-    
-    # - bkpyvenv stage {{prefix}} {{version}}
-    # - PWD=$(pwd)
-    # - PKG_CONFIG_PATH=$PWD:$PKG_CONFIG_PATH python3 setup.py install $ARGS
-    # - bkpyvenv seal {{prefix}} xpra
-
     - bkpyvenv stage {{prefix}} {{version}}
     - PWD=$(pwd)
-    # - PKG_CONFIG_PATH=$PWD:$PKG_CONFIG_PATH python3 setup.py install $ARGS
     - run: |
         {{prefix}}/venv/bin/pip install PyGObject
     - PKG_CONFIG_PATH=$PWD:$PKG_CONFIG_PATH {{prefix}}/venv/bin/pip install .
     - bkpyvenv seal {{prefix}} xpra
 
-    # - mv {{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages/*/* {{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages/
-    # - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
-      # working-directory: "{{prefix}}/lib"
-  env:
-    ARGS:
-      - --verbose
-      - --prefix={{prefix}}
-
 provides:
   - bin/xpra
-  # - bin/xpra_launcher
-  # - bin/run_scaled
 
 test:
-  dependencies:
-    freedesktop.org/xdg-user-dirs: '*'
-    # gtk.org/gtk4: '*'
-    gnome.org/PyGObject: '*'
-    gnome.org/glib: '*'
-    gnome.org/gobject-introspection: '*'
-  env:
-      GI_TYPELIB_PATH={{pkgx.prefix}}/gnome.org/gobject-introspection/v1.72.0/lib/girepository-1.0
   script:
-    # GI_TYPELIB_PATH={{pkgx.prefix}}/gnome.org/gobject-introspection/v1.72.0/lib/girepository-1.0 python3
-    GI_TYPELIB_PATH={{pkgx.prefix}}/gnome.org/gobject-introspection/v1.72.0/lib/girepository-1.0:{{pkgx.prefix}}/gtk.org/gtk3/v3.24.38/lib/girepository-1.0:{{pkgx.prefix}}/gnome.org/pango/v1.54.0/lib/girepository-1.0:{{pkgx.prefix}}/harfbuzz.org/v8.5.0/lib/girepository-1.0:{{pkgx.prefix}}/gnome.org/gdk-pixbuf/v2.42.9/lib/girepository-1.0:{{pkgx.prefix}}/gnome.org/atk/v2.38.0/lib/girepository-1.0 xpra --version | grep -q "{{version}}"
-    # run: |
-    #   python3
-    #   # xpra
-
-
+    xpra --version | grep -q "{{version}}"
