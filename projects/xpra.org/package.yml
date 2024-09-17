@@ -117,13 +117,16 @@ build:
         echo "Requires: cairo" >> py3cairo.pc
         echo "Cflags: -I${PYCAIRO_INCLUDE_DIR}" >> py3cairo.pc
         echo "Libs:" >> py3cairo.pc
-    - bkpyvenv stage {{prefix}} {{version}}
-    - PWD=$(pwd)
+    # Actual build script follows
     - run: |
-        {{prefix}}/venv/bin/pip install PyGObject
-    - PKG_CONFIG_PATH=$PWD:$PKG_CONFIG_PATH {{prefix}}/venv/bin/pip install .
-    - bkpyvenv seal {{prefix}} xpra
-
+        bkpyvenv stage {{prefix}} {{version}}
+        {{prefix}}/venv/bin/pip install .
+        bkpyvenv seal {{prefix}} xpra
+    # Clean up intermediate `py3cairo.pc` file
+    - run: rm py3cairo.pc
+  env:
+    PKG_CONFIG_PATH: ".:$PKG_CONFIG_PATH"
+      
 provides:
   - bin/xpra
 
