@@ -11,7 +11,13 @@ platforms:
 
 runtime:
   env:
-    GI_TYPELIB_PATH: "{{pkgx.prefix}}/gnome.org/gobject-introspection/v1.72.0/lib/girepository-1.0:{{pkgx.prefix}}/gtk.org/gtk3/v3.24.38/lib/girepository-1.0:{{pkgx.prefix}}/gnome.org/pango/v1.54.0/lib/girepository-1.0:{{pkgx.prefix}}/harfbuzz.org/v8.5.0/lib/girepository-1.0:{{pkgx.prefix}}/gnome.org/gdk-pixbuf/v2.42.9/lib/girepository-1.0:{{pkgx.prefix}}/gnome.org/atk/v2.38.0/lib/girepository-1.0"
+    GI_TYPELIB_PATH_GOBJECT_INTROSPECTION: "{{pkgx.prefix}}/gnome.org/gobject-introspection/v{{deps.gnome.org/gobject-introspection.version}}/lib/girepository-1.0"
+    GI_TYPELIB_PATH_GTK3: "{{pkgx.prefix}}/gtk.org/gtk3/v{{deps.gtk.org/gtk3.version}}/lib/girepository-1.0"
+    GI_TYPELIB_PATH_PANGO: "{{pkgx.prefix}}/gnome.org/pango/v{{deps.gnome.org/pango.version}}/lib/girepository-1.0"
+    GI_TYPELIB_PATH_HARFBUZZ: "{{pkgx.prefix}}/harfbuzz.org/v{{deps.harfbuzz.org.version}}/lib/girepository-1.0"
+    GI_TYPELIB_PATH_GDK_PIXBUF: "{{pkgx.prefix}}/gnome.org/gdk-pixbuf/v{{deps.gnome.org/gdk-pixbuf.version}}/lib/girepository-1.0"
+    GI_TYPELIB_PATH_ATK: "{{pkgx.prefix}}/gnome.org/atk/v{{deps.gnome.org/atk.version}}/lib/girepository-1.0"
+    GI_TYPELIB_PATH: $GI_TYPELIB_PATH_GOBJECT_INTROSPECTION:$GI_TYPELIB_PATH_GTK3:$GI_TYPELIB_PATH_PANGO:$GI_TYPELIB_PATH_HARFBUZZ:$GI_TYPELIB_PATH_GDK_PIXBUF:$GI_TYPELIB_PATH_ATK:$GI_TYPELIB_PATH
 
 dependencies:
   python.org: '~3.11'
@@ -48,6 +54,7 @@ dependencies:
   harfbuzz.org: '*'
   gnome.org/gdk-pixbuf: '*'
   gnome.org/atk: '*'
+  gnome.org/pango: '*'
 
 build: 
   dependencies:
@@ -85,6 +92,7 @@ build:
     harfbuzz.org: '*'
     gnome.org/gdk-pixbuf: '*'
     gnome.org/atk: '*'
+    gnome.org/pango: '*'
 
   script:
     # The following part generates a py3cairo.pc file for pkg-config to pick up the py3cairo.h file.
@@ -98,7 +106,6 @@ build:
         PYCAIRO_INCLUDE_FILE=$(find ${PKGX_ROOT} -name 'py3cairo.h' -exec echo {} \; | grep 'cairographics.org/pycairo')
         PYCAIRO_INCLUDE_DIR=$(dirname $PYCAIRO_INCLUDE_FILE)
         PYCAIRO_PREFIX=$(dirname "${PYCAIRO_INCLUDE_DIR}/../../../../../..")
-        # PYCAIRO_VERSION=$(grep -oP 'Version: \K.*' $PYCAIRO_INCLUDE_DIR/py3cairo.h)
         PYCAIRO_VERSION="{{deps.cairographics.org/pycairo.version}}"
         mkdir -p $PYCAIRO_INCLUDE_DIR/pycairo
         ln -s $PYCAIRO_INCLUDE_DIR/py3cairo.h $PYCAIRO_INCLUDE_DIR/pycairo/py3cairo.h || true
