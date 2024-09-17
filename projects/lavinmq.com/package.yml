@@ -1,0 +1,31 @@
+distributable:
+  url: https://github.com/cloudamqp/lavinmq/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: cloudamqp/lavinmq
+  strip:
+    - /^v/
+
+build:
+  dependencies:
+    gnu.org/make: ^4
+    crystal-lang.org: '~1.13'
+    crystal-lang.org/shards: '~0.18'
+  script: |
+    make
+    make install $ARGS
+  env:
+    CRYSTAL_PATH: './lib:$CRYSTAL_PATH'
+    MAKEFLAGS: '-j{{hw.concurrency}}'
+    ARGS:
+      - --prefix="{{prefix}}"
+
+provides:
+  - bin/lavinmq
+  - bin/lavinmqctl
+  - bin/lavinmqperf
+
+test:
+  script:
+    test "$(lavinmq --version)" = {{version}}
