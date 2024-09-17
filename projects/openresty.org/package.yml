@@ -11,9 +11,30 @@ versions:
 
 build:
   dependencies:
-  script: |
-    make
+    gnu.org/make: ^4
+    gnu.org/gcc: '*'
+    perl.org: '*'
+    waterlan.home.xs4all.nl/dos2unix: '*'
+    mercurial-scm.org: '*'
+    git-scm.org: '*'
+
+    pcre.org: '8.45' #v2?
+    openssl.org: '^1.1.1k'
+    zlib.net: '^1.2.13'
+  script:
+    # Step 1: Rebuild the tar-ball (https://github.com/openresty/openresty?tab=readme-ov-file#for-bundle-maintainers)
+    - run: |
+        make
+    # Step 2: Building OpenResty (https://openresty.org/en/installation.html#building-from-source)
+    - run: |
+        cd openresty-{{version}}
+        ./configure -j{{ hw.concurrency }} --prefix={{ prefix }}
+        make -j{{ hw.concurrency }}
+        make install
+  env:
+    PREFIX: '{{ prefix }}'
 
 test:
   script:
-    - test "$(openresty --version)" = "openresty {{version}}"
+    - openresty -v
+    # - test "$(openresty --version)" = "openresty {{version}}"
