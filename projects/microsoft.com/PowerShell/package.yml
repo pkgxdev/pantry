@@ -7,8 +7,25 @@ versions:
   strip:
     - /^v/
 
+interprets:
+  extensions:
+    - ps1
+    - ps1xml
+    - psc1
+    - psd1
+    - psm1
+    - pssc
+    - psrc
+    - cdxml
+  args: pwsh
+
 dependencies:
   openssl.org: '^1.1'
+  linux:
+    unicode.org: ^71
+
+warnings:
+  - vendored
 
 build:
   dependencies:
@@ -16,11 +33,13 @@ build:
   working-directory: ${{prefix}}
   script:
     - curl -L "https://github.com/PowerShell/PowerShell/releases/download/v${VERSION}/powershell-${VERSION}-${PLATFORM}.tar.gz" | tar zxf -
-    - mkdir -p {{prefix}}/bin
-    - run: ln -s ../pwsh ./pwsh
-      working-directory: "{{prefix}}/bin"
+    - chmod +x pwsh
+    - mkdir bin
+    - cd bin
+    - ln -s "../pwsh" ./pwsh
   env:
     VERSION: "{{version}}"
+    PREFIX: "{{prefix}}"
     darwin/aarch64: { PLATFORM: osx-arm64 }
     darwin/x86-64:  { PLATFORM: osx-x64 }
     linux/aarch64:  { PLATFORM: linux-arm64 }
@@ -31,4 +50,4 @@ provides:
 
 test:
   script:
-    - pwsh --version | grep {{version}}
+    - test "$(pwsh --version)" = "PowerShell {{version}}"
