@@ -1,0 +1,30 @@
+distributable:
+  url: https://github.com/lrstanley/vault-unseal/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+display-name: vault-unseal
+
+versions:
+  github: lrstanley/vault-unseal
+
+build:
+  dependencies:
+    go.dev: '*'
+  env:
+    CGO_ENABLED: 0
+    GO_LDFLAGS:
+    - -s
+    - -w
+    - -X main.version="{{ version }}"
+    - -X main.commit="$( git rev-parse HEAD )"
+    - -X main.date="$( date --iso-8601=minutes )"
+    linux:
+      GO_LDFLAGS:
+      - -buildmode=pie
+  script:
+  - go build -v -ldflags="${GO_LDFLAGS}" -o "{{ prefix }}"/bin/vault-unseal
+
+provides:
+- bin/vault-unseal
+
+test: test "$(vault-unseal --version|cut -d ' ' -f 3)" = {{version}}

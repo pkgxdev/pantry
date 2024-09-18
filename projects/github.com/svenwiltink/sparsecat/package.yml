@@ -17,8 +17,6 @@ build:
     linux:
       GO_LDFLAGS:
       - -buildmode=pie
-    darwin/x86-64: { PLATFORM: darwin-amd64 }
-    linux/x86-64: { PLATFORM: linux-amd64 }
 
   script: 
   - go build -v -ldflags="${GO_LDFLAGS}" -o "{{ prefix }}"/bin/sparsecat ./cmd/sparsecat
@@ -26,10 +24,6 @@ build:
   # needed to check version as there is no version option
   #
   - ln -s sparsecat "{{ prefix }}"/bin/sparsecat-{{version}}
-  #
-  # needed by d2vm
-  #
-  - ln -s sparsecat "{{ prefix }}"/bin/sparsecat-${PLATFORM}
 
 provides:
 - bin/sparsecat
