@@ -1,0 +1,45 @@
+# vendored
+# distributable:
+#  url: https://github.com/PowerShell/PowerShell/archive/v{{version}}.tar.gz
+#  strip-components: 1
+
+versions:
+  github: PowerShell/PowerShell/tags
+
+interprets:
+  extensions:
+    - ps1
+    - ps1xml
+    - psc1
+    - psd1
+    - psm1
+    - pssc
+    - psrc
+    - cdxml
+  args: pwsh
+
+dependencies:
+  openssl.org: '^1.1'
+  linux:
+    unicode.org: ^71
+
+warnings:
+  - vendored
+
+build:
+  dependencies:
+    curl.se: '*'
+  working-directory: ${{prefix}}/bin
+  script:
+    - curl -L "https://github.com/PowerShell/PowerShell/releases/download/{{version.tag}}/powershell-{{version}}-${PLATFORM}.tar.gz" | tar zxf -
+    - chmod +x pwsh
+  env:
+    darwin/aarch64: { PLATFORM: osx-arm64 }
+    darwin/x86-64:  { PLATFORM: osx-x64 }
+    linux/aarch64:  { PLATFORM: linux-arm64 }
+    linux/x86-64:   { PLATFORM: linux-x64 }
+
+provides:
+  - bin/pwsh
+
+test: test "$(pwsh --version)" = "PowerShell {{version}}"
