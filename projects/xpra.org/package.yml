@@ -11,12 +11,12 @@ platforms:
 
 runtime:
   env:
-    GI_TYPELIB_PATH_GOBJECT_INTROSPECTION: "{{deps.gnome.org/gobject-introspection.prefix}}/lib/girepository-1.0"
-    GI_TYPELIB_PATH_GTK3: "{{deps.gtk.org/gtk3.prefix}}/lib/girepository-1.0"
-    GI_TYPELIB_PATH_PANGO: "{{deps.gnome.org/pango.prefix}}/lib/girepository-1.0"
-    GI_TYPELIB_PATH_HARFBUZZ: "{{deps.harfbuzz.org.prefix}}/lib/girepository-1.0"
-    GI_TYPELIB_PATH_GDK_PIXBUF: "{{deps.gnome.org/gdk-pixbuf.prefix}}/lib/girepository-1.0"
-    GI_TYPELIB_PATH_ATK: "{{deps.gnome.org/atk.prefix}}/lib/girepository-1.0"
+    GI_TYPELIB_PATH_GOBJECT_INTROSPECTION: '{{deps.gnome.org/gobject-introspection.prefix}}/lib/girepository-1.0'
+    GI_TYPELIB_PATH_GTK3: '{{deps.gtk.org/gtk3.prefix}}/lib/girepository-1.0'
+    GI_TYPELIB_PATH_PANGO: '{{deps.gnome.org/pango.prefix}}/lib/girepository-1.0'
+    GI_TYPELIB_PATH_HARFBUZZ: '{{deps.harfbuzz.org.prefix}}/lib/girepository-1.0'
+    GI_TYPELIB_PATH_GDK_PIXBUF: '{{deps.gnome.org/gdk-pixbuf.prefix}}/lib/girepository-1.0'
+    GI_TYPELIB_PATH_ATK: '{{deps.gnome.org/atk.prefix}}/lib/girepository-1.0'
     GI_TYPELIB_PATH: $GI_TYPELIB_PATH_GOBJECT_INTROSPECTION:$GI_TYPELIB_PATH_GTK3:$GI_TYPELIB_PATH_PANGO:$GI_TYPELIB_PATH_HARFBUZZ:$GI_TYPELIB_PATH_GDK_PIXBUF:$GI_TYPELIB_PATH_ATK:$GI_TYPELIB_PATH
 
 dependencies:
@@ -40,7 +40,7 @@ dependencies:
 
   x.org/xtst: '*'
   x.org/libxres: '*'
-  x.org/xfixes : '*'
+  x.org/xfixes: '*'
 
   videolan.org/x264: '*'
   webmproject.org/libvpx: '*'
@@ -56,7 +56,7 @@ dependencies:
   gnome.org/atk: '*'
   gnome.org/pango: '*'
 
-build: 
+build:
   script:
     # The following part generates a py3cairo.pc file for pkg-config to pick up the py3cairo.h file.
     # Unfortunatelly, this is needed because the pycairo package does not provide a .pc file (see: https://github.com/pygobject/pycairo/issues/270)
@@ -69,7 +69,7 @@ build:
         cp $PROP py3cairo.pc
       prop: |
         prefix=$(pwd)
-        
+
         Name: Pycairo
         Description: Python bindings for the cairo graphics library
         Version: {{deps.cairographics.org/pycairo.version}}
@@ -79,12 +79,12 @@ build:
       working-directory: include
     # Actual build script follows
     - bkpyvenv stage {{prefix}} {{version}}
-    - {{prefix}}/venv/bin/pip install .
+    - ${{prefix}}/venv/bin/pip install .
     - bkpyvenv seal {{prefix}} xpra
   env:
-    PKG_CONFIG_PATH: "./include:$PKG_CONFIG_PATH"
+    PKG_CONFIG_PATH: './include:$PKG_CONFIG_PATH'
     CFLAGS: $CFLAGS -I$SRCROOT/include
-      
+
 provides:
   - bin/xpra
 
