@@ -23,7 +23,11 @@ build:
     crystal-lang.org/shards: ~0.18
     lz4.org: ^1
     gnu.org/help2man: '*'
-  script: make -j {{hw.concurrency}} install $ARGS
+  script:
+    # else fix-machos.rb fails
+    - run: sed -i 's/--link-flags=-pie/--link-flags=-Wl,-pie,-headerpad_max_install_names' Makefile
+      if: darwin
+    - make -j {{hw.concurrency}} install $ARGS
   env:
     ARGS:
       - PREFIX="{{prefix}}"
@@ -31,8 +35,6 @@ build:
       - SHAREDSTATEDIR="{{prefix}}/var"
       - UNITDIR="{{prefix}}/etc"
     CRYSTAL_PATH: './lib:$CRYSTAL_PATH'
-    darwin:
-      CRYSTAL_FLAGS: -Wl,-headerpad_max_install_names
     
 
 provides:
