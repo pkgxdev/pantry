@@ -1,11 +1,10 @@
-distributable:
-  url: https://github.com/PowerShell/PowerShell/archive/v{{version}}.tar.gz
-  strip-components: 1
+# vendored
+# distributable:
+#  url: https://github.com/PowerShell/PowerShell/archive/v{{version}}.tar.gz
+#  strip-components: 1
 
 versions:
   github: PowerShell/PowerShell/tags
-  strip:
-    - /^v/
 
 interprets:
   extensions:
@@ -30,16 +29,11 @@ warnings:
 build:
   dependencies:
     curl.se: '*'
-  working-directory: ${{prefix}}
+  working-directory: ${{prefix}}/bin
   script:
-    - curl -L "https://github.com/PowerShell/PowerShell/releases/download/v${VERSION}/powershell-${VERSION}-${PLATFORM}.tar.gz" | tar zxf -
+    - curl -L "https://github.com/PowerShell/PowerShell/releases/download/{{version.tag{{/powershell-{{version}}-${PLATFORM}.tar.gz" | tar zxf -
     - chmod +x pwsh
-    - mkdir bin
-    - cd bin
-    - ln -s "../pwsh" ./pwsh
   env:
-    VERSION: "{{version}}"
-    PREFIX: "{{prefix}}"
     darwin/aarch64: { PLATFORM: osx-arm64 }
     darwin/x86-64:  { PLATFORM: osx-x64 }
     linux/aarch64:  { PLATFORM: linux-arm64 }
@@ -48,6 +42,4 @@ build:
 provides:
   - bin/pwsh
 
-test:
-  script:
-    - test "$(pwsh --version)" = "PowerShell {{version}}"
+test: test "$(pwsh --version)" = "PowerShell {{version}}"
