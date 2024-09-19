@@ -1,26 +1,24 @@
 distributable:
-  url: https://github.com/cloudamqp/lavinmq/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/cloudamqp/lavinmq/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
   github: cloudamqp/lavinmq
-  strip:
-    - /^v/
 
 platforms:
   # - darwin  Deactivate for testing purposes
   - linux/x86-64  # TODO: ARM64 is not supported by package crystal-lang.org/shards
 
 dependencies:
-  openssl.org: '^1.1'
+  openssl.org: ^1.1
+  pcre.org/v2: 10
 
 build:
   dependencies:
     gnu.org/make: ^4
     gnu.org/gcc: ^14
-    crystal-lang.org: '~1.13'
-    crystal-lang.org/shards: '~0.18'
-    openssl.org: '^1.1'
+    crystal-lang.org: ~1.13
+    crystal-lang.org/shards: ~0.18
     lz4.org: ^1
     # gnu.org/help2man: '*' # help2man issue
     # gnu.org/gettext: '*'  # help2man issue
@@ -28,26 +26,21 @@ build:
   
   # `make install` generates man pages. This is currently blocked by an issue with help2man (see: https://github.com/pkgxdev/pantry/issues/7318)
   # TODO: Use make install when 7318 is resolved.
-  script: |
-    # make install PREFIX="{{prefix}}"
+  script:
+    # - make install PREFIX="{{prefix}}"
 
 
-    make lib bin/lavinmq bin/lavinmqctl bin/lavinmqperf deps extras/lavinmq.ini extras/lavinmq.service PREFIX="{{prefix}}"
-    mkdir -p "{{prefix}}/etc"
-    cp extras/lavinmq.ini "{{prefix}}/etc/"
-    cp extras/lavinmq.service "{{prefix}}/etc/"
-    mkdir -p "{{prefix}}/bin"
-    cp bin/lavinmq bin/lavinmqctl bin/lavinmqperf "{{prefix}}/bin/"
+    - make -j {{hw.concurrency}} lib bin/lavinmq bin/lavinmqctl bin/lavinmqperf deps extras/lavinmq.ini extras/lavinmq.service PREFIX="{{prefix}}"
+    - run: cp $SRCROOT/extras/lavinmq.{ini,service} .
+      working-directory: "{{prefix}}/etc"
+    - run: cp $SRCROOT/bin/lavinmq* .
+      working-directory: "{{prefix}}/bin"
   env:
     CRYSTAL_PATH: './lib:$CRYSTAL_PATH'
-    MAKEFLAGS: '-j{{hw.concurrency}}'
-    PREFIX: '{{prefix}}'
 
 provides:
   - bin/lavinmq
   - bin/lavinmqctl
   - bin/lavinmqperf
 
-test:
-  script:
-    - test "$(lavinmq --version)" = {{version}}
+test: test "$(lavinmq --version)" = {{version}}
