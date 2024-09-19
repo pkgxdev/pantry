@@ -1,49 +1,52 @@
 distributable:
-  url: https://github.com/openresty/openresty/archive/refs/tags/v{{ version }}.tar.gz
+  url: https://github.com/openresty/openresty/archive/refs/tags/{{ version.tag }}.tar.gz
   strip-components: 1
 
 provides:
-  - bin/md2pod.pl
   - bin/nginx-xml2pod
   - bin/opm
   - bin/resty
   - bin/restydoc
   - bin/restydoc-index
 
-platforms:
-  - linux
-
 versions:
   github: openresty/openresty
-  strip: /v/
+
+dependencies:
+  pcre.org: 8
+  openssl.org: ^1.1
+  zlib.net: ^1.2
 
 build:
   dependencies:
-    gnu.org/make: ^4
-    gnu.org/gcc: '*'
     perl.org: '*'
     waterlan.home.xs4all.nl/dos2unix: '*'
     mercurial-scm.org: '*'
     git-scm.org: '*'
     gnu.org/wget: '*'
-
-    pcre.org: '8.45' #v2?
-    openssl.org: '^1.1.1k'
-    zlib.net: '^1.2.13'
   script:
     # Step 1: Rebuild the tar-ball (https://github.com/openresty/openresty?tab=readme-ov-file#for-bundle-maintainers)
-    - run: |
-        make
+    - run: make
     # Step 2: Building OpenResty (https://openresty.org/en/installation.html#building-from-source)
-    - run: |
-        cd openresty-{{version}}
-        ./configure -j{{ hw.concurrency }} --prefix={{ prefix }}
-        make -j{{ hw.concurrency }}
-        make install
-  env:
-    PREFIX: '{{ prefix }}'
+    - run:
+        - ./configure --prefix={{ prefix }}
+        - make -j {{ hw.concurrency }}
+        - make install
+      working-directory: openresty-{{version}}
 
-test:
-  script:
-    resty -V
-    # - test "$(resty --version)" = "resty {{version}}"
+    - run:
+        - ln -sf ../nginx/sbin/nginx openresty
+        # need to clean up paths in the scripts
+        - sed -i
+          -e '2i use File::Basename qw(dirname);'
+          -e "s|'{{prefix}}|dirname(\$0) . '/..|g"
+          resty
+      working-directory: ${{prefix}}/bin
+
+    # ensure this is patched
+    - run:
+        - mv ../nginx/sbin/nginx .
+        - ln -s ../../bin/nginx ../nginx/sbin/
+      working-directory: ${{prefix}}/bin
+
+test: resty -V 2>&1 | grep 'openresty/{{version}}'
