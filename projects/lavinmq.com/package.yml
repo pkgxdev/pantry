@@ -6,12 +6,13 @@ versions:
   github: cloudamqp/lavinmq
 
 platforms:
-  # - darwin  Deactivate for testing purposes
-  - linux/x86-64  # TODO: ARM64 is not supported by package crystal-lang.org/shards
+  - darwin
+  - linux/x86-64 # TODO: ARM64 is not supported by package crystal-lang.org/shards
 
 dependencies:
   openssl.org: ^1.1
   pcre.org/v2: 10
+  libevent.org: 2
   hboehm.info/gc: 8
 
 build:
@@ -22,13 +23,14 @@ build:
     crystal-lang.org/shards: ~0.18
     lz4.org: ^1
     gnu.org/help2man: '*'
-    gnu.org/gettext: '*'
-    perl.org: '5.38'
-  script:
-    - make install PREFIX="{{prefix}}"
+  script: make -j {{hw.concurrency}} install $ARGS
   env:
+    ARGS:
+      - PREFIX="{{prefix}}"
+      - SYSCONFDIR="{{prefix}}/etc"
+      - SHAREDSTATEDIR="{{prefix}}/var"
+      - UNITDIR="{{prefix}}/etc"
     CRYSTAL_PATH: './lib:$CRYSTAL_PATH'
-    MAKEFLAGS: '-j{{hw.concurrency}}'
 
 provides:
   - bin/lavinmq
