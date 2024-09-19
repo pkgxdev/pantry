@@ -1,40 +1,42 @@
 distributable:
   url: https://ftp.gnu.org/gnu/help2man/help2man-{{version}}.tar.xz
   strip-components: 1
+
 versions:
   url: https://ftp.gnu.org/gnu/help2man/
   match: /help2man-\d+\.\d+\.\d+\.tar\.xz/
   strip:
     - /^help2man-/
     - /\.tar\.xz/
+
 dependencies:
   gnu.org/gettext: '*'
-  perl.org: '*'
+  perl.org: 5.38 # perl modules require matching minors
+
 runtime:
   env:
-    PERL5LIB: "{{prefix}}/lib/perl5:{{prefix}}/libexec/lib/perl5:$PERL5LIB"
+    PERL5LIB: '{{prefix}}/lib/perl5:{{prefix}}/libexec/lib/perl5:$PERL5LIB'
+
 build:
   dependencies:
-    gnu.org/make: '*'
     cpanmin.us: '*'
   script:
     - cpanm -l {{prefix}} Locale::gettext
     - ./configure $CONFIGURE_ARGS
     - make install
-    - run: |
-        sed -i.bak '1s|.*|#!/usr/bin/env perl|' help2man
-        rm help2man.bak
+    - run: sed -i '1s|.*|#!/usr/bin/env perl|' help2man
       working-directory: ${{prefix}}/bin
   env:
-    PERL5LIB: "{{prefix}}/lib/perl5:{{prefix}}/libexec/lib/perl5:$PERL5LIB"
+    PERL5LIB: '{{prefix}}/lib/perl5:{{prefix}}/libexec/lib/perl5:$PERL5LIB'
     CONFIGURE_ARGS:
       - --disable-debug
       - --disable-dependency-tracking
       - --prefix="{{prefix}}"
       - --libdir="{{prefix}}/lib"
+
 provides:
   - bin/help2man
+
 test:
-  script:
-    - help2man --version | grep {{version}}
-    - help2man --locale=en_US.UTF-8 help2man | grep {{version}}
+  - help2man --version | grep {{version}}
+  - help2man --locale=en_US.UTF-8 help2man | grep {{version}}
