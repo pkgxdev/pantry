@@ -1,0 +1,23 @@
+distributable:
+  url: git+https://github.com/Autossh/autossh
+  ref: ${{version.tag}}
+
+versions:
+  github: Autossh/autossh/tags
+
+dependencies:
+  openssh.com: '*'
+
+provides:
+  - bin/autossh
+
+build:
+  dependencies:
+    gnu.org/make: '*'
+    gnu.org/gcc: '*'
+  script:
+    - ./configure --prefix="{{prefix}}"
+    - make -j {{hw.concurrency}} PREFIX="{{prefix}}"
+    - make install PREFIX="{{prefix}}"
+
+test: test "$(autossh -V)" = "autossh {{version}}"
