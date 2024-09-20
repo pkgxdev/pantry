@@ -61,13 +61,7 @@ build:
     rsync.samba.org: '*'
   script:
     - rm -rf bin/windows
-    - sed -i 's|log.dirs=/tmp/kafka-logs|log.dirs={{prefix}}/kafka-logs|' config/server.properties
-    - sed -i 's|log.dirs=/tmp/kraft-combined-logs|log.dirs={{prefix}}/kraft-combined-logs|' config/server.properties
-    - sed -i 's|log.dirs=/tmp/kraft-controller-logs|log.dirs={{prefix}}/kraft-controller-logs|' config/controller.properties || true
-    - sed -i 's|log.dirs=/tmp/kraft-broker-logs|log.dirs={{prefix}}/kraft-broker-logs|' config/broker.properties || true
-    - sed -i 's|dataDir=/tmp/zookeeper|log.dirs={{prefix}}/zookeper|' config/zookeeper.properties
-    - mkdir -p {{prefix}}
-    - rsync -avP . {{prefix}}
+    - run: rsync -avP $SRCROOT/* .
+      working-directory: ${{prefix}}
 
-test:
-  - kafka-run-class.sh kafka.Kafka --version | grep {{version}}
+test: kafka-run-class.sh kafka.Kafka --version | grep {{version}}
