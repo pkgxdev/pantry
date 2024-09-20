@@ -1,0 +1,76 @@
+# vendored
+distributable:
+  # url: https://downloads.apache.org/kafka/{{version}}/kafka-{{version}}-src.tgz
+  url: https://downloads.apache.org/kafka/{{version}}/kafka_2.13-{{version}}.tgz # This only matters if you are using Scala and you want a version built for the same Scala version you use. Otherwise any version should work (2.13 is recommended).
+  strip-components: 1
+
+warnings:
+  - vendored
+
+provides:
+  - bin/connect-distributed.sh
+  - bin/connect-mirror-maker.sh
+  - bin/connect-plugin-path.sh
+  - bin/connect-standalone.sh
+  - bin/kafka-acls.sh
+  - bin/kafka-broker-api-versions.sh
+  - bin/kafka-client-metrics.sh
+  - bin/kafka-cluster.sh
+  - bin/kafka-configs.sh
+  - bin/kafka-console-consumer.sh
+  - bin/kafka-console-producer.sh
+  - bin/kafka-console-share-consumer.sh
+  - bin/kafka-consumer-groups.sh
+  - bin/kafka-consumer-perf-test.sh
+  - bin/kafka-delegation-tokens.sh
+  - bin/kafka-delete-records.sh
+  - bin/kafka-dump-log.sh
+  - bin/kafka-e2e-latency.sh
+  - bin/kafka-features.sh
+  - bin/kafka-get-offsets.sh
+  - bin/kafka-jmx.sh
+  - bin/kafka-leader-election.sh
+  - bin/kafka-log-dirs.sh
+  - bin/kafka-metadata-quorum.sh
+  - bin/kafka-metadata-shell.sh
+  - bin/kafka-producer-perf-test.sh
+  - bin/kafka-reassign-partitions.sh
+  - bin/kafka-replica-verification.sh
+  - bin/kafka-run-class.sh
+  - bin/kafka-server-start.sh
+  - bin/kafka-server-stop.sh
+  - bin/kafka-share-groups.sh
+  - bin/kafka-storage.sh
+  - bin/kafka-streams-application-reset.sh
+  - bin/kafka-topics.sh
+  - bin/kafka-transactions.sh
+  - bin/kafka-verifiable-consumer.sh
+  - bin/kafka-verifiable-producer.sh
+  - bin/trogdor.sh
+  - bin/zookeeper-security-migration.sh
+  - bin/zookeeper-server-start.sh
+  - bin/zookeeper-server-stop.sh
+  - bin/zookeeper-shell.sh
+
+versions:
+  github: apache/kafka/tags
+
+dependencies:
+  openjdk.org: '*'
+  # scala-lang.org: '*' (for the time being, as long as #7360 isn't available)
+
+build:
+  dependencies:
+    rsync.samba.org: '*'
+  script:
+    - rm -rf bin/windows
+    - sed -i 's|log.dirs=/tmp/kafka-logs|log.dirs={{prefix}}/kafka-logs|' config/server.properties
+    - sed -i 's|log.dirs=/tmp/kraft-combined-logs|log.dirs={{prefix}}/kraft-combined-logs|' config/server.properties
+    - sed -i 's|log.dirs=/tmp/kraft-controller-logs|log.dirs={{prefix}}/kraft-controller-logs|' config/controller.properties || true
+    - sed -i 's|log.dirs=/tmp/kraft-broker-logs|log.dirs={{prefix}}/kraft-broker-logs|' config/broker.properties || true
+    - sed -i 's|dataDir=/tmp/zookeeper|log.dirs={{prefix}}/zookeper|' config/zookeeper.properties
+    - mkdir {{prefix}}
+    - rsync -avP . {{prefix}}
+
+test:
+  - kafka-run-class.sh -h
