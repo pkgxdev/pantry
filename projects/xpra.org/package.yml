@@ -1,0 +1,91 @@
+distributable:
+  url: https://github.com/Xpra-org/xpra/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: Xpra-org/xpra
+  strip: /^xpra /
+
+platforms:
+  - linux
+
+runtime:
+  env:
+    GI_TYPELIB_PATH_GOBJECT_INTROSPECTION: '{{deps.gnome.org/gobject-introspection.prefix}}/lib/girepository-1.0'
+    GI_TYPELIB_PATH_GTK3: '{{deps.gtk.org/gtk3.prefix}}/lib/girepository-1.0'
+    GI_TYPELIB_PATH_PANGO: '{{deps.gnome.org/pango.prefix}}/lib/girepository-1.0'
+    GI_TYPELIB_PATH_HARFBUZZ: '{{deps.harfbuzz.org.prefix}}/lib/girepository-1.0'
+    GI_TYPELIB_PATH_GDK_PIXBUF: '{{deps.gnome.org/gdk-pixbuf.prefix}}/lib/girepository-1.0'
+    GI_TYPELIB_PATH_ATK: '{{deps.gnome.org/atk.prefix}}/lib/girepository-1.0'
+    GI_TYPELIB_PATH: $GI_TYPELIB_PATH_GOBJECT_INTROSPECTION:$GI_TYPELIB_PATH_GTK3:$GI_TYPELIB_PATH_PANGO:$GI_TYPELIB_PATH_HARFBUZZ:$GI_TYPELIB_PATH_GDK_PIXBUF:$GI_TYPELIB_PATH_ATK:$GI_TYPELIB_PATH
+
+dependencies:
+  python.org: '~3.11'
+  cython.org: '*'
+  tukaani.org/xz: '*'
+  cairographics.org: '*'
+  cairographics.org/pycairo: '1.26.1'
+  freedesktop.org/pkg-config: ~0.29
+  gnome.org/PyGObject: '*'
+  gnome.org/glib: '*'
+
+  x.org/x11: '*'
+  x.org/protocol: '*'
+  x.org/exts: '*'
+
+  x.org/xkbfile: '*'
+  x.org/xdamage: '*'
+  x.org/xrandr: '*'
+  x.org/xcomposite: '*'
+
+  x.org/xtst: '*'
+  x.org/libxres: '*'
+  x.org/xfixes: '*'
+
+  videolan.org/x264: '*'
+  webmproject.org/libvpx: '*'
+  github.com/AOMediaCodec/libavif: '*'
+
+  github.com/Cyan4973/xxHash: '*'
+
+  gtk.org/gtk3: '*'
+  gnome.org/gobject-introspection: '*'
+
+  harfbuzz.org: '*'
+  gnome.org/gdk-pixbuf: '*'
+  gnome.org/atk: '*'
+  gnome.org/pango: '*'
+
+build:
+  script:
+    # The following part generates a py3cairo.pc file for pkg-config to pick up the py3cairo.h file.
+    # Unfortunatelly, this is needed because the pycairo package does not provide a .pc file (see: https://github.com/pygobject/pycairo/issues/270)
+    # At the same time, the xpra maintainers do not want to rely on another method to find the py3cairo.h file (see: https://github.com/Xpra-org/xpra/issues/4358)
+    # For reference, some distributions provide a py3cairo.pc file in a separate package (e.g. https://packages.debian.org/buster/all/python3-cairo-dev/filelist)
+    # Discussion in pkgx/pantry: https://github.com/pkgxdev/pantry/issues/7290
+    # FIME: move this to the pycairo package
+    - run: |
+        ln -s {{deps.cairographics.org/pycairo.prefix}}/lib/python{{deps.python.org.version.major}}/site-packages/cairo/include/py3cairo.h .
+        cp $PROP ../py3cairo.pc
+      prop: |
+        prefix=$(pwd)
+
+        Name: Pycairo
+        Description: Python bindings for the cairo graphics library
+        Version: {{deps.cairographics.org/pycairo.version}}
+        Requires: cairo
+        Cflags:
+        Libs:
+      working-directory: include/pycairo
+    # Actual build script follows
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} xpra
+  env:
+    PKG_CONFIG_PATH: './include:$PKG_CONFIG_PATH'
+    CFLAGS: $CFLAGS -I$SRCROOT/include
+
+provides:
+  - bin/xpra
+
+test: xpra --version | grep -q "{{version}}"
