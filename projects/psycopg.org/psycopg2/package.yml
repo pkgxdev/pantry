@@ -1,0 +1,17 @@
+distributable:
+  url: git+https://github.com/psycopg/psycopg2.git
+  ref: ${{version.tag}}
+
+versions:
+  github: psycopg/psycopg2/tags
+
+dependencies:
+  python.org: ~3.11
+  postgresql.org: '*'
+
+runtime:
+  env:
+    PYTHONPATH: ${{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH
+
+build: python -m pip install --prefix={{prefix}} .
+test: python -c 'import psycopg2; print(psycopg2.__version__)' | grep {{version}}
