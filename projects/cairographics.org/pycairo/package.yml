@@ -21,8 +21,10 @@ build:
     - run:
         - python3 setup.py install $ARGS
         - mv {{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages/*/* {{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages/
-        - mkdir -p {{prefix}}/lib/pkgconfig
+        # versions <1.27 didn't include py3cairo.pc or expose py3cairo.h
+        - mkdir -p {{prefix}}/{lib/pkgconfig,include/pycairo}
         - cp $PROP {{prefix}}/lib/pkgconfig/py3cairo.pc
+        - ln -s ../../lib/python{{deps.python.org.version.marketing}}/site-packages/cairo/include/py3cairo.h {{prefix}}/include/pycairo/py3cairo.h
       prop: |
         prefix={{prefix}}
         includedir=${prefix}/include
@@ -55,4 +57,17 @@ test:
     python.org: ~3.11
   script:
     - test "$(pkg-config --modversion py3cairo)" = "{{version}}"
+    - pkg-config --libs py3cairo
+    - run: cc $FIXTURE -o test -lcairo
+      fixture:
+        extname: c
+        content: |
+          #include <pycairo/py3cairo.h>
+          #include <stdio.h>
+
+          int main() {
+              printf("pycairo included!\n");
+              return 0;
+          }
+    - ./test
     - python3 -c "import cairo; print(cairo.version)" | grep {{version}}
