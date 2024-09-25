@@ -1,0 +1,30 @@
+distributable:
+  url: git+https://github.com/wez/wezterm
+  ref: '{{tag}}'
+
+display-name: wezterm
+
+versions:
+  - '20230326-111934-3666303c'
+  # github: wez/wezterm/tags
+
+dependencies:
+  linux:
+    freetype.org: '*'
+    freedesktop.org/fontconfig: "*"
+
+build:
+  dependencies:
+    rust-lang.org: ">=1.71"
+    rust-lang.org/cargo: "*"
+  script: cargo install $ARGS
+  env:
+    ARGS:
+      - --locked
+      - --path=wezterm
+      - --root {{prefix}}
+
+provides:
+  - bin/wezterm
+
+test: wezterm --version
