@@ -1,0 +1,27 @@
+distributable:
+  url: https://github.com/amir20/dozzle/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: amir20/dozzle
+
+provides:
+  - bin/dozzle
+
+build:
+  dependencies:
+    go.dev: ^1.21
+    gnu.org/make: "*"
+    pnpm.io: "*"
+    openssl.org: "*"
+  script: |
+    make tools
+    pnpm install 
+    make build
+  env:
+    MAKEFLAGS: '-j{{hw.concurrency}}'
+    PREFIX: '{{prefix}}'
+
+test:
+  script:
+    - dozzle --version | grep {{version}}
