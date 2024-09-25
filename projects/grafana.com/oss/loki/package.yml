@@ -1,0 +1,27 @@
+distributable:
+  url: git+https://github.com/grafana/loki
+  ref: v{{version}}
+
+versions:
+  github: grafana/loki
+  strip: /^v/
+
+provides:
+  - bin/loki
+
+build:
+  dependencies:
+    go.dev: ^1.22
+    git-scm.org: "*"
+    gnu.org/make: "*"
+  script: |
+    make loki
+    mkdir -p "{{prefix}}"/bin
+    cp cmd/loki/loki "{{prefix}}"/bin/
+  env:
+    MAKEFLAGS: '-j{{hw.concurrency}}'
+    PREFIX: '{{prefix}}'
+
+test:
+  script:
+    - loki --version | grep {{version}}
