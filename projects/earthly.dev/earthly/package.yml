@@ -1,0 +1,30 @@
+distributable:
+  url: https://github.com/earthly/earthly/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+display-name: earthly
+
+versions:
+  github: earthly/earthly
+
+build:
+  dependencies:
+    go.dev: '*'
+  env:
+    CGO_ENABLED: 0
+    GO_LDFLAGS:
+    - -s
+    - -w
+    - -X main.Version="{{ version }}"
+    - -X main.GitSha="$( git rev-parse HEAD )"
+    - -X main.BuiltBy="pkgx"
+    - -X main.DefaultInstallationName="earthly"
+    linux:
+      GO_LDFLAGS:
+      - -buildmode=pie
+  script: go build -v -ldflags="${GO_LDFLAGS}" -o "{{ prefix }}"/bin/earthly ./cmd/earthly
+
+provides:
+- bin/earthly
+
+test: test "$(earthly --version| cut -d' ' -f 3)" = {{version}}
