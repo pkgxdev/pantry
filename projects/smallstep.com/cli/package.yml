@@ -1,0 +1,34 @@
+# vendored
+# distributable:
+#   url: git+https://github.com/smallstep/cli
+#   ref: v{{version}}
+
+warnings:
+  - vendored
+
+versions:
+  github: smallstep/cli/tags
+  strip: /^v/
+
+provides:
+  - bin/step
+
+build:
+  dependencies:
+    curl.se: '*'
+    gnu.org/tar: '*'
+  working-directory: ${{prefix}}/bin
+  script:
+    - curl -L "https://github.com/smallstep/cli/releases/download/{{version.tag}}/step_${PLATFORM}_${ARCH}.tar.gz" | tar zxf -
+    - mv step_${PLATFORM}_${ARCH}/bin/step step
+    - rm -rf step_${PLATFORM}_${ARCH} # TODO: Shell completions
+  env:
+    CGO_ENABLED: 0
+    darwin/aarch64: {PLATFORM: darwin, ARCH: arm64}
+    darwin/x86-64:  {PLATFORM: darwin, ARCH: amd64}
+    linux/aarch64:  {PLATFORM: linux, ARCH: arm64}
+    linux/x86-64:   {PLATFORM: linux, ARCH: amd64}
+
+test:
+  script:
+    - step version | grep -q {{version}}
