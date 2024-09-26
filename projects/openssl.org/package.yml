@@ -10,7 +10,9 @@ distributable:
 
 versions:
   github: openssl/openssl
-  strip: /^openssl-/
+  strip:
+    - /^openssl-/
+    - /^OpenSSL_/
 
 provides:
   - bin/openssl
@@ -22,19 +24,23 @@ dependencies:
 build:
   dependencies:
     perl.org: 5
-  script: |
-    patch -p1 <props/x509_def.c.diff
+  script:
+    - patch -p1 <props/x509_def.c.diff
 
-    ./Configure --prefix={{ prefix }} $ARCH no-tests $ARGS --openssldir={{prefix}}/ssl
-    make --jobs {{ hw.concurrency }}
-    make install_sw   # `_sw` avoids installing docs
+    - ./Configure --prefix={{ prefix }} $ARCH no-tests $ARGS --openssldir={{prefix}}/ssl
+    - make --jobs {{ hw.concurrency }}
+    - make install_sw # `_sw` avoids installing docs
 
-    cd "{{prefix}}"
-    if test -d lib64; then
-      mv lib64 lib
-      ln -s lib lib64
-    fi
+    - cd "{{prefix}}"
+    - run: |
+        if test -d lib64; then
+          mv lib64 lib
+          ln -s lib lib64
+        fi
+      working-directory: '{{prefix}}'
 
+    - run: cp $SRCROOT/apps/openssl.cnf .
+      working-directory: '{{prefix}}/ssl'
   env:
     darwin/aarch64: { ARCH: 'darwin64-arm64-cc' }
     darwin/x86-64: { ARCH: 'darwin64-x86_64-cc' }
