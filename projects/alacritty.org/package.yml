@@ -1,0 +1,29 @@
+distributable:
+  url: https://github.com/alacritty/alacritty/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+display-name: alacritty
+
+versions:
+  github: alacritty/alacritty
+
+dependencies:
+  linux:
+    freetype.org: '*'
+    freedesktop.org/fontconfig: "*"
+
+build:
+  dependencies:
+    rust-lang.org: ">=1.75"
+    rust-lang.org/cargo: "*"
+  script: cargo install $ARGS
+  env:
+    ARGS:
+      - --locked
+      - --path=alacritty
+      - --root {{prefix}}
+
+provides:
+  - bin/alacritty
+
+test: alacritty --version

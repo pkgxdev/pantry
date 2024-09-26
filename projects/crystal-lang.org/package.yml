@@ -10,10 +10,6 @@ versions:
 warnings:
   - vendored
 
-platforms:
-  - darwin
-  - linux/x86-64
-
 companions:
   crystal-lang.org/shards: '*'
 
@@ -37,11 +33,18 @@ runtime:
 build:
   dependencies:
     curl.se: '*'
-    gnu.org/make: '*'
+    linux/aarch64:
+      gnu.org/binutils: '*' # ar
   script:
+    # third party support for linux-aarch64
     - run: |
-        curl -Lf "https://github.com/crystal-lang/crystal/releases/download/{{version}}/crystal-{{version}}-1-$PLATFORM.tar.gz" | \
-          tar --strip-components=1 -zxf -
+        if test '{{hw.platform}}+{{hw.arch}}' = 'linux+aarch64'; then
+          curl -L "https://packagecloud.io/84codes/crystal/packages/any/any/crystal_1.13.3-145_arm64.deb/download.deb?distro_version_id=35" -o crystal.deb
+          ar x crystal.deb
+          tar zxf data.tar.gz --strip-components=2
+        else
+          curl -Lf "https://github.com/crystal-lang/crystal/releases/download/{{version}}/crystal-{{version}}-1-$PLATFORM.tar.gz" | tar --strip-components=1 -zxf -
+        fi
       working-directory: .bootstrap
     - mkdir -p .build
     - make deps
@@ -73,11 +76,13 @@ provides:
   - bin/crystal
 
 test:
-  fixture: puts {{Crystal::VERSION}}
-  env:
-  script:
-    - cp $FIXTURE test.cr
-    - crystal build -o test test.cr
-    - test "$(./test)" = "{{version}}"
-    - test "$(crystal eval 'puts {{Crystal::VERSION}}')" = "{{version}}"
-    - test "$(cat $FIXTURE | crystal eval)" = "{{version}}"
+  - run: crystal build -o test $FIXTURE
+    fixture:
+      extname: cr
+      content: puts {{Crystal::VERSION}}
+  - test "$(./test)" = "{{version}}"
+  - test "$(crystal eval 'puts {{Crystal::VERSION}}')" = "{{version}}"
+  - run: test "$(cat $FIXTURE | crystal eval)" = "{{version}}"
+    fixture:
+      extname: cr
+      content: puts {{Crystal::VERSION}}

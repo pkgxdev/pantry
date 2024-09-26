@@ -1,0 +1,67 @@
+# vendored
+distributable:
+  # url: https://downloads.apache.org/kafka/{{version}}/kafka-{{version}}-src.tgz
+  url: https://downloads.apache.org/kafka/{{version}}/kafka_2.13-{{version}}.tgz # This only matters if you are using Scala and you want a version built for the same Scala version you use. Otherwise any version should work (2.13 is recommended).
+  strip-components: 1
+
+warnings:
+  - vendored
+
+provides:
+  - bin/connect-distributed.sh
+  - bin/connect-mirror-maker.sh
+  - bin/connect-plugin-path.sh
+  - bin/connect-standalone.sh
+  - bin/kafka-acls.sh
+  - bin/kafka-broker-api-versions.sh
+  - bin/kafka-client-metrics.sh
+  - bin/kafka-cluster.sh
+  - bin/kafka-configs.sh
+  - bin/kafka-console-consumer.sh
+  - bin/kafka-console-producer.sh
+  - bin/kafka-consumer-groups.sh
+  - bin/kafka-consumer-perf-test.sh
+  - bin/kafka-delegation-tokens.sh
+  - bin/kafka-delete-records.sh
+  - bin/kafka-dump-log.sh
+  - bin/kafka-e2e-latency.sh
+  - bin/kafka-features.sh
+  - bin/kafka-get-offsets.sh
+  - bin/kafka-jmx.sh
+  - bin/kafka-leader-election.sh
+  - bin/kafka-log-dirs.sh
+  - bin/kafka-metadata-quorum.sh
+  - bin/kafka-metadata-shell.sh
+  - bin/kafka-producer-perf-test.sh
+  - bin/kafka-reassign-partitions.sh
+  - bin/kafka-replica-verification.sh
+  - bin/kafka-run-class.sh
+  - bin/kafka-server-start.sh
+  - bin/kafka-server-stop.sh
+  - bin/kafka-storage.sh
+  - bin/kafka-streams-application-reset.sh
+  - bin/kafka-topics.sh
+  - bin/kafka-transactions.sh
+  - bin/kafka-verifiable-consumer.sh
+  - bin/kafka-verifiable-producer.sh
+  - bin/trogdor.sh
+  - bin/zookeeper-security-migration.sh
+  - bin/zookeeper-server-start.sh
+  - bin/zookeeper-server-stop.sh
+  - bin/zookeeper-shell.sh
+
+versions:
+  github: apache/kafka/tags
+
+dependencies:
+  openjdk.org: '*'
+
+build:
+  dependencies:
+    rsync.samba.org: '*'
+  script:
+    - rm -rf bin/windows
+    - run: rsync -avP $SRCROOT/* .
+      working-directory: ${{prefix}}
+
+test: kafka-run-class.sh kafka.Kafka --version | grep {{version}}

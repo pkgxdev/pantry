@@ -11,6 +11,10 @@ companions:
   linux:
     openssl.org: '*'
 
+dependencies:
+  darwin:
+    openmp.llvm.org: 18
+
 build:
   dependencies:
     go.dev: ^1.21
@@ -22,7 +26,9 @@ build:
     google.com/protobuf-go: ^1
     grpc.io/grpc-go: ^1
     linux:
-      gnu.org/gcc: '*' # needs omp.h
+      gnu.org/gcc: '*' # linux needs omp.h
+    darwin:
+      llvm.org: 18 # apple doens't support -fopenmp
   env:
     linux:
       # one of these will do it. probably.
@@ -30,6 +36,9 @@ build:
         - -lstdc++fs
       LD_FLAGS:
         - -buildmode=pie
+    darwin:
+      # strangely, it doesn't find the libomp.dylib
+      CGO_LDFLAGS: -L{{deps.openmp.llvm.org.prefix}}/lib
   script:
     - make build
     - install -D local-ai {{prefix}}/bin/local-ai
