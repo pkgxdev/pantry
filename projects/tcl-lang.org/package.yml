@@ -68,6 +68,8 @@ build:
         - make --jobs {{hw.concurrency}} critcl
         - cp -r modules/tcllibc {{prefix}}/lib/
       working-directory: tcllib
+      # not working on 9 yet
+      if: <9
 
     - run:
         - curl -L "$res_tcltls" | tar -xz --strip-components=1
@@ -79,7 +81,7 @@ build:
         - curl -L "$res_itk4" | tar -xz --strip-components=1
         - itcl_dir=$(ls -d {{prefix}}/lib/itcl* | tail -n 1)
         - ./configure $ITK4_ARGS --with-itcl=$itcl_dir
-        - make
+        - make --jobs {{hw.concurrency}}
         - make --jobs {{hw.concurrency}} install
       working-directory: itk4
 
