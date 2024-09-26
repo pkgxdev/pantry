@@ -11,13 +11,13 @@ provides:
 build:
   dependencies:
     go.dev: ^1.21
-    npmjs.com: '*'
+    pnpm.io: '*'
     openssl.org: '*'
   script:
     - make -j {{hw.concurrency}} tools
     - run: cp ~/go/bin/* .
       working-directory: ${{prefix}}/bin
-    - npm install $NPM_ARGS
+    - pnpm install
     - go build -ldflags "$GO_LDFLAGS" -o {{prefix}}/bin/dozzle .
   env:
     CGO_ENABLED: 0
@@ -25,12 +25,5 @@ build:
       - -s
       - -w
       - -X github.com/amir20/dozzle/internal/support/cli.Version={{version}}
-    NPM_ARGS:
-      - -ddd
-      - --global
-      - --build-from-source
-      - --prefix={{prefix}}
-      - --install-links
-      - --unsafe-perm
 
-test: dozzle --version | grep {{version}}
+test: test "$(dozzle --version)" = "{{version}}"
