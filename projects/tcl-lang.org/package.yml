@@ -63,6 +63,7 @@ build:
     - run:
         - curl -L "$res_tcllib" | tar -xJ --strip-components=1
         - ./configure --prefix={{prefix}} --mandir={{prefix}}/share/man
+        - sed -i "s|package require Tcl 8.2|package require Tcl {{version.major}}|g" installer.tcl
         - make --jobs {{hw.concurrency}} install
         - make --jobs {{hw.concurrency}} critcl
         - cp -r modules/tcllibc {{prefix}}/lib/
