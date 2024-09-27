@@ -8,6 +8,7 @@ versions:
 
 dependencies:
   zlib.net: ^1.3
+  x.org/x11: '*'
   linux:
     freetype.org: '*'
     freedesktop.org/fontconfig: '*'
@@ -17,7 +18,12 @@ build:
   dependencies:
     rust-lang.org: '>=1.71<1.78'
     rust-lang.org/cargo: '*'
-  script: cargo install $ARGS
+  script: |
+    # cargo install $ARGS
+    # ./get-deps
+    # cargo install --locked --root {{prefix}}
+    cargo build --release --no-default-features --features vendored-fonts --locked 
+    sleep 100000
   env:
     ARGS:
       - --locked
@@ -27,5 +33,7 @@ build:
 provides:
   - bin/wezterm
   - bin/wezterm-gui
+  - bin/strip-ansi-escapes
+  - bin/wezterm-mux-server
 
 test: test "$(wezterm --version)" = "wezterm {{version.tag}}"
