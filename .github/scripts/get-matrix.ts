@@ -71,9 +71,9 @@ function get_matrix(platform: string) {
       const os = {group: "linux-x86-64"}
       return {
         os, name,
-        container: "debian:buster-slim",
+        container: "debian:bullseye-slim",
         "test-os": [os],
-        "test-container": ["debian:buster-slim", "ubuntu", "archlinux"],
+        "test-container": ["debian:bullseye-slim", "ubuntu", "archlinux"],
         tinyname: "*nix64"
       }}
     case 'linux/aarch64': {
