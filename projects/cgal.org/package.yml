@@ -1,21 +1,23 @@
 distributable:
   url: https://github.com/CGAL/cgal/releases/download/v{{version.marketing}}/CGAL-{{version.marketing}}.tar.xz
   strip-components: 1
+
 versions:
   github: CGAL/cgal
+
 dependencies:
   boost.org: '*'
   eigen.tuxfamily.org: '*'
   gnu.org/gmp: '*'
   gnu.org/mpfr: '*'
   openssl.org: '*'
+
 build:
   dependencies:
     cmake.org: '*'
     qt.io: ~5
     linux:
       gnu.org/gcc: '*'
-      gnu.org/make: '*'
   script:
     - cmake . $CMAKE_ARGS
     - make install
@@ -30,10 +32,13 @@ build:
       - -DBUILD_TESTING=OFF
       - -DCMAKE_CXX_FLAGS='-std=c++14'
       - -DWITH_CGAL_Qt5=ON
+      - -DQT_DIRS={{deps.qt.io.prefix}}/cmake/Qt5
+
 provides:
   - bin/cgal_create_CMakeLists
   - bin/cgal_create_cmake_script
   - bin/cgal_make_macosx_app
+
 test:
   dependencies:
     cmake.org: '*'
@@ -42,21 +47,7 @@ test:
       gnu.org/gcc: '*'
       gnu.org/make: '*'
   script:
-    - mv $FIXTURE CMakeLists.txt
+    - cgal_create_CMakeLists
     - cmake -L $ARGS .
     - cmake --build . -v
     - ./surprise | grep 15
-  fixture: |
-    cmake_minimum_required(VERSION 3.1...3.15)
-    find_package(CGAL COMPONENTS Qt5)
-    add_definitions(-DCGAL_USE_BASIC_VIEWER -DQT_NO_KEYWORDS)
-    include_directories(surprise BEFORE SYSTEM {{deps.qt.io.prefix}}/include)
-    add_executable(surprise surprise.cpp)
-    target_include_directories(surprise BEFORE PUBLIC {{deps.qt.io.prefix}}/include})
-    target_link_libraries(surprise PUBLIC CGAL::CGAL_Qt5)
-  env:
-    ARGS:
-      - -DQt5_DIR={{deps.qt.io.prefix}}/cmake/Qt5
-      - -DCMAKE_PREFIX_PATH={{prefix}}
-    darwin:
-      LDFLAGS: -Wl,-rpath,{{pkgx.prefix}}
