@@ -1,20 +1,27 @@
 distributable:
   url: https://github.com/openai/whisper/archive/v{{version.major}}.tar.gz
   strip-components: 1
+
 versions:
   github: openai/whisper
+
 dependencies:
-  python.org: ^3.11
+  python.org: ~3.11
   ffmpeg.org: ^6.1
   huggingface.co: ^0.19
   pyyaml.org: ^0.2
+
 build:
   dependencies:
     rust-lang.org: ^1.65
   script:
+    # numpy 2 doesn't work
+    - sed -i 's/^numpy$/numpy<2/' requirements.txt
     - python-venv.sh {{prefix}}/bin/whisper
+
 provides:
   - bin/whisper
+
 test:
   dependencies:
     curl.se: '*'
