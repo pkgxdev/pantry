@@ -21,12 +21,12 @@ dependencies:
 build:
   script:
     - ./configure --prefix={{prefix}}
-    - make
+    - make -j{{ hw.concurrency }}
     - make install
     - run: |
-        sed -i
-          -e "s:$PKGX_DIR:\$\{pcfiledir\}/../../../..:g"
-          -e "s/\+brewing//g" 
+        sed -i \
+          -e "s:$PKGX_DIR:\$\{pcfiledir\}/../../../..:g" \
+          -e "s/\+brewing//g"  \
           *.pc
       working-directory: '{{prefix}}/lib/pkgconfig'
 
