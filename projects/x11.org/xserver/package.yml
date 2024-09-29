@@ -2,6 +2,9 @@ distributable:
   url: https://www.x.org/archive/individual/xserver/xorg-server-{{version}}.tar.gz
   strip-components: 1
 
+provides:
+  - bin/Xorg
+
 versions:
   url: https://www.x.org/archive/individual/xserver/
   match: /xorg-server-\d+\.\d+\.\d+.tar.gz/
@@ -15,9 +18,7 @@ dependencies:
 
 build:
   dependencies:
-    # libxcvt
     x.org/libcvt: '*'
-    # xfont2
     x.org/libxfont2: '*'
     gnu.org/make: '*'
     gnu.org/gcc: '*'
@@ -41,22 +42,29 @@ build:
 
 
   script:
+    - echo {{deps.x.org/libcvt.prefix}}
+    - cp {{deps.x.org/libcvt.prefix}}/lib/x86_64-linux-gnu/pkgconfig/libxcvt.pc  {{deps.x.org/libcvt.prefix}}/lib/x86_64-linux-gnu/pkgconfig/xcvt.pc 
+    - pkg-config --modversion xcvt
     - ./configure $ARGS
+    - cp {{deps.x.org/libxfont2.prefix}}/lib/pkgconfig/../../lib/libXfont2.la lib/
+    - make
     - make --jobs {{ hw.concurrency }} install
   env:
+    PKG_CONFIG_PATH: '{{deps.x.org/libcvt.prefix}}/lib/x86_64-linux-gnu/pkgconfig:$PKG_CONFIG_PATH'
     SHELF: ${{pkgx.prefix}}/x.org
     ARGS:
       - --prefix="{{prefix}}"
-      - --sysconfdir="$SHELF"/etc
-      - --localstatedir="$SHELF"/var
-      - --disable-debug
-      - --enable-unix-transport
-      - --enable-tcp-transport
-      - --enable-ipv6
-      - --enable-local-transport
-      - --enable-loadable-i18n
-      - --enable-xthreads
-      - --enable-specs=no
+      - --enable-dri
+      # - --sysconfdir="$SHELF"/etc
+      # - --localstatedir="$SHELF"/var
+      # - --disable-debug
+      # - --enable-unix-transport
+      # - --enable-tcp-transport
+      # - --enable-ipv6
+      # - --enable-local-transport
+      # - --enable-loadable-i18n
+      # - --enable-xthreads
+      # - --enable-specs=no
 
 test:
   script: |
