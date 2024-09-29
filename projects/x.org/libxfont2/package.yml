@@ -13,21 +13,18 @@ dependencies:
   x.org/x11: ^1
   x.org/exts: '*'
   x.org/protocol: '*'
-  freedesktop.org/pkg-config: '*'
   freetype.org: '*'
   x.org/xtrans: '*'
+  zlib.net: '*'
+  x.org/libfontenc: '*'
 
 build:
-  script: |
-    ./configure --prefix={{prefix}}
-    make
-    make install
-  dependencies: 
-    gnu.org/make: '*'
-    gnu.org/gcc: '*'
-    zlib.net: '*'
-    x.org/libfontenc: '*'
-    
+  - ./configure --prefix={{prefix}}
+  - make
+  - make install
 
 test:
-  - run: pkg-config --modversion xfont2 | grep {{version}}
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script:
+    - run: pkg-config --modversion xfont2 | grep {{version}}
