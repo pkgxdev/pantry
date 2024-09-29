@@ -103,6 +103,10 @@ build:
     - run: echo 'export LD_LIBRARY_PATH="$OPENSEARCH_HOME/plugins/opensearch-knn/lib:$LD_LIBRARY_PATH"' >> opensearch-env
       working-directory: ${{prefix}}/bin
       if: linux
+  env:
+    linux/x86-64:
+      # /opt/gnu.org/binutils/v2.43.1/bin/ld: release/libopensearchknn_faiss_avx2.so: undefined reference to `_gfortran_concat_string'
+      LDFLAGS: $LDFLAGS -Wl,-lgfortran
 
 provides:
   - bin/opensearch

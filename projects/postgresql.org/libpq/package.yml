@@ -19,20 +19,21 @@ dependencies:
 
 build:
   dependencies:
-    freedesktop.org/pkg-config: ^0
-  script: |
+    linux:
+      gnu.org/bison: '*'
+      github.com/westes/flex: '*'
+  script:
     # remove `-w`` from CFLAGS, because it causes build to fail, ironically.
     # `./configure` *specifically* checks that certain warnings are emitted.
-    export CFLAGS="$(echo $CFLAGS | tr ' ' '\n' | sed -e '/^-w$/d' | tr '\n' ' ')"
-    ./configure $ARGS
+    - export CFLAGS="$(echo $CFLAGS | tr ' ' '\n' | sed -e '/^-w$/d' | tr '\n' ' ')"
+    - ./configure $ARGS
 
-    make --jobs {{ hw.concurrency }}
-    make -C src/bin install $DIRS
-    make -C src/include install $DIRS
-    make -C src/interfaces install $DIRS
-    make -C src/common install $DIRS
-    make -C src/port install $DIRS
-    make -C doc install $DIRS
+    - make --jobs {{ hw.concurrency }}
+    - make -C src/bin install $DIRS
+    - make -C src/include install $DIRS
+    - make -C src/interfaces install $DIRS
+    - make -C src/common install $DIRS
+    - make -C src/port install $DIRS
   env:
     ARGS:
       - --disable-debug
@@ -49,7 +50,5 @@ build:
       - includedir_internal={{prefix}}/include/postgresql/internal
 
 test:
-  dependencies:
-  script: |
-    cc libpq.c -lpq -o libpqtest
-    test "$(./libpqtest)" = 'Connection to database attempted and failed'
+  - cc libpq.c -lpq -o libpqtest
+  - test "$(./libpqtest)" = 'Connection to database attempted and failed'

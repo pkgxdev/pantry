@@ -1,0 +1,25 @@
+distributable:
+  url: https://github.com/sqlalchemy/alembic/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: sqlalchemy/alembic/releases
+
+dependencies:
+  pkgx.sh: ^1
+
+build:
+  dependencies:
+    python.org: ~3.11
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} alembic
+
+test:
+  - test "$(alembic --version)" = "alembic {{version}}"
+  - alembic init generic
+  - test -s alembic.ini
+
+provides:
+  - bin/alembic

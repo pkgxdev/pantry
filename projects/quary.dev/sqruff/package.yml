@@ -5,6 +5,10 @@ distributable:
 versions:
   github: quarylabs/sqruff
 
+dependencies:
+  linux:
+    jemalloc.net: 5
+
 build:
   dependencies:
     rust-lang.org/rustup: '*'
@@ -22,14 +26,17 @@ build:
     # jemalloc breaks linux build
     - run:
         - sed -i '/jemallocator/{N;N;d;}' cli/Cargo.toml lib/Cargo.toml
-        - sed -i 's/any(target_arch = "x86_64", target_arch = "aarch64", target_arch = "powerpc64")/any(target_arch = "powerpc64")/' cli/src/main.rs
+        - sed -i -f $PROP cli/src/main.rs
       working-directory: ..
       if: linux
+      prop: |
+        s|^\(.*any(target_arch = "x86_64", target_arch = "aarch64", target_arch = "powerpc64"\)|//\1|
+        /^\#\[global_allocator\]$/ {N; s|^\(#\[global_allocator\]\)\n\(static ALLOC: jemallocator\)|//\1\n//\2|}
 
     # -Ctarget-cpu is breaking darwin/x86-64
     - run: if test -f config.toml; then sed -i '/-Ctarget-cpu=native/d' config.toml; fi
       working-directory: ../../.cargo
-      # if: darwin/x86-64
+      if: darwin/x86-64
 
     - cargo install --locked --path . --root {{prefix}}
   env:
