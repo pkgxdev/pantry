@@ -30,6 +30,8 @@ build:
     git-scm.org: '*'
     curl.se: '*'
     python.org: ~3.11
+    linux/aarch64:
+      kernel.org/linux-headers: '*' # hwcap.h
   env:
     VIRTUAL_ENV: ${{prefix}}/venv
   script:
@@ -40,6 +42,14 @@ build:
     # this commit breaks linux/aarch64 - fixed in 1732
     - run: curl -LSs 'https://github.com/ggerganov/llama.cpp/pull/4630/commits/42f5246effafddcf87d67656b58e95030f4bc454.patch' | patch -p1 -R
       if: '>=1705<1732'
+
+    - run: sed -i -f $PROP ggml.c
+      if: linux/aarch64
+      working-directory: ggml/src
+      prop: |
+        /#include <syscall.h>/a\
+        // missing include for linux/aarch64 -- HWCAP2_I8MM\\
+        #include <asm/hwcap.h>
 
     - make --jobs {{hw.concurrency}}
 
