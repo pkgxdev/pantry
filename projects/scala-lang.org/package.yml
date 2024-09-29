@@ -1,0 +1,37 @@
+# vendored
+# distributable:
+#   url: https://github.com/scala/scala3/archive/refs/tags/{{ version.tag }}.tar.gz
+#   strip-components: 1
+
+warnings:
+  - vendored
+
+interpretes:
+  extensions: scala
+  args: scala
+
+provides:
+  - bin/scalac
+  - bin/scala
+  - bin/scala-cli
+  - bin/sbtn
+  - bin/amm
+  - scalafmt
+
+versions:
+  github: scala/scala3
+
+dependencies:
+  openjdk.org: '*'
+
+build:
+  dependencies:
+    curl.se: '*'
+  script:
+    - curl -fLo coursier https://github.com/coursier/launchers/raw/master/coursier
+    - chmod +x coursier
+    - ./coursier setup --yes --install-dir {{prefix}}/bin
+    - ./coursier install scala:{{version}} scalac:{{version}} --install-dir {{prefix}}/bin
+    - ./coursier install scala-cli sbtn scalafmt --install-dir {{prefix}}/bin
+
+test: scalac -version 2>&1 | grep {{version}}

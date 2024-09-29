@@ -1,28 +1,73 @@
 distributable:
-  url: https://github.com/pygobject/pycairo/releases/download/v{{version}}/pycairo-{{version}}.tar.gz
+  url: https://github.com/pygobject/pycairo/releases/download/{{version.tag}}/pycairo-{{version}}.tar.gz
   strip-components: 1
+
 versions:
   github: pygobject/pycairo
+
 dependencies:
   cairographics.org: '*'
+
 runtime:
   env:
-    PYTHONPATH: "{{prefix}}/lib/python3/site-packages:$PYTHONPATH"
+    PYTHONPATH: '{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages:$PYTHONPATH'
+
 build:
   dependencies:
-    freedesktop.org/pkg-config: '*'
     python.org: ~3.11
+    mesonbuild.com: '*' # as of 1.27.0
+    ninja-build.org: '*' # as of 1.27.0
   script:
-    - python3 setup.py install $ARGS
-    - mv {{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages/*/* {{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages/
-    - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
-      working-directory: "{{prefix}}/lib"
+    - run:
+        - python3 setup.py install $ARGS
+        - mv {{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages/*/* {{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages/
+        # versions <1.27 didn't include py3cairo.pc or expose py3cairo.h
+        - mkdir -p {{prefix}}/{lib/pkgconfig,include/pycairo}
+        - cp $PROP {{prefix}}/lib/pkgconfig/py3cairo.pc
+        - ln -s ../../lib/python{{deps.python.org.version.marketing}}/site-packages/cairo/include/py3cairo.h {{prefix}}/include/pycairo/py3cairo.h
+      prop: |
+        prefix={{prefix}}
+        includedir=${prefix}/include
+
+        Name: py3cairo
+        Description: Python 3 bindings for cairo
+        Version: {{version}}
+        Requires: cairo
+        Cflags: -I${includedir}/pycairo
+      if: <1.27
+
+    - run:
+        - meson setup build $MESON_ARGS
+        - meson compile -C build
+        - meson install -C build
+      if: '>=1.27'
+
+    - run:
+        - ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
+      working-directory: '{{prefix}}/lib'
   env:
     ARGS:
       - --verbose
       - --prefix={{prefix}}
+    MESON_ARGS:
+      - --prefix={{prefix}}
+
 test:
   dependencies:
     python.org: ~3.11
   script:
+    - test "$(pkg-config --modversion py3cairo)" = "{{version}}"
+    - pkg-config --libs py3cairo
+    - run: cc $FIXTURE -o test -lcairo
+      fixture:
+        extname: c
+        content: |
+          #include <pycairo/py3cairo.h>
+          #include <stdio.h>
+
+          int main() {
+              printf("pycairo included!\n");
+              return 0;
+          }
+    - ./test
     - python3 -c "import cairo; print(cairo.version)" | grep {{version}}

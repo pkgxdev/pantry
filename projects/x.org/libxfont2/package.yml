@@ -1,0 +1,31 @@
+distributable:
+  url: https://www.x.org/archive/individual/lib/libXfont2-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://www.x.org/archive/individual/lib/
+  match: /libXfont2-\d+\.\d+\.\d+.tar.gz/
+  strip:
+    - /libXfont2-/
+    - /.tar.gz/
+
+dependencies:
+  x.org/x11: ^1
+  x.org/exts: '*'
+  x.org/protocol: '*'
+  freetype.org: '*'
+  x.org/xtrans: '*'
+  zlib.net: '*'
+  x.org/libfontenc: '*'
+
+build:
+  - ./configure --prefix={{prefix}}
+  - make
+  - make install
+
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script:
+    - run: pkg-config --modversion xfont2 | grep {{version}}
+

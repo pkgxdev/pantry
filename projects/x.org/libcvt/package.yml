@@ -1,0 +1,41 @@
+distributable:
+  url: https://www.x.org/archive/individual/lib/libxcvt-{{version}}.tar.xz
+  strip-components: 1
+
+versions:
+  url: https://www.x.org/archive/individual/lib/
+  match: /libxcvt-\d+\.\d+\.\d+.tar.xz/
+  strip:
+    - /libxcvt-/
+    - /.tar.xz/
+
+provides:
+  - bin/cvt
+
+dependencies:
+  x.org/x11: ^1
+  x.org/exts: '*'
+  x.org/protocol: '*'
+
+build:
+  script: |
+    meson build/ --prefix={{ prefix }}
+    ninja -C build/ install
+  dependencies: 
+    mesonbuild.com: '*'
+    ninja-build.org: '*'
+
+test:
+
+  - run: bash -c '(cvt 2>&1 || true)' | grep 'Calculates VESA CVT'
+  - run: cc $FIXTURE
+    fixture:
+      extname: c
+      content: |
+        #include <X11/Xlib.h>
+        #include <libxcvt/libxcvt.h>
+        int main(int argc, char* argv[]) {
+          struct libxcvt_mode_info *mode_info;
+          return 0;
+        }
+  - ./a.out

@@ -10,31 +10,47 @@ versions:
 dependencies:
   pkgx.sh: ^1
 
+runtime:
+  env:
+    PYTHONPATH: '{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages:$PYTHONPATH'
+
 build:
   dependencies:
     python.org: ~3.11
   script:
-    - bkpyvenv stage {{prefix}} {{version}}
-    - ${{prefix}}/venv/bin/pip install .
-    - bkpyvenv seal {{prefix}} btcli
+    - run:
+        - bkpyvenv stage {{prefix}} {{version}}
+        - ${{prefix}}/venv/bin/pip install .
+        - bkpyvenv seal {{prefix}} btcli
+      if: <8
+    - run:
+        - pip install . --prefix={{prefix}}
+        - ln -s python{{deps.python.org.version.marketing}} {{prefix}}/lib/python{{deps.python.org.version.major}}
+      if: '>=8'
 
 test:
-  # conda's numpy doesn't seem to be compatible with macOS 12's Accellerate.framework
-  # no point in holding it out just for that, though
-  # dlopen(/Users/runner/.pkgx/bittensor.com/v7.3.0/venv/lib/python3.11/site-package
-  # s/numpy/_core/_multiarray_umath.cpython-311-darwin.so, 0x0002): Symbol not
-  # found: (_cblas_caxpy$NEWLAPACK$ILP64)
-  #   Referenced from:
-  # '/Users/runner/.pkgx/bittensor.com/v7.3.0/venv/lib/python3.11/site-packages/nump
-  # y/_core/_multiarray_umath.cpython-311-darwin.so'
-  #   Expected in:
-  # '/System/Library/Frameworks/Accelerate.framework/Versions/A/Accelerate'
-  - run: |
-      if test "$(sw_vers -productVersion | cut -d . -f 1)" -lt 13; then
-        exit 0
-      fi
-    if: darwin
-  - btcli --help | grep {{version}}
-
-provides:
-  - bin/btcli
+  dependencies:
+    python.org: ~3.11
+  script:
+    # conda's numpy doesn't seem to be compatible with macOS 12's Accellerate.framework
+    # no point in holding it out just for that, though
+    # dlopen(/Users/runner/.pkgx/bittensor.com/v7.3.0/venv/lib/python3.11/site-package
+    # s/numpy/_core/_multiarray_umath.cpython-311-darwin.so, 0x0002): Symbol not
+    # found: (_cblas_caxpy$NEWLAPACK$ILP64)
+    #   Referenced from:
+    # '/Users/runner/.pkgx/bittensor.com/v7.3.0/venv/lib/python3.11/site-packages/nump
+    # y/_core/_multiarray_umath.cpython-311-darwin.so'
+    #   Expected in:
+    # '/System/Library/Frameworks/Accelerate.framework/Versions/A/Accelerate'
+    - run: |
+        if test "$(sw_vers -productVersion | cut -d . -f 1)" -lt 13; then
+          exit 0
+        fi
+      if: darwin
+    - run: btcli --help | grep {{version}}
+      if: <8
+    - run: test "$(python -c 'import bittensor; print(bittensor.__version__)')" = "{{version}}"
+      if: '>=8'
+# removed in v8
+# provides:
+#   - bin/btcli
