@@ -19,7 +19,7 @@ dependencies:
   yt-dlp.org: '*'
   linux:
     alsa-project.org/alsa-lib: 1
-    github.com/adah1972/libunibreak: 5
+    github.com/adah1972/libunibreak: 6
 
 warnings:
   - macOS12+
@@ -73,15 +73,17 @@ build:
       - --buildtype=release
     darwin:
       NCURSES_INCLUDE: ${{deps.invisible-island.net/ncurses.prefix}}/include
+      # dyld[] missing symbol called
+      MACOSX_DEPLOYMENT_TARGET: 14.0
     linux:
       CC: clang
       LD: clang
 
 test:
-  # the swift bits rely on a lib not available on macOS 11; we've seen this before.
+  # the swift bits rely on a version of AppKit not available on macOS 13; we've seen this before.
   # no point in holding it out just for that, though
   - run: |
-      if test "$(sw_vers -productVersion | cut -d . -f 1)" -lt 12; then
+      if test "$(sw_vers -productVersion | cut -d . -f 1)" -lt 14; then
         exit 0
       fi
     if: darwin

@@ -1,0 +1,62 @@
+distributable:
+  url: https://github.com/Xpra-org/xpra/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: Xpra-org/xpra
+  strip: /^xpra /
+
+platforms:
+  - linux
+
+runtime:
+  env:
+    GI_TYPELIB_PATH: '{{deps.gnome.org/gobject-introspection.prefix}}/lib/girepository-1.0:{{deps.gnome.org/glib.prefix}}/lib/girepository-1.0:{{deps.gtk.org/gtk3.prefix}}/lib/girepository-1.0:{{deps.gnome.org/pango.prefix}}/lib/girepository-1.0:{{deps.harfbuzz.org.prefix}}/lib/girepository-1.0:{{deps.gnome.org/gdk-pixbuf.prefix}}/lib/girepository-1.0:{{deps.gnome.org/atk.prefix}}/lib/girepository-1.0'
+
+dependencies:
+  pkgx.sh: ^1
+  python.org: '~3.11'
+  cython.org: '*'
+  tukaani.org/xz: '*'
+  cairographics.org: '*'
+  cairographics.org/pycairo: '1.26.1'
+  freedesktop.org/pkg-config: ~0.29
+  gnome.org/PyGObject: '*'
+  gnome.org/glib: '*'
+
+  x.org/x11: '*'
+  x.org/protocol: '*'
+  x.org/exts: '*'
+
+  x.org/xkbfile: '*'
+  x.org/xdamage: '*'
+  x.org/xrandr: '*'
+  x.org/xcomposite: '*'
+
+  x.org/xtst: '*'
+  x.org/libxres: '*'
+  x.org/xfixes: '*'
+
+  videolan.org/x264: '*'
+  webmproject.org/libvpx: '*'
+  github.com/AOMediaCodec/libavif: '*'
+
+  github.com/Cyan4973/xxHash: '*'
+
+  gtk.org/gtk3: '*'
+  gnome.org/gobject-introspection: '*'
+
+  harfbuzz.org: '*'
+  gnome.org/gdk-pixbuf: '*'
+  gnome.org/atk: '*'
+  gnome.org/pango: '*'
+
+build:
+  - bkpyvenv stage {{prefix}} {{version}}
+  - ${{prefix}}/venv/bin/pip install .
+  - bkpyvenv seal {{prefix}} xpra
+
+provides:
+  - bin/xpra
+
+test: xpra --version | grep -q "{{version}}"

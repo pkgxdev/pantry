@@ -1,0 +1,80 @@
+distributable:
+  url: https://github.com/sqlc-dev/sqlc/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: sqlc-dev/sqlc
+
+provides:
+  - bin/sqlc
+
+build:
+  dependencies:
+    go.dev: ^1.22
+  script:
+    - go mod download
+    - go build -v -trimpath -ldflags="$GO_LDFLAGS" -o {{prefix}}/bin/sqlc ./cmd/sqlc
+  env:
+    GO_LDFLAGS:
+      - -s
+      - -w
+    linux:
+      # or segmentation fault
+      # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
+      GO_LDFLAGS:
+        - -buildmode=pie
+
+test:
+  - test "$(sqlc version)" = "v{{version}}"
+  - run: cp $FIXTURE sqlc.yaml
+    fixture: |
+      version: "2"
+      sql:
+        - engine: "postgresql"
+          queries: "query.sql"
+          schema: "schema.sql"
+          gen:
+            go:
+              package: "tutorial"
+              out: "tutorial"
+              sql_package: "pgx/v5"
+  - run: cp $FIXTURE schema.sql
+    fixture: |
+      CREATE TABLE authors (
+        id   BIGSERIAL PRIMARY KEY,
+        name text      NOT NULL,
+        bio  text
+      );
+  - run: cp $FIXTURE query.sql
+    fixture: |
+      -- name: GetAuthor :one
+      SELECT * FROM authors
+      WHERE id = $1 LIMIT 1;
+
+      -- name: ListAuthors :many
+      SELECT * FROM authors
+      ORDER BY name;
+
+      -- name: CreateAuthor :one
+      INSERT INTO authors (
+        name, bio
+      ) VALUES (
+        $1, $2
+      )
+      RETURNING *;
+
+      -- name: UpdateAuthor :exec
+      UPDATE authors
+        set name = $2,
+        bio = $3
+      WHERE id = $1;
+
+      -- name: DeleteAuthor :exec
+      DELETE FROM authors
+      WHERE id = $1;
+  - sqlc generate
+  - run:
+      - test -f db.go
+      - test -f models.go
+      - test -f query.sql.go
+    working-directory: tutorial

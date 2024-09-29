@@ -12,7 +12,9 @@ dependencies:
 
 build: python-venv.sh {{prefix}}/bin/yt-dlp
 
-test: yt-dlp --simulate https://youtu.be/pOtd1cbOP7k
+test:
+  - ( yt-dlp --simulate https://youtu.be/pOtd1cbOP7k 2>&1 | tee out ) || true
+  - "grep -E '(pOtd1cbOP7k: Downloading 1|Sign in to confirm you’re not a bot)' out"
 
 provides:
   - bin/yt-dlp

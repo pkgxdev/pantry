@@ -1,0 +1,33 @@
+distributable:
+  url: https://xcb.freedesktop.org/dist/xcb-util-{{version.raw}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://xcb.freedesktop.org/dist/
+  match: /xcb-util-\d+\.\d+(\.\d+)?.tar.gz/
+  strip:
+    - /xcb-util-/
+    - /.tar.gz/
+
+dependencies:
+  x.org/xcb: ^1
+
+build:
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+    # .la are unrelocatable, but only used if found
+    - run: rm *.la
+      working-directory: ${{prefix}}/lib
+  env:
+    SHELF: ${{pkgx.prefix}}/x.org
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --sysconfdir="$SHELF"/etc
+      - --localstatedir="$SHELF"/var
+      - --disable-silent-rules
+
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script: test "$(pkg-config --modversion xcb-util)" = "{{version}}"
