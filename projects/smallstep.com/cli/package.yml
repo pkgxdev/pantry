@@ -1,10 +1,6 @@
-# vendored
-# distributable:
-#   url: git+https://github.com/smallstep/cli
-#   ref: v{{version}}
-
-warnings:
-  - vendored
+distributable:
+  url: git+https://github.com/smallstep/cli
+  ref: v{{version}}
 
 versions:
   github: smallstep/cli/tags
@@ -13,21 +9,32 @@ versions:
 provides:
   - bin/step
 
+
 build:
   dependencies:
-    curl.se: '*'
-    gnu.org/tar: '*'
-  working-directory: ${{prefix}}/bin
+    go.dev: ^1.22
   script:
-    - curl -L "https://github.com/smallstep/cli/releases/download/{{version.tag}}/step_${PLATFORM}_${ARCH}.tar.gz" | tar zxf -
-    - mv step_${PLATFORM}_${ARCH}/bin/step step
-    - rm -rf step_${PLATFORM}_${ARCH} # TODO: Shell completions
+    go build $ARGS -ldflags="$LDFLAGS" ./cmd/step
   env:
-    CGO_ENABLED: 0
-    darwin/aarch64: {PLATFORM: darwin, ARCH: arm64}
-    darwin/x86-64:  {PLATFORM: darwin, ARCH: amd64}
-    linux/aarch64:  {PLATFORM: linux, ARCH: arm64}
-    linux/x86-64:   {PLATFORM: linux, ARCH: amd64}
+    darwin/aarch64: {PLATFORM: darwin_arm64, GOARCH: arm64, GOOS: darwin}
+    darwin/x86-64:  {PLATFORM: darwin_amd64_v1, GOARCH: amd64, GOOS: darwin}
+    linux/aarch64:  {PLATFORM: linux_arm64, GOARCH: arm64, GOOS: linux}
+    linux/x86-64:   {PLATFORM: linux_amd64_v1, GOARCH: amd64, GOOS: linux}
+    COMMIT: $(git describe --always --abbrev=8 --dirty)
+    DATE: $(date -u +%FT%TZ)
+    ARGS:
+      - -trimpath
+      - -o={{prefix}}/bin/syft
+    linux:
+      ARGS:
+        - -buildmode=pie
+    LDFLAGS:
+      - -s
+      - -w
+      - -X main.version={{version}}
+      - -X main.gitCommit=${COMMIT}
+      - -X main.buildDate=${DATE}
+
 
 test:
   script:
