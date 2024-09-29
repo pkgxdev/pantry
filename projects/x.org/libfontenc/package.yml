@@ -13,18 +13,15 @@ dependencies:
   x.org/x11: ^1
   x.org/exts: '*'
   x.org/protocol: '*'
-  freedesktop.org/pkg-config: '*'
+  zlib.net: '*'
 
 build:
-  script: |
-    ./configure --prefix={{prefix}}
-    make
-    make install
-  dependencies: 
-    gnu.org/make: '*'
-    gnu.org/gcc: '*'
-    zlib.net: '*'
-    
+  - ./configure --prefix={{prefix}}
+  - make
+  - make install    
 
 test:
-  - run: pkg-config --modversion fontenc | grep {{version}}
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script:
+    - run: pkg-config --modversion fontenc | grep {{version}}
