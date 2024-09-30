@@ -16,13 +16,17 @@ build:
     freedesktop.org/pkg-config: '*'
     git-scm.org: '*'
   working-directory: build
-  script: |
-    cmake .. $ARGS
-    make install
+  script:
+    - cmake .. $ARGS
+    - make install
   env:
     ARGS:
       - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
       - -DCMAKE_BUILD_TYPE=Release
+    linux:
+      ARGS:
+        # since 3.3.0
+        - -DCMAKE_EXE_LINKER_FLAGS="-Wl,-lstdc++fs"
 
 provides:
   - bin/exr2aces
