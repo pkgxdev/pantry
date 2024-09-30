@@ -1,0 +1,26 @@
+distributable:
+  url: https://github.com/juju/juju/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+display-name: juju
+
+versions:
+  github: juju/juju
+
+build:
+  dependencies:
+    go.dev: '*'
+  env:
+    CGO_ENABLED: 0
+    GO_LDFLAGS:
+    - -s
+    - -w
+    linux:
+      GO_LDFLAGS:
+      - -buildmode=pie
+  script: go build -v -ldflags="${GO_LDFLAGS}" -o "{{ prefix }}"/bin/juju ./cmd/juju/main.go
+
+provides:
+- bin/juju
+
+test: test "$(juju --version| cut -d'-' -f1)" = {{version}}
