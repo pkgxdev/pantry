@@ -38,9 +38,8 @@ build:
         main_file=$(find . -name "main.cpp")
         echo "Found main.cpp at: $main_file"
         old_line='auto state_dir = computeWatchmanStateDirectory(user);'
-        new_line='const char* env_state_dir = getenv("WATCHMAN_STATE_DIR");
-            auto state_dir = env_state_dir ? env_state_dir : computeWatchmanStateDirectory(user);'
-        sed -i "s/$old_line/$new_line/" "$main_file"
+        new_line='const char* env_state_dir = getenv("WATCHMAN_STATE_DIR"); auto state_dir = env_state_dir ? env_state_dir : computeWatchmanStateDirectory(user);'
+        sed -i.bak 's/$old_line/$new_line/' '$main_file' && rm '$main_file.bak'
       working-directory: watchman
       
     # version/path mismatch
