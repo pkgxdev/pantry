@@ -20,7 +20,6 @@ dependencies:
   python.org: ~3.11
   linux:
     libcxx.llvm.org: 18 # libunwind/libc++
-    gnu.org/gcc/libstdcxx: 13
 
 build:
   dependencies:
@@ -30,8 +29,6 @@ build:
     google.com/googletest: '*'
     facebook.com/mvfst: '>=2023.12.25.0'
     rust-lang.org: '*'
-    linux:
-      gnu.org/gcc: 13
   script:
     # replace build-time WATCHMAN_STATE_DIR with run-time WATCHMAN_STATE_DIR
     - run: |
@@ -66,12 +63,6 @@ build:
       - -DENABLE_EDEN_SUPPORT=ON
       - -DWATCHMAN_VERSION_OVERRIDE={{version}}
       - -DPython3_EXECUTABLE={{deps.python.org.prefix}}/bin/python
-    linux:
-      CC: gcc
-      CXX: g++
-      LD: gcc
-      CMAKE_ARGS:
-        - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-pie,-lstdc++,-latomic
 
 runtime:
   env:
