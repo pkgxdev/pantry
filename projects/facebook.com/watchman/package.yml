@@ -20,6 +20,7 @@ dependencies:
   python.org: ~3.11
   linux:
     libcxx.llvm.org: 18 # libunwind/libc++
+    gnu.org/gcc/libstdcxx: 13
 
 build:
   dependencies:
@@ -29,6 +30,8 @@ build:
     google.com/googletest: '*'
     facebook.com/mvfst: '>=2023.12.25.0'
     rust-lang.org: '*'
+    linux:
+      gnu.org/gcc: 13
   script:
     # version/path mismatch
     - run: |
@@ -36,11 +39,12 @@ build:
           sed -i 's/watchman_client = { version = ".*", path/watchman_client = { path/' Cargo.toml
         fi
       working-directory: watchman/cli
-    - cmake -S . -B build $CMAKE_ARGS -DCMAKE_CXX_FLAGS="$CXXFLAGS"
+    - cmake -S . -B build $CMAKE_ARGS -DCMAKE_C_FLAGS="$CFLAGS" -DCMAKE_CXX_FLAGS="$CXXFLAGS"
     - cmake --build build
     - cmake --install build
     - mkdir -p {{prefix}}/var/run/watchman
   env:
+    # WATCHMAN_STATE_DIR: "{{prefix}}/var/run/watchman"
     CMAKE_ARGS:
       - -DCMAKE_INSTALL_PREFIX="{{prefix}}
       - -DCMAKE_INSTALL_LIBDIR=lib
@@ -53,25 +57,15 @@ build:
       - -DWATCHMAN_VERSION_OVERRIDE={{version}}
       - -DPython3_EXECUTABLE={{deps.python.org.prefix}}/bin/python
     linux:
-      CC: clang
-      CXX: clang++
-      LD: clang
+      CC: gcc
+      CXX: g++
+      LD: gcc
       CMAKE_ARGS:
-        - -DCMAKE_C_FLAGS=-fPIC
-    linux/x86-64:
-      CXXFLAGS:
-        - -fPIC
-        - -Wl,--allow-shlib-undefined
-      CMAKE_ARGS:
-        - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-pie
-    linux/aarch64:
-      CXXFLAGS:
-        - -fPIC
-        - -Wl,--allow-shlib-undefined
-        - -cxx-isystem {{deps.libcxx.llvm.org.prefix}}/include/c++/v1
-        - -stdlib=libc++
-      CMAKE_ARGS:
-        - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-pie,-lc++
+        - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-pie,-lstdc++,-latomic
+
+runtime:
+  env:
+    WATCHMAN_STATE_DIR: "{{prefix}}/var/run/watchman"
 
 provides:
   - bin/watchman
