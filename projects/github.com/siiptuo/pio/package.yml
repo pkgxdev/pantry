@@ -1,0 +1,20 @@
+distributable:
+  url: https://github.com/siiptuo/pio/archive/refs/tags/{{ version }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/pio
+
+versions:
+  github: siiptuo/pio
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.65'
+    rust-lang.org/cargo: '*'
+  script:
+    cargo install --locked --path . --root {{prefix}}
+
+test:
+  script:
+    - test "$(pio --version)" = "pio {{version}}"
