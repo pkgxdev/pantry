@@ -42,11 +42,11 @@ build:
         - mainfile=$(find . -name "main.cpp")
         - 'echo "Found main.cpp at: $mainfile"'
         - oldline='auto state_dir = computeWatchmanStateDirectory(user);'
-        - 'newline=\'const char* env_state_dir = getenv("WATCHMAN_STATE_DIR"); auto state_dir = env_state_dir ? env_state_dir : computeWatchmanStateDirectory(user);\''
+        - "newline='const char* env_state_dir = getenv(\"WATCHMAN_STATE_DIR\"); auto state_dir = env_state_dir ? env_state_dir : computeWatchmanStateDirectory(user);'"
         - sed -i "s/$oldline/$newline/" "$mainfile"
-        cat $mainfile
+        - cat $mainfile
       working-directory: watchman
-      
+
     # version/path mismatch
     - run: |
         if test -f Cargo.toml; then
