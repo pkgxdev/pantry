@@ -17,12 +17,12 @@ build:
     freedesktop.org/pkg-config: '*'
     gnu.org/bison: '*'
     boost.org: '*'
-
-  script: |
-    ./bootstrap.sh
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }} install
-
+  script:
+    # find pkg.m4
+    - cp {{deps.freedesktop.org/pkg-config.prefix}}/share/aclocal/pkg.m4 aclocal/
+    - ./bootstrap.sh
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
   env:
     ARGS:
       - --prefix={{prefix}}
@@ -51,6 +51,7 @@ build:
       - --without-lua
       - --without-rs
       - --without-swift
+      - --with-qt5=no
     PY_PREFIX: '{{prefix}}'
     PHP_PREFIX: '{{prefix}}'
     # 0.19.0 has an unused `int j = 0;`.
@@ -59,8 +60,8 @@ build:
       CXXFLAGS: $CXXFLAGS -Wno-unused-but-set-variable -fPIC
     darwin:
       MACOSX_DEPLOYMENT_TARGET: 11.0
+
 provides:
   - bin/thrift
 
-test:
-  script: thrift --version | grep {{version}}
+test: thrift --version | grep {{version}}
