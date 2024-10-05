@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/facebook/watchman/archive/refs/tags/v{{version.raw}}.tar.gz
+  url: https://github.com/facebook/watchman/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
@@ -7,10 +7,14 @@ versions:
 
 dependencies:
   boost.org: ^1.84
-  facebook.com/edencommon: '={{version}}'
-  facebook.com/fb303: '={{version}}'
+  # this is desirable, but would require substantial changes to libpkgx
+  # facebook.com/edencommon: '={{version}}'
+  # facebook.com/fb303: '={{version}}'
+  # facebook.com/folly: '={{version}}'
+  facebook.com/edencommon: '*'
+  facebook.com/fb303: '*'
+  facebook.com/folly: '*'
   fmt.dev: '>=9'
-  facebook.com/folly: '={{version}}'
   gflags.github.io: ^2
   google.com/glog: ^0.6
   libevent.org: ^2.1
@@ -34,12 +38,12 @@ build:
       gnu.org/gcc: 13
   script:
     # replace build-time WATCHMAN_STATE_DIR with run-time WATCHMAN_STATE_DIR
-    - run: |
-        mainfile=$(find . -name "main.cpp")
-        echo "Found main.cpp at: $mainfile"
-        oldline='auto state_dir = computeWatchmanStateDirectory(user);'
-        newline='const char* env_state_dir = getenv("WATCHMAN_STATE_DIR"); auto state_dir = env_state_dir ? env_state_dir : computeWatchmanStateDirectory(user);'
-        sed -i.bak "s/$oldline/$newline/" "$mainfile" && rm "$mainfile.bak"
+    - run:
+        - mainfile=$(find . -name "main.cpp")
+        - 'echo "Found main.cpp at: $mainfile"'
+        - oldline='auto state_dir = computeWatchmanStateDirectory(user);'
+        - 'newline=\'const char* env_state_dir = getenv("WATCHMAN_STATE_DIR"); auto state_dir = env_state_dir ? env_state_dir : computeWatchmanStateDirectory(user);\''
+        - sed -i "s/$oldline/$newline/" "$mainfile"
         cat $mainfile
       working-directory: watchman
       
