@@ -1,9 +1,11 @@
 distributable:
   url: https://github.com/facebook/fbthrift/archive/{{version.tag}}.tar.gz
   strip-components: 1
+
 versions:
   github: facebook/fbthrift/tags
   ignore: [v0.x.y, 0.x.y] # they moved _to_ calver
+
 dependencies:
   # these need to version match, but we don't have a method for that
   github.com/facebookincubator/fizz: '*'
@@ -21,6 +23,7 @@ dependencies:
   libsodium.org: ^1.0.19
   linux:
     gnu.org/gcc: 13 # libstdc++
+
 build:
   dependencies:
     cmake.org: '*'
@@ -28,6 +31,7 @@ build:
     gnu.org/bison: '*'
     github.com/westes/flex: '*'
     linux:
+      gnu.org/gcc: 13
       gnu.org/binutils: '*'
   script:
     # llvm's `as` likes to be first, wrongly
@@ -62,9 +66,10 @@ build:
         - -DCMAKE_C_FLAGS=-fPIC
         - -DCMAKE_CXX_FLAGS=-fPIC
         - -DCMAKE_EXE_LINKER_FLAGS=-pie
+
 provides:
   - bin/thrift1
+
 test:
-  script:
-    - thrift1 --gen mstch_cpp2 example.thrift
-    - ls | grep gen-cpp2
+  - thrift1 --gen mstch_cpp2 example.thrift
+  - ls | grep gen-cpp2
