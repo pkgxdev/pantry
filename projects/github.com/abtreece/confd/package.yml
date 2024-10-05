@@ -1,0 +1,29 @@
+distributable:
+  url: https://github.com/abtreece/confd/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+display-name: confd
+
+versions:
+  github: abtreece/confd
+
+build:
+  dependencies:
+    go.dev: '*'
+
+  env:
+    CGO_ENABLED: 0
+    GO_LDFLAGS:
+    - -s
+    - -w
+    - -X main.GitSHA=$(git rev-parse --short HEAD || echo)
+    - -X main.Version={{ version }}
+    linux:
+      GO_LDFLAGS:
+      - -buildmode=pie
+  script: go build -ldflags "${GO_LDFLAGS}" -o "{{ prefix }}"/bin/confd ./cmd/confd
+
+provides:
+- bin/confd
+
+test: test "$(confd --version|cut -d' ' -f2)" = {{version}}

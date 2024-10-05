@@ -9,6 +9,7 @@ versions:
 
 dependencies:
   pkgx.sh: ^1
+  openssl.org: ^1.1
 
 runtime:
   env:
@@ -17,6 +18,10 @@ runtime:
 build:
   dependencies:
     python.org: ~3.11
+    # bittensor_wallet on 8.1+
+    cmake.org: 3
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
   script:
     - run:
         - bkpyvenv stage {{prefix}} {{version}}
@@ -26,6 +31,8 @@ build:
     - run:
         - pip install . --prefix={{prefix}}
         - ln -s python{{deps.python.org.version.marketing}} {{prefix}}/lib/python{{deps.python.org.version.major}}
+        # bad links to /opt/homebrew on darwin, aarch64 support on linux
+        - 'python -m pip install --no-deps --force-reinstall --no-cache-dir -v --no-binary :all: --prefix={{prefix}} bittensor_wallet'
       if: '>=8'
 
 test:
