@@ -1,15 +1,21 @@
 distributable:
   url: https://github.com/numpy/numpy/releases/download/v{{version}}/numpy-{{version}}.tar.gz
   strip-components: 1
+
 versions:
   github: numpy/numpy
+
 dependencies:
   openblas.net: ^0.3
   python.org: ^3.11
-  gnu.org/gcc: ^13 #gfortran (no Fortran compiler found)
+
+companions:
+  gnu.org/gcc: '*' #gfortran (no Fortran compiler found)
+
 runtime:
   env:
     PYTHONPATH: $PYTHONPATH:{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages
+
 build:
   dependencies:
     cython.org/libcython: '*'
@@ -41,11 +47,19 @@ build:
     linux:
       BLAS: ${{deps.openblas.net.prefix}}/lib/libopenblas.so
       LAPACK: ${{deps.openblas.net.prefix}}/lib/libopenblas.so
+
 provides:
   - bin/f2py
+
 test:
+  dependencies:
+    llvm.org: '*' # fails with gcc
   script:
     - python test.py
     - f2py -v | grep {{version}}
     - f2py -c -m test test.f90
     - ls | grep test.cpython
+  env:
+    CC: clang
+    CXX: clang++
+    LD: clang
