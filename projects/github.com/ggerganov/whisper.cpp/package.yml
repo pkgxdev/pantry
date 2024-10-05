@@ -30,9 +30,12 @@ build:
 
     # ggml-metal.metal must be installed alongside whisper.cpp sadly
     - install -Dt {{prefix}}/bin
-        ggml-metal.metal
-        stream command
-        models/download-ggml-model.sh
+      stream command
+      models/download-ggml-model.sh
+    - run: cp ggml-metal.metal {{prefix}}/bin
+      if: <1.7
+    - run: cp ggml/src/ggml-metal.metal {{prefix}}/bin
+      if: '>=1.7'
 
     - install -D main {{prefix}}/bin/whisper.cpp
 
@@ -45,5 +48,4 @@ test:
     huggingface-cli download ggerganov/whisper.cpp ggml-base.en.bin
     model="$(find "$cache" -name "ggml-base.en.bin")"
     curl https://github.com/ggerganov/whisper.cpp/raw/master/samples/jfk.wav | whisper.cpp --model "$model" -
-  cache:
-    $HOME/.cache/huggingface
+  cache: $HOME/.cache/huggingface
