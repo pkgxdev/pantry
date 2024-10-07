@@ -15,7 +15,10 @@ build:
   script: cargo install --locked --path . --root {{prefix}}
 
 test:
-  - test "$(topgrade --version)" = "Topgrade {{version}}"
+  - run: test "$(topgrade --version)" = "Topgrade {{version}}"
+    if: <16
+  - run: test "$(topgrade --version)" = "topgrade {{version}}"
+    if: '>=16'
   # prevents an unskippable prompt
   - run: echo -n {{version}} > topgrade_keep
     working-directory: $HOME/.local/share
