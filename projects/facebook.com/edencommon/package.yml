@@ -13,16 +13,20 @@ dependencies:
   facebook.com/mvfst: '*' # since 2024.03.18.00
   openssl.org: ^1.1
   sourceware.org/bzip2: ^1
+  linux:
+    gnu.org/gcc/libstdcxx: 13
 
 build:
   dependencies:
     cmake.org: '*'
     google.com/googletest: '*'
     boost.org: ^1
-
   script:
     # omit building py library
     - sed -i 's/COMPONENTS cpp2 py)/COMPONENTS cpp2)/' CMakeLists.txt
+    # fix timeouts
+    - run: sed -i 's/add_subdirectory(test)/#add_subdirectory(test)/' {os,utils}/CMakeLists.txt
+      working-directory: eden/common
     - cmake -S . -B _build $ARGS
     - cmake --build _build
     - cmake --install _build
@@ -39,12 +43,18 @@ build:
       CC: clang
       CXX: clang++
       LD: clang
-    linux/aarch64:
       ARGS:
         - -DCMAKE_C_FLAGS=-fPIC
         - -DCMAKE_CXX_FLAGS=-fPIC
-        - -DCMAKE_EXE_LINKER_FLAGS=-pie
+        - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-pie
 
 test:
-  - clang++ -std=c++17 test.cc -o test -ledencommon_utils -lfolly -lglog -lfmt
-  - ./test 1
+  dependencies:
+    linux:
+      gnu.org/gcc: 13
+  script:
+    - clang++ -std=c++17 test.cc -o test -ledencommon_utils -lfolly -lglog -lfmt $EXTRA
+    - ./test 1
+  env:
+    linux:
+      EXTRA: -lc++abi
