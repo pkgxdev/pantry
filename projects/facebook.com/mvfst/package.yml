@@ -28,6 +28,33 @@ build:
     # llvm's `as` likes to be first, wrongly
     - run: export PATH={{deps.gnu.org/binutils.prefix}}/bin:$PATH
       if: linux
+    # fix missing symbols
+    - run: patch -p1 <$PROP
+      prop: |
+        diff --git a/quic/api/CMakeLists.txt b/quic/api/CMakeLists.txt
+        index 5522347c5..a0a34761e 100644
+        --- a/quic/api/CMakeLists.txt
+        +++ b/quic/api/CMakeLists.txt
+        @@ -47,6 +47,7 @@ add_library(
+           QuicPacketScheduler.cpp
+           QuicStreamAsyncTransport.cpp
+           QuicTransportBase.cpp
+        +  QuicTransportBaseLite.cpp
+           QuicTransportFunctions.cpp
+         )
+         
+        diff --git a/quic/state/CMakeLists.txt b/quic/state/CMakeLists.txt
+        index 0916546fe..14297bb30 100644
+        --- a/quic/state/CMakeLists.txt
+        +++ b/quic/state/CMakeLists.txt
+        @@ -55,6 +55,7 @@ add_library(
+           mvfst_state_ack_handler
+           AckEvent.cpp
+           AckHandlers.cpp
+        +  AckedPacketIterator.cpp
+         )
+         
+         set_property(TARGET mvfst_state_ack_handler PROPERTY VERSION ${PACKAGE_VERSION})
     - cmake -S . -B _build $CMAKE_ARGS
     - cmake --build _build
     - cmake --install _build
@@ -97,7 +124,7 @@ test:
         target_link_libraries(echo ${mvfst_LIBRARIES} fizz::fizz_test_support GTest::gmock)
         target_include_directories(echo PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
-    - cmake . $ARGS
+    - cmake .
     - cmake --build .
 
     # SUPER FIXME: the original test wasn't working at all, so this is progress rather than a regression
