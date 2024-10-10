@@ -1,0 +1,41 @@
+distributable: ~
+
+# TODO: build from source (complicated)
+warnings: [vendored]
+
+display-name: scie-pants
+
+versions:
+  github: pantsbuild/scie-pants
+
+dependencies:
+  curl.se/ca-certs: '*'
+
+build:
+  dependencies:
+    curl.se: '*'
+  working-directory: '{{prefix}}/bin'
+  script:
+    - curl -Lfo pants https://github.com/pantsbuild/scie-pants/releases/download/v{{version}}/scie-pants-$PLATFORM
+    - chmod u+x pants
+  # patch RPATH has occurred segment fault error
+  skip: fix-patchelf
+  env:
+    darwin/aarch64:
+      PLATFORM: macos-aarch64
+    darwin/x86-64:
+      PLATFORM: macos-x86_64
+    linux/aarch64:
+      PLATFORM: linux-aarch64
+    linux/x86-64:
+      PLATFORM: linux-x86_64
+
+provides:
+  - bin/pants
+
+test:
+  - run: cp $FIXTURE pants.toml
+    fixture: |
+      [GLOBAL]
+      pants_version = "2.17.1"
+  - test "$(pants --version)" = 2.17.1
