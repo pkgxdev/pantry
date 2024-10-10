@@ -6,17 +6,19 @@ warnings: [vendored]
 display-name: scie-pants
 
 versions:
-  - 0.12.0
+  github: pantsbuild/scie-pants
 
-# patch RPATH has occurred segment fault error
+dependencies:
+  curl.se/ca-certs: '*'
+
 build:
   dependencies:
-    curl.se: "*"
-  script: |
-    curl -Lfo pants https://github.com/pantsbuild/scie-pants/releases/download/v{{version}}/scie-pants-$PLATFORM
-    chmod u+x pants
-    mkdir -p "{{prefix}}/bin"
-    cp -a pants "{{prefix}}/bin"
+    curl.se: '*'
+  working-directory: '{{prefix}}/bin'
+  script:
+    - curl -Lfo pants https://github.com/pantsbuild/scie-pants/releases/download/v{{version}}/scie-pants-$PLATFORM
+    - chmod u+x pants
+  # patch RPATH has occurred segment fault error
   skip: fix-patchelf
   env:
     darwin/aarch64:
@@ -32,9 +34,8 @@ provides:
   - bin/pants
 
 test:
-  script: |
-    cat << EOF > pants.toml
-    [GLOBAL]
-    pants_version = "2.17.1"
-    EOF
-    test "$(pants --version)" = 2.17.1
+  - run: cp $FIXTURE pants.toml
+    fixture: |
+      [GLOBAL]
+      pants_version = "2.17.1"
+  - test "$(pants --version)" = 2.17.1
