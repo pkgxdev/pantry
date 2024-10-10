@@ -29,12 +29,17 @@ build:
       kerberos.org: 1 # added in 2.16.0
       # error: invalid linker name in argument '-fuse-ld=gold'
       gnu.org/gcc: '*'
+      # node-gyp
+      python.org: ~3.10
   script:
     # otherwise segfaults
     - run: sed -i 's/-ldflags "/-ldflags "-buildmode=pie /' build_bytebase.sh
       if: linux
       working-directory: scripts
     - ./scripts/build_bytebase.sh {{prefix}}/bin
+  env:
+    linux:
+      CC: gcc
 
 provides:
   - bin/bytebase
@@ -51,9 +56,9 @@ test:
       if: linux
 
     - FREE_PORT=$(pkgx get-port | tail -n1)
-    - bytebase --port $FREE_PORT > out.log 2>&1 &
+    - bytebase --port $FREE_PORT 2>&1 | tee out.log &
     - PID=$!
-    - sleep 35
+    - sleep 60
     - curl -L http://localhost:$FREE_PORT | grep 'Bytebase' || cat out.log
     - kill $PID
-    - cat out.log | grep "has started on port $FREE_PORT"
+    - grep "has started on port $FREE_PORT" out.log
