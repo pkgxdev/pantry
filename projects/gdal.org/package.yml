@@ -1,8 +1,10 @@
 distributable:
   url: https://github.com/OSGeo/gdal/releases/download/v{{version}}/gdal-{{version}}.tar.gz
   strip-components: 1
+
 versions:
   github: OSGeo/gdal
+
 dependencies:
   apache.org/arrow: '*'
   heasarc.gsfc.nasa.gov/cfitsio: '*'
@@ -45,12 +47,16 @@ dependencies:
   abseil.io: '*'
   zlib.net: '*'
   dkrz.de/libaec: '*'
+  github.com/ebiggers/libdeflate: '*' # since 3.9.3
   linux:
     curl.se: '*'
     github.com/util-linux/util-linux: '*'
+    apache.org/thrift: =0.20.0 # since 3.9.3
+
 runtime:
   env:
     PYTHONPATH: '{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages/osgeo:{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages/osgeo_utils:$PYTHONPATH'
+
 build:
   dependencies:
     boost.org: '*'
@@ -84,6 +90,12 @@ build:
       - -DBUILD_TESTING=OFF
       - -DENABLE_PAM=ON
       - -DCMAKE_CXX_STANDARD=17
+    # otherwise is uses libdeflate from openexr
+    darwin:
+      LDFLAGS: $LDFLAGS {{deps.github.com/ebiggers/libdeflate.prefix}}/lib/libdeflate.dylib
+    linux:
+      LDFLAGS: $LDFLAGS {{deps.github.com/ebiggers/libdeflate.prefix}}/lib/libdeflate.so
+
 provides:
   - bin/gdaladdo
   - bin/gdalbuildvrt
@@ -113,9 +125,9 @@ provides:
   - bin/ogrlineref
   - bin/ogrtindex
   - bin/sozip
+
 test:
-  script:
-    - gdalinfo --version | grep {{version}}
-    - gdalinfo --formats
-    - ogrinfo --version | grep {{version}}
-    - ogrinfo --formats
+  - gdalinfo --version | grep {{version}}
+  - gdalinfo --formats
+  - ogrinfo --version | grep {{version}}
+  - ogrinfo --formats
