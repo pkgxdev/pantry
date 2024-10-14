@@ -47,10 +47,6 @@ build:
         - cat $mainfile
       working-directory: watchman
 
-    # needs this to find its libpython on linux
-    - run: cp '{{deps.python.org.prefix}}/lib/libpython'* .
-      working-directory: '{{prefix}}/lib'
-
     # version/path mismatch
     - run: |
         if test -f Cargo.toml; then
@@ -79,7 +75,7 @@ build:
       CXX: g++
       LD: gcc
       CMAKE_ARGS:
-        - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-pie,-lstdc++,-latomic
+        - -DCMAKE_EXE_LINKER_FLAGS="-Wl, -export-dynamic", -pie,-lstdc++,-latomic
 
 runtime:
   env:
