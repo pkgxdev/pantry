@@ -21,6 +21,8 @@ build:
     cmake.org: '*'
     google.com/googletest: '*'
     boost.org: ^1
+    linux:
+      gnu.org/gcc: 13
   script:
     # omit building py library
     - sed -i 's/COMPONENTS cpp2 py)/COMPONENTS cpp2)/' CMakeLists.txt
@@ -40,9 +42,6 @@ build:
       - -Wno-dev
       - -DBUILD_TESTING=OFF
     linux:
-      CC: clang
-      CXX: clang++
-      LD: clang
       ARGS:
         - -DCMAKE_C_FLAGS=-fPIC
         - -DCMAKE_CXX_FLAGS=-fPIC
@@ -53,7 +52,7 @@ test:
     linux:
       gnu.org/gcc: 13
   script:
-    - clang++ -std=c++17 test.cc -o test -ledencommon_utils -lfolly -lglog -lfmt $EXTRA
+    - c++ -std=c++17 test.cc -o test -ledencommon_utils -lfolly -lglog -lfmt $EXTRA
     - ./test 1
   env:
     linux:
