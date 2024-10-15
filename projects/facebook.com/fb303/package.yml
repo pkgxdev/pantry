@@ -1,8 +1,10 @@
 distributable:
   url: https://github.com/facebook/fb303/archive/v{{version.raw}}.tar.gz
   strip-components: 1
+
 versions:
   github: facebook/fb303/tags
+
 dependencies:
   # these need to version match, but we don't have a method for that
   github.com/facebookincubator/fizz: '*'
@@ -14,13 +16,18 @@ dependencies:
   google.com/glog: ^0.6
   libsodium.org: ^1.0.19
   openssl.org: ^1.1
+  github.com/Cyan4973/xxHash: ^0.8 # since 2024.10.14.0
   linux:
     zlib.net: ^1
+    gnu.org/gcc/libstdcxx: 13
+
 build:
   dependencies:
     cmake.org: '*'
     facebook.com/mvfst: '*'
     boost.org: ^1.84
+    linux:
+      gnu.org/gcc: 13
   script:
     - cmake -S . -B build $CMAKE_ARGS
     - cmake --build build
@@ -37,9 +44,6 @@ build:
       - -DPYTHON_EXTENSIONS=OFF
       - -DBUILD_SHARED_LIBS=ON
     linux:
-      CC: clang
-      CXX: clang++
-      LD: clang
       CMAKE_ARGS:
         - -DCMAKE_C_FLAGS=-fPIC
         - -DCMAKE_CXX_FLAGS=-fPIC
@@ -49,14 +53,15 @@ build:
     linux/aarch64:
       CMAKE_ARGS:
         - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-pie,-latomic
+
 test:
   dependencies:
     boost.org: ^1.84
+    linux:
+      gnu.org/gcc: 13
   script:
-    - $CXX -std=c++17 test.cpp -o test $EXTRA_LIBS -lfb303_thrift_cpp -lfolly -lglog -lthriftprotocol -lthriftcpp2 -ldl -lboost_context
+    - c++ -std=c++17 test.cpp -o test $EXTRA_LIBS -lfb303_thrift_cpp -lfolly -lglog -lthriftprotocol -lthriftcpp2 -ldl -lboost_context
     - ./test | grep 'BaseService'
   env:
-    CXX: c++
     linux:
-      CXX: clang++
       EXTRA_LIBS: -latomic
