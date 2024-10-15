@@ -9,24 +9,29 @@ build:
   dependencies:
     cmake.org: ^3
   working-directory: build
-  script: |
-    cmake .. $ARGS
-    make --jobs {{ hw.concurrency }} install
+  script:
+    - cmake .. $ARGS
+    - make --jobs {{ hw.concurrency }} install
   env:
     ARGS:
       - -DBUILD_TESTING=OFF
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
       - -DCMAKE_BUILD_TYPE=Release
+    linux:
+      ARGS:
+        - -DCMAKE_C_FLAGS=-fPIC
+        - -DCMAKE_CXX_FLAGS=-fPIC
+        - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-pie
 
 test:
-  fixture: |
-    #include <gtest/gtest.h>
-    #include <gtest/gtest-death-test.h>
+  - run: c++ $FIXTURE -std=c++14 -lgtest -lgtest_main -pthread
+    fixture:
+      extname: c
+      content: |
+        #include <gtest/gtest.h>
+        #include <gtest/gtest-death-test.h>
 
-    TEST(Simple, Boolean) {
-      ASSERT_TRUE(true);
-    }
-  script: |
-    mv $FIXTURE a.c
-    c++ a.c -std=c++14 -lgtest -lgtest_main -pthread
-    ./a.out
+        TEST(Simple, Boolean) {
+          ASSERT_TRUE(true);
+        }
+  - ./a.out
