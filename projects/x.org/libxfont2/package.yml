@@ -19,9 +19,16 @@ dependencies:
   x.org/libfontenc: '*'
 
 build:
-  - ./configure --prefix={{prefix}}
-  - make
-  - make install
+  script:
+    - ./configure --prefix={{prefix}}
+    - make -j{{ hw.concurrency }}
+    - make install
+    - run: |
+        sed -i \
+          -e "s:$PKGX_DIR:\$\{pcfiledir\}/../../../..:g" \
+          -e "s/\+brewing//g"  \
+          *.pc
+      working-directory: '{{prefix}}/lib/pkgconfig'
 
 test:
   dependencies:
