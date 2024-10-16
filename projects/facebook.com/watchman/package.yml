@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/facebook/watchman/archive/refs/tags/v{{version.raw}}.tar.gz
+  url: https://github.com/facebook/watchman/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
@@ -7,10 +7,14 @@ versions:
 
 dependencies:
   boost.org: ^1.84
-  facebook.com/edencommon: '>=2023.12.25.0'
-  facebook.com/fb303: '>=2023.12.25.0'
+  # this is desirable, but would require substantial changes to libpkgx
+  # facebook.com/edencommon: '={{version}}'
+  # facebook.com/fb303: '={{version}}'
+  # facebook.com/folly: '={{version}}'
+  facebook.com/edencommon: '>=2024.10.07.0'
+  facebook.com/fb303: '*'
+  facebook.com/folly: '*'
   fmt.dev: '>=9'
-  facebook.com/folly: '>=2023.12.25.0'
   gflags.github.io: ^2
   google.com/glog: ^0.6
   libevent.org: ^2.1
@@ -20,27 +24,41 @@ dependencies:
   python.org: ~3.11
   linux:
     libcxx.llvm.org: 18 # libunwind/libc++
+    gnu.org/gcc/libstdcxx: 13
 
 build:
   dependencies:
     cmake.org: '*'
     github.com/skystrife/cpptoml: '*'
-    facebook.com/fbthrift: '>=2023.12.25.0'
+    facebook.com/fbthrift: '>=2024.9.23.0'
     google.com/googletest: '*'
     facebook.com/mvfst: '>=2023.12.25.0'
     rust-lang.org: '*'
+    linux:
+      gnu.org/gcc: 13
   script:
+    # replace build-time WATCHMAN_STATE_DIR with run-time WATCHMAN_STATE_DIR
+    - run:
+        - mainfile=$(find . -name "main.cpp")
+        - 'echo "Found main.cpp at: $mainfile"'
+        - oldline='auto state_dir = computeWatchmanStateDirectory(user);'
+        - "newline='const char* env_state_dir = getenv(\"WATCHMAN_STATE_DIR\"); auto state_dir = env_state_dir ? env_state_dir : computeWatchmanStateDirectory(user);'"
+        - sed -i "s/$oldline/$newline/" "$mainfile"
+        - cat $mainfile
+      working-directory: watchman
+
     # version/path mismatch
     - run: |
         if test -f Cargo.toml; then
           sed -i 's/watchman_client = { version = ".*", path/watchman_client = { path/' Cargo.toml
         fi
       working-directory: watchman/cli
-    - cmake -S . -B build $CMAKE_ARGS -DCMAKE_CXX_FLAGS="$CXXFLAGS"
+    - cmake -S . -B build $CMAKE_ARGS -DCMAKE_C_FLAGS="$CFLAGS" -DCMAKE_CXX_FLAGS="$CXXFLAGS"
     - cmake --build build
     - cmake --install build
     - mkdir -p {{prefix}}/var/run/watchman
   env:
+    # WATCHMAN_STATE_DIR: "{{prefix}}/var/run/watchman"
     CMAKE_ARGS:
       - -DCMAKE_INSTALL_PREFIX="{{prefix}}
       - -DCMAKE_INSTALL_LIBDIR=lib
@@ -53,25 +71,15 @@ build:
       - -DWATCHMAN_VERSION_OVERRIDE={{version}}
       - -DPython3_EXECUTABLE={{deps.python.org.prefix}}/bin/python
     linux:
-      CC: clang
-      CXX: clang++
-      LD: clang
+      CC: gcc
+      CXX: g++
+      LD: gcc
       CMAKE_ARGS:
-        - -DCMAKE_C_FLAGS=-fPIC
-    linux/x86-64:
-      CXXFLAGS:
-        - -fPIC
-        - -Wl,--allow-shlib-undefined
-      CMAKE_ARGS:
-        - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-pie
-    linux/aarch64:
-      CXXFLAGS:
-        - -fPIC
-        - -Wl,--allow-shlib-undefined
-        - -cxx-isystem {{deps.libcxx.llvm.org.prefix}}/include/c++/v1
-        - -stdlib=libc++
-      CMAKE_ARGS:
-        - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-pie,-lc++
+        - -DCMAKE_EXE_LINKER_FLAGS="-Wl, -export-dynamic", -pie,-lstdc++,-latomic
+
+runtime:
+  env:
+    WATCHMAN_STATE_DIR: "{{prefix}}/var/run/watchman"
 
 provides:
   - bin/watchman
