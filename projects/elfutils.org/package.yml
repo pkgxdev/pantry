@@ -1,17 +1,23 @@
 distributable:
-    url: https://sourceware.org/elfutils/ftp/{{version.marketing}}/elfutils-{{version.marketing}}.tar.bz2
-    strip-components: 1
+  url: https://sourceware.org/elfutils/ftp/{{version.marketing}}/elfutils-{{version.marketing}}.tar.bz2
+  strip-components: 1
+
 versions:
-    url: https://sourceware.org/git/?p=elfutils.git;a=tags
-    match: /elfutils-\d+\.\d+/
-    strip: /^elfutils-/
+  url: https://sourceware.org/git/?p=elfutils.git;a=tags
+  match: /elfutils-\d+\.\d+/
+  strip: /^elfutils-/
+
 platforms:
   - linux
+
 dependencies:
-    sourceware.org/bzip2: '*'
-    tukaani.org/xz: '*'
-    zlib.net: '*'
-    facebook.com/zstd: '*'
+  sourceware.org/bzip2: '*'
+  tukaani.org/xz: '*'
+  zlib.net: '*'
+  facebook.com/zstd: '*'
+  linux:
+    kernel.org/linux-headers: '*'
+
 build:
   dependencies:
     gnu.org/m4: '*'
@@ -39,6 +45,7 @@ build:
       - --with-lzma
       - --with-zlib
       - --with-zstd
+
 provides:
   - bin/eu-addr2line
   - bin/eu-ar
@@ -56,6 +63,5 @@ provides:
   - bin/eu-strings
   - bin/eu-strip
   - bin/eu-unstrip
-test:
-  script:
-    - eu-nm --version | grep {{version.marketing}}
+
+test: eu-nm --version | grep {{version.marketing}}
