@@ -7,11 +7,11 @@ versions:
 
 dependencies:
   boost.org: ^1.84
-  # this is desirable, but would require substantial changes to libpkgx
-  # facebook.com/edencommon: '={{version}}'
-  # facebook.com/fb303: '={{version}}'
-  # facebook.com/folly: '={{version}}'
-  facebook.com/edencommon: '>=2024.10.07.0'
+  # these need version locking, but we don't support that yet
+  # facebook.com/edencommon: '{{version}}'
+  # facebook.com/fb303: '{{version}}'
+  # facebook.com/folly: '{{version}}'
+  facebook.com/edencommon: '*'
   facebook.com/fb303: '*'
   facebook.com/folly: '*'
   fmt.dev: '>=9'
@@ -23,16 +23,19 @@ dependencies:
   pcre.org/v2: ^10
   python.org: ~3.11
   linux:
-    libcxx.llvm.org: 18 # libunwind/libc++
+    libcxx.llvm.org: 18 # libunwind
     gnu.org/gcc/libstdcxx: 13
 
 build:
   dependencies:
     cmake.org: '*'
     github.com/skystrife/cpptoml: '*'
-    facebook.com/fbthrift: '>=2024.9.23.0'
+    # these need version locking, but we don't support that yet
+    # facebook.com/fbthrift: '{{version}}'
+    # facebook.com/mvfst: '{{version}}'
+    facebook.com/fbthrift: '*'
+    facebook.com/mvfst: '*'
     google.com/googletest: '*'
-    facebook.com/mvfst: '>=2023.12.25.0'
     rust-lang.org: '*'
     linux:
       gnu.org/gcc: 13
@@ -46,6 +49,35 @@ build:
         - sed -i "s/$oldline/$newline/" "$mainfile"
         - cat $mainfile
       working-directory: watchman
+
+    # the pywatchman build doesn't like mixing -shared and -pie
+    - run:
+        - cp $PROP gcc-wrapper
+        - chmod +x gcc-wrapper
+      prop: |
+        #!/bin/bash
+        # Capture all arguments into an array
+        ARGS=("$@")
+
+        # Check if the '-shared' flag is present in the arguments
+        if printf "%s\n" "${ARGS[@]}" | grep -q -e '-shared'; then
+
+          # Use a loop to filter out the '-pie' flag from the arguments
+          FILTERED_ARGS=()
+          for arg in "${ARGS[@]}"; do
+            if [ "$arg" != "-pie" ]; then
+              FILTERED_ARGS+=("$arg")
+            fi
+          done
+
+          # Pass the filtered arguments to gcc
+          exec gcc "${FILTERED_ARGS[@]}"
+        else
+          # Pass the original arguments to gcc
+          exec gcc "${ARGS[@]}"
+        fi
+      working-directory: $HOME/.local/bin
+      if: linux
 
     # version/path mismatch
     - run: |
@@ -62,6 +94,7 @@ build:
     CMAKE_ARGS:
       - -DCMAKE_INSTALL_PREFIX="{{prefix}}
       - -DCMAKE_INSTALL_LIBDIR=lib
+      - -DBUILD_SHARED_LIBS=OFF
       - -DCMAKE_BUILD_TYPE=Release
       - -DCMAKE_FIND_FRAMEWORK=LAST
       - -DCMAKE_VERBOSE_MAKEFILE=ON
@@ -70,12 +103,23 @@ build:
       - -DENABLE_EDEN_SUPPORT=ON
       - -DWATCHMAN_VERSION_OVERRIDE={{version}}
       - -DPython3_EXECUTABLE={{deps.python.org.prefix}}/bin/python
+      - -DUSE_SYS_PYTHON=OFF
     linux:
-      CC: gcc
       CXX: g++
       LD: gcc
       CMAKE_ARGS:
         - -DCMAKE_EXE_LINKER_FLAGS="-Wl, -export-dynamic", -pie,-lstdc++,-latomic
+      PATH: $HOME/.local/bin:$PATH
+      CC: gcc-wrapper
+      CXX: g++
+      LD: g++
+      # intentionally omit -pie so python lib builds
+      LDFLAGS: -Wl,-lpython{{deps.python.org.version.marketing}},-lstdc++
+      CMAKE_ARGS:
+        - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-pie,-lstdc++
+    darwin:
+      CMAKE_ARGS:
+        - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-dead_strip_dylibs
 
 runtime:
   env:

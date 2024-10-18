@@ -27,10 +27,13 @@ dependencies:
     libcxx.llvm.org: ^18 # libunwind, since 2024.5.13.0
     jemalloc.net: ^5 # since 2024.5.13.0
     elfutils.org: ^0 # for dwarf.h, since 2024.5.13.0
+    gnu.org/gcc/libstdcxx: 13
 
 build:
   dependencies:
     cmake.org: ^3.0.2
+    linux:
+      gnu.org/gcc: 13
     linux/aarch64:
       curl.se: '*'
       gnu.org/patch: '*'
@@ -92,6 +95,9 @@ build:
         - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-pie,-lrt,-lunwind
 
 test:
+  dependencies:
+    linux:
+      gnu.org/gcc: '*'
   fixture: |
     #include <folly/FBVector.h>
     int main() {
@@ -105,5 +111,5 @@ test:
     }
   script: |
     mv $FIXTURE b.cc
-    c++ -std=c++17 b.cc -lfolly -ldl -lfmt -lglog
+    c++ -std=c++20 b.cc -lfolly -ldl -lfmt -lglog
     ./a.out

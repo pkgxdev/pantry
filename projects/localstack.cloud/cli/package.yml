@@ -16,8 +16,12 @@ build:
     python.org: ^3.11
   script:
     - bkpyvenv stage {{prefix}} {{version}}
-    - ${{prefix}}/venv/bin/pip install -r requirements.txt
+    - ${{prefix}}/venv/bin/pip install -r requirements.txt $PIP_ARGS
     - bkpyvenv seal {{prefix}} localstack
+  env:
+    darwin:
+      # resolver issues with 3.7+
+      PIP_ARGS: --use-deprecated=legacy-resolver
 
 provides:
   - bin/localstack

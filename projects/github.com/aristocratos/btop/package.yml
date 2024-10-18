@@ -4,7 +4,6 @@ distributable:
 
 display-name: btop
 
-# if there’s a github then we can parse the versions
 versions:
   github: aristocratos/btop
 
@@ -13,21 +12,29 @@ provides:
 
 dependencies:
   linux:
-    # built fine for me on macOS 14 & Xcode 15 but won’t in CI complaining
-    # that the provided clang is too old
-    # llvm^17 should work but didn’t for headers not found reasons
-    # needed for build and runtime
-    gnu.org/gcc: '>=10'
-  darwin/x86-64:
-    # it is not overly clear to us why this is required
-    gnu.org/gcc: '>=10'
+    gnu.org/gcc/libstdcxx: 14
 
 build:
-  env:
-    linux/x86-64:
-      LDFLAGS: -ldl $LDFLAGS
+  dependencies:
+    linux:
+      # yuck. g++ compiler, clang++ linker
+      # needed to prevent libstdc++ errors _and_
+      # lto linkage errors. just a mess.
+      gnu.org/gcc: 14
+      llvm.org: '*'
   script:
+    # fix compilation error
+    - run: sed -i 's/ifdef __clang__/if 1/' intel_gpu_top.c
+      if: linux/x86-64
+      working-directory: src/linux/intel_gpu_top
+
     - make
     - make install PREFIX={{prefix}}
+  env:
+    linux:
+      CXX: g++
+      LD: clang++
+      CXXFLAGS: $CXXFLAGS -ffat-lto-objects
+      LDFLAGS: $LDFLAGS -Wl,-lstdc++,-ldl -fno-lto
 
 test: btop --version | grep {{version}}

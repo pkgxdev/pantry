@@ -124,53 +124,58 @@ test:
 
     # While we'd love a good test like this, `opensearch` doesn't run as root, and managing
     # all the environment passthrough with `sudo` is a nightmare.
-    - run: 'opensearch -version | grep "Version: {{version}}"'
+    - run:
+        - 'opensearch -version | grep "Version: {{version}}"'
+        - exit 0
       if: linux
 
-    - run: |
-        mkdir -p test/{data,logs}
-        PORT=$(shuf -i 2000-65000 -n 1)
-        opensearch -Ehttp.port=$PORT -Epath.data=$PWD/test/data -Epath.logs=$PWD/test/logs &
-        pid=$!
-        for i in $(seq 1 30); do
-          curl -k --silent --fail http://localhost:$PORT/ > output.txt && break || sleep 1
-        done
-        test "$(jq .version.number output.txt)" = \"{{version}}\"
-        curl --fail -XPUT http://localhost:$PORT/my-test-knn-index -H 'Content-Type: application/json' -d '
-          {
-            "settings": {
-              "index.knn": true
-            },
-            "mappings": {
-              "properties": {
-                "my_vector1": {
-                  "type": "knn_vector",
-                  "dimension": 2
-                },
-                "my_vector2": {
-                  "type": "knn_vector",
-                  "dimension": 4
-                }
+    - mkdir -p test/{data,logs}
+    - PORT=$(shuf -i 2000-65000 -n 1)
+    - run: ADDED_ARGS=-Ediscovery.type=single-node
+      if: '>=2.17.1'
+    - opensearch -Ehttp.port=$PORT -Epath.data=$PWD/test/data -Epath.logs=$PWD/test/logs $ADDED_ARGS &
+    - pid=$!
+    - |
+      for i in $(seq 1 60); do
+        curl -k --silent --fail http://localhost:$PORT/ | tee output.txt && break || sleep 1
+      done
+    - test "$(jq .version.number output.txt)" = "\"{{version}}\""
+    - run: "curl --fail -XPUT http://localhost:$PORT/my-test-knn-index -H 'Content-Type: application/json' -d @$FIXTURE"
+      fixture: |
+        {
+          "settings": {
+            "index.knn": true
+          },
+          "mappings": {
+            "properties": {
+              "my_vector1": {
+                "type": "knn_vector",
+                "dimension": 2
+              },
+              "my_vector2": {
+                "type": "knn_vector",
+                "dimension": 4
               }
             }
-          }'
-        curl --fail -XPUT http://localhost:$PORT/my-test-knn-index/_doc/1?refresh=true -H 'Content-Type: application/json' -d '
-          {
-            "my_vector1": [1, 2],
-            "my_vector2": [1, 2, 3, 4]
-          }'
-
-        curl --fail -XPOST http://localhost:$PORT/my-test-knn-index/_search -H 'Content-Type: application/json' -d '
-          {
-            "query": {
-              "knn": {
-                "my_vector1": {
-                  "vector": [1, 2],
-                  "k": 1
-                }
+          }
+        }
+    - run: "curl --fail -XPUT http://localhost:$PORT/my-test-knn-index/_doc/1?refresh=true -H 'Content-Type: application/json' -d @$FIXTURE"
+      fixture: |
+        {
+          "my_vector1": [1, 2],
+          "my_vector2": [1, 2, 3, 4]
+        }
+    - run: "curl --fail -XPOST http://localhost:$PORT/my-test-knn-index/_search -H 'Content-Type: application/json' -d @$FIXTURE | tee output.txt"
+      fixture: |
+        {
+          "query": {
+            "knn": {
+              "my_vector1": {
+                "vector": [1, 2],
+                "k": 1
               }
             }
-          }' > output.txt
-        kill $pid
-        test "$(jq .hits.total.value output.txt)" = 1
-      if: darwin
+          }
+        }
+    - kill $pid
+    - test "$(jq .hits.total.value output.txt)" = 1

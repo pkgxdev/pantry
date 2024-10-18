@@ -1,13 +1,16 @@
 distributable:
   url: https://github.com/argoproj/argo-cd/archive/v{{version}}.tar.gz
   strip-components: 1
+
 display-name: argo-cd
+
 versions:
   github: argoproj/argo-cd
+
 build:
   dependencies:
     go.dev: '*'
-    nodejs.org: '*'
+    nodejs.org: '<23'
     yarnpkg.com: '*'
     linux:
       git-scm.org: '*'
@@ -22,11 +25,12 @@ build:
     NODE_ENV: production
     NODE_ONLINE_ENV: online
     LDFLAGS:
+
 provides:
   - bin/argocd
+
 test:
-  script:
-    - argocd --help
-    - touch argocd-config
-    - chmod 0600 argocd-config
-    - argocd context --config ./argocd-config | grep "CURRENT  NAME  SERVER"
+  - argocd --help
+  - touch argocd-config
+  - chmod 0600 argocd-config
+  - argocd context --config ./argocd-config | grep "CURRENT  NAME  SERVER"

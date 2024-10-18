@@ -9,16 +9,19 @@ versions:
 
 dependencies:
   pkgx.sh: ^1
+  libgit2.org: ~1.7
 
 build:
   dependencies:
     python.org: ^3
   script:
-  - bkpyvenv stage {{prefix}} {{version}}
-  - ${{prefix}}/venv/bin/pip install .
-  - bkpyvenv seal {{prefix}} charmcraft
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - run: ${{prefix}}/venv/bin/pip install setuptools
+      if: '>=2.7.4'
+    - bkpyvenv seal {{prefix}} charmcraft
 
 provides:
-- bin/charmcraft
+  - bin/charmcraft
 
 test: test "$(charmcraft --version|cut -d' ' -f 2)" = {{version}}

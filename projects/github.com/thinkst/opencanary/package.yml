@@ -12,19 +12,20 @@ dependencies:
 
 runtime:
   env:
-    PYTHONPATH: "$PYTHONPATH:{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages"
+    PYTHONPATH: '$PYTHONPATH:{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages'
 
 build:
   dependencies:
     pip.pypa.io: '*'
 
-  script: 
-    - run: |
-        pip install setuptools
-        cat setup.py | sed -e 's/requirements = \[/requirements = \["scapy","pcapy-ng",/' > setup.py.mod
-        mv setup.py.mod setup.py
-        python setup.py sdist
-        python -m pip install --prefix={{prefix}} dist/opencanary-{{version}}.tar.gz
+  script:
+    - pip install setuptools
+    - sed -i -e 's/requirements = \[/requirements = \["scapy","pcapy-ng",/' setup.py
+    # missed version bump
+    - run: sed -i 's/^__version__ = .*/__version__ = "{{version}}"/' __init__.py
+      working-directory: opencanary
+    - python setup.py sdist
+    - python -m pip install --prefix={{prefix}} dist/opencanary-{{version}}.tar.gz
 
     - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
       working-directory: ${{prefix}}/lib/
@@ -32,6 +33,4 @@ build:
 provides:
   - bin/opencanaryd
 
-test:
-  script: test "$(opencanaryd --version)" = "{{version}}"
-    
+test: opencanaryd --version | grep -F {{version}}

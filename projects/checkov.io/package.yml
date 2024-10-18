@@ -13,8 +13,14 @@ dependencies:
 build:
   dependencies:
     python.org: ^3.12
+    stedolan.github.io/jq: '*'
+    # rust-lang.org: '*' # since 3.2.258, needs different versions for different packages.
   script:
     - bkpyvenv stage {{prefix}} {{version}}
+    - run:
+        - pkgx +rust~1.70 {{prefix}}/venv/bin/pip install "rustworkx$(jq -r .default.rustworkx.version Pipfile.lock)"
+        - pkgx +rust~1.80 {{prefix}}/venv/bin/pip install "orjson$(jq -r .default.orjson.version Pipfile.lock)"
+      if: '>=3.2.258'
     - ${{prefix}}/venv/bin/pip install .
     - bkpyvenv seal {{prefix}} checkov
   env:

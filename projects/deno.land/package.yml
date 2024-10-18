@@ -24,6 +24,9 @@ runtime:
 companions:
   info-zip.org/unzip: '*' # needed to download the compilation runtime
 
+dependencies:
+  sourceware.org/libffi: '>=3.2.1' # v2
+
 build:
   script:
     # requires specific rust versions
@@ -32,6 +35,11 @@ build:
         - rustup default $(grep channel $SRCROOT/rust-toolchain.toml | sed 's/channel = "//;s/"//')
         - ln -sf $HOME/.rustup/toolchains/*/bin/* .
       working-directory: $HOME/.cargo/bin
+
+    # deno v2 uses libffi-sys
+    - run: sed -i 's/libffi-sys = "\(.*\)"/libffi-sys = { version = "\1", features = ["system"] }/' Cargo.toml
+      working-directory: ext/ffi
+      if: '>=2'
 
     # https://github.com/denoland/deno/issues/15596 -- reported fixed in 1.25.3
     - run: |
@@ -60,8 +68,7 @@ build:
 
     - cargo install --locked --path cli --root "{{ prefix }}"
   dependencies:
-    darwin:
-      llvm.org: '*'
+    llvm.org: '*'
     # rust-lang.org: various
     rust-lang.org/rustup: '*' # to install the correct rust version
     git-scm.org: 2 # to build tinycc
@@ -71,6 +78,10 @@ build:
     github.com/mikefarah/yq: ^4
     crates.io/semverator: ^0
   env:
+    linux:
+      CC: clang
+      LD: clang
+      AR: llvm-ar
     PATH: $HOME/.cargo/bin:$PATH
 
 test:
@@ -80,7 +91,10 @@ test:
   script:
     - deno --version | grep {{version}}
     - mv $FIXTURE test.ts
-    - deno install -f test.ts
+    - run: deno install -f test.ts
+      if: ^1
+    - run: deno install --global -f test.ts
+      if: ^2
     - test "$($HOME/.local/bin/test)" = "Hello, world!"
     - deno compile test.ts
     - test "$(./test)" = "Hello, world!"
