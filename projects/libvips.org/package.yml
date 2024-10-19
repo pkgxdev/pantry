@@ -1,8 +1,10 @@
 distributable:
   url: https://github.com/libvips/libvips/releases/download/v{{version}}/vips-{{version}}.tar.xz
   strip-components: 1
+
 versions:
   github: libvips/libvips
+
 dependencies:
   mozilla.org/mozjpeg: '*'
   cairographics.org: '*'
@@ -32,6 +34,7 @@ dependencies:
   google.com/webp: '*'
   libexpat.github.io: '*'
   zlib.net: '*'
+
 build:
   dependencies:
     gnome.org/gobject-introspection: '*'
@@ -52,19 +55,22 @@ build:
       - --wrap-mode=nofallback
     darwin:
       CFLAGS: $CFLAGS -Wno-incompatible-function-pointer-types
+    linux:
+      LDFLAGS: $LDFLAGS -Wl,-lstdc++fs
     linux/x86-64:
       # ld.lld: error: undefined reference due to --no-allow-shlib-undefined: __extendhfsf2
       LDFLAGS: $LDFLAGS -Wl,--allow-shlib-undefined
+
 provides:
   - bin/vips
   - bin/vipsedit
   - bin/vipsheader
   - bin/vipsprofile
   - bin/vipsthumbnail
+
 test:
-  script:
-    - vips --version | grep {{version}}
-    - vips -l
-    - width=$(vipsheader -f width test.png)
-    - vips jpegsave test.png test.jpg --trellis-quant
-    - vipsheader -f width test.jpg | grep $width
+  - vips --version | grep {{version}}
+  - vips -l
+  - width=$(vipsheader -f width test.png)
+  - vips jpegsave test.png test.jpg --trellis-quant
+  - vipsheader -f width test.jpg | grep $width
