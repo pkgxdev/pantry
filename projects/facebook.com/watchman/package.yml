@@ -40,6 +40,16 @@ build:
     linux:
       gnu.org/gcc: 13
   script:
+    # replace build-time WATCHMAN_STATE_DIR with run-time WATCHMAN_STATE_DIR
+    - run:
+        - mainfile=$(find . -name "main.cpp")
+        - 'echo "Found main.cpp at: $mainfile"'
+        - oldline='auto state_dir = computeWatchmanStateDirectory(user);'
+        - "newline='const char* env_state_dir = getenv(\"WATCHMAN_STATE_DIR\"); auto state_dir = env_state_dir ? env_state_dir : computeWatchmanStateDirectory(user);'"
+        - sed -i "s/$oldline/$newline/" "$mainfile"
+        - cat $mainfile
+      working-directory: watchman
+
     # the pywatchman build doesn't like mixing -shared and -pie
     - run:
         - cp $PROP gcc-wrapper
@@ -80,6 +90,7 @@ build:
     - cmake --install build
     - mkdir -p {{prefix}}/var/run/watchman
   env:
+    # WATCHMAN_STATE_DIR: "{{prefix}}/var/run/watchman"
     CMAKE_ARGS:
       - -DCMAKE_INSTALL_PREFIX="{{prefix}}
       - -DCMAKE_INSTALL_LIBDIR=lib
@@ -93,7 +104,6 @@ build:
       - -DWATCHMAN_VERSION_OVERRIDE={{version}}
       - -DPython3_EXECUTABLE={{deps.python.org.prefix}}/bin/python
       - -DUSE_SYS_PYTHON=OFF
-      - -DWATCHMAN_STATE_DIR=
     linux:
       PATH: $HOME/.local/bin:$PATH
       CC: gcc-wrapper
@@ -106,6 +116,10 @@ build:
     darwin:
       CMAKE_ARGS:
         - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-dead_strip_dylibs
+
+runtime:
+  env:
+    WATCHMAN_STATE_DIR: "{{prefix}}/var/run/watchman"
 
 provides:
   - bin/watchman
