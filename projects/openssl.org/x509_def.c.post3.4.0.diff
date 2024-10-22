@@ -1,0 +1,75 @@
+diff --git a/crypto/x509/x509_def.c b/crypto/x509/x509_def.c
+index 7d5b642..3dd5c6c 100644
+--- a/crypto/x509/x509_def.c
++++ b/crypto/x509/x509_def.c
+@@ -13,6 +13,26 @@
+ #include "internal/thread_once.h"
+ #include <openssl/crypto.h>
+ #include <openssl/x509.h>
++#include <libgen.h>   /* dirname */
++
++#ifdef __linux__
++#define __USE_GNU
++#endif
++#include <dlfcn.h>    /* dladdr */
++
++const char *relocat0r(const char *suffix) {
++    static const char *prefix = NULL;
++    if (!prefix) {
++      // repeated calls to dladdr seem to return different values on Linux ¯\_(ツ)_/¯
++      Dl_info info;
++      if (!dladdr(relocat0r, &info)) { return NULL; }
++      prefix = dirname(info.dli_fname);
++    }
++    char *dir = malloc(strlen(prefix) + 4 + strlen(suffix) + 2);
++    if (!dir) { return NULL; }
++    sprintf(dir, "%s/../%s", prefix, suffix);
++    return dir;
++}
+ 
+ #if defined(_WIN32)
+ 
+@@ -71,7 +91,9 @@ const char *X509_get_default_private_dir(void)
+     RUN_ONCE(&openssldir_setup_init, do_openssldir_setup);
+     return x509_private_dirptr;
+ #else
+-    return X509_PRIVATE_DIR;
++    static const char *dir = NULL;
++    if (!dir) dir = relocat0r("ssl/private");
++    return dir ?: X509_PRIVATE_DIR;
+ #endif
+ }
+ 
+@@ -81,7 +103,9 @@ const char *X509_get_default_cert_area(void)
+     RUN_ONCE(&openssldir_setup_init, do_openssldir_setup);
+     return x509_cert_areaptr;
+ #else
+-    return X509_CERT_AREA;
++    static const char *dir = NULL;
++    if (!dir) dir = relocat0r("ssl");
++    return dir ?: X509_CERT_AREA;
+ #endif
+ }
+ 
+@@ -91,7 +115,9 @@ const char *X509_get_default_cert_dir(void)
+     RUN_ONCE(&openssldir_setup_init, do_openssldir_setup);
+     return x509_cert_dirptr;
+ #else
+-    return X509_CERT_DIR;
++    static const char *dir = NULL;
++    if (!dir) dir = relocat0r("ssl/certs");
++    return dir ?: X509_CERT_DIR;
+ #endif
+ }
+ 
+@@ -101,7 +127,9 @@ const char *X509_get_default_cert_file(void)
+     RUN_ONCE(&openssldir_setup_init, do_openssldir_setup);
+     return x509_cert_fileptr;
+ #else
+-    return X509_CERT_FILE;
++    static const char *dir = NULL;
++    if (!dir) dir = relocat0r("ssl/cert.pem");
++    return dir ?: X509_CERT_FILE;
+ #endif
+ }
+ 

@@ -25,7 +25,10 @@ build:
   dependencies:
     perl.org: 5
   script:
-    - patch -p1 <props/x509_def.c.diff
+    - run: patch -p1 <props/x509_def.c.diff
+      if: <3.4.0
+    - run: patch -p1 <props/x509_def.c.post3.4.0.diff
+      if: '>=3.4.0'
 
     - ./Configure --prefix={{ prefix }} $ARCH no-tests $ARGS --openssldir={{prefix}}/ssl
     - make --jobs {{ hw.concurrency }}
