@@ -77,6 +77,8 @@ provides:
 test:
   dependencies:
     freedesktop.org/pkg-config: '*'
+    linux:
+      llvm.org: '*'
   script:
     - pkg-config --modversion SuiteSparse_config | grep {{version}}
     # gha mac runners have broken SDKs...
@@ -86,5 +88,5 @@ test:
           exit 0
         fi
       if: darwin
-    - cc test.c -lsuitesparseconfig -lklu -o test -Wl,-rpath,{{pkgx.prefix}}
+    - clang test.c -lsuitesparseconfig -lklu -o test -Wl,-rpath,{{pkgx.prefix}}
     - ./test
