@@ -8,7 +8,7 @@ versions:
   github: vanna-ai/vanna
 
 dependencies:
-  python.org: ^3.12
+  python.org: ~3.12
   linux:
     openmp.llvm.org: 17 # needed by chromadb
 
@@ -17,13 +17,18 @@ runtime:
     PYTHONPATH: ${{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages:$PYTHONPATH
 
 build:
+  dependencies:
+    x86-64:
+      # py-rust-stemmers on x86-64
+      rust-lang.org: '>=1.76<1.80'
+      rust-lang.org/cargo: '<0.83'
   script:
     - python -m pip install . --prefix={{prefix}}
     # additional requirements as of 0.1.0
     - run: python -m pip install openai mistralai --prefix={{prefix}}
       if: '>=0.1'
     # additional requirements as of 0.2.0
-    - run: python -m pip install chromadb python-dotenv --prefix={{prefix}}
+    - run: python -m pip install chromadb python-dotenv onnxruntime --prefix={{prefix}}
       if: '>=0.2'
     # additional requirements as of 0.3.0
     - run: python -m pip install anthropic --prefix={{prefix}}
