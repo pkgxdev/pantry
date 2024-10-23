@@ -29,5 +29,15 @@ provides:
 
 test:
   - snyk version | grep {{version}}
+  - run: cp $FIXTURE package.json
+    fixture: |
+      {
+        "name": "test",
+        "version": "1.0.0",
+        "dependencies": {
+          "lodash": "*"
+        }
+      }
+  - npm i
   - (snyk test || true) | tee out.log
-  - grep 'requires an authenticated account.' out.log
+  - grep -E '(requires an authenticated account.|Authentication failed.)' out.log
