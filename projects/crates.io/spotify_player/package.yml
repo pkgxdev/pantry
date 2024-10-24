@@ -11,6 +11,7 @@ versions:
 
 dependencies:
   openssl.org: ^1.1
+  github.com/libsixel/libsixel: ^1
   linux:
     alsa-project.org/alsa-lib: ^1
     freedesktop.org/dbus: ^1
@@ -19,9 +20,12 @@ build:
   dependencies:
     rust-lang.org: '>=1.60'
     rust-lang.org/cargo: '*'
-  script:
-    cargo install --locked --path spotify_player --root {{prefix}}
+  script: cargo install $ARGS
+  env:
+    ARGS:
+      - --locked
+      - --path spotify_player
+      - --root {{prefix}}
+      - --features sixel,lyric-finder,notify,fzf
 
-test:
-  script:
-    - test "$(spotify_player --version)" = "spotify_player {{version}}"
+test: test "$(spotify_player --version)" = "spotify_player {{version}}"
