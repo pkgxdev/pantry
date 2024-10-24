@@ -1,0 +1,35 @@
+distributable:
+  url: https://github.com/MilesCranmer/rip2/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+display-name: rip2
+
+versions:
+  github: MilesCranmer/rip2
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.75'
+    rust-lang.org/cargo: '*'
+  script: cargo install $ARGS
+  env:
+    ARGS:
+      - --locked
+      - --path=.
+      - --root {{prefix}}
+
+provides:
+  - bin/rip
+
+test:
+  - test "$(rip --version)" = "rip {{version}}"
+  - touch foo
+  - rip foo
+  - rip --seance
+  - touch foo
+  - rip foo
+  - rip --seance
+  - rip --unbury foo~1
+  - test -f foo
+  - rip completions zsh
+  - rm -rf "$(rip graveyard)"
