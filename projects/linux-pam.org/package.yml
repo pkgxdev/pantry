@@ -1,19 +1,25 @@
 distributable:
   url: https://github.com/linux-pam/linux-pam/releases/download/v{{version}}/Linux-PAM-{{version}}.tar.xz
   strip-components: 1
+
 versions:
   github: linux-pam/linux-pam
+
 platforms:
   - linux
+
 dependencies:
   github.com/thkukuk/libnsl: '*'
   sourceforge.net/libtirpc: '*'
   github.com/besser82/libxcrypt: '*'
+
 build:
   dependencies:
     freedesktop.org/pkg-config: '*'
     gnu.org/gcc: '*'
     gnu.org/make: '*'
+    mesonbuild.com: '*' # since 1.7.0
+    ninja-build.org: '*' # since 1.7.0
   script:
     # 1.6.0 is missing an include
     - run: |
@@ -22,14 +28,54 @@ build:
         ' pam_namespace.c
       working-directory: modules/pam_namespace
       if: =1.6.0
-    - ./configure $CONFIGURE_ARGS
-    - make --jobs {{ hw.concurrency }}
-    - make --jobs {{ hw.concurrency }} install
+    - run:
+        - ./configure $CONFIGURE_ARGS
+        - make --jobs {{ hw.concurrency }}
+        - make --jobs {{ hw.concurrency }} install
+      if: <1.7.0
+
+    # -shared and -pie don't mix
+    - run:
+        - cp $PROP gcc-wrapper
+        - chmod +x gcc-wrapper
+      prop: |
+        #!/bin/bash
+        # Capture all arguments into an array
+        ARGS=("$@")
+
+        # Check if the '-shared' flag is present in the arguments
+        if printf "%s\n" "${ARGS[@]}" | grep -q -e '-shared'; then
+
+          # Use a loop to filter out the '-pie' flag from the arguments
+          FILTERED_ARGS=()
+          for arg in "${ARGS[@]}"; do
+            if [ "$arg" != "-pie" ]; then
+              FILTERED_ARGS+=("$arg")
+            fi
+          done
+
+          # Pass the filtered arguments to gcc
+          exec gcc "${FILTERED_ARGS[@]}"
+        else
+          # Pass the original arguments to gcc
+          exec gcc "${ARGS[@]}"
+        fi
+      working-directory: $HOME/.local/bin
+      if: linux
+
+    - run:
+        - meson setup build $MESON_ARGS
+        - meson compile -C build --verbose
+        - meson install -C build
+      if: '>=1.7.0'
     - run: sed -i "s|{{prefix}}|\$(dirname \$0)/..|g" pam_namespace_helper
       working-directory: '{{prefix}}/sbin'
-    - run: sed -i 's/\+brewing//g' *.la
+    - run: find . -name '*.la' -exec rm {} \;
       working-directory: '{{prefix}}/lib'
   env:
+    linux:
+      PATH: $HOME/.local/bin:$PATH
+      CC: gcc-wrapper
     CONFIGURE_ARGS:
       - --disable-debug
       - --disable-dependency-tracking
@@ -43,12 +89,23 @@ build:
       - --enable-securedir={{prefix}}/lib/security
       - --sysconfdir={{prefix}}/etc
       - --with-xml-catalog={{prefix}}/etc/xml/catalog
+    MESON_ARGS:
+      - --prefix={{prefix}}
+      - --libdir={{prefix}}/lib
+      - --buildtype=release
+      - --wrap-mode=nofallback
+      - -Dsecuredir={{prefix}}/lib/security
+      - -Dsysconfdir={{prefix}}/etc
+      - -Dxml-catalog={{prefix}}/etc/xml/catalog
+      - -Dexamples=false
+
 provides:
   - sbin/faillock
   - sbin/mkhomedir_helper
   - sbin/pam_namespace_helper
   - sbin/pam_timestamp_check
   - sbin/unix_chkpwd
+
 test:
   dependencies:
     freedesktop.org/pkg-config: '*'
