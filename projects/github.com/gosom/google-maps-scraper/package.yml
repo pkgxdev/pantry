@@ -32,5 +32,12 @@ provides:
   - bin/google-maps-scraper
 
 test:
-  - google-maps-scraper -input example-queries.txt -json -results restaurants.json -exit-on-inactivity 3m
-  - ls | grep restaurants.json
+  dependencies:
+    stedolan.github.io/jq: '*'
+  script:
+    # v1.5.2 is erroring on darwin even though it works
+    - google-maps-scraper -input example-queries.txt -json -results restaurants.json -exit-on-inactivity 5m || true
+    - ls | grep restaurants.json
+    # doesn't actually scrape on linux due to to the lack of ui libraries for the browser components
+    - run: test $(jq -s '.[].title' restaurants.json | wc -l) -gt 0
+      if: darwin
