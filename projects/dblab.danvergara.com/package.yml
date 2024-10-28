@@ -19,11 +19,11 @@ build:
     GO_LDFLAGS:
       - -s
       - -w
+      - -X main.version={{version}}
     linux:
       # or segmentation fault
       # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
       GO_LDFLAGS:
         - -buildmode=pie
 
-# version removed from version command in preference of sha
-test: dblab version
+test: dblab version | grep '{{version}}'
