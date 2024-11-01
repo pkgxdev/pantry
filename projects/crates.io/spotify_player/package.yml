@@ -20,7 +20,10 @@ build:
   dependencies:
     rust-lang.org: '>=1.60'
     rust-lang.org/cargo: '*'
-  script: cargo install $ARGS
+  script:
+    # they shipped v0.0.0 after v0.20.0; but the release is there, so we can build it.
+    - sed -i '1,10s/^version = ".*"/version = "{{version}}"/' spotify_player/Cargo.toml
+    - cargo install $ARGS
   env:
     ARGS:
       - --locked
