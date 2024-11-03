@@ -8,6 +8,8 @@ versions:
 dependencies:
   open-mpi.org/hwloc: '*'
   libevent.org: '*'
+
+companions:
   gnu.org/gcc: '*' # for gfortran
   gnu.org/inetutils: '*' # for rsh
 
@@ -30,8 +32,7 @@ build:
     zlib.net: ^1
     gnu.org/binutils: '*'
     python.org: ^3
-    linux:
-      gnu.org/make: '*'
+    gnu.org/gcc: '*'
   script:
     - ./configure $CONFIGURE_ARGS
     - make --jobs {{ hw.concurrency }} all
@@ -84,6 +85,8 @@ provides:
 test:
   dependencies:
     freedesktop.org/pkg-config: '*'
+    linux:
+      gnu.org/gcc: '*'
   script:
     # some gha mac runners have broken SDKs...
     - run: |
@@ -95,15 +98,18 @@ test:
     - mpicc hello.c -o hello
     - ./hello
     - mpirun ./hello
-    - mpifort hellof.f90 -o hellof
-    - ./hellof
-    - mpirun ./hellof
-    - mpifort hellousempi.f90 -o hellousempi
-    - ./hellousempi
-    - mpirun ./hellousempi
-    - mpifort hellousempif08.f90 -o hellousempif08
-    - ./hellousempif08
-    - mpirun ./hellousempif08
+    # gcc (for gfortran) messes up the includes on darwin
+    - run:
+        - mpifort hellof.f90 -o hellof
+        - ./hellof
+        - mpirun ./hellof
+        - mpifort hellousempi.f90 -o hellousempi
+        - ./hellousempi
+        - mpirun ./hellousempi
+        - mpifort hellousempif08.f90 -o hellousempif08
+        - ./hellousempif08
+        - mpirun ./hellousempif08
+      if: linux
     - pkg-config --modversion ompi
   env:
     linux/x86-64: # GHA hosts run as root
