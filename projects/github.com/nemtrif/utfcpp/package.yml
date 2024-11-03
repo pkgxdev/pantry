@@ -11,7 +11,7 @@ build:
   dependencies:
     cmake.org: '*'
     darwin:
-      gnu.org/gcc: '*'
+      gnu.org/gcc: 13
   working-directory: build
   script:
     - cmake .. $ARGS
@@ -43,11 +43,12 @@ build:
 test:
   dependencies:
     cmake.org: '*'
-    gnu.org/gcc: '*'
+    gnu.org/sed: '*'
+    gnu.org/gcc: 13
     gnu.org/make: '*'
   script:
     # currently, their builds are just broken :(
-    - run: sed -i.bak 's/PRIVATE utf8cpp/PRIVATE utf8cpp::utf8cpp/g' CMakeLists.txt
+    - run: sed -i 's/PRIVATE utf8cpp/PRIVATE utf8cpp::utf8cpp/g' CMakeLists.txt
       if: '>=4'
     - cmake . -DCMAKE_PREFIX_PATH:STRING="test" -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON
     - make
