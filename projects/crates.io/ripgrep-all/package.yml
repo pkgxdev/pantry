@@ -1,9 +1,16 @@
 distributable:
-  url: https://github.com/phiresky/ripgrep-all/archive/refs/tags/{{version}}.tar.gz
+  url: https://github.com/phiresky/ripgrep-all/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 provides:
   - bin/rga
+  - bin/rga-fzf
+  - bin/rga-fzf-open
+  - bin/rga-preproc
+
+companions:
+  crates.io/ripgrep: '*'
+  github.com/junegunn/fzf: '*'
 
 versions:
   github: phiresky/ripgrep-all/tags
@@ -12,12 +19,8 @@ build:
   dependencies:
     rust-lang.org: '>=1.75'
     rust-lang.org/cargo: '*'
-  script:
-    cargo install --locked ripgrep_all
-    cargo install --locked --path . --root {{prefix}}
+  script: cargo install --locked --path . --root {{prefix}}
 
 test:
-  script: |
-    rga hello $FIXTURE
-  fixture: |
-    hello, world
+  - run: rga hello $FIXTURE
+    fixture: hello, world
