@@ -25,6 +25,8 @@ dependencies:
   openjpeg.org: ^2
   qt.io: ~5
   curl.se: ^8
+  darwin:
+    gnupg.org/libassuan: ^2
   linux:
     gnu.org/gcc: '*' # apparently, clang c++20 std isn't good enough
 
@@ -45,15 +47,17 @@ build:
         fi
       if: linux
 
-    - cmake . $CMAKE_ARGS
-    - make --jobs {{ hw.concurrency }} install
-    - make clean
-    - cmake . -DBUILD_SHARED_LIBS=OFF $CMAKE_ARGS
-    - make --jobs {{ hw.concurrency }}
-    - install libpoppler.a cpp/libpoppler-cpp.a glib/libpoppler-glib.a {{prefix}}/lib/
-    - run: |
-        curl -L "$FONT_DATA" | tar -xz --strip-components=1
-        make install prefix={{prefix}}
+    - run:
+        - cmake .. $CMAKE_ARGS
+        - make --jobs {{ hw.concurrency }} install
+        - make clean
+        - cmake .. -DBUILD_SHARED_LIBS=OFF $CMAKE_ARGS
+        - make --jobs {{ hw.concurrency }}
+        - install libpoppler.a cpp/libpoppler-cpp.a glib/libpoppler-glib.a {{prefix}}/lib/
+      working-directory: build
+    - run:
+        - curl -L "$FONT_DATA" | tar -xz --strip-components=1
+        - make install prefix={{prefix}}
       working-directory: font-data
 
     - run: |
@@ -77,11 +81,10 @@ build:
       - -DENABLE_GLIB=ON
       - -DENABLE_QT5=ON
       - -DENABLE_QT6=OFF
+      - -DENABLE_NSS3=OFF # version issues in 24.11.0
       - -DENABLE_UNSTABLE_API_ABI_HEADERS=ON
       - -DRUN_GPERF_IF_PRESENT=OFF
       - -DWITH_GObjectIntrospection=ON
-    darwin:
-      CXXFLAGS: '$CXXFLAGS -std=c++11'
     linux:
       # ld.lld: error: undefined symbol: std::filesystem::__cxx11::path::_M_split_cmpts()
       LDFLAGS: '$LDFLAGS -lstdc++fs'
