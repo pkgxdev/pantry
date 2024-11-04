@@ -15,7 +15,7 @@ build:
     - run: ln -s ../../themes themes
       working-directory: ${{prefix}}/share/oh-my-posh
   env:
-    VERSION_DATE: "$(date -u +%FT%TZ)"
+    VERSION_DATE: '$(date -u +%FT%TZ)'
     ARGS:
       - -trimpath
       - -o={{prefix}}/bin/oh-my-posh
@@ -32,5 +32,11 @@ provides:
   - bin/oh-my-posh
 
 test:
-  - oh-my-posh --init --shell bash | grep 'oh-my-posh'
-  - oh-my-posh --version | grep {{version}}
+  - run:
+      - oh-my-posh --init --shell bash | grep 'oh-my-posh'
+      - oh-my-posh --version | grep {{version}}
+    if: <24
+  - run:
+      - oh-my-posh init bash | grep 'ohmyposh'
+      - oh-my-posh version | grep {{version}}
+    if: '>=24'
