@@ -18,8 +18,7 @@ dependencies:
 
 build:
   dependencies:
-    linux:
-      gnu.org/gcc: '*'
+    gnu.org/gcc: '*'
     freedesktop.org/pkg-config: '*'
   script:
     # clang doesn't like the -march=all flag
@@ -34,7 +33,8 @@ build:
     - make --jobs {{ hw.concurrency }} install
   env:
     darwin:
-      CFLAGS: $CFLAGS -Wno-implicit-int
+      # darwin support has some build issues.
+      CFLAGS: $CFLAGS -Wno-implicit-int -Wno-analyzer-fd-leak
 
 test: gnutls-cli --x509cafile={{deps.curl.se/ca-certs.prefix}}/ssl/cert.pem tea.xyz <<< "GET /"
 
