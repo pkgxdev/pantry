@@ -1,0 +1,42 @@
+distributable:
+  url: https://github.com/PostgREST/postgrest/archive/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: PostgREST/postgrest
+
+dependencies:
+  postgresql.org/libpq: 17
+  zlib.net: ~1.3
+  gnu.org/gcc/libstdcxx: 14
+
+# FIXME: zlib and libpq haskell modules build intermediary tools, which
+# can't find our RPATH, due to DYLD_LIBRARY_PATH being filtered on subinvokations.
+# Passing every kind of -static flag I could find didn't help. :(
+platforms:
+  - linux
+
+build:
+  dependencies:
+    haskell.org: ~9.8
+    haskell.org/cabal: ^3
+    linux:
+      gnu.org/gcc: '*'
+      gnu.org/binutils: '*'
+  env:
+    ARGS:
+      - --jobs={{hw.concurrency}}
+      - --install-method=copy
+      - --installdir={{prefix}}/bin
+  script:
+    - cabal v2-update
+    - cabal v2-install $ARGS
+
+provides:
+  - bin/postgrest
+
+test:
+  - postgrest --dump-config >out 2>&1
+  - grep db-anon-role out
+  - grep "Failed to query database settings for the config parameters" out
+  - postgrest --version | grep 'PostgREST {{version}}'
