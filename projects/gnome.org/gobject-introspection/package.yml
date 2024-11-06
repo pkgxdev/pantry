@@ -4,26 +4,26 @@ distributable:
 
 versions:
   gitlab: gitlab.gnome.org:gnome/gobject-introspection
-  strip: /^GObject-Introspection /
+  strip:
+    - /^GObject-Introspection /
+    - /^GObject-introspection /
 
 dependencies:
   gnome.org/glib: 2
   sourceware.org/libffi: 3
-  gnu.org/bison: 3  #NOTE macOS provides v2
+  gnu.org/bison: 3 #NOTE macOS provides v2
   python.org: '>=3<3.12'
   github.com/westes/flex: 2
 
 build:
   dependencies:
-    mesonbuild.com: ^0.63
+    mesonbuild.com: ^1.2
     ninja-build.org: 1
-    freedesktop.org/pkg-config: ^0.29
-  working-directory:
-    build
-  script: |
-    meson .. --prefix={{prefix}} --libdir={{prefix}}/lib --buildtype=release
-    ninja -v
-    ninja install
+  working-directory: build
+  script:
+    - meson .. --prefix={{prefix}} --libdir={{prefix}}/lib --buildtype=release
+    - ninja -v
+    - ninja install
   env:
     #FIXME for python3 distutils
     CC: clang
@@ -33,18 +33,25 @@ build:
 test:
   dependencies:
     gnome.org/glib: 2
-    pcre.org: 8   #NOTE possibly should be automatic
+    pcre.org: 8 #NOTE possibly should be automatic
     git-scm.org: 2
+    gnu.org/sed: '*'
     freedesktop.org/pkg-config: ^0.29
-  script: |
-    git clone $FIXTURE test
-    cd test
-    git apply ../test_make.diff
-    make
-    test -f Tut-0.1.typelib
+    linux:
+      gnu.org/make: '*'
+      llvm.org: '*'
+  script:
+    - git clone $FIXTURE test
+    - cd test
+    - git apply ../test_make.diff
+    - run: sed -i 's|(CC)|(CC) -Wl,-rpath,{{pkgx.prefix}}|' Makefile
+      if: darwin
+    - make
+    - test -f Tut-0.1.typelib
   env:
     FIXTURE: https://gist.github.com/7a0023656ccfe309337a.git
     PKG_CONFIG_PATH: $PKG_CONFIG_PATH:{{prefix}}/lib/pkgconfig
+    CC: clang
 
 provides:
   - bin/g-ir-annotation-tool
