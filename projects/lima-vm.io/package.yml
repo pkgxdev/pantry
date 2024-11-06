@@ -11,24 +11,33 @@ dependencies:
 build:
   dependencies:
     go.dev: '*'
+    linux:
+      gnu.org/gcc: '*'
   script:
-    - run: |
-        sed -i.bak -e's/ldflags="/ldflags="-buildmode=pie /' Makefile
-        rm Makefile.bak
+    - run:
+        - sed -i -e's/ldflags="/ldflags="-buildmode=pie /' Makefile
+        - mkdir .bin
+        - ln -s "$(command -v gcc)" .bin/$ARCH-linux-gnu-gcc
       if: linux
     - make $ARGS binaries
     - mkdir -p {{prefix}}
     - mv ./_output/* {{prefix}}/
   env:
-    CC: clang
-    CXX: clang++
-    LD: clang
+    darwin:
+      CC: clang
+      CXX: clang++
+      LD: clang
     ARGS:
       - VERSION={{version}}
     linux:
+      PATH: '$SRCROOT/.bin:$PATH'
       ARGS:
         - CONFIG_GUESTAGENT_ARCH_ARMV7L=n
         - CONFIG_GUESTAGENT_ARCH_RISCV64=n
+    x86-64:
+      ARCH: x86_64
+    aarch64:
+      ARCH: aarch64
 
 provides:
   - bin/apptainer.lima
@@ -39,5 +48,4 @@ provides:
   - bin/nerdctl.lima
   - bin/podman.lima
 
-test:
-  limactl --version | grep {{version}}
+test: limactl --version | grep {{version}}
