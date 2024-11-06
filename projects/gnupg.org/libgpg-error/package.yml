@@ -31,6 +31,9 @@ build:
     - make
     - make check
     - make install
+    # .la are unrelocatable, but only used if found
+    - run: find . -name '*.la' -exec rm {} \;
+      working-directory: ${{prefix}}/lib
 
 test:
   script: test "$(gpg-error 56)" = "$OUTPUT"
