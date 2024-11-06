@@ -32,9 +32,12 @@ build:
       - --disable-g13-test
     CFLAGS: $CFLAGS -Wno-implicit-function-declaration
     CXXFLAGS: $CXXFLAGS -std=c++14
+    linux:
+      # references to gettid()
+      LDFLAGS: $LDFLAGS -Wl,--allow-shlib-undefined
   dependencies:
     gnupg.org: '*'
     gnupg.org/libassuan: ^2.0.2
     gnupg.org/libgpg-error: ^1.11
-test:
-  script: test "$(gpgme-config --version)" = "{{version}}"
+
+test: test "$(gpgme-config --version)" = "{{version}}"
