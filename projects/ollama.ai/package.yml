@@ -14,10 +14,15 @@ build:
     cmake.org: ^3
     git-scm.org: ^2
   script:
-    - run: |
-        git submodule init
-        git submodule update
+    - run:
+        - git submodule init
+        - git submodule update
       if: '>=0.0.18'
+    # arm64 build bug
+    # https://github.com/ollama/ollama/issues/7292#issuecomment-2427773036
+    - run: sed -i 's/-D__ARM_FEATURE_MATMUL_INT8//g' llama.go
+      working-directory: llama
+      if: '>=0.4.0'
     - go generate ./...
     - go build -ldflags="$GO_LDFLAGS" -o '{{prefix}}/bin/ollama' .
   env:
