@@ -1,0 +1,28 @@
+distributable:
+  url: https://github.com/sorah/envchain/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+display-name: envchain
+
+versions:
+  github: sorah/envchain
+
+dependencies:
+  linux:
+    gnu.org/readline: '*'
+    gnome.org/libsecret: '*'
+
+build:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+    llvm.org: '*'
+    cmake.org: ^3
+  env:
+    DESTDIR: "{{prefix}}"
+  script:
+  - make --jobs {{ hw.concurrency }} install
+
+provides:
+- bin/envchain
+
+test: test "$(envchain 2>&1|grep version|cut -d' ' -f3)" = {{version}}
