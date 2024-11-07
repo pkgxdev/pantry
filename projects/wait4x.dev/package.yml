@@ -1,0 +1,34 @@
+distributable:
+  url: https://github.com/atkrad/wait4x/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: atkrad/wait4x
+
+provides:
+  - bin/wait4x
+
+companions:
+  curl.se/ca-certs: '*'
+
+build:
+  dependencies:
+    go.dev: ~1.22
+  script: go build $GO_ARGS -ldflags="$GO_LDFLAGS" -o {{prefix}}/bin/wait4x cmd/wait4x/main.go
+  env:
+    GO_ARGS:
+      - -v
+      - -trimpath
+    GO_LDFLAGS:
+      - -s
+      - -w
+      - -buildid=
+      - -X wait4x.dev/v2/internal/app/wait4x/cmd.BuildTime=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+      - -X wait4x.dev/v2/internal/app/wait4x/cmd.AppVersion={{version}}
+    linux:
+      # or segmentation fault
+      # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
+      GO_LDFLAGS:
+        - -buildmode=pie
+
+test: wait4x http https://pkgx.dev --expect-status-code 200 --timeout 30s
