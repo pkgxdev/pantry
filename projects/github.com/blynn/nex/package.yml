@@ -1,0 +1,34 @@
+distributable:
+  url: https://github.com/blynn/nex/archive/1a3320dab988372f8910ccc838a6a7a45c8980ff.tar.gz
+  strip-components: 1
+
+display-name: nex
+
+versions:
+# no versions published, use the last code available
+- 2021.3.30
+
+build:
+  dependencies:
+    rsync.samba.org: '*'
+    go.dev: ^1.20
+  env:
+    CGO_ENABLED: 0
+    GO_LDFLAGS:
+    - -s
+    - -w
+    linux:
+      GO_LDFLAGS:
+      - -buildmode=pie
+  script:
+  - go build -v -ldflags="${GO_LDFLAGS}" -o "{{prefix}}"/bin/nex ./main.go ./nex.go
+  - rsync -avH ./test "{{prefix}}"
+  - rsync -avH ./props/README.md "{{prefix}}/share/"
+
+provides:
+- bin/nex
+
+test:
+  dependencies:
+    go.dev: '*'
+  script: nex -r -s {{prefix}}/test/lc.nex < "{{prefix}}/share/README.md"
