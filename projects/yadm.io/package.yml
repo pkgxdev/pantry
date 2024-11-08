@@ -14,7 +14,10 @@ build: make install PREFIX={{ prefix }}
 provides:
   - bin/yadm
 
-test: |
-  yadm init
-  test -f ~/.local/share/yadm/repo.git/config
-  test $(yadm gitconfig core.worktree) = $PWD
+test:
+  - yadm init -f
+  - test -f ~/.local/share/yadm/repo.git/config
+  - run: test $(yadm gitconfig core.worktree) = $PWD
+    if: <3.3
+  - run: test $(yadm gitconfig core.worktree) = $HOME
+    if: '>=3.3'
