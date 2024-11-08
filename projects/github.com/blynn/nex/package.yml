@@ -23,6 +23,7 @@ build:
   script:
   - go build -v -ldflags="${GO_LDFLAGS}" -o "{{prefix}}"/bin/nex ./main.go ./nex.go
   - rsync -avH ./test "{{prefix}}"
+  - rsync -avH ./props/README.md "{{prefix}}/share/"
 
 provides:
 - bin/nex
@@ -30,4 +31,4 @@ provides:
 test:
   dependencies:
     go.dev: '*'
-  script: nex -r -s {{prefix}}/test/lc.nex < /etc/protocols
+  script: nex -r -s {{prefix}}/test/lc.nex < "{{prefix}}/share/README.md"
