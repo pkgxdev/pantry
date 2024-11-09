@@ -1,0 +1,36 @@
+distributable:
+  url: https://gitlab.com/cznic/goyacc/-/archive/{{version.tag}}/{{version.tag}}.tar.gz
+  strip-components: 1
+
+display-name: modernc.org/goyacc
+
+versions:
+  gitlab: cznic/goyacc/tags
+
+build:
+  dependencies:
+    go.dev: ^1.20
+  env:
+    CGO_ENABLED: 0
+    GO_LDFLAGS:
+    - -s
+    - -w
+    linux:
+      GO_LDFLAGS:
+      - -buildmode=pie
+  script:
+  - go build -v -ldflags="${GO_LDFLAGS}" -o "{{ prefix }}"/bin/goyacc
+  - rsync -avH ./*.go "{{prefix}}/test/"
+
+provides:
+- bin/goyacc
+
+test:
+  dependencies:
+    go.dev: ^1.20
+  #
+  # is there an equivalent to {{prefix}} like {{testbed}} to do not ship the tests files?
+  #
+  script: |
+    cd ${PKGX_PANTRY_PATH}/builds/modernc.org__goyacc-{{version}}
+    go test
