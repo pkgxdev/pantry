@@ -25,7 +25,7 @@ build:
   dependencies:
     cpanmin.us: ^1
   script:
-    - cpanm -l {{prefix}} $PKGS
+    - cpanm -l {{prefix}} $PKGS --notest --force
     - make --jobs {{ hw.concurrency }} $ARGS install
     - fix-shebangs.ts {{prefix}}/bin/*
 
@@ -73,18 +73,19 @@ build:
 
 test:
   dependencies:
-    gnu.org/gcc: '*'
+    linux:
+      gnu.org/gcc: '*'
   script:
-    - mv $FIXTURE hello_world.c
-    - gcc -g -O2 --coverage -o hello_world hello_world.c
+    - run: mv $FIXTURE hello_world.c
+      fixture: |
+        #include <stdio.h>
+        int main(void)
+        {
+          puts("hello world");
+          return 0;
+        }
+    - cc -g -O2 --coverage -o hello_world hello_world.c
     - ./hello_world
     - lcov --gcov-tool gcov --directory . --capture --output-file all_coverage.info
     - test -f all_coverage.info
     - grep hello_world.c all_coverage.info
-  fixture: |
-    #include <stdio.h>
-    int main(void)
-    {
-      puts("hello world");
-      return 0;
-    }
