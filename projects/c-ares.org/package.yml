@@ -19,22 +19,23 @@ build:
   script:
     # thirdparty header not packaged in tarball
     # https://github.com/c-ares/c-ares/pull/750
+    # note that this URL 404s now, but it's only needed for old versions.
     - run: curl -O https://opensource.apple.com/source/configd/configd-1109.140.1/dnsinfo/dnsinfo.h
       working-directory: ../src/lib/thirdparty/apple
-      if: '>=1.29.0'
+      if: '>=1.29.0<1.34.3'
     - cmake .. -DCMAKE_INSTALL_PREFIX="{{prefix}}" -DCMAKE_BUILD_TYPE=Release
     - make --jobs {{hw.concurrency}} install
 
 test:
-  fixture: |
-    #include <stdio.h>
-    #include <ares.h>
-    int main() {
-      ares_library_init(ARES_LIB_INIT_ALL);
-      ares_library_cleanup();
-      return 0;
-    }
-  script: |
-    mv $FIXTURE b.c
-    cc b.c -lcares
-    ./a.out
+  - run: cc $FIXTURE -lcares
+    fixture:
+      extname: c
+      content: |
+        #include <stdio.h>
+        #include <ares.h>
+        int main() {
+          ares_library_init(ARES_LIB_INIT_ALL);
+          ares_library_cleanup();
+          return 0;
+        }
+  - ./a.out
