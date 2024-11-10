@@ -11,10 +11,13 @@ warnings:
 
 runtime:
   env:
-    DOTNET_ROOT: "{{prefix}}"
+    DOTNET_ROOT: '{{prefix}}'
+
 dependencies:
   linux:
     unicode.org: ^71
+    openssl.org: '*'
+
 build:
   dependencies:
     curl.se: '*'
@@ -22,16 +25,16 @@ build:
   script:
     - curl -L "https://dotnetcli.azureedge.net/dotnet/Sdk/{{version}}/dotnet-sdk-{{version}}-${PLATFORM}.tar.gz" | tar zxf -
     - run: ln -s ../dotnet ./dotnet
-      working-directory: "{{prefix}}/bin"
+      working-directory: '{{prefix}}/bin'
   env:
     darwin/aarch64: { PLATFORM: osx-arm64 }
-    darwin/x86-64:  { PLATFORM: osx-x64 }
-    linux/aarch64:  { PLATFORM: linux-arm64 }
-    linux/x86-64:   { PLATFORM: linux-x64 }
+    darwin/x86-64: { PLATFORM: osx-x64 }
+    linux/aarch64: { PLATFORM: linux-arm64 }
+    linux/x86-64: { PLATFORM: linux-x64 }
 
 provides:
   - bin/dotnet
 
 test:
-  script:
-    - dotnet --version | grep {{version}}
+  - dotnet --version | grep {{version}}
+  - dotnet new console -o test
