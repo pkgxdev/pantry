@@ -12,18 +12,18 @@ dependencies:
   zlib.net: 1
 
 build:
-  script: |-
-    ./configure \
-      --disable-dependency-tracking \
-      --disable-silent-rules \
-      --prefix {{ prefix }}
-    make --jobs {{ hw.concurrency }}
-    make install
+  - ./configure
+    --disable-dependency-tracking
+    --disable-silent-rules
+    --prefix {{ prefix }}
+  - make --jobs {{ hw.concurrency }}
+  - make install
+  - run: find . -name '*.la' -exec rm -f {} \;
+    working-directory: ${{ prefix }}/lib
 
 test:
-  script: |
-    cc test.c -lpng
-    ./a.out
+  - cc test.c -lpng
+  - ./a.out
 
 provides:
   - bin/libpng-config
