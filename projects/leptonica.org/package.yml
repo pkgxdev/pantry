@@ -1,9 +1,9 @@
 distributable:
-   url: https://github.com/DanBloomberg/leptonica/releases/download/{{version}}/leptonica-{{version}}.tar.gz
-   strip-components: 1
+  url: https://github.com/DanBloomberg/leptonica/releases/download/{{version}}/leptonica-{{version}}.tar.gz
+  strip-components: 1
 
 versions:
-  github: DanBloomberg/leptonica/tags  
+  github: DanBloomberg/leptonica/tags
 
 dependencies:
   giflib.sourceforge.io: 5
@@ -14,12 +14,12 @@ dependencies:
   google.com/webp: '*'
 
 build:
-  dependencies:
-    freedesktop.org/pkg-config: '*'
-  script: |
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }} 
-    make install
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
+    - run: find . -name '*.la' -exec rm -f {} \;
+      working-directory: ${{ prefix }}/lib
   env:
     ARGS:
       - --prefix="{{prefix}}"
@@ -39,6 +39,6 @@ provides:
 test:
   dependencies:
     gnu.org/wget: '*'
-  script: |
-    wget https://people.math.sc.edu/Burkardt/data/tif/at3_1m4_01.tif
-    fileinfo at3_1m4_01.tif
+  script:
+    - wget https://people.math.sc.edu/Burkardt/data/tif/at3_1m4_01.tif
+    - fileinfo at3_1m4_01.tif
