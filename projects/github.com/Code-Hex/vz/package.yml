@@ -18,11 +18,14 @@ build:
       - -s
       - -w
   script:
-  - go build -v -ldflags="${GO_LDFLAGS}" -o "{{ prefix }}"/bin/codesign ./cmd/codesign/
-  - go build -v -ldflags="${GO_LDFLAGS}" -o "{{ prefix }}"/bin/addtags  ./cmd/addtags/
+    - go build -v -ldflags="${GO_LDFLAGS}" -o "{{ prefix }}"/bin/codesign ./cmd/codesign/
+    - go build -v -ldflags="${GO_LDFLAGS}" -o "{{ prefix }}"/bin/addtags  ./cmd/addtags/
 
 provides:
   - bin/codesign
   - bin/addtags
 
-test: test "$(foo --version)" = {{version}}
+test:
+  script:
+    - test "$(codesign --version)" = {{version}}
+    - test "$(addtags --version)" = {{version}}
