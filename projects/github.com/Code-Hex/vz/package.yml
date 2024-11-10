@@ -17,17 +17,9 @@ build:
     GO_LDFLAGS:
       - -s
       - -w
-  script: go build -v -ldflags="${GO_LDFLAGS}" -o "{{ prefix }}"/bin/vz
+  script: go build -v -ldflags="${GO_LDFLAGS}" -o "{{ prefix }}"/bin/virtualization .
 
 provides:
   - bin/vz
 
-test:
-  dependencies:
-    foo.com: '*'  # asterisk means “any version, usually the latest”
-  script:
-    test "$(foo --version)" = {{version}}
-    # if it’s a tool check the version matches
-    # you should run the tool to check it works!
-    # if it's a library then you should *use* the library
-    # don’t forget to check other package.ymls in the pantry for examples!
+test: test "$(foo --version)" = {{version}}
