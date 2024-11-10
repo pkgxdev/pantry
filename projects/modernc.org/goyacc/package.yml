@@ -9,21 +9,44 @@ versions:
 
 build:
   dependencies:
-    rsync.samba.org: '*'
-    go.dev: ^1.20
+    go.dev: ~1.19
   env:
     CGO_ENABLED: 0
     GO_LDFLAGS:
-    - -s
-    - -w
+      - -s
+      - -w
     linux:
       GO_LDFLAGS:
-      - -buildmode=pie
+        - -buildmode=pie
   script:
-  - go build -v -ldflags="${GO_LDFLAGS}" -o "{{ prefix }}"/bin/goyacc
-  - go test
+    - go build -v -ldflags="${GO_LDFLAGS}" -o "{{ prefix }}"/bin/goyacc
+    - go test
 
 provides:
-- bin/goyacc
+  - bin/goyacc
 
-test: goyacc --help
+test:
+  - run: goyacc -o test.go $FIXTURE
+    fixture:
+      extname: y
+      content: |
+        %{
+        package main
+        %}
+
+        %union { val int }
+        %token <val> NUM
+        %type <val> expr term factor
+
+        %%
+        expr : expr '+' term { $$ = $1 + $3; }
+            | term          { $$ = $1; }
+            ;
+        term : term '*' factor { $$ = $1 * $3; }
+            | factor          { $$ = $1; }
+            ;
+        factor : '(' expr ')'  { $$ = $2; }
+              | NUM           { $$ = $1; }
+              ;
+        %%
+  - grep 'package main' test.go
