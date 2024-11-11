@@ -1,9 +1,9 @@
 distributable:
-   url: https://github.com/tesseract-ocr/tesseract/archive/refs/tags/{{version}}.tar.gz
-   strip-components: 1
+  url: https://github.com/tesseract-ocr/tesseract/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
 
 versions:
-  github: tesseract-ocr/tesseract/releases/tags
+  github: tesseract-ocr/tesseract
 
 dependencies:
   cairographics.org: 1
@@ -14,32 +14,33 @@ dependencies:
 
 runtime:
   env:
-    TESSDATA_PREFIX: "{{prefix}}/share/tessdata/"
+    TESSDATA_PREFIX: '{{prefix}}/share/tessdata/'
 
 build:
   dependencies:
     gnu.org/autoconf: '*'
     gnu.org/automake: '*'
     gnu.org/libtool: '*'
-    freedesktop.org/pkg-config: '*'
     gnu.org/wget: '*'
-  script: |
-    ./autogen.sh
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }} 
-    make install 
+  script:
+    - ./autogen.sh
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
 
     # install trained datafiles and move to share/tessdata
-    wget https://github.com/tesseract-ocr/tessdata/blob/main/eng.traineddata?raw=true -O eng.traineddata
-    wget https://github.com/tesseract-ocr/tessdata/blob/main/osd.traineddata?raw=true -O osd.traineddata
-    mv eng.traineddata "{{prefix}}"/share/tessdata/
-    mv osd.traineddata "{{prefix}}"/share/tessdata/
-    
-  env: 
-    ARGS: 
+    - run:
+        - wget https://github.com/tesseract-ocr/tessdata/blob/main/eng.traineddata?raw=true -O eng.traineddata
+        - wget https://github.com/tesseract-ocr/tessdata/blob/main/osd.traineddata?raw=true -O osd.traineddata
+      working-directory: '{{prefix}}/share/tessdata/'
+  env:
+    ARGS:
       - --prefix="{{prefix}}"
       - --disable-dependency-tracking
       - --datarootdir="{{prefix}}"/share
+    linux:
+      # ld.lld: error: undefined symbol: std::filesystem::__cxx11::path::_M_std::filesystem::__cxx11::recursive_directory_iterator::recursive_directory_iterator(std::filesystem::__cxx11::path const&, std::filesystem::directory_options, std::error_code*)
+      LDFLAGS: '$LDFLAGS -lstdc++fs'
 
 provides:
   - bin/tesseract
@@ -47,6 +48,6 @@ provides:
 test:
   dependencies:
     gnu.org/wget: '*'
-  script: |
-    wget https://raw.githubusercontent.com/tesseract-ocr/test/6dd816cdaf3e76153271daf773e562e24c928bf5/testing/eurotext.tif 
-    tesseract eurotext.tif stdout -l eng
+  script:
+    - wget https://raw.githubusercontent.com/tesseract-ocr/test/6dd816cdaf3e76153271daf773e562e24c928bf5/testing/eurotext.tif
+    - tesseract eurotext.tif stdout -l eng
