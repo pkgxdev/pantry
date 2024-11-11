@@ -13,9 +13,14 @@ build:
     go.dev: ^1.22
   script:
     - go mod download
-    - go build -o {{prefix}}/bin/ksops
+    - go build -v -trimpath -ldflags="$GO_LDFLAGS" -o {{prefix}}/bin/ksops
+  env:
+    GO_LDFLAGS:
+      - -s
+      - -w
+      - -buildmode=pie
 
 provides:
   - bin/ksops
 
-test: ksops
+test: command -v ksops
