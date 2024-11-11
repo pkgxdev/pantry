@@ -5,12 +5,9 @@ distributable:
 versions:
   github: viaduct-ai/kustomize-sops
 
-dependencies:
-  go.dev: ^1.22
-
 build:
   dependencies:
-    go.dev: ^1.22
+    go.dev: ~1.22
   script:
     - go mod download
     - go build -v -trimpath -ldflags="$GO_LDFLAGS" -o {{prefix}}/bin/ksops
@@ -18,9 +15,24 @@ build:
     GO_LDFLAGS:
       - -s
       - -w
-      - -buildmode=pie
+    linux:
+      GO_LDFLAGS:
+        - -buildmode=pie
 
 provides:
   - bin/ksops
 
-test: command -v ksops
+test:
+  - run: ksops $FIXTURE >out.yaml
+    fixture:
+      extname: yaml
+      content: |
+        apiVersion: viaduct.ai/v1
+        kind: ksops
+        metadata:
+          name: secret-generator
+          annotations:
+            config.kubernetes.io/function: |
+              exec:
+                path: ksops
+        files: []
