@@ -9,7 +9,7 @@ versions:
     - /libcap-/
     - /\.tar\.xz/
 
-platforms: linux
+platforms: linux/x86-64
 
 build:
   script: make $ARGS --jobs {{ hw.concurrency }} install
@@ -18,6 +18,8 @@ build:
       - prefix="{{prefix}}"
       - lib=lib
       - RAISE_SETFCAP=no
+    # references to gettid()
+    CFLAGS: $CFLAGS -Wno-implicit-function-declaration
 
 provides:
   - sbin/capsh
