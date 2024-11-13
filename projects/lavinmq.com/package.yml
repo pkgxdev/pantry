@@ -13,12 +13,11 @@ dependencies:
 
 build:
   dependencies:
-    gnu.org/make: ^4
-    gnu.org/gcc: ^14
-    crystal-lang.org: ~1.13
-    crystal-lang.org/shards: ~0.18
+    crystal-lang.org: ~1.14
+    crystal-lang.org/shards: '*'
     lz4.org: ^1
     gnu.org/help2man: '*'
+    etcd.io: '*'
   script:
     # else fix-machos.rb fails
     - run: sed -i 's/--link-flags=-pie/--link-flags=-Wl,-pie,-headerpad_max_install_names/' Makefile
@@ -30,6 +29,8 @@ build:
       - SYSCONFDIR="{{prefix}}/etc"
       - SHAREDSTATEDIR="{{prefix}}/var"
       - UNITDIR="{{prefix}}/etc"
+      - DOCS=
+      - CRYSTAL_FLAGS=-Dbake_static
     CRYSTAL_PATH: './lib:$CRYSTAL_PATH'
 
 provides:
