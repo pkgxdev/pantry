@@ -9,33 +9,24 @@ provides:
   - bin/skopeo
 
 dependencies:
-  curl.se/ca-certs: "*"
+  curl.se/ca-certs: '*'
 
 build:
   dependencies:
-    go.dev: "^1.18"
-    curl.se: "*"
-    gnu.org/patch: "*"
+    go.dev: '^1.18'
   env:
     DISABLE_DOCS: 1 # disables the generation of man pages with go-md2man
-  script: |
-    # bundles default-policy.json into the binary to provide a working out-of-the-box experience
-    # https://github.com/containers/skopeo/pull/2014
-    curl -fsSL https://github.com/containers/skopeo/commit/fb180f03ca43ea7a9130a48639f483fa46cffe50.diff |
-      patch -p1
-
+  script:
     # https://github.com/containers/skopeo/blob/2d1ae1fdb3d88347eec8a17d4415a964ce86d54f/install.md#building-a-static-binary
-    CGO_ENABLED=0 make BUILDTAGS=containers_image_openpgp GO_DYN_FLAGS=
+    - CGO_ENABLED=0 make BUILDTAGS=containers_image_openpgp GO_DYN_FLAGS=
 
-    mkdir -p '{{prefix}}/bin'
-    mv -f ./bin/skopeo '{{prefix}}/bin'
+    - mkdir -p '{{prefix}}/bin'
+    - mv -f ./bin/skopeo '{{prefix}}/bin'
 
 test:
-  script: |
-    skopeo --version | tee /dev/stderr | grep -q -w '{{ version }}'
+  - skopeo --version | tee /dev/stderr | grep -q -w '{{ version }}'
 
-    skopeo --override-os linux inspect docker://hello-world | tee /dev/stderr |
-      grep -q -w 'docker.io/library/hello-world'
+  - skopeo --insecure-policy --override-os linux inspect docker://hello-world | tee /dev/stderr | grep -q -w 'docker.io/library/hello-world'
 
-    skopeo --override-os linux copy docker://hello-world docker-archive:hello-world.tar
-    test -f hello-world.tar
+  - skopeo --insecure-policy --override-os linux copy docker://hello-world docker-archive:hello-world.tar
+  - test -f hello-world.tar
