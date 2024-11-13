@@ -56,6 +56,15 @@ build:
     - cp .build/crystal "{{prefix}}/bin/crystal.bin"
     - cp props/shim "{{prefix}}/bin/crystal"
     - cp -a src "{{prefix}}/lib"
+
+    # regression in 1.14.0
+    - run: |
+        if test "{{hw.platform}}" = "darwin"; then
+          sed -i 's/mask = LibC::SigsetT.new$/mask = LibC::SigsetT.new(0_u32)/' pthread.cr
+        fi
+      working-directory: ${{prefix}}/lib/crystal/system/unix
+      if: =1.14.0
+
   env:
     CRYSTAL_LIBRARY_PATH: $LD_LIBRARY_PATH
     PATH: $SRCROOT/.bootstrap/bin:$PATH
