@@ -67,11 +67,16 @@ build:
         echo "No binary found"
         exit 1
       fi
-      install -D props/entrypoint.sh {{prefix}}/entrypoint.sh
+
+    - install -D props/entrypoint.sh {{prefix}}/entrypoint.sh
+
+    - |
       if test -f ggml-metal.metal; then
         install -D ggml-metal.metal {{prefix}}/bin/ggml-metal.metal
       elif test -f ggml/src/ggml-metal.metal; then
         install -D ggml/src/ggml-metal.metal {{prefix}}/bin/ggml-metal.metal
+      elif test -f ggml/src/ggml-metal/ggml-metal.metal; then
+        install -D ggml/src/ggml-metal/ggml-metal.metal {{prefix}}/bin/ggml-metal.metal
       else
         echo "No ggml-metal.metal found"
         exit 1
