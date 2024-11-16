@@ -19,11 +19,13 @@ dependencies:
   abseil.io: ^20240116
   c-ares.org: '*'
   openssl.org: ^1.1
-  protobuf.dev: 26.1.0 # grpc links to specific versions, so we have to pick one.
   github.com/google/re2: '*'
   zlib.net: '*'
   linux:
     gnu.org/gcc/libstdcxx: '*'
+    # grpc links to specific versions, so we use theirs
+    # on darwin
+    protobuf.dev: 26.1.0
 
 build:
   dependencies:
@@ -110,6 +112,7 @@ build:
     darwin:
       ARGS:
         - -DgRPC_PROTOBUF_PROVIDER=module
+        - -DCMAKE_SHARED_LINKER_FLAGS=-Wl,-rpath,{{pkgx.prefix}},-undefined,dynamic_lookup
     linux:
       CC: clang
       CXX: clang++
@@ -123,19 +126,20 @@ build:
 test:
   dependencies:
     freedesktop.org/pkg-config: ^0
-  fixture: |
-    #include <grpc/grpc.h>
-    int main() {
-      grpc_init();
-      grpc_shutdown();
-      return GRPC_STATUS_OK;
-    }
   script:
-    - cp $FIXTURE test.cpp
-    - PKG_CONFIG=$(pkg-config --cflags --libs libcares protobuf re2 grpc++)
-    - clang++ $PKG_CONFIG test.cpp -o test $LIBS
-    - ./test
     - (grpc_cli ls localhost:58931 2>&1 || true) | grep -E "(failed to connect to all addresses|rpc failed)"
+    - run: clang++ $PKG_CONFIG $FIXTURE -o test $LIBS
+      fixture:
+        extname: cpp
+        content: |
+          #include <grpc/grpc.h>
+          int main() {
+            grpc_init();
+            grpc_shutdown();
+            return GRPC_STATUS_OK;
+          }
+    - ./test
   env:
+    PKG_CONFIG: $(pkg-config --cflags --libs libcares protobuf re2 grpc++)
     linux:
       LIBS: -lstdc++
