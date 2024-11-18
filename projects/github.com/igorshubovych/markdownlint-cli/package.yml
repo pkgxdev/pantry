@@ -1,0 +1,30 @@
+distributable:
+  url: https://github.com/igorshubovych/markdownlint-cli/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: igorshubovych/markdownlint-cli/tags
+
+dependencies:
+  nodejs.org: ^18
+
+build:
+  dependencies:
+    npmjs.com: ^10
+  script:
+    npm i $ARGS .
+  env:
+    ARGS:
+      - -ddd
+      - --global
+      - --build-from-source
+      - --prefix={{prefix}}
+      - --install-links
+      - --unsafe-perm
+
+provides:
+  - bin/markdownlint
+
+test:
+  script:
+    test "$(markdownlint --version)" = {{version}}
