@@ -1,0 +1,25 @@
+distributable:
+  url: git+https://github.com/shaka-project/shaka-packager.git
+  ref: v{{version}}
+
+versions:
+  github: shaka-project/shaka-packager
+
+build:
+  dependencies:
+    ninja-build.org: '*'
+    cmake.org: ^3
+  script: |
+    cd $(find ../../srcs/ -type d -name '*shaka-packager*' | head -n 1)
+    git submodule update --init --recursive
+    cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+    cmake --build build --parallel
+    cmake --install build/ --strip --config Release --prefix={{prefix}}
+
+provides:
+  - bin/packager
+  - bin/mpd_generator
+
+test:
+  script:
+    test "$(packager --version) | grep {{version}}"
