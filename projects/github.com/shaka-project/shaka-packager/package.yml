@@ -1,0 +1,29 @@
+distributable:
+  url: git+https://github.com/shaka-project/shaka-packager.git
+  ref: ${{version.tag}}
+
+versions:
+  github: shaka-project/shaka-packager
+
+dependencies:
+  linux:
+    gnu.org/gcc/libstdcxx: '*'
+
+build:
+  dependencies:
+    ninja-build.org: '*'
+    cmake.org: ^3
+    python.org: ^3.10
+    linux:
+      gnu.org/gcc: '*'
+  script:
+    - git submodule update --init --recursive
+    - cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+    - cmake --build build --parallel
+    - cmake --install build/ --strip --config Release --prefix={{prefix}}
+
+provides:
+  - bin/packager
+  - bin/mpd_generator
+
+test: packager --version 2>&1 | grep "{{version}}"
