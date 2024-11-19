@@ -1,0 +1,36 @@
+distributable:
+  url: https://github.com/rubocop/rubocop/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: rubocop/rubocop/tags
+
+dependencies:
+  ruby-lang.org: ^3.1
+  rubygems.org: '*'
+
+build:
+  dependencies:
+    rubygems.org: '*'
+  env:
+    GEM_HOME: ${{prefix}}
+    GEM_PATH: ${{prefix}}
+  script: |
+    gem build rubocop.gemspec
+
+    gem install \
+      --no-user-install \
+      --bindir={{prefix}}/gems/bin \
+      --no-document \
+      rubocop-{{version}}.gem
+
+    mkdir -p "{{prefix}}"/bin
+    chmod +x props/rubocop
+    mv props/rubocop "{{prefix}}"/bin
+    
+provides:
+  - bin/rubocop
+
+test:
+  script:
+    test "$(rubocop --version)" = {{version}}
