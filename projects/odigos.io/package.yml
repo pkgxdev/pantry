@@ -34,6 +34,9 @@ build:
         - -buildmode=pie
 
 test:
-  script:
-    # Odigos Cli Version: version.Info{Version:'v1.0.1', GitCommit:'', BuildDate:''}
-    - odigos version | grep {{version}}
+  # Odigos Cli Version: version.Info{Version:'v1.0.1', GitCommit:'', BuildDate:''}
+  - run: odigos version | grep {{version}}
+    if: <1.0.124
+  # as of 1.0.124, it won't return the version without a Kube server to connect to
+  - run: odigos --help | grep OpenTelemetry
+    if: '>=1.0.124'
