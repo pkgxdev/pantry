@@ -1,0 +1,33 @@
+
+display-name: "1Password CLI"
+versions:
+  url: https://app-updates.agilebits.com/check/1/0/CLI2/en/2.0.0/N
+  match: /[0-9]+\.[0-9]+\.[0-9]+/
+platforms:
+  - darwin/aarch64
+  - darwin/x86-64
+build:
+  dependencies:
+    info-zip.org/unzip: ^6
+    gnupg.org: ^2
+    curl.se: '*'
+  env:
+    darwin/aarch64:
+      ARCH_ALIAS: arm64
+    darwin/x86-64:
+      ARCH_ALIAS: amd64
+    
+  script:
+    - curl -sSfo op.zip https://cache.agilebits.com/dist/1P/op2/pkg/v{{version.raw}}/op_{{hw.platform}}_${ARCH_ALIAS}_v{{version.raw}}.zip
+    - unzip -od op op.zip && rm op.zip
+    - mkdir -p {{prefix}}/bin
+    - mv op/op {{prefix}}/bin/
+provides:
+  - bin/op
+test:
+  dependencies:
+    developer.1password.com/1password-cli: '*'
+  script:
+    test "$({{prefix}}/bin/op --version)" = {{version.raw}}
+    # it’s a tool, so we check thaat the version matches
+    # TODO: run the tool to check it works!
