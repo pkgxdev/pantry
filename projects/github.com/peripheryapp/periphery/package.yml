@@ -1,0 +1,22 @@
+distributable:
+  url: https://github.com/peripheryapp/periphery/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: peripheryapp/periphery/tags
+
+platforms:
+  - darwin
+
+build:
+  script: |
+    make build_release
+    mkdir -p {{prefix}}/bin
+    mv $(make show_bin_path) {{prefix}}/bin
+
+provides:
+  - bin/periphery
+
+test:
+  script:
+    test "$(periphery version)" = {{version}}
