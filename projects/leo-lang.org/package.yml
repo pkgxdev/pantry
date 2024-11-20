@@ -1,6 +1,6 @@
 distributable:
-  url: https://github.com/AleoHQ/leo/archive/v{{version}}.tar.gz
-  strip-components: 1
+  url: git+https://github.com/AleoHQ/leo
+  ref: ${{version.tag}}
 
 versions:
   github: AleoHQ/leo
@@ -14,7 +14,10 @@ build:
     rust-lang.org: ^1.65
     rust-lang.org/cargo: '*'
     cmake.org: ^3 # as of 1.12.0 for libz-ng-sys crate
-  script: cargo install --locked --path . --root {{prefix}}
+    git-scm.org: 2 # as of 2.3.1 for the _required_ examples subrepo
+  script:
+    - git submodule update --init --recursive
+    - cargo install --locked --path . --root {{prefix}}
 
 provides:
   - bin/leo
