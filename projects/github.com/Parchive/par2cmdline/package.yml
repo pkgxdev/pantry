@@ -1,0 +1,32 @@
+distributable:
+  url: https://github.com/Parchive/par2cmdline/releases/download/{{version.tag}}/par2cmdline-{{version}}.tar.bz2
+  strip-components: 1
+
+versions:
+  github: Parchive/par2cmdline
+
+build:
+  - ./configure --prefix="{{prefix}}"
+  - make --jobs {{hw.concurrency}} install
+  - run:
+      - ln -sf par2 par2create
+      - ln -sf par2 par2verify
+      - ln -sf par2 par2repair
+    working-directory: '{{prefix}}/bin'
+
+provides:
+  - bin/par2
+  - bin/par2create
+  - bin/par2verify
+  - bin/par2repair
+
+test:
+  - run: cp $FIXTURE test.txt
+    fixture: this is pkgx
+  - par2 create -r100 test.txt
+  - echo foo > test.txt
+  - test "$(cat test.txt)" = "foo"
+  - '! par2 verify test.txt.par2'
+  - par2 repair test.txt.par2
+  - par2 verify test.txt.par2
+  - test "$(cat test.txt)" = "this is pkgx"
