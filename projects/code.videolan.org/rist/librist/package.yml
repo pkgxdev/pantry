@@ -9,17 +9,21 @@ build:
   dependencies:
     mesonbuild.com: '>=0.47<1'
     ninja-build.org: 1
-  working-directory:
-    build
+    linux:
+      sourceware.org/libffi: 3 # since 0.2.11
+  working-directory: build
   script:
     # POSIX compliance issue between the code and the environment
     - run: |
         if test "{{hw.platform}}" = "darwin"; then
-          sed -i.bak -e 's/generation = (buf\.st_mtim\.tv_sec << 32).*/generation = buf.st_mtime << 32;/' srp_shared.c
-          rm srp_shared.c.bak
+          sed -i -e 's/generation = (buf\.st_mtim\.tv_sec << 32).*/generation = buf.st_mtime << 32;/' srp_shared.c
         fi
       working-directory: ../tools
       if: ^0.2.8
+    # trying to require brew is awful - since 0.2.11
+    - run: sed -i '/^if (host_machine.system() == '\''darwin'\'')/,/^endif$/s/^/# /' meson.build
+      working-directory: ..
+      if: darwin
     - meson .. --prefix={{prefix}} --libdir={{prefix}}/lib --buildtype=release
     - ninja -v
     - ninja install
