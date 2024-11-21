@@ -1,0 +1,30 @@
+distributable:
+  url: https://github.com/rust-lang/rust-bindgen/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/bindgen
+
+versions:
+  github: rust-lang/rust-bindgen
+
+companions:
+  rust-lang.org: '*'
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.70'
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path bindgen-cli --root {{prefix}}
+
+test:
+  - run: bindgen $FIXTURE | grep 'repr(C)'
+    fixture:
+      extname: h
+      content: |
+        typedef struct Doggo {
+            int many;
+            char wow;
+        } Doggo;
+
+        void eleven_out_of_ten_majestic_af(Doggo* pupper);
