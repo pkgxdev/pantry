@@ -49,9 +49,19 @@ build:
     llvm.org: '*' # since 24.2, for llvmpipe
     linux:
       curl.se: '*'
+      cmake.org: 3 # since 24.3
+      rust-lang.org: '*' # since 24.3
+      rust-lang.org/rust-bindgen: '*' # since 24.3
   script:
     - curl -L "$Mako" | tar zxf -
     - curl -L "$MarkupSafe" | tar zxf -
+
+    # removed in 24.3.0
+    - run: |
+        if test "{{hw.platform}}" = "linux"; then
+          MESON_ARGS="$MESON_ARGS -Ddri3=enabled -Dgallium-omx=disabled"
+        fi
+      if: <24.3
 
     - run:
         - python -m venv venv
@@ -100,9 +110,7 @@ build:
       MESON_ARGS:
         - -Dplatforms=x11,wayland
         - -Dglx=auto
-        - -Ddri3=enabled
         - -Dgallium-drivers=lima
-        - -Dgallium-omx=disabled
         - -Dvulkan-drivers=
         - -Degl=enabled
         - -Dgbm=enabled
