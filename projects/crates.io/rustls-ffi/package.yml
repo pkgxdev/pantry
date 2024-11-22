@@ -6,14 +6,17 @@ versions:
   github: rustls/rustls-ffi/tags
   strip: /v/
 
+companions:
+  curl.se/ca-certs: '*'
+
 build:
   dependencies:
     rust-lang.org: ^1.65
     rust-lang.org/cargo: '*'
-  script: |
-    cargo install cbindgen
-    make DESTDIR={{prefix}}
-    make DESTDIR={{prefix}} install
+    mozilla.org/cbindgen: '*'
+  script:
+    - make DESTDIR={{prefix}}
+    - make DESTDIR={{prefix}} install
   env:
     linux:
       # error: -lpthread: 'linker' input unused
@@ -39,9 +42,11 @@ test:
       - client.c
       - common.c
       - common.h
-  script: |
-    for file in $TESTFILES; do
-      curl -O https://raw.githubusercontent.com/rustls/rustls-ffi/v{{ version }}/tests/$file
-    done
-    cc client.c common.c -o client $ARGS
-    CA_FILE=$SSL_CERT_FILE ./client tea.xyz 443 /
+    CA_FILE: $SSL_CERT_FILE
+  script:
+    - |
+      for file in $TESTFILES; do
+        curl -O https://raw.githubusercontent.com/rustls/rustls-ffi/v{{ version }}/tests/$file
+      done
+    - cc client.c common.c -o client $ARGS
+    - ./client pkgx.dev 443 /
