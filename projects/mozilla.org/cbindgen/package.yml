@@ -1,0 +1,31 @@
+distributable:
+  url: https://github.com/mozilla/cbindgen/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/cbindgen
+
+versions:
+  github: mozilla/cbindgen
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.70'
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path . --root {{prefix}}
+
+test:
+  dependencies:
+    rust-lang.org/rust-bindgen: '*'
+  script:
+    - run: bindgen $FIXTURE > output.rs
+      fixture:
+        extname: h
+        content: |
+          typedef struct Doggo {
+              int many;
+              char wow;
+          } Doggo;
+
+          void eleven_out_of_ten_majestic_af(Doggo* pupper);
+    - cbindgen output.rs | grep 'extern "C"'
