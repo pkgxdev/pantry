@@ -9,6 +9,7 @@ inputs:
     description: Password for p12 file
     required: true
   APPLE_IDENTITY:
+    description: Apple identity to use for signing
     required: false
 
 runs:
@@ -23,7 +24,7 @@ runs:
     #   shell: bash
 
     - name: export APPLE_IDENTITY
-      run: echo 'APPLE_IDENTITY=${{inputs.identity || '-'}}' >> $GITHUB_ENV
+      run: echo 'APPLE_IDENTITY=${{inputs.APPLE_IDENTITY || '-'}}' >> $GITHUB_ENV
       shell: bash
 
     # the next three steps bless our code for Apple. It might be the case they should be
@@ -37,11 +38,11 @@ runs:
     # delete it if it does.
     - name: Delete keychain
       shell: sh
-      if: runner.os == 'macOS' && inputs.p12-file-password && inputs.p12-file-base64
+      if: runner.os == 'macOS' && inputs.p12-password && inputs.p12-file-base64
       run: security delete-keychain signing_temp.keychain || true
 
     - uses: apple-actions/import-codesign-certs@v2
-      if: runner.os == 'macOS' && inputs.p12-file-password && inputs.p12-file-base64
+      if: runner.os == 'macOS' && inputs.p12-password && inputs.p12-file-base64
       with:
         p12-file-base64: ${{ inputs.p12-file-base64 }}
         p12-password: ${{ inputs.p12-password }}
@@ -49,6 +50,6 @@ runs:
     # Needed for self-hosted runner, since it doesn't destroy itself automatically.
     - name: Delete keychain
       uses: webiny/action-post-run@3.0.0
-      if: runner.os == 'macOS' && inputs.p12-file-password && inputs.p12-file-base64
+      if: runner.os == 'macOS' && inputs.p12-password && inputs.p12-file-base64
       with:
         run: security delete-keychain signing_temp.keychain
