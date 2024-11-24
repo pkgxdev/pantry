@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/swsnr/mdcat/archive/refs/tags/mdcat-{{ version }}.tar.gz
+  url: https://github.com/swsnr/mdcat/archive/refs/tags/{{ version.tag }}.tar.gz
   strip-components: 1
 
 provides:
@@ -7,6 +7,7 @@ provides:
 
 dependencies:
   openssl.org: ^1.1
+  curl.se: 8 # since 2.7.0
 
 versions:
   github: swsnr/mdcat/tags
@@ -16,9 +17,6 @@ build:
   dependencies:
     rust-lang.org: '>=1.56'
     rust-lang.org/cargo: '*'
-    freedesktop.org/pkg-config: '*'
-  script:
-    cargo install --locked --path . --root {{prefix}}
+  script: cargo install --locked --path . --root {{prefix}}
 
-test:
-  mdcat --version
+test: mdcat --version
