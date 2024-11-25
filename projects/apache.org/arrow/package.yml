@@ -1,11 +1,13 @@
 distributable:
   url: https://archive.apache.org/dist/arrow/arrow-{{version}}/apache-arrow-{{version}}.tar.gz
   strip-components: 1
+
 versions:
   url: https://archive.apache.org/dist/arrow/
   match: /arrow-\d+\.\d+\.\d+/
   strip:
     - /^arrow-/
+
 dependencies:
   github.com/aws/aws-sdk-cpp: '*'
   github.com/google/brotli: '*'
@@ -14,19 +16,24 @@ dependencies:
   grpc.io: '*'
   lz4.org: '*'
   openssl.org: '*'
-  protobuf.dev: 26.1.0 # match grpc.io, so gdal.org can build
   rapidjson.org: '*'
   github.com/google/re2: '*'
   google.github.io/snappy: '*'
   apache.org/thrift: '*'
   github.com/JuliaStrings/utf8proc: '*'
   facebook.com/zstd: '*'
+  darwin:
+    c-ares.org: 1
+  linux:
+    protobuf.dev: 26.1.0 # match grpc.io, so gdal.org can build, we bundle on darwin
+
 build:
   dependencies:
     boost.org: '*'
     cmake.org: '*'
-    llvm.org: ~16
+    ninja-build.org: '*'
     python.org: '<3.12'
+    llvm.org: ~17
   working-directory: cpp
   script:
     - cmake -B $BUILD_DIR $CMAKE_ARGS
@@ -58,7 +65,7 @@ build:
       - -DARROW_GANDIVA=ON
       - -DARROW_HDFS=ON
       - -DARROW_JSON=ON
-      - -DARROW_ORC=ON
+      - -DARROW_ORC=OFF
       - -DARROW_PARQUET=ON
       - -DARROW_PROTOBUF_USE_SHARED=ON
       - -DARROW_S3=ON
@@ -71,37 +78,43 @@ build:
       - -DARROW_WITH_UTF8PROC=ON
       - -DARROW_INSTALL_NAME_RPATH=OFF
       - -DPARQUET_BUILD_EXECUTABLES=ON
-    aarch64:
+      - -GNinja
+    linux:
+      # version script issues with newer LLVMs
+      LDFLAGS: $LDFLAGS -Wl,--undefined-version
+    x86-64:
       CMAKE_ARGS:
         - -DARROW_MIMALLOC=ON
+
 provides:
   - bin/parquet-dump-schema
   - bin/parquet-reader
   - bin/parquet-scan
+
 test:
   dependencies:
     freedesktop.org/pkg-config: '*'
   script:
-    - run: |
-        cat << EOF > test.cpp
-        #include "arrow/api.h"
-        int main(void) {
-          arrow::int64();
-          return 0;
-        }
-        EOF
-    - c++ test.cpp -std=c++17 -larrow -o test
-    - ./test
-    - run: |
-        cat << EOF > version.cpp
-        #include <arrow/api.h>
-        #include <iostream>
-
-        int main() {
-            std::cout << "Apache Arrow Version: " << ARROW_VERSION_STRING << std::endl;
+    - run: c++ $FIXTURE -std=c++17 -larrow -o test
+      fixture:
+        extname: cpp
+        content: |
+          #include "arrow/api.h"
+          int main(void) {
+            arrow::int64();
             return 0;
-        }
-        EOF
-    - c++ version.cpp -std=c++17 -larrow -o version
+          }
+    - ./test
+    - run: c++ $FIXTURE -std=c++17 -larrow -o version
+      fixture:
+        extname: cpp
+        content: |
+          #include <arrow/api.h>
+          #include <iostream>
+
+          int main() {
+              std::cout << "Apache Arrow Version: " << ARROW_VERSION_STRING << std::endl;
+              return 0;
+          }
     - ./version | grep {{version}}
     - pkg-config --modversion arrow | grep {{version}}
