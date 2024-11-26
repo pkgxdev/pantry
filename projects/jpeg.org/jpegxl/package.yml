@@ -33,9 +33,9 @@ build:
     # the rest we have and provide as deps.
     # jpeg-turbo is a dep we provide, but for some reason around v0.9 the
     # jpegxl build started requiring their vendored copy
-    - run: |
-        ./deps.sh
-        find third_party -not -name sjpeg -and -not -name libjpeg-turbo -mindepth 1 -maxdepth 1 -type d | xargs rm -rf
+    - run:
+        - ./deps.sh
+        - find third_party -not -name sjpeg -and -not -name libjpeg-turbo -mindepth 1 -maxdepth 1 -type d | xargs rm -rf
       working-directory: ..
 
     - cmake .. $ARGS
@@ -52,7 +52,12 @@ build:
     linux/x86-64:
       ARGS:
         # ld.lld: error: undefined reference due to --no-allow-shlib-undefined: __extendhfsf2
-        - -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined
+        # ld.lld: error: undefined reference: std::filesystem::__cxx11::path::_M_split_cmpts()
+        - -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined,-lstdc++fs
+    linux/aarch64:
+      ARGS:
+        # ld.lld: error: undefined reference: std::filesystem::__cxx11::path::_M_split_cmpts()
+        - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-lstdc++fs
 
 test:
   - cjxl fixture.jpeg out.jxl
