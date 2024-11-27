@@ -11,26 +11,24 @@ versions:
     - /.tar.gz/
 
 dependencies:
-  zlib.net: 1  #FIXME this is actually an optional dep
+  zlib.net: 1 #FIXME this is actually an optional dep
 
 build:
   dependencies:
-    git-scm.org: 2
+    gnu.org/patch: '*'
   script:
-    - git apply props/relocatable.diff
+    - patch -p1 <props/relocatable.diff
 
     # Our diff has old labels
-    - run: |
-        sed -i.bak -e 's/^protected const char/file_protected const char/' magic.c
-        rm magic.c.bak
+    - run: sed -i -e 's/^protected const char/file_protected const char/' magic.c
       working-directory: src
       if: '>=5.45'
 
     - ./configure --prefix={{prefix}}
     - make --jobs {{hw.concurrency}} install
+    - cp -a magic/Magdir {{prefix}}/share/misc/magic
 
-test: |
-  file {{prefix}}/bin/file
+test: file {{prefix}}/bin/file
 #TODO check output, we don’t since it varies by platform annoyingly
 
 provides:
