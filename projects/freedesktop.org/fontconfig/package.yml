@@ -3,7 +3,7 @@ distributable:
   strip-components: 1
 
 versions:
-  github: freedesktop/fontconfig/tags
+  gitlab: gitlab.freedesktop.org:fontconfig/fontconfig/tags
 
 dependencies:
   sourceware.org/bzip2: 1
@@ -14,18 +14,16 @@ dependencies:
 
 build:
   dependencies:
-    freedesktop.org/pkg-config: ^0.29
     gnu.org/gperf: 3
     python.org: '>=3<3.12'
-  script: |
-    ./configure --prefix={{ prefix }}
-    make --jobs {{ hw.concurrency }} install RUN_FC_CACHE_TEST=false
-    rm -rf {{prefix}}/share/doc
+  script:
+    - ./configure --prefix={{ prefix }}
+    - make --jobs {{ hw.concurrency }} install RUN_FC_CACHE_TEST=false
+    - rm -rf {{prefix}}/share/doc
 
-    sed -i.bak 's|<cachedir>{{prefix}}/var/cache/fontconfig</cachedir>|<cachedir prefix="relative">../../var/cache/fontconfig</cachedir>|' {{prefix}}/etc/fonts/fonts.conf
+    - sed -i 's|<cachedir>{{prefix}}/var/cache/fontconfig</cachedir>|<cachedir prefix="relative">../../var/cache/fontconfig</cachedir>|' {{prefix}}/etc/fonts/fonts.conf
 
-test:
-  fc-list
+test: fc-list
 
 provides:
   - bin/fc-cache
