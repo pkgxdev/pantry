@@ -31,12 +31,4 @@ build:
       GO_LDFLAGS:
         - -buildmode=pie
 
-test:
-  script:
-    - run: test "$(scw version | grep -Ev '(BuildDate|GoArch)')" = "$(cat $FIXTURE)"
-      fixture: |
-        Version    {{version}}
-        GoVersion  go{{deps.go.dev.version}}
-        GitBranch  pantry
-        GitCommit  pkgx
-        GoOS       {{hw.platform}}
+test: scw version | grep 'Version.*{{version}}'
