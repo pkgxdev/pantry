@@ -15,11 +15,17 @@ dependencies:
   zlib.net: '*'
   invisible-island.net/ncurses: '*'
   libexpat.github.io: '*'
+  linux:
+    # needs newer libstdc++
+    gnu.org/gcc/libstdcxx: 14
 
 build:
-  script: |
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }} install
+  dependencies:
+    linux:
+      gnu.org/gcc: 14
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
   env:
     darwin:
       # https://github.com/lavv17/lftp/issues/611
