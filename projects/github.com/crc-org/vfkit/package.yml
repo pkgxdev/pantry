@@ -18,4 +18,8 @@ build:
     - mkdir -p '{{prefix}}/bin'
     - cp out/vfkit '{{prefix}}/bin'
 
-test: 'test "$(vfkit --version | head -n1)" = "vfkit version: {{version}}"'
+test:
+  - run: 'test "$(vfkit --version | head -n1)" = "vfkit version: {{version}}"'
+    if: <0.6.0
+  - run: 'test "$(vfkit --version | head -n1)" = "vfkit version: v{{version}}"'
+    if: '>=0.6.0'
