@@ -5,29 +5,33 @@ distributable:
 versions:
   github: realm/SwiftLint/releases/tags
 
-platforms:
-  - darwin
-
-provides:
-  - bin/swiftlint
-
 warnings:
   - vendored
 
 build:
+  dependencies:
+    curl.se: '*'
+    info-zip.org/unzip: '*'
   working-directory: vendor
-  script: |
-    curl -Lfo swiftlint.zip "https://github.com/realm/SwiftLint/releases/download/{{version}}/portable_swiftlint.zip"
-    unzip -o swiftlint.zip
-    mkdir -p "{{prefix}}/bin"
-    mv swiftlint "{{prefix}}/bin"
+  script:
+    - run: |
+        curl -Lfo swiftlint.zip "https://github.com/realm/SwiftLint/releases/download/{{version}}/portable_swiftlint.zip"
+        unzip -o swiftlint.zip
+        mkdir -p "{{prefix}}/bin"
+        mv swiftlint "{{prefix}}/bin"
+      if: darwin
+
+    - run: |
+        sudo apt-get update
+        sudo apt-get install unzip
+        curl -Lfo swiftlint.zip "https://github.com/realm/SwiftLint/releases/download/{{version}}/swiftlint_linux.zip"
+        unzip -o swiftlint.zip
+        mkdir -p "{{prefix}}/bin"
+        mv swiftlint "{{prefix}}/bin"
+      if: linux
+
+provides:
+  - bin/swiftlint
 
 test:
-  # MacOS 11 doesn't have the necessary library
-  - run: |
-      if ! test -f /usr/lib/swift/libswift_Concurrency.dylib; then
-        echo "warning: skipping tests because libswift_Concurrency.dylib is missing"
-        exit 0
-      fi
-    if: darwin
   - test "$(swiftlint --version)" = {{version}}
