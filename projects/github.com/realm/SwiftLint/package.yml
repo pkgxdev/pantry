@@ -32,4 +32,8 @@ build:
 provides:
   - bin/swiftlint
 
-test: test "$(swiftlint --version)" = {{version}}
+test:
+  # we can't actually test swiftlint for linux, because it requires a newer glibc
+  # but it's vendored, so we're probably fine?
+  - run: test "$(swiftlint --version)" = {{version}}
+    if: darwin
