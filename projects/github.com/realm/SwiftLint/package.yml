@@ -1,6 +1,4 @@
-distributable:
-  url: https://github.com/realm/SwiftLint/archive/refs/tags/{{version}}.tar.gz
-  strip-components: 1
+distributable: ~
 
 versions:
   github: realm/SwiftLint/releases/tags
@@ -8,30 +6,24 @@ versions:
 warnings:
   - vendored
 
+platforms:
+  - darwin
+  - linux/x86-64
+
 build:
   dependencies:
     curl.se: '*'
     info-zip.org/unzip: '*'
-  working-directory: vendor
+  working-directory: '{{prefix}}/bin'
   script:
-    - run: |
-        curl -Lfo swiftlint.zip "https://github.com/realm/SwiftLint/releases/download/{{version}}/portable_swiftlint.zip"
-        unzip -o swiftlint.zip
-        mkdir -p "{{prefix}}/bin"
-        mv swiftlint "{{prefix}}/bin"
+    - run: curl -Lfo swiftlint.zip "https://github.com/realm/SwiftLint/releases/download/{{version}}/portable_swiftlint.zip"
       if: darwin
-
-    - run: |
-        sudo apt-get update
-        sudo apt-get install unzip
-        curl -Lfo swiftlint.zip "https://github.com/realm/SwiftLint/releases/download/{{version}}/swiftlint_linux.zip"
-        unzip -o swiftlint.zip
-        mkdir -p "{{prefix}}/bin"
-        mv swiftlint "{{prefix}}/bin"
+    - run: curl -Lfo swiftlint.zip "https://github.com/realm/SwiftLint/releases/download/{{version}}/swiftlint_linux.zip"
       if: linux
+
+    - unzip -o swiftlint.zip
 
 provides:
   - bin/swiftlint
 
-test:
-  - test "$(swiftlint --version)" = {{version}}
+test: test "$(swiftlint --version)" = {{version}}
