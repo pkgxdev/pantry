@@ -9,17 +9,18 @@ build:
   dependencies:
     go.dev: ^1.19
   script:
-    - go build $GO_ARGS -ldflags="$LDFLAGS" ./cmd/sops
+    - go mod tidy
+    - go build $GO_ARGS -ldflags="$GO_LDFLAGS" ./cmd/sops
   env:
     GO_ARGS:
       - -trimpath
       - -o="{{prefix}}/bin/sops"
-    LDFLAGS:
+    GO_LDFLAGS:
       - -s
       - -w
       - -X github.com/getsops/sops/v3/version.Version={{version}}
     linux:
-      LDFLAGS:
+      GO_LDFLAGS:
         - -buildmode=pie
 
 provides:
@@ -30,9 +31,9 @@ test:
     gnupg.org: '*'
   script:
     - sops --version | grep {{version}}
-    - git clone https://github.com/getsops/sops.git
+    - git clone https://github.com/getsops/sops.git --depth 1
     - gpg --import sops/pgp/sops_functional_tests_key.asc
     - sops --decrypt sops/example.json > example.dec.json
     - cat example.dec.json | grep 'New York'
   env:
-    GPG_HOME: "$(dirname $(which gpg))/../etc/gnupg"
+    GPG_HOME: '$(dirname $(command -v gpg))/../etc/gnupg'
