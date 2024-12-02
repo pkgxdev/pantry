@@ -17,7 +17,12 @@ build:
     - run: cargo install --path iroh-cli --locked --root {{prefix}}
       if: '>=0.13.0<0.28.1'
     - run: cargo install --path iroh-cli --root {{prefix}}
-      if: '>=0.28.1'
+      if: '>=0.28.1<0.29'
+    - run:
+        - cargo install --path iroh-relay --root {{prefix}}
+        - cargo install --path iroh-dns-server --root {{prefix}}
+        - ln -s iroh-relay '{{prefix}}/bin/iroh'
+      if: '>=0.29'
 
 provides:
   - bin/iroh
