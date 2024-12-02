@@ -30,6 +30,7 @@ build:
     git-scm.org: '*'
     curl.se: '*'
     python.org: ~3.11
+    cmake.org: 3
     linux/aarch64:
       kernel.org/linux-headers: '*' # hwcap.h
   env:
@@ -51,7 +52,15 @@ build:
         // missing include for linux/aarch64 -- HWCAP2_I8MM\\
         #include <asm/hwcap.h>
 
-    - make --jobs {{hw.concurrency}}
+    - run: make --jobs {{hw.concurrency}}
+      if: <4242
+    # *** The Makefile build is deprecated. Use the CMake build instead.
+    # For more details, see https://github.com/ggerganov/llama.cpp/blob/master/docs/build.md.
+    # Stop.
+    - run:
+        - cmake -B build
+        - cmake --build build --config Release
+      if: '>=4242'
 
     # https://github.com/ggerganov/llama.cpp/blob/master/examples/deprecation-warning/README.md
     - |
@@ -63,6 +72,10 @@ build:
         install -D main {{prefix}}/bin/llama.cpp
         # new name
         ln -s llama.cpp {{prefix}}/bin/llama-cli
+      elif test -f build/bin/llama-cli; then
+        mkdir -p {{prefix}}/bin
+        cp -a build/bin/* {{prefix}}/bin
+        ln -s llama-cli {{prefix}}/bin/llama.cpp
       else
         echo "No binary found"
         exit 1
