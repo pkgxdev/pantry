@@ -43,13 +43,14 @@ dependencies:
   gnupg.org/libassuan: 2
   littlecms.com: ^2.9
   linux:
-    gnu.org/gcc: '*' # apparently, clang c++20 std isn't good enough
+    gnu.org/gcc/libstdcxx: 14 # apparently, clang c++20 std isn't good enough
 
 build:
   dependencies:
     cmake.org: '>=3.16.0'
-    freedesktop.org/pkg-config: '*'
     gnome.org/gobject-introspection: '>=1.64.0'
+    linux:
+      gnu.org/gcc: 14
   script:
     - cmake -S . -B build_shared $ARGS
     - cmake --build build_shared
@@ -77,9 +78,15 @@ build:
       ARGS:
         - -DCMAKE_C_FLAGS=-fPIC
         - -DCMAKE_CXX_FLAGS=-fPIC
-        - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-pie,-lstdc++fs
+        # references to gettid()
+        - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-pie,-lstdc++fs,--unresolved-symbols=ignore-in-shared-libs
+      # references to gettid()
+      LDFLAGS: $LDFLAGS -Wl,--unresolved-symbols=ignore-in-shared-libs
     linux/aarch64:
       ARGS:
-        - -DCMAKE_EXE_LINKER_FLAGS=-lstdc++fs
+        # references to gettid()
+        - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-lstdc++fs,--unresolved-symbols=ignore-in-shared-libs
+      # references to gettid()
+      LDFLAGS: $LDFLAGS -Wl,--unresolved-symbols=ignore-in-shared-libs
 
 test: pdfinfo test.pdf
