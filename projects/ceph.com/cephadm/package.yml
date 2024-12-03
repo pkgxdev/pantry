@@ -7,6 +7,9 @@ display-name: cephadm
 versions:
   github: ceph/ceph/tags
 
+dependencies:
+  openssl.org: ^1.1
+
 build:
   dependencies:
     python.org: ^3
@@ -22,7 +25,7 @@ build:
       - --set-version-var CEPH_RELEASE_TYPE="$(sed -n '3p' ./src/ceph_release)"
   script:
     - mkdir -p {{prefix}}/bin
-    - run: ./build.py $BUILD_FLAGS {{prefix}}/bin/cephadm
+    - run: ./build.sh $BUILD_FLAGS {{prefix}}/bin/cephadm
       working-directory: src/cephadm
 
 provides:
