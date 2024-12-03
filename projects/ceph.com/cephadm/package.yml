@@ -7,19 +7,16 @@ display-name: cephadm
 versions:
   github: ceph/ceph/tags
 
-platforms:
-  - linux
-
 dependencies:
   pkgx.sh: ^1
 
 build:
   dependencies:
-    llvm.org: '*'
     python.org: ^3
     gnu.org/coreutils: '*'
   env:
-    TMPDIR: $(mktemp -d)
+    linux:
+      TMPDIR: $(mktemp -d -p /tmp)
     BUILD_FLAGS:
       - --set-version-var CEPH_GIT_VER="$(git rev-parse HEAD)"
       - --set-version-var CEPH_GIT_NICE_VER="$(git describe)"
