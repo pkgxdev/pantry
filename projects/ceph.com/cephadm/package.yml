@@ -31,7 +31,7 @@ build:
     - run:
         # because this is a packed zip archive, and hardcodes the path to python3
         # we have to change the shebang to /usr/bin/env python3
-        # and pad it with # to keep the length the same
+        # and pad it with space to keep the length the same
         - shebang_length=$(head -n 1 {{prefix}}/bin/cephadm | wc -c)
         - new_shebang="#!/usr/bin/env python3"
         - padding_length=$((shebang_length - ${#new_shebang}))
@@ -40,7 +40,7 @@ build:
             echo "Error: New shebang is too long!" >&2
             exit 1
           fi
-        - padding=$(printf '%*s' "$padding_length" '' | tr ' ' '#')
+        - padding=$(printf '%*s' "$padding_length" '')
         - sed -i "1s|^#!.*$|${new_shebang}${padding}|" cephadm
       working-directory: ${{prefix}}/bin
 
