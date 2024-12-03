@@ -7,9 +7,6 @@ display-name: cephadm
 versions:
   github: ceph/ceph/tags
 
-dependencies:
-  pkgx.sh: ^1
-
 build:
   dependencies:
     python.org: ^3
@@ -24,9 +21,9 @@ build:
       - --set-version-var CEPH_RELEASE_NAME="$(sed -n '2p' ./src/ceph_release)"
       - --set-version-var CEPH_RELEASE_TYPE="$(sed -n '3p' ./src/ceph_release)"
   script:
-    - bkpyvenv stage {{prefix}} {{version}}
-    - ./src/cephadm/build.sh ${BUILD_FLAGS} {{prefix}}/venv/bin/cephadm
-    - bkpyvenv seal {{prefix}} cephadm
+    - mkdir -p {{prefix}}/bin
+    - run: ./build.sh $BUILD_FLAGS {{prefix}}/bin/cephadm
+      working-directory: src/cephadm
 
 provides:
   - bin/cephadm
