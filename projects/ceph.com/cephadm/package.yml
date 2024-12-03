@@ -1,0 +1,35 @@
+distributable:
+  url: git+https://github.com/ceph/ceph.git
+  ref: v{{version}}
+
+display-name: cephadm
+
+versions:
+  github: ceph/ceph/tags
+
+platforms:
+  - linux
+
+dependencies:
+  pkgx.sh: ^1
+
+build:
+  dependencies:
+    python.org: ^3
+    gnu.org/coreutils: '*'
+  env:
+    BUILD_FLAGS:
+    - --set-version-var CEPH_GIT_VER="$(git rev-parse HEAD)"
+    - --set-version-var CEPH_GIT_NICE_VER="$(git describe)"
+    - --set-version-var CEPH_RELEASE="$(sed -n '1p' ./src/ceph_release)"
+    - --set-version-var CEPH_RELEASE_NAME="$(sed -n '2p' ./src/ceph_release)"
+    - --set-version-var CEPH_RELEASE_TYPE="$(sed -n '3p' ./src/ceph_release)"
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ./src/cephadm/build.sh ${BUILD_FLAGS} {{prefix}}/venv/bin/cephadm
+    - bkpyvenv seal {{prefix}} cephadm
+
+provides:
+  - bin/cephadm
+
+test: test "$(cephadm version|cut -d' ' -f3)" = {{version.tag}}
