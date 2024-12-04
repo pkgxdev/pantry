@@ -19,7 +19,7 @@ build:
   dependencies:
     go.dev: ^1.21
     cmake.org: ^3
-    grpc.io: ^1
+    grpc.io: =1.68.2
     gnu.org/wget: ^1
     gnu.org/coreutils: ^9
     git-scm.org: ^2
@@ -40,6 +40,11 @@ build:
       # strangely, it doesn't find the libomp.dylib
       CGO_LDFLAGS: -L{{deps.openmp.llvm.org.prefix}}/lib
   script:
+    # We use grpc's version of protobuf, but deps bring in a different one
+    - run:
+        - export CPATH="$(echo $CPATH | tr ':' '\n' | grep -v protobuf.dev | tr '\n' ':' | sed 's/:$//')"
+        - export LIBRARY_PATH="$(echo $LIBRARY_PATH | tr ':' '\n' | grep -v protobuf.dev | tr '\n' ':' | sed 's/:$//')"
+      if: darwin
     - make build
     - install -D local-ai {{prefix}}/bin/local-ai
 
