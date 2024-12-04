@@ -28,6 +28,7 @@ build:
     linux:
       gnu.org/gcc: '*' # linux needs omp.h
     darwin:
+      protobuf.dev: ~28.1.0
       llvm.org: 18 # apple doens't support -fopenmp
   env:
     linux:
@@ -40,11 +41,6 @@ build:
       # strangely, it doesn't find the libomp.dylib
       CGO_LDFLAGS: -L{{deps.openmp.llvm.org.prefix}}/lib
   script:
-    # We use grpc's version of protobuf, but deps bring in a different one
-    - run:
-        - export CPATH="$(echo $CPATH | tr ':' '\n' | grep -v protobuf.dev | tr '\n' ':' | sed 's/:$//')"
-        - export LIBRARY_PATH="$(echo $LIBRARY_PATH | tr ':' '\n' | grep -v protobuf.dev | tr '\n' ':' | sed 's/:$//')"
-      if: darwin
     - make build
     - install -D local-ai {{prefix}}/bin/local-ai
 
