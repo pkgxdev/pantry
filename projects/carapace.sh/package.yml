@@ -29,5 +29,8 @@ build:
       - -X main.version={{ version }}
 
 test:
-  - test "$(carapace --version 2>&1)" = "{{version}}"
+  - run: test "$(carapace --version 2>&1)" = "{{version}}"
+    if: <1.1.0
+  - run: test "$(carapace --version 2>&1)" = "carapace-bin {{version}}"
+    if: '>=1.1.0'
   - carapace _carapace
