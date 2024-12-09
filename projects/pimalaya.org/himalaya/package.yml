@@ -1,21 +1,21 @@
 distributable:
-  url: https://github.com/soywod/himalaya/archive/refs/tags/v{{ version }}.tar.gz
+  url: https://github.com/pimalaya/himalaya/archive/refs/tags/{{ version.tag }}.tar.gz
   strip-components: 1
 
 provides:
   - bin/himalaya
 
 versions:
-  github: soywod/himalaya
-  strip: /v/
+  github: pimalaya/himalaya
 
 build:
   dependencies:
     rust-lang.org: '>=1.65'
     rust-lang.org/cargo: '*'
-  script:
-    cargo install --path . --root {{prefix}}
+  script: cargo install --path . --root {{prefix}}
 
 test:
-  script:
-    - test "$(himalaya --version)" = "himalaya {{version}}"
+  - run: test "$(himalaya --version)" = "himalaya {{version}}"
+    if: <1
+  - run: himalaya --version | grep "himalaya v{{version}}"
+    if: '>=1'
