@@ -39,7 +39,16 @@ build:
     freedesktop.org/pkg-config: '*'
     python.org: '>=3<3.12'
     rsync.samba.org: '*'
+    linux:
+      kernel.org/linux-headers: '>=5.2' # for CLONE_PIDFD
   script:
+    # systemd requires a newer version of some linux headers, but also needs the system
+    # headers.
+    - run: sed -i -f $PROP process-util.h
+      prop: |
+        /sched\.h/i\
+        #include <linux/sched.h>
+      working-directory: src/basic
     - meson setup $ARGS build
     - meson compile -C build
     - meson install -C build
@@ -59,16 +68,15 @@ build:
     ARGS:
       - --sysconfdir={{prefix}}/etc
       - --localstatedir={{prefix}}/var
-      - -Drootprefix={{prefix}}
       - -Dprefix={{prefix}}
       - -Dsysvinit-path={{prefix}}/etc/init.d
       - -Dsysvrcnd-path={{prefix}}/etc/rc.d
       - -Dpamconfdir={{prefix}}/etc/pam.d
       - -Dcreate-log-dirs=false
       - -Dhwdb=false
-      - -Dlz4=true
-      - -Dgcrypt=false
-      - -Dsplit-usr=false
+      - -Dlz4=enabled
+      - -Dgcrypt=disabled
+      - -Dmode=release
 
 provides:
   - bin/busctl
