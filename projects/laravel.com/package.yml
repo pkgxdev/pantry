@@ -12,6 +12,9 @@ dependencies:
     info-zip.org/unzip: ^6
 
 build:
+  # 5.11.1 shipped as 5.11.0
+  - run: sed -i "s/'Laravel Installer', '[0-9\.]*'/'Laravel Installer', '{{version}}'/" laravel
+    working-directory: bin
   - composer install --no-dev
   - mkdir -p {{prefix}}/libexec
   - cp -r ./* {{prefix}}/libexec
@@ -26,6 +29,7 @@ test:
     curl.se: '*'
     pkgx.sh: ^1
   script:
+    - laravel --version
     - laravel --version | grep {{version}}
     - laravel new blog --no-interaction
     # FIXME: this has a library issue on debian:buster-slim _only_ that is eluding me.
