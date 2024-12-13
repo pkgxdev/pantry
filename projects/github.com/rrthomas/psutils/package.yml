@@ -1,20 +1,27 @@
 distributable:
-  url: https://github.com/rrthomas/psutils/releases/download/v{{version}}/pspdfutils-{{version}}.tar.gz
-  strip-components: 1
+  # old, pre-3.3.7
+  - url: https://github.com/rrthomas/psutils/releases/download/v{{version}}/pspdfutils-{{version}}.tar.gz
+    strip-components: 1
+  # new, post-3.3.7
+  - url: https://github.com/rrthomas/psutils/releases/download/v{{version}}/psutils-{{version}}.tar.gz
+    strip-components: 1
+
 versions:
   github: rrthomas/psutils
+
 dependencies:
-  python.org: ~3.11
+  pkgx.sh: ^1
   github.com/rrthomas/libpaper: '*'
+
 build:
+  dependencies:
+    python.org: ~3.11
   script:
-    - rm -r props
-    - python-venv.sh {{prefix}}/bin/psbook
-    - python-venv.sh {{prefix}}/bin/psjoin
-    - python-venv.sh {{prefix}}/bin/psnup
-    - python-venv.sh {{prefix}}/bin/psresize
-    - python-venv.sh {{prefix}}/bin/psselect
-    - python-venv.sh {{prefix}}/bin/pstops
+    - rm -rf props
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} psbook psjoin psnup psresize psselect pstops
+
 provides:
   - bin/psbook
   - bin/psjoin
@@ -22,6 +29,7 @@ provides:
   - bin/psresize
   - bin/psselect
   - bin/pstops
+
 test:
   dependencies:
     gnu.org/wget: '*'
