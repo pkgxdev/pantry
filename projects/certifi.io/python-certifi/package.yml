@@ -1,4 +1,6 @@
-distributable: ~
+distributable:
+  url: https://github.com/certifi/python-certifi/archive/refs/tags/{{version.raw}}.tar.gz
+  strip-components: 1
 
 versions:
   url: https://pypi.org/rss/project/certifi/releases.xml
@@ -14,17 +16,9 @@ runtime:
   env:
     PYTHONPATH: ${{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH
 
-build:
-  dependencies:
-    curl.se: '*'
-  script:
-    - curl -L 'https://pypi.org/project/certifi/{{version.raw}}/#files' > page.html
-    - cat page.html | grep -o 'https://files.pythonhosted.org/packages/[^"]*certifi-{{version.raw}}.tar.gz' > url.txt
-    - curl -L $(cat url.txt) | tar -xz --strip-components=1
-    - python -m pip install --prefix={{prefix}} .
+build: python -m pip install --prefix={{prefix}} .
 
-test: 
+test:
   - python -c 'import certifi;'
   - python -m certifi | grep '{{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages/certifi/cacert.pem'
   - python -m certifi -h | grep 'usage'
-  
