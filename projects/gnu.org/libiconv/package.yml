@@ -9,11 +9,15 @@ versions:
     - /libiconv-/
     - /.tar.gz/
 
+dependencies:
+  linux:
+    gnu.org/gcc/libstdcxx: 14
+
 build:
-  script: |
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }}
-    make install
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
   env:
     ARGS:
       - --prefix="{{prefix}}"
@@ -26,6 +30,5 @@ provides:
   - bin/iconv
 
 test:
-  script: |
-    g++ -std=c++11 test.cc -liconv
-    ./a.out
+  - g++ -std=c++11 test.cc -liconv
+  - ./a.out
