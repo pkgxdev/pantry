@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/reacherhq/check-if-email-exists/archive/refs/tags/v{{ version }}.tar.gz
+  url: https://github.com/reacherhq/check-if-email-exists/archive/refs/tags/{{ version.tag }}.tar.gz
   strip-components: 1
 
 provides:
@@ -7,7 +7,6 @@ provides:
 
 versions:
   github: reacherhq/check-if-email-exists
-  strip: /v/
 
 dependencies:
   openssl.org: ^1.1
@@ -18,21 +17,14 @@ build:
     rust-lang.org: '>=1.65'
     rust-lang.org/cargo: '*'
     perl.org: '*'
-    linux:
-      gnu.org/make: '*'
   script:
     # 0.9.0 forgot to bump the version
-    - run: |
-        sed -i.bak -e 's/0\.8\.32/{{version}}/' Cargo.toml
-        rm Cargo.toml.bak
+    - run: sed -i -e 's/0\.8\.32/{{version}}/' core/Cargo.toml cli/Cargo.toml
+      working-directory: ..
       if: =0.9.0
-    - run: |
-        sed -i.bak -e 's/0\.8\.32/{{version}}/' Cargo.toml
-        rm Cargo.toml.bak
-      working-directory: ../core
-      if: =0.9.0
+    # missing feature needed to build
+    - run: sed -i '/check-if-email-exists =/s/ \}/, features = ["sentry"] \}/' Cargo.toml
+      if: ^0.10
     - cargo install --path . --root {{prefix}}
 
-test:
-  script:
-    - test "$(check_if_email_exists --version)" = "check-if-email-exists-cli {{version}}"
+test: test "$(check_if_email_exists --version)" = "check-if-email-exists-cli {{version}}"
