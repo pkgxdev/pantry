@@ -6,7 +6,6 @@ versions:
   github: facebook/watchman
 
 dependencies:
-  boost.org: ^1.84
   # these need version locking, but we don't support that yet
   # facebook.com/edencommon: '{{version}}'
   # facebook.com/fb303: '{{version}}'
@@ -45,7 +44,7 @@ build:
         - mainfile=$(find . -name "main.cpp")
         - 'echo "Found main.cpp at: $mainfile"'
         - oldline='auto state_dir = computeWatchmanStateDirectory(user);'
-        - "newline='const char* env_state_dir = getenv(\"WATCHMAN_STATE_DIR\"); auto state_dir = env_state_dir ? env_state_dir : computeWatchmanStateDirectory(user);'"
+        - 'newline=''const char* env_state_dir = getenv("WATCHMAN_STATE_DIR"); auto state_dir = env_state_dir ? env_state_dir : computeWatchmanStateDirectory(user);'''
         - sed -i "s/$oldline/$newline/" "$mainfile"
         - cat $mainfile
       working-directory: watchman
@@ -119,7 +118,7 @@ build:
 
 runtime:
   env:
-    WATCHMAN_STATE_DIR: "{{prefix}}/var/run/watchman"
+    WATCHMAN_STATE_DIR: '{{prefix}}/var/run/watchman'
 
 provides:
   - bin/watchman
