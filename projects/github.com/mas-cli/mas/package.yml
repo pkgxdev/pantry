@@ -1,0 +1,27 @@
+distributable:
+  url: https://github.com/mas-cli/mas/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+display-name: mas
+
+versions:
+  github: mas-cli/mas
+
+platforms:
+  - darwin
+
+build:
+  - run:
+      mv $PROP Sources/mas/Package.swift
+    prop: |
+      enum Package {
+        static let version = "{{version}}"
+      }
+  - swift build --configuration release
+  - install -D .build/release/mas {{prefix}}/bin/mas
+
+provides:
+  - bin/mas
+
+test:
+  test "$(mas version)" = {{version}}
