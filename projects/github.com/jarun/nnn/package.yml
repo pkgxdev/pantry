@@ -1,0 +1,26 @@
+distributable:
+  url: https://github.com/jarun/nnn/releases/download/v{{version.raw}}/nnn-v{{version.raw}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: jarun/nnn/tags
+
+platforms:
+  - darwin
+  - linux/x86-64
+
+dependencies:
+  invisible-island.net/ncurses: 6
+  gnu.org/readline: '*'
+
+build:
+  script:
+    - PREFIX={{prefix}} make --jobs {{ hw.concurrency }} strip install
+
+
+provides:
+  - bin/nnn
+
+test:
+  script:
+    test "$(nnn -V)" = {{version.raw}}
