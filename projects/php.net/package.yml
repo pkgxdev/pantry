@@ -42,6 +42,7 @@ dependencies:
 build:
   dependencies:
     freetype.org: '*'
+    postgresql.org: '*'
     darwin:
       tukaani.org/xz: '*'
 
@@ -125,6 +126,8 @@ build:
       - --with-libedit
       - --with-openssl
       - --with-pdo-sqlite
+      - --with-pdo-pgsql={{deps.postgresql.org.prefix}}
+      - --with-pdo-mysql
       - --with-pic
       - --with-sodium
       - --with-sqlite3
@@ -157,6 +160,35 @@ provides:
   - bin/phpdbg
   - bin/phpize
 
-test: |
-  php --version | grep {{ version }}
-  php -r 'echo "Hello World!\n";'
+test:
+  - php --version | grep {{ version }}
+
+  - php -r 'echo "Hello World!\n";'
+
+  - run:
+      php $FIXTURE
+    fixture: |
+      <?php
+      phpinfo()
+      ?>
+
+  - run:
+      - |
+        mkdir -p ./data
+        initdb -D ./data
+        pg_ctl -D ./data -l logfile start
+        createdb mary
+
+      # in order to not force php to depend on postgres we are trying this out
+      - pkgx +psql php $FIXTURE
+
+      - |
+        pg_ctl -D ./data stop
+        rm ./data
+    if: darwin  # FIXME linux tests run as sudo which fails with initdb
+    fixture: |
+      <?php
+        $dbconn = pg_connect("host=localhost port=5432 dbname=mary") or die("Could not connect");
+        $v = pg_version($dbconn);
+        echo $v['client'];
+      ?>
