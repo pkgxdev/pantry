@@ -40,6 +40,9 @@ build:
         #include <iomanip>' wasm-disassembler.cc
       working-directory: deps/v8/src/wasm
       if: ^22
+    # -pie breaks module build in v23.5.0
+    - run: export LDFLAGS="$(echo $LDFLAGS | sed 's/-pie//')"
+      if: ^23.5.0
 
     - make --jobs {{ hw.concurrency }} install
   env:
@@ -51,7 +54,6 @@ build:
     linux/x86-64:
       CFLAGS: -fPIC
       CXXFLAGS: -fPIC
-      LDFLAGS: -pie
 
 test:
   script: |
