@@ -22,10 +22,7 @@ companions:
   gnu.org/coreutils: 9
   # awk for `std:sum()`
   gnu.org/gawk: 5
-  # this should be necessary, but compiler.rs hardcodes the
-  # path to /bin/bash
-  # https://github.com/Ph0enixKM/Amber/issues/109
-  # gnu.org/bash: 5
+  gnu.org/bash: 5
 
 build:
   dependencies:
@@ -44,5 +41,8 @@ test:
           echo ((12 + 34) * 9) % 4
     - test "$(amber test.ab)" = 2
     - test "$(pkgx test.ab)" = 2
-    - amber test.ab test.sh
+    - run: amber test.ab test.sh
+      if: <0.4
+    - run: amber build test.ab
+      if: '>=0.4'
     - test "$(./test.sh)" = 2
