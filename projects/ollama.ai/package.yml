@@ -23,8 +23,14 @@ build:
     - run: sed -i 's/-D__ARM_FEATURE_MATMUL_INT8//g' llama.go
       working-directory: llama
       if: '>=0.4.0'
-    - go generate ./...
-    - go build -ldflags="$GO_LDFLAGS" -o '{{prefix}}/bin/ollama' .
+    - run:
+        - go generate ./...
+        - go build -ldflags="$GO_LDFLAGS" -o '{{prefix}}/bin/ollama' .
+      if: <0.5.2
+    - run:
+        - make dist -j {{hw.concurrency}}
+        - install -D dist/{{hw.platform}}-*/bin/ollama '{{prefix}}/bin/ollama'
+      if: '>=0.5.2'
   env:
     GO_LDFLAGS:
       # versions older than 0.1.30
@@ -35,6 +41,8 @@ build:
       GO_LDFLAGS:
         # else segfaults
         - -buildmode=pie
+      CGO_LDFLAGS:
+        - -lstdc++fs
 
 provides:
   - bin/ollama
