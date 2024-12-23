@@ -43,6 +43,10 @@ build:
     # this commit breaks linux/aarch64 - fixed in 1732
     - run: curl -LSs 'https://github.com/ggerganov/llama.cpp/pull/4630/commits/42f5246effafddcf87d67656b58e95030f4bc454.patch' | patch -p1 -R
       if: '>=1705<1732'
+    # -mcpu=native doesn't work on our docker builders
+    - run: sed -i -e's/-mcpu=native/-mcpu=generic/g' CMakeLists.txt
+      working-directory: ggml/src/ggml-cpu
+      if: linux/aarch64
 
     - run: sed -i -f $PROP ggml.c
       if: linux/aarch64
@@ -58,7 +62,7 @@ build:
     # For more details, see https://github.com/ggerganov/llama.cpp/blob/master/docs/build.md.
     # Stop.
     - run:
-        - cmake -B build
+        - cmake -B build $CMAKE_ARGS
         - cmake --build build --config Release
         - cmake --install build --prefix {{prefix}}
       if: '>=4242'
