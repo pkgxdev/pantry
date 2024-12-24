@@ -11,18 +11,24 @@ versions:
 
 build:
   working-directory: unix
-  script: |
-    ./configure --prefix={{ prefix }}
-    make --jobs {{ hw.concurrency }}
-    make install
-    make install-private-headers
+  script:
+    - ./configure --prefix={{ prefix }}
+    - make --jobs {{ hw.concurrency }}
+    - make install
+    - make install-private-headers
 
-    cd {{prefix}}/bin
-    ln -s tclsh{{version.major}}.{{version.minor}} tclsh
+    # fix-machos breaks tclsh, but we need to fix the path to libtcl
+    - run: install_name_tool -change {{prefix}}/lib/libtcl{{version.major}}.{{version.minor}}.dylib @loader_path/../lib/libtcl{{version.major}}.{{version.minor}}.dylib  {{prefix}}/bin/tclsh{{version.major}}.{{version.minor}}
+      if: darwin
+
+    - run: ln -s tclsh{{version.major}}.{{version.minor}} tclsh
+      working-directory: ${{prefix}}/bin
   test: make test
+  skip: fix-machos
 
 test:
-  script: test "$(echo 'puts "Hello, World!";' | tclsh)" = 'Hello, World!'
+  - echo 'puts "Hello, World!";' | tclsh
+  - test "$(echo 'puts "Hello, World!";' | tclsh)" = 'Hello, World!'
 
 provides:
   - bin/sqlite3_analyzer
