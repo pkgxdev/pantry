@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/ggerganov/llama.cpp/archive/refs/tags/b{{version.raw}}.tar.gz
+  url: https://github.com/ggerganov/llama.cpp/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
@@ -11,8 +11,7 @@ display-name: LLaMA.cpp
 provides:
   - bin/llama-cli
   - bin/llama.cpp
-  # NOTE! we do not “provide” convert.py. ∵ it’s too generic
-  # do `pkgx +github.com∕ggerganov∕llama.cpp convert.py`
+  - bin/convert.py
 
 platforms:
   - linux
@@ -22,7 +21,7 @@ platforms:
 dependencies:
   pkgx.sh: ^1
   linux:
-    gnu.org/gcc: '*' # clang doesn't provide omp.h, and we need libstdc++
+    gnu.org/gcc/libstdcxx: '*' # clang doesn't provide omp.h, and we need libstdc++
 
 build:
   dependencies:
@@ -31,6 +30,8 @@ build:
     curl.se: '*'
     python.org: ~3.11
     cmake.org: 3
+    linux:
+      gnu.org/gcc: '*'
     linux/aarch64:
       kernel.org/linux-headers: '*' # hwcap.h
   env:
@@ -118,6 +119,11 @@ build:
     - bkpyvenv stage {{prefix}} {{version}}
     - $VIRTUAL_ENV/bin/pip install -r requirements.txt
     - bkpyvenv seal {{prefix}} convert.py
+    # match the other binaries' shebangs
+    - run:
+        - SHEBANG=$(head -n1 tqdm)
+        - sed -i "1s|^.*$|#!$SHEBANG|" convert.py
+      working-directory: ${{prefix}}/venv/bin
 
 test:
   # broke in v2453
