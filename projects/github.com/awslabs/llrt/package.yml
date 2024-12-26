@@ -24,27 +24,26 @@ build:
       info-zip.org/zip: '*'
       llvm.org: ^17
   script:
-    - mkdir -p $HOME/.cargo/bin
-    - ln -sf {{deps.rust-lang.org/rustup.prefix}}/bin/rustup $HOME/.cargo/bin/rustup
-    - git submodule update --init
+    - run: ln -sf {{deps.rust-lang.org/rustup.prefix}}/bin/rustup rustup
+      working-directory: $HOME/.cargo/bin
+    - git submodule update --init --checkout
     - yarn
     - rustup default nightly
     - make stdlib
-    - run: |
-        OLD_LDFLAGS="$LDFLAGS"
-        unset LDFLAGS
+    - run:
+        - OLD_LDFLAGS="$LDFLAGS"
+        - unset LDFLAGS
       if: linux
     - make libs-$ARCH
-    - run: |
-        LDFLAGS="$OLD_LDFLAGS"
+    - run: LDFLAGS="$OLD_LDFLAGS"
       if: linux
 
     # the mapping from x86_64 > x64 exists for linux, but not darwin, oddly
     # https://github.com/awslabs/llrt/pull/336
-    - run: |
-        sed -i '/^llrt-linux-x86_64.zip/a\
-        llrt-darwin-x86_64.zip: llrt-darwin-x64.zip' Makefile
-
+    - run: sed -i -f $PROP Makefile
+      prop: |
+        /^llrt-linux-x86_64.zip/a\
+        llrt-darwin-x86_64.zip: llrt-darwin-x64.zip
     - make release
     - install -D target/*/release/llrt {{prefix}}/bin/llrt
   env:
