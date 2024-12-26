@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/koekeishiya/skhd/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/koekeishiya/skhd/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
@@ -12,11 +12,11 @@ build:
   # dependencies:
   #   apple.com/xcode: >=11
   script:
-    - make
+    # make install builds a -O2, but doesn't install
+    - make install
     - install -D bin/skhd {{prefix}}/bin/skhd
 
 provides:
   - bin/skhd
 
-test:
-  - test "$(skhd --version)" = "skhd-v{{version}}"
+test: test "$(skhd --version)" = "skhd-v{{version}}"
