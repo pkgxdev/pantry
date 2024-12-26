@@ -1,0 +1,43 @@
+distributable:
+  url: https://github.com/mobile-shell/mosh/releases/download/{{version.tag}}/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: mobile-shell/mosh
+  strip: /mosh-/
+
+dependencies:
+  protobuf.dev: 26.1.0
+  invisible-island.net/ncurses: 6
+  zlib.net: 1.3
+  linux:
+    openssl.org: 3
+
+build:
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --enable-completion
+      - --disable-silent-rules
+    CFLAGS:
+      # https://github.com/protocolbuffers/protobuf/issues/9947
+      - -DNDEBUG
+    CXXFLAGS:
+      - -std=gnu++17
+    darwin:
+      LDFLAGS:
+        # Avoid over-linkage to `abseil`.
+        - -Wl,-dead_strip_dylibs
+
+provides:
+  - bin/mosh-client
+  - bin/mosh-server
+
+test:
+  script: mosh-client -c
+  env:
+    TERM: vt100 # needs $TERM set to run
+
