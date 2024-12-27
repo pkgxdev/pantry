@@ -8,15 +8,48 @@ versions:
 platforms:
   - darwin
 
+dependencies:
+  curl.se: '*'
+  gnome.org/libxml2: '*'
+
 build:
-  script: |
-    make build_release
-    mkdir -p {{prefix}}/bin
-    mv $(make show_bin_path) {{prefix}}/bin
+  # dependencies:
+  #   darwin:
+  #     apple.com/xcode: '>=15.3'
+  #   linux:
+  #     swift.org: 6
+  script:
+    - run:
+        - make build_release
+        - install -Dt {{prefix}}/bin $(make show_bin_path)
+      if: <3
+    - run:
+        - swift build $SWIFT_ARGS
+        - install -Dt {{prefix}}/bin .build/release/periphery
+      if: '>=3'
+  env:
+    SWIFT_ARGS:
+      - --configuration release
+      - --product periphery
+    linux:
+      SWIFT_ARGS:
+        - --static-swift-stdlib
+    darwin:
+      SWIFT_ARGS:
+        - --disable-sandbox
 
 provides:
   - bin/periphery
 
 test:
+  # dependencies:
+  #   darwin:
+  #     apple.com/xcode: '>=15.3'
+  #   linux:
+  #     swift.org: 6
   script:
-    test "$(periphery version)" = {{version}}
+    - test "$(periphery version)" = {{version}}
+    - swift package init --name test --type executable
+    - swift build --disable-sandbox
+    - swift package --disable-sandbox describe --type json | tee manifest.json
+    - periphery scan --strict --skip-build --json-package-manifest-path manifest.json
