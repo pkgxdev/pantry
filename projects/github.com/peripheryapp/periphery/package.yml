@@ -17,7 +17,7 @@ build:
   #   darwin:
   #     apple.com/xcode: '>=15.3'
   #   linux:
-  #     swift.org: 6
+  #     swift.org: '>=5.10'
   script:
     - run:
         - make build_release
@@ -42,13 +42,21 @@ provides:
   - bin/periphery
 
 test:
-  # dependencies:
+  dependencies:
+    gnu.org/sed: '*'
+    crates.io/semverator: '*'
   #   darwin:
   #     apple.com/xcode: '>=15.3'
   #   linux:
-  #     swift.org: 6
+  #     swift.org: '>=5.10'
   script:
     - test "$(periphery version)" = {{version}}
+    - SWIFT_VERSION=$(swift --version 2>&1 | sed -n 's/.*Swift version \([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/p')
+    - |
+      if ! semverator satisfies '>=5.10' $SWIFT_VERSION; then
+        echo 'skipping test: swift version too old'
+        exit 0
+      fi
     - swift package init --name test --type executable
     - swift build --disable-sandbox
     - swift package --disable-sandbox describe --type json | tee manifest.json
