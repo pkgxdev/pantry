@@ -1,0 +1,26 @@
+distributable:
+  url: https://github.com/microsoft/markitdown/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: microsoft/markitdown/tags
+  transform: v => v.replace(/a/, '.') # still in pre-release, but we want it
+
+dependencies:
+  pkgx.sh: ^1
+
+build:
+  dependencies:
+    python.org: ~3.13
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} markitdown
+
+provides:
+  - bin/markitdown
+
+test:
+  - markitdown --help
+  - markitdown test.docx > test.md
+  - grep 'Welcome to pkgx' test.md
