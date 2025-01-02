@@ -1,0 +1,22 @@
+distributable:
+  url: https://github.com/flamegraph-rs/flamegraph/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/flamegraph
+  - bin/cargo-flamegraph
+
+versions:
+  github: flamegraph-rs/flamegraph
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path . --root {{prefix}}
+
+test:
+  - test "$(flamegraph --version)" = "flamegraph {{ version }}"
+  # we'd love to do this, but it requires root perms, and that we hate
+  # - flamegraph -- {{prefix}}/bin/flamegraph --help
+  # - test -f flamegraph.svg
