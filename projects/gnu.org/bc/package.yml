@@ -19,6 +19,10 @@ build:
     gnu.org/texinfo: '*'
   script:
     - ./configure $ARGS
+    # this tries to add `-ledit` to the list of targets on darwin
+    - run: "sed -i 's/^\\(\\$(PROGRAMS): \\$(LDADD)\\)$/# \\1/' Makefile"
+      working-directory: dc
+      if: '>=1.8'
     - make --jobs {{hw.concurrency}} install
   env:
     ARGS:
@@ -32,7 +36,13 @@ build:
 
 provides:
   - bin/bc
+  - bin/dc
 
 test:
   - bc --version | grep {{version.raw}}
   - echo '150+150' | bc | grep 300
+  - dc --version | grep {{version.raw}}
+  - run: test "$(dc -f $FIXTURE)" = 300
+    fixture: |
+      150 150 +
+      p
