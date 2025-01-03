@@ -1,0 +1,25 @@
+distributable:
+  url: https://download.clojure.org/install/clojure-tools-{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  - 1.11.1.1413
+
+display-name: clojure.org
+
+provides:
+- bin/clojure
+- bin/clj # depends on rlwrap
+
+dependencies:
+  openjdk.org: 20.0.2.9
+
+build:
+  script: |
+    mkdir -p {{ prefix }}
+
+test:
+  script: |
+    clojure --version
+    test "$(clojure --version)" = "{{ version }}"
+    clojure -e '(prn :abc)'
