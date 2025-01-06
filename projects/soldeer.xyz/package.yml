@@ -1,0 +1,22 @@
+distributable:
+  url: https://github.com/mario-eth/soldeer/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/soldeer
+
+versions:
+  github: mario-eth/soldeer
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.74'
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path crates/cli --root {{prefix}}
+
+test:
+  - test "$(soldeer --version | tail -1)" = "soldeer {{ version }}"
+  - soldeer help
+  - soldeer init --config-location soldeer
+  - soldeer install @openzeppelin-contracts~4.3.0
+  - test -d 'dependencies/@openzeppelin-contracts-4.3.0'
