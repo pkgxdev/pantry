@@ -11,11 +11,13 @@ platforms:
 
 provides:
   - bin/whisper.cpp
+  - bin/whisper-cli
 
 dependencies:
   libsdl.org: '*'
   linux:
     openmp.llvm.org: 18 # as of 1.7.0
+    gnu.org/gcc/libstdcxx: 14
 
 companions:
   huggingface.co: '*'
@@ -45,13 +47,28 @@ build:
     - run: cp ggml/src/ggml-metal.metal {{prefix}}/bin
       if: '>=1.7<1.7.3'
 
+    # deprecation warning blocks valid bin names for some reason
+    - run: sed -i 's/add_subdirectory(deprecation-warning)/#add_subdirectory(deprecation-warning)/' CMakeLists.txt
+      working-directory: examples
+      if: '>=1.7.4'
+
     - run:
         - cmake -B . -S ..
         - cmake --build . --parallel {{ hw.concurrency }} --config Release
         - cmake --install . --prefix {{prefix}}
-        - install -D bin/main {{prefix}}/bin/whisper.cpp
       working-directory: build
       if: '>=1.7.3'
+
+    - run: install -D main {{prefix}}/bin/whisper-cli
+      working-directory: build/bin
+      if: '=1.7.3'
+
+    - run: install -D whisper-cli {{prefix}}/bin/whisper-cli
+      working-directory: build/bin
+      if: '>=1.7.4'
+
+    - run: ln -s whisper-cli whisper.cpp
+      working-directory: ${{prefix}}/bin
 
     - install -D models/download-ggml-model.sh {{prefix}}/bin/download-ggml-model.sh
     - install -D examples/command/commands.txt {{prefix}}/share/whisper.cpp/commands.txt
@@ -62,5 +79,5 @@ test:
   script:
     - huggingface-cli download ggerganov/whisper.cpp ggml-base.en.bin
     - model="$(find "$cache" -name "ggml-base.en.bin")"
-    - curl https://github.com/ggerganov/whisper.cpp/raw/master/samples/jfk.wav | whisper.cpp --model "$model" -
+    - curl https://github.com/ggerganov/whisper.cpp/raw/master/samples/jfk.wav | whisper-cli --model "$model" -
   cache: $HOME/.cache/huggingface
