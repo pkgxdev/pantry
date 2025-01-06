@@ -40,13 +40,11 @@ build:
       gnu.org/gcc: 13
   script:
     # replace build-time WATCHMAN_STATE_DIR with run-time WATCHMAN_STATE_DIR
-    - run:
-        - mainfile=$(find . -name "main.cpp")
-        - 'echo "Found main.cpp at: $mainfile"'
-        - oldline='auto state_dir = computeWatchmanStateDirectory(user);'
-        - 'newline=''const char* env_state_dir = getenv("WATCHMAN_STATE_DIR"); auto state_dir = env_state_dir ? env_state_dir : computeWatchmanStateDirectory(user);'''
-        - sed -i "s/$oldline/$newline/" "$mainfile"
-        - cat $mainfile
+    - run: sed -i -f $PROP main.cpp
+      prop: |
+        s/auto state_dir = computeWatchmanStateDirectory(user);/\
+        const char* env_state_dir = getenv("WATCHMAN_STATE_DIR");\n\
+            auto state_dir = env_state_dir ? env_state_dir : computeWatchmanStateDirectory(user);/
       working-directory: watchman
 
     # the pywatchman build doesn't like mixing -shared and -pie
@@ -132,11 +130,13 @@ test:
   script:
     - watchman -v | grep {{version}}
     - watchman watch $ARGS .
+    - sleep 5
     - kill $(cat pid)
     - cat state | grep {{version}}
   env:
+    TMP_DIR: $(mktemp -d)
     ARGS:
-      - --sockname=$PWD/sock
-      - --statefile=$PWD/state
-      - --logfile=$PWD/log
-      - --pidfile=$PWD/pid
+      - --unix-listener-path=$TMP_DIR/sock
+      - --statefile=$TMP_DIR/state
+      - --logfile=$TMP_DIR/log
+      - --pidfile=$TMP_DIR/pid
