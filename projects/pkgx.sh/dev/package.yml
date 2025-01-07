@@ -7,8 +7,9 @@ display-name: dev
 versions:
   github: pkgxdev/dev
 
-dependencies:
-  pkgx.sh: ^1,^2
+# strictly needed but breaks `dev` as it needs a virgin env
+# dependencies:
+  # pkgx.sh: ^1,^2
 
 build:
   - mkdir -p {{prefix}}/bin {{prefix}}/share/pkgx/dev
@@ -19,7 +20,8 @@ build:
     prop: |
       #!/bin/sh
       d="$(cd "$(dirname $0)"/.. && pwd)"
-      exec "$d/share/pkgx/dev/app.ts" "$@"
+      deno="$(pkgx +deno -- which deno)"
+      exec "$deno" run -A "$d/share/pkgx/dev/app.ts" "$@"
 provides:
   - bin/dev
 
