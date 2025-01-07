@@ -9,7 +9,7 @@ versions:
 
 # strictly needed but breaks `dev` as it needs a virgin env
 # dependencies:
-  # pkgx.sh: ^1,^2
+# pkgx.sh: ^1,^2
 
 build:
   - mkdir -p {{prefix}}/bin {{prefix}}/share/pkgx/dev
@@ -26,11 +26,12 @@ provides:
   - bin/dev
 
 test:
-  dependencies:
-    pkgx.sh: ^1,^2
+  env:
+    PATH: '{{pkgx.prefix}}/pkgx.sh/v*/bin:$PATH'
   script:
-  - which deno && exit 1
-  - eval "$(dev --shellcode)"
-  - echo '{}' > deno.json
-  - dev
-  - deno --version
+    - which pkgx
+    - which deno && exit 1
+    - eval "$(dev --shellcode)"
+    - echo '{}' > deno.json
+    - dev
+    - deno --version
