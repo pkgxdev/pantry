@@ -5,9 +5,11 @@ distributable:
 versions:
   github: Reference-LAPACK/lapack
 
+dependencies:
+  gnu.org/gcc: ^11 # libgfortran
+
 build:
   dependencies:
-    gnu.org/gcc: ^11
     gnu.org/binutils: '*'
     cmake.org: ~3.24
   working-directory: build
@@ -46,5 +48,10 @@ test:
   script:
     - pkg-config --modversion lapack
     - pkg-config --modversion lapack | grep {{version}}
-    - cc test.c -llapacke -o test
+    - $CC test.c -llapacke -o test
     - ./test
+  env:
+    linux:
+      CC: gcc
+    darwin:
+      CC: clang
