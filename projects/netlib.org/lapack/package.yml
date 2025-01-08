@@ -1,16 +1,24 @@
 distributable:
   url: https://github.com/Reference-LAPACK/lapack/archive/v{{version}}.tar.gz
   strip-components: 1
+
 versions:
   github: Reference-LAPACK/lapack
+
 build:
   dependencies:
     gnu.org/gcc: ^11
     gnu.org/binutils: '*'
-    gnu.org/make: '*'
     cmake.org: ~3.24
   working-directory: build
   script:
+    # ensure version:
+    - run: sed -i -f $PROP CMakeLists.txt
+      prop: |
+        s/set(LAPACK_MAJOR_VERSION .*)/set(LAPACK_MAJOR_VERSION {{version.major}})/
+        s/set(LAPACK_MINOR_VERSION .*)/set(LAPACK_MINOR_VERSION {{version.minor}})/
+        s/set(LAPACK_PATCH_VERSION .*)/set(LAPACK_PATCH_VERSION {{version.patch}})/
+      working-directory: ..
     - cmake .. $CMAKE_ARGS
     - make --jobs {{hw.concurrency}} install
   env:
@@ -25,6 +33,9 @@ build:
       - -DBUILD_SHARED_LIBS:BOOL=ON
       - -DLAPACKE:BOOL=ON
     darwin:
+      CC: clang
+      CXX: clang++
+      LD: clang
       # FIXME: binutils ar/ranlib are broken on macOS?
       CMAKE_ARGS:
         - -DCMAKE_AR=/usr/bin/ar
