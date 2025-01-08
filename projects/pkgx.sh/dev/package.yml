@@ -11,6 +11,7 @@ dependencies:
   pkgx.sh: ^1,^2
 
 build:
+  - echo 'export default "{{version}}"' > ./src/app-version.ts
   - mkdir -p {{prefix}}/bin {{prefix}}/share/pkgx/dev
   - cp -r ./app.ts src deno.json deno.lock {{prefix}}/share/pkgx/dev
   - run:
@@ -33,3 +34,5 @@ test:
     - echo '{}' > deno.json
     - dev
     - deno --version
+    - test "$(dev --version)" = 'dev {{version}}'
+
