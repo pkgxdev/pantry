@@ -8,6 +8,8 @@ versions:
 
 companions:
   rust-lang.org/cargo: '*'
+  linux:
+    llvm.org: '*'
 
 display-name: rust
 
@@ -31,8 +33,6 @@ options:
   - { name: rust-demangler, default: false }
 
 dependencies:
-  linux:
-    llvm.org: '*'
   #FIXME ^^ strictly rustc only needs a linker
   zlib.net: 1
 
@@ -42,10 +42,9 @@ build:
     ninja-build.org: ^1.10
     python.org: '>=3<3.12'
     openssl.org: '*' # needed to build openssl-sys
-    freedesktop.org/pkg-config: ^0.29
     crates.io/semverator: 0
     linux:
-      gnu.org/make: '*'
+      llvm.org: '*'
   script:
     # --enable-optimize not available as of 1.63.0
     - run: export ARGS="$ARGS --enable-optimize"
@@ -53,9 +52,7 @@ build:
 
     # 1.68.0 introduced a regression w.r.t. CI builds
     # https://github.com/rust-lang/rust/issues/108959
-    - run: |
-        sed -i.bak -e 's/CiEnv::is_ci()/CiEnv::is_ci() \&\& config.rust_info.is_managed_git_subrepository()/' native.rs
-        rm native.rs.bak
+    - run: sed -i -e 's/CiEnv::is_ci()/CiEnv::is_ci() \&\& config.rust_info.is_managed_git_subrepository()/' native.rs
       if: '>=1.68<1.70'
       working-directory: src/bootstrap
 
@@ -82,13 +79,18 @@ build:
       - rust-analyzer
     linux:
       AR: llvm-ar
+    darwin:
+      RUSTFLAGS:
+        # for fix-machos
+        - -C link-args=-headerpad_max_install_names
 
 test:
-  script: |
-    mv $FIXTURE hello.rs
-    rustc hello.rs
-    ./hello
-  fixture: |
-    fn main() {
-      println!("Hello World!");
-    }
+  script:
+    - run: rustc $FIXTURE -o hello --crate-name hello
+      fixture:
+        extname: rs
+        content: |
+          fn main() {
+            println!("Hello World!");
+          }
+    - ./hello
