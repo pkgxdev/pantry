@@ -10,18 +10,19 @@ versions:
 provides:
   - bin/pkgx
 
-dependencies:
-  linux/aarch64:
-    sourceware.org/libffi: 3 # denort
-
 build:
   dependencies:
     deno.land: ~2 # since 1.3.0
-  working-directory: ${{prefix}}/bin
+    rust-lang.org: ^1.56 # since 2.0
   # patchelf messes with Deno's ability to find the DATA block, making it
   # operate as only a bloated Deno binary
   skip: fix-patchelf
-  script: deno task --config "$SRCROOT"/deno.jsonc compile
+  script:
+    - run: deno task --config "$SRCROOT"/deno.jsonc compile
+      working-directory: ${{prefix}}/bin
+      if: <2
+    - run: cargo install --path . --root "{{prefix}}"
+      if: '>=2'
   env:
     linux/aarch64:
       # deno's pre-built runtime doesn't support glibc old enough
