@@ -20,24 +20,21 @@ dependencies:
 
 build:
   dependencies:
-    freedesktop.org/pkg-config: '*'
-    #gnu.org/gcc: '*'
     gnu.org/bison: '*'
-    gnu.org/sed: '*'
     github.com/westes/flex: ^2.5.31
     perl.org: '*'
-  script: |
+  script:
     # remove `-w`` from CFLAGS, because it causes build to fail, ironically.
     # `./configure` *specifically* checks that certain warnings are emitted.
-    export CFLAGS="$(echo $CFLAGS | tr ' ' '\n' | sed -e '/^-w$/d' | tr '\n' ' ')"
+    - export CFLAGS="$(echo $CFLAGS | tr ' ' '\n' | sed -e '/^-w$/d' | tr '\n' ' ')"
 
     # disable sgml doc generation, since that seems to fail.
     # sorry all you sgml-heads out there
-    sed -i 's|\([^\t]*sgml.*\)$|#\1|' GNUmakefile.in doc/src/Makefile
+    - sed -i 's|\([^\t]*sgml.*\)$|#\1|' GNUmakefile.in doc/src/Makefile
 
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }}
-    make install-world
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install-world
   env:
     CC: clang
     CXX: clang++
@@ -48,12 +45,9 @@ build:
       - --with-lz4
       - --with-libxml
       - --with-libxslt
+    CFLAGS: $CFLAGS -Wno-incompatible-function-pointer-types
     darwin:
-      LDFLAGS:
-        - -headerpad_max_install_names $LDFLAGS
-    linux:
-      CFLAGS:
-        - -Wno-incompatible-function-pointer-types $CFLAGS
+      LDFLAGS: $LDFLAGS -headerpad_max_install_names
 
 provides:
   - bin/clusterdb
@@ -86,25 +80,24 @@ provides:
   - bin/vacuumdb
 
 test:
-  script: |
-    # While we'd love a good test like this, `initdb` doesn't run as root, and managing
-    # all the environment passthrough with `sudo` is a nightmare.
+  # While we'd love a good test like this, `initdb` doesn't run as root, and managing
+  # all the environment passthrough with `sudo` is a nightmare.
+  - run:
+      - pg_config --sharedir
+      - pg_config --libdir
+      - pg_config --pkglibdir
+      - pg_config --pkgincludedir
+      - pg_config --includedir-server
+    if: linux
+  - run:
+      - mkdir -p ./data
 
-    if test "{{ hw.platform }}" = "linux"; then
-      pg_config --sharedir
-      pg_config --libdir
-      pg_config --pkglibdir
-      pg_config --pkgincludedir
-      pg_config --includedir-server
-    else
-      mkdir -p ./data
+      - initdb -D ./data
+      - pg_ctl -D ./data -l logfile start
+      - createdb test
+      - psql -c 'create table test (id int);' test
+      - dropdb test
+      - pg_ctl -D ./data stop
 
-      initdb -D ./data
-      pg_ctl -D ./data -l logfile start
-      createdb test
-      psql -c 'create table test (id int);' test
-      dropdb test
-      pg_ctl -D ./data stop
-
-      rm -rf ./data
-    fi
+      - rm -rf ./data
+    if: darwin
