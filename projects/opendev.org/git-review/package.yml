@@ -10,15 +10,15 @@ versions:
     - /"$/
 
 dependencies:
-  python.org: ^3
-  linux:
-    gnu.org/which: '*'
+  pkgx.sh: ^1
 
 build:
-  script: |
-    python-venv.py {{prefix}}/bin/git-review
-
-    {{prefix}}/venv/bin/pip install setuptools
+  dependencies:
+    python.org: ^3
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} git-review
 
 provides:
   - bin/git-review
