@@ -9,11 +9,19 @@ provides:
 
 dependencies:
   pkgx.sh: ^2
+  curl.se/ca-certs: '*'
 
-build: install -Dm755 pkgm {{prefix}}/bin/pkgm
+build:
+  - sed -i 's|--allow-run=pkgx,/usr/bin/sudo|--allow-run|' pkgm
+  - head -n1 pkgm
+  - install -Dm755 pkgm {{prefix}}/bin/pkgm
 
 test:
   - pkgm --version
+  - command -v pkgm
+  - command -v pkgx
+  - pkgx --version
+  - head -n1 {{prefix}}/bin/pkgm
   - pkgm install dua
   # TODO: this will work eventually
   # - pkgm ls | grep dua
