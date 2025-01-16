@@ -14,13 +14,25 @@ build:
   - echo 'export default "{{version}}"' > ./src/app-version.ts
   - mkdir -p {{prefix}}/bin {{prefix}}/share/pkgx/dev
   - cp -r ./app.ts src deno.json deno.lock {{prefix}}/share/pkgx/dev
+
   - run:
       - cp $PROP {{prefix}}/bin/dev
       - chmod +x {{prefix}}/bin/dev
+      - args="$(sed -n '1s/.*pkgx //p' ./app.ts)"
+      - echo exec pkgx \$_PKGX_ARG "$args" '"$_PKGX_DEV_ROOT/share/pkgx/dev/app.ts" "$@"' >> {{prefix}}/bin/dev
     prop: |
       #!/bin/sh
-      d="$(cd "$(dirname $0)"/.. && pwd)"
-      exec "$d/share/pkgx/dev/app.ts" "$@"
+
+      _PKGX_DEV_ROOT="$(cd "$(dirname $0)"/.. && pwd)"
+
+      if echo "$PATH" \\
+        | grep -o 'pkgx\.sh/v[0-9]\+\.[0-9]\+\.[0-9]\+/bin' \\
+        | sed -E 's/.*v([0-9]+\.[0-9]+\.[0-9]+)\/bin/\1/' \\
+        | awk -F. '{if ($1 > 2 || ($1 == 2 && $2 >= 1)) exit 0; else exit 1;}'
+      then
+        _PKGX_ARG=--quiet
+      fi
+
 provides:
   - bin/dev
 
@@ -35,4 +47,3 @@ test:
     - dev
     - deno --version
     - test "$(dev --version)" = 'dev {{version}}'
-
