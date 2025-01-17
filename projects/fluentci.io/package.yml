@@ -17,9 +17,9 @@ build:
     # 0.12.0 didn't bump version
     - run: sed -i -e 's/export const VERSION = ".*";/export const VERSION = "{{ version }}";/' consts.ts
       working-directory: src
-    # 0.12.7+ shipped with a deno.lock that prevents building
+    # 0.12.7+ shipped with a deno.lock that prevents building, 0.16.5 shipped with a v4
     - run: rm deno.lock
-      if: '>=0.12.7<0.14'
+      if: '>=0.12.7<0.14 || =0.16.5'
     - deno compile -A --unstable --import-map="$SRCROOT"/import_map.json --output fluentci ./main.ts
     - mkdir -p "{{ prefix }}"/bin
     - cp fluentci "{{ prefix }}"/bin
