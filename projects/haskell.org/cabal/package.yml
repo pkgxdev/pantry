@@ -70,6 +70,7 @@ build:
       --install-method=copy
       --installdir={{prefix}}/bin
       $ADDITIONAL_CABAL_FLAGS
+  skip: fix-patchelf
   env:
     darwin/aarch64:
       BOOTSTRAP: https://downloads.haskell.org/~cabal/cabal-install-3.10.2.0/cabal-install-3.10.2.0-aarch64-darwin.tar.xz
@@ -85,7 +86,7 @@ build:
         # else segfaults
         - --enable-relocatable
         - --ghc-option=-fPIC
-        - --ghc-option=-Wl,-pie
+        - --ghc-option=-optl=-pie
 
 test:
   - cabal --config-file=./config user-config init
