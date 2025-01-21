@@ -41,6 +41,11 @@ build:
       working-directory: thrift/compiler/whisker
       if: linux/aarch64
 
+    # fmt::fmt is duplicated from folly on macOS
+    - run: sed -i 's/add_library(fmt::fmt UNKNOWN IMPORTED)/#&/' FindFmt.cmake
+      working-directory: thrift/cmake
+      if: darwin
+
     # llvm's `as` likes to be first, wrongly
     - run: export PATH={{deps.gnu.org/binutils.prefix}}/bin:$PATH
       if: linux
