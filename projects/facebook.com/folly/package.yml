@@ -46,6 +46,11 @@ build:
         fi
       if: '>=2024.07<2024.07.15'
 
+    # alignment issue on linux/aarch64
+    - run: sed -i 's/kMallocAlign % hardware_destructive_interference_size == 0/kMallocAlign % hardware_destructive_interference_size == 128/' CacheLocality.cpp
+      if: linux/aarch64
+      working-directory: folly/concurrency
+
     - cmake $ARGS -DBUILD_SHARED_LIBS=ON -S . -B shared
     - cmake --build shared
     - cmake --install shared
@@ -89,8 +94,7 @@ build:
         - -DCMAKE_LIBRARY_ARCHITECTURE=aarch64
         - -DCMAKE_C_FLAGS=-fPIC
         - -DCMAKE_CXX_FLAGS=-fPIC
-        - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-pie,-lrt,-lunwind
-    linux/x86-64:
+    linux:
       ARGS:
         - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-pie,-lrt,-lunwind
 
@@ -98,18 +102,19 @@ test:
   dependencies:
     linux:
       gnu.org/gcc: '*'
-  fixture: |
-    #include <folly/FBVector.h>
-    int main() {
-      folly::fbvector<int> numbers({0, 1, 2, 3});
-      numbers.reserve(10);
-      for (int i = 4; i < 10; i++) {
-        numbers.push_back(i * 2);
-      }
-      assert(numbers[6] == 12);
-      return 0;
-    }
-  script: |
-    mv $FIXTURE b.cc
-    c++ -std=c++20 b.cc -lfolly -ldl -lfmt -lglog
-    ./a.out
+  script:
+    - run: c++ -std=c++20 $FIXTURE -lfolly -ldl -lfmt -lglog
+      fixture:
+        extname: cc
+        content: |
+          #include <folly/FBVector.h>
+          int main() {
+            folly::fbvector<int> numbers({0, 1, 2, 3});
+            numbers.reserve(10);
+            for (int i = 4; i < 10; i++) {
+              numbers.push_back(i * 2);
+            }
+            assert(numbers[6] == 12);
+            return 0;
+          }
+    - ./a.out
