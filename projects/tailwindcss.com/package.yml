@@ -8,17 +8,18 @@ warnings:
 
 versions:
   github: tailwindlabs/tailwindcss
-  strip: /^v/
 
 build:
   dependencies:
-    curl.se: "*"
+    curl.se: '*'
   working-directory: ${{prefix}}
-  script: |
-    curl -Lfo tailwindcss https://github.com/tailwindlabs/tailwindcss/releases/download/v{{version}}/tailwindcss-$PLATFORM
-    chmod +x tailwindcss
-    mkdir -p bin
-    mv tailwindcss bin
+  script:
+    - curl -Lfo tailwindcss https://github.com/tailwindlabs/tailwindcss/releases/download/v{{version}}/tailwindcss-$PLATFORM
+    - chmod +x tailwindcss
+    - mkdir -p bin
+    - mv tailwindcss bin
+  # breaks the vendored bin
+  skip: fix-patchelf
   env:
     darwin/aarch64: { PLATFORM: macos-arm64 }
     darwin/x86-64: { PLATFORM: macos-x64 }
@@ -29,5 +30,5 @@ provides:
   - bin/tailwindcss
 
 test:
-  script:
-    - tailwindcss --help | grep -q "tailwindcss v{{version}}"
+  - tailwindcss --help
+  - tailwindcss --help | grep -q "tailwindcss v{{version}}"
