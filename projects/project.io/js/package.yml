@@ -1,0 +1,38 @@
+distributable:
+  url: https://github.com/projen/projen/archive/refs/tags/v{{version.raw}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: projen/projen
+  strip: /^v/
+
+dependencies:
+  nodejs.org: ^22
+  classic.yarnpkg.com: ^1
+  git-scm.org: "*"
+
+build:
+  script:
+    - mkdir -p "{{prefix}}"/bin
+    - yarn version --new-version {{version.raw}} --no-git-tag-version
+    - yarn install --check-files --frozen-lockfile
+    - yarn package:js
+    - tar xfz dist/js/*.tgz -C {{prefix}}
+    - cp -R node_modules/constructs "{{prefix}}"/package/node_modules # peer dependency
+    - run: ln -s ../package/bin/projen projen
+      working-directory: ${{prefix}}/bin
+
+provides:
+  - bin/projen
+
+test:
+  script:
+    - test "$(projen --version)" = {{version.raw}}
+    - git config --global user.email "ci@pkgx.sh"
+    - git config --global user.name "Pkgx CI"
+    - mkdir -p node
+    - run:
+        - projen new node --name test-project
+        - testfiles="package.json yarn.lock .projenrc.js"
+        - for file in $testfiles; do test -f $file; done
+      working-directory: node
