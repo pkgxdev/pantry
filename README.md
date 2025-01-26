@@ -4,7 +4,8 @@ pkgx metadata and build instructions.
 
 # Contributing
 
-Assuming you have `pkgx` with shell integration:
+You need [`pkgx`]. We recommend using [`dev`] to get [`brewkit`] which we use
+to build packages:
 
 ```sh
 $ git clone https://github.com/pkgxdev/pantry
@@ -48,6 +49,10 @@ $ git push origin my-new-package
 $ gh pr create
 ```
 
+> [!NOTE]
+> If you don’t want to use [`dev`] you can prefix [`pkgx`] in front of all
+> `bk` commands or [`pkgm i bk`] to install [`brewkit`] to `/usr/local`.
+
 > [!TIP]
 > * `bk build` and `bk test` can be invoked eg. `bk docker build` to run
 >   inside a Docker container for Linux builds and testing
@@ -62,7 +67,7 @@ $ gh pr create
 
 > [!IMPORTANT]
 > brewkit installs the built products to `${PKGX_DIR:-$HOME/.pkgx}` which
-> means they are installed to your user’s pkgx cache.
+> means they are installed to your unix-user’s pkgx cache.
 
 ## GitHub Codespaces
 
@@ -124,3 +129,6 @@ $ bk edit
 [IPFS]: https://ipfs.tech
 [`npmjs.com/provider.yml`]: ./projects/npmjs.com/provider.yml
 [`brewkit`]: https://github.com/pkgxdev/brewkit
+[`pkgm i bk`]: https://github.com/pkgxdev/pkgm
+[`dev`]: https://github.com/pkgxdev/dev
+[`pkgx`]: https://github.com/pkgxdev/pkgx
