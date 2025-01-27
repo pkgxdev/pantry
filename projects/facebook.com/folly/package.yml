@@ -46,11 +46,6 @@ build:
         fi
       if: '>=2024.07<2024.07.15'
 
-    # alignment issue on linux/aarch64
-    - run: sed -i 's/kMallocAlign % hardware_destructive_interference_size == 0/kMallocAlign % hardware_destructive_interference_size == 128/' CacheLocality.cpp
-      if: linux/aarch64
-      working-directory: folly/concurrency
-
     - cmake $ARGS -DBUILD_SHARED_LIBS=ON -S . -B shared
     - cmake --build shared
     - cmake --install shared
