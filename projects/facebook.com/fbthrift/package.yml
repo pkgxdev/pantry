@@ -42,7 +42,10 @@ build:
       if: linux/aarch64
 
     # fmt::fmt is duplicated from folly on macOS
-    - run: sed -i 's/add_library(fmt::fmt UNKNOWN IMPORTED)/#&/' FindFmt.cmake
+    - run: |
+        if test -f FindFmt.cmake; then
+          sed -i 's/add_library(fmt::fmt UNKNOWN IMPORTED)/#&/' FindFmt.cmake
+        fi
       working-directory: thrift/cmake
       if: darwin
 
