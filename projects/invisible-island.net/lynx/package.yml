@@ -1,0 +1,37 @@
+distributable:
+  url: https://invisible-island.net/archives/lynx/tarballs/lynx{{version}}.tar.gz
+  strip-components: 1
+
+display-name: lynx
+
+versions:
+  - 2.9.2
+
+runtime:
+  env:
+    LYNX_CFG: ${{prefix}}/etc/lynx.cfg
+
+dependencies:
+  openssl.org: ^3
+  invisible-island.net/ncurses: ^6
+
+build:
+  - ./configure
+      --prefix={{prefix}}
+      --disable-debug
+      --disable-echo
+      --enable-default-colors
+      --with-zlib
+      --with-bzlib
+      --enable-ipv6
+      --with-screen=ncurses
+      --enable-externs
+      --disable-config-info
+      --with-ssl={{deps.openssl.org.prefix}}
+      --with-curses={{deps.invisible-island.net/ncurses.prefix}}
+  - make install
+provides:
+  - bin/lynx
+
+test:
+  lynx -dump https://example.org
