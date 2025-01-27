@@ -5,7 +5,11 @@ distributable:
 display-name: lynx
 
 versions:
-  - 2.9.2
+  url: https://invisible-island.net/archives/lynx/tarballs
+  match: /lynx\d+\.\d+\.\d+\.tar\.gz/
+  strip:
+    - /lynx/
+    - /.tar.gz/
 
 runtime:
   env:
@@ -16,22 +20,25 @@ dependencies:
   invisible-island.net/ncurses: ^6
 
 build:
-  - ./configure
-      --prefix={{prefix}}
-      --disable-debug
-      --disable-echo
-      --enable-default-colors
-      --with-zlib
-      --with-bzlib
-      --enable-ipv6
-      --with-screen=ncurses
-      --enable-externs
-      --disable-config-info
-      --with-ssl={{deps.openssl.org.prefix}}
-      --with-curses={{deps.invisible-island.net/ncurses.prefix}}
-  - make install
+  script:
+    - ./configure $ARGS
+    - make install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --disable-debug
+      - --disable-echo
+      - --enable-default-colors
+      - --with-zlib
+      - --with-bzlib
+      - --enable-ipv6
+      - --with-screen=ncurses
+      - --enable-externs
+      - --disable-config-info
+      - --with-ssl={{deps.openssl.org.prefix}}
+      - --with-curses={{deps.invisible-island.net/ncurses.prefix}}
+
 provides:
   - bin/lynx
 
-test:
-  lynx -dump https://example.org
+test: lynx -dump https://example.org
