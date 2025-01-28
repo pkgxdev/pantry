@@ -21,8 +21,6 @@ build:
         /^serde_json =/a\
         openssl-sys = { version = "*", features = ["vendored"] }
     - cargo install --locked --path spider_cli --root {{prefix}} --features smart
-  env:
-    linux/x86-64:
-      RUSTFLAGS: -C link-arg=-fPIC -C link-arg=-pie -C relocation-model=pic
+  skip: fix-patchelf # dumps on x86-64
 
 test: spider -v --url https://choosealicense.com crawl
