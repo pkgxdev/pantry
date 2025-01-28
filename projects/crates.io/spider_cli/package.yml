@@ -10,17 +10,24 @@ versions:
 
 build:
   dependencies:
-    rust-lang.org: '>=1.56'
+    rust-lang.org: '>=1.81'
     rust-lang.org/cargo: '*'
   script:
     # needs openssl 3 on linux, but our rust locks us to 1.1.1
-    - run: sed -f $PROP -i Cargo.toml
-      working-directory: spider_cli
+    # so we just jam it first in the path vars and pray. PRAY HARD!
+    - run:
+        - set -a
+        - source <(pkgx +openssl^3)
       if: linux
-      prop: |
-        /^serde_json =/a\
-        openssl-sys = { version = "*", features = ["vendored"] }
+    # this appears to have broken x86-64...
+    - run: sed -i 's/tokio-tungstenite = "0.26"/tokio-tungstenite = "0.24"/' Cargo.toml
+      working-directory: spider_chrome
+      if: linux/x86-64
     - cargo install --locked --path spider_cli --root {{prefix}} --features smart
-  skip: fix-patchelf # dumps on x86-64
+  env:
+    linux:
+      # since we are tricking _ourselves_ into using openssl 3, we need to
+      # link it statically.
+      OPENSSL_STATIC: 1
 
-test: spider -v --url https://choosealicense.com crawl
+test: spider -v --url https://choosealicense.com scrape
