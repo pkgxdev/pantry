@@ -10,17 +10,48 @@ versions:
 
 build:
   dependencies:
-    rust-lang.org: '>=1.56'
+    rust-lang.org: '>=1.81'
     rust-lang.org/cargo: '*'
   script:
     # needs openssl 3 on linux, but our rust locks us to 1.1.1
-    - run: sed -f $PROP -i Cargo.toml
-      working-directory: spider_cli
+    - run: source <(pkgx +openssl^3)
       if: linux
+    # -shared and -pie don't mix
+    - run: install -Dm755 $PROP cc
       prop: |
-        /^serde_json =/a\
-        openssl-sys = { version = "*", features = ["vendored"] }
-    - cargo install --locked --path spider_cli --root {{prefix}} --features smart
-  skip: fix-patchelf # dumps on x86-64
+        #!/bin/bash
+        # Capture all arguments into an array
+        ARGS=("$@")
 
-test: spider -v --url https://choosealicense.com crawl
+        # Check if the '-shared' flag is present in the arguments
+        if printf "%s\n" "${ARGS[@]}" | grep -q -e '-shared'; then
+
+          # Use a loop to filter out the '-pie' flag from the arguments
+          FILTERED_ARGS=()
+          for arg in "${ARGS[@]}"; do
+            if [ "$arg" != "-pie" ]; then
+              FILTERED_ARGS+=("$arg")
+            fi
+          done
+
+          # Pass the filtered arguments to clang
+          exec clang "${FILTERED_ARGS[@]}"
+        else
+          # Pass the original arguments to clang
+          exec clang "${ARGS[@]}"
+        fi
+      working-directory: $HOME/.local/bin
+      if: linux/x86-64
+    - cargo install --locked --path spider_cli --root {{prefix}} --features smart
+  env:
+    linux:
+      # since we are tricking _ourselves_ into using openssl 3, we need to
+      # link it statically.
+      OPENSSL_STATIC: 1
+      OPENSSL_DIR: ${{pkgx.prefix}}/openssl.org/v3/
+      OPENSSL_NO_VENDOR: 1
+    linux/x86-64:
+      RUSTFLAGS: -Crelocation-model=pic -Clink-arg=-pie -Clink-arg=-fPIC
+      PATH: $HOME/.local/bin:$PATH
+
+test: spider -v --url https://choosealicense.com scrape
