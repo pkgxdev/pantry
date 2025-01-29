@@ -24,4 +24,8 @@ build:
 provides:
   - bin/charmcraft
 
-test: test "$(charmcraft --version|cut -d' ' -f 2)" = {{version}}
+test:
+  - run: test "$(charmcraft --version|cut -d' ' -f 2)" = {{version}}
+    if: '>=3'
+  - run: test "$(charmcraft version)" = {{version}}
+    if: <3
