@@ -1,0 +1,90 @@
+distributable:
+  url: https://github.com/elizaOS/eliza/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+display-name: elizaOS
+
+platforms:
+  - darwin
+  - linux/x86-64 # linux/aarch64 node-gyp build isn't playing nice
+
+versions:
+  github: elizaOS/eliza
+  transform: v => v.replaceAll(/\+build.?/g, '.')
+  ignore:
+    # broken tags
+    - /0\.1\.8(\..*)?/
+
+provides:
+  - bin/eliza
+
+dependencies:
+  python.org: '>=2.7'
+  nodejs.org: ~23.3
+  pnpm.io: '*'
+
+companions:
+  git-scm.org: 2
+  ffmpeg.org: '*'
+
+build:
+  dependencies:
+    python.org: ~3.10 # node-gyp doesn't like later pythons
+    pnpm.io: 9.12.3
+  script:
+    - pnpm install --no-frozen-lockfile
+    - pnpm run build
+    # adapted from their Dockerfile
+    - run:
+        - cp $SRCROOT/package.json .
+        - cp $SRCROOT/pnpm-workspace.yaml .
+        - cp $SRCROOT/eslint.config.mjs .
+        - cp $SRCROOT/.eslintrc.json .
+        - cp $SRCROOT/.npmrc .
+        - cp $SRCROOT/turbo.json .
+        - cp -R $SRCROOT/node_modules .
+        - cp -R $SRCROOT/agent .
+        - cp -R $SRCROOT/client .
+        - cp $SRCROOT/lerna.json .
+        - cp -R $SRCROOT/packages .
+        - cp -R $SRCROOT/scripts .
+        - cp -R $SRCROOT/characters .
+      working-directory: ${{prefix}}/libexec
+    - run: install -Dm755 $PROP eliza
+      working-directory: ${{prefix}}/bin
+      prop: |
+        #!/bin/sh
+
+        # add --help and --version flags
+        if [ "$1" = "--help" ]; then
+          echo "This is a simple wrapper to start the elizaOS server and client."
+          exit 0
+        elif [ "$1" = "--version" ]; then
+          echo "elizaOS {{version}}"
+          exit 0
+        fi
+
+        # change to the libexec directory
+        cd "$(dirname "$(readlink -f "$0")")/../libexec" || exit 1
+
+        # start the server
+        pnpm start &
+        SERVER_PID=$!
+
+        # cleanup trap to kill the server
+        cleanup() {
+          echo "Shutting down server…"
+          kill $SERVER_PID 2>/dev/null
+          wait $SERVER_PID 2>/dev/null
+        }
+
+        trap cleanup EXIT INT TERM
+
+        # start the client
+        pnpm start:client
+
+test:
+  # we could start the server and client, test the api, but that's a lot of work
+  # and it's going to iterate rapidly
+  - eliza --help
+  - test "$(eliza --version)" = "elizaOS {{version}}"
