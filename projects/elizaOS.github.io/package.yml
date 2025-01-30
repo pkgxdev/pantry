@@ -19,6 +19,9 @@ dependencies:
   python.org: '>=2.7'
   nodejs.org: ~23.3
   pnpm.io: '*'
+  linux:
+    pixman.org: '*' # canvas needs libpixman-1
+    gnu.org/gcc/libstdcxx: 14 # node-llama-cpp needs GLIBX_2.29
 
 companions:
   git-scm.org: 2
@@ -30,9 +33,42 @@ build:
     pnpm.io: 9.12.3
     curl.se: '*'
     gnu.org/patch: '*'
+    linux:
+      gnu.org/gcc: 14
   script:
     - run: curl 'https://github.com/adimverse/eliza/commit/d577fda887820e188b0e017f9869185be9fb3bc7.patch' | patch -p1
       if: ^0.1.8
+    # -shared and -pie don't mix
+    - run:
+        - install -Dm755 $PROP gcc-wrapper
+        - sed 's/gcc/g++/g' gcc-wrapper > g++-wrapper
+        - chmod +x gcc-wrapper g++-wrapper
+        - gcc-wrapper -v
+        - g++-wrapper -v
+      prop: |
+        #!/bin/bash
+        # Capture all arguments into an array
+        ARGS=("$@")
+
+        # Check if the '-shared' flag is present in the arguments
+        if printf "%s\n" "${ARGS[@]}" | grep -q -e '-shared'; then
+
+          # Use a loop to filter out the '-pie' flag from the arguments
+          FILTERED_ARGS=()
+          for arg in "${ARGS[@]}"; do
+            if [ "$arg" != "-pie" ] && [ "$arg" != "-Wl,-pie" ]; then
+              FILTERED_ARGS+=("$arg")
+            fi
+          done
+
+          # Pass the filtered arguments to gcc
+          exec gcc "${FILTERED_ARGS[@]}"
+        else
+          # Pass the original arguments to gcc
+          exec gcc "${ARGS[@]}"
+        fi
+      working-directory: $HOME/.local/bin
+      if: linux
     - pnpm install --no-frozen-lockfile
     - pnpm run build
     # adapted from their Dockerfile
@@ -84,6 +120,12 @@ build:
 
         # start the client
         pnpm start:client
+  env:
+    linux:
+      PATH: $HOME/.local/bin:$PATH
+      CC: gcc-wrapper
+      CXX: g++-wrapper
+      LD: g++-wrapper
 
 test:
   # we could start the server and client, test the api, but that's a lot of work
