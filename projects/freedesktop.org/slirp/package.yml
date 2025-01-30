@@ -13,9 +13,9 @@ build:
     mesonbuild.com: '*'
     ninja-build.org: 1
     freedesktop.org/pkg-config: ^0.29
-  script: |
-    meson build $ARGS
-    ninja -C build install all
+  script:
+    - meson build $ARGS
+    - ninja -C build install all
   env:
     ARGS:
       - -Ddefault_library=both
@@ -23,23 +23,27 @@ build:
       - --libdir={{ prefix }}/lib
       - --buildtype=release
       - --wrap-mode=nofallback
+    linux:
+      LDFLAGS:
+        # ld.lld: error: version script assignment of 'SLIRP_4.0' to symbol 'slirp_add_exec' failed: symbol not defined
+        - -Wl,--undefined-version
 
 test:
-  script: |
-    mv $FIXTURE test.c
-    gcc test.c -lslirp -o test
-    ./test
-  fixture: |
-    #include <stdio.h>
-    #include <string.h>
-    #include <stddef.h>
-    #include <slirp/libslirp.h>
-    int main() {
-      SlirpConfig cfg;
-      memset(&cfg, 0, sizeof(cfg));
-      cfg.version = 1;
-      cfg.in_enabled = true;
-      cfg.vhostname = "testServer";
-      Slirp* ctx = slirp_new(&cfg, NULL, NULL);
-      return 0;
-    }
+  - run: gcc $FIXTURE -lslirp -o test
+    fixture:
+      extname: c
+      content: |
+        #include <stdio.h>
+        #include <string.h>
+        #include <stddef.h>
+        #include <slirp/libslirp.h>
+        int main() {
+          SlirpConfig cfg;
+          memset(&cfg, 0, sizeof(cfg));
+          cfg.version = 1;
+          cfg.in_enabled = true;
+          cfg.vhostname = "testServer";
+          Slirp* ctx = slirp_new(&cfg, NULL, NULL);
+          return 0;
+        }
+  - ./test
