@@ -11,9 +11,6 @@ platforms:
 versions:
   github: elizaOS/eliza
   transform: v => v.replaceAll(/\+build.?/g, '.')
-  ignore:
-    # broken tags
-    - /0\.1\.8(\..*)?/
 
 provides:
   - bin/eliza
@@ -31,7 +28,11 @@ build:
   dependencies:
     python.org: ~3.10 # node-gyp doesn't like later pythons
     pnpm.io: 9.12.3
+    curl.se: '*'
+    gnu.org/patch: '*'
   script:
+    - run: curl 'https://github.com/adimverse/eliza/commit/d577fda887820e188b0e017f9869185be9fb3bc7.patch' | patch -p1
+      if: ^0.1.8
     - pnpm install --no-frozen-lockfile
     - pnpm run build
     # adapted from their Dockerfile
