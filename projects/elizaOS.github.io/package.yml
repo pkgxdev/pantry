@@ -4,27 +4,12 @@ distributable:
 
 display-name: elizaOS
 
-# packages/plugin-node postinstall: Detected Linux distribution: debian
-# packages/plugin-node postinstall: (node:10963) ExperimentalWarning: CommonJS module /opt/npmjs.com/v11.1.0/lib/node_modules/npm/node_modules/debug/src/node.js is loading ES Module /opt/npmjs.com/v11.1.0/lib/node_modules/npm/node_modules/supports-color/index.js using require().
-# packages/plugin-node postinstall: Support for loading ES Module in require() is an experimental feature and might change at any time
-# packages/plugin-node postinstall: E: Package 'ttf-ubuntu-font-family' has no installation candidate
-# packages/plugin-node postinstall: E: Unable to locate package libenchant-2-2
-# packages/plugin-node postinstall: E: Unable to locate package libicu66
-# packages/plugin-node postinstall: E: Package 'libjpeg-turbo8' has no installation candidate
-# packages/plugin-node postinstall: E: Unable to locate package libvpx6
-# packages/plugin-node postinstall: E: Unable to locate package libevent-2.1-7
-# packages/plugin-node postinstall: E: Couldn't find any package by glob 'libevent-2.1-7'
-# packages/plugin-node postinstall: E: Couldn't find any package by regex 'libevent-2.1-7'
-# packages/plugin-node postinstall: Failed to install browser dependencies
-# packages/plugin-node postinstall: Error: Installation process exited with code: 100
-# packages/plugin-node postinstall: Failed to install Playwright dependencies: Command failed: npx playwright install-deps && npx playwright install
-# packages/plugin-node postinstall: Failed
 platforms:
   - darwin
+  - linux/x86-64
 
 versions:
   github: elizaOS/eliza
-  transform: v => v.replaceAll(/\+build.?/g, '.')
 
 provides:
   - bin/eliza
@@ -46,15 +31,18 @@ build:
     gnu.org/patch: '*'
   script:
     - run: curl 'https://github.com/adimverse/eliza/commit/d577fda887820e188b0e017f9869185be9fb3bc7.patch' | patch -p1
-      if: ^0.1.8
+      if: '>=0.1.8<0.1.9'
+    # weird SSL error; guessing the cert path isn't
+    # making it in
+    - run: sed -i 's/curl /curl -k /' package.json
+      working-directory: packages/plugin-pyth-data
+      if: linux
     - pnpm install --no-frozen-lockfile
     - pnpm run build
     # adapted from their Dockerfile
     - run:
         - cp $SRCROOT/package.json .
         - cp $SRCROOT/pnpm-workspace.yaml .
-        - cp $SRCROOT/eslint.config.mjs .
-        - cp $SRCROOT/.eslintrc.json .
         - cp $SRCROOT/.npmrc .
         - cp $SRCROOT/turbo.json .
         - cp -R $SRCROOT/node_modules .
