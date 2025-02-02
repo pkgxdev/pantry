@@ -15,15 +15,16 @@ build:
     gnu.org/texinfo: '*'
     linux:
       gnu.org/gcc: '*'
-  script: |
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }}
-    make install
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
   env:
     ARGS:
       - --prefix={{ prefix }}
     linux:
       ARGS:
+        - --enable-ld=yes
         - --enable-gold=yes
 
 test:
@@ -64,7 +65,8 @@ provides:
     - bin/gprofng
     - bin/ld
     - bin/ld.bfd
-    - bin/ld.gold
+    # 2.44 doesn't produce this, despite being requested...
+    # - bin/ld.gold
     - bin/nm
     - bin/objcopy
     - bin/objdump
