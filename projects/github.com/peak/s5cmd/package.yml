@@ -1,0 +1,29 @@
+distributable:
+  url: git+https://github.com/peak/s5cmd
+  ref: v{{version}}
+
+display-name: s5cmd
+
+versions:
+  github: peak/s5cmd
+
+build:
+  dependencies:
+    git-scm.org: '*'
+    go.dev: '*'
+  env:
+    CGO_ENABLED: 0
+    LDFLAGS:
+    - -s
+    - -w
+    - -X github.com/peak/s5cmd/v2/version.Version={{version}}
+    - -X github.com/peak/s5cmd/v2/version.GitCommit=$(git rev-parse --short HEAD || echo)
+    linux:
+      LDFLAGS:
+      - -buildmode=pie
+  script: go build -v -ldflags="${LDFLAGS}" -mod=vendor -o "{{ prefix }}"/bin/s5cmd
+
+provides:
+  - bin/s5cmd
+
+test: test "$(s5cmd version|cut -d'-' -f1)" = v{{version}}
