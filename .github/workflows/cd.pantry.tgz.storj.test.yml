@@ -1,0 +1,28 @@
+name: cd
+run-name: "cd: pantry.tgz - storj test"
+
+on:
+  push:
+
+concurrency:
+  group: cd.pantry.tgz.storj.test
+  cancel-in-progress: true
+
+jobs:
+  tarball:
+    runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.STORJ_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.STORJ_SECRET_ACCESS_KEY }}
+      AWS_ENDPOINT_URL_S3: https://gateway.storjshare.io
+      AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+      AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: co
+      - run: find co -type f -not -name package.yml -delete -o -type l -delete
+      - run: tar -C co -czf pantry.tgz .
+      - run: aws s3 cp
+          ./pantry.tgz
+          s3://${{ secrets.STORJ_S3_BUCKET }}/pantry.tgz
