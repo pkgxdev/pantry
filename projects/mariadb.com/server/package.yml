@@ -39,12 +39,15 @@ build:
 
     # broken in 11.4.1/11.3.2
     # https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1063739
-    - run: sed -i 's/OS_DATA_FILE_NO_O_DIRECT/OS_DATA_FILE/g'
-        storage/innobase/include/os0file.h
-        storage/innobase/fil/fil0fil.cc
-        storage/innobase/os/os0file.cc
-        extra/mariabackup/xtrabackup.cc
-      if: darwin
+    - run: |
+        if test "{hw.platform}" = "darwin"; then
+          sed -i 's/OS_DATA_FILE_NO_O_DIRECT/OS_DATA_FILE/g' \
+            storage/innobase/include/os0file.h \
+            storage/innobase/fil/fil0fil.cc \
+            storage/innobase/os/os0file.cc \
+            extra/mariabackup/xtrabackup.cc
+        fi
+      if: '>=11.3.2'
 
     # -DINSTALL_* are relative to prefix
     - cmake -S . -B build
