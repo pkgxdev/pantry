@@ -56,6 +56,13 @@ build:
       CXXFLAGS: $CXXFLAGS -Wl,-rpath,{{pkgx.prefix}},-headerpad_max_install_names
       FCFLAGS: $FCFLAGS -Wl,-rpath,{{pkgx.prefix}},-headerpad_max_install_names
       LDFLAGS: $LDFLAGS -Wl,-headerpad_max_install_names
+    darwin/x86-64:
+      # causes libtool to:
+      # <unknown>:0: error: invalid CFI advance_loc expression
+      CFLAGS:
+        - -fno-sanitize=all
+      CXXFLAGS:
+        - -fno-sanitize=all
     CONFIGURE_ARGS:
       - --disable-debug
       - --disable-dependency-tracking
