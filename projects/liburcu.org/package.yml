@@ -6,17 +6,12 @@ display-name: liburcu
 
 versions:
   github: urcu/userspace-rcu/tags
-build:
-  dependencies:
-    gnu.org/gcc: '*'
-    gnu.org/autoconf: '*'
-    gnu.org/make: '*'
 
-  script:
-    - ./configure --prefix="{{prefix}}"
-    - make --jobs {{ hw.concurrency }} install
-    - run: find . -name '*.la' -exec rm {} \;
-      working-directory: '{{prefix}}/lib'
+build:
+  - ./configure --prefix="{{prefix}}"
+  - make --jobs {{ hw.concurrency }} install
+  - run: find . -name '*.la' -exec rm {} \;
+    working-directory: '{{prefix}}/lib'
 
 test:
   - run: cc $FIXTURE -lurcu
