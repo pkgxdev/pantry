@@ -11,16 +11,9 @@ versions:
 
 build:
   dependencies:
-#    gnu.org/autoconf: '*'
     gnu.org/make: '*'
-#    cmake.org: ^3
-#  env:
-#    # add any environment variables here
-#    ARGS:
-#      - --prefix="{{prefix}}"
 
   script: |
-    ls -alFh
     cd openldap-LMDB_{{version}}/libraries/liblmdb
     sed -i -e 's/^prefix\t=/prefix\t?=/' Makefile
     make prefix={{prefix}} --jobs {{ hw.concurrency }} install
