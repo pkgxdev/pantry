@@ -1,6 +1,7 @@
 distributable:
-  url: https://git.openldap.org/openldap/openldap/-/archive/LMDB_{{version}}/openldap-LMDB_{{version}}.zip
-  strip-components: 1
+  url: https://git.openldap.org/openldap/openldap/-/archive/{{version.tag}}/openldap-{{version.tag}}.tar.gz
+  # openldap-{{version.tag}}/libraries/liblmdb
+  strip-components: 3
 
 display-name: liblmdb
 
@@ -10,13 +11,8 @@ versions:
     - /^LMDB_/
 
 build:
-  dependencies:
-    gnu.org/make: '*'
-
-  script: |
-    cd openldap-LMDB_{{version}}/libraries/liblmdb
-    sed -i -e 's/^prefix\t=/prefix\t?=/' Makefile
-    make prefix={{prefix}} --jobs {{ hw.concurrency }} install
+  - sed -i -e 's/^prefix\t=/prefix\t?=/' Makefile
+  - make prefix={{prefix}} --jobs {{ hw.concurrency }} install
 
 provides:
   - bin/mdb_copy
