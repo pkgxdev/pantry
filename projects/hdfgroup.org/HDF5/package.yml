@@ -1,31 +1,39 @@
 distributable:
-  url: https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-{{version.marketing}}/hdf5-{{version}}/src/hdf5-{{version}}-2.tar.bz2
+  url: https://github.com/HDFGroup/hdf5/releases/download/{{version.tag}}/hdf5-{{version}}.tar.gz
   strip-components: 2
 
 versions:
-  - 1.14.1
+  github: HDFGroup/hdf5
+  strip: /^hdf5_/
 
 dependencies:
-  gnu.org/gcc: '*'
-  dkrz.de/libaec: '*'
+  dkrz.de/libaec: 1
   linux:
-    zlib.net: '*'
+    zlib.net: 1
 
-runtime:
-  env:
-      HDF5_ROOT: '{{prefix}}'
+companions:
+  gnu.org/gcc: '*'
 
 build:
   dependencies:
     gnu.org/autoconf: '*'
     gnu.org/automake: '*'
     gnu.org/libtool: '*'
+    gnu.org/gcc: '*' # gfortran
 
   script:
     - autoreconf --force --install --verbose
     - ./configure $ARGS
     - make --jobs {{hw.concurrency}} install
-    - sed -i'' -e 's|prefix="{{prefix}}"|prefix="${HDF5_ROOT}"|g' {{prefix}}/bin/h5cc {{prefix}}/bin/h5c++ {{prefix}}/bin/h5fc
+
+    # relocate h5cc, h5c++, h5fc
+    - run: sed -i -f $PROP h5cc h5c++ h5fc
+      working-directory: ${{prefix}}/bin
+      prop: |
+        s|{{deps.dkrz.de/libaec.prefix}}|{{pkgx.prefix}}/dkrz.de/libaec/v{{deps.dkrz.de/libaec.version.major}}|g
+        s|{{prefix}}|\\$(cd \\$(dirname \\$0)/.. \&\& pwd)|g
+        s|{{pkgx.prefix}}|\\$(cd \\$(dirname \\$0)/../../../.. \&\& pwd)|g
+        s|\+brewing||g
 
   env:
     HDF5_ROOT: '{{prefix}}'
