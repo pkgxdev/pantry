@@ -1,0 +1,25 @@
+distributable:
+  url: https://github.com/mthom/scryer-prolog/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+display-name: Scryer Prolog
+
+versions:
+  github: mthom/scryer-prolog
+
+dependencies:
+  openssl.org: '*'
+
+build:
+  dependencies:
+    rust-lang.org: ^1.70
+    rust-lang.org/cargo: '*'
+  script:
+    - cargo build --release
+
+provides:
+  - target/release/scryer-prolog
+
+test:
+  script:
+    scryer-prolog --goal "test, halt" test.pl | grep "Hello from Scryer Prolog."
