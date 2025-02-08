@@ -16,10 +16,12 @@ build:
     rust-lang.org/cargo: '*'
   script:
     - cargo build --release
+    - run: ln -s ../target/release/scryer-prolog scryer-prolog
+      working-directory: '{{prefix}}/bin'
 
 provides:
-  - target/release/scryer-prolog
+  - bin/scryer-prolog
 
 test:
   script:
-    scryer-prolog --goal "test, halt" test.pl | grep "Hello from Scryer Prolog."
+    - scryer-prolog --goal "test, halt" test.pl | grep "Hello from Scryer Prolog."
