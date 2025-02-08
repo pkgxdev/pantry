@@ -75,8 +75,16 @@ provides:
 
 test:
   dependencies:
-    gnu.org/gcc: '*'
+    linux:
+      gnu.org/gcc: '*'
   script:
-    - gcc test.c -lnetcdf -o test
+    - $CC test.c -lnetcdf -o test
     - ./test | grep {{version}}
     - nc-config --version | grep {{version}}
+  env:
+    linux:
+      CC: gcc
+      LD: ld
+    darwin:
+      CC: clang
+      LD: /usr/bin/ld
