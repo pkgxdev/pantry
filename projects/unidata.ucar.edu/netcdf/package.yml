@@ -1,14 +1,17 @@
 distributable:
   url: https://github.com/Unidata/netcdf-c/archive/v{{version}}.tar.gz
   strip-components: 1
+
 versions:
   github: Unidata/netcdf-c
+
 dependencies:
   hdfgroup.org/HDF5: '*'
   sourceware.org/bzip2: '*'
   curl.se: '*'
   gnome.org/libxml2: '*'
   zlib.net: '*'
+
 build:
   dependencies:
     gnu.org/make: '*'
@@ -17,34 +20,31 @@ build:
     linux:
       gnu.org/gcc: '*'
   script:
-    - run: |
-        cmake -S . -B build_shared $ARGS -DBUILD_SHARED_LIBS=ON
-        cmake --build build_shared
-        cmake --install build_shared
-    - run: |
-        cmake -S . -B build_static $ARGS -DBUILD_SHARED_LIBS=OFF
-        cmake --build build_static
-        cmake --install build_static
-    - install build_static/liblib/libnetcdf.a {{prefix}}/lib/
-    - run: |
-        sed -E -i.bak \
-          -e "s:{{pkgx.prefix}}:\$\{_IMPORT_PREFIX\}/../../..:g" \
-          -e '/^  INTERFACE_INCLUDE_DIRECTORIES/ s|/v([0-9]+)(\.[0-9]+)*[a-z]?/include|/v\1/include|g' \
-          -e '/^  INTERFACE_LINK_LIBRARIES/ s|/v([0-9]+)(\.[0-9]+)*[a-z]?/lib|/v\1/lib|g' \
-          *.cmake
-        rm *.cmake.bak
+    - run:
+        - cmake -S . -B build_shared $ARGS -DBUILD_SHARED_LIBS=ON
+        - cmake --build build_shared
+        - cmake --install build_shared
+    - run:
+        - cmake -S . -B build_static $ARGS -DBUILD_SHARED_LIBS=OFF
+        - cmake --build build_static
+        - cmake --install build_static
+    - |
+      if ! test -f {{prefix}}/lib/libnetcdf.a; then
+        install build_static/liblib/libnetcdf.a {{prefix}}/lib/
+      fi
+    - run: sed -E -i
+        -e "s:{{pkgx.prefix}}:\$\{_IMPORT_PREFIX\}/../../..:g"
+        -e '/^  INTERFACE_INCLUDE_DIRECTORIES/ s|/v([0-9]+)(\.[0-9]+)*[a-z]?/include|/v\1/include|g'
+        -e '/^  INTERFACE_LINK_LIBRARIES/ s|/v([0-9]+)(\.[0-9]+)*[a-z]?/lib|/v\1/lib|g'
+        *.cmake
       working-directory: ${{prefix}}/lib/cmake/netCDF
-    - run: |
-        sed -i.bak \
-            -e "s|$PKGX_DIR|\${PKGX_DIR}|g" \
-            bin/nc-config \
-            lib/cmake/netCDF/netCDFConfig.cmake \
-            lib/libnetcdf.settings
-        rm bin/nc-config.bak lib/cmake/netCDF/netCDFConfig.cmake.bak lib/libnetcdf.settings.bak
+    - run: sed -i
+        -e "s|$PKGX_DIR|\${PKGX_DIR}|g"
+        bin/nc-config
+        lib/cmake/netCDF/netCDFConfig.cmake
+        lib/libnetcdf.settings
       working-directory: ${{prefix}}
-    - run: |
-        sed -i.bak "s|$PKGX_DIR|\${pcfiledir}/../../..|g" netcdf.pc
-        rm netcdf.pc.bak
+    - run: sed -i "s|$PKGX_DIR|\${pcfiledir}/../../..|g" netcdf.pc
       working-directory: ${{prefix}}/lib/pkgconfig
   env:
     ARGS:
@@ -58,15 +58,21 @@ build:
       - -DCMAKE_VERBOSE_MAKEFILE=ON
       - -Wno-dev
       - -DBUILD_TESTING=OFF
+    darwin:
+      CC: clang
+      CXX: clang++
+      LD: /usr/bin/ld
     linux:
       ARGS:
         - -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+
 provides:
   - bin/nc-config
   - bin/nccopy
   - bin/ncdump
   - bin/ncgen
   - bin/ncgen3
+
 test:
   dependencies:
     gnu.org/gcc: '*'
