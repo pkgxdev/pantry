@@ -16,21 +16,24 @@ platforms:
 
 build:
   dependencies:
-    freedesktop.org/pkg-config: '*'
-    gnu.org/binutils: '*'
+#    freedesktop.org/pkg-config: '*'
+#    gnu.org/binutils: '*'
     cmake.org: ^3
 #  env:
 #    linux:
 #      LD_PATH: $(which ld|sed 's/\//\\\//g')
   script:
-    - LD_PATH=$(which ld|sed 's/\//\\\//g')
-    - sed -i 's/\/usr\/bin\/ld/'${LD_PATH}'/' Make.Rules
+    #- LD_PATH=$(which ld|sed 's/\//\\\//g')
+    #- sed -i 's/\/usr\/bin\/ld/'${LD_PATH}'/' Make.Rules
+#    - sed -i 's/\/usr\/bin\/ld/\/bin\/arch/' Make.Rules
 #    - grep ld-linux Make.Rules
 #    - exit 1
-    - make prefix={{prefix}} --jobs {{ hw.concurrency }} install
-    - mv {{prefix}}/sbin {{prefix}}/bin
+    - LIB=$(ldd /bin/arch|grep -E "ld-linux|ld.so"|cut -d/ -f2)
+
+    - make prefix={{prefix}} sbin=bin lib=$LIB --jobs {{ hw.concurrency }} install
+    #- mv {{prefix}}/sbin {{prefix}}/bin
     - run: ls -l
-      working-directory: ${{prefix}}/lib64
+      working-directory: ${{prefix}}/${LIB}
     - run: ls -l
       working-directory: ${{prefix}}/bin
 
@@ -42,10 +45,8 @@ provides:
   - bin/setcap
 
 test:
-  depedencies:
-    freedesktop.org/pkg-config: '*'
-    gnu.org/binutils: '*'
-
+#  depedencies:
+#    freedesktop.org/pkg-config: '*'
+#    gnu.org/binutils: '*'
   script:
     - test "$(getpcaps --license|head -1)" = '--license see LICENSE file for details.'
-
