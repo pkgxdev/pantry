@@ -16,18 +16,24 @@ platforms:
 
 build:
   dependencies:
+    plocate.sesse.net: '*'
 #    kernel.org/linux-headers: '*'
 #    freedesktop.org/pkg-config: '*'
 #    gnu.org/libtool: '*'
     cmake.org: ^3
 #    gnu.org/gcc: '*'
-#  env:
-#    linux:
+  env:
+    linux:
+      LD_PATH: $(which ld|sed 's/\//\\\//g')
 #      LD: clang
   script:
     - which ld
+    - updatedb
+    - plocate ld
 #    - ldd /usr/bin/ld
+#    - sed -i 's/\/usr\/bin\/ld/'${LD_PATH}'/' Make.Rules
     - exit 1
+
     - make prefix={{prefix}} --jobs {{ hw.concurrency }} install
 
 provides:
