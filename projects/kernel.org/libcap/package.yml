@@ -28,8 +28,7 @@ build:
 #    - sed -i 's/\/usr\/bin\/ld/\/bin\/arch/' Make.Rules
 #    - grep ld-linux Make.Rules
 #    - exit 1
-    - LIB=$(ldd /bin/arch|grep -E "ld-linux|ld.so"|cut -d/ -f2)
-
+    - LIB=$lib=$(shell ldd /bin/*|grep -E "ld-linux|ld.so"|cut -d/ -f2|head -n1)
     - make prefix={{prefix}} sbin=bin lib=$LIB --jobs {{ hw.concurrency }} install
     #- mv {{prefix}}/sbin {{prefix}}/bin
     - run: ls -l
