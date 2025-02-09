@@ -19,17 +19,18 @@ build:
 #    freedesktop.org/pkg-config: '*'
 #    gnu.org/binutils: '*'
     cmake.org: ^3
-#  env:
-#    linux:
-#      LD_PATH: $(which ld|sed 's/\//\\\//g')
+  env:
+    linux:
+      #LD_PATH: $(which ld|sed 's/\//\\\//g')
+      LIB: $(ldd /bin/*|grep -E "ld-linux|ld.so"|cut -d/ -f2|head -n1)
   script:
     #- LD_PATH=$(which ld|sed 's/\//\\\//g')
     #- sed -i 's/\/usr\/bin\/ld/'${LD_PATH}'/' Make.Rules
 #    - sed -i 's/\/usr\/bin\/ld/\/bin\/arch/' Make.Rules
 #    - grep ld-linux Make.Rules
 #    - exit 1
-    - LIB=$(ldd /bin/*|grep -E "ld-linux|ld.so"|cut -d/ -f2|head -n1)
-    - make prefix={{prefix}} sbin=bin lib=$LIB --jobs {{ hw.concurrency }} install
+#    - LIB=$(ldd /bin/*|grep -E "ld-linux|ld.so"|cut -d/ -f2|head -n1)
+    - make prefix={{prefix}} sbin=bin lib=${LIB} --jobs {{ hw.concurrency }} install
     #- mv {{prefix}}/sbin {{prefix}}/bin
     - run: ls -l
       working-directory: ${{prefix}}/${LIB}
