@@ -16,15 +16,21 @@ platforms:
 
 build:
   dependencies:
+    freedesktop.org/pkg-config: '*'
     gnu.org/binutils: '*'
     cmake.org: ^3
-  env:
-    linux:
-      LD_PATH: $(which ld|sed 's/\//\\\//g')
+#  env:
+#    linux:
+#      LD_PATH: $(which ld|sed 's/\//\\\//g')
   script:
+    - LD_PATH=$(which ld|sed 's/\//\\\//g')
     - sed -i 's/\/usr\/bin\/ld/'${LD_PATH}'/' Make.Rules
+#    - grep ld-linux Make.Rules
+#    - exit 1
     - make prefix={{prefix}} --jobs {{ hw.concurrency }} install
     - mv {{prefix}}/sbin {{prefix}}/bin
+    - run: ls -l
+      working-directory: ${{prefix}}/lib64
     - run: ls -l
       working-directory: ${{prefix}}/bin
 
@@ -37,6 +43,7 @@ provides:
 
 test:
   depedencies:
+    freedesktop.org/pkg-config: '*'
     gnu.org/binutils: '*'
 
   script:
