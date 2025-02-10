@@ -1,0 +1,33 @@
+distributable:
+  url: https://git.kernel.org/pub/scm/libs/libcap/libcap.git/snapshot/libcap-{{version}}.tar.gz
+  strip-components: 1
+
+display-name: libcap
+
+versions:
+  url: https://git.kernel.org/pub/scm/libs/libcap/libcap.git/refs/
+  match: /libcap-\d+\.\d+\.\d+\.tar\.gz/
+  strip:
+    - /^libcap-/
+    - /.tar.gz$/
+
+platforms:
+  - linux
+
+build:
+  script: make $ARGS install
+  env:
+    ARGS:
+      - prefix={{prefix}}
+      - lib=lib
+      - --jobs {{ hw.concurrency }}
+
+provides:
+  - sbin/capsh
+  - sbin/getcap
+  - sbin/getpcaps
+  - sbin/setcap
+
+test:
+  - getpcaps --license
+  - test "$(getpcaps --license|head -1)" = '--license see LICENSE file for details.'
