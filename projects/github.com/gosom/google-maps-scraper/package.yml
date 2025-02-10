@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/gosom/google-maps-scraper/archive/v{{version}}.tar.gz
+  url: https://github.com/gosom/google-maps-scraper/archive/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
@@ -37,7 +37,8 @@ test:
   script:
     # v1.5.2 is erroring on darwin even though it works
     - google-maps-scraper -input example-queries.txt -json -results restaurants.json -exit-on-inactivity 5m || true
-    - ls | grep restaurants.json
-    # doesn't actually scrape on linux due to to the lack of ui libraries for the browser components
+    - test -f restaurants.json
+    - cat restaurants.json
+    # doesn't actually scrape on linux or our runner due to to the lack of ui libraries for the browser components, and full chrome installs
     - run: test $(jq -s '.[].title' restaurants.json | wc -l) -gt 0
-      if: darwin
+      if: darwin/x86-64
