@@ -1,20 +1,25 @@
 distributable:
-  url: https://xkbcommon.org/download/libxkbcommon-{{version}}.tar.xz
+  # it looks like they stopped distributing tarballs on their website as of
+  # v1.8.0
+  # url: https://xkbcommon.org/download/libxkbcommon-{{version}}.tar.xz
+  url: https://github.com/xkbcommon/libxkbcommon/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
+
 versions:
   github: xkbcommon/libxkbcommon
   strip: /^xkbcommon-/
+
 dependencies:
   x.org/x11: '*'
   x.org/xcb: '*'
   freedesktop.org/XKeyboardConfig: '*'
   gnome.org/libxml2: '*'
+
 build:
   dependencies:
     gnu.org/bison: '*'
     mesonbuild.com: '*'
     ninja-build.org: '*'
-    freedesktop.org/pkg-config: '*'
   script:
     - meson $MESON_ARGS build
     - meson compile -C build
@@ -33,13 +38,12 @@ build:
       MESON_ARGS:
         # has invalid attributes for darwin linking
         - -Denable-x11=false
+
 provides:
   - bin/xkbcli
+
 test:
-  dependencies:
-    freedesktop.org/pkg-config: '*'
-  script:
-    - pkg-config --modversion xkbcommon | grep {{version}}
-    - cc test.c -lxkbcommon -o test
-    - ./test
-    - xkbcli --version | grep {{version}}
+  - pkg-config --modversion xkbcommon | grep {{version}}
+  - cc test.c -lxkbcommon -o test
+  - ./test
+  - xkbcli --version | grep {{version}}
