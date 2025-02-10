@@ -8,11 +8,10 @@ versions:
   strip: /^nghttp2 v/
 
 build:
-  dependencies:
-    freedesktop.org/pkg-config: '*'
-  script: |
-    ./configure --prefix={{ prefix }}
-    make -j {{ hw.concurrency }} -C lib install
+  - ./configure --prefix={{ prefix }}
+  - make -j {{ hw.concurrency }} -C lib install
+  - run: find . -name '*.la' -exec rm {} \;
+    working-directory: ${{ prefix }}/lib
 
 test:
   script: |
