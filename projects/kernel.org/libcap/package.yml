@@ -15,39 +15,19 @@ platforms:
   - linux
 
 build:
-  dependencies:
-    freedesktop.org/pkg-config: '*'
-    gnu.org/binutils: '*'
-    cmake.org: ^3
+  script: make $ARGS install
   env:
-    linux:
-      #LD_PATH: $(which ld|sed 's/\//\\\//g')
-      #LIB: $(ldd /bin/*|grep -E 'ld-linux|ld.so'|cut -d/ -f2|head -n1)
-      LIB: lib64
-  script:
-    #- LD_PATH=$(which ld|sed 's/\//\\\//g')
-    #- sed -i 's/\/usr\/bin\/ld/'${LD_PATH}'/' Make.Rules
-#    - sed -i 's/\/usr\/bin\/ld/\/bin\/arch/' Make.Rules
-#    - grep ld-linux Make.Rules
-#    - exit 1
-#    - LIB=$(ldd /bin/*|grep -E "ld-linux|ld.so"|cut -d/ -f2|head -n1)
-    - make prefix={{prefix}} sbin=bin lib=${LIB} --jobs {{ hw.concurrency }} install
-    #- mv {{prefix}}/sbin {{prefix}}/bin
-    - run: ls -l
-      working-directory: ${{prefix}}/${LIB}
-    - run: ls -l
-      working-directory: ${{prefix}}/bin
+    ARGS:
+      - prefix={{prefix}}
+      - lib=lib
+      - --jobs {{ hw.concurrency }}
 
 provides:
-  - bin/capsh
-  #- bin/captree
-  - bin/getcap
-  - bin/getpcaps
-  - bin/setcap
+  - sbin/capsh
+  - sbin/getcap
+  - sbin/getpcaps
+  - sbin/setcap
 
 test:
-  depedencies:
-    freedesktop.org/pkg-config: '*'
-    gnu.org/binutils: '*'
-  script:
-    - test "$(getpcaps --license|head -1)" = '--license see LICENSE file for details.'
+  - getpcaps --license
+  - test "$(getpcaps --license|head -1)" = '--license see LICENSE file for details.'
