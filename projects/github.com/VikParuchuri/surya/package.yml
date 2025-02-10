@@ -12,6 +12,7 @@ dependencies:
   linux:
     mesa3d.org: ^23.3
     gnome.org/glib: ^2
+    mupdf.com: '*'
 
 build:
   dependencies:
@@ -32,6 +33,10 @@ build:
           poetry lock
         fi
       if: '>=0.4.4'
+
+    # pymupdf==1.25.3 has build failures on linux/aarch64
+    - run: poetry add 'pymupdf==1.25.2'
+      if: linux/aarch64
 
     - poetry install
 
