@@ -29,12 +29,13 @@ dependencies:
   thrysoee.dk/editline: ^3
   sourceware.org/libffi: '>=3.0.11'
   gnome.org/libxslt: '>=1.1.0'
-  gnu.org/gcc: 14
   libpng.org: ^1
   google.com/webp: ^1
   ijg.org: ^9
   gnu.org/sed: ^4 # phpize requires this
   openldap.org: ^2 # since 8.1.31, 8.2.26, 8.3.14, 8.4.0
+  linux:
+    gnu.org/gcc/libstdcxx: 14
   darwin:
     sourceware.org/bzip2: ^1
     zlib.net: ^1
@@ -44,6 +45,8 @@ build:
     freetype.org: '*'
     darwin:
       tukaani.org/xz: '*'
+    linux:
+      gnu.org/gcc/libstdcxx: 14
     gnu.org/libtool: '*'
 
   script:
@@ -137,6 +140,9 @@ build:
     linux:
       LDFLAGS: -Wl,-rpath,{{pkgx.prefix}}
     darwin:
+      CC: clang
+      CXX: clang++
+      LD: /usr/bin/ld
       # ... we need to link with headerpad...
       LDFLAGS: -Wl,-rpath,{{pkgx.prefix}},-headerpad_max_install_names
       ARGS:
