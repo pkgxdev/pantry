@@ -23,4 +23,13 @@ build:
     - cargo install --locked --path spider_cli --root {{prefix}} --features smart
   skip: fix-patchelf # dumps on x86-64
 
-test: spider -v --url https://choosealicense.com crawl
+test:
+  dependencies:
+    linux:
+      crates.io/semverator: '*'
+  script:
+    # tokio-uring requires a recent kernel
+    # https://github.com/tokio-rs/tokio-uring#requirements
+    - run: semverator satisfies "$(uname -r | cut -d- -f1)" ">5.4" || exit 0
+      if: linux
+    - spider -v --url https://choosealicense.com crawl
