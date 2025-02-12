@@ -1,26 +1,27 @@
-isplay-name: chainguard-dev/apko
+display-name: apko
+
 distributable:
   url: git+https://github.com/chainguard-dev/apko
-  ref: v{{version}}
+  ref: ${{ version.tag }}
 
 versions:
   github: chainguard-dev/apko
-  strip:
-  - /^v/
 
 build:
   dependencies:
     git-scm.org: '*'
-    go.dev: '^1.21'
-    cmake.org: '^3'
+    go.dev: ^1.21
+    cmake.org: ^3
   env:
-     DESTDIR: "{{ prefix }}/"
-     BINDIR: "bin"
+    DESTDIR: ${{ prefix }}/
+    BINDIR: bin
   script:
-  - make apko
-  - make install
+    - make apko
+    - make install
 
 provides:
   - bin/apko
 
-test: test "$(apko version|grep GitVersion|cut -d'v' -f2)" = {{version}}
+test:
+  - apko version
+  - apko version | grep '{{version}}'
