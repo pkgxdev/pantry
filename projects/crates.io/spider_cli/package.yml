@@ -20,7 +20,16 @@ build:
       prop: |
         /^serde_json =/a\
         openssl-sys = { version = "*", features = ["vendored"] }
-    - cargo install --locked --path spider_cli --root {{prefix}} --features smart
+    # one of these broke linux/x86-64 between 2.27.8 and 2.27.13
+    # ddd781528f4a032927fb9a39521a58787f7643d4
+    - run: sed -i -e 's/tokio-tungstenite = "0.26"/tokio-tungstenite = "0.24"/' Cargo.toml
+      working-directory: spider_chrome
+      if: linux/x86-64
+    # 87b00d6705203b8c3fdbe49a75e04b70c0f4023d
+    - run: sed -i -e 's/"stream", "rewriter"/"tokio"/' Cargo.toml
+      working-directory: spider_chrome
+      if: linux/x86-64
+    - cargo install --path spider_cli --root {{prefix}} --features smart
   skip: fix-patchelf # dumps on x86-64
 
 test:
