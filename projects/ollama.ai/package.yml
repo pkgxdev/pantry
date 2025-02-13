@@ -13,6 +13,8 @@ build:
     go.dev: ^1.21
     cmake.org: ^3
     git-scm.org: ^2
+    linux:
+      gnu.org/binutils: '*' # objdump needed for 0.5.8
   script:
     - run:
         - git submodule init
@@ -30,13 +32,23 @@ build:
     - run:
         - make dist -j {{hw.concurrency}}
         - install -D dist/{{hw.platform}}-*/bin/ollama '{{prefix}}/bin/ollama'
-      if: '>=0.5.2'
+      if: '>=0.5.2<0.5.8'
+    - run:
+        - cmake -S .. $CMAKE_ARGS
+        - cmake --build .
+        - cmake --install .
+        - go build -ldflags="$GO_LDFLAGS" -o '{{prefix}}/bin/ollama' ../
+      working-directory: build
+      if: '>=0.5.8'
   env:
     GO_LDFLAGS:
       # versions older than 0.1.30
       - -X github.com/jmorganca/ollama/version.Version={{version}}
       # new versions
       - -X github.com/ollama/ollama/version.Version={{version}}
+    CMAKE_ARGS:
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_BUILD_TYPE=Release
     linux:
       GO_LDFLAGS:
         # else segfaults
