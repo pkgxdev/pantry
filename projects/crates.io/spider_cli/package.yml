@@ -20,25 +20,7 @@ build:
       prop: |
         /^serde_json =/a\
         openssl-sys = { version = "*", features = ["vendored"] }
-    # one of these broke linux/x86-64 between 2.27.8 and 2.27.13
-    # ddd781528f4a032927fb9a39521a58787f7643d4
-    - run: sed -i -e 's/tokio-tungstenite = "0.26"/tokio-tungstenite = "0.24"/' Cargo.toml
-      working-directory: spider_chrome
-      if: linux/x86-64
-    # 87b00d6705203b8c3fdbe49a75e04b70c0f4023d
-    - run: sed -i -e 's/"stream", "rewriter"/"tokio"/' Cargo.toml
-      working-directory: spider_chrome
-      if: linux/x86-64
     - cargo install --path spider_cli --root {{prefix}} --features smart
   skip: fix-patchelf # dumps on x86-64
 
-test:
-  dependencies:
-    linux:
-      crates.io/semverator: '*'
-  script:
-    # tokio-uring requires a recent kernel
-    # https://github.com/tokio-rs/tokio-uring#requirements
-    - run: semverator satisfies ">=5.5" "$(uname -r | cut -d- -f1)"  || exit 0
-      if: linux
-    - spider -v --url https://choosealicense.com crawl
+test: spider -v --url https://choosealicense.com crawl
