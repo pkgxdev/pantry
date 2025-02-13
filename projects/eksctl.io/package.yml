@@ -1,30 +1,32 @@
 distributable:
   url: https://github.com/eksctl-io/eksctl/archive/v{{version}}.tar.gz
   strip-components: 1
+
 versions:
   github: eksctl-io/eksctl
+
 dependencies:
   github.com/kubernetes-sigs/aws-iam-authenticator: '*'
+
 build:
   dependencies:
     github.com/maxbrunsfeld/counterfeiter: '*'
-    go.dev: '*'
+    go.dev: ~1.24
     github.com/kevinburke/go-bindata: '*'
     github.com/vburenin/ifacemaker: '*'
     vektra.github.io/mockery: '*'
   script:
     # This is necessary because during the build process, EKSCTL expects to find these binaries in this directory.
-    - run: |
-        ln -s {{deps.github.com/vburenin/ifacemaker.prefix}}/bin/ifacemaker ifacemaker
-        ln -s {{deps.github.com/maxbrunsfeld/counterfeiter.prefix}}/bin/counterfeiter counterfeiter
-        ln -s {{deps.github.com/kevinburke/go-bindata.prefix}}/bin/go-bindata go-bindata
-        ln -s {{deps.vektra.github.io/mockery.prefix}}/bin/mockery mockery
+    - run:
+        - ln -s {{deps.github.com/vburenin/ifacemaker.prefix}}/bin/ifacemaker ifacemaker
+        - ln -s {{deps.github.com/maxbrunsfeld/counterfeiter.prefix}}/bin/counterfeiter counterfeiter
+        - ln -s {{deps.github.com/kevinburke/go-bindata.prefix}}/bin/go-bindata go-bindata
+        - ln -s {{deps.vektra.github.io/mockery.prefix}}/bin/mockery mockery
       working-directory: $HOME/go/bin
     - make build
-    - mkdir -p {{prefix}}/bin
-    - install eksctl {{prefix}}/bin/
+    - install -Dm755 eksctl {{prefix}}/bin/eksctl
+
 provides:
   - bin/eksctl
-test:
-  script:
-    - eksctl version | grep {{version}}
+
+test: eksctl version | grep {{version}}
