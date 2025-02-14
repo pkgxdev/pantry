@@ -32,11 +32,12 @@ build:
       if ! test -f {{prefix}}/lib/libnetcdf.a; then
         install build_static/liblib/libnetcdf.a {{prefix}}/lib/
       fi
-    - run: sed -E -i
-        -e "s:{{pkgx.prefix}}:\$\{_IMPORT_PREFIX\}/../../..:g"
-        -e '/^  INTERFACE_INCLUDE_DIRECTORIES/ s|/v([0-9]+)(\.[0-9]+)*[a-z]?/include|/v\1/include|g'
-        -e '/^  INTERFACE_LINK_LIBRARIES/ s|/v([0-9]+)(\.[0-9]+)*[a-z]?/lib|/v\1/lib|g'
-        *.cmake
+    - run: sed -E -i -f $PROP *.cmake
+      prop: |
+        s:{{pkgx.prefix}}:${_IMPORT_PREFIX}/../../..:g
+        /^  INTERFACE_INCLUDE_DIRECTORIES/ s|/v([0-9]+)(\.[0-9]+)*[a-z]?/include|/v\1/include|g
+        /^  INTERFACE_LINK_LIBRARIES/ s|/v([0-9]+)(\.[0-9]+)*[a-z]?/lib|/v\1/lib|g
+        /\+brewing//g
       working-directory: ${{prefix}}/lib/cmake/netCDF
     - run: sed -i
         -e "s|$PKGX_DIR|\${PKGX_DIR}|g"
