@@ -1,0 +1,17 @@
+distributable:
+  url: https://github.com/browser-use/browser-use/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: browser-use/browser-use
+
+dependencies:
+  python.org: ~3.13
+
+runtime:
+  env:
+    PYTHONPATH: ${{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH
+
+build: python -m pip install --prefix={{prefix}} . playwright
+
+test: python -c 'import browser_use; print(browser_use)'
