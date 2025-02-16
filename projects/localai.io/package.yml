@@ -41,7 +41,13 @@ build:
       # strangely, it doesn't find the libomp.dylib
       CGO_LDFLAGS: -L{{deps.openmp.llvm.org.prefix}}/lib
   script:
-    - make build
+    # compiler complains about `visionOS 2.0,` in the metal file
+    - run: |
+        if test "{{hw.platform}}" = "darwin"; then
+          LLAMA_VERSION='CPPLLAMA_VERSION=387a1598ca094a4755303ec964c3b09b4c5c300e'
+        fi
+      if: '>=2.26'
+    - make build $LLAMA_VERSION
     - install -D local-ai {{prefix}}/bin/local-ai
 
 provides:
