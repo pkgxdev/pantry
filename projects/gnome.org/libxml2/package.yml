@@ -16,6 +16,9 @@ build:
   dependencies:
     python.org: '>=3<3.12'
   script:
+    # in 2.12.10, some files have future timestamps
+    - run: find . -type f -print0 | xargs -0 touch
+      if: 2.12.10
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }}
     - make install
