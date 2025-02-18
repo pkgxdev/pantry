@@ -129,6 +129,10 @@ build:
 test:
   env:
     vRUBY: ${{deps.ruby-lang.org.version.marketing}}.0
+  dependencies:
+    linux:
+      gnu.org/make: '*'
+      gnu.org/gcc: '*'
   script:
     # for debug
     - gem env
@@ -138,7 +142,7 @@ test:
       ruby -e 'require "rubygems"' -e 'require "awesome_print"' -e'ap $LOAD_PATH'
 
     - |
-      gem install hexapdf  --verbose
+      gem install hexapdf  --verbose || (cat ~/.gem/ruby/3.1.0/extensions/aarch64-linux/3.1.0-static/strscan-3.1.2/mkmf.log && false)
 
       if [ -w /usr/local/lib/ruby/ ]; then
         v="$(/usr/local/bin/hexapdf version | cut -d' ' -f2)"
