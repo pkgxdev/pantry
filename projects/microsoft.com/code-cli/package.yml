@@ -1,0 +1,31 @@
+distributable:
+  url: https://github.com/microsoft/vscode/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+displaty-name: vscode cli
+
+versions:
+  github: microsoft/vscode
+
+dependencies:
+  openssl.org: 1.1
+  zlib.net: 1
+
+build:
+  dependencies:
+    rust-lang.org: ^1.81
+    rust-lang.org/cargo: '*'
+  working-directory: cli
+  script: cargo install --locked --path . --root {{prefix}}
+  env:
+    OPENSSL_NO_VENDOR: 1
+    OPENSSL_DIR: '{{deps.openssl.org.prefix}}'
+    VSCODE_CLI_NAME_LONG: Code OSS
+    VSCODE_CLI_VERSION: '{{version}}'
+
+provides:
+  - bin/code
+
+test:
+  - test "$(code --version)" == "code-oss {{version}} (commit unknown)"
+  - code tunnel prune | grep 'Successfully removed all unused servers'
