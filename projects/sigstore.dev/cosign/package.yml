@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/sigstore/cosign/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/sigstore/cosign/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
@@ -10,25 +10,26 @@ provides:
 
 build:
   dependencies:
-    go.dev: ^1.20
-  script: |
-    go mod download
-    mkdir -p "{{ prefix }}"/bin
-    go build -v -trimpath -ldflags="$LDFLAGS" -o $BUILDLOC ./cmd/cosign
+    go.dev: ~1.23.4
+  script:
+    - go mod download
+    - go build -v -trimpath -ldflags="$GO_LDFLAGS" -o {{prefix}}/bin/cosign ./cmd/cosign
   env:
-    GOPROXY: https://proxy.golang.org,direct
-    GOSUMDB: sum.golang.org
     GO111MODULE: on
     CGO_ENABLED: 0
-    BUILDLOC: '{{prefix}}/bin/cosign'
-    LDFLAGS:
+    GO_LDFLAGS:
       - -s
       - -w
       - -X sigs.k8s.io/release-utils/version.gitVersion={{version}}
+      - -X sigs.k8s.io/release-utils/version.gitCommit=pkgx
+      - -X sigs.k8s.io/release-utils/version.gitTreeState=clean
+      - -X sigs.k8s.io/release-utils/version.buildDate=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
     linux:
       # or segmentation fault
       # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
-      LDFLAGS:
+      GO_LDFLAGS:
         - -buildmode=pie
 
-test: cosign version 2>&1 | grep {{version}}
+test:
+  - cosign version
+  - cosign version 2>&1 | grep {{version}}
