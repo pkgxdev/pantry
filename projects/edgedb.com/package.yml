@@ -28,7 +28,11 @@ build:
     - run: sed -i '1,20s/^version = .*$/version = "{{version.raw}}"/' Cargo.toml
     - cargo install --locked --path . --root {{prefix}}
 
-test: test "$(edgedb --version)" = "EdgeDB CLI {{version.raw}}"
+test:
+  - run: test "$(edgedb --version)" = "EdgeDB CLI {{version.raw}}"
+    if: <7
+  - run: test "$(edgedb --version)" = "Gel CLI {{version.raw}}"
+    if: '>=7'
 
 provides:
   - bin/edgedb
