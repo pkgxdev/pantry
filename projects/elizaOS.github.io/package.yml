@@ -26,18 +26,22 @@ companions:
 build:
   dependencies:
     python.org: ~3.10 # node-gyp doesn't like later pythons
-    pnpm.io: 9.12.3
+    pnpm.io: 9.15.4
     curl.se: '*'
     gnu.org/patch: '*'
+    gnu.org/sed: '*' # otherwise, weird path issues
   script:
     - run: curl 'https://github.com/adimverse/eliza/commit/d577fda887820e188b0e017f9869185be9fb3bc7.patch' | patch -p1
       if: '>=0.1.8<0.1.9'
     # weird SSL error; guessing the cert path isn't
     # making it in
-    - run: sed -i 's/curl /curl -k /' package.json
+    - run: |
+        if test -f package.json; then
+          sed -i 's/curl /curl -k /' package.json
+        fi
       working-directory: packages/plugin-pyth-data
       if: linux
-    - pnpm install --no-frozen-lockfile
+    - pnpm install
     - pnpm run build
     # adapted from their Dockerfile
     - run:
