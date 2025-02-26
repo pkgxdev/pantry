@@ -1,0 +1,39 @@
+distributable:
+  url: https://github.com/jmacdonald/amp/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/amp
+
+versions:
+  github: jmacdonald/amp
+
+dependencies:
+  zlib.net: 1
+  libgit2.org: 1
+  linux:
+    openssl.org: 1.1
+
+build:
+  dependencies:
+    rust-lang.org: ^1.56
+    rust-lang.org/cargo: '*'
+  script:
+    # no features that don't run the TUI; add a --version flag for testing
+    - run: sed -i -f $PROP main.rs
+      prop: |
+        /fn main() {/a\\
+            let first_arg = std::env::args().nth(1);\\
+            if first_arg == Some("--version".to_string()) {\\
+                println!("amp {{ version }}");\\
+                return;\\
+            } else if first_arg == Some("--help".to_string()) {\\
+                println!("See https://amp.rs for complete documentation.");\\
+                return;\\
+            }\\
+      working-directory: src
+    - cargo install --locked --path . --root {{prefix}}
+
+test:
+  - test "$(amp --version)" = "amp {{version}}"
+  - amp --help
