@@ -1,0 +1,19 @@
+distributable:
+  url: https://github.com/jacek-kurlit/pik/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/pik
+
+versions:
+  github: jacek-kurlit/pik
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path . --root {{prefix}}
+
+test:
+  - test "$(pik --version)" = "pik {{version}}"
+  - pik --help
