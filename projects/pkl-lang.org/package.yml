@@ -6,14 +6,14 @@ versions:
   github: apple/pkl
 
 warnings:
-  - vendored-linux-x86-64
+  - vendored-linux
 
 companions:
   openjdk.org: '*'
 
 build:
   dependencies:
-    openjdk.org: ^17
+    openjdk.org: ^21 # as of v0.28
     linux:
       zlib.net: 1
       llvm.org: '*'
@@ -40,32 +40,35 @@ build:
       working-directory: pkl-cli
     - run: |
         if test "{{hw.platform}}" = "linux"; then
-          sed -i '/-H:Class=org.pkl.cli.Main/i\
-              add("--static")\
-              add("--native-compiler-path={{deps.llvm.org.prefix}}/bin/clang")\
-              add("-H:CCompilerOption=-Wl,-L{{deps.zlib.net.prefix}}/lib")\
-              add("-H:-CheckToolchain")' \
-            pkl-cli.gradle.kts
-          if test "{{hw.arch}}" = "x86-64"; then
-            sed -i '/-H:Class=org.pkl.cli.Main/i\
-              add("-H:CCompilerOption=-fPIC")\
-              add("-H:CCompilerOption=-Wl,-pie")' \
-              pkl-cli.gradle.kts
+          # aarch64 won't build static unless using musl
+          if test "{{hw.arch}}" = "aarch64"; then
+            sed -i '/--static/d' $PROP
           fi
+          sed -i -f $PROP pkl-cli.gradle.kts
         fi
       if: '>=0.26.0'
+      prop: |
+        /-H:Class=org.pkl.cli.Main/i\\
+                add("--static")\\
+                add("--native-compiler-path={{deps.llvm.org.prefix}}/bin/clang")\\
+                add("-H:CCompilerOption=-Wl,-L{{deps.zlib.net.prefix}}/lib")\\
+                add("-H:-CheckToolchain")\\
+                add("-H:CCompilerOption=-fPIC")\\
+                add("-H:CCompilerOption=-Wl,-pie")
       working-directory: pkl-cli
 
     - ./gradlew -DreleaseBuild=true $TARGETS
 
-    # vendor pkl-linux-x86-64 to deal with PIC issues
-    - run: curl -LO "https://github.com/apple/pkl/releases/download/{{version.tag}}/pkl-linux-amd64"
-      if: linux/x86-64
+    # vendor pkl-linux to deal with PIC issues
+    - run:
+        - curl -LO "https://github.com/apple/pkl/releases/download/{{version.tag}}/pkl-linux-${ARCH_NAME}"
+        - touch pkl-linux-${ARCH_NAME}
+      if: linux
       working-directory: pkl-cli/build/executable
 
-    - run: |
-        install -D jpkl {{prefix}}/bin/jpkl
-        install -D pkl-${SYS_NAME}-${ARCH_NAME} {{prefix}}/bin/pkl
+    - run:
+        - install -D jpkl {{prefix}}/bin/jpkl
+        - install -D pkl-${SYS_NAME}-${ARCH_NAME} {{prefix}}/bin/pkl
       working-directory: pkl-cli/build/executable
   skip: fix-patchelf
   env:
@@ -79,8 +82,8 @@ build:
     linux/aarch64:
       SYS_NAME: linux
       ARCH_NAME: aarch64
-      TARGETS:
-        - :pkl-cli:linuxExecutableAarch64
+      # TARGETS:
+      #   - :pkl-cli:linuxExecutableAarch64
     darwin/aarch64:
       SYS_NAME: macos
       ARCH_NAME: aarch64
