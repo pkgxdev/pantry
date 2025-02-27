@@ -1,24 +1,35 @@
 distributable:
   url: https://groovy.jfrog.io/artifactory/dist-release-local/groovy-zips/apache-groovy-binary-{{version}}.zip
+
 versions:
   url: https://groovy.jfrog.io/artifactory/dist-release-local/groovy-zips/
   match: /apache-groovy-binary-\d+\.\d+\.\d+\.zip/
   strip:
     - /^apache-groovy-binary-/
     - /\.zip/
+
 warnings:
   - vendored
+
 dependencies:
   openjdk.org: 17
+
 runtime:
   env:
     GROOVY_HOME: '{{prefix}}'
+
 build:
   working-directory: groovy-{{version}}
+  dependencies:
+    waterlan.home.xs4all.nl/dos2unix: '*'
   script:
-    - rm bin/*.bat
+    - find bin -name '*.bat' -exec rm {} \;
     - mkdir -p "{{prefix}}"
+    # 3.0.24 shipped with CRLF line endings, so we need to convert them to LF
+    - run: dos2unix *
+      working-directory: bin
     - cp -a bin conf lib "{{prefix}}"
+
 provides:
   - bin/grape
   - bin/grape_completion
@@ -34,7 +45,8 @@ provides:
   - bin/groovysh_completion
   - bin/java2groovy
   - bin/startGroovy
+
 test:
-  script:
-    - groovy --version | grep {{version}}
-    - grape install org.activiti activiti-engine 5.16.4 | grep "found org.activiti#activiti-engine;5.16.4"
+  - groovy --version
+  - groovy --version | grep {{version}}
+  - grape install org.activiti activiti-engine 5.16.4 | grep "found org.activiti#activiti-engine;5.16.4"
