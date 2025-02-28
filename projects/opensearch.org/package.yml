@@ -8,7 +8,7 @@ versions:
   github: opensearch-project/OpenSearch
 
 dependencies:
-  openjdk.org: '*'
+  openjdk.org: ^17
   openmp.llvm.org: ^17
 
 build:
@@ -25,49 +25,51 @@ build:
   script:
     # there seems to be a loader bug with trying to dlopen libc on macos 12 and earlier.
     # remove this step when macos 12 and under are no longer supported.
-    - run: |
-        sed -i 's|JNAKernel32Library.getInstance();|//JNAKernel32Library.getInstance();|' server/src/main/java/org/opensearch/bootstrap/Bootstrap.java
+    - run: sed -i 's|JNAKernel32Library.getInstance();|//JNAKernel32Library.getInstance();|' server/src/main/java/org/opensearch/bootstrap/Bootstrap.java
       if: darwin/x86-64
     - ./gradlew -Dbuild.snapshot=false ":distribution:archives:no-jdk-{{hw.platform}}-tar:assemble"
     - run: tar --strip-components=1 -xf $SRCROOT/distribution/archives/no-jdk-{{hw.platform}}-tar/build/distributions/opensearch-*.tar.gz
       working-directory: ${{prefix}}
     # there seems to be a loader bug with trying to dlopen libc on macos 12 and earlier.
     # remove this step when macos 12 and under are no longer supported.
-    - run: |
-        rm -f lib/jna-*.jar
+    - run: rm -f lib/jna-*.jar
       if: darwin/x86-64
       working-directory: ${{prefix}}
     - run: 'sed -i "s|#\s*cluster.name: .*|cluster.name: opensearch_pkgx|" opensearch.yml'
       working-directory: ${{prefix}}/config
 
     # checkout k-NN plugin
-    - run: |
-        if [ -d .git ]; then
-          git fetch
-        else
-          git clone https://github.com/opensearch-project/k-NN .
-        fi
-        git checkout {{version}}.0
-        git reset --hard
-        git submodule foreach --recursive git reset --hard
-        git submodule update --init --recursive
-        git config --global user.email "hello@pkgx.dev"
-        git config --global user.name "pkgx"
+    - run:
+        - |
+          if [ -d .git ]; then
+            git fetch
+          else
+            git clone https://github.com/opensearch-project/k-NN .
+          fi
+        - git checkout {{version}}.0
+        - git reset --hard
+        - git submodule foreach --recursive git reset --hard
+        - git submodule update --init --recursive
+        - git config --global user.email "hello@pkgx.dev"
+        - git config --global user.name "pkgx"
       working-directory: k-NN
 
     # workarounds for m1 build. see: https://github.com/opensearch-project/k-NN/blob/main/DEVELOPER_GUIDE.md#extra-setup-for-mac-m1-machines
-    - run: |
-        sed -i -e 's/-march=native/-mcpu=apple-m1/g' nmslib/similarity_search/CMakeLists.txt
-        sed -i -e 's/-mcpu=apple-a14/-mcpu=apple-m1/g' nmslib/python_bindings/setup.py
-        sed -i -e 's/__aarch64__/__undefine_aarch64__/g' faiss/faiss/utils/distances_simd.cpp
+    - run:
+        - sed -i -e 's/-march=native/-mcpu=apple-m1/g' nmslib/similarity_search/CMakeLists.txt
+        - sed -i -e 's/-mcpu=apple-a14/-mcpu=apple-m1/g' nmslib/python_bindings/setup.py
+        - sed -i -e 's/__aarch64__/__undefine_aarch64__/g' faiss/faiss/utils/distances_simd.cpp
       if: darwin/aarch64
       working-directory: k-NN/jni/external
 
-    - run: |
-        sed -i -e "s|/usr/local/opt/libomp/|{{deps.openmp.llvm.org.prefix}}/|g" jni/CMakeLists.txt jni/cmake/*.cmake
-        sed -i -e 's/pragma message WARN/pragma message /g' jni/external/nmslib/similarity_search/src/distcomp_scalar.cc
-        export CC=clang
-        export CXX=clang++
+    - run:
+        - sed -i -f $PROP jni/CMakeLists.txt jni/cmake/*.cmake
+        - sed -i -e 's/pragma message WARN/pragma message /g' jni/external/nmslib/similarity_search/src/distcomp_scalar.cc
+        - export CC=clang
+        - export CXX=clang++
+      prop: |
+        s|/usr/local/opt/libomp/|{{deps.openmp.llvm.org.prefix}}/|g
+        s|/opt/homebrew/opt/libomp/|{{deps.openmp.llvm.org.prefix}}/|g
       if: darwin
       working-directory: k-NN
 
@@ -75,9 +77,9 @@ build:
     - run: sed -i -e 's/-march=native/-march=x86-64/g' CMakeLists.txt
       working-directory: k-NN/jni/external/nmslib/similarity_search
       if: x86-64
-    - run: |
-        cmake . --fresh
-        make
+    - run:
+        - cmake . --fresh
+        - make
       working-directory: k-NN/jni
     - run: |
         for LIB in *.jnilib; do
@@ -85,17 +87,17 @@ build:
         done
       working-directory: k-NN/jni/release
       if: darwin
-    - run: |
-        ./gradlew build --refresh-dependencies -x integTest -x test -DskipTests=true -Dopensearch.version={{version}} -Dbuild.snapshot=false -Dbuild.version_qualifier=
-        ./gradlew publishPluginZipPublicationToZipStagingRepository -Dopensearch.version={{version}} -Dbuild.snapshot=false -Dbuild.version_qualifier=
-        ./gradlew publishPluginZipPublicationToMavenLocal -Dbuild.snapshot=false -Dbuild.version_qualifier= -Dopensearch.version={{version}}
+    - run:
+        - ./gradlew build --refresh-dependencies -x integTest -x test -DskipTests=true -Dopensearch.version={{version}} -Dbuild.snapshot=false -Dbuild.version_qualifier=
+        - ./gradlew publishPluginZipPublicationToZipStagingRepository -Dopensearch.version={{version}} -Dbuild.snapshot=false -Dbuild.version_qualifier=
+        - ./gradlew publishPluginZipPublicationToMavenLocal -Dbuild.snapshot=false -Dbuild.version_qualifier= -Dopensearch.version={{version}}
       working-directory: k-NN
-    - run: |
-        mkdir -p ./build/distributions/lib
-        cp -v ./jni/release/libopensearchknn* ./build/distributions/lib
-        cd ./build/distributions
-        zip -r opensearch-knn-{{version}}.0.zip lib/
-        {{prefix}}/bin/opensearch-plugin install --batch file:`pwd`/opensearch-knn-{{version}}.0.zip
+    - run:
+        - mkdir -p ./build/distributions/lib
+        - cp -v ./jni/release/libopensearchknn* ./build/distributions/lib
+        - cd ./build/distributions
+        - zip -r opensearch-knn-{{version}}.0.zip lib/
+        - '{{prefix}}/bin/opensearch-plugin install --batch file:`pwd`/opensearch-knn-{{version}}.0.zip'
       working-directory: k-NN
     - run: echo 'export JAVA_LIBRARY_PATH="$OPENSEARCH_HOME/plugins/opensearch-knn/lib:$JAVA_LIBRARY_PATH"' >> opensearch-env
       working-directory: ${{prefix}}/bin
