@@ -6,7 +6,7 @@ versions:
   github: FNA-XNA/FAudio
 
 dependencies:
-  libsdl.org: ^2.28
+  libsdl.org: '^2.28'
 
 build:
   dependencies:
@@ -24,16 +24,17 @@ build:
       - -DCMAKE_VERBOSE_MAKEFILE=ON
       - -Wno-dev
       - -DBUILD_TESTING=OFF
+      - -DBUILD_SDL3=OFF # otherwise we have split requirements
 
 test:
-  fixture: |
-    #include <FAudio.h>
-    int main(int argc, char const *argv[])
-    {
-      FAudio *audio;
-      return FAudioCreate(&audio, 0, FAUDIO_DEFAULT_PROCESSOR);
-    }
-  script:
-    - cp $FIXTURE test.c
-    - cc test.c -lFAudio -o test
-    - ./test
+  - run: cc $FIXTURE -lFAudio -o test
+    fixture:
+      extname: c
+      content: |
+        #include <FAudio.h>
+        int main(int argc, char const *argv[])
+        {
+          FAudio *audio;
+          return FAudioCreate(&audio, 0, FAUDIO_DEFAULT_PROCESSOR);
+        }
+  - ./test
