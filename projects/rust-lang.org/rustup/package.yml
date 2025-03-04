@@ -12,12 +12,12 @@ dependencies:
 
 build:
   dependencies:
-    rust-lang.org/cargo: '*'
-    freedesktop.org/pkg-config: ^0.29
+    rust-lang.org: ^1.85 # edition2024 in v1.28.0
+    rust-lang.org/cargo: ^0.86 # edition2024 in v1.28.0
   script:
     # rust/curl has issues with linking to Apple's libcurl; this manifests in
     # Sonoma every time. Fortunately, rustup will use `reqwest` as a backend.
-    - run: sed -i -e 's/^    "curl-backend",$/    \# "curl-backend",/' Cargo.toml
+    - run: sed -i 's/"curl-backend",//' Cargo.toml
       if: darwin
     - cargo install --locked --path . --root {{prefix}}
     - run: ln -s rustup-init rustup
@@ -30,4 +30,5 @@ provides:
   - bin/rustup-init
 
 test:
-  script: rustup --version
+  - rustup --version
+  - rustup default nightly
