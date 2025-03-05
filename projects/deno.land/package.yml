@@ -38,6 +38,9 @@ build:
         - cargo vendor third-party
         - sed -i -f $PROP third-party/libffi-sys/build/not_msvc.rs
         - sed -i 's|libffi-sys = "\(.*\)"|libffi-sys = { version = "\1", features = ["system"] }|' Cargo.toml
+        # changed in 2.2.3
+        - sed -i 's|libffi.workspace = true|libffi = "=3.2.0"|' Cargo.toml
+        - sed -i 's|libffi-sys.workspace = true|libffi-sys = { version = "=2.3.0", features = ["system"] }|' Cargo.toml
         - EXTRA_ARGS="$EXTRA_ARGS --config patch.crates-io.libffi-sys.path='ext/ffi/third-party/libffi-sys'"
       prop: |
         s|println!("cargo:rustc-link-lib=dylib=ffi");|\
@@ -53,12 +56,12 @@ build:
 
         if test "{{hw.platform}}+{{ hw.arch }}" = "darwin+x86-64"; then
           # our LLVM cannot build with deployment target set to 10.6
-          sed -i.bak s/MACOSX_DEPLOYMENT_TARGET/\#/ ext/ffi/tinycc/Makefile
+          sed -i s/MACOSX_DEPLOYMENT_TARGET/\#/ ext/ffi/tinycc/Makefile
         fi
       if: '>=1.25.0<1.25.4'
 
     # change default bindir to ~/.local/bin per our conventions
-    - sed -i'' -e 's/home_path.push(".deno")/home_path.push(".local")/' cli/tools/installer.rs
+    - sed -i -e 's/home_path.push(".deno")/home_path.push(".local")/' cli/tools/installer.rs
 
     - grep home_path cli/tools/installer.rs
 
