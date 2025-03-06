@@ -1,35 +1,35 @@
 distributable:
-  url: https://github.com/dgraph-io/dgraph/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/hypermodeinc/dgraph/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
-  github: dgraph-io/dgraph
+  github: hypermodeinc/dgraph
 
 provides:
   - bin/dgraph
 
 build:
   dependencies:
-    go.dev: ^1.19
-  script: |
-    go mod download
-    mkdir -p "{{ prefix }}"/bin
-    go build -v -trimpath -ldflags="$LDFLAGS" -o $BUILDLOC ./dgraph
+    go.dev: ~1.22.12
+  script:
+    - go mod download
+    - go build -v -trimpath -ldflags="$GO_LDFLAGS" -o {{prefix}}/bin/dgraph ./dgraph
   env:
-    GOPROXY: https://proxy.golang.org,direct
-    GOSUMDB: sum.golang.org
-    GO111MODULE: on
     CGO_ENABLED: 0
-    BUILDLOC: '{{prefix}}/bin/dgraph'
-    LDFLAGS:
+    GO_LDFLAGS:
       - -s
       - -w
       - -X github.com/dgraph-io/dgraph/x.dgraphVersion={{version}}
       - -X github.com/dgraph-io/dgraph/v{{version.major}}/x.dgraphVersion={{version}}
+      # since 24.1.0
+      - -X github.com/hypermodeinc/dgraph/x.dgraphVersion={{version}}
+      - -X github.com/hypermodeinc/dgraph/v{{version.major}}/x.dgraphVersion={{version}}
     linux:
       # or segmentation fault
       # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
-      LDFLAGS:
+      GO_LDFLAGS:
         - -buildmode=pie
 
-test: dgraph version | grep {{version}}
+test:
+  - dgraph version
+  - dgraph version | grep {{version}}
