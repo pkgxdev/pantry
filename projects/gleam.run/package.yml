@@ -11,9 +11,14 @@ versions:
 
 build:
   dependencies:
-    rust-lang.org: '>=1.60'
-    rust-lang.org/cargo: '*'
-  script: cargo install --path compiler-cli --force --locked --root {{prefix}}
+    # edition2024 in v1.9.0
+    rust-lang.org: '>=1.85'
+    rust-lang.org/cargo: '>=0.86'
+  script:
+    - run: cargo install --path compiler-cli --force --locked --root {{prefix}}
+      if: <1.9
+    - run: cargo install --path gleam-bin --force --locked --root {{prefix}}
+      if: '>=1.9'
 
 test:
   dependencies:
