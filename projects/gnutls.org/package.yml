@@ -20,7 +20,6 @@ build:
   dependencies:
     linux:
       gnu.org/gcc: '*'
-    freedesktop.org/pkg-config: '*'
   script:
     # clang doesn't like the -march=all flag
     - run: sed -i -e 's/-march=all/-mcpu=generic/' Makefile.am Makefile.in
@@ -32,11 +31,14 @@ build:
 
     - ./configure --prefix={{ prefix }} --disable-guile
     - make --jobs {{ hw.concurrency }} install
+    - run: find . -name \*.la -exec rm {} \;
+      working-directory: ${{prefix}}/lib
   env:
     darwin:
-      CFLAGS: $CFLAGS -Wno-implicit-int
+      # darwin support has some build issues.
+      CFLAGS: $CFLAGS -Wno-implicit-int -Wno-analyzer-fd-leak
 
-test: gnutls-cli --x509cafile={{deps.curl.se/ca-certs.prefix}}/ssl/cert.pem tea.xyz <<< "GET /"
+test: gnutls-cli --x509cafile={{deps.curl.se/ca-certs.prefix}}/ssl/cert.pem pkgx.sh <<< "GET /"
 
 provides:
   - bin/certtool
