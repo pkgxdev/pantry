@@ -1,0 +1,33 @@
+distributable:
+  url: https://astron.com/pub/tcsh/tcsh-{{ version.raw }}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://astron.com/pub/tcsh/
+  match: /tcsh-([0-9.]+).tar.gz/
+  strip:
+    - /tcsh-/
+    - /.tar.gz/
+
+provides:
+  - bin/csh
+  - bin/tcsh
+
+dependencies:
+  github.com/besser82/libxcrypt: 4
+  invisible-island.net/ncurses: 6
+
+build:
+  script:
+    - ./configure $ARGS
+    - make --jobs {{hw.concurrency}} install
+    - run: ln -s tcsh csh
+      working-directory: ${{prefix}}/bin
+    - run: mkdir etc
+      working-directory: ${{prefix}}
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --sysconfdir={{prefix}}/etc
+
+test: test "$(tcsh test.csh)" = "test"
