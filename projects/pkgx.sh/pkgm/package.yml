@@ -16,13 +16,15 @@ build:
 
 test:
   - pkgm --version | grep {{version}}
-  - run: pkgm $INSTALL_CMD dua
-    env:
-      linux: { INSTALL_CMD: 'install' }
-      darwin: { INSTALL_CMD: 'local-install' }
-      # ^^ our self hosted macs cannot need sudo and cannot run sudo
+  - |
+      if $(uname) = Darwin; then
+        pkgm local-install dua
+      else
+        pkgm install dua
+      fi
+    # ^^ our self hosted macs cannot need sudo and cannot run sudo
   - pkgm ls | grep dua
-  - PATH=/usr/local/bin:$PATH command -v dua
+  - PATH=/usr/local/bin:$HOME/.local/bin:$PATH command -v dua
   # ^^ brewkit PATH removes /usr/local/bin
-  - PATH=/usr/local/bin:$PATH dua --version
+  - PATH=/usr/local/bin:$HOME/.local/bin:$PATH dua --version
   - pkgm uninstall dua
