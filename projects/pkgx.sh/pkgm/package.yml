@@ -12,16 +12,10 @@ dependencies:
   curl.se/ca-certs: '*'
 
 build:
-  - sed -i 's|--allow-run=pkgx,/usr/bin/sudo|--allow-run|' pkgm
-  - head -n1 pkgm
   - install -Dm755 pkgm {{prefix}}/bin/pkgm
 
 test:
-  - pkgm --version
-  - command -v pkgm
-  - command -v pkgx
-  - pkgx --version
-  - head -n1 {{prefix}}/bin/pkgm
+  - pkgm --version | grep {{version}}
   - pkgm install dua
   - pkgm ls | grep dua
   - PATH=/usr/local/bin:$PATH command -v dua
