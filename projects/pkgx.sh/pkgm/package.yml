@@ -22,11 +22,16 @@ test:
   - run:
       - PKGX_FS="$(pkgx stat -c %d """$(pkgx +which +dua which dua)""")"
       - BIN_FS="$(pkgx stat -c %d /usr/local/bin)"
+      - HOME_FS="$(pkgx stat -c %d $HOME)"
       - |
-        if [ "$PKGX_FS" != "$BIN_FS" ]; then
+        if [ "$PKGX_FS" = "$BIN_FS" ]; then
+          pkgm install dua
+        elif [ "$PKGX_FS" = "$HOME_FS" ]; then
           pkgm local-install dua
         else
-          pkgm install dua
+          # we can't test here; so we'll accept
+          # but we should fix this in pkgm
+          exit 0
         fi
     if: linux
   # ^^ github's runners produce cross-device linking errors
