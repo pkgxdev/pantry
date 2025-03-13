@@ -19,7 +19,7 @@ build:
     gnu.org/patch: '*'
     gnu.org/bison: ^3
     gnu.org/autoconf: '*'
-    rust-lang.org: ^1  # required to build YJIT
+    rust-lang.org: ^1 # required to build YJIT
     linux:
       ruby-lang.org: ^3 # ruby requires ruby to build
       # ^^ only linux because we got issues on darwin currently and darwin provides ruby (for now)
@@ -91,22 +91,20 @@ build:
         -e 's|CONFIG\["MJIT_CC"\] =.*|CONFIG\["MJIT_CC"\] = "/usr/bin/cc"|g'
         rbconfig.rb
       working-directory: ${{prefix}}/lib/ruby/{{version.marketing}}.0
-  # codesigning error on darwin/x86-64
-  skip: fix-machos
   env:
     CFLAGS: $CFLAGS -Wno-implicit-function-declaration
     ARGS:
       - --prefix="{{prefix}}"
-      - --enable-load-relative  # makes us relocatable
+      - --enable-load-relative # makes us relocatable
       - --without-gmp
-      - --with-rubyarchprefix={{prefix}}/lib/ruby  # no need for architecture specific crap
-      - --with-rubyhdrdir={{prefix}}/include       # ^^
-      - --with-rubyarchhdrdir={{prefix}}/include   # ^^
-      - --disable-multiarch                        # ^^
-      - --with-vendordir=no     # is empty so don’t pollute
+      - --with-rubyarchprefix={{prefix}}/lib/ruby # no need for architecture specific crap
+      - --with-rubyhdrdir={{prefix}}/include # ^^
+      - --with-rubyarchhdrdir={{prefix}}/include # ^^
+      - --disable-multiarch # ^^
+      - --with-vendordir=no # is empty so don’t pollute
       - --with-vendorarchdir=no # ^^
-      - --with-sitearchdir=no   # ^^
-      - --enable-yjit  # https://github.com/pkgxdev/pantry/issues/3538
+      - --with-sitearchdir=no # ^^
+      - --enable-yjit # https://github.com/pkgxdev/pantry/issues/3538
       - --disable-install-doc
 
 test:
