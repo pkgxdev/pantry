@@ -101,35 +101,44 @@ dependencies:
 build:
   dependencies:
     gnu.org/bison: '*'
-    freedesktop.org/pkg-config: '*'
     gnu.org/patch: '*'
-    crates.io/semverator: '*'
+    darwin:
+      llvm.org: '*'
     linux:
       linux-pam.org: '*'
   script:
     # thanks to MacPorts
-    - |
-      if test darwin = {{hw.platform}} && \
-        semverator satisfies '<2.39' {{version}}; then
-        patch -p0 <props/macports.patch
-      fi
+    - run: |
+        if test darwin = {{hw.platform}}; then
+          patch -p0 <props/macports.patch
+        fi
+      if: <2.39
 
     # FIXME: waitpid (new in 2.39) fails to build
-    - sed -i.bak 's/build_waitpid=yes ;;/build_waitpid=no ;;/g' configure
-    - rm configure.bak
+    - sed -i 's/build_waitpid=yes ;;/build_waitpid=no ;;/g' configure
+
+    # bits.c doesn't build with xcode/llvm on darwin (standard header conflicts)
+    - run: |
+        if test darwin = {{hw.platform}}; then
+          sed -i -f $PROP configure
+        fi
+      prop: |
+        s/build_bits=yes/build_bits=no/
+        s/enable_bits=yes/enable_bits=no/
+      if: =2.41
 
     - ./configure $ARGS
 
     - make --jobs {{hw.concurrency}} install
 
-    - |
-      cd "{{prefix}}/include"
-      for x in $HEADERS; do
-        if test -f "$x/$x.h"; then
-          mv "$x/$x.h" .
-          ln -s "../$x.h" "$x/"
-        fi
-      done
+    - run: |
+        for x in $HEADERS; do
+          if test -f "$x/$x.h"; then
+            mv "$x/$x.h" .
+            ln -s "../$x.h" "$x/"
+          fi
+        done
+      working-directory: '{{prefix}}/include'
   env:
     ARGS:
       - --prefix={{prefix}}
