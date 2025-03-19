@@ -8,6 +8,10 @@ provides:
 versions:
   github: dathere/qsv
 
+dependencies:
+  linux:
+    wayland.freedesktop.org: '*'
+
 build:
   dependencies:
     rust-lang.org: '>=1.85' # edition2024
@@ -17,21 +21,21 @@ build:
   # features listed on GitHub like joinp, py are not available
 
 test:
-  script: |
-    mv $FIXTURE $FIXTURE.csv
-    qsv sort -s a -R -N $FIXTURE.csv
+  script:
+    - mv $FIXTURE $FIXTURE.csv
+    - qsv sort -s a -R -N $FIXTURE.csv
 
     # Test count command
-    test $(qsv count $FIXTURE.csv) -eq 5
+    - test $(qsv count $FIXTURE.csv) -eq 5
     
     # Test dedup command
-    qsv dedup -q $FIXTURE.csv
-    test $(qsv dedup -q $FIXTURE.csv | qsv count) -eq 4
+    - qsv dedup -q $FIXTURE.csv
+    - test $(qsv dedup -q $FIXTURE.csv | qsv count) -eq 4
     
     # Test diff command
-    echo -e "a,b,c\n1,2,3\n4,5,7\n7,8,9\n10,11,12\n1,2,3" > $FIXTURE-diff.csv
-    qsv diff $FIXTURE.csv $FIXTURE-diff.csv
-    test $(qsv diff $FIXTURE.csv $FIXTURE-diff.csv | qsv count) -eq 2
+    - echo -e "a,b,c\n1,2,3\n4,5,7\n7,8,9\n10,11,12\n1,2,3" > $FIXTURE-diff.csv
+    - qsv diff $FIXTURE.csv $FIXTURE-diff.csv
+    - test $(qsv diff $FIXTURE.csv $FIXTURE-diff.csv | qsv count) -eq 2
   fixture: |
     a,b,c
     1,2,3
