@@ -10,17 +10,28 @@ dependencies:
   npmjs.com: '*'
 
 build:
+  dependencies:
+    pnpm.io: ^10.6
   script:
     # https://github.com/antfu/eslint-config/issues/529
     - run: npm i -D @antfu/eslint-config@2.21.0
       if: ^0.22
-    - npm install --include=dev
-    - npm run build
-    - npm install .
-      --global
-      --prefix={{prefix}}
-      --install-links
-
+    - pnpm install
+    - pnpm run build
+    - run:
+        - cp $SRCROOT/package.json .
+        - cp $SRCROOT/pnpm-workspace.yaml .
+        - cp -R $SRCROOT/bin .
+        - cp -R $SRCROOT/dist .
+        - cp -R $SRCROOT/node_modules .
+      working-directory: ${{prefix}}/libexec
+    - run:
+        - mkdir -p ../../bin
+        - |
+          for x in *.mjs; do
+            ln -s ../libexec/bin/$x ../../bin/${x%.mjs}
+          done
+      working-directory: ${{prefix}}/libexec/bin
 provides:
   - bin/na
   - bin/nci
