@@ -10,14 +10,24 @@ versions:
     - /.tar.gz/
 
 build:
-  script: |
-    ./configure --prefix={{ prefix }} --without-readline
-    make install
+  script:
+    - ./configure $ARGS
+    - make install
+  env:
+    ARGS:
+      - --disable-dependency-tracking
+      - --disable-silent-rules
+      - --enable-libgdbm-compat
+      - --prefix={{ prefix }}
+      - --without-readline
+    darwin:
+      CFLAGS:
+        - -Wno-implicit-function-declaration
 
 test:
-  script: |
-    echo -e $INPUT1 | gdbmtool --norc --newdb test
-    test $(echo -e $INPUT2 | gdbmtool --norc test) = "2"
+  script:
+    - echo -e $INPUT1 | gdbmtool --norc --newdb test
+    - test $(echo -e $INPUT2 | gdbmtool --norc test) = "2"
   env:
     INPUT1: "store 1 2\\nquit\\n"
     INPUT2: "fetch 1\\nquit\\n"
