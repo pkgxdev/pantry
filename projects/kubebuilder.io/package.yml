@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/kubernetes-sigs/kubebuilder/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/kubernetes-sigs/kubebuilder/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
@@ -7,19 +7,27 @@ versions:
 
 build:
   dependencies:
-    go.dev: ^1.21
+    go.dev: ~1.23
     gnu.org/coreutils: '*'
-  script: |
-    go build -ldflags="$LDFLAGS" -o $BUILDLOC ./cmd
+  script:
+    - run: go build -ldflags="$GO_LDFLAGS" -o '{{prefix}}/bin/kubebuilder' ./cmd
+      if: <4.5.2
+    - run: go build -ldflags="$GO_LDFLAGS" -o '{{prefix}}/bin/kubebuilder'
+      if: '>=4.5.2'
   env:
     CGO_ENABLED: 0
-    LDFLAGS:
+    GO_LDFLAGS:
       - -X main.kubeBuilderVersion={{version}}
       - -X main.goos=$(go env GOOS)
       - -X main.goarch=$(go env GOARCH)
       - -X main.gitCommit=pkgx
       - -X main.buildDate=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
-    BUILDLOC: '{{prefix}}/bin/kubebuilder'
+      # changed in 4.5.2
+      - -X sigs.k8s.io/kubebuilder/v4/cmd.kubeBuilderVersion={{version}}
+      - -X sigs.k8s.io/kubebuilder/v4/cmd.goos=$(go env GOOS)
+      - -X sigs.k8s.io/kubebuilder/v4/cmd.goarch=$(go env GOARCH)
+      - -X sigs.k8s.io/kubebuilder/v4/cmd.gitCommit=pkgx
+      - -X sigs.k8s.io/kubebuilder/v4/cmd.buildDate=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
 
 provides:
   - bin/kubebuilder
@@ -28,10 +36,11 @@ test:
   dependencies:
     gnu.org/grep: '*'
     go.dev: ^1.21
-  script: |
-    kubebuilder version | grep 'KubeBuilderVersion:"{{version}}"'
-    mkdir test
-    cd test
-    go mod init example.com
-    kubebuilder init --plugins go/v4 --project-version 3 --skip-go-version-check
-    go clean --modcache
+  script:
+    - kubebuilder version
+    - kubebuilder version | grep 'KubeBuilderVersion:"{{version}}"'
+    - run:
+        - go mod init example.com
+        - kubebuilder init --plugins go/v4 --project-version 3 --skip-go-version-check
+        - go clean --modcache
+      working-directory: test
