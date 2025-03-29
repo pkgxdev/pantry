@@ -13,10 +13,12 @@ dependencies:
   curl.se: '*'
 
 build:
+  sed -i "s/mash 0.0.0-dev/mash {{ version }}/g" ./mash
   install -D mash {{prefix}}/bin/mash
 
 provides:
   - bin/mash
 
-test:
+test: |
+  test $(mash --version) = "mash {{ version }}"
   mash pkgx/demo-test-pattern
