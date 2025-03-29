@@ -19,6 +19,14 @@ concurrency:
 jobs:
   tarball:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        x:
+          - flag: J
+            ext: tar.xz
+          - flag: z
+            ext: tgz
     steps:
       - uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -30,10 +38,10 @@ jobs:
         with:
           path: co
       - run: find co -type f -not -name package.yml -delete -o -type l -delete
-      - run: tar -C co -czf pantry.tgz .
+      - run: tar -C co -c${{ matrix.x.flag }}f pantry.${{ matrix.x.ext }} .
       - run: aws s3 cp
-          ./pantry.tgz
-          s3://${{ secrets.AWS_S3_BUCKET }}/pantry.tgz
+          ./pantry.${{ matrix.ext }}
+          s3://${{ secrets.AWS_S3_BUCKET }}/pantry.${{ matrix.ext }}
       - run: aws cloudfront create-invalidation
           --distribution-id ${{ secrets.AWS_CF_DISTRIBUTION_ID }}
-          --paths /pantry.tgz
+          --paths /pantry.${{ matrix.ext }}
