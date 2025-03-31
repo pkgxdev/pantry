@@ -18,22 +18,24 @@ build:
     - bkpyvenv stage '{{prefix}}' {{version}}
     - ${{prefix}}/venv/bin/pip install .
     - bkpyvenv seal '{{prefix}}' virtualenv
+    - run: cp {{deps.python.org.prefix}}/lib/libpython{{deps.python.org.version.marketing}}.so* .
+      if: linux
+      working-directory: ${{prefix}}/lib
 
 test:
-  script: |
-    # verify version
-    echo "$(virtualenv --version)" | grep "^virtualenv {{version}}"
+  # verify version
+  - echo "$(virtualenv --version)" | grep "^virtualenv {{version}}"
 
     # create venv in venv_dir
-    virtualenv venv_dir
-    WANT=$(venv_dir/bin/python -c 'import sys; print(sys.prefix)')
-    source venv_dir/bin/activate
-    test $WANT=$VIRTUAL_ENV # verify that venv activates successfully
+  - virtualenv venv_dir
+  - WANT=$(venv_dir/bin/python -c 'import sys; print(sys.prefix)')
+  - source venv_dir/bin/activate
+  - test $WANT=$VIRTUAL_ENV # verify that venv activates successfully
 
-    pip install pycowsay # install a package inside the venv
+  - pip install pycowsay # install a package inside the venv
 
-    deactivate # exit venv
-    venv_dir/bin/pycowsay "All tests pass!" # verify that pycowsay was installed inside the venv
+  - deactivate # exit venv
+  - venv_dir/bin/pycowsay "All tests pass!" # verify that pycowsay was installed inside the venv
 
 provides:
   - bin/virtualenv
