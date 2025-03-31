@@ -1,5 +1,5 @@
 distributable:
-  url: http://downloads.xiph.org/releases/theora/libtheora-{{version}}.tar.bz2
+  url: http://downloads.xiph.org/releases/theora/libtheora-{{version}}.tar.gz
   strip-components: 1
 
 versions:
@@ -21,12 +21,12 @@ build:
     freedesktop.org/pkg-config: '*'
     gnu.org/wget: '*'
 
-  script: |
-    wget -O config.guess 'https://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.guess;hb=HEAD'
-    wget -O config.sub 'https://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.sub;hb=HEAD'
-    ./autogen.sh
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }} install
+  script:
+    - wget -O config.guess 'https://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.guess;hb=HEAD'
+    - wget -O config.sub 'https://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.sub;hb=HEAD'
+    - ./autogen.sh
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
   env:
     ARGS:
       - --prefix="{{prefix}}"
@@ -38,5 +38,4 @@ build:
 test:
   dependencies:
     freedesktop.org/pkg-config: '*'
-  script:
-    pkg-config --modversion theora | grep {{version}}
+  script: pkg-config --modversion theora | grep {{version}}
