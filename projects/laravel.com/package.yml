@@ -12,14 +12,18 @@ dependencies:
     info-zip.org/unzip: ^6
 
 build:
-  # 5.11.1 shipped as 5.11.0
-  - run: sed -i "s/'Laravel Installer', '[0-9\.]*'/'Laravel Installer', '{{version}}'/" laravel
-    working-directory: bin
-  - composer install --no-dev
-  - mkdir -p {{prefix}}/libexec
-  - cp -r ./* {{prefix}}/libexec
-  - run: ln -s ../libexec/bin/laravel laravel
-    working-directory: ${{prefix}}/bin
+  dependencies:
+    php.net: ~8.3
+    getcomposer.org: ~2.7
+  script:
+    # 5.11.1 shipped as 5.11.0
+    - run: sed -i "s/'Laravel Installer', '[0-9\.]*'/'Laravel Installer', '{{version}}'/" laravel
+      working-directory: bin
+    - composer install --no-dev
+    - mkdir -p {{prefix}}/libexec
+    - cp -r ./* {{prefix}}/libexec
+    - run: ln -s ../libexec/bin/laravel laravel
+      working-directory: ${{prefix}}/bin
 
 provides:
   - bin/laravel
