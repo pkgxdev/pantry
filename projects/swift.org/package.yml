@@ -35,17 +35,16 @@ build:
     curl.se: '*'
   script:
     - mkdir -p {{prefix}}/bin
-    - run: |
-        curl -SfL "$DOWNLOAD_URL" | tar xzf - --strip-components=2
-        tar xzf Payload -C {{prefix}}
-        rm -rf {{prefix}}/_CodeSignature
-        rm -rf {{prefix}}/Info.plist
+    - run:
+        - curl -SfL "$DOWNLOAD_URL" | tar xzf - --strip-components=2
+        - tar xzf Payload -C {{prefix}}
+        - rm -rf {{prefix}}/_CodeSignature
+        - rm -rf {{prefix}}/Info.plist
       if: darwin
     - run: ln -sh ../usr/bin/* {{prefix}}/bin
       working-directory: ${{prefix}}/bin
       if: darwin
-    - run: |
-        curl -SfL "$DOWNLOAD_URL" | tar xzf - -C {{ prefix }} --strip-components=2
+    - run: curl -SfL "$DOWNLOAD_URL" | tar xzf - -C {{ prefix }} --strip-components=2
       if: linux
   env:
     darwin:
@@ -84,7 +83,6 @@ provides:
     # - bin/clang++
     - bin/swift
     - bin/swift-api-digester
-    - bin/swift-api-extract
     - bin/swift-autolink-extract
     - bin/swift-build
     - bin/swift-experimental-sdk
@@ -127,7 +125,6 @@ provides:
     # - bin/lld-link
     - bin/swift
     - bin/swift-api-digester
-    - bin/swift-api-extract
     - bin/swift-autolink-extract
     - bin/swift-build
     - bin/swift-experimental-sdk
@@ -137,5 +134,5 @@ provides:
     - bin/swift-symbolgraph-extract
     - bin/swift-test
     - bin/swiftc
-test: |
-  swift --version
+
+test: swift --version
