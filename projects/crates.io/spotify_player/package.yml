@@ -7,7 +7,6 @@ provides:
 
 versions:
   github: aome510/spotify-player
-  strip: /v/
 
 dependencies:
   openssl.org: ^1.1
@@ -24,6 +23,12 @@ build:
     # they shipped v0.0.0 after v0.20.0; but the release is there, so we can build it.
     - sed -i '1,10s/^version = ".*"/version = "{{version}}"/' spotify_player/Cargo.toml
     - cargo install $ARGS
+
+    # link to libsixel properly
+    - run:
+        - SIXEL=$(otool -l {{prefix}}/bin/spotify_player | grep 'libsixel.1.dylib' | sed 's/.*name \(.*\) (offset .*/\1/')
+        - install_name_tool -change "$SIXEL" {{deps.github.com/libsixel/libsixel.prefix}}/lib/libsixel.1.dylib {{prefix}}/bin/spotify_player
+      if: darwin
   env:
     ARGS:
       - --locked
