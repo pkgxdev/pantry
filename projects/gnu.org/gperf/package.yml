@@ -1,18 +1,21 @@
 distributable:
-  url: https://ftp.gnu.org/gnu/gperf/gperf-3.1.tar.gz
+  url: https://ftp.gnu.org/gnu/gperf/gperf-{{version.raw}}.tar.gz
   strip-components: 1
 
 versions:
   url: https://ftp.gnu.org/gnu/gperf/
-  match: /gperf-(\d+\.\d+(\.\d+)?)\.tar\.gz/
+  match: /gperf-\d+(\.\d+)+\.tar\.gz/
   strip:
     - /gperf-/
     - /.tar.gz/
 
 build:
-  script: |
-    ./configure --prefix={{ prefix }}
-    make --jobs {{ hw.concurrency }} install
+  script:
+    # ISO C++17 does not allow 'register' storage class specifier
+    - run: sed -i 's/register //g' src/output.cc lib/getline.cc
+      if: linux
+    - ./configure --prefix={{ prefix }}
+    - make --jobs {{ hw.concurrency }} install
 
 test: echo "tea\nfoo\nbar" | gperf
 
