@@ -1,26 +1,31 @@
 distributable:
   url: https://github.com/protobuf-c/protobuf-c/releases/download/v{{version}}/protobuf-c-{{version}}.tar.gz
   strip-components: 1
+
 versions:
   github: protobuf-c/protobuf-c
+
 dependencies:
   protobuf.dev: ^25.1
+  abseil.io: ^20240116
+
 build:
   script:
     - ./configure $CONFIGURE_ARGS
     - make --jobs {{ hw.concurrency }} install
   env:
     # https://github.com/protocolbuffers/protobuf/issues/9947
-    CFLAGS: "$CFLAGS -DNDEBUG"
+    CFLAGS: '$CFLAGS -DNDEBUG'
     CONFIGURE_ARGS:
       - --disable-dependency-tracking
       - --prefix="{{prefix}}"
       - --libdir="{{prefix}}/lib"
+
 provides:
   - bin/protoc-c
   - bin/protoc-gen-c
+
 test:
-  script:
-    - protoc-c test.proto --c_out=.
-    - ls | grep test.pb-c.c
-    - protoc-c --version | grep {{version}}
+  - protoc-c test.proto --c_out=.
+  - ls | grep test.pb-c.c
+  - protoc-c --version | grep {{version}}
