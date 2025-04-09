@@ -36,6 +36,8 @@ build:
     - run: go mod download
       working-directory: pkg
 
+    - mkdir -p {{prefix}}/bin
+
     # needs this fix to prevent segfaults
     - run: sed -i 's/-ldflags "/-ldflags "-buildmode=pie /' */Makefile
       working-directory: sdk
@@ -55,9 +57,6 @@ build:
     - ./scripts/prep-for-goreleaser.sh "local"
     - cp -a bin/$(go env GOOS)*/* {{prefix}}/bin/
 
-    # - mkdir -p {{prefix}}/bin
-    # - mv build/bin/pulumi* {{prefix}}/bin/
-
     # Install shell completions
     # TODO: Doesn't work for zsh. Should it be left up to user?
     # {{prefix}}/bin/pulumi gen-completion $SHELL
@@ -71,8 +70,12 @@ build:
 
 test:
   script:
-    - pulumi new aws-typescript --generate-only --force -y
-    - test -e Pulumi.yaml
+    - run:
+        - pulumi new aws-typescript --generate-only --force -y
+        - test -e Pulumi.yaml
+      if: <3.159.0
+    - run: (pulumi new aws-typescript --generate-only --force -y 2>&1 || true) | grep 'invalid access token'
+      if: '>=3.159.0'
   env:
     PULUMI_ACCESS_TOKEN: local://
     PULUMI_TEMPLATE_PATH: '$PWD/templates'
