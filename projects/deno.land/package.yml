@@ -26,6 +26,9 @@ companions:
 
 build:
   script:
+    # 2.1.11 shipped with incorrect version
+    - run: echo -n "{{version}}" >version.txt
+      working-directory: cli/lib
     # requires specific rust versions
     - run:
         - ln -sf {{deps.rust-lang.org/rustup.prefix}}/bin/rustup .
@@ -100,6 +103,7 @@ test:
     linux/aarch64:
       gnu.org/coreutils: '*' # for stat and numfmt
   script:
+    - deno --version
     - deno --version | grep {{version}}
     - mv $FIXTURE test.ts
     - run: deno install -f test.ts
