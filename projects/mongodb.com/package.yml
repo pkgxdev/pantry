@@ -39,6 +39,12 @@ test:
     linux:
       crates.io/semverator: '*'
   script:
+    # doesn't support macOS 13
+    - run: |
+        if test "$(sw_vers -productVersion | cut -d . -f 1)" -lt 14; then
+          exit 0
+        fi
+      if: darwin
     # Mongo offers back to ubuntu20.04; we can't test on older versions due to libc issues
     - run: |
         LIBCV=$(getconf GNU_LIBC_VERSION | sed 's/^glibc //')
