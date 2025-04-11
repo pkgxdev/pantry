@@ -36,14 +36,23 @@ build:
         - ln -sf $HOME/.rustup/toolchains/*/bin/* .
       working-directory: $HOME/.cargo/bin
 
+    - run:
+        - export FFI_VER="3.2.0"
+        - export FFI_SYS_VER="2.3.0"
+      if: '>=2<2.2.9'
+    # https://github.com/denoland/deno/pull/28816/files
+    - run:
+        - export FFI_VER="4.0.0"
+        - export FFI_SYS_VER="3.2.0"
+      if: '>=2.2.9'
     # deno v2 uses libffi-sys; we need to vendor it to link our own libffi statically
     - run:
         - cargo vendor third-party
         - sed -i -f $PROP third-party/libffi-sys/build/not_msvc.rs
         - sed -i 's|libffi-sys = "\(.*\)"|libffi-sys = { version = "\1", features = ["system"] }|' Cargo.toml
         # changed in 2.2.3
-        - sed -i 's|libffi.workspace = true|libffi = "=3.2.0"|' Cargo.toml
-        - sed -i 's|libffi-sys.workspace = true|libffi-sys = { version = "=2.3.0", features = ["system"] }|' Cargo.toml
+        - sed -i "s|libffi.workspace = true|libffi = \"=${FFI_VER}\"|" Cargo.toml
+        - sed -i "s|libffi-sys.workspace = true|libffi-sys = { version = \"=${FFI_SYS_VER}\", features = [\"system\"] }|" Cargo.toml
         - EXTRA_ARGS="$EXTRA_ARGS --config patch.crates-io.libffi-sys.path='ext/ffi/third-party/libffi-sys'"
       prop: |
         s|println!("cargo:rustc-link-lib=dylib=ffi");|\
