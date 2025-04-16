@@ -13,7 +13,14 @@ provides:
 build:
   dependencies:
     go.dev: =1.22.0
-  script: go build -v -trimpath -ldflags="$GO_LDFLAGS" -o {{prefix}}/bin/weed ./weed
+  script:
+    # 3.86 shipped with the wrong version
+    - run: sed -i -f $PROP constants.go
+      working-directory: weed/util
+      prop: |
+        s/MAJOR_VERSION  = int32.*/MAJOR_VERSION  = int32({{version.major}})/
+        s/MINOR_VERSION  = int32.*/MINOR_VERSION  = int32({{version.minor}})/
+    - go build -v -trimpath -ldflags="$GO_LDFLAGS" -o {{prefix}}/bin/weed ./weed
   env:
     GO_LDFLAGS:
       - -s
@@ -25,4 +32,6 @@ build:
       GO_LDFLAGS:
         - -buildmode=pie
 
-test: weed version | grep {{version.tag}}
+test:
+  - weed version
+  - weed version | grep {{version.tag}}
