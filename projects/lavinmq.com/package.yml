@@ -22,6 +22,12 @@ build:
     # else fix-machos.rb fails
     - run: sed -i 's/--link-flags=-pie/--link-flags=-Wl,-pie,-headerpad_max_install_names/' Makefile
       if: darwin
+    # why is this a good idea? don't add users
+    - run: sed -i -f $PROP Makefile
+      prop: |
+        /useradd/s/^/#/g
+        s/-o lavinmq -g lavinmq//g
+      if: '>=2.3.0'
     - make -j {{hw.concurrency}} install $ARGS
   env:
     ARGS:
