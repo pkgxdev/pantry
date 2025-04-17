@@ -7,9 +7,10 @@ versions:
 
 build:
   dependencies:
-    go.dev: ^1.21
+    go.dev: ~1.18
   script:
-    go build $ARGS -ldflags="$LDFLAGS" ./cmd
+    - go mod tidy
+    - go build $ARGS -ldflags="$LDFLAGS" ./cmd
   env:
     ARGS:
       - -trimpath
@@ -21,7 +22,7 @@ build:
       - -s
       - -w
       - -X=main.Version={{version.tag}}
-  
+
 provides:
   - bin/talisman
 
