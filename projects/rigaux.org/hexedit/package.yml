@@ -18,9 +18,14 @@ build:
     make install
 
 test:
-  true
-  # FIXME: curses tool, no --version, --help is exit code 1
-  # hexedit -h
+  # hexedit -h shows usage and exits 1 (as noted in the previous FIXME).
+  # It's a curses tool, output checks are unreliable.
+  # Checking the documented exit code is the simplest robust test.
+  script:
+    # The `!` negates the exit status.
+    # This command succeeds if `hexedit -h` exits non-zero.
+    - run: "! hexedit -h >/dev/null 2>&1"
+
 
 provides:
   - bin/hexedit
