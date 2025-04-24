@@ -12,7 +12,12 @@ versions:
 build:
   script:
     # ISO C++17 does not allow 'register' storage class specifier
-    - run: sed -i 's/register //g' src/output.cc lib/getline.cc
+    - run: |
+        if test -f lib/getline.cc; then
+          sed -i 's/register //g' src/output.cc lib/getline.cc
+        else
+          sed -i 's/register //g' src/output.cc
+        fi
       if: linux
     - ./configure --prefix={{ prefix }}
     - make --jobs {{ hw.concurrency }} install
