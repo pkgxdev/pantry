@@ -24,6 +24,12 @@ build:
     - git add .
     - git commit -m "Initialize repository"
 
+    # python_rules has a whole thing (which lots of people are complaining about) where it
+    # refuses to run as root. docker doesn't much care, so...
+    - run: sed -i 's/ignore_root_user_error = ignore_root_user_error/ignore_root_user_error = True/' repositories_extra.bzl
+      working-directory: bazel
+      if: linux
+
     - bazel build $BAZEL_OPTS //source/exe:envoy-static.stripped
     - install -m 755 -D bazel-bin/source/exe/envoy-static.stripped {{prefix}}/bin/envoy
   env:
