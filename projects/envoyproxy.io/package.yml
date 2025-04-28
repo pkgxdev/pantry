@@ -1,8 +1,10 @@
 distributable:
-  url: https://github.com/envoyproxy/envoy/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/envoyproxy/envoy/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
+
 versions:
   github: envoyproxy/envoy
+
 build:
   dependencies:
     github.com/bazelbuild/bazelisk: '*'
@@ -10,34 +12,33 @@ build:
     cmake.org: '*'
     gnu.org/libtool: '*'
     ninja-build.org: '*'
-    llvm.org: '*'
+    linux:
+      gnu.org/gcc: '*' # doesn't like clang; missing `version` header
     python.org: '*'
     git-scm.org: '*'
   script:
-    - |
-      # Initialize Git repo as Bazel requires git for workspace status
-      git init
-      git config --global user.email "pkgx-build@example.com"
-      git config --global user.name "pkgx build"
-      git add .
-      git commit -m "Initialize repository"
-      
-      bazel build \
-        --compilation_mode=opt \
-        --curses=no \
-        --verbose_failures \
-        --define=wasm=disabled \
-        //source/exe:envoy-static.stripped
+    # Initialize Git repo as Bazel requires git for workspace status
+    - git init
+    - git config --global user.email "pkgx-build@example.com"
+    - git config --global user.name "pkgx build"
+    - git add .
+    - git commit -m "Initialize repository"
+    
+    - bazel build $BAZEL_OPTS //source/exe:envoy-static.stripped
     - install -m 755 -D bazel-bin/source/exe/envoy-static.stripped {{prefix}}/bin/envoy
   env:
     linux:
-      CC: clang
-      CXX: clang++
       BAZEL_LINKOPTS: "-lm"
       BAZEL_LINKLIBS: "-lstdc++ -lm"
+    BAZEL_OPTS:
+      - --compilation_mode=opt
+      - --curses=no
+      - --verbose_failures
+      - --define=wasm=disabled
+      
 provides:
   - bin/envoy
+
 test:
-  script:
-    - envoy --version | grep {{version}}
-    - envoy --help
+  - envoy --version | grep {{version}}
+  - envoy --help
