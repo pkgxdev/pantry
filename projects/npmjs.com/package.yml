@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/npm/cli/archive/refs/tags/v{{ version }}.tar.gz
+  url: https://github.com/npm/cli/archive/refs/tags/{{ version.tag }}.tar.gz
   strip-components: 1
 
 versions:
@@ -13,39 +13,36 @@ dependencies:
   nodejs.org: '*'
 
 build:
-  dependencies:
-    crates.io/semverator: '*'
-  script:
-    - |
-      if semverator satisfies '^8,>=9.4.2' {{ version }}; then
-        ARGS="--install-links"
-      fi
+  - run: ARGS="--install-links"
+    if: ^8 || >=9.4.2
 
-    # 9.8.0 removed the references to these modules.
-    - run: |
-        for MOD in ../workspaces/*; do
-          b=$(basename $MOD)
-          if test "${b#lib}" = "$b"; then
-            ln -s ../$MOD @npmcli/$b
-          else
-            ln -s $MOD .
-          fi
-        done
-      working-directory: node_modules
-      if: '>=9.8.0'
+  # 9.8.0 removed the references to these modules.
+  - run: |
+      for MOD in ../workspaces/*; do
+        b=$(basename $MOD)
+        if test "${b#lib}" = "$b"; then
+          ln -s ../$MOD @npmcli/$b
+        else
+          ln -s $MOD .
+        fi
+      done
+    working-directory: node_modules
+    if: '>=9.8.0'
 
-    - node . install --global --prefix={{prefix}} $ARGS
+  - node . install --global --prefix={{prefix}} $ARGS
 
-    # configures npm to install to ~/.local
-    - mv props/npmrc {{prefix}}/lib/node_modules/npm
+  # since January, npm warns on bad config names
+  - run: sed -i 's/update_notifier/update-notifier/' props/npmrc
+    if: '>=11.2'
 
-    # our shim fixes a bug where npx doesn’t work if ~/.local/lib doesn’t exist
-    - run: |
-        rm npx
-        mv $SRCROOT/props/npx-shim npx
+  # configures npm to install to ~/.local
+  - mv props/npmrc {{prefix}}/lib/node_modules/npm
 
-      working-directory:
-        ${{prefix}}/bin
+  # our shim fixes a bug where npx doesn’t work if ~/.local/lib doesn’t exist
+  - run:
+      - rm npx
+      - mv $SRCROOT/props/npx-shim npx
+    working-directory: ${{prefix}}/bin
 
 test:
   dependencies:
@@ -64,3 +61,8 @@ test:
     # verify install location is as we configure it
     - $HOME/.local/bin/cowsay xyz.tea.hi
 
+    - |
+      if npm --version 2>&1 | grep 'Unknown builtin config'; then
+        echo "warning remains; fail"
+        exit 1
+      fi
