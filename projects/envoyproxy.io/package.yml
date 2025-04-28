@@ -12,8 +12,16 @@ build:
     ninja-build.org: '*'
     llvm.org: '*'
     python.org: '*'
+    git-scm.org: '*'
   script:
     - |
+      # Initialize Git repo as Bazel requires git for workspace status
+      git init
+      git config --global user.email "pkgx-build@example.com"
+      git config --global user.name "pkgx build"
+      git add .
+      git commit -m "Initialize repository"
+      
       bazel build \
         --compilation_mode=opt \
         --curses=no \
