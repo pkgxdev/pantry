@@ -1,0 +1,35 @@
+distributable:
+  url: https://github.com/envoyproxy/envoy/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+versions:
+  github: envoyproxy/envoy
+build:
+  dependencies:
+    github.com/bazelbuild/bazelisk: '*'
+    gnu.org/automake: '*'
+    cmake.org: '*'
+    gnu.org/libtool: '*'
+    ninja-build.org: '*'
+    llvm.org: '*'
+    python.org: '*'
+  script:
+    - |
+      bazel build \
+        --compilation_mode=opt \
+        --curses=no \
+        --verbose_failures \
+        --define=wasm=disabled \
+        //source/exe:envoy-static.stripped
+    - install -m 755 -D bazel-bin/source/exe/envoy-static.stripped {{prefix}}/bin/envoy
+  env:
+    linux:
+      CC: clang
+      CXX: clang++
+      BAZEL_LINKOPTS: "-lm"
+      BAZEL_LINKLIBS: "-lstdc++ -lm"
+provides:
+  - bin/envoy
+test:
+  script:
+    - envoy --version | grep {{version}}
+    - envoy --help
