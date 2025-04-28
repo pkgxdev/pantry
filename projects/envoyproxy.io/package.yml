@@ -13,8 +13,8 @@ build:
     gnu.org/libtool: '*'
     ninja-build.org: '*'
     linux:
-      gnu.org/gcc: '*' # doesn't like clang; missing `version` header
-    python.org: '*'
+      llvm.org: '*'
+    python.org: ~3.12
     git-scm.org: '*'
   script:
     # Initialize Git repo as Bazel requires git for workspace status
@@ -23,19 +23,24 @@ build:
     - git config --global user.name "pkgx build"
     - git add .
     - git commit -m "Initialize repository"
-    
+
     - bazel build $BAZEL_OPTS //source/exe:envoy-static.stripped
     - install -m 755 -D bazel-bin/source/exe/envoy-static.stripped {{prefix}}/bin/envoy
   env:
     linux:
-      BAZEL_LINKOPTS: "-lm"
-      BAZEL_LINKLIBS: "-lstdc++ -lm"
+      BAZEL_LINKOPTS: '-lm'
+      BAZEL_LINKLIBS: '-lstdc++ -lm'
+      BAZEL_OPTS:
+        - --config=clang
+        - --copt=-Wno-thread-safety-reference-return
+        - --copt=-Wno-unused-but-set-variable
+        - --copt=-Wno-missing-template-arg-list-after-template-kw
     BAZEL_OPTS:
       - --compilation_mode=opt
       - --curses=no
       - --verbose_failures
       - --define=wasm=disabled
-      
+
 provides:
   - bin/envoy
 
