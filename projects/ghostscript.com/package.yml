@@ -31,9 +31,7 @@ build:
   script:
     - rm -rf expat freetype jbig2dec jpeg lcms2mt libpng openjpeg tiff zlib
     # ^^ ensure our libs are used and nothing is vendored
-    - run: |
-        sed -i.bak -e's/-mfpu=neon//g' tesseract/CMakeLists.txt tesseract/configure.ac configure.ac configure
-        rm tesseract/CMakeLists.txt.bak tesseract/configure.ac.bak configure.ac.bak configure.bak
+    - run: sed -i -e's/-mfpu=neon//g' tesseract/CMakeLists.txt tesseract/configure.ac configure.ac configure
       if: linux/aarch64
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
@@ -51,6 +49,10 @@ build:
       - --without-x
       - --without-versioned-path
     CFLAGS: $CFLAGS -Wno-int-conversion
+    linux:
+      # since 10.5.1
+      LDFLAGS:
+        - -lstdc++fs
 
 test: ps2ascii fixture.ps | grep 'Hello World!'
 
