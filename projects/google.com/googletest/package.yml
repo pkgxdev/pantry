@@ -24,7 +24,11 @@ build:
         - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-pie
 
 test:
-  - run: c++ $FIXTURE -std=c++14 -lgtest -lgtest_main -pthread
+  - run: STD="c++14"
+    if: <1.17
+  - run: STD="c++17"
+    if: '>=1.17'
+  - run: c++ $FIXTURE -std=$STD -lgtest -lgtest_main -pthread
     fixture:
       extname: c
       content: |
