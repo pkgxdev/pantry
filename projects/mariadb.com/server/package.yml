@@ -15,7 +15,7 @@ platforms:
 dependencies:
   sourceware.org/bzip2: ^1
   github.com/besser82/libxcrypt: ^4
-  gnome.org/libxml2: ~2.11
+  gnome.org/libxml2: '*' # sadly, varies by build, match our deps
   invisible-island.net/ncurses: ^6
   zlib.net: ^1
   openssl.org: ^1.1
@@ -50,31 +50,15 @@ build:
       if: '>=11.3.2'
 
     # -DINSTALL_* are relative to prefix
-    - cmake -S . -B build
-      -DCMAKE_INSTALL_PREFIX={{ prefix }}
-      -DMYSQL_DATADIR={{ prefix }}/var/mysql
-      -DINSTALL_SYSCONFDIR=etc
-      -DINSTALL_INCLUDEDIR=include/mysql
-      -DINSTALL_MANDIR=share/man
-      -DINSTALL_DOCDIR=share/doc/mariadb
-      -DINSTALL_INFODIR=share/info
-      -DINSTALL_MYSQLSHAREDIR=share/mysql
-      -DWITH_LIBFMT=bundled
-      -DWITH_SSL=system
-      -DWITH_UNIT_TESTS=OFF
-      -DDEFAULT_CHARSET=utf8mb4
-      -DDEFAULT_COLLATION=utf8mb4_general_ci
-      -DCOMPILATION_COMMENT=made_by_tea
-      -DPLUGIN_ROCKSDB=NO
+    - cmake -S . -B build $CMAKE_ARGS
 
     - cmake --build build
     - cmake --install build
 
     # Fix my.cnf to point to {{ prefix }}/etc instead of /etc
-    - run: |
-        mkdir my.cnf.d
-        sed -i.bak 's|!includedir /etc/my.cnf.d|!includedir {{ prefix }}/etc/my.cnf.d|' my.cnf
-        rm my.cnf.bak
+    - run:
+        - mkdir my.cnf.d
+        - sed -i 's|!includedir /etc/my.cnf.d|!includedir {{ prefix }}/etc/my.cnf.d|' my.cnf
       working-directory: ${{ prefix }}/etc
 
     # Link the setup script into bin
@@ -82,10 +66,9 @@ build:
       working-directory: ${{ prefix }}/bin
 
     # Fix up the control script and link into {{ bin }}
-    - run: |
-        sed -i.bak 's|\(PATH="\)|\1{{ prefix }}/bin:|' mysql.server
-        rm mysql.server.bak
-        ln -s ../support-files/mysql.server ../bin/
+    - run:
+        - sed -i 's|\(PATH="\)|\1{{ prefix }}/bin:|' mysql.server
+        - ln -s ../support-files/mysql.server ../bin/
       working-directory: ${{ prefix }}/support-files
 
     # Move sourced non-executable out of bin into libexec
@@ -93,14 +76,31 @@ build:
       working-directory: ${{ prefix }}/libexec
 
     # Fix up references to wsrep_sst_common
-    - run: |
-        sed -i.bak 's|$(dirname "$0")/wsrep_sst_common|$(dirname "$0")/../libexec/wsrep_sst_common|g' \
-          wsrep_sst_mysqldump \
-          wsrep_sst_rsync \
-          wsrep_sst_mariabackup
-        rm wsrep_sst_*.bak
+    - run:
+        sed -i 's|$(dirname "$0")/wsrep_sst_common|$(dirname "$0")/../libexec/wsrep_sst_common|g'
+        wsrep_sst_mysqldump
+        wsrep_sst_rsync
+        wsrep_sst_mariabackup
       working-directory: ${{ prefix }}/bin
   env:
+    CMAKE_ARGS:
+      - -DCMAKE_INSTALL_PREFIX={{ prefix }}
+      - -DMYSQL_DATADIR={{ prefix }}/var/mysql
+      - -DINSTALL_SYSCONFDIR=etc
+      - -DINSTALL_INCLUDEDIR=include/mysql
+      - -DINSTALL_MANDIR=share/man
+      - -DINSTALL_DOCDIR=share/doc/mariadb
+      - -DINSTALL_INFODIR=share/info
+      - -DINSTALL_MYSQLSHAREDIR=share/mysql
+      - -DWITH_LIBFMT=bundled
+      - -DWITH_SSL=system
+      - -DWITH_UNIT_TESTS=OFF
+      - -DDEFAULT_CHARSET=utf8mb4
+      - -DDEFAULT_COLLATION=utf8mb4_general_ci
+      - -DCOMPILATION_COMMENT=made_by_tea
+      - -DPLUGIN_ROCKSDB=NO
+      # for cmake4
+      - -DCMAKE_POLICY_VERSION_MINIMUM=3.5
     linux:
       CC: clang
       CXX: clang++
@@ -193,23 +193,22 @@ provides:
   - bin/wsrep_sst_rsync_wan
 
 test:
-  script:
-    - killall mysqld || true
-    - mkdir -p mysql tmp
-    # GHA runs as root
-    - run: |
-        if test "$(id -u)" = "0"; then
-          USER_ARG="--user=root"
-        fi
-    - mysql_install_db --no-defaults
-      $USER_ARG
-      --basedir={{ prefix }}
-      --datadir=$(pwd)/mysql
-      --tmpdir=$(pwd)/tmp
-      --auth-root-authentication-method=normal
-    - mysqld --no-defaults $USER_ARG --datadir=$(pwd)/mysql --port=3306 --tmpdir=$(pwd)/tmp &
-    - sleep 5
-    - mysql --port=3306 --user=root --password= --execute='show databases;'
-    - mysqladmin --port=3306 --user=root --password= shutdown
-    - sleep 5
-    - (ps aux | grep mysqld | grep -v grep) && exit 1 || exit 0
+  - killall mysqld || true
+  - mkdir -p mysql tmp
+  # GHA runs as root
+  - run: |
+      if test "$(id -u)" = "0"; then
+        USER_ARG="--user=root"
+      fi
+  - mysql_install_db --no-defaults
+    $USER_ARG
+    --basedir={{ prefix }}
+    --datadir=$(pwd)/mysql
+    --tmpdir=$(pwd)/tmp
+    --auth-root-authentication-method=normal
+  - mysqld --no-defaults $USER_ARG --datadir=$(pwd)/mysql --port=3306 --tmpdir=$(pwd)/tmp &
+  - sleep 5
+  - mysql --port=3306 --user=root --password= --execute='show databases;'
+  - mysqladmin --port=3306 --user=root --password= shutdown
+  - sleep 5
+  - (ps aux | grep mysqld | grep -v grep) && exit 1 || exit 0
