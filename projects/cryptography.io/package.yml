@@ -22,15 +22,18 @@ build:
     - python -m pip install --prefix={{prefix}} .
     - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
       working-directory: ${{prefix}}/lib
+  # Updated load commands do not fit in the header of /opt/cryptography.io/v44.0.3/lib/python3.11/site-packages/cryptography/hazmat/bindings/_rust.abi3.so.
+  # and there seems to be no good way to set the headerpad_max_install_names flag in the rust build,
+  # that I could find. It's all supposed to be statically linked, in any case.
+  skip: fix-machos
 
 test:
-  script:
-    - run: python $FIXTURE
-      fixture:
-        extname: py
-        content: |
-          from cryptography.fernet import Fernet
-          key = Fernet.generate_key()
-          f = Fernet(key)
-          token = f.encrypt(b"pkgx")
-          print(f.decrypt(token))
+  - run: python $FIXTURE
+    fixture:
+      extname: py
+      content: |
+        from cryptography.fernet import Fernet
+        key = Fernet.generate_key()
+        f = Fernet(key)
+        token = f.encrypt(b"pkgx")
+        print(f.decrypt(token))
