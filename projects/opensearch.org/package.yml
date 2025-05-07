@@ -8,15 +8,14 @@ versions:
   github: opensearch-project/OpenSearch
 
 dependencies:
-  openjdk.org: ^17
+  openjdk.org: ^21 # since v3
   openmp.llvm.org: ^17
 
 build:
   dependencies:
-    cmake.org: '*'
+    cmake.org: 3
     git-scm.org: '*'
     gnu.org/wget: '*'
-    openjdk.org: ^17
     gnu.org/gcc: ^12 # for gfortran
     linux:
       # on mac we use the Accelerate framework instead, on linux this is linked statically
@@ -64,7 +63,6 @@ build:
 
     - run:
         - sed -i -f $PROP jni/CMakeLists.txt jni/cmake/*.cmake
-        - sed -i -e 's/pragma message WARN/pragma message /g' jni/external/nmslib/similarity_search/src/distcomp_scalar.cc
         - export CC=clang
         - export CXX=clang++
       prop: |
@@ -74,11 +72,14 @@ build:
       working-directory: k-NN
 
     # this is recommended in https://github.com/opensearch-project/k-NN/blob/45e9e542aef60ef7073ee726e6ac14dec27bfa04/scripts/build.sh#L91-L94
-    - run: sed -i -e 's/-march=native/-march=x86-64/g' CMakeLists.txt
+    - run: |
+        if test "{{hw.arch}}" = "x86-64"; then
+          sed -i -e 's/-march=native/-march=x86-64/g' CMakeLists.txt
+        fi
       working-directory: k-NN/jni/external/nmslib/similarity_search
-      if: x86-64
+      if: ^2
     - run:
-        - cmake . --fresh
+        - cmake .
         - make
       working-directory: k-NN/jni
     - run: |
