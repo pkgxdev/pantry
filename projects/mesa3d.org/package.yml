@@ -121,7 +121,11 @@ build:
         - -Dvalgrind=disabled
         - -Dtools=drm-shim,etnaviv,freedreno,glsl,nir,nouveau,lima
       # https://gitlab.freedesktop.org/mesa/mesa/-/issues/8003#note_1781344
-      LDFLAGS: $LDFLAGS -Wl,--undefined-version
+      LDFLAGS:
+        - -Wl,--undefined-version
+        # since v25.1.0
+        # ld.lld: error: undefined symbol: std::filesystem::create_directory(std::filesystem::__cxx11::path const&)
+        - -Wl,-lstdc++fs
 
 test:
   dependencies:
