@@ -26,7 +26,7 @@ companions:
 build:
   dependencies:
     python.org: ~3.10 # node-gyp doesn't like later pythons
-    pnpm.io: 9.15.4
+    pnpm.io: =9.15.7
     curl.se: '*'
     gnu.org/patch: '*'
     gnu.org/sed: '*' # otherwise, weird path issues
@@ -42,6 +42,11 @@ build:
       working-directory: packages/plugin-pyth-data
       if: linux
     - pnpm install
+
+    # needs to find the module in the pnpm cache
+    - run: pnpm add pnpm@9.15.7 --global
+      if: '>=0.25.19'
+
     - pnpm run build
     # adapted from their Dockerfile
     - run:
@@ -91,6 +96,14 @@ build:
         # start the client
         pnpm start:client
   skip: fix-patchelf # takes 4+ hours
+  env:
+    # required since 0.25.19 to use the pnpm module inside the build
+    darwin:
+      PNPM_HOME: ~/Library/pnpm
+      PATH: ~/Library/pnpm:$PATH
+    linux:
+      PNPM_HOME: ~/.local/share/pnpm
+      PATH: ~/.local/share/pnpm:$PATH
 
 test:
   # we could start the server and client, test the api, but that's a lot of work
