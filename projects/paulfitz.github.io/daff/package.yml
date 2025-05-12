@@ -7,14 +7,17 @@ provides:
   - bin/daff
 
 dependencies:
-  python.org: '>=3.7<3.12'
+  pkgx.sh: ^1
 
 build:
   dependencies:
+    python.org: '>=3.7<3.12'
     pip.pypa.io: '*'
   script:
     - 'pip download --no-deps --no-binary :all: --dest . daff=={{version}}'
     - tar zxvf daff-{{version}}.tar.gz --strip-components=1
-    - python-venv.py {{prefix}}/bin/daff
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} daff
 
 test: test "$(daff version)" = "{{ version }}"
