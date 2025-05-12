@@ -8,7 +8,7 @@ versions:
   github: expo/eas-cli
 
 dependencies:
-  nodejs.org: ~18
+  nodejs.org: ^18.18 || >=20
 
 build:
   dependencies:
@@ -18,6 +18,12 @@ build:
       gnu.org/gcc: '*'
   script:
     - mkdir -p "{{prefix}}"
+
+    # missed version bump
+    - run: |
+        sed -i '1,10s/"version": ".*"/"version": "{{version}}"/' package.json
+      working-directory: packages/eas-cli
+
     - yarn install
 
     # `build-ci` not present in v6
@@ -42,5 +48,6 @@ provides:
 test:
   - eas
   - eas --help
+  - eas --version
   - eas --version | grep "{{version}}"
   - eas autocomplete zsh
