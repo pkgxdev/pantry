@@ -1,12 +1,7 @@
-distributable:
-  url: https://files.pythonhosted.org/packages/0e/fc/82796c10545f3df9882566c79debac28b664e3a3a08fdb493ac3cc418709/daff-{{version}}.tar.gz
-  strip-components: 1
+distributable: ~
 
 versions:
   github: paulfitz/daff/tags
-  ignore:
-    - /1.3.4[789]/
-    - /1.3.[56789]/
 
 provides:
   - bin/daff
@@ -15,9 +10,11 @@ dependencies:
   python.org: '>=3.7<3.12'
 
 build:
-  script: |
-    python-venv.py {{prefix}}/bin/daff
+  dependencies:
+    pip.pypa.io: '*'
+  script:
+    - 'pip download --no-deps --no-binary :all: --dest . daff=={{version}}'
+    - tar zxvf daff-{{version}}.tar.gz --strip-components=1
+    - python-venv.py {{prefix}}/bin/daff
 
-test:
-  script: |
-    test "$(daff version)" = "{{ version }}"
+test: test "$(daff version)" = "{{ version }}"
