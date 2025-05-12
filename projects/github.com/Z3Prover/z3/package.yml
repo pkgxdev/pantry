@@ -6,14 +6,20 @@ versions:
   github: Z3Prover/z3
   strip: /z3-/
 
+dependencies:
+  linux:
+    gnu.org/gcc/libstdcxx: 14
+
 build:
   dependencies:
     cmake.org: ^3
     python.org: '>=3<3.12'
+    linux:
+      gnu.org/gcc: 14
   working-directory: build
-  script: |
-    cmake .. $ARGS
-    make --jobs {{hw.concurrency}} install
+  script:
+    - cmake .. $ARGS
+    - make --jobs {{hw.concurrency}} install
   env:
     ARGS:
       - -DZ3_LINK_TIME_OPTIMIZATION=ON
@@ -29,6 +35,8 @@ build:
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
       - -DCMAKE_BUILD_TYPE=Release
       - -DCMAKE_INSTALL_PYTHON_PKG_DIR={{prefix}}/lib/python
+      # since 4.15.0
+      - -DCMAKE_CXX_STANDARD=20
 
 runtime:
   env:
@@ -41,20 +49,23 @@ test:
   dependencies:
     gnu.org/wget: '*'
     python.org: ~3.11
-  script: |
-    wget https://raw.githubusercontent.com/Z3Prover/z3/master/examples/c/test_capi.c
-    cc -lz3 test_capi.c
+  script:
+    - wget https://raw.githubusercontent.com/Z3Prover/z3/master/examples/c/test_capi.c
+    - cc -lz3 test_capi.c
 
     # FIXME: this fails on ubuntu-latest
     # BUG: incorrect use of Z3.
     # Error code: 12
-    test "{{hw.platform}}+{{hw.arch}}" != "linux+x86-64" &&
-    ./a.out
+    - |
+      if test "{{hw.platform}}+{{hw.arch}}" != "linux+x86-64"; then
+        ./a.out
+      fi
 
     # FIXME: this fails on linux-aarch64, for some reason
     # /tmp/ffb7372b/xyz.tea.test.sh: line 27: 55494 Aborted \
     #    python -c 'import z3; print(z3.get_version_string())'
-    if "{{hw.platform}}+{{hw.arch}}" != "linux+aarch"; then
-      v="$(python -c 'import z3; print(z3.get_version_string())')"
-      test "$v" = {{version}}
-    fi
+    - |
+      if "{{hw.platform}}+{{hw.arch}}" != "linux+aarch"; then
+        v="$(python -c 'import z3; print(z3.get_version_string())')"
+        test "$v" = {{version}}
+      fi
