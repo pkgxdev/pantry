@@ -1,0 +1,46 @@
+distributable:
+  url: git+https://github.com/astral-sh/ty
+  ref: ${{version.tag}}
+
+versions:
+  github: astral-sh/ty/tags
+  transform: v => v.replace(/-alpha/, '')
+
+dependencies:
+  pkgx.sh: 1
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.60'
+    rust-lang.org/cargo: '*'
+    python.org: ~3.13
+    maturin.rs: '*'
+    git-scm.org: '*'
+  script:
+    - git submodule update --init --recursive
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} ty
+
+provides:
+  - bin/ty
+
+test:
+  - ty help
+  - ty version
+  - run: ty check $FIXTURE
+    fixture:
+      extname: py
+      content: |
+        def main():
+            print("Hello, World!")
+        if __name__ == "__main__":
+            main()
+  - run: (ty check $FIXTURE || true) | grep unsupported-operator
+    fixture:
+      extname: py
+      content: a = 10 + "test"
+  - run: ty check $FIXTURE
+    fixture:
+      extname: py
+      content: 'a = 10 + "test" # ty: ignore[unsupported-operator]'
