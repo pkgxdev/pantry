@@ -9,6 +9,7 @@ dependencies:
   zlib.net: ^1
   openssl.org: ^1.1
   info-zip.org/unzip: ^6
+  mesa3d.org: ^23
   linux:
     freeglut.sourceforge.io: ^3
     freedesktop.org/mesa-glu: ^9
@@ -17,7 +18,6 @@ dependencies:
     x.org/xcursor: ^1
     x.org/xinerama: ^1
     x.org/xrandr: ^1
-    mesa3d.org: ^23
     gnome.org/glib: ^2
     x.org/xtrans: ^1
 
@@ -26,7 +26,7 @@ build:
     git-scm.org: '*'
   script:
     - git submodule update --init --recursive
-    - make prefix={{prefix}} install
+    - make prefix={{prefix}} $MAKE_OPTS install
     - run: ln -s mutool mudraw
       working-directory: ${{prefix}}/bin
   env:
@@ -34,14 +34,17 @@ build:
     CXX: clang++
     LD: clang
     AS: llvm-as
+    darwin:
+      MAKE_OPTS:
+        # it's looking for X11 stuff on macOS since 1.26.0, oddly
+        - OS=Darwin
 
 provides:
+  - bin/mudraw
   - bin/mupdf-gl
-  - bin/muraster
   - bin/mutool
 
 test:
-  script:
-    # - mupdf-gl -v | grep {{version}}
-    - (muraster -v 2>&1 || true) | grep {{version}}
-    - mudraw -F txt test.pdf | grep 'pkgx test'
+  # - mupdf-gl -v | grep {{version}}
+  # - (muraster -v 2>&1 || true) | grep {{version}}
+  - mudraw -F txt test.pdf | grep 'pkgx test'
