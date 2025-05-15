@@ -1,0 +1,32 @@
+distributable:
+  url: https://github.com/pyinvoke/invoke/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: pyinvoke/invoke/tags
+
+dependencies:
+  pkgx.sh: ^1
+
+build:
+  dependencies:
+    python.org: ^3.13.3
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} invoke
+
+provides:
+  - bin/invoke
+
+test:
+  - invoke --version | grep "^Invoke {{version}}"
+  - run: cp $FIXTURE tasks.py
+    fixture: |
+      from invoke import task
+
+      @task
+      def hello(c):
+          print("Hello, world!")
+  - invoke hello
+  - invoke hello | grep "Hello, world!"
