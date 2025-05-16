@@ -1,44 +1,30 @@
 distributable:
-  url: https://github.com/lucianosrp/rye-uv/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/lucianosrp/rye-uv/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
   github: lucianosrp/rye-uv
-  strip: /v/
+
+companions:
+  astral.sh/uv: '*'
 
 build:
   dependencies:
-    rust-lang.org: ">=1.65"
-    rust-lang.org/cargo: "*"
+    rust-lang.org: '>=1.65'
+    rust-lang.org/cargo: '*'
   script: cargo install --path . --root {{prefix}}
 
 provides:
   - bin/rye-uv
 
 test:
-  dependencies:
-    astral.sh/uv: "*"
-  script:
-    - run: cp $FIXTURE pyproject.toml
-      fixture: |
+  - run: rye-uv $FIXTURE
+    fixture:
+      extname: toml
+      content: |
         [tool.rye]
         foo = "bar"
         lock-with-sources = true
-
-        [tool.rye.universal]
-        enabled = true
-
-        [tool.rye.generate-hashes]
+        universal = true
         generate-hashes = false
-
-        [tool.rye.virtual]
         virtual = true
-
-    - run: ls -lash
-    - run: cat pyproject.toml
-    - run: rye-uv ./pyproject.toml
-    - run: grep '[tool.rye]' pyproject.toml
-    - run: grep '[tool.rye.universal]' pyproject.toml
-    - run: grep '[tool.rye.generate-hashes]' pyproject.toml
-    - run: grep '[tool.rye.lock-with-sources]' pyproject.toml
-    - run: grep '[tool.rye.virtual]' pyproject.toml
