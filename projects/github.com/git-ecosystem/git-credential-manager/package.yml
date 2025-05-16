@@ -1,0 +1,61 @@
+distributable:
+  url: https://github.com/git-ecosystem/git-credential-manager/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/git-credential-manager
+
+versions:
+  github: git-ecosystem/git-credential-manager/tags
+
+dependencies:
+  openssl.org: ^1.1.1
+  unicode.org: ^71
+  zlib.net: ^1.3
+  dotnet.microsoft.com: ^8.0
+
+companions:
+  git-scm.org: '*'
+
+build:
+  dependencies:
+    git-scm.org: ^2.27.0
+    kerberos.org: ^1.21.3
+    linux:
+      gnu.org/gcc: '>=12'
+  script:
+    - dotnet build ${CSPROJ}
+      -p:InstallFromSource=true
+      -p:installPrefix={{prefix}}
+      --no-self-contained
+      --configuration=${CONFIGURATION}
+      --runtime=${RUNTIME}
+
+    # installPrefix only seems to work for linux/x86-64
+    # on darwin, it installs nothing
+    # on linux/aarch64, it installs linux/x86-64 binaries
+    # for some reason.
+    - run:
+        - rm -rf {{prefix}}
+        - mkdir -p {{prefix}}/bin
+        - cp -aR * {{prefix}}/bin
+      if: darwin || linux/aarch64
+      working-directory: out/shared/Git-Credential-Manager/bin/${CONFIGURATION}/net8.0/${RUNTIME}
+  env:
+    DOTNET_CLI_TELEMETRY_OPTOUT: 1
+    linux:
+      CSPROJ: src/linux/Packaging.Linux/*.csproj
+      CONFIGURATION: LinuxRelease
+    linux/x86-64:
+      RUNTIME: linux-x64
+    linux/aarch64:
+      RUNTIME: linux-arm64
+    darwin:
+      CSPROJ: src/osx/Installer.Mac/*.csproj
+      CONFIGURATION: MacRelease
+    darwin/x86-64:
+      RUNTIME: osx-x64
+    darwin/aarch64:
+      RUNTIME: osx-arm64
+
+test: git-credential-manager --version | grep {{version}}
