@@ -1,0 +1,30 @@
+distributable:
+  url: https://github.com/lucianosrp/rye-uv/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: lucianosrp/rye-uv
+
+companions:
+  astral.sh/uv: '*'
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.65'
+    rust-lang.org/cargo: '*'
+  script: cargo install --path . --root {{prefix}}
+
+provides:
+  - bin/rye-uv
+
+test:
+  - run: rye-uv $FIXTURE
+    fixture:
+      extname: toml
+      content: |
+        [tool.rye]
+        foo = "bar"
+        lock-with-sources = true
+        universal = true
+        generate-hashes = false
+        virtual = true
