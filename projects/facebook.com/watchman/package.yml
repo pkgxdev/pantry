@@ -93,6 +93,7 @@ build:
     CMAKE_ARGS:
       - -DCMAKE_INSTALL_PREFIX="{{prefix}}
       - -DCMAKE_INSTALL_LIBDIR=lib
+      - -DBUILD_SHARED_LIBS=OFF
       - -DCMAKE_BUILD_TYPE=Release
       - -DCMAKE_FIND_FRAMEWORK=LAST
       - -DCMAKE_VERBOSE_MAKEFILE=ON
@@ -113,7 +114,9 @@ build:
         - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-pie,-lstdc++
     darwin:
       CMAKE_ARGS:
-        - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-dead_strip_dylibs
+        # added -static for 2025.04.28 to remove:
+        # ERROR: something wrong with flag 'thrift_cpp2_protocol_reader_string_limit' in file '/Users/builder/actions-runner/_work/pantry/pantry/builds/facebook.com__fbthrift-2025.4.28.0/thrift/lib/cpp2/protocol/BinaryProtocol.cpp'.  One possibility: file '/Users/builder/actions-runner/_work/pantry/pantry/builds/facebook.com__fbthrift-2025.4.28.0/thrift/lib/cpp2/protocol/BinaryProtocol.cpp' is being linked both statically and dynamically into this executable.
+        - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-dead_strip_dylibs,-static
 
 runtime:
   env:
