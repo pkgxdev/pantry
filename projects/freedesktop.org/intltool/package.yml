@@ -22,10 +22,12 @@ build:
   dependencies:
     cpanmin.us: '*'
   script:
-    - cpanm -l {{prefix}} XML::Parser File::Basename Getopt::Long --force
+    - cpanm -l {{prefix}} XML::Parser File::Basename Getopt::Long --force --verbose
     - ./configure $ARGS
     - make --jobs {{hw.concurrency}} install
     - run: fix-shebangs.ts *
+      working-directory: '{{prefix}}/bin'
+    - run: sed -i 's/\+brewing//g' intltoolize
       working-directory: '{{prefix}}/bin'
   env:
     PERL5LIB: ${{prefix}}/lib/perl5:{{prefix}}/libexec/lib/perl5:$PERL5LIB
