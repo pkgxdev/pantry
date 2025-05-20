@@ -1,0 +1,27 @@
+distributable: ~
+
+versions:
+  url: https://pypi.org/project/tinybird-cli/#history
+  match: /tinybird-cli\/\d+\.\d+\.\d+\//
+  strip:
+    - /^tinybird-cli\//
+    - /\//
+
+dependencies:
+  pkgx.sh: ^1
+
+build:
+  dependencies:
+    python.org: ^3
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install tinybird-cli=={{version}}
+    - bkpyvenv seal {{prefix}} tb
+
+provides:
+  - bin/tb
+
+test:
+  - tb --help
+  - tb --version
+  - tb --version | grep 'tb, version {{version}}'
