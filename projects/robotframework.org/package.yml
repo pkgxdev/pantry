@@ -1,0 +1,44 @@
+distributable: ~
+
+versions:
+  github: robotframework/robotframework
+
+dependencies:
+  pkgx.sh: ^1
+
+build:
+  dependencies:
+    python.org: ^3
+    rust-lang.org: ^1.56
+    certifi.io/python-certifi: '*'
+    cryptography.io: '*'
+    libsodium.org: '*'
+  script:
+    - 'pip download --no-deps --no-binary :all: --dest . robotframework=={{version}}'
+    - tar zxvf robotframework-{{version}}.tar.gz --strip-components=1
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} robot
+
+provides:
+  - bin/robot
+
+test:
+  - run: cp $FIXTURE HelloWorld.robot
+    fixture: |
+      *** Settings ***
+      Library         HelloWorld.py
+
+      *** Test Cases ***
+      HelloWorld
+          Hello World
+  - run: cp $FIXTURE HelloWorld.py
+    fixture: |
+      def hello_world():
+          print("HELLO WORLD!")
+  - robot HelloWorld.robot
+  - run: cp $FIXTURE HelloWorld.py
+    fixture: |
+      def hello_world():
+          throw("YOU SUCK!")
+  - if robot HelloWorld.robot; then echo "Test failed"; exit 1; fi
