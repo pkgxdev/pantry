@@ -1,6 +1,8 @@
 distributable:
-  url: https://opendev.org/opendev/git-review/archive/{{version}}.tar.gz
-  strip-components: 1
+  ~
+  # Their git repo stopped responding to https requests. :/
+  # url: https://opendev.org/opendev/git-review/archive/{{version}}.tar.gz
+  # strip-components: 1
 
 versions:
   url: https://opendev.org/api/v1/repos/opendev/git-review/tags
@@ -16,6 +18,8 @@ build:
   dependencies:
     python.org: ^3
   script:
+    - 'pip download --no-deps --no-binary :all: --dest . git_review=={{version}}'
+    - tar zxvf git_review-{{version}}.tar.gz --strip-components=1
     - bkpyvenv stage {{prefix}} {{version}}
     - ${{prefix}}/venv/bin/pip install .
     - run: ${{prefix}}/venv/bin/pip install setuptools
@@ -41,4 +45,4 @@ test:
     - touch .git/hooks/commit-msg
     - chmod +x .git/hooks/commit-msg
     - git commit --message "Test commit" --allow-empty
-    - git-review --dry-run main | tee /dev/stderr | grep -q -w 'git push'
+    - git-review --dry-run main | tee /dev/stderr | grep -q -w -E 'git +push'
