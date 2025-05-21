@@ -12,9 +12,9 @@ function main {
 
   printf 'Package directory %s\n' ${package_path}
 
-  install -v -D ${package_etc_path}/glauth/${environment_file} ${system_etc_path}/glauth/${environment_file}
-  install -v -D ${package_etc_path}/glauth/${config_file} ${system_etc_path}/glauth/${config_file}
-  install -v -D ${package_etc_path}/systemd/system/${service_systemd_file} ${system_etc_path}/systemd/system/${service_systemd_file}
+  install -v -D "${package_etc_path}/glauth/${environment_file}" "${system_etc_path}/glauth/${environment_file}"
+  install -v -D "${package_etc_path}/glauth/${config_file}" "${system_etc_path}/glauth/${config_file}"
+  install -v -D "${package_etc_path}/systemd/system/${service_systemd_file}" "${system_etc_path}/systemd/system/${service_systemd_file}"
 }
 
 main
