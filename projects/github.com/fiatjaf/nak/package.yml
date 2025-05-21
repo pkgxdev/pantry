@@ -27,5 +27,10 @@ build:
 
 test:
   - test "$(nak --version)" = "nak version v{{version}}"
+  # needs hints.bg to be created
+  - run:
+      - mkdir -p ~/.config/nak/outbox
+      - touch ~/.config/nak/outbox/hints.bg
+    if: '>=0.14'
   - nak event > out
   - nak verify <out
