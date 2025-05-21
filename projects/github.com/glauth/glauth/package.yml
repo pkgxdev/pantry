@@ -17,6 +17,11 @@ build:
     linux:
       linux-pam.org: 1.5.3
   env:
+    GLAUTH_SETUP_SCRIPT: setup.bash
+    GLAUTH_README_FILE: README.md
+    GLAUTH_CONFIG_FILE: glauth.toml
+    GLAUTH_SERVICE_ENVIRONMENT_FILE: glauth.env
+    GLAUTH_SERVICE_SYSTEMD_FILE: glauth.service
     CGO_ENABLED: 1
     linux:
       LIB_SUFFIX: so
@@ -99,7 +104,15 @@ build:
                  ./pkg/plugins/${plugin}/${SRC_FILE}
 
             done
+    - working-directory: props
+      run:
+        - |
 
+            install -D -m +x ${GLAUTH_SETUP_SCRIPT} {{prefix}}/bin/glauth-setup
+            install -D ${GLAUTH_README_FILE} {{prefix}}/doc/${GLAUTH_README_FILE}
+            install -D ${GLAUTH_CONFIG_FILE} {{prefix}}/etc/glauth/${GLAUTH_CONFIG_FILE} 
+            install -D ${GLAUTH_SERVICE_ENVIRONMENT_FILE} {{prefix}}/etc/glauth/${GLAUTH_SERVICE_ENVIRONMENT_FILE} 
+            install -D ${GLAUTH_SERVICE_SYSTEMD_FILE} {{prefix}}/etc/systemd/system/${GLAUTH_SERVICE_SYSTEMD_FILE}
 provides:
   - bin/glauth
 
