@@ -20,10 +20,15 @@ build:
     gnome.org/gobject-introspection: 1
     python.org: '>=3<3.12' #FIXME rq’d by gnome.org/gobject-introspection but should be added by tea-env
   working-directory: build
-  script: |
-    meson .. $ARGS
-    ninja --verbose
-    ninja install
+  script:
+    - meson .. $ARGS
+    - ninja --verbose
+    - ninja install
+    - run:
+        - mv harfbuzz/* .
+        - rmdir harfbuzz
+        - ln -s . harfbuzz
+      working-directory: ${{prefix}}/include
   env:
     ARGS:
       - --prefix={{prefix}}
