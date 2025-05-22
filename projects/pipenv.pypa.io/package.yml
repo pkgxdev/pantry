@@ -1,10 +1,9 @@
 distributable:
-  url: https://github.com/pypa/pipenv/archive/refs/tags/v{{ version }}.tar.gz
+  url: https://github.com/pypa/pipenv/archive/refs/tags/{{ version.tag }}.tar.gz
   strip-components: 1
 
 versions:
-  github: pypa/pipenv/releases/tags
-  strip: /^v/
+  github: pypa/pipenv
 
 companions:
   pip.pypa.io: '*'
@@ -20,18 +19,23 @@ build:
     - bkpyvenv stage {{prefix}} {{version}}
     - ${{prefix}}/venv/bin/pip install .
     - bkpyvenv seal {{prefix}} pipenv
+    # bring in libpython for linux
+    - run: cp -a {{deps.python.org.prefix}}/lib/libpython* .
+      if: linux
+      working-directory: ${{prefix}}/lib
 
     # create exec scripts for pipenv so it can auto install and use the pythons it wants
     - working-directory: ${{prefix}}/bin
-      run: |
-        v=3.6
-        vMax=3.12  #FIXME determine dynamically or even script this in the shim
-        while semverator lt $v $vMax; do
-          v=$(semverator bump $v minor | cut -d. -f1,2)
-          echo '#!/bin/sh' > python$v
-          echo "exec pkgx python~$v \"\$@\"" >> python$v
-          chmod +x python$v
-        done
+      run:
+        - v=3.6
+        - vMax=3.13 #FIXME determine dynamically or even script this in the shim
+        - |
+          while semverator lt $v $vMax; do
+            v=$(semverator bump $v minor | cut -d. -f1,2)
+            echo '#!/bin/sh' > python$v
+            echo "exec pkgx python~$v \"\$@\"" >> python$v
+            chmod +x python$v
+          done
 
 runtime:
   env:
@@ -41,19 +45,23 @@ test:
   - pipenv --version
   - pipenv --version 2>&1 | grep {{version}}
 
-  # changed to python3.8; 3.7 generates a lockfile resolver error
-  - run: |
-      source <(pkgx +python@3.8)
-      pipenv --python 3.8
-      pipenv --verbose install pycowsay
-      pipenv run pycowsay "Hello World"
+  # changed to python3.9; 3.7/8 generate a lockfile resolver error
+  - run:
+      - source <(pkgx +python@3.9)
+      # fixes loading libpython on linux
+      - echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH" > .env
+      - pipenv --python 3.9
+      - pipenv --verbose install pycowsay
+      - pipenv run pycowsay "Hello World"
     working-directory: a
 
-  - run: |
-      source <(pkgx +python@3.10)
-      pipenv --python 3.10
-      pipenv install pycowsay
-      pipenv run pycowsay "Hello World"
+  - run:
+      - source <(pkgx +python@3.10)
+      # fixes loading libpython on linux
+      - echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH" > .env
+      - pipenv --python 3.10
+      - pipenv install pycowsay
+      - pipenv run pycowsay "Hello World"
     working-directory: b
 
 provides:
