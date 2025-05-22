@@ -24,12 +24,24 @@ build:
     PATH: $HOME/.local/bin:$PATH
 
 test:
-  script:
-    - watchexec --version | grep 'watchexec {{version}}'
-    - watchexec -w bar touch foo &
-    - PID=$!
-    - test ! -f foo
-    - touch bar
-    - sleep 3
-    - test -f foo
-    - kill $PID
+  - watchexec --version | grep 'watchexec {{version}}'
+  # in case of orphans
+  - (killall watchexec; sleep 11) || true
+  - run: watchexec -w bar touch foo &
+    if: <2.3
+  - run:
+      - touch bar
+      - (watchexec -p -w bar --poll 1s touch foo 2>&1 | tee out.log ) &
+    if: '>=2.3'
+  - PID=$!
+  - sleep 3
+  - test ! -f foo
+  - touch bar
+  - sleep 15
+  - |
+    if test ! -f foo; then
+      echo "watchexec did not trigger"
+      cat out.log
+      exit 1
+    fi
+  - kill $PID

@@ -6,7 +6,7 @@ versions:
   npm: code-server
 
 dependencies:
-  nodejs.org: ~20.6 # requires ^20, before .6 there were napi issues, and .14 also manifests
+  nodejs.org: 20 # requires ^20, before .6 there were napi issues, and .14 also manifests
   linux:
     gnome.org/libsecret: ^0.21
     x.org/x11: ^1.8
@@ -19,16 +19,14 @@ build:
     python.org: '>=3.11'
   script:
     - npm i $ARGS .
-    - run: ln -s ../libexec/bin/code-server code-server
+    - npm i -ddd --unsafe-perm $PKGS
+    - run: cp -a $SRCROOT/* .
+      working-directory: '{{prefix}}/libexec'
+    - run: ln -s ../libexec/out/node/entry.js code-server
       working-directory: '{{prefix}}/bin'
-    - npm i -ddd --global --unsafe-perm --prefix={{prefix}}/libexec --install-links $PKGS
   env:
     ARGS:
       - -ddd
-      - --global
-      - --build-from-source
-      - --prefix={{prefix}}/libexec
-      - --install-links
       - --unsafe-perm
       - --legacy-peer-deps
       - --omit=dev
@@ -37,16 +35,33 @@ build:
       - minimist
       - '@vscode/spdlog'
       - yauzl
+    CXXFLAGS:
+      - -DNODE_API_EXPERIMENTAL_NOGC_ENV_OPT_OUT
     linux:
       CC: clang
       CXX: clang++
       LD: clang
-      CXXFLAGS: $CXXFLAGS -D__NO_INLINE__
+      CXXFLAGS:
+        - -D__NO_INLINE__
 
 provides:
   - bin/code-server
 
 test:
-  - code-server --version | grep {{version}}
-  - code-server --extensions-dir=. --install-extension wesbos.theme-cobalt2
-  - code-server --extensions-dir=. --list-extensions | grep wesbos.theme-cobalt2
+  dependencies:
+    curl.se: '*'
+    pkgx.sh: 1
+  script:
+    - code-server --version | grep {{version}}
+    # this is broken after their massive changes in 4.95
+    - run:
+        - code-server --extensions-dir=. --install-extension ms-python.python -vvv
+        - code-server --extensions-dir=. --list-extensions | grep ms-python.python
+      if: <4.95
+    - code-server &
+    - PID=$!
+    - sleep 5
+    - curl http://localhost:$PORT/login
+    - kill $PID
+  env:
+    PORT: $(pkgx get-port | tail -n1)

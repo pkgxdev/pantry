@@ -11,6 +11,7 @@ dependencies:
   gnu.org/gmp: '>=4.2'
   gnu.org/mpfr: '>=2.4.0'
   gnu.org/mpc: '>=0.8.0'
+  zlib.net: ^1.3
 
 build:
   dependencies:
@@ -21,6 +22,8 @@ build:
     gnu.org/patch: '*'
     curl.se: '*'
     github.com/westes/flex: '*'
+    darwin/x86-64: # since 15.1.0
+      libisl.sourceforge.io: ^0
   working-directory: build
   script:
     # Applying ians patches on x86-64 too, since he sometimes gets fixes in faster, like:
@@ -76,11 +79,13 @@ build:
     BRANCH133: https://github.com/iains/gcc-13-branch/archive/refs/heads/gcc-13-3-darwin-pre-0.tar.gz
     BRANCH141: https://github.com/iains/gcc-14-branch/archive/refs/heads/gcc-14-1-darwin-pre-0.tar.gz
     BRANCH142: https://github.com/iains/gcc-14-branch/archive/refs/heads/gcc-14-2-darwin-pre-0.tar.gz
+    BRANCH151: https://github.com/iains/gcc-15-branch/archive/refs/heads/gcc-15-1-darwin-rc1.tar.gz
     ARGS:
       - --prefix={{ prefix }}
       - --libdir={{ prefix }}/lib
       - --disable-bootstrap
       - --disable-nls
+      - --with-system-zlib
     linux:
       ARGS:
         - --disable-multilib
@@ -88,9 +93,14 @@ build:
         - --enable-pie-tools
         - --enable-host-pie
     linux/x86-64:
-      LDFLAGS: $LDFLAGS -pie
-      CFLAGS: $CFLAGS -fPIC -fPIE
-      CXXFLAGS: $CXXFLAGS -fPIC -fPIE
+      LDFLAGS:
+        - -pie
+      CFLAGS:
+        - -fPIC
+        - -fPIE
+      CXXFLAGS:
+        - -fPIC
+        - -fPIE
     darwin:
       ARGS:
         # Reliance on CLT hard path is yuck.
@@ -105,9 +115,12 @@ build:
       # llvm-as generates __compact_unwind sections, even when told not to. this causes build errors
       # for ^10 on darwin+x86-64
       # https://stackoverflow.com/questions/52211390/trouble-building-gcc-on-mac-cant-find-system-headers
-      BOOT_CFLAGS: -Wa,-mmacos-version-min=10.5
-      CFLAGS_FOR_TARGET: -Wa,-mmacos-version-min=10.5
-      and CXXFLAGS_FOR_TARGET: -Wa,-mmacos-version-min=10.5
+      BOOT_CFLAGS:
+        - -Wa,-mmacos-version-min=10.5
+      CFLAGS_FOR_TARGET:
+        - -Wa,-mmacos-version-min=10.5
+      CXXFLAGS_FOR_TARGET:
+        - -Wa,-mmacos-version-min=10.5
 
 test:
   env:

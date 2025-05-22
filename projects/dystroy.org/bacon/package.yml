@@ -1,0 +1,21 @@
+distributable:
+  url: https://github.com/Canop/bacon/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/bacon
+
+versions:
+  github: Canop/bacon
+
+dependencies:
+  linux:
+    alsa-project.org/alsa-lib: '*'
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path . --root {{prefix}}
+
+test: test "$(bacon --version)" = "bacon {{version}}"

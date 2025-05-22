@@ -1,0 +1,36 @@
+distributable:
+  # this is PR#14, which fixes an api regex
+  url: https://github.com/spencerkimball/stargazers/archive/85d187742259496f1ef3a22be966d0fbc831d916.tar.gz
+  strip-components: 1
+
+versions:
+  # github: spencerkimball/stargazers
+  - 0.0.0
+
+provides:
+  - bin/stargazers
+
+build:
+  dependencies:
+    # this project is 8 years old, so lets use our oldest go version
+    go.dev: ^1.16.15
+  script:
+    # doesn't ship with a go.mod file, so we need to create one
+    # but we use test -f to avoid creating a go.mod file if it already exists
+    - test -f go.mod || go mod init github.com/spencerkimball/stargazers
+    - go mod tidy
+    - go build -v -trimpath -ldflags="$GO_LDFLAGS" -o '{{prefix}}/bin/stargazers' .
+  env:
+    GO_LDFLAGS:
+      - -s
+      - -w
+    linux:
+      # or segmentation fault
+      # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
+      GO_LDFLAGS:
+        - -buildmode=pie
+
+test:
+  # we'll use a small repo for the test
+  - stargazers fetch --repo=jhheider/semverator --token=$GITHUB_TOKEN
+  - stargazers analyze --repo=jhheider/semverator

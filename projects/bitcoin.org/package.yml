@@ -21,12 +21,22 @@ build:
     gnu.org/automake: ^1
     freedesktop.org/pkg-config: ^0.29
     gnu.org/libtool: ^2
+    cmake.org: ^3.22
+    ninja-build.org: '*'
     linux:
       gnu.org/gcc: '*' # c++20 support and libc++
   script:
-    - ./autogen.sh
-    - ./configure $ARGS
-    - make --jobs {{ hw.concurrency }} install
+    - run:
+        - ./autogen.sh
+        - ./configure $ARGS
+        - make --jobs {{ hw.concurrency }} install
+      if: <29
+    - run:
+        - cmake -B . -S .. $CMAKE_ARGS
+        - cmake --build .
+        - cmake --install . --prefix {{prefix}}
+      working-directory: build
+      if: '>=29'
   env:
     linux:
       LDFLAGS: $LDFLAGS -lstdc++fs
@@ -35,6 +45,17 @@ build:
       - --disable-debug
       - --disable-tests # needs: `hexedit`
       - --disable-bench # fails: linux/aarch64/v24.0.1
+    CMAKE_ARGS:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DBUILD_TESTS=OFF
+      - -DBUILD_BENCH=OFF
+      - -Wno-dev
+      - -GNinja
+      - -DBoost_INCLUDE_DIR={{deps.boost.org.prefix}}/include
+      - -DBUILD_TX=ON
+      - -DBUILD_UTIL=ON
+      - -DBUILD_WALLET_TOOL=ON
 
 provides:
   - bin/bitcoin-cli

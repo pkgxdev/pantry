@@ -5,23 +5,45 @@ distributable:
 versions:
   github: libsdl-org/SDL/releases
 
+dependencies:
+  linux:
+    # all since v3.2.0
+    x.org/x11: '*'
+    x.org/xcursor: '*'
+    x.org/xi: '*'
+    x.org/xrandr: '*'
+    x.org/xfixes: '*'
+    x.org/xrender: '*'
+    x.org/xscrnsaver: '*'
+    x.org/exts: '*'
+
 build:
   dependencies:
-    freedesktop.org/pkg-config: ~0.29
     gnu.org/autoconf: '*'
     gnu.org/automake: '*'
     gnu.org/libtool: 2
+    cmake.org: ^3
   script:
-    - |
-      ./configure $ARGS
-      make --jobs {{ hw.concurrency }} install
+    - run:
+        - ./configure $ARGS
+        - make --jobs {{ hw.concurrency }} install
+      if: <3.2
+    - run:
+        - cmake -S .. $CMAKE_ARGS
+        - cmake --build .
+        - cmake --install .
+      if: '>=3.2'
+      working-directory: build
 
     # often stuff expects SDL.h to be directly in the include-path
-    - run: |
-        mv SDL2/* .
-        rmdir SDL2
-        ln -s . SDL2
+    - run:
+        - mv SDL{{version.major}}/* .
+        - rmdir SDL{{version.major}}
+        - ln -s . SDL{{version.major}}
       working-directory: ${{prefix}}/include
+
+    - run: find . -name '*.la' -exec rm -f {} \;
+      working-directory: '{{prefix}}/lib'
 
   env:
     ARGS:
@@ -41,9 +63,34 @@ build:
       - --enable-video-x11-xrandr
       - --enable-video-x11-xshape
       - --enable-x11-shared
-
-provides:
-  - bin/sdl2-config
+    CMAKE_ARGS:
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
+      - -DCMAKE_BUILD_TYPE=Release
+      - -Wno-dev
+      - -DSDL_INSTALL=ON
+      - -DSDL_HIDAPI=ON
+      - -DSDL_PULSEAUDIO=ON
+      - -DSDL_PULSEAUDIO_SHARED=ON
+      - -DSDL_DUMMYVIDEO=ON
+      - -DSDL_OPENGL=ON
+      - -DSDL_OPENGLES=ON
+      - -DSDL_X11=ON
+      - -DSDL_X11_XSCRNSAVER=ON
+      - -DSDL_X11_XCURSOR=ON
+      - -DSDL_X11_XINPUT=ON
+      - -DSDL_X11_XRANDR=ON
+      - -DSDL_X11_XSHAPE=ON
+      - -DSDL_X11_SHARED=ON
 
 test:
-  sdl2-config --version
+  - run: cc $FIXTURE -o test -lSDL{{version.major}}
+    fixture:
+      extname: c
+      content: |
+        #include <SDL.h>
+        int main() {
+          SDL_Init(SDL_INIT_VIDEO);
+          SDL_Quit();
+          return 0;
+        }
+  - ./test

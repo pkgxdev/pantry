@@ -14,6 +14,7 @@ build:
     rust-lang.org: ^1.65
     rust-lang.org/cargo: '*'
     mozilla.org/cbindgen: '*'
+    github.com/lu-zero/cargo-c: '*' # as of 0.15.0
   script:
     - make DESTDIR={{prefix}}
     - make DESTDIR={{prefix}} install
@@ -40,13 +41,18 @@ test:
         - -framework Foundation
     TESTFILES:
       - client.c
+      - client.h # since 0.15.0, 404 won't break anything
       - common.c
       - common.h
     CA_FILE: $SSL_CERT_FILE
   script:
+    - run: URL="https://raw.githubusercontent.com/rustls/rustls-ffi/{{ version.tag }}/tests"
+      if: <0.15
+    - run: URL="https://raw.githubusercontent.com/rustls/rustls-ffi/{{ version.tag }}/librustls/tests"
+      if: '>=0.15'
     - |
       for file in $TESTFILES; do
-        curl -O https://raw.githubusercontent.com/rustls/rustls-ffi/v{{ version }}/tests/$file
+        curl -O $URL/$file
       done
     - cc client.c common.c -o client $ARGS
     - ./client pkgx.dev 443 /

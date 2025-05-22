@@ -41,6 +41,14 @@ build:
       working-directory: thrift/compiler/whisker
       if: linux/aarch64
 
+    # fmt::fmt is duplicated from folly on macOS
+    - run: |
+        if test -f FindFmt.cmake; then
+          sed -i 's/add_library(fmt::fmt UNKNOWN IMPORTED)/#&/' FindFmt.cmake
+        fi
+      working-directory: thrift/cmake
+      if: darwin
+
     # llvm's `as` likes to be first, wrongly
     - run: export PATH={{deps.gnu.org/binutils.prefix}}/bin:$PATH
       if: linux
@@ -73,6 +81,14 @@ build:
         - -DCMAKE_C_FLAGS=-fPIC
         - -DCMAKE_CXX_FLAGS=-fPIC
         - -DCMAKE_EXE_LINKER_FLAGS=-pie
+    darwin:
+      CXXFLAGS:
+        # based on https://github.com/facebook/fbthrift/issues/607
+        # trying to track an issue in watchman
+        - -fno-assume-unique-vtables
+      CMAKE_ARGS:
+        - -DCMAKE_SHARED_LINKER_FLAGS=-Wl,-undefined,dynamic_lookup,-dead_strip_dylibs
+        - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-dead_strip_dylibs
 
 provides:
   - bin/thrift1

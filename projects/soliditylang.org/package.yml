@@ -10,7 +10,9 @@ provides:
   - bin/yul-phaser
 
 dependencies:
-  boost.org: ^1.70
+  boost.org: ~1.84
+  linux:
+    gnu.org/gcc/libstdcxx: 14
 
 interprets:
   extensions: sol
@@ -18,11 +20,9 @@ interprets:
 
 build:
   dependencies:
-    linux/aarch64:
-      # Prevents ld.lld: error: relocation R_AARCH64_ABS64 cannot be used against local symbol; recompile with -fPIC
-      llvm.org: '<15'
+    linux:
+      gnu.org/gcc: 14
     cmake.org: 3
-    freedesktop.org/pkg-config: ^0.29
     gnu.org/patch: '*'
   working-directory: build
   script:
@@ -38,13 +38,12 @@ build:
 
     - run: rm {{prefix}}/bin/solidity-upgrade
       if: <0.8.18
-  test:
-    make test
+  test: make test
   env:
     ARGS:
-    - -DCMAKE_BUILD_TYPE=Release
-    - -DCMAKE_INSTALL_PREFIX={{prefix}}
-    - -DPEDANTIC=OFF  # otherwise fails due to deprecations in boost ^1.81
-    - -DSTRICT_Z3_VERSION=OFF # otherwise complains about Z3 version in cmake
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DPEDANTIC=OFF # otherwise fails due to deprecations in boost ^1.81
+      - -DSTRICT_Z3_VERSION=OFF # otherwise complains about Z3 version in cmake
 
 test: solc --bin fixture.sol

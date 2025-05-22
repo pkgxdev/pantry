@@ -19,14 +19,14 @@ build:
     gnu.org/patch: '*'
     gnu.org/bison: ^3
     gnu.org/autoconf: '*'
-    rust-lang.org: ^1  # required to build YJIT
+    rust-lang.org: ^1 # required to build YJIT
     linux:
       ruby-lang.org: ^3 # ruby requires ruby to build
       # ^^ only linux because we got issues on darwin currently and darwin provides ruby (for now)
   script:
     - patch -p1 -F5 < props/mkconfig.rb.diff
 
-    - ./configure $ARGS
+    - CC=cc CXX=c++ ./configure $ARGS
 
     # clang17 doesn't like [[maybe_unused]] on types
     # fix cribbed from https://github.com/ruby/ruby/pull/4603/commits/fbdff085ef3c8a56e0a33404e8795879e3167549
@@ -79,10 +79,21 @@ build:
     # weirdly files get put here and we can't figure out how to stop it
     - run: |
         if test -d pkgconfig; then rm -rf pkgconfig; fi
-        mv *-{{hw.platform}}*/* .
-        rmdir *-{{hw.platform}}*
+        if test -d *-{{hw.platform}}* ; then
+          mv *-{{hw.platform}}*/* .
+          rmdir *-{{hw.platform}}*
+        fi
       working-directory: ${{prefix}}/lib
       if: '>=2.6'
+    - run: |
+        if test *-{{hw.platform}}*/bin/ruby ; then
+          unlink bin/ruby
+          mv *-{{hw.platform}}*/bin/ruby bin/ruby
+          rmdir *-{{hw.platform}}*/bin
+          rmdir *-{{hw.platform}}*
+        fi
+      working-directory: ${{prefix}}
+      if: '>=3.4'
 
     - run: sed -i
         -e 's|$(DESTDIR){{prefix}}|$(topdir)|g'
@@ -95,16 +106,16 @@ build:
     CFLAGS: $CFLAGS -Wno-implicit-function-declaration
     ARGS:
       - --prefix="{{prefix}}"
-      - --enable-load-relative  # makes us relocatable
+      - --enable-load-relative # makes us relocatable
       - --without-gmp
-      - --with-rubyarchprefix={{prefix}}/lib/ruby  # no need for architecture specific crap
-      - --with-rubyhdrdir={{prefix}}/include       # ^^
-      - --with-rubyarchhdrdir={{prefix}}/include   # ^^
-      - --disable-multiarch                        # ^^
-      - --with-vendordir=no     # is empty so don’t pollute
+      - --with-rubyarchprefix={{prefix}}/lib/ruby # no need for architecture specific crap
+      - --with-rubyhdrdir={{prefix}}/include # ^^
+      - --with-rubyarchhdrdir={{prefix}}/include # ^^
+      - --disable-multiarch # ^^
+      - --with-vendordir=no # is empty so don’t pollute
       - --with-vendorarchdir=no # ^^
-      - --with-sitearchdir=no   # ^^
-      - --enable-yjit  # https://github.com/pkgxdev/pantry/issues/3538
+      - --with-sitearchdir=no # ^^
+      - --enable-yjit # https://github.com/pkgxdev/pantry/issues/3538
       - --disable-install-doc
 
 test:

@@ -1,0 +1,42 @@
+distributable:
+  url: https://www.x.org/archive/individual/lib/libXScrnSaver-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://www.x.org/archive/individual/lib/
+  match: /libXScrnSaver-\d+\.\d+\.\d+.tar.gz/
+  strip:
+    - /libXScrnSaver-/
+    - /.tar.gz/
+
+dependencies:
+  x.org/x11: ^1
+  x.org/protocol: '*'
+  x.org/exts: '*'
+
+build:
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+    - run: find . -name "*.la" -exec rm -f {} \;
+      working-directory: '{{prefix}}/lib'
+  env:
+    SHELF: ${{pkgx.prefix}}/x.org
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --sysconfdir="$SHELF"/etc
+      - --localstatedir="$SHELF"/var
+      - --enable-spec=no
+
+test:
+  - run: cc $FIXTURE
+    fixture:
+      extname: c
+      content: |
+        #include "X11/extensions/scrnsaver.h"
+
+        int main(int argc, char* argv[]) {
+          XScreenSaverNotifyEvent event;
+          return 0;
+        }
+  - ./a.out

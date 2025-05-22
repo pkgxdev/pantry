@@ -25,16 +25,16 @@ dependencies:
   unicode.org: ^71
   gnu.org/libiconv: ^1
   kerberos.org: ^1
-  gnome.org/libxml2: '>=2.9.0<2.12'
+  gnome.org/libxml2: '*' # varies by version, match our deps
   thrysoee.dk/editline: ^3
-  sourceware.org/libffi: '>=3.0.11'
-  gnome.org/libxslt: '>=1.1.0'
-  gnu.org/gcc: 14
+  sourceware.org/libffi: '>=3.4.7'
+  gnome.org/libxslt: '>=1.1.0<1.1.43' # changed xmlCtxtParseDocument behavior
   libpng.org: ^1
   google.com/webp: ^1
   ijg.org: ^9
   gnu.org/sed: ^4 # phpize requires this
   openldap.org: ^2 # since 8.1.31, 8.2.26, 8.3.14, 8.4.0
+  gnu.org/gcc/libstdcxx: 14
   darwin:
     sourceware.org/bzip2: ^1
     zlib.net: ^1
@@ -44,6 +44,7 @@ build:
     freetype.org: '*'
     darwin:
       tukaani.org/xz: '*'
+    gnu.org/libtool: '*'
 
   script:
     # this is annoying. install-pear-nozlib.phar relies on finding /usr/bin/cpp.
@@ -69,25 +70,23 @@ build:
         fi
       if: linux
 
-    - run: |
-        sed -i.bak \
-            -e's|^prefix=.*|prefix="$(dirname "$(dirname "$0")")"|g' \
-            -e's|^datarootdir=.*|datarootdir="${prefix}/share"|g' \
-            -e's|^ini_path=.*|ini_path="${prefix}/etc"|g' \
-            -e's|^extension_dir='\''{{prefix}}\(.*\)'\''|extension_dir="${prefix}\1"|g' \
-            -e's|^SED=.*|SED="$(dirname "$(dirname "$(dirname "$(dirname "$0")")")")/gnu.org/sed/v4/bin/sed"|g' \
-            -e's|#{{prefix}}#|#$(dirname "$(dirname "$0")")#|g' \
-            -e's|{{pkgx.prefix}}|${prefix}/../..|g' \
-            php-config \
-            phpize
-        rm php-config.bak phpize.bak
+    - run:
+        - sed -i
+          -e's|^prefix=.*|prefix="$(dirname "$(dirname "$0")")"|g'
+          -e's|^datarootdir=.*|datarootdir="${prefix}/share"|g'
+          -e's|^ini_path=.*|ini_path="${prefix}/etc"|g'
+          -e's|^extension_dir='\''{{prefix}}\(.*\)'\''|extension_dir="${prefix}\1"|g'
+          -e's|^SED=.*|SED="$(dirname "$(dirname "$(dirname "$(dirname "$0")")")")/gnu.org/sed/v4/bin/sed"|g'
+          -e's|#{{prefix}}#|#$(dirname "$(dirname "$0")")#|g'
+          -e's|{{pkgx.prefix}}|${prefix}/../..|g'
+          php-config
+          phpize
 
-        fix-shebangs.ts "{{prefix}}/bin/phar"
+        - fix-shebangs.ts "{{prefix}}/bin/phar"
 
-        sed -i.bak \
-            -e's|{{prefix}}|$(dirname "$(dirname "$0")")|g' \
-            pear peardev pecl
-        rm pear.bak peardev.bak pecl.bak
+        - sed -i
+          -e's|{{prefix}}|$(dirname "$(dirname "$0")")|g'
+          pear peardev pecl
       working-directory: ${{prefix}}/bin
   env:
     ARGS:
@@ -138,6 +137,9 @@ build:
     linux:
       LDFLAGS: -Wl,-rpath,{{pkgx.prefix}}
     darwin:
+      CC: clang
+      CXX: clang++
+      LD: /usr/bin/ld
       # ... we need to link with headerpad...
       LDFLAGS: -Wl,-rpath,{{pkgx.prefix}},-headerpad_max_install_names
       ARGS:
@@ -146,6 +148,13 @@ build:
         - --with-zip
         - --enable-dtrace
         - --with-ldap-sasl
+    darwin/x86-64:
+      # causes libtool to:
+      # <unknown>:0: error: invalid CFI advance_loc expression
+      CFLAGS:
+        - -fno-sanitize=all
+      CXXFLAGS:
+        - -fno-sanitize=all
 
 provides:
   - bin/pear
@@ -157,6 +166,6 @@ provides:
   - bin/phpdbg
   - bin/phpize
 
-test: |
-  php --version | grep {{ version }}
-  php -r 'echo "Hello World!\n";'
+test:
+  - php --version | grep {{ version }}
+  - php -r 'echo "Hello World!\n";'

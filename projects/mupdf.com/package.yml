@@ -9,7 +9,16 @@ dependencies:
   zlib.net: ^1
   openssl.org: ^1.1
   info-zip.org/unzip: ^6
+  github.com/google/brotli: ^1
+  freetype.org: ^2
+  harfbuzz.org: ^9
+  mujs.com: ^1
+  openjpeg.org: ^2
+  jbig2dec.com: ^0
+  darwin:
+    libarchive.org: ^3
   linux:
+    mesa3d.org: ^23
     freeglut.sourceforge.io: ^3
     freedesktop.org/mesa-glu: ^9
     x.org/protocol: '>=2022'
@@ -17,7 +26,6 @@ dependencies:
     x.org/xcursor: ^1
     x.org/xinerama: ^1
     x.org/xrandr: ^1
-    mesa3d.org: ^23
     gnome.org/glib: ^2
     x.org/xtrans: ^1
 
@@ -26,22 +34,59 @@ build:
     git-scm.org: '*'
   script:
     - git submodule update --init --recursive
-    - make prefix={{prefix}} install
-    - run: ln -s mutool mudraw
+    - run:
+        - for x in $(ls); do
+        - if test "$x" = "extract"; then continue; fi
+        - if test "$x" = "lcms2"; then continue; fi
+        - if test "$x" = "gumbo-parser"; then continue; fi
+        - rm -rf "$x"
+        - done
+      working-directory: thirdparty
+    - run:
+        # preserve quoting
+        - declare -a DARWIN_ARGS
+        - DARWIN_ARGS=(
+          SYS_FREETYPE_CFLAGS="$(pkg-config --cflags freetype2)"
+          SYS_FREETYPE_LIBS="$(pkg-config --libs freetype2)"
+          SYS_HARFBUZZ_CFLAGS="$(pkg-config --cflags harfbuzz)"
+          SYS_HARFBUZZ_LIBS="$(pkg-config --libs harfbuzz)"
+          )
+      if: darwin
+    - make $ARGS "${DARWIN_ARGS[@]}" install
+    - run: ln -sf mutool mudraw
       working-directory: ${{prefix}}/bin
+    - run:
+        - install_name_tool -change build/shared-release/libmupdf.dylib @loader_path/../lib/libmupdf.dylib bin/mutool
+        - install_name_tool -change build/shared-release/libmupdf.dylib @loader_path/../lib/libmupdf.dylib bin/mupdf-gl
+        # broken symlink
+        - rm lib/libmupdf.dylib
+        - cp $SRCROOT/build/shared-release/libmupdf.dylib lib/
+      working-directory: ${{prefix}}
+      if: darwin
   env:
     CC: clang
     CXX: clang++
     LD: clang
     AS: llvm-as
+    CPATH: '$SRCROOT/thirdparty/gumbo-parser/src:$CPATH'
+    linux:
+      LDFLAGS: $LDFLAGS -Wl,-allow-shlib-undefined
+    darwin:
+      LDFLAGS: $LDFLAGS -Wl,-undefined,dynamic_lookup
+    ARGS:
+      - prefix={{prefix}}
+      - build=release
+      - shared=yes
+      - verbose=yes
+      - USE_SYSTEM_LIBS=yes
+      - USE_SYSTEM_MUJS=yes
 
 provides:
+  - bin/mudraw
   - bin/mupdf-gl
-  - bin/muraster
   - bin/mutool
 
 test:
-  script:
-    # - mupdf-gl -v | grep {{version}}
-    - (muraster -v 2>&1 || true) | grep {{version}}
-    - mudraw -F txt test.pdf | grep 'pkgx test'
+  # - mupdf-gl -v | grep {{version}}
+  # - (muraster -v 2>&1 || true) | grep {{version}}
+  - mudraw -F txt test.pdf | grep 'pkgx test'

@@ -1,0 +1,39 @@
+distributable:
+  url: https://github.com/ali77gh/bake-rs/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/bake
+
+versions:
+  github: ali77gh/bake-rs
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path cli --root {{prefix}}
+
+test:
+  - bake --version | grep '{{version}}'
+  - run: cp $FIXTURE bakefile.yaml
+    fixture: |
+      tasks:
+        - name: hello
+          commands:
+            - echo hello
+
+        - name: env-test
+          envs:
+            - name: PORT
+              validator: integer
+          commands:
+            - echo $PORT
+  - bake hello
+  - bake hello | grep '^hello$'
+  - bake env-test --non-interactive
+  - bake env-test --non-interactive | grep 'failed to run'
+  - PORT=eight-thousand bake env-test
+  - PORT=eight-thousand bake env-test | grep 'variable validation error'
+  - PORT=8000 bake env-test
+  - PORT=8000 bake env-test | grep '^8000$'

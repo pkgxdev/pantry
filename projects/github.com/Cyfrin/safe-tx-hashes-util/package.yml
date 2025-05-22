@@ -1,0 +1,29 @@
+distributable:
+  url: https://github.com/Cyfrin/safe-tx-hashes-util/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: Cyfrin/safe-tx-hashes-util
+
+companions:
+  getfoundry.sh: 1
+  stedolan.github.io/jq: '*'
+  curl.se: '*'
+
+dependencies:
+  gnu.org/bash: '>=4'
+  gnu.org/gcc/libstdcxx: 14 # solc wants GLIBCXX_3.4.26
+
+provides:
+  - bin/safe_hashes
+
+build: install -Dm755 safe_hashes.sh {{prefix}}/bin/safe_hashes
+
+test:
+  dependencies:
+    gnu.org/sed: '*'
+  script:
+    - curl -O https://raw.githubusercontent.com/Cyfrin/safe-tx-hashes/refs/tags/{{ version.tag }}/test.sh
+    - chmod +x test.sh
+    - sed -i 's|\./safe_hashes.sh|safe_hashes|' test.sh
+    - ./test.sh

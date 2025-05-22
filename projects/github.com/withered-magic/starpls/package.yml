@@ -1,0 +1,33 @@
+distributable:
+  url: https://github.com/withered-magic/starpls/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: withered-magic/starpls
+
+build:
+  dependencies:
+    github.com/bazelbuild/bazelisk: '*'
+  script:
+    - bazel build -c opt --experimental_convenience_symlinks=normal --action_env=BAZEL_DO_NOT_DETECT_CPP_TOOLCHAIN=1 //crates/starpls
+    - install -Dm755 bazel-bin/crates/starpls/starpls {{prefix}}/bin/starpls
+
+provides:
+  - bin/starpls
+
+test:
+  dependencies:
+    github.com/bazelbuild/bazelisk: '*'
+  fixture: |
+    def test():
+      return "hello world"
+  script:
+    - starpls version | grep {{version}}
+    - touch MODULE.bazel
+    - cp $FIXTURE test.bzl
+    - starpls check test.bzl
+    # Add an invalid line to test error handling
+    - echo "invalid" >> test.bzl
+    # Verify that the command fails, and error message points to the correct line
+    - "! starpls check test.bzl"
+    - (starpls check test.bzl 2>&1 || true) | grep "test.bzl:3"

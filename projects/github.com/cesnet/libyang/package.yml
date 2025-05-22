@@ -6,17 +6,14 @@ display-name: libyang
 
 versions:
   github: CESNET/libyang
-  strip: /^v/
 
 dependencies:
-  pcre.org/v2: '*'
+  pcre.org/v2: '>=10.21'
 
 build:
   dependencies:
     graphviz.org: '*'
-    freedesktop.org/pkg-config: '*' 
     doxygen.nl: '*'
-    gnu.org/gcc: '*'
     cmake.org: ^3
   working-directory: build
   script:
@@ -24,13 +21,60 @@ build:
     - make
     - make install
   env:
-    CC: gcc
     ARGS:
-    - -DCMAKE_BUILD_TYPE=Release
-    - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
 
 provides:
   - bin/yanglint
   - bin/yangre
 
-test: test "$(yangre --version|cut -d' ' -f2)" = {{version}}
+test:
+  - test "$(yangre --version|cut -d' ' -f2)" = {{version}}
+  - run: yanglint $FIXTURE
+    fixture:
+      extname: yang
+      content: |
+        module moddefault {
+          namespace "urn:yanglint:moddefault";
+          prefix md;
+
+          container mdc {
+            leaf lf {
+              type uint16;
+            }
+            leaf di {
+              type int16;
+              default "5";
+            }
+            leaf ds {
+              type string;
+              default "str";
+            }
+          }
+
+        }
+  - run:
+      - (yanglint $FIXTURE || true) 2>&1 | grep 'Invalid character sequence'
+    fixture:
+      extname: xml
+      content: |
+        module moddefault {
+          namespace "urn:yanglint:moddefault";
+          prefix md;
+
+          container mdc {
+            leaf lf {
+              type uint16;
+            }
+            leaf di {
+              type int16;
+              default "5";
+            }
+            leaf ds {
+              type string;
+              default str";
+            }
+          }
+
+        }

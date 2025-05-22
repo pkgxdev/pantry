@@ -1,0 +1,22 @@
+distributable:
+  url: https://github.com/xd009642/tarpaulin/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/cargo-tarpaulin
+
+versions:
+  github: xd009642/tarpaulin
+
+companions:
+  rust-lang.org/cargo: '*'
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path . --root {{prefix}}
+
+test:
+  - test "$(cargo-tarpaulin --version)" = "tarpaulin {{ version }}"
+  - cargo tarpaulin --help

@@ -5,9 +5,6 @@ distributable:
 provides:
   - bin/spider
 
-dependencies:
-  openssl.org: ^1.1
-
 versions:
   github: spider-rs/spider
 
@@ -15,6 +12,15 @@ build:
   dependencies:
     rust-lang.org: '>=1.56'
     rust-lang.org/cargo: '*'
-  script: cargo install --locked --path spider_cli --root {{prefix}} --features smart
+  script:
+    # needs openssl 3 on linux, but our rust locks us to 1.1.1
+    - run: sed -f $PROP -i Cargo.toml
+      working-directory: spider_cli
+      if: linux
+      prop: |
+        /^serde_json =/a\
+        openssl-sys = { version = "*", features = ["vendored"] }
+    - cargo install --path spider_cli --root {{prefix}} --features smart
+  skip: fix-patchelf # dumps on x86-64
 
 test: spider -v --url https://choosealicense.com crawl

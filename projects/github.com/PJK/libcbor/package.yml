@@ -1,19 +1,18 @@
 distributable:
-  url: https://github.com/PJK/libcbor/archive/refs/tags/v{{ version }}.tar.gz
+  url: https://github.com/PJK/libcbor/archive/refs/tags/{{ version.tag }}.tar.gz
   strip-components: 1
 
 versions:
   github: PJK/libcbor
-  strip: /^v/
 
 build:
   dependencies:
     cmake.org: 3
-  working-directory: build
-  script: |
-    cmake .. $ARGS
-    make --jobs {{ hw.concurrency }}
-    make install
+  working-directory: build.dir
+  script:
+    - cmake .. $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
   env:
     ARGS:
       - -DCMAKE_BUILD_TYPE=Release

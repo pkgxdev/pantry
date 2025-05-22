@@ -7,8 +7,12 @@ versions:
 
 build:
   dependencies:
-    go.dev: ^1.21
-  script: go build $ARGS -ldflags="$GO_LDFLAGS" ./cmd/daytona
+    go.dev: =1.23.5
+  script:
+    - run: go build $ARGS -ldflags="$GO_LDFLAGS" ./cmd/daytona
+      if: <0.100
+    - run: go build $ARGS -ldflags="$GO_LDFLAGS" ./apps/cli
+      if: '>=0.100'
   env:
     ARGS:
       - -trimpath
@@ -20,16 +24,23 @@ build:
       - -s
       - -w
       - -X github.com/daytonaio/daytona/internal.Version={{version}}
+      # since 0.100
+      - -X github.com/daytonaio/daytona-ai-saas/cli/internal.Version={{version}}
 
 provides:
   - bin/daytona
 
 test:
+  - daytona version
   - daytona version | grep {{version}}
-  - daytona help | grep 'Daytona is a Dev Environment Manager'
+  - daytona help
+  - run: daytona help | grep 'Daytona is a Dev Environment Manager'
+    if: <0.100
+  - run: daytona help | grep 'Command line interface for Daytona Sandboxes'
+    if: '>=0.100'
   - run: daytona completion bash | grep '__daytona_init_completion'
     if: <0.23
   - run: daytona profile add -n test -k test -a https://localhost
-    if: '>=0.39.0'
+    if: '>=0.39.0<0.100'
   - run: daytona autocomplete bash | grep 'Autocomplete script generated and injected successfully.'
     if: '>=0.23'

@@ -9,14 +9,19 @@ versions:
 
 build:
   dependencies:
-    go.dev: ^1.21
+    go.dev: ~1.23.0
     nodejs.org: ^21
     npmjs.com: ^10
   script:
-    - run: |
-        npm install
-        npm run build
+    - run:
+        - npm install
+        - npm run build
       working-directory: ui
+    - run:
+        - npm install
+        - npm run build
+      working-directory: agent/agentUi
+      if: ^1
     - mkdir -p "{{prefix}}/bin"
     - go build -o "{{prefix}}/bin" ./...
 

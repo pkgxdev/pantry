@@ -11,9 +11,12 @@ provides:
 dependencies:
   python.org: '<3.12'
 
+runtime:
+  env:
+    PYTHONPATH: '{{prefix}}/venv/lib/python3.11/site-packages:$PYTHONPATH'
+
 build:
-  script: |
-    python-venv.py {{prefix}}/bin/cython
+  script: python-venv.py {{prefix}}/bin/cython
   dependencies:
     pip.pypa.io: '*'
 
@@ -21,7 +24,7 @@ test:
   dependencies:
     llvm.org: '*'
   env:
-    PYTHONPATH: "{{prefix}}/venv/lib/python3.11/site-packages"
+    PYTHONPATH: '{{prefix}}/venv/lib/python3.11/site-packages'
     linux:
       CC: clang
       AS: llvm-as

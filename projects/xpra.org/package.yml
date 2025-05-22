@@ -52,11 +52,13 @@ dependencies:
   gnome.org/pango: '*'
 
 build:
-  - bkpyvenv stage {{prefix}} {{version}}
-  - ${{prefix}}/venv/bin/pip install .
-  - bkpyvenv seal {{prefix}} xpra
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install cython
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} xpra
 
 provides:
   - bin/xpra
 
-test: xpra --version | grep -q "{{version}}"
+test: xpra --version | grep -q "{{version.raw}}"

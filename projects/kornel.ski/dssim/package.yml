@@ -10,9 +10,26 @@ versions:
 
 build:
   dependencies:
-    rust-lang.org: '>=1.56<1.78'
-    rust-lang.org/cargo: '*'
-  script: cargo install --locked --path . --root {{prefix}}
+    rust-lang.org/rustup: '*'
+    linux/x86-64:
+      llvm.org: '*'
+  script:
+    # requires nightly
+    - run:
+        - ln -sf {{deps.rust-lang.org/rustup.prefix}}/bin/rustup .
+        - rustup default nightly
+        - ln -sf $HOME/.rustup/toolchains/*/bin/* .
+      working-directory: $HOME/.cargo/bin
+    - cargo install --locked --path . --root {{prefix}}
+  env:
+    PATH: '$HOME/.cargo/bin:$PATH'
+    RUSTFLAGS:
+      - -Zunstable-options
+    linux/x86-64:
+      # these are being missed, but only in cd, somehow.
+      CC: clang
+      CXX: clang++
+      AR: llvm-ar
 
 test:
   dependencies:

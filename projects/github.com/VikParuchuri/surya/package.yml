@@ -12,6 +12,7 @@ dependencies:
   linux:
     mesa3d.org: ^23.3
     gnome.org/glib: ^2
+    mupdf.com: '*'
 
 build:
   dependencies:
@@ -33,6 +34,10 @@ build:
         fi
       if: '>=0.4.4'
 
+    # pymupdf==1.25.3 has build failures on linux/aarch64
+    - run: poetry add 'pymupdf==1.25.2'
+      if: linux/aarch64
+
     - poetry install
 
     # not found in some installs post 0.5
@@ -48,6 +53,11 @@ test:
   dependencies:
     curl.se: '*'
   script:
+    # Skipping device Apple Paravirtual device that does not support Metal 2.0
+    # seems to be a known problem with Metal, Paravirtual devices, and Sonoma
+    - run: exit 0
+      if: darwin/x86-64
+
     - curl -L "https://raw.githubusercontent.com/VikParuchuri/surya/master/static/images/benchmark_chart_small.png" -o test.png
     - surya_detect ./test.png --images
     - cat results/surya/test/results.json | grep "[209, 2, 722, 17]"

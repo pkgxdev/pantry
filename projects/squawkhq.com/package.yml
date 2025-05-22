@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/sbdchd/squawk/archive/refs/tags/v{{ version }}.tar.gz
+  url: https://github.com/sbdchd/squawk/archive/refs/tags/{{ version.tag }}.tar.gz
   strip-components: 1
 
 provides:
@@ -7,18 +7,32 @@ provides:
 
 versions:
   github: sbdchd/squawk
-  strip: /v/
 
 build:
-  working-directory: cli
   dependencies:
     rust-lang.org: '>=1.65'
     rust-lang.org/cargo: '*'
     openssl.org: '*'
     perl.org: '*'
   script:
-    cargo install --path . --root {{prefix}}
+    - run: cd cli
+      if: <2
+    - run: cd crates/cli
+      if: '>=2<2.2'
+    - run: cd crates/squawk
+      if: '>=2.2'
+    # missing version bump
+    - sed -i '1,/dependencies/s/version = ".*"/version = "{{ version }}"/' Cargo.toml
+    - cargo install --path . --root {{prefix}}
+  env:
+    darwin/x86-64:
+      # error: static declaration of 'strchrnul' follows non-static declaration
+      # warning: 'strchrnul' is only available on macOS 15.4 or newer [-Wunguarded-availability-new]
+      MACOSX_DEPLOYMENT_TARGET: 15.4
 
 test:
-  script:
-    - test "$(squawk --version)" = "squawk {{version}}"
+  - test "$(squawk --version)" = "squawk {{version}}"
+  - run: squawk $FIXTURE
+    fixture: SELECT 1 from users;
+  - run: if squawk "$FIXTURE"; then exit 1; fi
+    fixture: SELECT 1 from users-what;

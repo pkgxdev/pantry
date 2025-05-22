@@ -1,6 +1,9 @@
 distributable:
-  url: https://boostorg.jfrog.io/artifactory/main/release/{{ version }}/source/boost_{{version.major}}_{{version.minor}}_{{version.patch}}.tar.gz
-  strip-components: 1
+  - url: https://archives.boost.io/release/{{version}}/source/boost_{{version.major}}_{{version.minor}}_{{version.patch}}.tar.gz
+    strip-components: 1
+  # these appear to 404 now
+  - url: https://boostorg.jfrog.io/artifactory/main/release/{{ version }}/source/boost_{{version.major}}_{{version.minor}}_{{version.patch}}.tar.gz
+    strip-components: 1
 
 versions:
   github: boostorg/boost
@@ -35,6 +38,5 @@ build:
         - linkflags=-fPIC
 
 test:
-  script: |
-    c++ test.cpp -std=c++14 -lboost_iostreams -lzstd
-    ./a.out
+  - c++ test.cpp -std=c++14 -lboost_iostreams -lzstd
+  - ./a.out

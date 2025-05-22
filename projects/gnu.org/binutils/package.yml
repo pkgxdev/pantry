@@ -1,6 +1,9 @@
 distributable:
-  url: https://ftp.gnu.org/gnu/binutils/binutils-{{ version.raw }}.tar.gz
-  strip-components: 1
+  # as of 2.44, this is a different tarball
+  - url: https://ftp.gnu.org/gnu/binutils/binutils-with-gold-{{ version.raw }}.tar.gz
+    strip-components: 1
+  - url: https://ftp.gnu.org/gnu/binutils/binutils-{{ version.raw }}.tar.gz
+    strip-components: 1
 
 versions:
   url: https://ftp.gnu.org/gnu/binutils/
@@ -15,15 +18,16 @@ build:
     gnu.org/texinfo: '*'
     linux:
       gnu.org/gcc: '*'
-  script: |
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }}
-    make install
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
   env:
     ARGS:
       - --prefix={{ prefix }}
     linux:
       ARGS:
+        - --enable-ld=yes
         - --enable-gold=yes
 
 test:

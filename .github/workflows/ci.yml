@@ -6,6 +6,7 @@ on:
     paths:
       - projects/**/*
       - .github/workflows/ci.yml
+      - .github/actions/setup/action.yml
 
 concurrency:
   group: ci/${{ github.event.pull_request.head.ref }}
@@ -61,7 +62,7 @@ jobs:
         with:
           p12-file-base64: ${{ secrets.APPLE_CERTIFICATE_P12 }}
           p12-password: ${{ secrets.APPLE_CERTIFICATE_P12_PASSWORD }}
-          APPLE_IDENTITY: ${{ secrets.APPLE_IDENTITY }}
+          APPLE_IDENTITY: ${{ github.repository == 'pkgxdev/pantry' && secrets.APPLE_IDENTITY || '-' }}
 
       - uses: pkgxdev/setup@v2
         with:
@@ -73,7 +74,7 @@ jobs:
         with:
           pkg: ${{ matrix.pkg }}
         env:
-          APPLE_IDENTITY: ${{ secrets.APPLE_IDENTITY }}
+          APPLE_IDENTITY: ${{ github.repository == 'pkgxdev/pantry' && secrets.APPLE_IDENTITY || '-' }}
 
       - uses: pkgxdev/brewkit/audit@v1
         with:

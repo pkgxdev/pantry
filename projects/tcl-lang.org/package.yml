@@ -14,7 +14,7 @@ dependencies:
   zlib.net: ^1.3
   freetype.org: ^2
   freedesktop.org/pkg-config: ^0.29
-  x.org/x11: ^1
+  x.org/x11: =1.8.11
   x.org/exts: ^1
 
 build:
@@ -90,7 +90,18 @@ build:
       if: <9
 
     - rm {{prefix}}/bin/sqlite3_analyzer
-  skip: fix-machos # else segfaults
+
+    # fix config scripts
+    - run: sed -i -f $PROP *.sh
+      working-directory: '{{prefix}}/lib'
+      prop: |
+        s|='\(.*\){{prefix}}\(.*\)'|="\1$(cd $(dirname $0) \&\& pwd)/..\2"|g
+        s|="\(.*\){{prefix}}\(.*\)"|="\1$(cd $(dirname $0) \&\& pwd)/..\2"|g
+    - run: sed -i -f $PROP */*.sh
+      working-directory: '{{prefix}}/lib'
+      prop: |
+        s|='\(.*\){{prefix}}\(.*\)'|="\1$(cd $(dirname $0) \&\& pwd)/../..\2"|g
+        s|="\(.*\){{prefix}}\(.*\)"|="\1$(cd $(dirname $0) \&\& pwd)/../..\2"|g
   env:
     res_critcl: https://github.com/andreas-kupries/critcl/archive/refs/tags/3.2.tar.gz
     res_tcllib: https://downloads.sourceforge.net/project/tcllib/tcllib/1.21/tcllib-1.21.tar.xz
