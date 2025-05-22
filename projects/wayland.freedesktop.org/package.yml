@@ -1,15 +1,21 @@
 distributable:
-  url: https://gitlab.freedesktop.org/wayland/wayland/-/releases/{{version}}/downloads/wayland-{{version}}.tar.xz
-  strip-components: 1
+  # gitlab.freedesktop.org has started 403ing from GHA
+  # url: https://gitlab.freedesktop.org/wayland/wayland/-/releases/{{version}}/downloads/wayland-{{version}}.tar.xz
+  # strip-components: 1
+
 display-name: wayland
+
 platforms:
   - linux
+
 versions:
   gitlab: gitlab.freedesktop.org:wayland/wayland
+
 dependencies:
   libexpat.github.io: '*'
   sourceware.org/libffi: '*'
   gnome.org/libxml2: '*'
+
 build:
   dependencies:
     mesonbuild.com: '*'
@@ -17,8 +23,12 @@ build:
     gnu.org/make: '*'
     cmake.org: '*'
     freedesktop.org/pkg-config: '*'
+    curl.se: '*'
+    tukaani.org/xz: '*'
   working-directory: build
   script:
+    - run: curl -L 'https://gitlab.freedesktop.org/wayland/wayland/-/releases/{{version}}/downloads/wayland-{{version}}.tar.xz' | tar -xJ --strip-components=1
+      working-directory: ..
     - meson $ARGS ..
     - ninja -v
     - ninja install -v
