@@ -28,6 +28,11 @@ build:
     - python -m pip install build setuptools
 
     - ./configure $ARGS
+
+    # 7.96 is looking for libpcap/VERSION, but it's still named VERSION.txt, as in prior versions
+    - run: sed -i 's|/VERSION`|/VERSION.txt`|' Makefile
+      working-directory: libpcap
+
     - make -j {{hw.concurrency}}
     - make install
   env:

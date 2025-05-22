@@ -8,15 +8,17 @@ versions:
   github: pkgxdev/mash
 
 dependencies:
-  pkgx.sh: ^1.1
+  pkgx.sh: ^1.1,^2
   gnu.org/bash: '*'
   curl.se: '*'
 
-build:
+build: |
+  sed -i "s/mash 0.0.0-dev/mash {{ version }}/g" ./mash
   install -D mash {{prefix}}/bin/mash
 
 provides:
   - bin/mash
 
-test:
+test: |
+  test "$(mash --version)" = "mash {{ version }}"
   mash pkgx/demo-test-pattern

@@ -1,0 +1,113 @@
+distributable:
+  url: https://github.com/elizaOS/eliza/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+display-name: elizaOS
+
+platforms:
+  - darwin
+  - linux/x86-64
+
+versions:
+  github: elizaOS/eliza
+
+provides:
+  - bin/eliza
+
+dependencies:
+  python.org: '>=2.7'
+  nodejs.org: ~23.3
+  pnpm.io: '*'
+
+companions:
+  git-scm.org: 2
+  ffmpeg.org: '*'
+
+build:
+  dependencies:
+    python.org: ~3.10 # node-gyp doesn't like later pythons
+    pnpm.io: =9.15.7
+    curl.se: '*'
+    gnu.org/patch: '*'
+    gnu.org/sed: '*' # otherwise, weird path issues
+  script:
+    - run: curl 'https://github.com/adimverse/eliza/commit/d577fda887820e188b0e017f9869185be9fb3bc7.patch' | patch -p1
+      if: '>=0.1.8<0.1.9'
+    # weird SSL error; guessing the cert path isn't
+    # making it in
+    - run: |
+        if test -f package.json; then
+          sed -i 's/curl /curl -k /' package.json
+        fi
+      working-directory: packages/plugin-pyth-data
+      if: linux
+    - pnpm install
+
+    # needs to find the module in the pnpm cache
+    - run: ln -s {{deps.pnpm.io.prefix}} {{deps.pnpm.io.version}}
+      working-directory: $PNPM_HOME/.tools/pnpm
+      if: '>=0.25.19'
+
+    - pnpm run build
+    # adapted from their Dockerfile
+    - run:
+        - cp $SRCROOT/package.json .
+        - cp $SRCROOT/pnpm-workspace.yaml .
+        - cp $SRCROOT/.npmrc .
+        - cp $SRCROOT/turbo.json .
+        - cp -R $SRCROOT/node_modules .
+        - cp -R $SRCROOT/agent .
+        - cp -R $SRCROOT/client .
+        - cp $SRCROOT/lerna.json .
+        - cp -R $SRCROOT/packages .
+        - cp -R $SRCROOT/scripts .
+        - cp -R $SRCROOT/characters .
+        - cp $SRCROOT/.env.example .
+      working-directory: ${{prefix}}/libexec
+    - run: install -Dm755 $PROP eliza
+      working-directory: ${{prefix}}/bin
+      prop: |
+        #!/bin/sh
+
+        # add --help and --version flags
+        if [ "$1" = "--help" ]; then
+          echo "This is a simple wrapper to start the elizaOS server and client."
+          exit 0
+        elif [ "$1" = "--version" ]; then
+          echo "elizaOS {{version}}"
+          exit 0
+        fi
+
+        # change to the libexec directory
+        cd "$(dirname "$(readlink -f "$0")")/../libexec" || exit 1
+
+        # start the server
+        pnpm start &
+        SERVER_PID=$!
+
+        # cleanup trap to kill the server
+        cleanup() {
+          echo "Shutting down server…"
+          kill $SERVER_PID 2>/dev/null
+          wait $SERVER_PID 2>/dev/null
+        }
+
+        trap cleanup EXIT INT TERM
+
+        # start the client
+        pnpm start:client
+  skip: fix-patchelf # takes 4+ hours
+  env:
+    # required since 0.25.19 to use the pnpm module inside the build
+    darwin:
+      PNPM_HOME: ~/Library/pnpm
+      PATH: ~/Library/pnpm:$PATH
+    linux:
+      PNPM_HOME: ~/.local/share/pnpm
+      PATH: ~/.local/share/pnpm:$PATH
+
+test:
+  # we could start the server and client, test the api, but that's a lot of work
+  # and it's going to iterate rapidly
+  - eliza --help
+  - test "$(eliza --version)" = "elizaOS {{version}}"

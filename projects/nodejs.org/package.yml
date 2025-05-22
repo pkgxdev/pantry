@@ -29,6 +29,34 @@ build:
     linux:
       gnu.org/gcc: '*'
   script:
+    # the nodejs build doesn't like mixing -shared and -pie
+    - run:
+        - cp $PROP g++-wrapper
+        - chmod +x g++-wrapper
+      prop: |
+        #!/bin/bash
+        # Capture all arguments into an array
+        ARGS=("$@")
+
+        # Check if the '-shared' flag is present in the arguments
+        if printf "%s\n" "${ARGS[@]}" | grep -q -e '-shared'; then
+
+          # Use a loop to filter out the '-pie' flag from the arguments
+          FILTERED_ARGS=()
+          for arg in "${ARGS[@]}"; do
+            if [ "$arg" != "-pie" ]; then
+              FILTERED_ARGS+=("$arg")
+            fi
+          done
+
+          # Pass the filtered arguments to g++
+          exec g++ "${FILTERED_ARGS[@]}"
+        else
+          # Pass the original arguments to g++
+          exec g++ "${ARGS[@]}"
+        fi
+      working-directory: $HOME/.local/bin
+      if: linux
     - run: python configure.py $ARGS
       if: <14
     - run: ./configure $ARGS
@@ -40,6 +68,9 @@ build:
         #include <iomanip>' wasm-disassembler.cc
       working-directory: deps/v8/src/wasm
       if: ^22
+    # -pie breaks module build in v23.5.0
+    - run: export LDFLAGS="$(echo $LDFLAGS | sed 's/-pie//')"
+      if: ^23.5.0
 
     - make --jobs {{ hw.concurrency }} install
   env:
@@ -51,7 +82,11 @@ build:
     linux/x86-64:
       CFLAGS: -fPIC
       CXXFLAGS: -fPIC
-      LDFLAGS: -pie
+    linux:
+      PATH: $HOME/.local/bin:$PATH
+      CC: gcc
+      CXX: g++-wrapper
+      LD: g++-wrapper
 
 test:
   script: |

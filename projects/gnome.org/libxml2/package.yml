@@ -15,21 +15,26 @@ dependencies:
 build:
   dependencies:
     python.org: '>=3<3.12'
-    freedesktop.org/pkg-config: ~0.29
-  script: |
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }}
-    make install
+  script:
+    # in 2.12.10, some files have future timestamps
+    - run: find . -type f -print0 | xargs -0 touch
+      if: 2.12.10
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
 
-    cd {{prefix}}/bin
-    sed -i.bak 's|{{prefix}}|"$(cd "$(dirname "$0")/.." \&\& pwd)"|' xml2-config
-    rm *.bak
+    - run: sed -i 's|{{prefix}}|"$(cd "$(dirname "$0")/.." \&\& pwd)"|' xml2-config
+      working-directory: ${{prefix}}/bin
 
     # a lot of stuff is surprised at the libxml2 prefix
-    cd ../include
-    mv libxml2/libxml .
-    rmdir libxml2
-    ln -s . libxml2
+    - run:
+        - mv libxml2/libxml .
+        - rmdir libxml2
+        - ln -s . libxml2
+      working-directory: ${{prefix}}/include
+
+    - run: find . -name '*.la' -exec rm {} \;
+      working-directory: ${{prefix}}/lib
   env:
     ARGS:
       - --prefix={{prefix}}
@@ -41,11 +46,11 @@ build:
 test:
   dependencies:
     python.org: '>=3<3.12'
-  script: |
-    cc `xml2-config --cflags --libs` $CFLAGS test.c
-    ./a.out
+  script:
+    - cc `xml2-config --cflags --libs` $CFLAGS test.c
+    - ./a.out
 
-    python -c "import libxml2"
+    - python -c "import libxml2"
   env:
     linux:
       CFLAGS: -pthread

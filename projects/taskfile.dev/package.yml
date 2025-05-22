@@ -12,24 +12,24 @@ provides:
 
 build:
   dependencies:
-    go.dev: ^1.19
+    go.dev: ~1.23
   script:
     - run: sed -i 's/info.Main.Version/"{{version}}"/g' version.go
       working-directory: internal/version
-    - go build -o {{prefix}}/bin/task -ldflags="$LDFLAGS" ./cmd/task
+    - go build -o {{prefix}}/bin/task -ldflags="$GO_LDFLAGS" ./cmd/task
   env:
     GOBIN: ${{prefix}}/bin
-    LDFLAGS:
+    GO_LDFLAGS:
       - -s
       - -w
       - -X github.com/go-task/task/v3/internal/version.version={{version}}
     linux:
       # or segmentation fault
       # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
-      LDFLAGS:
+      GO_LDFLAGS:
         - -buildmode=pie
 
 test:
   - task --init
   - test -f Taskfile.yml
-  - "task --version | grep 'Task version: {{version}}'"
+  - task --version | grep '{{version}}'

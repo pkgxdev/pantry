@@ -20,7 +20,9 @@ dependencies:
   google.com/googletest: ^1
   fmt.dev: ^10
   zlib.net: ^1
-  github.com/fastfloat/fast_float: 6 # as of 2024.08.26.0
+  # v6, as of 2024.08.26.0,
+  # v7, as of 2025.03.10.0, for fast_float::chars_format::allow_leading_plus
+  github.com/fastfloat/fast_float: 7
   darwin:
     sourceware.org/bzip2: '*'
   linux:
@@ -89,8 +91,7 @@ build:
         - -DCMAKE_LIBRARY_ARCHITECTURE=aarch64
         - -DCMAKE_C_FLAGS=-fPIC
         - -DCMAKE_CXX_FLAGS=-fPIC
-        - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-pie,-lrt,-lunwind
-    linux/x86-64:
+    linux:
       ARGS:
         - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-pie,-lrt,-lunwind
 
@@ -98,18 +99,19 @@ test:
   dependencies:
     linux:
       gnu.org/gcc: '*'
-  fixture: |
-    #include <folly/FBVector.h>
-    int main() {
-      folly::fbvector<int> numbers({0, 1, 2, 3});
-      numbers.reserve(10);
-      for (int i = 4; i < 10; i++) {
-        numbers.push_back(i * 2);
-      }
-      assert(numbers[6] == 12);
-      return 0;
-    }
-  script: |
-    mv $FIXTURE b.cc
-    c++ -std=c++20 b.cc -lfolly -ldl -lfmt -lglog
-    ./a.out
+  script:
+    - run: c++ -std=c++20 $FIXTURE -lfolly -ldl -lfmt -lglog
+      fixture:
+        extname: cc
+        content: |
+          #include <folly/FBVector.h>
+          int main() {
+            folly::fbvector<int> numbers({0, 1, 2, 3});
+            numbers.reserve(10);
+            for (int i = 4; i < 10; i++) {
+              numbers.push_back(i * 2);
+            }
+            assert(numbers[6] == 12);
+            return 0;
+          }
+    - ./a.out

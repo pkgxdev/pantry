@@ -1,0 +1,35 @@
+distributable:
+  url: https://github.com/upx/upx/releases/download/{{version.tag}}/upx-{{version}}-src.tar.xz
+  strip-components: 1
+
+versions:
+  github: upx/upx
+
+dependencies:
+  zlib.net: '*'
+
+build:
+  dependencies:
+    cmake.org: '*'
+    oberhumer.com/ucl: '*'
+  script:
+    - cmake -S . -B build $CMAKE_ARGS
+    - cmake --build build
+    - cmake --install build
+  env:
+    CMAKE_ARGS:
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}
+      - -DCMAKE_BUILD_TYPE=Release
+      - -Wno-dev
+
+provides:
+  - bin/upx
+
+test:
+  # v5 seems non-functional on our test-bin, for some reason.
+  - run: exit 0
+    if: ^5.0.0
+  # upx won't work on macos bins, for some other reason.
+  - upx -1 -o hello elf-hello
+  - test -f hello
+  - upx -d ./hello

@@ -1,16 +1,19 @@
 distributable:
   url: https://download.gnome.org/sources/libsecret/{{version.marketing}}/libsecret-{{version}}.tar.xz
   strip-components: 1
+
 versions:
   url: https://download.gnome.org/sources/libsecret/cache.json
   match: /libsecret-\d+\.\d+\.\d+\.tar\.xz/
   strip:
     - /^libsecret-/
     - /\.tar\.xz/
+
 dependencies:
   gnome.org/glib: '*'
   gnupg.org/libgcrypt: '*'
   gnupg.org/libgpg-error: '*'
+
 build:
   dependencies:
     docbook.org/xsl: '*'
@@ -21,6 +24,7 @@ build:
     freedesktop.org/pkg-config: '*'
     gnome.org/vala: '*'
     gnome.org/libxslt: '*'
+    freedesktop.org/dbus: '*' # dbus-run-session needed as of v0.21.5
     linux:
       llvm.org: '*'
   working-directory: build
@@ -33,22 +37,23 @@ build:
     - ninja --verbose
     - ninja install --verbose
     - run: ln -s libsecret-1/libsecret libsecret
-      working-directory: "{{prefix}}/include"
+      working-directory: '{{prefix}}/include'
     - run: ln -s libsecret-1/libsecret libsecret
-      working-directory: "{{prefix}}/include"
+      working-directory: '{{prefix}}/include'
   env:
     linux:
       CC: clang
       CXX: clang++
       LD: clang
-      CFLAGS: "-Wno-incompatible-function-pointer-types $CFLAGS"
-    XML_CATALOG_FILES: "{{prefix}}/etc/xml/catalog"
+      CFLAGS: '-Wno-incompatible-function-pointer-types $CFLAGS'
+    XML_CATALOG_FILES: '{{prefix}}/etc/xml/catalog'
     MESON_ARGS:
       - --prefix="{{prefix}}"
       - --libdir="{{prefix}}/lib"
       - --buildtype=release
       - --wrap-mode=nofallback
       - -Dgtk_doc=false
+
 test:
   dependencies:
     freedesktop.org/pkg-config: '*'

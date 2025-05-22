@@ -1,0 +1,38 @@
+distributable:
+  url: https://github.com/pkgxdev/dev/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+display-name: dev
+
+versions:
+  github: pkgxdev/dev
+
+dependencies:
+  pkgx.sh: ^1,^2.1
+
+build:
+  - echo 'export default "{{version}}"' > ./src/app-version.ts
+  - mkdir -p {{prefix}}/bin {{prefix}}/share/pkgx/dev
+  - cp -r ./app.ts src deno.json deno.lock {{prefix}}/share/pkgx/dev
+  - run:
+      - cp $PROP {{prefix}}/bin/dev
+      - chmod +x {{prefix}}/bin/dev
+    prop: |
+      #!/bin/sh
+      d="$(cd "$(dirname $0)"/.. && pwd)"
+      exec "$d/share/pkgx/dev/app.ts" "$@"
+provides:
+  - bin/dev
+
+test:
+  env:
+    PATH: '{{pkgx.prefix}}/pkgx.sh/v*/bin:$PATH'
+  script:
+    - which pkgx
+    - which deno && exit 1
+    - eval "$(dev --shellcode)"
+    - echo '{}' > deno.json
+    - dev
+    - deno --version
+    - test "$(dev --version)" = 'dev {{version}}'
+

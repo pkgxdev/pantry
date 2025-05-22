@@ -18,10 +18,9 @@ build:
     rust-lang.org/cargo: '*'
     perl.org: '*'
   script:
-    # 0.9.0 forgot to bump the version
-    - run: sed -i -e 's/0\.8\.32/{{version}}/' core/Cargo.toml cli/Cargo.toml
+    # forgot to bump the version
+    - run: sed -i -e '1,20s/^version = ".*"/version = "{{version}}"/' core/Cargo.toml cli/Cargo.toml backend/Cargo.toml
       working-directory: ..
-      if: =0.9.0
     # missing feature needed to build
     - run: sed -i '/check-if-email-exists =/s/ \}/, features = ["sentry"] \}/' Cargo.toml
       if: ^0.10

@@ -20,19 +20,19 @@ build:
     gnu.org/gettext: '*'
     gnu.org/libtool: '*'
     freedesktop.org/pkg-config: '*'
-  script: |
-    autoreconf -fiv
-    ./configure $ARGS
-    make src/watch
-    mkdir -p "{{ prefix }}"/bin
-    mv src/watch "{{ prefix }}"/bin
+  script:
+    - autoreconf -fiv
+    - ./configure $ARGS
+    - make src/watch
+    - mkdir -p "{{ prefix }}"/bin
+    - mv src/watch "{{ prefix }}"/bin
   env:
     ARGS:
       - --disable-dependency-tracking
       - --prefix={{ prefix }}
       - --disable-nls
       - --enable-watch8bit
+      - --disable-pidwait
 
 # FIXME: a more comprehensive test could be written with access to a TTY
-test: |
-  watch -h
+test: watch -h

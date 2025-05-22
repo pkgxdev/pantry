@@ -1,0 +1,37 @@
+distributable:
+  url: https://github.com/pkgxdev/pkgm/releases/download/{{ version.tag }}/pkgm-{{ version }}.tgz
+
+versions:
+  github: pkgxdev/pkgm
+
+provides:
+  - bin/pkgm
+
+dependencies:
+  pkgx.sh: ^2
+  curl.se/ca-certs: '*'
+
+build:
+  - install -Dm755 pkgm {{prefix}}/bin/pkgm
+
+test:
+  - pkgm --version | grep {{version}}
+
+  - run: exit 0
+    if: linux/x86-64
+  # ^^ github's runners produce cross-device linking errors
+  # FIXME: https://github.com/pkgxdev/pantry/actions/runs/13814927257/job/38645701708
+  # https://github.com/pkgxdev/pkgm/issues/41
+
+  - run: pkgm install dua
+    if: linux
+
+  - run: pkgm local-install dua
+    if: darwin
+  # ^^ our self hosted macs cannot need sudo and cannot run sudo
+
+  - pkgm ls | grep dua
+  - PATH=/usr/local/bin:$HOME/.local/bin:$PATH command -v dua
+  # ^^ brewkit PATH removes /usr/local/bin
+  - PATH=/usr/local/bin:$HOME/.local/bin:$PATH dua --version
+  - pkgm uninstall dua

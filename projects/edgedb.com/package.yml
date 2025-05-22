@@ -27,8 +27,23 @@ build:
     # missed version bump
     - run: sed -i '1,20s/^version = .*$/version = "{{version.raw}}"/' Cargo.toml
     - cargo install --locked --path . --root {{prefix}}
+    - run:
+        - |
+          if test -f gel && test ! -f edgedb; then
+            ln -s gel edgedb
+          fi
+        - |
+          if test -f edgedb && test ! -f gel; then
+            ln -s edgedb gel
+          fi
+      working-directory: ${{prefix}}/bin
 
-test: test "$(edgedb --version)" = "EdgeDB CLI {{version.raw}}"
+test:
+  - run: test "$(edgedb --version)" = "EdgeDB CLI {{version.raw}}"
+    if: <7
+  - run: test "$(edgedb --version)" = "Gel CLI {{version.raw}}"
+    if: '>=7'
 
 provides:
   - bin/edgedb
+  - bin/gel

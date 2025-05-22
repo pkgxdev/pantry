@@ -19,7 +19,10 @@ build:
   dependencies:
     gnupg.org/libgpg-error: ^1.49
     darwinsys.com/file: '*' # needed for configure to build dylibs
-    llvm.org: '*'
+    darwin:
+      llvm.org: '*'
+    linux:
+      gnu.org/gcc: '*'
   script:
     - ./configure $ARGS
     - CFLAGS="$CFLAGS -O0" make -C random rndjent.o rndjent.lo
@@ -27,15 +30,17 @@ build:
     - make check
     - make install
   env:
-    CC: clang
-    CXX: clang++
+    darwin:
+      CC: clang
+      CXX: clang++
     ARGS:
       - --prefix={{prefix}}
       - --enable-static
       - --enable-shared
       - --disable-asm
     linux:
-      LD: ld.lld
+      LDFLAGS:
+        - -Wl,-lpthread
 
 test:
   script: |

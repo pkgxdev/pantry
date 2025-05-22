@@ -10,10 +10,11 @@ build:
   dependencies:
     gnu.org/autoconf: '*'
     gnu.org/libtool: '*'
-    freedesktop.org/pkg-config: '*'
-  script: |
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }} install
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+    - run: find . -name '*.la' -exec rm {} \;
+      working-directory: '{{prefix}}/lib'
   env:
     ARGS:
       - --prefix="{{prefix}}"
@@ -35,5 +36,4 @@ provides:
   - bin/hwloc-ps
   - bin/lstopo-no-graphics
 
-test:
-  hwloc-info --version | grep {{version}}
+test: hwloc-info --version | grep {{version}}

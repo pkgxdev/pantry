@@ -11,43 +11,73 @@ platforms:
 
 provides:
   - bin/whisper.cpp
+  - bin/whisper-cli
 
 dependencies:
   libsdl.org: '*'
   linux:
     openmp.llvm.org: 18 # as of 1.7.0
+    gnu.org/gcc/libstdcxx: 14
+
+companions:
+  huggingface.co: '*'
 
 build:
   dependencies:
     freedesktop.org/pkg-config: ~0.29
     gnu.org/patch: '*'
     gnu.org/coreutils: '*'
+    cmake.org: 3 # as of 1.7.3
   script:
     - run: patch -p1 < props/illegal_instruction.patch
       if: <1.4.3
 
-    - make --jobs {{ hw.concurrency }}
-    - make stream --jobs {{ hw.concurrency }}
-    - make command --jobs {{ hw.concurrency }}
+    - run:
+        - make --jobs {{ hw.concurrency }}
+        - make stream --jobs {{ hw.concurrency }}
+        - make command --jobs {{ hw.concurrency }}
+        - install -Dt {{prefix}}/bin
+          stream command
+        - install -D main {{prefix}}/bin/whisper.cpp
+      if: '<1.7.3'
 
     # ggml-metal.metal must be installed alongside whisper.cpp sadly
-    - install -Dt {{prefix}}/bin
-      stream command
-      models/download-ggml-model.sh
     - run: cp ggml-metal.metal {{prefix}}/bin
       if: <1.7
     - run: cp ggml/src/ggml-metal.metal {{prefix}}/bin
-      if: '>=1.7'
+      if: '>=1.7<1.7.3'
 
-    - install -D main {{prefix}}/bin/whisper.cpp
+    # deprecation warning blocks valid bin names for some reason
+    - run: sed -i 's/add_subdirectory(deprecation-warning)/#add_subdirectory(deprecation-warning)/' CMakeLists.txt
+      working-directory: examples
+      if: '>=1.7.4'
 
+    - run:
+        - cmake -B . -S ..
+        - cmake --build . --parallel {{ hw.concurrency }} --config Release
+        - cmake --install . --prefix {{prefix}}
+      working-directory: build
+      if: '>=1.7.3'
+
+    - run: install -D main {{prefix}}/bin/whisper-cli
+      working-directory: build/bin
+      if: '=1.7.3'
+
+    - run: install -D whisper-cli {{prefix}}/bin/whisper-cli
+      working-directory: build/bin
+      if: '>=1.7.4'
+
+    - run: ln -s whisper-cli whisper.cpp
+      working-directory: ${{prefix}}/bin
+
+    - install -D models/download-ggml-model.sh {{prefix}}/bin/download-ggml-model.sh
     - install -D examples/command/commands.txt {{prefix}}/share/whisper.cpp/commands.txt
 
 test:
   env:
     cache: $HOME/.cache/huggingface
-  script: |
-    huggingface-cli download ggerganov/whisper.cpp ggml-base.en.bin
-    model="$(find "$cache" -name "ggml-base.en.bin")"
-    curl https://github.com/ggerganov/whisper.cpp/raw/master/samples/jfk.wav | whisper.cpp --model "$model" -
+  script:
+    - huggingface-cli download ggerganov/whisper.cpp ggml-base.en.bin
+    - model="$(find "$cache" -name "ggml-base.en.bin")"
+    - curl https://github.com/ggerganov/whisper.cpp/raw/master/samples/jfk.wav | whisper-cli --model "$model" -
   cache: $HOME/.cache/huggingface

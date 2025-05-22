@@ -7,6 +7,7 @@ versions:
 
 dependencies:
   open-mpi.org/hwloc: '*'
+  openpmix.github.io: '*'
   libevent.org: '*'
 
 companions:
@@ -30,16 +31,17 @@ runtime:
 build:
   dependencies:
     zlib.net: ^1
-    gnu.org/binutils: '*'
     python.org: ^3
+    # needed for gfortran
+    gnu.org/binutils: '*'
     gnu.org/gcc: '*'
   script:
+    - run: rm -rf hwloc* libevent* openpmix*
+      working-directory: 3rd-party
+
     - ./configure $CONFIGURE_ARGS
     - make --jobs {{ hw.concurrency }} all
     - make --jobs {{ hw.concurrency }} install
-
-    - run: sed -i "s|$PKGX_DIR|\${pcfiledir}/../../../..|g" *.pc
-      working-directory: '{{prefix}}/lib/pkgconfig'
 
     - run: sed -i "s|linker_flags=.*|linker_flags=|g" *-wrapper-data.txt
       working-directory: '{{prefix}}/share/openmpi'
@@ -50,12 +52,32 @@ build:
     - run: find . -name '*.la' -exec rm {} \;
       working-directory: '{{prefix}}/lib'
   env:
-    CXXFLAGS: $CXXFLAGS -std=c++11
+    CXXFLAGS:
+      - -std=c++11
     darwin:
-      CFLAGS: $CFLAGS -Wl,-rpath,{{pkgx.prefix}},-headerpad_max_install_names
-      CXXFLAGS: $CXXFLAGS -Wl,-rpath,{{pkgx.prefix}},-headerpad_max_install_names
-      FCFLAGS: $FCFLAGS -Wl,-rpath,{{pkgx.prefix}},-headerpad_max_install_names
-      LDFLAGS: $LDFLAGS -Wl,-headerpad_max_install_names
+      # prevent gcc from taking over
+      CC: clang
+      CXX: clang++
+      LD: /usr/bin/ld
+      CFLAGS:
+        - -Wl,-rpath,{{pkgx.prefix}},-headerpad_max_install_names
+        - -Wno-unused-command-line-argument
+      CXXFLAGS:
+        - -Wl,-rpath,{{pkgx.prefix}},-headerpad_max_install_names
+        - -Wno-unused-command-line-argument
+      FCFLAGS:
+        - -Wl,-rpath,{{pkgx.prefix}},-headerpad_max_install_names
+        - -Wno-unused-command-line-argument
+      LDFLAGS:
+        - -Wl,-headerpad_max_install_names
+        - -Wno-unused-command-line-argument
+    darwin/x86-64:
+      # causes libtool to:
+      # <unknown>:0: error: invalid CFI advance_loc expression
+      CFLAGS:
+        - -fno-sanitize=all
+      CXXFLAGS:
+        - -fno-sanitize=all
     CONFIGURE_ARGS:
       - --disable-debug
       - --disable-dependency-tracking
@@ -66,6 +88,8 @@ build:
       - --enable-mca-no-build=reachable-netlink
       - --sysconfdir="{{prefix}}/etc"
       - --with-libevent="{{deps.libevent.org.prefix}}"
+      - --with-hwloc="{{deps.open-mpi.org/hwloc.prefix}}"
+      - --with-pmix="{{deps.openpmix.github.io.prefix}}"
       - --with-sge
       - --disable-dlopen
 

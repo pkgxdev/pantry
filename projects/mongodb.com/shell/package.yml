@@ -1,18 +1,23 @@
 distributable: ~
+
 display-name: mongosh
+
 versions:
   github: mongodb-js/mongosh
+
 dependencies:
   nodejs.org: '*'
+
 build:
   dependencies:
     npmjs.com: '*'
     curl.se: '*'
+    python.org: 3 # for node-gyp, since 2.5.1
   script:
     - curl -L https://registry.npmjs.org/@mongosh/cli-repl/-/cli-repl-{{version}}.tgz --output cli-repl-{{version}}.tgz
     - npm i $ARGS
     - run: ln -s ../libexec/bin/mongosh mongosh
-      working-directory: "{{prefix}}/bin"
+      working-directory: '{{prefix}}/bin'
   env:
     ARGS:
       - -ddd
@@ -21,10 +26,11 @@ build:
       - --prefix={{prefix}}/libexec
       - --unsafe-perm
       - cli-repl-{{version}}.tgz
+
 provides:
   - bin/mongosh
+
 test:
-  script:
-    - mongosh --version | grep {{version}}
-    - mongosh --nodb --eval "print('#ok#')" | grep '#ok#'
-    - mongosh --smokeTests
+  - mongosh --version | grep {{version}}
+  - mongosh --nodb --eval "print('#ok#')" | grep '#ok#'
+  - mongosh --smokeTests

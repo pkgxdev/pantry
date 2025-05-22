@@ -1,0 +1,19 @@
+distributable:
+  url: https://github.com/curlpipe/ox/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/ox
+
+versions:
+  github: curlpipe/ox
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path . --root {{prefix}}
+
+test:
+  - test "$(ox --version)" = "{{version}}"
+  - ox --help

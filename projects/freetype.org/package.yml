@@ -25,9 +25,14 @@ build:
     #NOTE cmake ∵ autoconf failed on Linux due to not creating the .so files
     cmake.org: '*'
   working-directory: build
-  script: |
-    cmake .. $ARGS
-    make --jobs {{ hw.concurrency }} install
+  script:
+    - cmake .. $ARGS
+    - make --jobs {{ hw.concurrency }} install
+    - run:
+        - mv freetype2/* .
+        - rmdir freetype2
+        - ln -s . freetype2
+      working-directory: ${{prefix}}/include
   env:
     ARGS:
       - -DBUILD_SHARED_LIBS=true

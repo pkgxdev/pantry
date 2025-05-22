@@ -17,10 +17,12 @@ build:
     - bkpyvenv seal {{prefix}} ansible-lint
 
 test:
-  fixture: |
-    [defaults]
-    fact_caching_timeout=invalid-value
-  script: ansible-lint $FIXTURE
-
+  - run: cat $FIXTURE | sed '/^$/d' >test.toml
+    fixture:
+      extname: toml
+      content: |
+        [defaults]
+        fast_caching_timeout=invalid-value
+  - ansible-lint test.toml
 provides:
   - bin/ansible-lint

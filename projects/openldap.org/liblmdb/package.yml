@@ -1,0 +1,23 @@
+distributable:
+  url: https://git.openldap.org/openldap/openldap/-/archive/{{version.tag}}/openldap-{{version.tag}}.tar.gz
+  # openldap-{{version.tag}}/libraries/liblmdb
+  strip-components: 3
+
+display-name: liblmdb
+
+versions:
+  gitlab: git.openldap.org:openldap/openldap/tags
+  strip:
+    - /^LMDB_/
+
+build:
+  - sed -i -e 's/^prefix\t=/prefix\t?=/' Makefile
+  - make prefix={{prefix}} --jobs {{ hw.concurrency }} install
+
+provides:
+  - bin/mdb_copy
+  - bin/mdb_dump
+  - bin/mdb_load
+  - bin/mdb_stat
+
+test: test "$(mdb_stat -V|cut -d':' -f1|cut -d' ' -f2)" = {{version}}

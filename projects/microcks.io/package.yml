@@ -10,22 +10,21 @@ dependencies:
 
 build:
   dependencies:
-    go.dev: ^1.21
-  script:
-    go build $ARGS -ldflags="$LDFLAGS" .
+    go.dev: =1.23.0
+  script: go build $ARGS -ldflags="$GO_LDFLAGS" .
   env:
     ARGS:
       - -trimpath
       - -o={{prefix}}/bin/microcks-cli
     linux:
-      ARGS:
+      GO_LDFLAGS:
         - -buildmode=pie
-    LDFLAGS:
+    GO_LDFLAGS:
       - -s
       - -w
+      - -X github.com/microcks/microcks-cli/version.Version={{version}}
 
 provides:
   - bin/microcks-cli
 
-test:
-  microcks-cli version | grep {{version}}
+test: microcks-cli version | grep {{version}}

@@ -11,17 +11,18 @@ versions:
 provides:
   - bin/cdktf
 
+# no prebuilt binaries are available online for darwin/x86-64
+platforms: [linux, darwin/aarch64]
+
 dependencies:
-  nodejs.org: "^18"
+  nodejs.org: ^17 || ^18 || ^19 || ^20
 
 build:
   dependencies:
-    classic.yarnpkg.com: "*"
+    classic.yarnpkg.com: '*'
   script:
     - mkdir -p "{{prefix}}"
     - npm_config_build_from_source=true yarn install --modules-folder {{prefix}}/node_modules
     - cp -r bundle/bin package.json {{prefix}}
 
-test:
-  script: |
-    cdktf --version | grep {{version}}
+test: cdktf --version | grep {{version}}

@@ -10,7 +10,7 @@ versions:
     - /-RELEASE$/
 
 platforms:
-  - darwin/aarch64
+  - darwin
 # It is ready to run on linux. It going to work with ubuntu 22.04,
 # and not with debian-buster and tests going to fail
 #  - linux/x86-64
@@ -35,20 +35,19 @@ build:
     curl.se: '*'
   script:
     - mkdir -p {{prefix}}/bin
-    - run: |
-        curl -SfL "$DOWNLOAD_URL" | tar xzf - --strip-components=2
-        tar xzf Payload -C {{prefix}}
-        rm -rf {{prefix}}/_CodeSignature
-        rm -rf {{prefix}}/Info.plist
+    - run:
+        - curl -SfL "$DOWNLOAD_URL" | tar xzf - --strip-components=2
+        - tar xzf Payload -C {{prefix}}
+        - rm -rf {{prefix}}/_CodeSignature
+        - rm -rf {{prefix}}/Info.plist
       if: darwin
     - run: ln -sh ../usr/bin/* {{prefix}}/bin
       working-directory: ${{prefix}}/bin
       if: darwin
-    - run: |
-        curl -SfL "$DOWNLOAD_URL" | tar xzf - -C {{ prefix }} --strip-components=2
+    - run: curl -SfL "$DOWNLOAD_URL" | tar xzf - -C {{ prefix }} --strip-components=2
       if: linux
   env:
-    darwin/aarch64:
+    darwin:
       DOWNLOAD_URL: 'https://download.swift.org/swift-{{version.raw}}-release/xcode/swift-{{version.raw}}-RELEASE/swift-{{version.raw}}-RELEASE-osx.pkg'
     linux/aarch64:
       DOWNLOAD_URL: 'https://download.swift.org/swift-{{version.raw}}-release/ubuntu2204-aarch64/swift-{{version.raw}}-RELEASE/swift-{{version.raw}}-RELEASE-ubuntu22.04-aarch64.tar.gz'
@@ -84,7 +83,6 @@ provides:
     # - bin/clang++
     - bin/swift
     - bin/swift-api-digester
-    - bin/swift-api-extract
     - bin/swift-autolink-extract
     - bin/swift-build
     - bin/swift-experimental-sdk
@@ -127,7 +125,6 @@ provides:
     # - bin/lld-link
     - bin/swift
     - bin/swift-api-digester
-    - bin/swift-api-extract
     - bin/swift-autolink-extract
     - bin/swift-build
     - bin/swift-experimental-sdk
@@ -137,5 +134,5 @@ provides:
     - bin/swift-symbolgraph-extract
     - bin/swift-test
     - bin/swiftc
-test: |
-  swift --version
+
+test: swift --version

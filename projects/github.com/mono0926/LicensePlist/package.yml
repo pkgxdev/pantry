@@ -9,11 +9,18 @@ platforms:
   - darwin
 
 build:
-  make install PREFIX={{prefix}}
+  dependencies:
+    swift.org: 6 # as of 3.26.0
+  script: make install PREFIX={{prefix}}
 
 provides:
   - bin/license-plist
 
 test:
-  - echo 'github "realm/realm-swift" "v10.20.2"' > Cartfile.resolved
-  - license-plist --suppress-opening-directory | grep 'None 🎉'
+  script:
+    - test ! -z "${LICENSE_PLIST_GITHUB_TOKEN}" || unset LICENSE_PLIST_GITHUB_TOKEN
+    - echo 'github "realm/realm-swift" "v10.20.2"' > Cartfile.resolved
+    - license-plist --suppress-opening-directory | tee out
+    - grep 'None 🎉' out
+  env:
+    LICENSE_PLIST_GITHUB_TOKEN: $GITHUB_TOKEN

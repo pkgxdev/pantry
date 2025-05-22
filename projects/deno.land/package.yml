@@ -24,11 +24,11 @@ runtime:
 companions:
   info-zip.org/unzip: '*' # needed to download the compilation runtime
 
-dependencies:
-  sourceware.org/libffi: '>=3.2.1' # v2
-
 build:
   script:
+    # 2.1.11 shipped with incorrect version
+    - run: echo -n "{{version}}" >version.txt
+      working-directory: cli/lib
     # requires specific rust versions
     - run:
         - ln -sf {{deps.rust-lang.org/rustup.prefix}}/bin/rustup .
@@ -36,8 +36,28 @@ build:
         - ln -sf $HOME/.rustup/toolchains/*/bin/* .
       working-directory: $HOME/.cargo/bin
 
-    # deno v2 uses libffi-sys
-    - run: sed -i 's/libffi-sys = "\(.*\)"/libffi-sys = { version = "\1", features = ["system"] }/' Cargo.toml
+    - run:
+        - export FFI_VER="3.2.0"
+        - export FFI_SYS_VER="2.3.0"
+      if: '>=2<2.2.9'
+    # https://github.com/denoland/deno/pull/28816/files
+    - run:
+        - export FFI_VER="4.0.0"
+        - export FFI_SYS_VER="3.2.0"
+      if: '>=2.2.9'
+    # deno v2 uses libffi-sys; we need to vendor it to link our own libffi statically
+    - run:
+        - cargo vendor third-party
+        - sed -i -f $PROP third-party/libffi-sys/build/not_msvc.rs
+        - sed -i 's|libffi-sys = "\(.*\)"|libffi-sys = { version = "\1", features = ["system"] }|' Cargo.toml
+        # changed in 2.2.3
+        - sed -i "s|libffi.workspace = true|libffi = \"=${FFI_VER}\"|" Cargo.toml
+        - sed -i "s|libffi-sys.workspace = true|libffi-sys = { version = \"=${FFI_SYS_VER}\", features = [\"system\"] }|" Cargo.toml
+        - EXTRA_ARGS="$EXTRA_ARGS --config patch.crates-io.libffi-sys.path='ext/ffi/third-party/libffi-sys'"
+      prop: |
+        s|println!("cargo:rustc-link-lib=dylib=ffi");|\
+        println!("cargo:rustc-link-lib=static=ffi");\n\
+        println!("cargo:rustc-link-search={{deps.sourceware.org/libffi.prefix}}/lib");|
       working-directory: ext/ffi
       if: '>=2'
 
@@ -48,12 +68,12 @@ build:
 
         if test "{{hw.platform}}+{{ hw.arch }}" = "darwin+x86-64"; then
           # our LLVM cannot build with deployment target set to 10.6
-          sed -i.bak s/MACOSX_DEPLOYMENT_TARGET/\#/ ext/ffi/tinycc/Makefile
+          sed -i s/MACOSX_DEPLOYMENT_TARGET/\#/ ext/ffi/tinycc/Makefile
         fi
       if: '>=1.25.0<1.25.4'
 
     # change default bindir to ~/.local/bin per our conventions
-    - sed -i'' -e 's/home_path.push(".deno")/home_path.push(".local")/' cli/tools/installer.rs
+    - sed -i -e 's/home_path.push(".deno")/home_path.push(".local")/' cli/tools/installer.rs
 
     - grep home_path cli/tools/installer.rs
 
@@ -66,7 +86,9 @@ build:
     # 1.43.0 published as 1.43.1
     - run: sed -i 's/^version = .*/version = "{{version}}"/' cli/Cargo.toml
 
-    - cargo install --locked --path cli --root "{{ prefix }}"
+    - cargo install --locked --path cli --root "{{ prefix }}" $EXTRA_ARGS
+    - run: cargo install --locked --path cli/rt --root "{{ prefix }}" $EXTRA_ARGS
+      if: '>=2.1.7'
   dependencies:
     llvm.org: '*'
     # rust-lang.org: various
@@ -77,6 +99,7 @@ build:
     protobuf.dev: '*' # deno.land>=1.36.4 requires protoc
     github.com/mikefarah/yq: ^4
     crates.io/semverator: ^0
+    sourceware.org/libffi: '>=3.2.1' # v2
   env:
     linux:
       CC: clang
@@ -89,6 +112,7 @@ test:
     linux/aarch64:
       gnu.org/coreutils: '*' # for stat and numfmt
   script:
+    - deno --version
     - deno --version | grep {{version}}
     - mv $FIXTURE test.ts
     - run: deno install -f test.ts
@@ -112,6 +136,8 @@ test:
 
     # ensure we haven't linked libunwind
     - if $LIST_LIBS {{prefix}}/bin/deno | grep libunwind; then false; fi
+    # ensure we haven't dynamically linked libffi
+    - if $LIST_LIBS {{prefix}}/bin/deno | grep libffi; then false; fi
   fixture: console.log("Hello, world!");
   env:
     darwin:

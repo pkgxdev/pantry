@@ -5,7 +5,7 @@ versions:
   github: vektra/mockery
 build:
   dependencies:
-    go.dev: '*'
+    go.dev: ~1.23
   script:
     - go build $ARGS -ldflags="$LDFLAGS"
   env:
@@ -16,6 +16,7 @@ build:
       - -s
       - -w
       - -X github.com/vektra/mockery/v2/pkg/logging.SemVer=v{{version}}
+      - -X github.com/vektra/mockery/v3/internal/logging.SemVer=v{{version}}
     linux:
       LDFLAGS:
         - -buildmode=pie
@@ -23,5 +24,7 @@ build:
 provides:
   - bin/mockery
 test:
-  script:
-    - mockery --version | grep {{version}}
+  - run: mockery --version | grep {{version}}
+    if: <3
+  - run: mockery version | grep {{version}}
+    if: '>=3'

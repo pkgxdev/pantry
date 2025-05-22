@@ -5,17 +5,24 @@ distributable:
 versions:
   github: protocolbuffers/protobuf
 
+display-name: Protocol Buffers
+
+aliases: [protobuf]
+
 dependencies:
   zlib.net: ^1
-  abseil.io: ^20240116 # FIXME: how? it links to e.g. libabsl_bad_any_cast_impl.so.2308.0.0
+  # this is a bit of a hack, since they need their built version at link time
+  # but the built version *has* to drift :/
+  abseil.io: '*'
 
 build:
   dependencies:
     cmake.org: ^3
+    abseil.io: ^20250127 # FIXME: how? it links to e.g. libabsl_bad_any_cast_impl.so.2308.0.0
   working-directory: build
-  script: |
-    cmake .. $ARGS
-    make --jobs {{ hw.concurrency }} install
+  script:
+    - cmake .. $ARGS
+    - make --jobs {{ hw.concurrency }} install
   env:
     linux:
       # likely needs bumping to an unreleased abseil.io version
@@ -35,15 +42,16 @@ provides:
   - bin/protoc
 
 test:
-  script: |
-    mv $FIXTURE test.proto
-    protoc test.proto --cpp_out=.
-  fixture: |
-    syntax = "proto3";
-    package test;
-    message TestCase {
-      string name = 4;
-    }
-    message Test {
-      repeated TestCase case = 1;
-    }
+  - run: cp $FIXTURE test.proto
+    fixture:
+      extname: proto
+      content: |
+        syntax = "proto3";
+        package test;
+        message TestCase {
+          string name = 4;
+        }
+        message Test {
+          repeated TestCase case = 1;
+        }
+  - protoc test.proto --cpp_out=.

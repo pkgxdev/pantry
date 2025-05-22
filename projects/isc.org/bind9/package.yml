@@ -1,0 +1,69 @@
+distributable:
+  url: https://downloads.isc.org/isc/bind9/{{version}}/bind-{{version}}.tar.xz
+  strip-components: 1
+
+display-name: bind9
+
+versions:
+  gitlab: gitlab.isc.org:isc-projects/bind9/tags
+
+dependencies:
+  gnome.org/libxml2: 2.13
+  nghttp2.org: 1.57
+  libuv.org: 1.49
+  liburcu.org: 0.15
+  openldap.org/liblmdb: 0.9
+  openssl.org: 3
+  gnu.org/readline: 8.2
+  github.com/json-c/json-c: 0.18
+  gnu.org/libidn2: 2.3
+  jemalloc.net: 5
+  linux:
+    kernel.org/libcap: '*'
+
+build:
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --with-json-c
+      - --with-libidn2={{deps.gnu.org/libidn2.prefix}}
+      - --with-openssl={{deps.openssl.org.prefix}}
+      - --with-lmdb={{deps.openldap.org/liblmdb.prefix}}
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+
+provides:
+  - bin/arpaname
+  - bin/delv
+  - bin/dig
+  - bin/dnssec-cds
+  - bin/dnssec-dsfromkey
+  - bin/dnssec-importkey
+  - bin/dnssec-keyfromlabel
+  - bin/dnssec-keygen
+  - bin/dnssec-revoke
+  - bin/dnssec-settime
+  - bin/dnssec-signzone
+  - bin/dnssec-verify
+  - bin/host
+  - bin/mdig
+  - bin/named-checkconf
+  - bin/named-checkzone
+  - bin/named-compilezone
+  - bin/named-journalprint
+  - bin/named-nzd2nzf
+  - bin/named-rrchecker
+  - bin/nsec3hash
+  - bin/nslookup
+  - bin/nsupdate
+  - sbin/ddns-confgen
+  - sbin/named
+  - sbin/rndc
+  - sbin/rndc-confgen
+  - sbin/tsig-keygen
+
+test:
+  - named -V
+  - named -V | grep 'BIND {{version}}'
+  - dig pkgx.sh

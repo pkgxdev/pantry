@@ -6,7 +6,12 @@ versions:
   github: dbry/WavPack/tags
 
 build:
+  dependencies:
+    gnu.org/patch: '*' # patch v5.8.0
   script:
+    # Patch to fix build on macOS for v5.8.0
+    - run: patch -p1 < props/5.8.0.patch
+      if: =5.8.0
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
   env:

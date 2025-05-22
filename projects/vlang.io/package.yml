@@ -12,19 +12,20 @@ interprets:
 build:
   dependencies:
     git-scm.org: '*'
-  script: |
-    if test "{{version}}" = "0.3.2"; then
-      # fixed in https://github.com/vlang/v/commit/ca484430e0380a3fc591b842aadda4fe18deaae5
-      git apply props/int-types.diff
-    fi
+  script:
+    # fixed in https://github.com/vlang/v/commit/ca484430e0380a3fc591b842aadda4fe18deaae5
+    - |
+      if test "{{version}}" = "0.3.2"; then
+        git apply props/int-types.diff
+      fi
 
-    make
-    mkdir -p "{{prefix}}/"{libexec,bin}
+    - make prod=1
+    - mkdir -p "{{prefix}}/"{libexec,bin}
 
-    cp -R cmd thirdparty v v.mod vlib {{prefix}}/libexec/
+    - cp -R cmd thirdparty v v.mod vlib {{prefix}}/libexec/
 
-    cd {{prefix}}/bin
-    ln -s ../libexec/v v
+    - cd {{prefix}}/bin
+    - ln -s ../libexec/v v
 
 test:
   script: |

@@ -1,0 +1,22 @@
+distributable:
+  url: https://github.com/mstange/samply/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/samply
+
+versions:
+  github: mstange/samply/tags
+  strip: /^samply-v/
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.74'
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path samply --root {{prefix}}
+
+test:
+  - test "$(samply --version)" = "samply {{ version }}"
+  # we'd love to do this on linux, but it requires root perms, and that we hate
+  # even on macOS, it loads a server, starts a browser, so... no.
+  # - samply record {{prefix}}/bin/samply --help

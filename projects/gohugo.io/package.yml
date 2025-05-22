@@ -11,19 +11,23 @@ versions:
 # TODO completion is available by running the command
 
 build:
-  script: |
-    go build -ldflags="$LDFLAGS"
-    mkdir -p "{{ prefix }}"/bin
-    mv hugo "{{ prefix }}"/bin
+  script:
+    - go build -ldflags="$GO_LDFLAGS" -o "{{ prefix }}/bin/hugo" -tags extended,withdeploy
   dependencies:
-    go.dev: ^1.18  # probs higher than is true
+    go.dev: ~1.22.6
   env:
-    LDFLAGS:
-      - -s -w
+    CGO_ENABLED: 1
+    GO_LDFLAGS:
+      - -s
+      - -w
+      - -X github.com/gohugoio/hugo/common/hugo.buildDate=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+      - -X github.com/gohugoio/hugo/common/hugo.vendorInfo=pkgx
     linux:
       # or segmentation fault
       # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
-      LDFLAGS:
-      - -buildmode=pie
+      GO_LDFLAGS:
+        - -buildmode=pie
+
 test:
-  hugo version
+  - hugo version | grep 'hugo v{{version}}'
+  - hugo version | grep '+extended+withdeploy'

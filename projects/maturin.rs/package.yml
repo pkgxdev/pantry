@@ -10,9 +10,11 @@ versions:
 
 build:
   dependencies:
+    rust-lang.org: ^1.56
     rust-lang.org/cargo: ^0.77
   script:
-    cargo install --locked --path . --root {{prefix}}
+    # missing version bump
+    - sed -i '1,10s/^version = ".*"/version = "{{version}}"/' Cargo.toml
+    - cargo install --locked --path . --root {{prefix}}
 
-test:
-  maturin --version | grep {{version}}
+test: maturin --version | grep {{version}}

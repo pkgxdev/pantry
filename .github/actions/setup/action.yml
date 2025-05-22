@@ -53,3 +53,15 @@ runs:
       if: runner.os == 'macOS' && inputs.p12-password && inputs.p12-file-base64
       with:
         run: security delete-keychain signing_temp.keychain
+
+    # the intention is to make none of these required eventually
+    - name: apt-get install
+      run: |
+        SUDO=$(if command -v sudo >/dev/null 2>&1; then echo "sudo"; else echo ""; fi)
+        $SUDO apt-get update && $SUDO apt-get install --yes \
+          netbase \
+          ca-certificates \
+          libc-dev libstdc++-8-dev libgcc-8-dev \
+          libudev-dev
+      shell: bash
+      if: runner.os == 'linux'

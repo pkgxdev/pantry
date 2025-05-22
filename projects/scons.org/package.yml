@@ -7,7 +7,8 @@ versions:
 
 dependencies:
   python.org: ~3.11
-  gnu.org/gcc: '>=10' # scons uses `gcc`
+  linux:
+    gnu.org/gcc: '>=10' # scons uses `gcc`
 
 build: python-venv.sh {{prefix}}/bin/scons
 
@@ -15,29 +16,21 @@ provides:
   - bin/scons
 
 test:
-  script:
-    # some gha mac runners have broken SDKs...
-    - run: |
-        if ! test -f /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/AvailabilityInternalLegacy.h; then
-          echo "Missing SDK; skipping remaining tests"
-          exit 0
-        fi
-      if: darwin
-    - run: mv $FIXTURE fixture.c
-      fixture: |
-        #include <stdio.h>
-        int main() {
-          printf("xyz.tea.hello-world");
-          return 0;
-        }
+  - run: mv $FIXTURE fixture.c
+    fixture: |
+      #include <stdio.h>
+      int main() {
+        printf("dev.pkgx.hello-world");
+        return 0;
+      }
 
-    # scons doesn’t import the external environment
-    # this means nobody will enjoy using scons with tea so we have to fix that
-    - run: mv $FIXTURE SConstruct
-      fixture: |
-        import os
-        env = Environment(ENV = os.environ)
-        env.Program('fixture.c')
+  # scons doesn’t import the external environment
+  # this means nobody will enjoy using scons with tea so we have to fix that
+  - run: mv $FIXTURE SConstruct
+    fixture: |
+      import os
+      env = Environment(ENV = os.environ)
+      env.Program('fixture.c')
 
-    - scons --debug=explain
-    - test $(./fixture) = "xyz.tea.hello-world"
+  - scons --debug=explain
+  - test $(./fixture) = "dev.pkgx.hello-world"

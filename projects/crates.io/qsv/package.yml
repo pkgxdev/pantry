@@ -1,0 +1,61 @@
+distributable:
+  url: https://github.com/dathere/qsv/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/qsv
+
+versions:
+  github: dathere/qsv
+
+dependencies:
+  linux:
+    wayland.freedesktop.org: '*'
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.85' # edition2024
+    rust-lang.org/cargo: ^0.86 # edition2024
+    cmake.org: ^3
+    freedesktop.org/pkg-config: '*'
+    python.org: '>=3.8'
+
+  script: cargo install $CARGO_ARGS
+  env:
+    CARGO_ARGS:
+      - --locked
+      # features listed on GitHub like joinp, py are not available
+      - --features feature_capable,apply,luau,clipboard,fetch,foreach,geocode,prompt,sled,to
+      - --path .
+      - --root {{prefix}}
+
+test:
+  - run: mv $FIXTURE test.csv
+    fixture: |
+      a,b,c
+      1,2,3
+      4,5,6
+      7,8,9
+      10,11,12
+      1,2,3
+
+  - qsv sort -s a -R -N test.csv
+
+  # Test count command
+  - test $(qsv count test.csv) -eq 5
+
+  # Test dedup command
+  - qsv dedup -q test.csv
+  - test $(qsv dedup -q test.csv | qsv count) -eq 4
+
+  # Test diff command
+  - run: mv $FIXTURE test-diff.csv
+    fixture: |
+      a,b,c
+      1,2,3
+      4,5,7
+      7,8,9
+      10,11,12
+      1,2,3
+  - qsv diff test.csv test-diff.csv
+  - test $(qsv diff test.csv test-diff.csv | qsv count) -eq 2

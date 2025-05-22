@@ -18,11 +18,11 @@ build:
       gnu.org/gcc: '*'
   script:
     - go generate ./...
-    - go build $ARGS -ldflags="$LDFLAGS" ./cmd/vclusterctl/main.go
+    - go build $ARGS -ldflags="$GO_LDFLAGS" ./cmd/vclusterctl/main.go
   env:
-    COMMIT_SHA: "$(git describe --always --abbrev=8 --dirty)"
-    VERSION_DATE: "$(date -u +%FT%TZ)"
-    LDFLAGS:
+    COMMIT_SHA: '$(git describe --always --abbrev=8 --dirty)'
+    VERSION_DATE: '$(date -u +%FT%TZ)'
+    GO_LDFLAGS:
       - -s
       - -w
       - -X main.commitHash=${COMMIT_SHA}
@@ -33,7 +33,7 @@ build:
       - -trimpath
       - -o={{prefix}}/bin/vcluster
     linux:
-      ARGS:
+      GO_LDFLAGS:
         - -buildmode=pie
 
 provides:
@@ -43,5 +43,8 @@ test:
   - export PATH={{deps.helm.sh.prefix}}/bin:$PATH
   - vcluster --version | grep {{version}}
   - vcluster --help | grep 'vcluster root command'
-  - vcluster create vcluster -n vcluster --create-namespace 2>out.log || true
-  - cat out.log | grep 'please make sure you have access to a kubernetes cluster and the command'
+  - (vcluster create vcluster -n vcluster --create-namespace 2>&1 || true) | tee out.log
+  - run: cat out.log | grep 'please make sure you have access to a kubernetes cluster and the command'
+    if: <0.25
+  - run: cat out.log | grep 'failed to get kube client config'
+    if: '>=0.25'

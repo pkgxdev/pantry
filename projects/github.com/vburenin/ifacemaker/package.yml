@@ -1,8 +1,13 @@
 distributable:
   url: https://github.com/vburenin/ifacemaker/archive/v{{version}}.tar.gz
   strip-components: 1
+
 versions:
   github: vburenin/ifacemaker/tags
+
+companions:
+  go.dev: '*'
+
 build:
   dependencies:
     go.dev: '*'
@@ -15,10 +20,8 @@ build:
     LDFLAGS:
       - -s
       - -w
+
 provides:
   - bin/ifacemaker
-test:
-  script: |
-    ifacemaker -f human.go -s Human -i HumanIface -p humantest \
-    -y "HumanIface makes human interaction easy" \
-    -c "DONT EDIT: Auto generated" | grep "type HumanIface interface"
+
+test: 'ifacemaker -f human.go -s Human -i HumanIface -p humantest -y "HumanIface makes human interaction easy" -c "DONT EDIT: Auto generated" | grep "type HumanIface interface"'

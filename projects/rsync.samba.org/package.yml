@@ -11,9 +11,9 @@ dependencies:
   lz4.org: ^1
 
 build:
-  script: |
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }} install
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
   env:
     ARGS:
       - --disable-debug
@@ -24,21 +24,25 @@ build:
       - --disable-openssl #FIXME rsync still builds with encryption, but it is not hardware-accelerated
       - --enable-ipv6
       - --disable-xxhash #FIXME
+    linux:
+      # 3.4.0 fails to build otherwise.
+      CFLAGS: $CFLAGS -Wno-implicit-function-declaration
 
 provides:
   - bin/rsync
   - bin/rsync-ssl
 
-test: |
-  mkdir a
+test:
+  - mkdir a
 
-  echo foo > a/1.txt
-  echo bar > a/2.txt
-  echo baz > a/3.txt
+  - echo foo > a/1.txt
+  - echo bar > a/2.txt
+  - echo baz > a/3.txt
 
-  rsync -artv a/ b
+  - rsync -artv a/ b
 
-  for x in $(cd a && ls); do
-    test -f b/$x
-    test $(cat a/$x) = $(cat b/$x)
-  done
+  - |
+    for x in $(cd a && ls); do
+      test -f b/$x
+      test $(cat a/$x) = $(cat b/$x)
+    done

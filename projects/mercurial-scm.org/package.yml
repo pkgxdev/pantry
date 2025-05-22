@@ -1,18 +1,30 @@
 distributable:
   url: https://www.mercurial-scm.org/release/mercurial-{{version.raw}}.tar.gz
   strip-components: 1
+
 versions:
   url: https://www.mercurial-scm.org/release
   match: /mercurial-\d+\.\d+(\.\d+)?\.tar\.gz/
   strip:
     - /^mercurial-/
     - /\.tar\.gz/
+
 dependencies:
   python.org: ~3.11
+
+runtime:
+  env:
+    PYTHONPATH: '{{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH'
+
 build:
   dependencies:
     gnu.org/make: '*'
   script:
+    - run:
+        - python -m venv ~/.venv
+        - source ~/.venv/bin/activate
+        - pip install setuptools_scm wheel
+      if: '>=7'
     - make install-bin PREFIX={{prefix}}
     - make -C contrib/chg install PREFIX={{prefix}} HGPATH={{prefix}}/bin/hg HG={{prefix}}/bin/hg
     - run: cat $PROP >hgrc
@@ -31,10 +43,11 @@ build:
       working-directory: ${{prefix}}/bin
   env:
     HGPYTHON3: 1
+
 provides:
   - bin/hg
   - bin/chg
+
 test:
-  script:
-    - hg init
-    - hg --version | grep {{version.marketing}}
+  - hg init
+  - hg --version | grep {{version.marketing}}
