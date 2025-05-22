@@ -1,6 +1,6 @@
 distributable:
   url: git+https://github.com/glauth/glauth
-  ref: "{{version.tag}}"
+  ref: '{{version.tag}}'
 
 display-name: glauth
 
@@ -32,26 +32,28 @@ build:
     GO_LDFLAGS_PLUGIN:
       - -w
       - -s
-#      - -buildmode=plugin
+    #      - -buildmode=plugin
     GO_LDFLAGS_BINARY:
       - -s
       - -w
-#      - -X github.com/glauth/glauth/v2/internal/version/version.Version={{version.tag}}
+  #      - -X github.com/glauth/glauth/v2/internal/version/version.Version={{version.tag}}
   script:
     - working-directory: v2
       run:
-      #
-      # to do a release
-      #
-      - sed -i 's/^const Version.*/const Version = "{{version.tag}}"/' internal/version/const.go 
-#      - cat internal/version/const.go
-#      - exit 1
-      - go build -v -ldflags="${GO_LDFLAGS_BINARY}" -trimpath -buildvcs=false -o "{{ prefix }}"/bin/glauth
+        #
+        # to do a release
+        #
+        - sed -i 's/^const Version.*/const Version = "{{version.tag}}"/' internal/version/const.go
+        #      - cat internal/version/const.go
+        #      - exit 1
+        - go build -v -ldflags="${GO_LDFLAGS_BINARY}" -trimpath -buildvcs=false -o "{{ prefix }}"/bin/glauth
 
     #
     # get the plugins repositories
     #
-    - git submodule update --init --recursive
+    - run:
+        - sed -i 's|git@github.com:|https://github.com/|g' .gitmodules
+        - git submodule update --init --recursive
 
     #
     # pkg/plugins/glauth-pam/pam_linux.go:148:9: cannot use h.ldohelper.Bind(h, bindDN, bindSimplePw, conn) (value of type "github.com/glauth/ldap".LDAPResultCode) as "github.com/nmcclain/ldap".LDAPResultCode value in return statement
@@ -71,48 +73,45 @@ build:
     #           want Add(string, "github.com/glauth/ldap".AddRequest, net.Conn) ("github.com/glauth/ldap".LDAPResultCode, error)
     # pkg/plugins/glauth-pam/pam_linux.go:384:17: cannot use options.Logger (variable of type *zerolog.Logger) as logr.Logger value in struct literal
     #
-#    - if: linux
-#      working-directory: v2/pkg/plugins
-#      run: export PLUGINS=$(ls -d glauth-*)
-#    - if: darwin
-#      working-directory: v2/pkg/plugins
+    #    - if: linux
+    #      working-directory: v2/pkg/plugins
+    #      run: export PLUGINS=$(ls -d glauth-*)
+    #    - if: darwin
+    #      working-directory: v2/pkg/plugins
     #
     # list plugins excluding pam that does not compile
     #
     - working-directory: v2/pkg/plugins
       run: export PLUGINS=$(ls -d glauth-*|grep -v "pam$")
     - working-directory: v2
-      run: 
-        - |
+      run:
+        - for plugin in ${PLUGINS}; do
 
-            for plugin in ${PLUGINS}; do
+        - go mod edit -json pkg/plugins/${plugin}/go.mod |
+          #
+          # install plugins go dependencies
+          #
+        - jq --raw-output '.Require|.[]|select(.Indirect!=true and ((.Path|contains("glauth"))|not))| "\(.Path)@\(.Version)"' |
+          xargs -I{} go get '{}'
 
-              go mod edit -json pkg/plugins/${plugin}/go.mod |
-              #
-              # install plugins go dependencies
-              #
-              jq --raw-output '.Require|.[]|select(.Indirect!=true and ((.Path|contains("glauth"))|not))| "\(.Path)@\(.Version)"' |
-              xargs -I{} go get '{}'
+          #
+          # get the source file name (in old glauth versions, pam does not follow the file namming of the other plugins)
+          #
+        - SRC_FILE="$(cd pkg/plugins/${plugin}/ && ls -1 *.go | grep ${plugin/glauth-/})"
 
-              #
-              # get the source file name (in old glauth versions, pam does not follow the file namming of the other plugins) 
-              #
-              SRC_FILE="$(cd pkg/plugins/${plugin}/ && ls -1 *.go | grep ${plugin/glauth-/})"
+        - go build -v -ldflags="-s -w" -buildmode=plugin -trimpath
+          -o "{{ prefix }}"/lib/${plugin}.${LIB_SUFFIX}
+          ./pkg/plugins/${plugin}/${SRC_FILE}
 
-              go build -v -ldflags="-s -w" -buildmode=plugin -trimpath \
-                 -o "{{ prefix }}"/lib/${plugin}.${LIB_SUFFIX} \
-                 ./pkg/plugins/${plugin}/${SRC_FILE}
-
-            done
+        - done
     - working-directory: props
       run:
-        - |
+        - install -Dm755 ${GLAUTH_SETUP_SCRIPT} {{prefix}}/bin/glauth-setup
+        - install -D ${GLAUTH_README_FILE} {{prefix}}/doc/${GLAUTH_README_FILE}
+        - install -D ${GLAUTH_CONFIG_FILE} {{prefix}}/etc/glauth/${GLAUTH_CONFIG_FILE}
+        - install -D ${GLAUTH_SERVICE_ENVIRONMENT_FILE} {{prefix}}/etc/glauth/${GLAUTH_SERVICE_ENVIRONMENT_FILE}
+        - install -D ${GLAUTH_SERVICE_SYSTEMD_FILE} {{prefix}}/etc/systemd/system/${GLAUTH_SERVICE_SYSTEMD_FILE}
 
-            install -D -m +x ${GLAUTH_SETUP_SCRIPT} {{prefix}}/bin/glauth-setup
-            install -D ${GLAUTH_README_FILE} {{prefix}}/doc/${GLAUTH_README_FILE}
-            install -D ${GLAUTH_CONFIG_FILE} {{prefix}}/etc/glauth/${GLAUTH_CONFIG_FILE} 
-            install -D ${GLAUTH_SERVICE_ENVIRONMENT_FILE} {{prefix}}/etc/glauth/${GLAUTH_SERVICE_ENVIRONMENT_FILE} 
-            install -D ${GLAUTH_SERVICE_SYSTEMD_FILE} {{prefix}}/etc/systemd/system/${GLAUTH_SERVICE_SYSTEMD_FILE}
 provides:
   - bin/glauth
   - bin/glauth-setup
