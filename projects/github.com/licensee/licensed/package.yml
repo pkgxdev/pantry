@@ -1,0 +1,57 @@
+distributable:
+  url: git+https://github.com/licensee/licensed.git
+  ref: ${{version.tag}}
+
+versions:
+  github: licensee/licensed
+
+dependencies:
+  ruby-lang.org: ^3.1
+  rubygems.org: '*'
+  linux:
+    gnome.org/libxml2: ~2.13.8 # for nokogiri
+    gnome.org/libxslt: ~1.1.43 # for nokogiri
+    pcre.org: 8 # for nokogiri
+
+build:
+  dependencies:
+    cmake.org: ^4 # for Rugged
+  env:
+    GEM_HOME: ${{prefix}}
+    GEM_PATH: ${{prefix}}
+    BUNDLE_VERSION: system
+  script:
+    - bundle config set without development test
+    - bundle install
+    # build nokogiri from source for linux for glibc version compatibility
+    - run:
+        - gem uninstall nokogiri --all --ignore-dependencies
+        - gem install nokogiri --platform=ruby -- --use-system-libraries
+      if: linux
+
+    - gem build licensed.gemspec
+
+    - gem install
+      --no-user-install
+      --bindir={{prefix}}/gems/bin
+      --no-document
+      licensed-{{version}}.gem
+
+    - install -Dm755 props/licensed {{prefix}}/bin/licensed
+
+provides:
+  - bin/licensed
+
+test:
+  - licensed --help
+  - run: cp $FIXTURE Gemfile
+    fixture: |
+      source 'https://rubygems.org'
+      gem 'licensed', '{{version}}'
+  - run: cp $FIXTURE .licensed.yaml
+    fixture: |
+      name: 'test'
+      allowed:
+        - mit
+  - licensed cache 2>&1 | tee out.log
+  - grep 'Caching dependency records for test' out.log
