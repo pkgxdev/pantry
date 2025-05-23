@@ -1,0 +1,24 @@
+distributable:
+  url: https://github.com/garden-io/garden/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: garden-io/garden
+
+provides:
+  - bin/garden
+
+build:
+  dependencies:
+    npmjs.com: ">=8"
+    nodejs.org: ">=18"
+  script: |
+    npm install
+    npm run build
+    npm run dist
+    ls -la bin
+    ls -la cli/bin
+    ls -la build
+    ls -la dist
+
+test: garden --version | grep {{version}}
