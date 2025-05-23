@@ -31,7 +31,7 @@ test:
     SELECT "One" IN ("One", "Two", "Three")
     SELECT "Git Query Language" LIKE "%Query%"
 
-    SELECT DISTINCT title AS tt message FROM commits
+    SELECT DISTINCT title AS tt, message FROM commits
     SELECT name, COUNT(name) AS commit_num FROM commits GROUP BY name ORDER BY commit_num DESC LIMIT 10
     SELECT commit_count FROM branches WHERE commit_count BETWEEN 0 .. 10
 
@@ -54,19 +54,22 @@ test:
     SELECT * FROM tags OFFSET 1 LIMIT 1
   script:
     - git clone https://github.com/pkgxdev/pkgx
-    - run: |
-        echo 'exit' >>$FIXTURE
-        cat $FIXTURE | gitql --repos pkgx
+    # changed in 0.38.0
+    - run: sed -i -e '/commits/s/name/author_name/g' -e '/commits/s/email/author_email/g' -e '/0 \.\. 10/d' $FIXTURE
+      if: '>=0.38'
+    - run:
+        - echo 'exit' >>$FIXTURE
+        - cat $FIXTURE | gitql --repos pkgx
       if: <0.10.0
-    - run: |
-        gitql <$FIXTURE
-        gitql -q 'SELECT 1'
+    - run:
+        - gitql <$FIXTURE
+        - gitql -q 'SELECT 1'
       if: '>=0.10.0<0.22.0 || >=0.22.1'
       working-directory: pkgx
     # bug in v0.22.0, queries without FROM error out, fixed in v0.22.1
-    - run: |
-        sed -i '/FROM/!d' $FIXTURE
-        gitql <$FIXTURE
-        gitql -q 'SELECT 1 AS just_a_number FROM tags LIMIT 1'
+    - run:
+        - sed -i '/FROM/!d' $FIXTURE
+        - gitql <$FIXTURE
+        - gitql -q 'SELECT 1 AS just_a_number FROM tags LIMIT 1'
       if: 0.22.0
       working-directory: pkgx
