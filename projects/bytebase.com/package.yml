@@ -40,6 +40,10 @@ build:
     - run: sed -i 's/-ldflags "/-ldflags "-buildmode=pie /' build_bytebase.sh
       if: linux
       working-directory: scripts
+    # since 3.6.2
+    - run: sed -i "s/^VERSION='.*'$/VERSION='{{version}}'/" build_init.sh
+      working-directory: scripts
+      if: '>=3.6.2'
     - ./scripts/build_bytebase.sh {{prefix}}/bin
   env:
     linux:
