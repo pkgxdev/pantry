@@ -11,34 +11,28 @@ dependencies:
 build:
   dependencies:
     rust-lang.org: ^1.60.0
-    rust-lang.org/cargo: ^0.65
+    rust-lang.org/cargo: ^0.87
     freedesktop.org/pkg-config: ^0.29
-  script:
-    cargo install --path=. --root={{prefix}}
-  test:
-    cargo test
+  script: cargo install --path=. --root={{prefix}} --locked
+  test: cargo test
 
 test:
-  dependencies:
-    crates.io/semverator: '*'
-  script: |
-    dd if=/dev/zero count=1 bs=101 of=big
-    dd if=/dev/zero count=1 bs=99 of=little
-    OUT=$(nu -c 'ls | where size < 100b')
-    test "$OUT" = "$FIXTURE"
+  script:
+    - dd if=/dev/zero count=1 bs=101 of=big
+    - dd if=/dev/zero count=1 bs=99 of=little
+    - OUT=$(nu -c 'ls | where size < 100b')
+    - run: test "$OUT" = "$(cat $FIXTURE)"
+      fixture: |
+        ╭───┬────────┬──────┬──────┬──────────╮
+        │ # │  name  │ type │ size │ modified │
+        ├───┼────────┼──────┼──────┼──────────┤
+        │ 0 │ little │ file │ 99 B │ now      │
+        ╰───┴────────┴──────┴──────┴──────────╯
 
-    if semverator lt {{version}} 0.75.0; then
-      nu -c 'fetch https://tea.xyz'
-    else
-      nu -c 'http get https://tea.xyz'
-    fi
-  env:
-    FIXTURE: |
-      ╭───┬────────┬──────┬──────┬──────────╮
-      │ # │  name  │ type │ size │ modified │
-      ├───┼────────┼──────┼──────┼──────────┤
-      │ 0 │ little │ file │ 99 B │ now      │
-      ╰───┴────────┴──────┴──────┴──────────╯
+    - run: nu -c 'fetch https://pkgx.sh'
+      if: <0.75
+    - run: nu -c 'http get https://pkgx.sh'
+      if: '>=0.75'
 
 provides:
   - bin/nu
