@@ -1,0 +1,67 @@
+distributable:
+  url: https://github.com/ocaml/ocaml/archive/refs/tags/{{version.raw}}.tar.gz
+  strip-components: 1
+
+display-name: ocaml
+
+versions:
+  github: ocaml/ocaml
+
+dependencies:
+  invisible-island.net/ncurses: "*"
+
+build:
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} --debug=v world.opt
+    - make -j {{ hw.concurrency }} install
+    - run: rm -rf compiler-libs
+      working-directory: "{{prefix}}/lib/ocaml"
+  env:
+    # Recommended flags in the Arch Linux PKGBUILD. Remove if not necessary.
+    CFLAGS: $CFLAGS -ffat-lto-objects
+    CXXFLAGS: $CXXFLAGS -ffat-lto-objects
+    ARGS:
+      - --prefix="{{prefix}}"
+    # Frame Pointers don't work in macOS and Linux ARM64. Only for Linux x86_64
+    linux/x86-64:
+      ARGS:
+        - --enable-frame-pointers
+
+provides:
+  - bin/ocaml
+  - bin/ocamlcp
+  - bin/ocamldoc
+  - bin/ocamlmklib
+  - bin/ocamlopt
+  - bin/ocamlrun
+  - bin/ocamlc
+  - bin/ocamldebug
+  - bin/ocamldoc.opt
+  - bin/ocamlmktop
+  - bin/ocamlopt.byte
+  - bin/ocamlrund
+  - bin/ocamlc.byte
+  - bin/ocamldep
+  - bin/ocamllex
+  - bin/ocamlobjinfo
+  - bin/ocamlopt.opt
+  - bin/ocamlruni
+  - bin/ocamlcmt
+  - bin/ocamldep.byte
+  - bin/ocamllex.byte
+  - bin/ocamlobjinfo.byte
+  - bin/ocamloptp
+  - bin/ocamlyacc
+  - bin/ocamlc.opt
+  - bin/ocamldep.opt
+  - bin/ocamllex.opt
+  - bin/ocamlobjinfo.opt
+  - bin/ocamlprof
+
+test:
+  - ls -l {{prefix}}
+  - ls -l {{prefix}}/bin
+  - test "$(ocamlc --version)" = {{version.raw}}
+  - ocamlc fixture.ml -o fixture
+  - test "$(./fixture)" = "Hello, World!"
