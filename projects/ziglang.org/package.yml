@@ -20,32 +20,42 @@ build:
     curl.se: '*'
     gnu.org/tar: '*'
     tukaani.org/xz: '*'
-  script: |
-    case "{{hw.platform}}+{{hw.arch}}" in
-      darwin+aarch64) PLATFORM="macos-aarch64" ;;
-      darwin+x86-64)  PLATFORM="macos-x86_64"  ;;
-      linux+aarch64)  PLATFORM="linux-aarch64" ;;
-      linux+x86-64)   PLATFORM="linux-x86_64"  ;;
-    esac
+  script:
+    - run: |
+        case "{{hw.platform}}+{{hw.arch}}" in
+          darwin+aarch64) PLATFORM="macos-aarch64" ;;
+          darwin+x86-64)  PLATFORM="macos-x86_64"  ;;
+          linux+aarch64)  PLATFORM="linux-aarch64" ;;
+          linux+x86-64)   PLATFORM="linux-x86_64"  ;;
+        esac
+      if: <0.14.1
+    # why? why reverse the order of the platforms?
+    - run: |
+        case "{{hw.platform}}+{{hw.arch}}" in
+          darwin+aarch64) PLATFORM="aarch64-macos" ;;
+          darwin+x86-64)  PLATFORM="x86_64-macos"  ;;
+          linux+aarch64)  PLATFORM="aarch64-linux" ;;
+          linux+x86-64)   PLATFORM="x86_64-linux"  ;;
+        esac
+      if: '>=0.14.1'
 
-    curl -Lfo zig.tar.xz "https://ziglang.org/download/{{ version }}/zig-${PLATFORM}-{{ version }}.tar.xz"
-    tar Jxf zig.tar.xz
+    - curl -Lfo zig.tar.xz "https://ziglang.org/download/{{ version }}/zig-${PLATFORM}-{{ version }}.tar.xz"
+    - tar Jxf zig.tar.xz
 
-    mkdir -p "{{ prefix }}/bin"
-    mv zig-${PLATFORM}-{{ version }}/zig "{{ prefix }}/bin/zig"
-    mv zig-${PLATFORM}-{{ version }}/lib "{{ prefix }}"
+    - install -Dm755 zig-${PLATFORM}-{{ version }}/zig "{{ prefix }}/bin/zig"
+    - cp -a zig-${PLATFORM}-{{ version }}/lib "{{ prefix }}"
 
 test:
-  script: |
-    cp $FIXTURE hello.zig
-    zig build-exe hello.zig
-    ./hello
-  fixture: |
-      const std = @import("std");
-      pub fn main() !void {
-          const stdout = std.io.getStdOut().writer();
-          try stdout.print("Hello, world!", .{});
-      }
+  - run: zig build-exe $FIXTURE --name hello
+    fixture:
+      extname: zig
+      content: |
+        const std = @import("std");
+        pub fn main() !void {
+            const stdout = std.io.getStdOut().writer();
+            try stdout.print("Hello, world!", .{});
+        }
+  - ./hello
 
 provides:
   - bin/zig
