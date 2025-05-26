@@ -1,8 +1,10 @@
 distributable:
   url: https://github.com/wxWidgets/wxWidgets/releases/download/v{{version}}/wxWidgets-{{version}}.tar.bz2
   strip-components: 1
+
 versions:
   github: wxWidgets/wxWidgets
+
 dependencies:
   libjpeg-turbo.org: '*'
   libpng.org: '*'
@@ -14,6 +16,7 @@ dependencies:
     x.org/sm: '*'
     freedesktop.org/mesa-glu: '*'
     gtk.org/gtk3: '*'
+
 build:
   dependencies:
     freedesktop.org/pkg-config: '*'
@@ -65,7 +68,12 @@ build:
         - --with-macosx-version-min=$MACOSX_DEPLOYMENT_TARGET
         - --with-osx_cocoa
         - --with-libiconv
+
 provides:
   - bin/wx-config
   - bin/wxrc
-test: wx-config --version | grep {{version}}
+
+test:
+  - wx-config --version
+  # doesn't include components beyond patch.
+  - wx-config --version | grep "{{version.marketing}}.{{version.patch}}"
