@@ -10,14 +10,14 @@ provides:
 
 dependencies:
   ruby-lang.org: ^3.1
-  rubygems.org: '*'
+  rubygems.org: ~3.3
 
 build:
   env:
     GEM_HOME: ${{prefix}}
     GEM_PATH: ${{prefix}}
   dependencies:
-    cmake.org: ^3  # needed by the rugged gem
+    cmake.org: ^3 # needed by the rugged gem
   script:
     - gem build gollum.gemspec
     - gem install gollum-{{version}}.gem
@@ -27,8 +27,7 @@ build:
         for tool in gollum*; do
           cp $PROP {{prefix}}/bin/$tool
         done
-      working-directory:
-        ${{prefix}}/gems/bin
+      working-directory: ${{prefix}}/gems/bin
       prop: |
         #!/bin/sh
         export GEM_HOME="$(cd "$(dirname "$0")"/.. && pwd)"
@@ -39,5 +38,4 @@ build:
     - run: rmdir plugins build_info
       working-directory: ${{prefix}}
 
-test:
-  test "$(gollum --version)" = Gollum\ {{version}}
+test: test "$(gollum --version)" = Gollum\ {{version}}
