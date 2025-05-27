@@ -23,12 +23,13 @@ build:
     CARGO_ARGS:
       - --locked
       # features listed on GitHub like joinp, py are not available
-      # - --features feature_capable,apply,luau,clipboard,fetch,foreach,geocode,prompt,sled,to
-      # above features fail on darwin/x86-64; prune back to features used by homebrew, and extend if
-      # requested by users.
-      - --features feature_capable,apply,luau
+      - --features feature_capable,apply,luau,clipboard,fetch,foreach,geocode,prompt,sled,to
       - --path .
       - --root {{prefix}}
+    darwin/x86-64:
+      # tests fail on gha macOS runners
+      RUSTFLAGS:
+        - -C target-cpu=generic
 
 test:
   - run: mv $FIXTURE test.csv
