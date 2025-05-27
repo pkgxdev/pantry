@@ -1,6 +1,7 @@
-distributable:
-  url: https://opendev.org/openstack/python-openstackclient/archive/{{version}}.tar.gz
-  strip-components: 1
+distributable: ~
+# Their git repo stopped responding to https requests. :/
+# url: https://opendev.org/openstack/python-openstackclient/archive/{{version}}.tar.gz
+# strip-components: 1
 
 versions:
   url: https://opendev.org/api/v1/repos/openstack/python-openstackclient/tags
@@ -16,6 +17,8 @@ build:
   dependencies:
     python.org: ^3
   script:
+    - 'pip download --no-deps --no-binary :all: --dest . python-openstackclient=={{version}}'
+    - tar zxvf python_openstackclient-{{version}}.tar.gz --strip-components=1
     - bkpyvenv stage {{prefix}} {{version}}
     - ${{prefix}}/venv/bin/pip install .
     - bkpyvenv seal {{prefix}} openstack openstack-inventory
