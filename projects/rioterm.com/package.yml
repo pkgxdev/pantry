@@ -1,0 +1,27 @@
+distributable:
+  url: https://github.com/raphamorim/rio/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/rio
+
+versions:
+  github: raphamorim/rio
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.85'
+    rust-lang.org/cargo: '*'
+  working-directory: frontends/rioterm
+  script: cargo install --locked --path . --root {{prefix}}
+  env:
+    linux:
+      RUSTFLAGS: -C link-arg=-Wl,-lstdc++fs
+
+test:
+  - rio --version
+  # can't run this test headless, sadly.
+  - run:
+      - rio -w "$(pwd)" -e touch foo
+      - test -f foo
+    if: darwin
