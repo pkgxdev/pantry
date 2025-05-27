@@ -17,15 +17,16 @@ build:
     rust-lang.org: '>=1.85' # edition2024
     rust-lang.org/cargo: ^0.86 # edition2024
     cmake.org: ^3
-    freedesktop.org/pkg-config: '*'
     python.org: '>=3.8'
-
   script: cargo install $CARGO_ARGS
   env:
     CARGO_ARGS:
       - --locked
       # features listed on GitHub like joinp, py are not available
-      - --features feature_capable,apply,luau,clipboard,fetch,foreach,geocode,prompt,sled,to
+      # - --features feature_capable,apply,luau,clipboard,fetch,foreach,geocode,prompt,sled,to
+      # above features fail on darwin/x86-64; prune back to features used by homebrew, and extend if
+      # requested by users.
+      - --features feature_capable,apply,luau
       - --path .
       - --root {{prefix}}
 
