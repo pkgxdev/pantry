@@ -51,13 +51,6 @@ test:
   - test $(qsv dedup -q test.csv | qsv count) -eq 4
 
   # Test diff command
-  - run: mv $FIXTURE test-diff.csv
-    fixture: |
-      a,b,c
-      1,2,3
-      4,5,7
-      7,8,9
-      10,11,12
-      1,2,3
+  - sed 's/4,5,6/4,5,7/' test.csv > test-diff.csv
   - qsv diff test.csv test-diff.csv
   - test $(qsv diff test.csv test-diff.csv | qsv count) -eq 2
