@@ -32,6 +32,13 @@ build:
             ln -s ../libexec/bin/$x ../../bin/${x%.mjs}
           done
       working-directory: ${{prefix}}/libexec/bin
+    # renamed in v25
+    - run: ln -s nu nup
+      working-directory: ${{prefix}}/bin
+      if: <25
+    - run: ln -s nup nu
+      working-directory: ${{prefix}}/bin
+      if: '>=25'
 provides:
   - bin/na
   - bin/nci
@@ -40,6 +47,7 @@ provides:
   - bin/nr
   - bin/nu
   - bin/nun
+  - bin/nup
 
 test:
   # or errors
