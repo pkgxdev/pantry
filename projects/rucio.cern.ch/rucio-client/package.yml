@@ -18,13 +18,15 @@ build:
     - ${{prefix}}/venv/bin/pip install setuptools
     # in 35.7.0 this got renamed to build_sdist_wheel.sh
     - ./tools/build_sdist*.sh clients
-    - ${{prefix}}/venv/bin/pip install .
+    - ${{prefix}}/venv/bin/python setup.py install
     # missing req
     - run: ${{prefix}}/venv/bin/pip install dogpile.cache
       if: '>=35'
     # missing req
     - run: ${{prefix}}/venv/bin/pip install click
       if: '>=37'
+    - run: ${{prefix}}/venv/bin/pip install rucio[mysql,postgresql,sqlite,ldap,webui,webapi,vo]
+      if: '>=35'
     - bkpyvenv seal {{prefix}} rucio rucio-admin
 
 provides:
