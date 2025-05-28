@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/apollographql/rover/archive/refs/tags/v{{ version }}.tar.gz
+  url: https://github.com/apollographql/rover/archive/refs/tags/{{ version.tag }}.tar.gz
   strip-components: 1
 
 provides:
@@ -12,18 +12,16 @@ dependencies:
 
 versions:
   github: apollographql/rover
-  strip: /v/
 
 build:
   dependencies:
     rust-lang.org: '>=1.65'
     rust-lang.org/cargo: '*'
-    freedesktop.org/pkg-config: ^0
     linux:
-      gnu.org/make: '*'
       perl.org: ^5 # openssl mod
-  script: cargo install --locked --path . --root {{prefix}}
-
-test:
   script:
-    - test "$(rover --version)" = "Rover {{version}}"
+    # missed version bump
+    - sed -i '1,20s/^version = ".*"/version = "{{ version }}"/' Cargo.toml
+    - cargo install --locked --path . --root {{prefix}}
+
+test: test "$(rover --version)" = "Rover {{version}}"
