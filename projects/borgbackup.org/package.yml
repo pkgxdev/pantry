@@ -1,0 +1,43 @@
+distributable:
+  url: https://github.com/borgbackup/borg/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: borgbackup/borg/tags
+
+dependencies:
+  pkgx.sh: ^1
+
+platforms:
+  - linux
+  - darwin
+
+build:
+  dependencies:
+    python.org: ^3.10
+    openssl.org: ^1.1
+    gnu.org/gcc: "*"
+    facebook.com/zstd: "*"
+    github.com/Cyan4973/xxHash: ^0.8
+    freedesktop.org/pkg-config: "*"
+    lz4.org: "*"
+    linux:
+      savannah.nongnu.org/acl: ^2.3.1
+  env:
+    BORG_OPENSSL_PREFIX: "{{deps.openssl.org.prefix}}"
+    BORG_LIBLZ4_PREFIX: "{{deps.lz4.org.prefix}}"
+    BORG_LIBZSTD_PREFIX: "{{deps.facebook.com/zstd.prefix}}"
+    BORG_LIBXXHASH_PREFIX: "{{deps.github.com/Cyan4973/xxHash.prefix}}"
+    BORG_LIBACL_PREFIX: "{{deps.savannah.nongnu.org/acl.prefix}}"
+    CC: gcc
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install --prefix {{prefix}} -r requirements.d/development.txt
+    - ${{prefix}}/venv/bin/pip install --prefix {{prefix}} .
+    - bkpyvenv seal {{prefix}} borg
+
+provides:
+  - bin/borg
+
+test:
+  - borg --version | grep "^borg {{version}}"
