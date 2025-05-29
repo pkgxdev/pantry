@@ -1,0 +1,31 @@
+distributable:
+  url: https://github.com/awslabs/eks-node-viewer/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: awslabs/eks-node-viewer
+
+build:
+  dependencies:
+    go.dev: ^1
+  script: go build $ARGS -ldflags="$LDFLAGS" ./cmd/eks-node-viewer
+  env:
+    ARGS:
+      - -trimpath
+      - -o={{prefix}}/bin/eks-node-viewer
+    LDFLAGS:
+      - -s
+      - -w
+      - -X main.version="{{ version }}"
+      - -X main.date="$( date --iso-8601=minutes )"
+      - -X main.builtBy="pkgx"
+    linux:
+      LDFLAGS:
+        - -buildmode=pie
+
+provides:
+  - bin/eks-node-viewer
+
+test:
+  script:
+    - eks-node-viewer --version | grep "eks-node-viewer version {{version}}"
