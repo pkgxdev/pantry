@@ -3,52 +3,45 @@ distributable:
   strip-components: 1
 
 versions:
-  github: borgbackup/borg/tags
+  github: borgbackup/borg
 
 dependencies:
   pkgx.sh: ^1
-
-platforms:
-  - linux
-  - darwin
+  github.com/Cyan4973/xxHash: ^0.8
 
 build:
   dependencies:
     python.org: ^3.10
     openssl.org: ^1.1
-    gnu.org/gcc: "*"
-    facebook.com/zstd: "*"
-    github.com/Cyan4973/xxHash: ^0.8
-    freedesktop.org/pkg-config: "*"
-    lz4.org: "*"
+    facebook.com/zstd: '*'
+    lz4.org: '*'
     linux:
       savannah.nongnu.org/acl: ^2.3.1
   env:
-    BORG_OPENSSL_PREFIX: "{{deps.openssl.org.prefix}}"
-    BORG_LIBLZ4_PREFIX: "{{deps.lz4.org.prefix}}"
-    BORG_LIBZSTD_PREFIX: "{{deps.facebook.com/zstd.prefix}}"
-    BORG_LIBXXHASH_PREFIX: "{{deps.github.com/Cyan4973/xxHash.prefix}}"
-    BORG_LIBACL_PREFIX: "{{deps.savannah.nongnu.org/acl.prefix}}"
-    CC: gcc
+    BORG_OPENSSL_PREFIX: '{{deps.openssl.org.prefix}}'
+    BORG_LIBLZ4_PREFIX: '{{deps.lz4.org.prefix}}'
+    BORG_LIBZSTD_PREFIX: '{{deps.facebook.com/zstd.prefix}}'
+    BORG_LIBXXHASH_PREFIX: '{{deps.github.com/Cyan4973/xxHash.prefix}}'
+    BORG_LIBACL_PREFIX: '{{deps.savannah.nongnu.org/acl.prefix}}'
   script:
     - bkpyvenv stage {{prefix}} {{version}}
-    - ${{prefix}}/venv/bin/pip install --prefix {{prefix}} -r requirements.d/development.txt
-    - ${{prefix}}/venv/bin/pip install --prefix {{prefix}} .
-    - bkpyvenv seal {{prefix}} borg
+    - ${{prefix}}/venv/bin/pip install -r requirements.d/development.txt
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} borg borgfs
 
 provides:
   - bin/borg
+  - bin/borgfs
 
 test:
-    fixture: |
-      # borg test fixture
-    script:
+  fixture: |
+    # borg test fixture
+  script:
     - borg --version | grep "^borg {{version}}"
     - borg init --encryption=none test-repo
     - borg create --compression zstd test-repo::test-archive $FIXTURE
-    - rm -f $FIXTURE
     - borg list test-repo | grep "test-archive"
     - borg extract test-repo::test-archive
-    - grep $FIXTURE "# borg test fixture"
-    - rm -rf test-repo
-
+    # note that the extract path is a full subdirectory based on the original
+    # absolute path of the fixture file
+    - test "# borg test fixture" = "$(cat .$FIXTURE)"
