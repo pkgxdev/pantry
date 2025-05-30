@@ -26,7 +26,7 @@ build:
   script:
     - bkpyvenv stage {{prefix}} {{version}}
     - ${{prefix}}/venv/bin/pip install -r requirements.d/development.txt
-    - ${{prefix}}/venv/bin/pip install .
+    - ${{prefix}}/venv/bin/pip install .[llfuse]
     - bkpyvenv seal {{prefix}} borg borgfs
 
 provides:
@@ -45,3 +45,5 @@ test:
     # note that the extract path is a full subdirectory based on the original
     # absolute path of the fixture file
     - test "# borg test fixture" = "$(cat .$FIXTURE)"
+    - mkdir mnt && borgfs mount test-repo mnt
+    - test -f mnt/test-repo/test-archive/$FIXTURE
