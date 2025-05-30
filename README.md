@@ -105,7 +105,7 @@ Note that while in the pantry `dev` environment you can use your new package
 if you built it. However this will not work outside the pantry `dev` unless
 you either:
  
-1. You set `PKGX_PANTRY_PATH` (PKGX_PANTRY_DIR for pkgx^2)
+1. You set `PKGX_PANTRY_PATH` (`PKGX_PANTRY_DIR` for pkgx^2)
 2. Get your PR merged!
 
 # Working on Other People’s Pull Requests
