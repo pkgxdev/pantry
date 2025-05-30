@@ -40,4 +40,15 @@ provides:
   - bin/borg
 
 test:
-  - borg --version | grep "^borg {{version}}"
+    fixture: |
+      # borg test fixture
+    script:
+    - borg --version | grep "^borg {{version}}"
+    - borg init --encryption=none test-repo
+    - borg create --compression zstd test-repo::test-archive $FIXTURE
+    - rm -f $FIXTURE
+    - borg list test-repo | grep "test-archive"
+    - borg extract test-repo::test-archive
+    - grep $FIXTURE "# borg test fixture"
+    - rm -rf test-repo
+
