@@ -1,0 +1,50 @@
+distributable:
+  url: https://download.savannah.nongnu.org/releases/acl/acl-{{version.raw}}.tar.gz
+  strip-components: 1
+
+display-name: acl
+
+versions:
+  url: https://download.savannah.nongnu.org/releases/acl/
+  match: /acl-\d+\.\d+\.\d+\.tar\.gz/
+  strip:
+    - /^acl-/
+    - /\.tar\.gz/
+    - /\.src\.tar\.gz/
+
+platforms:
+  - linux
+
+build:
+  dependencies:
+    linux:
+      gnu.org/gcc: '*'
+    gnu.org/libtool: '*'
+    savannah.nongnu.org/attr: '*'
+  script:
+    - ./configure $CONFIGURE_ARGS
+    - make -j {{ hw.concurrency }}
+    - make install
+  env:
+    CONFIGURE_ARGS:
+      - --disable-debug
+      - --prefix="{{prefix}}"
+      - --libdir="{{prefix}}/lib"
+      - --disable-rpath
+
+provides:
+   - bin/chacl
+   - bin/getfacl
+   - bin/setfacl
+
+test:
+  fixture: |
+    # acl test fixture
+  script:
+    - getfacl --version | grep {{version.raw}}
+    - setfacl --version | grep {{version.raw}}
+    - getfacl -p $FIXTURE | grep "# file:"
+    - setfacl -m u::rwx $FIXTURE
+    - getfacl -p $FIXTURE | grep "user::rwx"
+    - setfacl -m g::r-- $FIXTURE
+    - chacl -l $FIXTURE | grep "\[u::rwx,g::r--"
