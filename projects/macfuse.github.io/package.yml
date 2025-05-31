@@ -1,0 +1,46 @@
+distributable:
+  url: git+https://github.com/macfuse/macfuse.git
+  ref: ${{version.tag}}
+
+versions:
+  github: macfuse/macfuse
+  strip: /^macfuse-/
+
+platforms:
+  - darwin
+
+build:
+  dependencies:
+    mesonbuild.com: '*'
+    ninja-build.org: '*'
+    git-scm.org: ^2
+  script:
+    - git submodule update --init --recursive
+
+    - run:
+        - meson setup .. $ARGS
+        - meson compile
+        - meson install
+      working-directory: Library-3/build
+  env:
+    ARGS:
+      - -Dudevrulesdir={{prefix}}/etc/udev/rules.d
+      - -Dinitscriptdir={{prefix}}/etc/init.d
+      - -Dsysconfdir={{prefix}}/etc
+      - -Duseroot=false
+      - --prefix={{prefix}}
+
+test:
+  - run: cc $FIXTURE -lfuse3 -o test
+    fixture:
+      extname: c
+      content: |
+        #define FUSE_USE_VERSION 31
+        #include <fuse3/fuse.h>
+        #include <stdio.h>
+        int main() {
+          printf("%d%d\\n", FUSE_MAJOR_VERSION, FUSE_MINOR_VERSION);
+          printf("%d\\n", fuse_version());
+          return 0;
+        }
+  - ./test
