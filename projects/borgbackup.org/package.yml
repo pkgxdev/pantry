@@ -28,10 +28,14 @@ build:
     BORG_LIBXXHASH_PREFIX: '{{deps.github.com/Cyan4973/xxHash.prefix}}'
     BORG_LIBACL_PREFIX: '{{deps.savannah.nongnu.org/acl.prefix}}'
     PKG_CONFIG_PATH: '$PKG_CONFIG_PATH:{{deps.github.com/libfuse/libfuse.prefix}}/lib64/pkgconfig'
+    linux:
+      FUSE_PKG: pyfuse3
+    darwin:
+      FUSE_PKG: llfuse
   script:
     - bkpyvenv stage {{prefix}} {{version}}
     - ${{prefix}}/venv/bin/pip install -r requirements.d/development.txt
-    - ${{prefix}}/venv/bin/pip install .[pyfuse3]
+    - ${{prefix}}/venv/bin/pip install .[$FUSE_PKG]
     - bkpyvenv seal {{prefix}} borg borgfs
 
 provides:
