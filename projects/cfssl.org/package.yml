@@ -1,0 +1,120 @@
+distributable:
+  url: https://github.com/cloudflare/cfssl/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: cloudflare/cfssl
+
+build:
+  dependencies:
+    go.dev: ^1.20
+  script:
+    - go build $ARGS -ldflags="$GO_LDFLAGS" -o {{prefix}}/bin/cfssl ./cmd/cfssl
+    - go build $ARGS -ldflags="$GO_LDFLAGS" -o {{prefix}}/bin/cfssl-bundle ./cmd/cfssl-bundle
+    - go build $ARGS -ldflags="$GO_LDFLAGS" -o {{prefix}}/bin/cfssl-certinfo ./cmd/cfssl-certinfo
+    - go build $ARGS -ldflags="$GO_LDFLAGS" -o {{prefix}}/bin/cfssl-newkey ./cmd/cfssl-newkey
+    - go build $ARGS -ldflags="$GO_LDFLAGS" -o {{prefix}}/bin/cfssl-scan ./cmd/cfssl-scan
+    - go build $ARGS -ldflags="$GO_LDFLAGS" -o {{prefix}}/bin/cfssljson ./cmd/cfssljson
+    - go build $ARGS -ldflags="$GO_LDFLAGS" -o {{prefix}}/bin/mkbundle ./cmd/mkbundle
+    - go build $ARGS -ldflags="$GO_LDFLAGS" -o {{prefix}}/bin/multirootca ./cmd/multirootca
+  env:
+    ARGS:
+      - -trimpath
+    GO_LDFLAGS:
+      - -s
+      - -w
+      - -X github.com/cloudflare/cfssl/cli/version.version={{version}}
+    linux:
+      GO_LDFLAGS:
+        - -buildmode=pie
+
+provides:
+  - bin/cfssl
+  - bin/cfssl-bundle
+  - bin/cfssl-certinfo
+  - bin/cfssl-newkey
+  - bin/cfssl-scan
+  - bin/cfssljson
+  - bin/mkbundle
+  - bin/multirootca
+
+test:
+  script:
+    # Only cfssl and cfssljson provide a version command
+    - cfssl version | grep {{version}}
+    - cfssljson --version | grep {{version}}
+    
+    # Create CSR configuration for CA
+    - |
+      cat > ca-csr.json << 'EOF'
+      {
+        "CN": "Test CA",
+        "key": {
+          "algo": "rsa",
+          "size": 2048
+        },
+        "names": [
+          {
+            "C": "US",
+            "L": "San Francisco", 
+            "O": "Test Organization",
+            "OU": "Test Unit",
+            "ST": "California"
+          }
+        ]
+      }
+      EOF
+    
+    # Generate self-signed CA certificate and key
+    - cfssl genkey -initca ca-csr.json | cfssljson -bare ca
+    
+    # Verify CA files were created
+    - test -f ca.pem && test -f ca-key.pem && test -f ca.csr
+    
+    # Create CSR configuration for server certificate
+    - |
+      cat > server-csr.json << 'EOF'
+      {
+        "CN": "test.example.com",
+        "hosts": [
+          "test.example.com",
+          "localhost",
+          "127.0.0.1"
+        ],
+        "key": {
+          "algo": "rsa",
+          "size": 2048
+        },
+        "names": [
+          {
+            "C": "US",
+            "L": "San Francisco",
+            "O": "Test Organization", 
+            "OU": "Test Unit",
+            "ST": "California"
+          }
+        ]
+      }
+      EOF
+    
+    # Generate server certificate signed by CA
+    - cfssl gencert -ca ca.pem -ca-key ca-key.pem server-csr.json | cfssljson -bare server
+    
+    # Verify server certificate files were created
+    - test -f server.pem && test -f server-key.pem && test -f server.csr
+    
+    # Test certificate info extraction
+    - cfssl-certinfo -cert server.pem | grep "test.example.com"
+    
+    # Create CA bundle and test certificate bundle functionality
+    - cp ca.pem ca-bundle.pem
+    - cfssl bundle -ca-bundle ca-bundle.pem -cert server.pem | grep "bundle"
+    
+    # Test other utilities
+    - cfssl-newkey server-csr.json | cfssljson -bare newkey
+    - test -f newkey.pem && test -f newkey-key.pem
+    
+    # Test mkbundle with the generated CA
+    - mkdir ca-bundle && cp ca.pem ca-bundle/
+    - mkbundle -f test-bundle.crt ca-bundle/
+    - test -f test-bundle.crt
