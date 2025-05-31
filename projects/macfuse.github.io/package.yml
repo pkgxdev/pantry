@@ -34,17 +34,21 @@ build:
       - --prefix={{prefix}}
 
 test:
-  - run: cc $FIXTURE -lfuse3 -o test
-    fixture:
-      extname: c
-      content: |
-        #define FUSE_USE_VERSION 31
-        #include <fuse3/fuse.h>
-        #include <stdio.h>
-        int main() {
-          printf("%d%d\\n", FUSE_MAJOR_VERSION, FUSE_MINOR_VERSION);
-          printf("%d\\n", fuse_version());
-          return 0;
-        }
-  - ./test
-  - pkg-config --exists fuse
+  dependencies:
+    darwin/x86-64:
+      llvm.org: '*' # xcode spins for 15+ minutes on darwin/x86-64 runners
+  script:
+    - run: cc $FIXTURE -lfuse3 -o test
+      fixture:
+        extname: c
+        content: |
+          #define FUSE_USE_VERSION 31
+          #include <fuse3/fuse.h>
+          #include <stdio.h>
+          int main() {
+            printf("%d%d\\n", FUSE_MAJOR_VERSION, FUSE_MINOR_VERSION);
+            printf("%d\\n", fuse_version());
+            return 0;
+          }
+    - ./test
+    - pkg-config --exists fuse
