@@ -22,6 +22,9 @@ build:
         - meson compile
         - meson install
       working-directory: Library-3/build
+    - run: |
+        sed 's/Name: fuse3/Name: fuse/' fuse3.pc > fuse.pc
+      working-directory: ${{prefix}}/lib/pkgconfig
   env:
     ARGS:
       - -Dudevrulesdir={{prefix}}/etc/udev/rules.d
@@ -44,3 +47,4 @@ test:
           return 0;
         }
   - ./test
+  - pkg-config --exists fuse
