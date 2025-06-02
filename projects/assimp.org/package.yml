@@ -1,10 +1,13 @@
 distributable:
   url: https://github.com/assimp/assimp/archive/v{{version}}.tar.gz
   strip-components: 1
+
 versions:
   github: assimp/assimp
+
 dependencies:
   zlib.net: '*'
+
 build:
   dependencies:
     gnu.org/make: '*'
@@ -33,11 +36,13 @@ build:
       - -DASSIMP_BUILD_TESTS=OFF
       - -DASSIMP_BUILD_ASSIMP_TOOLS=ON
       - -DCMAKE_INSTALL_RPATH="{{prefix}}"
+
 provides:
   - bin/assimp
+
 test:
-  script:
-    - cc -std=c++11 test.cpp -lassimp -o test
-    - ./test
-    - assimp export test.obj test.ply
-    - assimp version | grep {{version.marketing}}
+  - cc -std=c++11 test.cpp -lassimp -o test
+  - ./test
+  - assimp export test.obj test.ply
+  - assimp version
+  - assimp version | grep {{version.marketing}}
