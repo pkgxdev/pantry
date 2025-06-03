@@ -1,6 +1,14 @@
-# pkgx +sftpgo.com sftpgo-setup
-Package directory /root/.pkgx/sftpgo.com/v2.6.6
-install: creating directory '/etc/sftpgo'
-'/root/.pkgx/sftpgo.com/v2.6.6/etc/sftpgo/sftpgo.env' -> '/etc/sftpgo/sftpgo.env'
-'/root/.pkgx/sftpgo.com/v2.6.6/etc/sftpgo/sftpgo.json' -> '/etc/sftpgo/sftpgo.json'
-'/root/.pkgx/sftpgo.com/v2.6.6/etc/systemd/system/sftpgo.service' -> '/etc/systemd/system/sftpgo.service'
+# Service Setup - Linux
+
+We provide a custom script, `sftpgo-setup`, to create a simplified global install
+for those wishing to run `sftpgo` using systemd on Linux.
+
+At its base, it does the following:
+
+- Creates `/etc/sftpgo`.
+- Copies in `sftpgo.env` and `sftpgo.json` from our prefix.
+- Installs a `systemd` service file in `/etc/systemd/system/sftpgo.service`
+
+If desired, it can be undone by doing:
+
+`sudo rm /etc/sftpgo/sftpgo.{env,json} /etc/systemd/system/sftpgo.service`
