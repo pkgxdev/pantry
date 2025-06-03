@@ -1,0 +1,40 @@
+distributable:
+  url: https://github.com/jacobdeichert/mask/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/mask
+
+versions:
+  github: jacobdeichert/mask
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.56'
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path mask --root {{prefix}}
+
+test:
+  dependencies:
+    nodejs.org: '*'
+    python.org: '*'
+    ruby-lang.org: '*'
+    php.net: '*'
+  script:
+    - mask --version
+    - test "$(mask --version)" = "mask {{version}}"
+    - mask help
+    - test "$(mask echo)" = "Hello, World!"
+    - test "$(mask echoi pkgx)" = "Hello, pkgx!"
+    # optional arguments currently not working
+    # - test "$(mask echoo)" = "Hello, World!"
+    # - test "$(mask echoo pkgx)" = "Hello, pkgx!"
+    - test "$(mask options)" = "Hello, World!"
+    - test "$(mask options -i pkgx)" = "Hello, pkgx!"
+    - test "$(mask options --input pkgx)" = "Hello, pkgx!"
+    - test "$(mask nested echos)" = "Hello, World!"
+    - test "$(mask node)" = "Hello, World!"
+    - test "$(mask python)" = "Hello, World!"
+    - test "$(mask ruby)" = "Hello, World!"
+    # php currently not working
+    # - test "$(mask php)" = "Hello, World!"
