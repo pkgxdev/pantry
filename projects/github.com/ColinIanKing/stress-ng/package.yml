@@ -1,0 +1,23 @@
+distributable:
+  url: https://github.com/ColinIanKing/stress-ng/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: ColinIanKing/stress-ng
+  strip: /V/
+
+dependencies:
+  github.com/besser82/libxcrypt: '*'
+  zlib.net: '*'
+
+build:
+  - sed -i 's|/usr|{{ prefix }}|g' Makefile
+  - make -j {{ hw.concurrency }}
+  - make install
+
+provides:
+  - bin/stress-ng
+
+test:
+  - stress-ng -c 1 -t 1 2>&1 | tee out.log
+  - grep 'successful run completed' out.log
