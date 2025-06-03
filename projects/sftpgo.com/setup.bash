@@ -4,6 +4,7 @@ function main {
   declare -r script_file_path="$( realpath "${BASH_SOURCE[0]}" )"
   declare -r package_bin_path="$( dirname "${script_file_path}" )"
   declare -r package_path="$( dirname "${package_bin_path}" )"
+  declare -r package_version="${package_path#*/v}"
   declare -r package_etc_path="${package_path}/etc"
   declare -r system_etc_path='/etc'
 
@@ -17,6 +18,8 @@ function main {
     Linux)
       if [[ -d /run/systemd/system ]]; then
         install -v -D "${package_etc_path}/${environment_file}" \
+                      "${system_etc_path}/${environment_file}"
+        sed -i "s/^PKGX_SFTPGO_VERSION=.*$/PKGX_SFTPGO_VERSION=${package_version}/" \
                       "${system_etc_path}/${environment_file}"
         install -v -D "${package_etc_path}/${config_file}" \
                       "${system_etc_path}/${config_file}"
