@@ -17,14 +17,17 @@ function main {
   case "$(uname)" in
     Linux)
       if [[ -d /run/systemd/system ]]; then
-        install -v -D "${package_etc_path}/${environment_file}" \
-                      "${system_etc_path}/${environment_file}"
+        install -v -D -b \
+                "${package_etc_path}/${environment_file}" \
+                "${system_etc_path}/${environment_file}"
         sed -i "s/^PKGX_SFTPGO_VERSION=.*$/PKGX_SFTPGO_VERSION=${package_version}/" \
-                      "${system_etc_path}/${environment_file}"
-        install -v -D "${package_etc_path}/${config_file}" \
-                      "${system_etc_path}/${config_file}"
-        install -v -D "${package_etc_path}/${systemd_service_file}" \
-                      "${system_etc_path}/${systemd_service_file}"
+                "${system_etc_path}/${environment_file}"
+        install -v -D -b \
+                "${package_etc_path}/${config_file}" \
+                "${system_etc_path}/${config_file}"
+        install -v -D \
+                "${package_etc_path}/${systemd_service_file}" \
+                "${system_etc_path}/${systemd_service_file}"
       fi
       ;;
     Darwin)
