@@ -8,6 +8,8 @@ function main {
   declare -r package_etc_path="${package_path}/etc"
   declare -r system_etc_path='/etc'
 
+  declare -r username="_sftpgo"
+  declare -r homedir="/home/${username}"
   declare -r environment_file='sftpgo/sftpgo.env'
   declare -r config_file='sftpgo/sftpgo.json'
   declare -r systemd_service_file='systemd/system/sftpgo.service'
@@ -17,6 +19,7 @@ function main {
   case "$(uname)" in
     Linux)
       if [[ -d /run/systemd/system ]]; then
+        useradd -m -d "${homedir}" "${username}"
         install -v -D -b \
                 "${package_etc_path}/${environment_file}" \
                 "${system_etc_path}/${environment_file}"
@@ -28,6 +31,11 @@ function main {
         install -v -D \
                 "${package_etc_path}/${systemd_service_file}" \
                 "${system_etc_path}/${systemd_service_file}"
+        for subdir in templates openapi static; do
+          ln -v -s "${package_path}/${subdir}" "${homedir}/${subdir}"
+        done
+      else
+        echo 'Only systemd supported yet'
       fi
       ;;
     Darwin)
