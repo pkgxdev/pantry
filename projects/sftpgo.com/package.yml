@@ -1,16 +1,16 @@
 distributable:
-  url: https://github.com/drakkan/sftpgo/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/drakkan/sftpgo/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 display-name: sftpgo
 
 versions:
   github: drakkan/sftpgo
-  strip: /^v/
 
 build:
   dependencies:
     go.dev: =1.22.2
+    gnu.org/coreutils: '*'
   env:
     CGO_ENABLED: 1
     COMMIT_SHA: '$(git describe --always --abbrev=8 --dirty)'
@@ -23,13 +23,25 @@ build:
     linux:
       GO_LDFLAGS:
         - -buildmode=pie
+    SFTPGO_SETUP_SCRIPT: setup.bash
+    SFTPGO_README_FILE: README.md
+    SFTPGO_CONFIG_FILE: sftpgo.json
+    SFTPGO_SERVICE_ENVIRONMENT_FILE: sftpgo.env
+    SFTPGO_SERVICE_FILE: sftpgo.service
   script:
     # fails to find sqlite3.Error
     - run: TAGS="-tags nosqlite"
       if: 2.6.0
     - go build -v $TAGS -trimpath -ldflags="${GO_LDFLAGS}" -o {{prefix}}/bin/sftpgo
+    - install -v -D props/${SFTPGO_SETUP_SCRIPT} {{prefix}}/bin/sftpgo-setup
+    - install -v -D props/${SFTPGO_README_FILE} {{prefix}}/doc/${SFTPGO_README_FILE}
+    - install -v -D ${SFTPGO_CONFIG_FILE} {{prefix}}/etc/sftpgo/${SFTPGO_CONFIG_FILE}
+    - install -v -D props/${SFTPGO_SERVICE_ENVIRONMENT_FILE} {{prefix}}/etc/sftpgo/${SFTPGO_SERVICE_ENVIRONMENT_FILE}
+    - install -v -D props/${SFTPGO_SERVICE_FILE} {{prefix}}/etc/systemd/system/${SFTPGO_SERVICE_FILE}
+    - find templates -type f -exec install -v -D "{}" "{{prefix}}/{}" \;
 
 provides:
   - bin/sftpgo
+  - bin/sftpgo-setup
 
 test: test "$(sftpgo --version | cut -d' ' -f2 | cut -d'-' -f1)" = {{version}}
