@@ -17,7 +17,8 @@ provides:
 dependencies:
   python.org: '>=2.7'
   nodejs.org: ~23.3
-  pnpm.io: '*'
+  pnpm.io: '*' # prior to 1.0.5
+  bun.sh: ^1.2 # since 1.0.5
 
 companions:
   git-scm.org: 2
@@ -41,31 +42,37 @@ build:
         fi
       working-directory: packages/plugin-pyth-data
       if: linux
-    - pnpm install
+    - run: pnpm install
+      if: <1.0.5
+    - run:
+        # missing directory
+        - mkdir -p plugin-specification
+        - bun install
+      if: '>=1.0.5'
 
     # needs to find the module in the pnpm cache
     - run: ln -s {{deps.pnpm.io.prefix}} {{deps.pnpm.io.version}}
       working-directory: $PNPM_HOME/.tools/pnpm
-      if: '>=0.25.19'
+      if: '>=0.25.19<1.0.5'
 
-    - pnpm run build
+    - run: pnpm run build
+      if: <1.0.5
+    - run: bun run build
+      if: '>=1.0.5'
+
     # adapted from their Dockerfile
     - run:
-        - cp $SRCROOT/package.json .
-        - cp $SRCROOT/pnpm-workspace.yaml .
-        - cp $SRCROOT/.npmrc .
-        - cp $SRCROOT/turbo.json .
-        - cp -R $SRCROOT/node_modules .
-        - cp -R $SRCROOT/agent .
-        - cp -R $SRCROOT/client .
-        - cp $SRCROOT/lerna.json .
-        - cp -R $SRCROOT/packages .
-        - cp -R $SRCROOT/scripts .
-        - cp -R $SRCROOT/characters .
-        - cp $SRCROOT/.env.example .
+        - for FILE in $FILES; do
+        - if test -f $SRCROOT/$FILE; then cp $SRCROOT/$FILE .; fi
+        - done
+        - for DIR in $DIRS; do
+        - if test -d $SRCROOT/$DIR; then cp -R $SRCROOT/$DIR .; fi
+        - done
       working-directory: ${{prefix}}/libexec
+
     - run: install -Dm755 $PROP eliza
       working-directory: ${{prefix}}/bin
+      if: <1.0.5
       prop: |
         #!/bin/sh
 
@@ -96,8 +103,44 @@ build:
 
         # start the client
         pnpm start:client
+
+    - run: install -Dm755 $PROP eliza
+      working-directory: ${{prefix}}/bin
+      if: '>=1.0.5'
+      prop: |
+        #!/bin/sh
+
+        # add --help and --version flags
+        if [ "$1" = "--help" ]; then
+          echo "This is a simple wrapper to start the elizaOS server and client."
+          exit 0
+        elif [ "$1" = "--version" ]; then
+          echo "elizaOS {{version}}"
+          exit 0
+        fi
+
+        # change to the libexec directory
+        cd "$(dirname "$(readlink -f "$0")")/../libexec" || exit 1
+
+        bun run start
   skip: fix-patchelf # takes 4+ hours
   env:
+    FILES:
+      - package.json
+      - pnpm-workspace.yaml
+      - .npmrc
+      - turbo.json
+      - tsconfig.json
+      - lerna.json
+      - renovate.json
+      - .env.example
+    DIRS:
+      - node_modules
+      - agent
+      - client
+      - packages
+      - scripts
+      - characters
     # required since 0.25.19 to use the pnpm module inside the build
     darwin:
       PNPM_HOME: ~/Library/pnpm
