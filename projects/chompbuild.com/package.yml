@@ -1,0 +1,21 @@
+distributable:
+  url: https://github.com/guybedford/chomp/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+display-name: chomp
+
+versions:
+  github: guybedford/chomp
+
+build:
+  dependencies:
+    rust-lang.org/cargo: "*"
+  script:
+    - cargo install --locked --path . --root {{prefix}}
+
+provides:
+  - bin/chomp
+
+test:
+  script:
+    test "$(chomp --version)" = "Chomp {{version}}"
