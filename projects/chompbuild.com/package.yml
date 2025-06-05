@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/guybedford/chomp/archive/refs/tags/{{version}}.tar.gz
+  url: https://github.com/guybedford/chomp/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 display-name: chomp
@@ -9,13 +9,38 @@ versions:
 
 build:
   dependencies:
-    rust-lang.org/cargo: "*"
-  script:
-    - cargo install --locked --path . --root {{prefix}}
+    rust-lang.org: ^1.56
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path . --root {{prefix}}
 
 provides:
   - bin/chomp
 
 test:
-  script:
-    test "$(chomp --version)" = "Chomp {{version}}"
+  - test "$(chomp --version)" = "Chomp {{version}}"
+  - run: cp $FIXTURE chompfile.toml
+    fixture: |
+      version = 0.1
+
+      [[task]]
+      target = 'name.txt'
+      run = '''
+        echo "No name.txt, writing one."
+        echo "World" > name.txt
+      '''
+
+      [[task]]
+      name = 'hello'
+      target = 'hello.txt'
+      dep = 'name.txt'
+      run = '''
+        echo "Hello $(cat name.txt)" > hello.txt
+      '''
+  - test ! -f hello.txt
+  - test ! -f name.txt
+  - chomp hello | tee out.log
+  - grep 'writing one' out.log
+  - grep hello.txt out.log
+  - grep name.txt out.log
+  - test "$(cat hello.txt)" = "Hello World"
+  - test "$(cat name.txt)" = "World"
