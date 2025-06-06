@@ -1,21 +1,24 @@
-#!/usr/bin/env -S pkgx +gnu.org/coreutils +bash^5 bash
+#!/usr/bin/env -S pkgx +gnu.org/coreutils +gomplate.ca +bash^5 bash
 
 function install_files {
-  declare -r package_bin_path="$( sudo -u _sftpgo pkgx +sftpgo.com| cut -d= -f2 | cut -d$ -f1 )"
+#  declare -r package_bin_path="$(
+#    sudo -u _sftpgo pkgx +${package_project}^${package_version} \
+#  | cut -d= -f2 \
+#  | cut -d$ -f1 \
+#  | tr -d \" 
+#  )"
   declare -r package_path="$( dirname "${package_bin_path}" )"
   declare -r package_conf_path="${package_path}/conf"
 
   command install -v -D -b \
-          "${package_conf_path}/${app_environment_file}" \
-          "${app_conf_path}/${app_environment_file}"
-  sed -i "s/^PKGX_SFTPGO_VERSION=.*$/PKGX_SFTPGO_VERSION=${package_version}/" \
-         "${app_conf_path}/${app_environment_file}"
-  command install -v -D -b \
           "${package_conf_path}/${app_conf_file}" \
           "${app_conf_path}/${app_conf_file}"
-  command install -v -D \
-          "${package_conf_path}/${service_file}" \
-          "${services_path}/${service_file}"
+  command gomplate --verbose \
+          --file "${package_conf_path}/${app_environment_file}.gtpl" \
+          --out "${app_conf_path}/${app_environment_file}"
+  command gomplate --verbose \
+          --file "${package_conf_path}/${service_file}.gtpl" \
+          --out  "${services_path}/${service_file}"
 
   for subdir in templates openapi static; do
     ln -v -s "${package_conf_path}/${subdir}" \
@@ -24,17 +27,16 @@ function install_files {
 }
 
 function setup_on_linux {
-  declare -r app_homedir="/home/${app_username}"
-  declare -r app_conf_path="${app_homedir}/app/sftpgo/conf"
-  declare -r service_file='sftpgo.service'
-  declare -r services_path='/etc/systemd/system'
+  declare -rx app_homedir="/home/${app_username}"
+  declare -rx app_conf_path="${app_homedir}/app/sftpgo/conf"
+  declare -r  service_file='sftpgo.service'
+  declare -r  services_path='/etc/systemd/system'
 
   if [[ -d /run/systemd/system ]]; then
     useradd -m \
             -d "${app_homedir}" \
             "${app_username}"
 
-    sudo -u _sftpgo pkgx +sftpgo.com^${package_version}
     install_files
   else
     echo 'Only systemd supported yet on Linux'
@@ -42,10 +44,10 @@ function setup_on_linux {
 }
 
 function setup_on_darwin {
-  declare -r app_homedir="/Users/${app_username}"
-  declare -r app_conf_path="${app_homedir}/app/sftpgo/conf"
-  declare -r service_file='com.sftpgo.plist'
-  declare -r services_path='/Library/LaunchDaemons'
+  declare -rx app_homedir="/Users/${app_username}"
+  declare -rx app_conf_path="${app_homedir}/app/sftpgo/conf"
+  declare -r  service_file='com.sftpgo.plist'
+  declare -r  services_path='/Library/LaunchDaemons'
 
   sysadminctl -addUser \
               -home "${app_homedir}" \
@@ -55,14 +57,15 @@ function setup_on_darwin {
 }
 
 function main {
-  declare -r script_file_path="$( realpath "${BASH_SOURCE[0]}" )"
-  declare -r package_bin_path="$( dirname "${script_file_path}" )"
-  declare -r package_path="$( dirname "${package_bin_path}" )"
-  declare -r package_version="${package_path#*/v}"
+  declare -r  script_file_path="$( realpath "${BASH_SOURCE[0]}" )"
+  declare -r  package_bin_path="$( dirname "${script_file_path}" )"
+  declare -r  package_path="$( dirname "${package_bin_path}" )"
+  declare -rx package_project='sftpgo.com'
+  declare -rx package_version="${package_path#*/v}"
 
-  declare -r app_username="_sftpgo"
-  declare -r app_environment_file='sftpgo.env'
-  declare -r app_conf_file='sftpgo.json'
+  declare -r  app_username="_sftpgo"
+  declare -r  app_environment_file='sftpgo.env'
+  declare -r  app_conf_file='sftpgo.json'
 
   printf 'Package directory %s\n' ${package_path}
 

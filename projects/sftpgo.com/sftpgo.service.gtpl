@@ -6,9 +6,13 @@ After=network.target
 Type=simple
 User=_sftpgo
 Group=_sftpgo
-Environment="PKGX_SFTPGO_PROJECT=sftpgo.com"
-Environment="PKGX_SFTPGO_VERSION=2.6.6"
-ExecStart=/bin/bash -c "exec /usr/local/bin/pkgx +${PKGX_SFTPGO_PROJECT}^${PKGX_SFTPGO_VERSION} sftpgo-wrapper ${HOME}"
+ExecStart=/usr/local/bin/pkgx +{{
+  getenv "package_project" "SETUP_ERROR"
+}}^{{
+  getenv "package_version" "SETUP_ERROR"
+}} sftpgo-wrapper {{
+  getenv "app_homedir" "SETUP_ERROR"
+}}
 ExecReload=/bin/kill -s HUP $MAINPID
 LimitNOFILE=8192
 KillMode=mixed

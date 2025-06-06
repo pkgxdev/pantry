@@ -3,15 +3,15 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.github.drakkan.sftpgo</string>
+    <string>com.sftpgo.com</string>
     <key>UserName</key>
     <string>_sftpgo</string>
-    <key>WorkingDirectory</key>
-    <string>/Users/_sftpgo/app/sftpgo/</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/usr/local/bin/pkgx +sftpgo.com^${SFTPGO_VERSION} sftpgo-wrapper ${HOME}</string>
-        <string>serve</string>
+        <string>/usr/local/bin/pkgx</string>
+        <string>+{{ getenv "package_project" "SETUP_ERROR" }}^{{ getenv "package_version" "SETUP_ERROR" }}</string>
+        <string>sftpgo-wrapper</string>
+        <string>{{ getenv "app_homedir" "SETUP_ERROR" }}</string>
     </array>
     <key>KeepAlive</key>
     <true/>
