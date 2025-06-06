@@ -12,7 +12,7 @@
         <string>+{{ getenv "package_project" "SETUP_ERROR" }}^{{ getenv "package_version" "SETUP_ERROR" }}</string>
         <string>sftpgo</string>
         <string>serve</string>
-        <strinbg>--config-dir</string>
+        <string>--config-dir</string>
         <string>{{ getenv "app_conf_path" "SETUP_ERROR" }}</string>
     </array>
     <key>KeepAlive</key>
