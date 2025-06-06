@@ -1,15 +1,6 @@
 #!/usr/bin/env -S pkgx +gnu.org/coreutils +gomplate.ca +bash^5 bash
 
 function install_files {
-#  declare -r package_bin_path="$(
-#    sudo -u _sftpgo pkgx +${package_project}^${package_version} \
-#  | cut -d= -f2 \
-#  | cut -d$ -f1 \
-#  | tr -d \" 
-#  )"
-  declare -r package_path="$( dirname "${package_bin_path}" )"
-  declare -r package_conf_path="${package_path}/conf"
-
   command install -v -D -b \
           "${package_conf_path}/${app_conf_file}" \
           "${app_conf_path}/${app_conf_file}"
@@ -24,6 +15,8 @@ function install_files {
     ln -v -s "${package_conf_path}/${subdir}" \
              "${app_conf_path}"
   done
+  chown -R "${app_username}:${app_username}" \
+        "${app_homedir}"
 }
 
 function setup_on_linux {
@@ -57,12 +50,21 @@ function setup_on_darwin {
 }
 
 function main {
-  declare -r  script_file_path="$( realpath "${BASH_SOURCE[0]}" )"
-  declare -r  package_bin_path="$( dirname "${script_file_path}" )"
-  declare -r  package_path="$( dirname "${package_bin_path}" )"
-  declare -rx package_project='sftpgo.com'
-  declare -rx package_version="${package_path#*/v}"
+  declare -r  setup_script_file_path="$( realpath "${BASH_SOURCE[0]}" )"
+  declare -r  setup_script_dir_path="$( dirname "${setup_script_file_path}" )"
+  declare -r  setup_script_pkgx_path="$( dirname "${setup_script_dir_path}" )"
+  declare -rx package_version="${setup_script_pkgx_path#*/v}"
+  declare -r  package_project_path="$( dirname "${setup_script_pkgx_path}" )"
+  declare -rx package_project="$( basename "${package_project_path}" )"
 
+  declare -r  package_bin_path="$(
+    sudo -u _sftpgo pkgx +${package_project}^${package_version} \
+  | cut -d= -f2 \
+  | cut -d$ -f1 \
+  | tr -d \" 
+  )"
+  declare -r  package_path="$( dirname "${package_bin_path}" )"
+  declare -r  package_conf_path="${package_path}/conf"
   declare -r  app_username="_sftpgo"
   declare -r  app_environment_file='sftpgo.env'
   declare -r  app_conf_file='sftpgo.json'
