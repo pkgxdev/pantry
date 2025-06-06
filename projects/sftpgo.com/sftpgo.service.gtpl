@@ -10,8 +10,8 @@ ExecStart=/usr/local/bin/pkgx +{{
   getenv "package_project" "SETUP_ERROR"
 }}^{{
   getenv "package_version" "SETUP_ERROR"
-}} sftpgo-wrapper {{
-  getenv "app_homedir" "SETUP_ERROR"
+}} sftpgo serve --config-dir {{
+  getenv "app_conf_path" "SETUP_ERROR"
 }}
 ExecReload=/bin/kill -s HUP $MAINPID
 LimitNOFILE=8192

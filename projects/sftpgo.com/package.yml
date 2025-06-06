@@ -24,7 +24,6 @@ build:
       GO_LDFLAGS:
         - -buildmode=pie
     SFTPGO_SETUP_SCRIPT: setup.bash
-    SFTPGO_WRAPPER_SCRIPT: wrapper.bash
     SFTPGO_README_FILE: README.md
     SFTPGO_CONFIG_FILE: sftpgo.json
     SFTPGO_SERVICE_ENVIRONMENT_FILE: sftpgo.env.gtpl
@@ -36,7 +35,6 @@ build:
       if: 2.6.0
     - go build -v $TAGS -trimpath -ldflags="${GO_LDFLAGS}" -o {{prefix}}/bin/sftpgo
     - install -v -D props/${SFTPGO_SETUP_SCRIPT} {{prefix}}/bin/sftpgo-setup
-    - install -v -D props/${SFTPGO_WRAPPER_SCRIPT} {{prefix}}/bin/sftpgo-wrapper
     - install -v -D props/${SFTPGO_README_FILE} {{prefix}}/doc/${SFTPGO_README_FILE}
     - install -v -D ${SFTPGO_CONFIG_FILE} {{prefix}}/conf/${SFTPGO_CONFIG_FILE}
     - install -v -D props/${SFTPGO_SERVICE_ENVIRONMENT_FILE} {{prefix}}/conf/${SFTPGO_SERVICE_ENVIRONMENT_FILE}
@@ -49,6 +47,5 @@ build:
 provides:
   - bin/sftpgo
   - bin/sftpgo-setup
-  - bin/sftpgo-wrapper
 
 test: test "$(sftpgo --version | cut -d' ' -f2 | cut -d'-' -f1)" = {{version}}
