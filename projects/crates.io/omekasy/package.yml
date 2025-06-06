@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/ikanago/omekasy/archive/refs/tags/v{{ version }}.tar.gz
+  url: https://github.com/ikanago/omekasy/archive/refs/tags/{{ version.tag }}.tar.gz
   strip-components: 1
 
 provides:
@@ -7,16 +7,16 @@ provides:
 
 versions:
   github: ikanago/omekasy
-  strip: /v/
 
 build:
   dependencies:
     rust-lang.org: '>=1.65'
     rust-lang.org/cargo: '*'
   script:
-    cargo install --path . --root {{prefix}}
+    # missed version bump
+    - sed -i '1,20s/^version = ".*"/version = "{{ version }}"/' Cargo.toml
+    - cargo install --path . --root {{prefix}}
 
 test:
-  script:
-    - omekasy --font bold-italic "My new gear..."
-    - test "$(omekasy --version)" = "omekasy {{version}}"
+  - omekasy --font bold-italic "My new gear..."
+  - test "$(omekasy --version)" = "omekasy {{version}}"
