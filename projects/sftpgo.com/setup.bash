@@ -4,9 +4,9 @@ function install_files {
   command install -v -D -b \
           "${package_conf_path}/${app_conf_file}" \
           "${app_conf_path}/${app_conf_file}"
-  command gomplate --verbose \
-          --file "${package_conf_path}/${app_environment_file}.gtpl" \
-          --out "${app_conf_path}/${app_environment_file}"
+#  command gomplate --verbose \
+#          --file "${package_conf_path}/${app_environment_file}.gtpl" \
+#          --out "${app_conf_path}/${app_environment_file}"
   command gomplate --verbose \
           --file "${package_conf_path}/${service_file}.gtpl" \
           --out  "${services_path}/${service_file}"
@@ -66,7 +66,7 @@ function main {
   declare -r  package_path="$( dirname "${package_bin_path}" )"
   declare -r  package_conf_path="${package_path}/conf"
   declare -r  app_username="_sftpgo"
-  declare -r  app_environment_file='sftpgo.env'
+#  declare -r  app_environment_file='sftpgo.env'
   declare -r  app_conf_file='sftpgo.json'
 
   printf 'Package directory %s\n' ${package_path}
