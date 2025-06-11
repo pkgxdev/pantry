@@ -7,11 +7,13 @@ versions:
 
 build:
   dependencies:
-    go.dev: ^1.21
+    go.dev: ~1.24 # since 2025.6.0
   script:
     - run: sed -i 's|go build|go build -buildmode=pie|g' Makefile
       if: linux
-    - make install $ARGS
+    - make cloudflared $ARGS
+    - mkdir -p {{prefix}}/bin
+    - install -Dm755 cloudflared {{prefix}}/bin/
   env:
     DATE: $(date -u +%FT%TZ)
     ARGS:
