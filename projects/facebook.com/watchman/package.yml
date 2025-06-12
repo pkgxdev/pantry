@@ -88,10 +88,22 @@ build:
     - cmake --build build
     - cmake --install build
     - mkdir -p {{prefix}}/var/run/watchman
+    # install libs
+    - run:
+        - mkdir -p {{prefix}}/lib
+        - find . -name libeden_service_thrift.dylib -o -name libstreamingeden_thrift.dylib -o -name libeden_config_thrift.dylib
+        - find . -mindepth 1 -maxdepth 1 -name lib\*
+        - find . -mindepth 1 -maxdepth 1 -name lib\* -exec install {} {{prefix}}/lib/ \;
+      working-directory: build
+    - run:
+        - install_name_tool -add_rpath @loader_path/../lib watchman
+        - install_name_tool -add_rpath @loader_path/../lib watchmanctl
+      working-directory: ${{prefix}}/bin
+      if: darwin
   env:
     # WATCHMAN_STATE_DIR: "{{prefix}}/var/run/watchman"
     CMAKE_ARGS:
-      - -DCMAKE_INSTALL_PREFIX="{{prefix}}
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
       - -DCMAKE_INSTALL_LIBDIR=lib
       - -DCMAKE_BUILD_TYPE=Release
       - -DCMAKE_FIND_FRAMEWORK=LAST
@@ -102,6 +114,9 @@ build:
       - -DWATCHMAN_VERSION_OVERRIDE={{version}}
       - -DPython3_EXECUTABLE={{deps.python.org.prefix}}/bin/python
       - -DUSE_SYS_PYTHON=OFF
+      - -DCMAKE_CXX_STANDARD=17
+      - -DCMAKE_CXX_STANDARD_REQUIRED=ON
+      - -DBUILD_SHARED_LIBS=ON
     linux:
       PATH: $HOME/.local/bin:$PATH
       CC: gcc-wrapper
@@ -114,6 +129,7 @@ build:
     darwin:
       CMAKE_ARGS:
         - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-dead_strip_dylibs
+        - -DCMAKE_SHARED_LINKER_FLAGS=-Wl,-undefined,dynamic_lookup
 
 runtime:
   env:
