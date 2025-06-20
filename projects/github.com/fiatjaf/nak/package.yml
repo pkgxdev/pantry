@@ -10,9 +10,13 @@ provides:
 
 build:
   dependencies:
-    go.dev: ~1.23.1
+    go.dev: ~1.24.1
   script:
     - go mod download
+    # missing go.sum entry for module providing package golang.org/x/sync/errgroup (imported by fiatjaf.com/nostr/sdk); to add:
+    #     go get fiatjaf.com/nostr/sdk@v0.0.0-20250610194330-027d016d9706
+    - run: go get fiatjaf.com/nostr/sdk@v0.0.0-20250610194330-027d016d9706
+      if: 0.14.3
     - go build -v -trimpath -ldflags="$GO_LDFLAGS" -o {{prefix}}/bin/nak .
   env:
     GO_LDFLAGS:
