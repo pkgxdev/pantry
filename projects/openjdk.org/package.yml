@@ -67,8 +67,14 @@ build:
     - run:
         - BOOT_JDK_VERSION="${BOOT_JDK{{version.major}}_VERSION}"
         - BOOT_JDK_MAJOR=$(echo "${BOOT_JDK_VERSION}" | grep -o '^[0-9]\+')
+        - |
+          if test {{version.major}} = 8; then
+            BOOT_JDK_TAG_VERSION="jdk${BOOT_JDK_VERSION}"
+          else
+            BOOT_JDK_TAG_VERSION="jdk-${BOOT_JDK_VERSION}"
+          fi
         - BOOT_JDK_URL_VERSION="$(echo "${BOOT_JDK_VERSION}" | sed -e 's/\+/_/g' -e 's/-//g')"
-        - BOOT_JDK_URL="https://github.com/adoptium/temurin${BOOT_JDK_MAJOR}-binaries/releases/download/jdk-${BOOT_JDK_VERSION}/OpenJDK${BOOT_JDK_MAJOR}U-jdk_${BOOT_JDK_ARCH}_hotspot_${BOOT_JDK_URL_VERSION}.tar.gz"
+        - BOOT_JDK_URL="https://github.com/adoptium/temurin${BOOT_JDK_MAJOR}-binaries/releases/download/${BOOT_JDK_TAG_VERSION}/OpenJDK${BOOT_JDK_MAJOR}U-jdk_${BOOT_JDK_ARCH}_hotspot_${BOOT_JDK_URL_VERSION}.tar.gz"
         - wget -c "${BOOT_JDK_URL}" -O - | tar xz -C . --strip-components=1
       working-directory: boot-jdk
     - run:
@@ -86,11 +92,37 @@ build:
             clang --version | grep "clang version ${LLVM_VERSION_MAJOR}"
             unset LLVM_VERSION_MAJOR LLVM_BIN_PATH PATH_WITHOUT_.LLVM
           fi
-      if: <12
+      if: ^11
+    # v8-specific hacks
+    - run:
+        - export ARGS="$(echo "$ARGS" | tr ' ' '\n' | sed -f $PROP | tr '\n' ' ')"
+        - sed -i 's/-isysroot \\"\$SYSROOT\\"//g' common/autoconf/flags.m4
+        - sed -i 's|-isysroot \\"\$SDKPATH\\" -iframework\\"\$SDKPATH/System/Library/Frameworks\\"||g' common/autoconf/toolchain.m4
+        - sed -i 's|-isysroot \\"\$\(SDKPATH\)\\" -iframework\\"$\(SDKPATH\)/System/Library/Frameworks\\"||g' common/autoconf/toolchain.m4
+        - sed -i 's/-Xlinker -O1//g' common/autoconf/flags.m4 hotspot/make/linux/makefiles/gcc.make
+        - |
+          if test {{hw.platform}} = "linux"; then
+            export ARGS="$(echo "$ARGS" | sed -e 's/--with-toolchain-type=clang/--with-toolchain-type=gcc/' -e 's/CXXFILT=llvm-cxxfilt/CXXFILT=c++filt/')"
+            source <(pkgx +gnu.org/gcc^11)
+            export CC=gcc
+            export CXX=g++
+            export LD=ld.bfd
+          fi
+      prop: |
+        s/--disable-warnings-as-errors/--with-conf-name=release/
+        /--with-version-opt/d
+        /--with-version-pre/d
+        /--with-harfbuzz/d
+        /--with-lcms/d
+        /--with-libjpeg/d
+        /--with-libpng/d
+        /--disable-hotspot-gtest/d
+        /--with-jvm-features/d
+        s/--with-version-build/--with-build-number/
+        /--with-vendor-version-string/d
+      if: ^8
     - bash configure $ARGS
       --with-boot-jdk="$BOOT_JDK_DIR"
-      --with-version-build=$(echo {{version.raw}} | grep -o '[0-9]\+$')
-      --with-vendor-version-string="pkgx@$(pkgx --version | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+')"
       --with-extra-cflags="$CFLAGS"
       --with-extra-cxxflags="$CXXFLAGS"
       --with-extra-ldflags="$LDFLAGS"
@@ -143,7 +175,7 @@ build:
     # https://github.com/adoptium/temurin11-binaries/releases
     BOOT_JDK11_VERSION: 11.0.22+7
     # https://github.com/adoptium/temurin8-binaries/releases
-    BOOT_JDK8_VERSION: 8u452b09
+    BOOT_JDK8_VERSION: 8u452-b09
 
     ARGS:
       - --disable-warnings-as-errors
@@ -162,6 +194,8 @@ build:
       - --with-libjpeg=system
       - --with-libpng=system
       - --with-zlib=system
+      - --with-version-build=$(echo {{version.raw}} | grep -o '[0-9]\+$')
+      - --with-vendor-version-string="pkgx@$(pkgx --version | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+')"
 
 provides:
   # TODO: https://github.com/pkgxdev/libpkgx/issues/68
