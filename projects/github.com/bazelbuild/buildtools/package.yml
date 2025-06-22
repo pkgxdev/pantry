@@ -11,17 +11,40 @@ build:
   script: |
     go mod download
     go build -ldflags "$LDFLAGS" -o {{prefix}}/bin/buildifier ./buildifier
+    go build -ldflags "$LDFLAGS" -o {{prefix}}/bin/buildozer ./buildozer
+    go build -ldflags "$LDFLAGS" -o {{prefix}}/bin/unused_deps ./unused_deps
   env:
     LDFLAGS:
       - -s
       - -w
+      - -X main.buildVersion={{version}}
     linux:
       LDFLAGS:
         - -buildmode=pie
 
 provides:
   - bin/buildifier
+  - bin/buildozer
+  - bin/unused_deps
 
 test:
   script:
-    buildifier -help
+    - buildifier -version | grep {{version}}
+    - buildozer -version | grep {{version}}
+    - unused_deps -version | grep {{version}}
+    # Buildifier: format a sample BUILD file and check output is formatted
+    - echo 'cc_library(name = "foo",srcs=["foo.cc"])' > BUILD
+    - buildifier BUILD
+    - |
+      diff -u <(echo 'cc_library(
+          name = "foo",
+          srcs = ["foo.cc"],
+      )' ) BUILD
+    # Buildozer: add a dependency to a rule in a sample BUILD file and check the result
+    - buildozer 'add deps //base' //:foo
+    - |
+      diff -u <(echo 'cc_library(
+          name = "foo",
+          srcs = ["foo.cc"],
+          deps = ["//base"],
+      )' ) BUILD
