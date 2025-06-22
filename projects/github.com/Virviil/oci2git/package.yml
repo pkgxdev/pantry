@@ -1,0 +1,29 @@
+distributable:
+  url: https://github.com/Virviil/oci2git/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: Virviil/oci2git
+
+build:
+  dependencies:
+    rust-lang.org/cargo: '*'
+  script: cargo install --path . --locked --root {{prefix}}
+
+provides:
+  - bin/oci2git
+
+test:
+  dependencies:
+    git-scm.org: '*'
+    github.com/containers/skopeo: '*'
+  script:
+    - test "$(oci2git --version)" = "oci2git {{version}}"
+    - |
+      echo '{"default": [{"type": "insecureAcceptAnything"}]}' > policy.json
+    # oci2git by default uses docker save, which requires a docker daemon. Instead, use skopeo to copy the image to a tar file.
+    # This uses the busybox image just as an example small image.
+    - skopeo --policy=policy.json copy docker://busybox@sha256:5c16ec53d312df1867044cc90abd951bf37fdad32cc9b4a1e1e25d2f8eaf343c docker-archive:./busybox.tar
+    - oci2git -e tar -o ./busybox ./busybox.tar
+    # Check that it has created a valid git repository
+    - (cd busybox && git log --oneline)
