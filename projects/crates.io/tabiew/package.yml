@@ -14,11 +14,18 @@ dependencies:
 
 build:
   dependencies:
-    rust-lang.org: ^1.78
-    rust-lang.org/cargo: '*'
+    rust-lang.org/rustup: '*'
   script:
     # missed version bump
     - sed -i 's/^version = .*/version = "{{ version }}"/' Cargo.toml
-    - cargo install --locked --path . --root {{prefix}}
+    # requires nightly as of 0.10.0 for a polars feature
+    - run:
+        - ln -sf {{deps.rust-lang.org/rustup.prefix}}/bin/rustup .
+        - rustup default nightly
+        - ln -sf $HOME/.rustup/toolchains/*/bin/* .
+      working-directory: $HOME/.cargo/bin
+    - cargo install --locked --path . --root {{prefix}} --features "polars/nightly"
+  env:
+    PATH: $HOME/.cargo/bin:$PATH
 
 test: test "$(tw --version)" = "tabiew {{ version }}"
