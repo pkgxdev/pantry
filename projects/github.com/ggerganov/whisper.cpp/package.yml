@@ -53,7 +53,7 @@ build:
       if: '>=1.7.4'
 
     - run:
-        - cmake -B . -S ..
+        - cmake -B . -S .. $CMAKE_ARGS
         - cmake --build . --parallel {{ hw.concurrency }} --config Release
         - cmake --install . --prefix {{prefix}}
       working-directory: build
@@ -72,6 +72,10 @@ build:
 
     - install -D models/download-ggml-model.sh {{prefix}}/bin/download-ggml-model.sh
     - install -D examples/command/commands.txt {{prefix}}/share/whisper.cpp/commands.txt
+  env:
+    linux:
+      CMAKE_ARGS:
+        - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-lstdc++fs,-lpthread
 
 test:
   env:
