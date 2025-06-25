@@ -79,7 +79,7 @@ build:
       working-directory: k-NN/jni/external/nmslib/similarity_search
       if: ^2
     - run:
-        - cmake .
+        - cmake . $CMAKE_ARGS
         - make
       working-directory: k-NN/jni
     - run: |
@@ -97,8 +97,14 @@ build:
         - mkdir -p ./build/distributions/lib
         - cp -v ./jni/release/libopensearchknn* ./build/distributions/lib
         - cd ./build/distributions
+        - unzip -l opensearch-knn-{{version}}.0.zip || true
+        # needed as of 3.1.0
+        - |
+          if test -f src/main/plugin-metadata/plugin-security.policy; then
+            zip src/main/plugin-metadata/plugin-security.policy
+          fi
         - zip -r opensearch-knn-{{version}}.0.zip lib/
-        - '{{prefix}}/bin/opensearch-plugin install --batch file:`pwd`/opensearch-knn-{{version}}.0.zip'
+        - '{{prefix}}/bin/opensearch-plugin install --batch file:`pwd`/opensearch-knn-{{version}}.0.zip || ls -lR {{prefix}}/plugins && false'
       working-directory: k-NN
     - run: echo 'export JAVA_LIBRARY_PATH="$OPENSEARCH_HOME/plugins/opensearch-knn/lib:$JAVA_LIBRARY_PATH"' >> opensearch-env
       working-directory: ${{prefix}}/bin
@@ -110,6 +116,9 @@ build:
     linux/x86-64:
       # /opt/gnu.org/binutils/v2.43.1/bin/ld: release/libopensearchknn_faiss_avx2.so: undefined reference to `_gfortran_concat_string'
       LDFLAGS: $LDFLAGS -Wl,-lgfortran
+    linux:
+      CMAKE_ARGS:
+        - -DBLAS_LIBRARIES={{deps.openblas.net.prefix}}/lib/libopenblas.a
 
 provides:
   - bin/opensearch
