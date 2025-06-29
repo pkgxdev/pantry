@@ -1,25 +1,27 @@
 distributable:
-  url: https://github.com/axllent/mailpit/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/axllent/mailpit/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
   github: axllent/mailpit
-  strip: /^v/
 
 build:
   dependencies:
     go.dev: ^1.20
     nodejs.org: ^18
-    npmjs.com: "*"
-  script: |
-    npm install
-    npm run package
-    go build -ldflags="$LDFLAGS" -o mailpit
-    mkdir -p "{{ prefix }}"/bin
-    mv mailpit "{{ prefix }}"/bin
+    npmjs.com: '*'
+  script:
+    - npm install
+    - npm run package
+    - go build -ldflags="$GO_LDFLAGS" -o mailpit
+    - mkdir -p "{{ prefix }}"/bin
+    - mv mailpit "{{ prefix }}"/bin
   env:
     CGO_ENABLED: 0
-    LDFLAGS:
+    linux:
+      GO_LDFLAGS:
+        - -buildmode=pie
+    GO_LDFLAGS:
       - -extldflags=-static
       - -w
       - -s
@@ -29,7 +31,5 @@ provides:
   - bin/mailpit
 
 test:
-  dependencies:
-    gnu.org/grep: "*"
-  script:
-    mailpit version | grep "v{{version}}"
+  - mailpit version
+  - mailpit version | grep "v{{version}}"
