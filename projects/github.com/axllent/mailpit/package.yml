@@ -1,8 +1,10 @@
 distributable:
-  url: https://github.com/axllent/mailpit/archive/v{{version}}.tar.gz
+  url: https://github.com/axllent/mailpit/archive/{{version.tag}}.tar.gz
   strip-components: 1
+
 versions:
   github: axllent/mailpit
+
 build:
   dependencies:
     nodejs.org: <21
@@ -17,14 +19,16 @@ build:
       - -trimpath
       - -o={{prefix}}/bin/mailpit
     linux:
-      GO_ARGS:
+      LD_FLAGS:
         - -buildmode=pie
     LD_FLAGS:
       - -s
       - -w
       - -X github.com/axllent/mailpit/config.Version={{version}}
+
 provides:
   - bin/mailpit
+
 test:
-  script:
-    - mailpit version | grep {{version}}
+  - mailpit version
+  - mailpit version | grep {{version}}
