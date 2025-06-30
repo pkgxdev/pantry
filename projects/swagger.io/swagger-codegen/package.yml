@@ -12,14 +12,14 @@ build:
   dependencies:
     maven.apache.org: '*'
   script:
+    # missed version bump
+    - find . -name pom.xml -print0 | xargs -0 sed -i 's/<version>.*-SNAPSHOT<\/version>/<version>{{version}}<\/version>/'
     - mvn clean package -U
     - install -D modules/swagger-codegen-cli/target/swagger-codegen-cli.jar {{prefix}}/libexec/lib/swagger-codegen-cli.jar
-    - run: |
-        cat > swagger-codegen <<EOF
+    - run: install -Dm755 $PROP swagger-codegen
+      prop: |
         #!/bin/sh
-        exec java -jar \$(dirname \$0)/../libexec/lib/swagger-codegen-cli.jar "\$@"
-        EOF
-        chmod +x swagger-codegen
+        exec java -jar $(dirname $0)/../libexec/lib/swagger-codegen-cli.jar "$@"
       working-directory: ${{prefix}}/bin
 
 provides:
@@ -65,4 +65,5 @@ test:
         }
       extname: json
   - cat index.html | grep "Simple API"
+  - swagger-codegen version
   - swagger-codegen version | grep {{version}}
