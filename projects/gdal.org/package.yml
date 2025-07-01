@@ -129,7 +129,10 @@ provides:
 
 test:
   # library debugging
-  - run: strace -f gdalinfo --version
+  - run:
+      - ldd {{prefix}}/lib/libgdal.so | grep sqlite
+      - ldd {{prefix}}/bin/gdalinfo | grep sqlite
+      - strace -f gdalinfo --version
     if: linux
   - gdalinfo --version
   - gdalinfo --version | grep {{version}}
