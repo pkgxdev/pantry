@@ -13,7 +13,9 @@ build:
     maven.apache.org: '*'
   script:
     # missed version bump
-    - find . -name pom.xml -print0 | xargs -0 sed -i 's/<version>.*-SNAPSHOT<\/version>/<version>{{version}}<\/version>/'
+    - find . -name pom.xml -print0 | xargs -0 sed -i 's/<version>{{version.major}}\.{{version.minor}}.*-SNAPSHOT<\/version>/<version>{{version}}<\/version>/'
+    # version not found
+    - find . -name pom.xml -print0 | xargs -0 sed -i 's/1\.0\.58-SNAPSHOT/1.0.57/g'
     - mvn clean package -U
     - install -D modules/swagger-codegen-cli/target/swagger-codegen-cli.jar {{prefix}}/libexec/lib/swagger-codegen-cli.jar
     - run: install -Dm755 $PROP swagger-codegen
