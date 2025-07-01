@@ -6,7 +6,7 @@ versions:
   github: OSGeo/gdal
 
 dependencies:
-  apache.org/arrow: '*'
+  apache.org/arrow: 19
   heasarc.gsfc.nasa.gov/cfitsio: '*'
   epsilon-project.sourceforge.io: '*'
   libexpat.github.io: '*'
@@ -26,7 +26,7 @@ dependencies:
   postgresql.org/libpq: '*'
   gaia-gis.it/libspatialite: '*'
   simplesystems.org/libtiff: '*'
-  gnome.org/libxml2: '*'
+  gnome.org/libxml2: ~2.13 # 2.14 changed the soname
   unidata.ucar.edu/netcdf: '*'
   numpy.org: '*'
   openexr.com: '*'
@@ -52,7 +52,8 @@ dependencies:
     curl.se: '*'
     github.com/util-linux/util-linux: '*'
     # apache.org/thrift: =0.20.0 # since 3.9.3
-    apache.org/thrift: =0.21.0 # since 3.10.0
+    # apache.org/thrift: =0.21.0 # since 3.10.0
+    apache.org/thrift: =0.22.0 # since 3.11.1
 
 runtime:
   env:
@@ -70,10 +71,9 @@ build:
     - cmake -S . -B build $CMAKE_ARGS
     - cmake --build build
     - cmake --install build
-    - run: |
-        sed -i.bak "s|{{prefix}}|\$(dirname \$0)/..|g" gdal-config
-        sed -i.bak "s|{{pkgx.prefix}}|\$(dirname \$0)/../../..|g" gdal-config
-        rm ./*.bak
+    - run:
+        - sed -i "s|{{prefix}}|\$(dirname \$0)/..|g" gdal-config
+        - sed -i "s|{{pkgx.prefix}}|\$(dirname \$0)/../../..|g" gdal-config
       working-directory: '{{prefix}}/bin'
     - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
       working-directory: '{{prefix}}/lib'
@@ -128,6 +128,7 @@ provides:
   - bin/sozip
 
 test:
+  - gdalinfo --version
   - gdalinfo --version | grep {{version}}
   - gdalinfo --formats
   - ogrinfo --version | grep {{version}}
