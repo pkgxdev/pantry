@@ -73,9 +73,12 @@ build:
       if: '>=1.25.0<1.25.4'
 
     # change default bindir to ~/.local/bin per our conventions
-    - sed -i -e 's/home_path.push(".deno")/home_path.push(".local")/' cli/tools/installer.rs
-
-    - grep home_path cli/tools/installer.rs
+    - run: INSTALLER_RS=cli/tools/installer.rs
+      if: <2.4
+    - run: INSTALLER_RS=cli/tools/installer/mod.rs
+      if: '>=2.4'
+    - sed -i -e 's/home_path.push(".deno")/home_path.push(".local")/' $INSTALLER_RS
+    - grep home_path $INSTALLER_RS
 
     # curve25519-dalek 4.1.2 introduces some odd simd issues on x86-64 on Rust <1.78 (unreleased)
     - run: sed -i
