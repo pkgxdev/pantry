@@ -67,6 +67,7 @@ build:
     doxygen.nl: '*'
     linux:
       llvm.org: '*'
+      nixos.org/patchelf: '*'
   script:
     - cmake -S . -B build $CMAKE_ARGS
     - cmake --build build
@@ -77,6 +78,16 @@ build:
       working-directory: '{{prefix}}/bin'
     - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
       working-directory: '{{prefix}}/lib'
+    # sqlite3 full path in the bins
+    - run:
+        - ldd lib/libgdal.so
+        - ldd bin/gdalinfo
+        - patchelf --replace-needed {{deps.sqlite.org.prefix}}/lib/libsqlite3.so libsqlite3.so lib/libgdal.so
+        - patchelf --replace-needed {{deps.sqlite.org.prefix}}/lib/libsqlite3.so libsqlite3.so bin/gdalinfo
+        - ldd lib/libgdal.so
+        - ldd bin/gdalinfo
+      if: linux
+      working-directory: '{{prefix}}'
   env:
     CC: clang
     CXX: clang++
@@ -132,7 +143,6 @@ test:
   - run:
       - ldd {{prefix}}/lib/libgdal.so | grep sqlite
       - ldd {{prefix}}/bin/gdalinfo | grep sqlite
-      - strace -f gdalinfo --version
     if: linux
   - gdalinfo --version
   - gdalinfo --version | grep {{version}}
