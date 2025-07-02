@@ -12,7 +12,8 @@ dependencies:
 build:
   dependencies:
     gnu.org/bash: ^5
-    python.org: '>=3.9'
+    python.org: '>=3.9<3.13'
+    postgresql.org: '*' # to build psycopg2
   script:
     - bkpyvenv stage {{prefix}} {{version}}
     - ${{prefix}}/venv/bin/pip install setuptools
@@ -25,7 +26,7 @@ build:
     # missing req
     - run: ${{prefix}}/venv/bin/pip install click
       if: '>=37'
-    - run: ${{prefix}}/venv/bin/pip install rucio[mysql,postgresql,sqlite,ldap,webui,webapi,vo]
+    - run: ${{prefix}}/venv/bin/pip install rucio[mysql,postgresql,sqlite,ldap,webui,webapi,vo]=={{version}}
       if: '>=35'
     - bkpyvenv seal {{prefix}} rucio rucio-admin
 
