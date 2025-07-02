@@ -5,15 +5,30 @@ distributable:
 versions:
   github: krzkaczor/ny/releases/tags
 
+companions:
+  npmjs.com: '*'
+
 build:
   dependencies:
-    rust-lang.org: ^1.56
-    rust-lang.org/cargo: '*'
-  script: |
-    cargo install --locked --path . --root {{prefix}}
+    rust-lang.org/rustup: '*'
+  script:
+    # requires nightly for `feature(proc_macro_diagnostic)`
+    - run:
+        - ln -sf {{deps.rust-lang.org/rustup.prefix}}/bin/rustup .
+        - rustup default nightly
+        - ln -sf $HOME/.rustup/toolchains/*/bin/* .
+      working-directory: $HOME/.cargo/bin
+    - cargo install --locked --path . --root {{prefix}}
+  env:
+    PATH: $HOME/.cargo/bin:$PATH
 
 provides:
   - bin/ny
 
-test: |
-  ny --version
+test:
+  - test "$(ny --version)" = "ny {{ version }}"
+  - npm init -y
+  - npm i is-even
+  - ny add tldr
+  - ny install
+  - ny tldr ls
