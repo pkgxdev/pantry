@@ -124,7 +124,11 @@ build:
         cd "$(dirname "$(readlink -f "$0")")/../libexec" || exit 1
 
         bun run start
-  skip: fix-patchelf # takes 4+ hours
+  skip:
+    # takes 4+ hours
+    - fix-patchelf
+    # pre-compliled `rg` has headers too small; there's no compiled code here to update anyway
+    - fix-machos
   env:
     FILES:
       - package.json
