@@ -28,7 +28,10 @@ test:
   dependencies:
     curl.se: '*'
   script:
-    - apktool --version | grep {{version}}
+    - run: apktool --version | grep {{version}}
+      if: <2.12
+    - run: test "$(apktool version)" = "{{version}}"
+      if: '>=2.12'
     - curl -L "$TEST_APK" -o test.apk
     - apktool d test.apk
     - apktool b test
