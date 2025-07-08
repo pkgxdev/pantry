@@ -1,0 +1,48 @@
+distributable:
+  url: https://archive.apache.org/dist/serf/serf-{{version}}.tar.bz2
+  strip-components: 1
+
+display-name: serf
+
+versions:
+  url: https://archive.apache.org/dist/serf/
+  match: /serf-(\d+\.\d+\.\d+)\.tar\.bz2/
+  strip:
+    - /serf-/
+    - /.tar.bz2/
+
+dependencies:
+  apache.org/apr: ^1
+  apache.org/apr-util: ^1
+  openssl.org: ^1.1
+  zlib.net: ^1.2
+  #  github.com/google/brotli: '*'
+  kerberos.org: ^1.20
+  libexpat.github.io: ^2
+
+build:
+  dependencies:
+    python.org: ~3.11
+    scons.org: '*'
+  script:
+    # without this, scons just throws away our painstakingly crafted environment
+    - run: sed -i -f $PROP SConstruct
+      prop: |
+        s/env = Environment(variables=opts,/env = Environment(ENV = os.environ, variables=opts,/
+    - scons $ARGS
+    - scons install
+  env:
+    ARGS:
+      - APR={{deps.apache.org/apr.prefix}}
+      - APU={{deps.apache.org/apr-util.prefix}}
+      - OPENSSL={{deps.openssl.org.prefix}}
+      - ZLIB={{deps.zlib.net.prefix}}
+      - GSSAPI={{deps.kerberos.org.prefix}}
+      #
+      # available in trunk
+      #        BROTLI={{deps.github.com/google/brotli.prefix}}
+      - CFLAGS=-Wno-incompatible-pointer-types
+      - PREFIX={{prefix}}
+
+test:
+  - test "$(pkg-config --modversion serf-1)" = "{{version}}"
