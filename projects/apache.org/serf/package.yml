@@ -16,7 +16,7 @@ dependencies:
   apache.org/apr-util: ^1
   openssl.org: ^1.1
   zlib.net: ^1.2
-  github.com/google/brotli: '*'
+#  github.com/google/brotli: '*'
   kerberos.org: '*'
 
 build:
@@ -24,11 +24,13 @@ build:
     scons.org: '*'
     gnu.org/gcc: '*'
   script:
+    #
+    # available in trunk
+    #        BROTLI={{deps.github.com/google/brotli.prefix}}
     - scons APR={{deps.apache.org/apr.prefix}}
             APU={{deps.apache.org/apr-util.prefix}}
             OPENSSL={{deps.openssl.org.prefix}}
             ZLIB={{deps.zlib.net.prefix}}
-            BROTLI={{deps.github.com/google/brotli.prefix}}
             GSSAPI={{deps.kerberos.org.prefix}}
             PREFIX={{prefix}}
     - scons install
@@ -42,18 +44,20 @@ test:
     scons.org: '*'
     gnu.org/gcc: '*'
     curl.se: '*'
-    github.com/google/brotli: '*'
+#    github.com/google/brotli: '*'
     kerberos.org: '*'
   script:
     - curl -O https://archive.apache.org/dist/serf/serf-{{version}}.tar.bz2
     #- curl {{distributable.url}}
-    # ?? {{distributable.artifact}}
+    # ?? tar xvzf {{distributable.artifact}}
     - tar xvzf serf-{{version}}.tar.bz2
     - cd serf-{{version}}
+    #
+    # available in trunk
+    #        BROTLI={{deps.github.com/google/brotli.prefix}}
     - scons APR={{deps.apache.org/apr.prefix}}
             APU={{deps.apache.org/apr-util.prefix}}
             OPENSSL={{deps.openssl.org.prefix}}
             ZLIB={{deps.zlib.net.prefix}}
-            BROTLI={{deps.github.com/google/brotli.prefix}}
             GSSAPI={{deps.kerberos.org.prefix}}
             check
