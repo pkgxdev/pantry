@@ -12,22 +12,22 @@ build:
     go.dev: ^1.23
   env:
     CGO_ENABLED: 0
-    LDFLAGS:
-    - -s
-    - -w
+    GO_LDFLAGS:
+      - -s
+      - -w
     linux:
-      LDFLAGS:
-      - -buildmode=pie
+      GO_LDFLAGS:
+        - -buildmode=pie
   script:
-    - go build -v -ldflags="${LDFLAGS}" -o "{{ prefix }}"/bin/plakar
+    - go build -v -ldflags="${GO_LDFLAGS}" -o "{{ prefix }}"/bin/plakar
 
 provides:
   - bin/plakar
 
 test: 
-  script: |
+  script:
     #
     # bypass first run message
     #
-    plakar config
-    test "$(plakar version|head -1|cut -d'/' -f2)" = {{version.tag}}
+    - plakar config
+    - test "$(plakar version|head -1|cut -d'/' -f2)" = {{version.tag}}
