@@ -1,0 +1,36 @@
+distributable:
+  url: https://archive.apache.org/dist/serf/serf-{{version}}.tar.bz2
+  strip-components: 1
+
+display-name: serf
+
+versions:
+  url: https://archive.apache.org/dist/serf/
+  match: /serf-(\d+\.\d+\.\d+)\.tar\.bz2/
+  strip:
+    - /serf-/
+    - /.tar.bz2/
+
+dependencies:
+  apache.org/apr: ^1
+  apache.org/apr-util: ^1
+
+build:
+  dependencies:
+    scons.org: '*'
+    #gnu.org/gcc: '*'
+  script:
+    - scons APR={{deps.apache.org/apr.prefix}}
+            APU={{deps.apache.org/apr-util.prefix}}
+            OPENSSL={{deps.openssl.org.prefix}}
+            PREFIX={{prefix}}
+
+provides:
+#  - bin/foo
+  # ^^ specify the binaries or pkgx shell integration won’t work
+
+test:
+  dependencies:
+    foo.com: '*'  # asterisk means “any version, usually the latest”
+  script:
+    test "$(foo --version)" = {{version}}
