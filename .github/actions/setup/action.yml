@@ -58,6 +58,13 @@ runs:
     - name: apt-get install
       run: |
         SUDO=$(if command -v sudo >/dev/null 2>&1; then echo "sudo"; else echo ""; fi)
+
+        # As of 2025-07-12, debian:buster needs updates to work
+        if [ -f /etc/debian_version ] && grep -q '^10' /etc/debian_version; then
+          echo "Debian Buster detected, updating apt-get sources."
+          $SUDO sed -i 's/deb\.debian/archive\.debian/g' /etc/apt/sources.list
+        fi
+
         $SUDO apt-get update && $SUDO apt-get install --yes \
           netbase \
           ca-certificates \
