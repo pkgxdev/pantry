@@ -1,0 +1,38 @@
+distributable:
+  url: https://github.com/sst/opencode/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+display-name: opencode
+
+versions:
+  github: sst/opencode
+
+build:
+  dependencies:
+    bun.sh: '^1'
+    go.dev: '^1.24'
+  script:
+    - mkdir -p packages/opencode/dist
+    - run:
+      - go mod download
+      - go build -ldflags "$GO_LDFLAGS" -o ../opencode/dist/tui ./cmd/opencode/main.go
+      working-directory: packages/tui
+    - run:
+      - bun install --production
+      - bun build --define "OPENCODE_VERSION='{{version}}'" ./src/index.ts ./dist/tui --compile --minify --target=bun --outfile ./dist/opencode
+      working-directory: packages/opencode
+    - install -Dm755 ./packages/opencode/dist/opencode {{prefix}}/bin/opencode
+  skip: fix-patchelf
+  env:
+    GO_LDFLAGS:
+      - -s
+      - -w
+      - -X main.Version={{version}}
+    linux:
+      GO_LDFLAGS:
+        - -buildmode=pie
+
+provides:
+  - bin/opencode
+
+test: test "$(opencode --version)" = {{version}}
