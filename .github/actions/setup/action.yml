@@ -65,10 +65,13 @@ runs:
           $SUDO sed -i 's/deb\.debian/archive\.debian/g' /etc/apt/sources.list
         fi
 
-        $SUDO apt-get update && $SUDO apt-get install --yes \
-          netbase \
-          ca-certificates \
-          libc-dev libstdc++-8-dev libgcc-8-dev \
-          libudev-dev
+        if command -v apt-get >/dev/null 2>&1; then
+          echo "Using apt-get to install dependencies."
+          $SUDO apt-get update && $SUDO apt-get install --yes \
+            netbase \
+            ca-certificates \
+            libc-dev libstdc++-8-dev libgcc-8-dev \
+            libudev-dev
+        fi
       shell: bash
       if: runner.os == 'linux'
