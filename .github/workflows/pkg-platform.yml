@@ -70,16 +70,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pkgxdev/setup@v2
-        with:
-          version: 1.1.6
-          PKGX_DIR: /opt
-
       - uses: ./.github/actions/setup
         with:
           p12-file-base64: ${{ secrets.APPLE_CERTIFICATE_P12 }}
           p12-password: ${{ secrets.APPLE_CERTIFICATE_P12_PASSWORD }}
           APPLE_IDENTITY: ${{ secrets.APPLE_IDENTITY }}
+
+      - uses: pkgxdev/setup@v2
+        with:
+          version: 1.1.6
+          PKGX_DIR: /opt
+
 
       - uses: pkgxdev/brewkit/build@v1
         with:
