@@ -18,6 +18,11 @@ build:
     - run: cp ~/go/bin/* .
       working-directory: ${{prefix}}/bin
     - pnpm install
+    # otherwise:
+    # Error: EMFILE: too many open files, watch
+    #   at FSWatcher._handle.onchange (node:internal/fs/watchers:214:21)
+    - run: sudo launchctl limit maxfiles 16384 16384
+      if: darwin/aarch64
     - make -j {{hw.concurrency}} dist generate
     - go build -ldflags "$GO_LDFLAGS" -o {{prefix}}/bin/dozzle .
   env:
