@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/sst/opencode/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/sst/opencode/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 display-name: opencode
@@ -14,12 +14,15 @@ build:
   script:
     - mkdir -p packages/opencode/dist
     - run:
-      - go mod download
-      - go build -ldflags "$GO_LDFLAGS" -o ../opencode/dist/tui ./cmd/opencode/main.go
+        - go mod download
+        - go build -ldflags "$GO_LDFLAGS" -o ../opencode/dist/tui ./cmd/opencode/main.go
       working-directory: packages/tui
+    # out-of-date lockfile
+    - run: rm bun.lock
+      if: =0.3.2
     - run:
-      - bun install --production
-      - bun build --define "OPENCODE_VERSION='{{version}}'" ./src/index.ts ./dist/tui --compile --minify --target=bun --outfile ./dist/opencode
+        - bun install --production
+        - bun build --define "OPENCODE_VERSION='{{version}}'" ./src/index.ts ./dist/tui --compile --minify --target=bun --outfile ./dist/opencode
       working-directory: packages/opencode
     - install -Dm755 ./packages/opencode/dist/opencode {{prefix}}/bin/opencode
   skip: fix-patchelf
