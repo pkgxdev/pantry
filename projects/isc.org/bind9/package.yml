@@ -18,6 +18,9 @@ dependencies:
   github.com/json-c/json-c: 0.18
   gnu.org/libidn2: 2.3
   jemalloc.net: 5
+  # since 9.21.10
+  mesonbuild.com: 1
+  ninja-build.org: '*'
   linux:
     kernel.org/libcap: '*'
 
@@ -29,9 +32,18 @@ build:
       - --with-libidn2={{deps.gnu.org/libidn2.prefix}}
       - --with-openssl={{deps.openssl.org.prefix}}
       - --with-lmdb={{deps.openldap.org/liblmdb.prefix}}
+    MESON_ARGS:
+      - --prefix="{{prefix}}"
   script:
-    - ./configure $ARGS
-    - make --jobs {{ hw.concurrency }} install
+    - run:
+        - ./configure $ARGS
+        - make --jobs {{ hw.concurrency }} install
+      if: <9.21.10
+    - run:
+        - meson setup build $MESON_ARGS
+        - meson compile -C build
+        - meson install -C build
+      if: '>=9.21.10'
 
 provides:
   - bin/arpaname
@@ -52,7 +64,6 @@ provides:
   - bin/named-checkzone
   - bin/named-compilezone
   - bin/named-journalprint
-  - bin/named-nzd2nzf
   - bin/named-rrchecker
   - bin/nsec3hash
   - bin/nslookup
