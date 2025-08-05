@@ -10,7 +10,7 @@ versions:
     - /\.tar\.gz/
 
 dependencies:
-  python.org: ~3.11
+  python.org: ~3.13 # as of 7.1
 
 runtime:
   env:
@@ -32,14 +32,12 @@ build:
         [pager]
         pager = less -FRX
       working-directory: ${{prefix}}/etc/mercurial
-    - run: |
-        mkdir -p {{prefix}}/share/man/man{1,5}
-        install hg.1 {{prefix}}/share/man/man1/
-        install hgignore.5 hgrc.5 {{prefix}}/share/man/man5/
+    - run:
+        - mkdir -p {{prefix}}/share/man/man{1,5}
+        - install hg.1 {{prefix}}/share/man/man1/
+        - install hgignore.5 hgrc.5 {{prefix}}/share/man/man5/
       working-directory: doc
-    - run: |
-        sed -i.bak '1s|.*|#!/usr/bin/env python3|' hg
-        rm hg.bak
+    - run: sed -i '1s|.*|#!/usr/bin/env python3|' hg
       working-directory: ${{prefix}}/bin
   env:
     HGPYTHON3: 1
