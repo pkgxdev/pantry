@@ -63,6 +63,12 @@ build:
           MESON_ARGS="$MESON_ARGS -Ddri3=enabled -Dgallium-omx=disabled"
         fi
       if: <24.3
+    # removed in 25.2.0
+    - run: |
+        if test "{{hw.platform}}" = "darwin"; then
+          MESON_ARGS="$MESON_ARGS -Dosmesa=true"
+        fi
+      if: <25.2
 
     - run:
         - python -m venv venv
@@ -105,7 +111,6 @@ build:
       - --wrap-mode=nofallback
     darwin:
       MESON_ARGS:
-        - -Dosmesa=true
         - -Dglx=xlib
     linux:
       MESON_ARGS:
