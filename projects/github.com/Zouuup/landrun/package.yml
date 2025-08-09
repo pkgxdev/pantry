@@ -30,6 +30,9 @@ test:
     curl.se: '*'
     gnu.org/coreutils: '*'
   script:
+    # Note: GitHub Action runners don't support landlock, so we use --best-effort
+    # on all positive tests to avoid failing the build. If landlock is supported
+    # in the future, we can remove all --best-effort flags.
     # No permissions, should fail to execute any binary
     - if landrun true; then exit 1; fi
     # No filesystem permissions, should fail to read or write
@@ -38,13 +41,13 @@ test:
     # Network not allowed by default, connecting out should fail
     - if landrun --rox $PKGX_DIR/ curl pkgx.sh > /dev/null; then exit 1; fi
     # Add read/write permissions
-    - landrun --rox $PKGX_DIR,/usr --ro /etc ls /etc
-    - landrun --rox $PKGX_DIR,/usr --rw /tmp touch /tmp/landrun_rw && test -f /tmp/landrun_rw
+    - landrun --best-effort --rox $PKGX_DIR,/usr --ro /etc ls /etc
+    - landrun --best-effort --rox $PKGX_DIR,/usr --rw /tmp touch /tmp/landrun_rw && test -f /tmp/landrun_rw
     - printf '#!/bin/sh\necho rox\n' >/tmp/x.sh && chmod +x /tmp/x.sh
     # Script present but without exec permission on /tmp should fail
     - if landrun --rox $PKGX_DIR,/usr --ro /tmp /tmp/x.sh; then exit 1; fi
     # Write should fail when only read-only access is granted
     - if landrun --rox $PKGX_DIR,/usr --ro /tmp touch /tmp/landrun_ro_should_fail; then exit 1; fi
-    - landrun --rox $PKGX_DIR,/usr --rwx /tmp /tmp/x.sh | grep '^rox$'
-    - landrun --rox $PKGX_DIR,/usr --env FOO=bar env | grep '^FOO=bar$'
-    - landrun --log-level debug --rox $PKGX_DIR,/usr true
+    - landrun --best-effort --rox $PKGX_DIR,/usr --rwx /tmp /tmp/x.sh | grep '^rox$'
+    - landrun --best-effort --rox $PKGX_DIR,/usr --env FOO=bar env | grep '^FOO=bar$'
+    - landrun --best-effort --log-level debug --rox $PKGX_DIR,/usr true
