@@ -42,8 +42,6 @@ test:
     - if landrun --rox $PKGX_DIR/ $(command -v ls) /etc; then exit 1; fi
     - if landrun --rox $PKGX_DIR/ $(command -v touch) $PWD/landrun_should_fail; then exit 1; fi
     # Add read/write permissions
-    - printf '#!/bin/sh\necho rox\n' >$PWD/x.sh && chmod +x $PWD/x.sh
     - landrun $LANDRUN_FLAGS --rox / $(command -v ls) /etc
-    - landrun $LANDRUN_FLAGS --rox / $(command -v cat) $PWD/x.sh
     - landrun $LANDRUN_FLAGS --rox / --rw $PWD $(command -v touch) $PWD/landrun_rw
-    - test -f $PWD/landrun_rw
+    - landrun $LANDRUN_FLAGS --rox / $(command -v cat) $PWD/landrun_rw
