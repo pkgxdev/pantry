@@ -1,0 +1,49 @@
+distributable:
+  url: https://github.com/Zouuup/landrun/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+display-name: landrun
+
+versions:
+  github: Zouuup/landrun
+
+platforms:
+  - linux
+
+build:
+  dependencies:
+    go.dev: '^1.18'
+  script:
+    - go mod download
+    - go build -ldflags "$LDFLAGS" -o {{prefix}}/bin/landrun ./cmd/landrun
+  env:
+    LDFLAGS:
+      - -s
+      - -w
+      - -buildmode=pie
+
+provides:
+  - bin/landrun
+
+test:
+  dependencies:
+    curl.se: '*'
+  script:
+    # No permissions, should fail to execute any binary
+    - if landrun /usr/bin/true; then exit 1; fi
+    # No filesystem permissions, should fail to read or write
+    - if landrun --rox /usr/ /usr/bin/ls /etc; then exit 1; fi
+    - if landrun --rox /usr/ /usr/bin/touch /tmp/landrun_should_fail; then exit 1; fi
+    # Network not allowed by default, connecting out should fail
+    - if landrun --rox /usr/ /usr/bin/curl -sSf https://pkgx.sh > /dev/null; then exit 1; fi
+    # Add read/write permissions
+    - landrun --rox /usr/ --ro /etc /usr/bin/ls /etc
+    - landrun --rox /usr/ --rw /tmp /usr/bin/touch /tmp/landrun_rw && test -f /tmp/landrun_rw
+    - printf '#!/usr/bin/env sh\necho rox\n' >/tmp/x.sh && chmod +x /tmp/x.sh
+    # Script present but without exec permission on /tmp should fail
+    - if landrun --rox /usr/ --ro /tmp /tmp/x.sh; then exit 1; fi
+    # Write should fail when only read-only access is granted
+    - if landrun --rox /usr/ --ro /tmp /usr/bin/touch /tmp/landrun_ro_should_fail; then exit 1; fi
+    - landrun --rox /usr/ --rwx /tmp /tmp/x.sh | grep '^rox$'
+    - landrun --rox /usr/ --env FOO=bar /usr/bin/env | grep '^FOO=bar$'
+    - landrun --log-level debug --rox /usr/ /usr/bin/true
