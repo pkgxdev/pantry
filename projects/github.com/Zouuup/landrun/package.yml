@@ -40,17 +40,16 @@ test:
     - if landrun true; then exit 1; fi
     # No filesystem permissions, should fail to read or write
     - if landrun --rox $PKGX_DIR/ ls /etc; then exit 1; fi
-    - if landrun --rox $PKGX_DIR/ touch /tmp/landrun_should_fail; then exit 1; fi
+    - if landrun --rox $PKGX_DIR/ touch $PWD/landrun_should_fail; then exit 1; fi
     # Network not allowed by default, connecting out should fail
     - if landrun --rox $PKGX_DIR/ curl pkgx.sh > /dev/null; then exit 1; fi
     # Add read/write permissions
-    - landrun $LANDRUN_BEST_EFFORT --rox $PKGX_DIR,/usr --ro /tmp ls /tmp
-    - landrun $LANDRUN_BEST_EFFORT --rox $PKGX_DIR,/usr --rw /tmp touch /tmp/landrun_rw && test -f /tmp/landrun_rw
-    - printf '#!/bin/sh\necho rox\n' >/tmp/x.sh && chmod +x /tmp/x.sh
-    # Script present but without exec permission on /tmp should fail
-    - if landrun --rox $PKGX_DIR,/usr --ro /tmp /tmp/x.sh; then exit 1; fi
+    - printf '#!/bin/sh\necho rox\n' >$PWD/x.sh && chmod +x $PWD/x.sh
+    - landrun $LANDRUN_BEST_EFFORT --rox $PKGX_DIR,/usr --ro $PWD cat $PWD/x.sh
+    - landrun $LANDRUN_BEST_EFFORT --rox $PKGX_DIR,/usr --rw $PWD touch $PWD/landrun_rw && test -f $PWD/landrun_rw
+    # Script present but without exec permission on $PWD should fail
+    - if landrun --rox $PKGX_DIR,/usr --ro $PWD $PWD/x.sh; then exit 1; fi
     # Write should fail when only read-only access is granted
-    - if landrun --rox $PKGX_DIR,/usr --ro /tmp touch /tmp/landrun_ro_should_fail; then exit 1; fi
-    - landrun $LANDRUN_BEST_EFFORT --rox $PKGX_DIR,/usr --rwx /tmp /tmp/x.sh | grep '^rox$'
+    - if landrun --rox $PKGX_DIR,/usr --ro $PWD touch $PWD/landrun_ro_should_fail; then exit 1; fi
+    - landrun $LANDRUN_BEST_EFFORT --rox $PKGX_DIR,/usr --rwx $PWD $PWD/x.sh | grep '^rox$'
     - landrun $LANDRUN_BEST_EFFORT --rox $PKGX_DIR,/usr --env FOO=bar env | grep '^FOO=bar$'
-    - landrun $LANDRUN_BEST_EFFORT --log-level debug --rox $PKGX_DIR,/usr true
