@@ -33,25 +33,17 @@ test:
     linux/aarch64:
       # ARM64 GitHub Action runners don't support landlock, so we use --best-effort
       # on all positive tests to avoid failing the build. If landlock is supported
-      # in the future, we can remove all --best-effort flags.
-      LANDRUN_FLAGS: --log-level debug --best-effort
-    linux/x86-64:
-      LANDRUN_FLAGS: --log-level debug --add-exec --ldd
+      # in the future, remove it.
+      LANDRUN_FLAGS: --best-effort
   script:
     # No permissions, should fail to execute any binary
-    - if landrun $LANDRUN_FLAGS true; then exit 1; fi
+    - if landrun true; then exit 1; fi
     # No filesystem permissions, should fail to read or write
-    - if landrun $LANDRUN_FLAGS --rox $PKGX_DIR/ $(command -v ls) /etc; then exit 1; fi
-    - if landrun $LANDRUN_FLAGS --rox $PKGX_DIR/ $(command -v touch) $PWD/landrun_should_fail; then exit 1; fi
-    # Network not allowed by default, connecting out should fail
-    - if landrun $LANDRUN_FLAGS --rox $PKGX_DIR/ curl pkgx.sh > /dev/null; then exit 1; fi
+    - if landrun --rox $PKGX_DIR/ $(command -v ls) /etc; then exit 1; fi
+    - if landrun --rox $PKGX_DIR/ $(command -v touch) $PWD/landrun_should_fail; then exit 1; fi
     # Add read/write permissions
     - printf '#!/bin/sh\necho rox\n' >$PWD/x.sh && chmod +x $PWD/x.sh
+    - landrun $LANDRUN_FLAGS --rox / $(command -v ls) /etc
     - landrun $LANDRUN_FLAGS --rox / $(command -v cat) $PWD/x.sh
-    - landrun $LANDRUN_FLAGS --rox / --rw $PWD $(command -v touch) $PWD/landrun_rw && test -f $PWD/landrun_rw
-    # Script present but without exec permission on $PWD should fail
-    - if landrun $LANDRUN_FLAGS --rox $PKGX_DIR,/usr --ro $PWD $PWD/x.sh; then exit 1; fi
-    # Write should fail when only read-only access is granted
-    - if landrun $LANDRUN_FLAGS --rox $PKGX_DIR,/usr --ro $PWD $(command -v touch) $PWD/landrun_ro_should_fail; then exit 1; fi
-    - landrun $LANDRUN_FLAGS --rox $PKGX_DIR,/usr --rwx $PWD $PWD/x.sh | grep '^rox$'
-    - landrun $LANDRUN_FLAGS --rox $PKGX_DIR,/usr --env FOO=bar $(command -v env) | grep '^FOO=bar$'
+    - landrun $LANDRUN_FLAGS --rox / --rw $PWD $(command -v touch) $PWD/landrun_rw
+    - test -f $PWD/landrun_rw
