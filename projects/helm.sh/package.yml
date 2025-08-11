@@ -1,6 +1,6 @@
 distributable:
-   url: https://github.com/helm/helm/archive/refs/tags/v{{version}}.tar.gz
-   strip-components: 1
+  url: https://github.com/helm/helm/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
 
 versions:
   github: helm/helm/releases/tags
@@ -12,17 +12,14 @@ build:
   dependencies:
     go.dev: ^1.19
   script:
-    - run: |
-        sed -i.bak \
-            -e's/unreleased//g' \
-            -e's/\(shell find . .* -print\)/\1 | grep -v dev.pkgx./' \
-            Makefile
-        rm Makefile.bak
+    - run: sed -i -f $PROP Makefile
+      prop: |
+        s/unreleased//g
+        s/\(shell find . .* -print\)/\1 | grep -v dev.pkgx./
     - mkdir -p "{{prefix}}/bin"
-    - make install VERSION={{version}} INSTALL_PATH="{{prefix}}/bin"
+    - make install VERSION=v{{version}} INSTALL_PATH="{{prefix}}/bin"
 
 test:
-  script:
-    - helm create foo
-    - test -d "foo/charts"
-    - helm version | grep "Version:\"{{version}}\""
+  - helm create foo
+  - test -d "foo/charts"
+  - helm version | grep "Version:\"v{{version}}\""
