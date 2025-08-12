@@ -22,6 +22,12 @@ provides:
   - bin/syncthing
 
 test:
-  - syncthing --version | grep {{version}}
-  - syncthing -generate ./
-  - ls | grep config.xml
+  - run:
+      - syncthing --version | grep {{version}}
+      - syncthing -generate ./
+    if: <2
+  - run:
+      - syncthing version | grep {{version}}
+      - syncthing generate -H .
+    if: '>=2'
+  - test -f config.xml
