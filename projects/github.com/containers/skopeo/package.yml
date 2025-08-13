@@ -14,9 +14,14 @@ dependencies:
 build:
   dependencies:
     go.dev: '^1.18'
+    gnu.org/patch: '*'
   env:
     DISABLE_DOCS: 1 # disables the generation of man pages with go-md2man
   script:
+    # https://github.com/containers/skopeo/pull/2014
+    # https://github.com/felipecrs/skopeo-bin/pull/1
+    - patch -p1 < props/embed-policy.patch
+
     # https://github.com/containers/skopeo/blob/2d1ae1fdb3d88347eec8a17d4415a964ce86d54f/install.md#building-a-static-binary
     - CGO_ENABLED=0 make BUILDTAGS=containers_image_openpgp GO_DYN_FLAGS=
 
@@ -26,7 +31,6 @@ build:
 test:
   - skopeo --version | tee /dev/stderr | grep -q -w '{{ version }}'
 
-  - skopeo --insecure-policy --override-os linux inspect docker://hello-world | tee /dev/stderr | grep -q -w 'docker.io/library/hello-world'
+  - skopeo --override-os linux copy docker://hello-world docker-archive:hello-world.tar:example.com/hello-world
 
-  - skopeo --insecure-policy --override-os linux copy docker://hello-world docker-archive:hello-world.tar
-  - test -f hello-world.tar
+  - skopeo list-tags docker-archive:hello-world.tar | tee /dev/stderr | grep -q -w 'example.com/hello-world'
