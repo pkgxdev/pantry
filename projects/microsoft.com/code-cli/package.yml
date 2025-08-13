@@ -16,7 +16,10 @@ build:
     rust-lang.org: ^1.81
     rust-lang.org/cargo: '*'
   working-directory: cli
-  script: cargo install --locked --path . --root {{prefix}}
+  script:
+    # missed version bump
+    - sed -i '1,10s/"version":.*/"version":"{{version}}",/' ../package.json
+    - cargo install --locked --path . --root {{prefix}}
   env:
     OPENSSL_NO_VENDOR: 1
     OPENSSL_DIR: '{{deps.openssl.org.prefix}}'
