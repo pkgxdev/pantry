@@ -19,6 +19,7 @@ build:
   dependencies:
     cmake.org: ^3
     abseil.io: ^20250127 # FIXME: how? it links to e.g. libabsl_bad_any_cast_impl.so.2308.0.0
+    llvm.org: '*'
   working-directory: build
   script:
     - cmake .. $ARGS
@@ -28,6 +29,8 @@ build:
       # likely needs bumping to an unreleased abseil.io version
       # ld.lld: error: undefined reference due to --no-allow-shlib-undefined: absl::lts_20240116::log_internal::LogMessage& absl::lts_20240116::log_internal::LogMessage::operator<<<int, 0>(int const&)
       LDFLAGS: $LDFLAGS -Wl,--allow-shlib-undefined
+    darwin:
+      LDFLAGS: $LDFLAGS -Wl,-latomic
     ARGS:
       - -Dprotobuf_BUILD_LIBPROTOC=ON
       - -Dprotobuf_BUILD_SHARED_LIBS=ON
