@@ -55,7 +55,13 @@ test:
       if: linux
 
     - mkdir -p data/{db,log/mongodb}
-    - mongod --dbpath data/db --logpath data/log/mongodb/mongo.log --port $PORT --fork
+    - run: mongod --dbpath data/db --logpath data/log/mongodb/mongo.log --port $PORT --fork
+      if: linux
+    - run:
+        - mongod --dbpath data/db --logpath data/log/mongodb/mongo.log --port $PORT &
+        - PID=$!
+        - sleep 5
+      if: darwin
     - mongosh --port $PORT --eval 'db.version()'
     - "mongosh --port $PORT --eval 'db.adminCommand({ shutdown: 1 })' || true"
   env:
