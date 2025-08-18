@@ -6,7 +6,7 @@ versions:
   github: facebook/folly
 
 dependencies:
-  boost.org: '*'
+  boost.org: <1.89 # doesn't like the newest boost
   gflags.github.io: '*'
   google.com/glog: '<0.7'
   libevent.org: '*'
@@ -47,6 +47,14 @@ build:
           curl -LS https://github.com/facebook/folly/commit/5dccf473579645f2b022bd9eeb6c7a42ea1eb1cb.patch | patch -R -p1 || true
         fi
       if: '>=2024.07<2024.07.15'
+
+    # missing header?
+    - run: sed -i -f $PROP Checksum.cpp
+      working-directory: folly/hash
+      if: '>=2024.08'
+      prop: |
+        /ChecksumDetail.h/a\
+        #include <stdexcept>
 
     - cmake $ARGS -DBUILD_SHARED_LIBS=ON -S . -B shared
     - cmake --build shared
