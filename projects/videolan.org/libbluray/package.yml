@@ -1,6 +1,8 @@
 distributable:
-  url: https://download.videolan.org/videolan/libbluray/{{version}}/libbluray-{{version}}.tar.bz2
-  strip-components: 1
+  - url: https://download.videolan.org/videolan/libbluray/{{version}}/libbluray-{{version}}.tar.xz
+    strip-components: 1
+  - url: https://download.videolan.org/videolan/libbluray/{{version}}/libbluray-{{version}}.tar.bz2
+    strip-components: 1
 
 versions:
   url: http://download.videolan.org/videolan/libbluray/
@@ -19,20 +21,31 @@ build:
     gnu.org/automake: '*'
     gnu.org/autoconf: '*'
     gnu.org/libtool: '*'
-    freedesktop.org/pkg-config: '*'
-  script: |
-    ./bootstrap
-    ./configure $ARGS
-    make
-    make install
+    # since 1.4.0
+    mesonbuild.com: ^1
+    ninja-build.org: ^1
+  script:
+    - run:
+        - ./bootstrap
+        - ./configure $ARGS
+        - make
+        - make install
+      if: <1.4
+    - run:
+        - meson setup build $MESON_ARGS
+        - meson compile -C build
+        - meson install -C build
+      if: '>=1.4'
   env:
     ARGS:
       - --prefix={{prefix}}
       - --disable-dependency-tracking
       - --disable-silent-rules
       - --disable-bdjava-jar
+    MESON_ARGS:
+      - --prefix={{prefix}}
+      - -Dbdj_jar=disabled
 
 test:
-  script: |
-    cc test.c -lbluray -o test
-    ./test
+  - cc test.c -lbluray -o test
+  - ./test
