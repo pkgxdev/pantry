@@ -47,6 +47,7 @@ build:
 
 test:
   - run: zig build-exe $FIXTURE --name hello
+    if: <0.15
     fixture:
       extname: zig
       content: |
@@ -54,6 +55,15 @@ test:
         pub fn main() !void {
             const stdout = std.io.getStdOut().writer();
             try stdout.print("Hello, world!", .{});
+        }
+  - run: zig build-exe $FIXTURE --name hello
+    if: '>=0.15'
+    fixture:
+      extname: zig
+      content: |
+        const std = @import("std");
+        pub fn main() !void {
+            std.log.info("Hello, world!", .{});
         }
   - ./hello
 
