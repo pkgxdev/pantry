@@ -21,6 +21,9 @@ build:
     - tar zxvf python_openstackclient-{{version}}.tar.gz --strip-components=1
     - bkpyvenv stage {{prefix}} {{version}}
     - ${{prefix}}/venv/bin/pip install .
+    # somehow, this isn't working in v8.2.0
+    - run: cp -a openstackclient {{prefix}}/venv/lib/python{{deps.python.org.version.marketing}}/site-packages/
+      if: '>=8.2'
     - bkpyvenv seal {{prefix}} openstack openstack-inventory
 
 provides:
