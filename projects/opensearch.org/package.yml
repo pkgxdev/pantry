@@ -78,8 +78,19 @@ build:
         fi
       working-directory: k-NN/jni/external/nmslib/similarity_search
       if: ^2
+
+    # this is blowing up the build on aarch64, so we disable it
+    #   /Users/builder/actions-runner/_work/pantry/pantry/builds/opensearch.org-2.19.2/k-NN/jni/external/nmslib/similarity_search/src/distcomp_scalar.cc:85:9: error: pragma message requires parenthesized string
+    #  85 | #pragma message WARN("ScalarProductSIMD<float>: SSE2 is not available, defaulting to pure C++ implementation!")
+    - run: sed -i -f $PROP distcomp_scalar.cc
+      working-directory: k-NN/jni/external/nmslib/similarity_search/src
+      if: ^2
+
+      prop: |
+        s|#pragma message WARN|// #pragma message WARN|g
+
     - run:
-        - cmake .
+        - cmake . $CMAKE_JNI_ARGS
         - make
       working-directory: k-NN/jni
     - run: |
@@ -110,6 +121,9 @@ build:
     linux/x86-64:
       # /opt/gnu.org/binutils/v2.43.1/bin/ld: release/libopensearchknn_faiss_avx2.so: undefined reference to `_gfortran_concat_string'
       LDFLAGS: $LDFLAGS -Wl,-lgfortran
+    linux:
+      CMAKE_JNI_ARGS:
+        - -DBLAS_LIBRARIES={{deps.openblas.net.prefix}}/lib/libopenblas.a
 
 provides:
   - bin/opensearch
