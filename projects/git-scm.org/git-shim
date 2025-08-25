@@ -34,6 +34,12 @@ find_git_subcommand() {
 
 libexec="$(cd "$(dirname "$0")/.." && pwd)"/libexec
 
+# If http.sslCAInfo is set, then we need to unset
+# GIT_SSL_CAINFO to respect it.
+if "$libexec/git" config --get http.sslCAInfo >/dev/null 2>&1; then
+  unset GIT_SSL_CAINFO
+fi
+
 # extract the git subcommand
 cmd=$(find_git_subcommand "$@")
 
