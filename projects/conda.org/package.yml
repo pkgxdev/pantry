@@ -73,12 +73,15 @@ provides:
 
 test:
   - conda --version | grep {{version}}
-  - |
-    source /dev/stdin <<<"$(conda shell.bash hook)"
-    conda create --yes --name snowflakes biopython
-    conda activate snowflakes
-    conda info --envs | grep snowflakes
-    conda deactivate
+  - source /dev/stdin <<<"$(conda shell.bash hook)"
+  - run:
+      - conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main
+      - conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
+    if: '>=25.7.0'
+  - conda create --yes --name snowflakes biopython
+  - conda activate snowflakes
+  - conda info --envs | grep snowflakes
+  - conda deactivate
 
   # check env has been restored
   - |
