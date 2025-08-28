@@ -1,0 +1,35 @@
+distributable:
+  url: https://github.com/elixir-lang/elixir/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: elixir-lang/elixir
+  strip: /v/
+
+dependencies:
+  erlang.org: ^27
+
+build: make install PREFIX="{{prefix}}"
+
+test:
+  script: |
+    elixir --version | grep "compiled with Erlang/OTP 27"
+    
+    mkdir test
+    cp $FIXTURE test/test.exs
+    cd test
+    elixir test.exs
+
+  fixture: |
+    whichfizz = fn
+      (0, 0, _) -> "FizzBuzz"
+      (0, _, _) -> "Fizz"
+      (_, 0, _) -> "Buzz"
+      (_, _, n) -> n
+    end
+
+    fizzbuzz = fn (n) ->
+      whichfizz.(rem(n, 3), rem(n, 5), n)
+    end
+
+    [1, 2, "Fizz", 4, "Buzz", "Fizz", 7, 8, "Fizz", "Buzz"] = Enum.map(1..10, fizzbuzz)
