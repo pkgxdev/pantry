@@ -7,7 +7,7 @@ versions:
 
 build:
   dependencies:
-    go.dev: =1.24.4 # as of 1.20.0
+    go.dev: =1.24.6 # as of 1.20.3
     nodejs.org: ^18
     # python 3.11 removes 'rU' mode which breaks node-gyp
     python.org: ~3.10
@@ -18,9 +18,9 @@ build:
   script:
     - go mod tidy
     # required tooling; no releases to package
-    - run: |
-        go install github.com/loggerhead/enumer@latest
-        export PATH=$HOME/go/bin:$PATH
+    - run:
+        - go install github.com/loggerhead/enumer@latest
+        - export PATH=$HOME/go/bin:$PATH
       if: '>=1.16.2'
     - make bootstrap static-dist dev-ui
     - install -D bin/vault {{prefix}}/bin/vault
