@@ -29,6 +29,34 @@ build:
     linux:
       gnu.org/gcc: 13
   script:
+    # -shared and -pie don't mix
+    - run:
+        - cp $PROP g++-wrapper
+        - chmod +x g++-wrapper
+      prop: |
+        #!/bin/bash
+        # Capture all arguments into an array
+        ARGS=("$@")
+
+        # Check if the '-shared' flag is present in the arguments
+        if printf "%s\n" "${ARGS[@]}" | grep -q -e '-shared'; then
+
+          # Use a loop to filter out the '-pie' flag from the arguments
+          FILTERED_ARGS=()
+          for arg in "${ARGS[@]}"; do
+            if [ "$arg" != "-pie" ]; then
+              FILTERED_ARGS+=("$arg")
+            fi
+          done
+
+          # Pass the filtered arguments to g++
+          exec g++ "${FILTERED_ARGS[@]}"
+        else
+          # Pass the original arguments to g++
+          exec g++ "${ARGS[@]}"
+        fi
+      working-directory: $HOME/.local/bin
+      if: linux
     - cmake -S . -B build $CMAKE_ARGS
     - cmake --build build
     - cmake --install build
@@ -43,10 +71,13 @@ build:
       - -DBUILD_TESTING=OFF
       - -DPYTHON_EXTENSIONS=OFF
       - -DBUILD_SHARED_LIBS=ON
+      - -DCMAKE_CXX_STANDARD=20
     linux:
       CMAKE_ARGS:
         - -DCMAKE_C_FLAGS=-fPIC
         - -DCMAKE_CXX_FLAGS=-fPIC
+      CXX: g++-wrapper
+      PATH: $HOME/.local/bin:$PATH
     linux/x86-64:
       CMAKE_ARGS:
         - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-pie
@@ -60,7 +91,7 @@ test:
     linux:
       gnu.org/gcc: 13
   script:
-    - c++ -std=c++17 test.cpp -o test $EXTRA_LIBS -lfb303_thrift_cpp -lfolly -lglog -lthriftprotocol -lthriftcpp2 -ldl -lboost_context
+    - c++ -std=c++20 test.cpp -o test $EXTRA_LIBS -lfb303_thrift_cpp -lfolly -lglog -lthriftprotocol -lthriftcpp2 -ldl -lboost_context
     - ./test | grep 'BaseService'
   env:
     linux:
