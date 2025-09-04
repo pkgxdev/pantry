@@ -16,8 +16,15 @@ build:
   #   swift.org: ^5.8
   #   apple.com/xcode: >=14
   script:
+    # missed version bump
+    - run: sed -i -f $PROP SwiftOutdated.swift
+      working-directory: Sources/SwiftOutdated
+      prop: |
+        s/version: ".*"$/version: "{{version}}"/
     - swift build --configuration release
     - mkdir -p {{prefix}}/bin
     - mv $(swift build --configuration release --show-bin-path)/swift-outdated {{prefix}}/bin
 
-test: swift-outdated --version | grep {{version}}
+test:
+  - swift-outdated --version | tee out
+  - grep {{version}} out
