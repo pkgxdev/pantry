@@ -31,6 +31,12 @@ build:
         - install -D ./uv-{{version}}.data/scripts/uv {{prefix}}/bin/uv
         - install -D ./uv-{{version}}.data/scripts/uvx {{prefix}}/bin/uvx
       working-directory: out
+  env:
+    linux/aarch64:
+      # https://github.com/astral-sh/uv/issues/15401 references ~~>
+      # see https://github.com/astral-sh/ruff/issues/3791
+      # and https://github.com/gnzlbg/jemallocator/issues/170#issuecomment-1503228963
+      JEMALLOC_SYS_WITH_LG_PAGE: 16
 
 test:
   dependencies:
