@@ -24,10 +24,11 @@ build:
 provides:
   - bin/plakar
 
-test: 
-  script:
-    #
-    # bypass first run message
-    #
-    - plakar config
-    - test "$(plakar version|head -1|cut -d'/' -f2)" = {{version.tag}}
+test:
+  #
+  # bypass first run message
+  #
+  - run: plakar config
+    if: <1.0.3
+  - plakar version 2>&1 | tee out
+  - grep "{{version.tag}}" out
