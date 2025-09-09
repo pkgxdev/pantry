@@ -4,7 +4,6 @@ distributable:
 
 versions:
   github: pulumi/pulumi
-  strip: /v/
 
 provides:
   - bin/pulumi
@@ -73,9 +72,9 @@ test:
     - run:
         - pulumi new aws-typescript --generate-only --force -y
         - test -e Pulumi.yaml
-      if: <3.159.0
+      if: <3.159.0 || >=3.194.0
     - run: (pulumi new aws-typescript --generate-only --force -y 2>&1 || true) | grep 'invalid access token'
-      if: '>=3.159.0'
+      if: '>=3.159.0<3.194.0'
   env:
     PULUMI_ACCESS_TOKEN: local://
     PULUMI_TEMPLATE_PATH: '$PWD/templates'
