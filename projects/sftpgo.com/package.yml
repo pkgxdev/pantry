@@ -26,8 +26,9 @@ build:
     SFTPGO_SETUP_SCRIPT: setup.bash
     SFTPGO_README_FILE: README.md
     SFTPGO_CONFIG_FILE: sftpgo.json
-    SFTPGO_SERVICE_ENVIRONMENT_FILE: sftpgo.env
-    SFTPGO_SERVICE_FILE: sftpgo.service
+#    SFTPGO_SERVICE_ENVIRONMENT_FILE: sftpgo.env.gtpl
+    SFTPGO_SYSTEMD_SERVICE_FILE: sftpgo.service.gtpl
+    SFTPGO_LAUNCHD_SERVICE_FILE: com.sftpgo.plist.gtpl
   script:
     # fails to find sqlite3.Error
     - run: TAGS="-tags nosqlite"
@@ -35,12 +36,13 @@ build:
     - go build -v $TAGS -trimpath -ldflags="${GO_LDFLAGS}" -o {{prefix}}/bin/sftpgo
     - install -v -D props/${SFTPGO_SETUP_SCRIPT} {{prefix}}/bin/sftpgo-setup
     - install -v -D props/${SFTPGO_README_FILE} {{prefix}}/doc/${SFTPGO_README_FILE}
-    - install -v -D ${SFTPGO_CONFIG_FILE} {{prefix}}/etc/sftpgo/${SFTPGO_CONFIG_FILE}
-    - install -v -D props/${SFTPGO_SERVICE_ENVIRONMENT_FILE} {{prefix}}/etc/sftpgo/${SFTPGO_SERVICE_ENVIRONMENT_FILE}
-    - install -v -D props/${SFTPGO_SERVICE_FILE} {{prefix}}/etc/systemd/system/${SFTPGO_SERVICE_FILE}
-    - find templates -type f -exec install -v -D "{}" "{{prefix}}/{}" \;
-    - find static -type f -exec install -v -D "{}" "{{prefix}}/{}" \;
-    - find openapi -type f -exec install -v -D "{}" "{{prefix}}/{}" \;
+    - install -v -D ${SFTPGO_CONFIG_FILE} {{prefix}}/conf/${SFTPGO_CONFIG_FILE}
+#    - install -v -D props/${SFTPGO_SERVICE_ENVIRONMENT_FILE} {{prefix}}/conf/${SFTPGO_SERVICE_ENVIRONMENT_FILE}
+    - install -v -D props/${SFTPGO_SYSTEMD_SERVICE_FILE} {{prefix}}/conf/${SFTPGO_SYSTEMD_SERVICE_FILE}
+    - install -v -D props/${SFTPGO_LAUNCHD_SERVICE_FILE} {{prefix}}/conf/${SFTPGO_LAUNCHD_SERVICE_FILE}
+    - find templates -type f -exec install -v -D "{}" "{{prefix}}/conf/{}" \;
+    - find static -type f -exec install -v -D "{}" "{{prefix}}/conf/{}" \;
+    - find openapi -type f -exec install -v -D "{}" "{{prefix}}/conf/{}" \;
 
 provides:
   - bin/sftpgo
