@@ -3,12 +3,13 @@ distributable:
   strip-components: 1
 
 versions:
-  github: mirror/ncurses/tags
-  strip: /v/
+  url: https://ftp.gnu.org/gnu/ncurses/
+  match: /ncurses-\d+(\.\d+)+.tar.gz/
+  strip:
+    - /ncurses-/
+    - /.tar.gz/
 
 build:
-  dependencies:
-    freedesktop.org/pkg-config: ^0.29
   script:
     #FIXME because our build infra is recursive
     - |
@@ -16,10 +17,9 @@ build:
         rm -rf {{prefix}}/include
       fi
 
-    - |
-      mkdir -p $PCDIR
-      ./configure $ARGS
-      make --jobs {{ hw.concurrency }} install
+    - mkdir -p $PCDIR
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
 
     # fix up symlinks
     - run: |
@@ -32,19 +32,15 @@ build:
       working-directory: ${{prefix}}/lib
 
     # things often expect either no namespace or namespace
-    - run: |
-        mv ncursesw/* .
-        rmdir ncursesw
-        ln -sf . ncursesw
+    - run:
+        - mv ncursesw/* .
+        - rmdir ncursesw
+        - ln -sf . ncursesw
       working-directory: ${{prefix}}/include
 
     # fix hardcoded paths
-    - |
-      sed -i.bak 's|{{prefix}}|\${pcfiledir}/../..|g' {{prefix}}/lib/pkgconfig/*.pc
-      rm {{prefix}}/lib/pkgconfig/*.bak
-
-      sed -i.bak 's|{{prefix}}|\$(dirname "\$0")/..|g' {{prefix}}/bin/ncursesw{{version.major}}-config
-      rm {{prefix}}/bin/ncursesw{{version.major}}-config.bak
+    - sed -i 's|{{prefix}}|\${pcfiledir}/../..|g' {{prefix}}/lib/pkgconfig/*.pc
+    - sed -i 's|{{prefix}}|\$(dirname "\$0")/..|g' {{prefix}}/bin/ncursesw{{version.major}}-config
 
     - run:
         # libtermcap is provided by ncurses and has the
@@ -88,11 +84,10 @@ test:
     github.com/tmux/tmux: ^3
     freedesktop.org/pkg-config: ^0.29
   script:
-    - |
-      ncursesw6-config --version | grep {{version.marketing}}
-      ncursesw6-config --terminfo-dirs | grep '{{prefix}}'
-      pkg-config --modversion ncursesw | grep {{version.marketing}}
-      pkg-config --libs ncursesw | grep '{{prefix}}'
+    - ncursesw6-config --version | grep {{version.marketing}}
+    - ncursesw6-config --terminfo-dirs | grep '{{prefix}}'
+    - pkg-config --modversion ncursesw | grep {{version.marketing}}
+    - pkg-config --libs ncursesw | grep '{{prefix}}'
 
     # https://github.com/pkgxdev/pantry/issues/1658
     - tmux -c ls
