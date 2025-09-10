@@ -2,4 +2,10 @@
 export GEM_HOME="$(cd "$(dirname "$0")"/.. && pwd)"
 export GEM_PATH="$GEM_HOME"
 export PATH="$GEM_HOME/gems/bin:$PATH"
+
+# Conflicting with Apple's ncurses is bad. See:
+# https://github.com/pkgxdev/pantry/issues/10454
+
+export CPATH="$(echo $CPATH | tr ':' '\n' | grep -v 'invisible-island.net/ncurses' | tr '\n' ':')"
+
 exec "$GEM_HOME"/gems/bin/pod "$@"
