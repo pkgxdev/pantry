@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/nemtrif/utfcpp/archive/v{{version}}.tar.gz
+  url: https://github.com/nemtrif/utfcpp/archive/{{version.tag}}.tar.gz
   strip-components: 1
 
 display-name: utf8cpp
@@ -9,13 +9,15 @@ versions:
 
 build:
   dependencies:
-    cmake.org: '*'
+    cmake.org: 3
     darwin:
       gnu.org/gcc: 13
   working-directory: build
   script:
     - cmake .. $ARGS
-    - make --jobs {{ hw.concurrency }} install
+    - cmake --build .
+    - cmake --install .
+    # - make --jobs {{ hw.concurrency }} install
     # currently, their builds are just broken :(
     - run: |
         if test -d include/utf8cpp; then
@@ -29,28 +31,56 @@ build:
       if: '>=4'
   env:
     ARGS:
-      - -DUTF8_INSTALL:BOOL=ON
-      - -DUTF8_SAMPLES:BOOL=OFF
-      - -DUTF8_TESTS:BOOL=OFF
+      # - -DUTF8_INSTALL:BOOL=ON
+      # - -DUTF8_SAMPLES:BOOL=OFF
+      # - -DUTF8_TESTS:BOOL=OFF
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
       - -DCMAKE_INSTALL_LIBDIR=lib
       - -DCMAKE_BUILD_TYPE=Release
-      - -DCMAKE_FIND_FRAMEWORK=LAST
+      # - -DCMAKE_FIND_FRAMEWORK=LAST
       - -DCMAKE_VERBOSE_MAKEFILE=ON
       - -Wno-dev
-      - -DBUILD_TESTING=OFF
+      # - -DBUILD_TESTING=OFF
 
 test:
   dependencies:
-    cmake.org: '*'
+    cmake.org: 4
     gnu.org/sed: '*'
     linux:
       gnu.org/gcc: 13
       gnu.org/make: '*'
   script:
-    # currently, their builds are just broken :(
-    - run: sed -i 's/PRIVATE utf8cpp/PRIVATE utf8cpp::utf8cpp/g' CMakeLists.txt
-      if: '>=4'
+    - run: cp $FIXTURE CMakeLists.txt
+      fixture: |
+        cmake_minimum_required(VERSION 3.0.2 FATAL_ERROR)
+        project(utf8_append LANGUAGES CXX)
+        find_package(utf8cpp REQUIRED CONFIG)
+        add_executable(utf8_append utf8_append.cpp)
+        target_link_libraries(utf8_append PRIVATE utf8cpp)
+      if: <4
+    - run: cp $FIXTURE CMakeLists.txt
+      fixture: |
+        cmake_minimum_required(VERSION 3.0.2 FATAL_ERROR)
+        project(utf8_append LANGUAGES CXX)
+        find_package(utf8cpp REQUIRED CONFIG)
+        add_executable(utf8_append utf8_append.cpp)
+        target_link_libraries(utf8_append PRIVATE utf8cpp::utf8cpp)
+      if: '>=4<4.0.7'
+    - run: cp $FIXTURE CMakeLists.txt
+      fixture: |
+        cmake_minimum_required(VERSION 4.0 FATAL_ERROR)
+        project(utf8_append LANGUAGES CXX)
+        find_package(utf8cpp REQUIRED CONFIG)
+        add_executable(utf8_append utf8_append.cpp)
+      if: '>=4.0.7'
+    - run: cp $FIXTURE utf8_append.cpp
+      fixture: |
+        #include <utf8.h>
+        int main() {
+          unsigned char u[5] = {0, 0, 0, 0, 0};
+          utf8::append(0x0448, u);
+          return (u[0] == 0xd1 && u[1] == 0x88 && u[2] == 0 && u[3] == 0 && u[4] == 0) ? 0 : 1;
+        }
     - cmake . -DCMAKE_PREFIX_PATH:STRING="test" -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON
     - make
     - ./utf8_append
