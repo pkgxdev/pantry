@@ -1,5 +1,0 @@
-cmake_minimum_required(VERSION 3.0.2 FATAL_ERROR)
-project(utf8_append LANGUAGES CXX)
-find_package(utf8cpp REQUIRED CONFIG)
-add_executable(utf8_append utf8_append.cpp)
-target_link_libraries(utf8_append PRIVATE utf8cpp)
