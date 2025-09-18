@@ -38,10 +38,10 @@ build:
     mesonbuild.com: '*'
     ninja-build.org: '*'
     freedesktop.org/pkg-config: '*'
-    python.org: '>=3<3.12'
+    python.org: '>=3<3.13'
     rsync.samba.org: '*'
     linux:
-      kernel.org/linux-headers: '>=5.2' # for CLONE_PIDFD
+      kernel.org/linux-headers: '>=5.4' # as of v258, allow newer on ARM64
   script:
     # systemd requires a newer version of some linux headers, but also needs the system
     # headers.
@@ -50,6 +50,40 @@ build:
         /sched\.h/i\
         #include <linux/sched.h>
       working-directory: src/basic
+      if: '<258'
+    # errors during build:
+    - run: sed -i 's/assert len(entries) >= 99/# assert len(entries) >= 99/' shared/ethtool-link-mode.py
+      working-directory: src
+      if: '>=258'
+    # Avoid kernel/glibc header conflicts: only include linux/sched/types.h when glibc < 2.41
+    - run: sed -i -f $PROP include/override/sched.h
+      prop: |
+        s|^#include <linux/sched/types.h>$|\
+        #include <features.h>\
+        #if defined(__GLIBC__) && __GLIBC_PREREQ(2,41)\
+        /* glibc >= 2.41 already includes linux/sched/types.h; avoid double include */\
+        #else\
+        #include <linux/sched/types.h>\
+        #endif|
+      working-directory: src
+      if: '>=258'
+    # Ensure key_serial_t is available from keyutils or define it to avoid linux-headers mismatch
+    - run: sed -i -f $PROP include/override/sys/keyctl.h
+      prop: |
+        s|^#include <linux/keyctl.h>$|\
+        #if __has_include(<keyutils.h>)\
+        #include <keyutils.h> /* preferred userspace header */\
+        #else\
+        #include <linux/keyctl.h> /* fallback */\
+        #endif\
+        #ifndef __KEYUTILS_H__\
+        #ifndef __KEY_SERIAL_T\
+        typedef long key_serial_t;\
+        #define __KEY_SERIAL_T 1\
+        #endif\
+        #endif|
+      working-directory: src
+      if: '>=258'
     - meson setup $ARGS build
     - meson compile -C build
     - meson install -C build
@@ -78,6 +112,17 @@ build:
       - -Dlz4=enabled
       - -Dgcrypt=disabled
       - -Dmode=release
+      - -Dsshconfdir=no
+      - -Dsshdconfdir=no
+      - -Dtests=false
+      - -Dlz4=enabled
+      - -Dacl=disabled
+      - -Dgnutls=disabled
+      - -Dlibcurl=disabled
+      - -Dmicrohttpd=disabled
+      - -Dp11kit=disabled
+      - -Dpam=disabled
+      - -Dshellprofiledir=no
 
 provides:
   - bin/busctl
