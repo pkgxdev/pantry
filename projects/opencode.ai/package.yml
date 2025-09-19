@@ -7,10 +7,6 @@ display-name: opencode
 versions:
   github: sst/opencode
 
-platforms:
-  - darwin
-  - linux/x86-64 # FIXME: `sharp`'s postinstall runs for 6 hours until it's killed by CI
-
 build:
   dependencies:
     bun.sh: =1.2.19
@@ -23,8 +19,7 @@ build:
         - go build -ldflags "$GO_LDFLAGS" -o ../opencode/dist/tui ./cmd/opencode/main.go
       working-directory: packages/tui
     # out-of-date lockfile
-    - run: rm bun.lock
-      if: =0.3.2 || ^0.3.100 || ^0.9.1
+    - rm bun.lock
     - run:
         - bun install --production
         - bun build --define "OPENCODE_VERSION='{{version}}'" ./src/index.ts ./dist/tui --compile --minify --target=bun --outfile ./dist/opencode
