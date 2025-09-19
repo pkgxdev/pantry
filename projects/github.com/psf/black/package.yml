@@ -7,19 +7,22 @@ versions:
   strip: /^v/
 
 dependencies:
-  python.org: '>=3.7<3.12'
-  gnu.org/which: '*'
+  pkgx.sh: '>=1'
 
 build:
-  script: |
-    python-venv.py {{prefix}}/bin/black --extra d
-    cp {{prefix}}/bin/black {{prefix}}/bin/blackd
+  dependencies:
+    python.org: '>=3.7<3.12'
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install '.[d]'
+    - bkpyvenv seal {{prefix}} black
+    - run: cp black blackd
+      working-directory: ${{prefix}}/bin
 
 provides:
   - bin/black
   - bin/blackd
 
 test:
-  script: |
-    test "$(black --version | grep black | sed 's/.*, \([^ ]*\) .*/\1/')" = "{{ version }}"
-    test "$(blackd --version | sed 's/.* //')" = "{{ version }}"
+  - test "$(black --version | grep black | sed 's/.*, \([^ ]*\) .*/\1/')" = "{{ version }}"
+  - test "$(blackd --version | sed 's/.* //')" = "{{ version }}"
