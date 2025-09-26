@@ -10,19 +10,22 @@ versions:
 platforms:
   - darwin
   - linux/x86-64 # FIXME: `sharp`'s postinstall runs for 6 hours until it's killed by CI
-  
+
 build:
   dependencies:
     bun.sh: =1.2.19
     go.dev: '^1.24'
     python.org: 3 # since 0.4.45 for node-gyp
+    npmjs.com: '*' # since 0.11.5 for husky
   script:
+    - run: npm i -g husky
+      if: '>=0.11.5'
     - mkdir -p packages/opencode/dist
     - run:
         - go mod download
         - go build -ldflags "$GO_LDFLAGS" -o ../opencode/dist/tui ./cmd/opencode/main.go
       working-directory: packages/tui
-    # out-of-date lockfile frequently released 
+    # out-of-date lockfile frequently released
     - rm bun.lock
     - run:
         - bun install --production
@@ -31,6 +34,7 @@ build:
     - install -Dm755 ./packages/opencode/dist/opencode {{prefix}}/bin/opencode
   skip: fix-patchelf
   env:
+    PATH: $HOME/.local/bin:$PATH
     GO_LDFLAGS:
       - -s
       - -w
