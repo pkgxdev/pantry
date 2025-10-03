@@ -36,15 +36,13 @@ build:
         - ln -sf $HOME/.rustup/toolchains/*/bin/* .
       working-directory: $HOME/.cargo/bin
 
+    # extract ffi package versions from Cargo.lock
+    # apologies for the awkard sed syntax here, but it's the only way to extract the version from the Cargo.lock
     - run:
-        - export FFI_VER="3.2.0"
-        - export FFI_SYS_VER="2.3.0"
-      if: '>=2<2.2.9'
-    # https://github.com/denoland/deno/pull/28816/files
-    - run:
-        - export FFI_VER="4.0.0"
-        - export FFI_SYS_VER="3.2.0"
-      if: '>=2.2.9'
+        - export FFI_VER=$(grep -A1 'name = "libffi"' Cargo.lock | sed -n -f $PROP)
+        - export FFI_SYS_VER=$(grep -A1 'name = "libffi-sys"' Cargo.lock | sed -n -f $PROP)
+      prop: /^version = /s/^version = "\(.*\)"$/\1/p
+      if: '>=2'
     # deno v2 uses libffi-sys; we need to vendor it to link our own libffi statically
     - run:
         - cargo vendor third-party
