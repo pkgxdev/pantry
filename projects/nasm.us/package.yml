@@ -9,18 +9,23 @@ versions:
     - /^"/
     - /\/"$/
 
+# v3 relies on a function that doesn't appear on aarch64
+platforms:
+  - linux/x86-64
+  - darwin/x86-64
+
 build:
   script:
     - ./configure --prefix="{{prefix}}"
-    - run: |
-        make --jobs {{hw.concurrency}} rdf
-        make install install_rdf
+    - run:
+        - make --jobs {{hw.concurrency}} rdf
+        - make install install_rdf
       if: <2.16
     # rdoff tools removed as unfixable
     # https://github.com/netwide-assembler/nasm/commit/93548c2de2a3c218b3d0ab4061b26d9781cb6b37
-    - run: |
-        make --jobs {{hw.concurrency}}
-        make install
+    - run:
+        - make --jobs {{hw.concurrency}}
+        - make install
       if: '>=2.16'
 
 test: nasm --version
