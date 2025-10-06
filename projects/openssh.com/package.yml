@@ -27,8 +27,11 @@ build:
       gnu.org/gcc: '*'
       gnu.org/make: '*'
   script:
-    - run: curl -L "$PATCH1" | patch
-      if: darwin
+    - run: |
+        if test "{{hw.platform}}" = "darwin"; then
+          curl -L "$PATCH1" | patch
+        fi
+      if: <10.1
     - run: |
         if test "{{hw.platform}}" = "darwin"; then
           curl -L "$PATCH2" | patch
