@@ -1,14 +1,13 @@
 distributable:
-  url: https://github.com/hadolint/hadolint/archive/v{{version}}.tar.gz
+  url: https://github.com/hadolint/hadolint/archive/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
   github: hadolint/hadolint
-  strip: /^v/
 
 build:
   dependencies:
-    haskell.org: ~9.2
+    haskell.org: ~9.10 # as of 2.13.1
     haskell.org/cabal: ^3
     git-scm.org: ^2 # cabal needs it for this one
   env:
@@ -16,16 +15,27 @@ build:
       - --jobs={{hw.concurrency}}
       - --install-method=copy
       - --installdir={{prefix}}/bin
-  script: |
-    cabal v2-update
-    cabal v2-install $ARGS
+    darwin:
+      PATH: $HOME/.ghcup/bin:$PATH
+      BOOTSTRAP_HASKELL_NONINTERACTIVE: 1
+      BOOTSTRAP_HASKELL_NO_UPGRADE: 1
+      BOOTSTRAP_HASKELL_MINIMAL: 1
+      GHCUP_SKIP_UPDATE_CHECK: 1
+  script:
+    # work around -rpath weirdness
+    - run:
+        - curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | sh
+        - ghcup install ghc {{deps.haskell.org.version}}
+        - ghcup set ghc {{deps.haskell.org.version}}
+    - cabal v2-update
+    - cabal v2-install $ARGS
 
 provides:
   - bin/hadolint
 
 test:
-  fixture: |
-    FROM debian
-  script: |
-    hadolint --version | grep {{version}}
-    echo $(hadolint $FIXTURE || true) | grep DL3006
+  script:
+    - hadolint --version | grep {{version}}
+    - run: echo $(hadolint $FIXTURE || true) | grep DL3006
+      fixture: |
+        FROM debian
