@@ -13,5 +13,7 @@ runtime:
   env:
     PYTHONPATH: ${{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH
 
-build: python -m pip install --prefix={{prefix}} './psycopg[binary]'
+build:
+  script: python -m pip install --prefix={{prefix}} './psycopg[binary]'
+  skip: fix-machos # needs headerpad
 test: python -c 'import psycopg; print(psycopg.__version__)' | grep {{version}}
