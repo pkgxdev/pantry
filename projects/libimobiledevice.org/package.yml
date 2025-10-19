@@ -7,6 +7,8 @@ versions:
 
 dependencies:
   libimobiledevice.org/libplist: ^2.4
+  libimobiledevice.org/libtatsu: ^1
+  libimobiledevice.org/libimobiledevice-glue: ^1.3
   gnu.org/libtasn1: ^4.19
   libimobiledevice.org/libusbmuxd: ^2
   openssl.org: ^1.1
@@ -15,10 +17,10 @@ build:
   script:
     # error: redefinition of enumerator 'PLIST_FORMAT_XML'
     # error: redefinition of enumerator 'PLIST_FORMAT_BINARY'
-    - run: | 
-        sed -i 's|PLIST_FORMAT_XML|PLIST_FORMAT_XML_|g' common/utils.h
-        sed -i 's|PLIST_FORMAT_BINARY|PLIST_FORMAT_BINARY_|g' common/utils.h
-      if: <=1.3.0
+    - run:
+        - sed -i 's|PLIST_FORMAT_XML|PLIST_FORMAT_XML_|g' common/utils.h
+        - sed -i 's|PLIST_FORMAT_BINARY|PLIST_FORMAT_BINARY_|g' common/utils.h
+      if: <1.3.1
     - ./configure $ARGS
     - make --jobs {{hw.concurrency}} install
     - run: find . -name '*.la' -exec rm {} \;
@@ -36,5 +38,4 @@ build:
 provides:
   - bin/idevicedate
 
-test:
-  idevicedate --help
+test: idevicedate --help
