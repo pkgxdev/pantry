@@ -16,6 +16,8 @@ dependencies:
 build:
   dependencies:
     cmake.org: ^3
+    linux:
+      llvm.org: 20 # 21 has name mangling issues with boost
   working-directory: build
   script:
     - cmake -S .. $CMAKE_ARGS
@@ -25,11 +27,14 @@ build:
     CMAKE_ARGS:
       - -DCMAKE_INSTALL_PREFIX={{ prefix }}
       - -DCMAKE_BUILD_TYPE=Release
-      - -DSTATIC=ON
       - -DARCH="default"
       - -Wno-dev
       # since not git source
       - -DMANUAL_SUBMODULES=1
+    darwin:
+      CMAKE_ARGS:
+        # linux doesn't like -static with libunbound.a
+        - -DSTATIC=ON
 
 provides:
   - bin/monero-wallet-rpc
