@@ -37,4 +37,11 @@ build:
   env:
     PREFIX: '{{prefix}}'
 
-test: xcbeautify --version | grep {{version}}
+test:
+  # v3 doesn't support macOS 13
+  - run: |
+      if test "{{version.major}}" -ge 3 && test "$(sw_vers -productVersion | cut -d . -f 1)" -lt 14; then
+        exit 0
+      fi
+    if: darwin
+  - xcbeautify --version | grep {{version}}
