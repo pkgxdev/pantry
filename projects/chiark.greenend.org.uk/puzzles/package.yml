@@ -20,57 +20,66 @@ build:
     cmake.org: '>=3.5'
     chiark.greenend.org.uk/halibut: '*'
     linux:
-      gnu.org/gcc: '*'
+      llvm.org: 20
       imagemagick.org: '*'
-  script: |
-    cmake . $ARGS
-    cmake --build . -j {{ hw.concurrency }}
-    cmake --install .
+  script:
+    - cmake . $ARGS
+    - cmake --build . -j {{ hw.concurrency }}
+    - cmake --install .
+    - run: ln -s ../Puzzles.app/Contents/MacOS/Puzzles puzzles
+      if: darwin
   env:
     ARGS:
       - -DCMAKE_BUILD_TYPE=Release
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
 
 provides:
-  - bin/blackbox
-  - bin/bridges
-  - bin/cube
-  - bin/dominosa
-  - bin/fifteen
-  - bin/filling
-  - bin/flip
-  - bin/flood
-  - bin/galaxies
-  - bin/guess
-  - bin/inertia
-  - bin/keen
-  - bin/lightup
-  - bin/loopy
-  - bin/magnets
-  - bin/map
-  - bin/mines
-  - bin/mosaic
-  - bin/net
-  - bin/netslide
-  - bin/palisade
-  - bin/pattern
-  - bin/pearl
-  - bin/pegs
-  - bin/range
-  - bin/rect
-  - bin/samegame
-  - bin/signpost
-  - bin/singles
-  - bin/sixteen
-  - bin/slant
-  - bin/solo
-  - bin/tents
-  - bin/towers
-  - bin/tracks
-  - bin/twiddle
-  - bin/undead
-  - bin/unequal
-  - bin/unruly
-  - bin/untangle
+  darwin:
+    - bin/puzzles
+  linux:
+    - bin/blackbox
+    - bin/bridges
+    - bin/cube
+    - bin/dominosa
+    - bin/fifteen
+    - bin/filling
+    - bin/flip
+    - bin/flood
+    - bin/galaxies
+    - bin/guess
+    - bin/inertia
+    - bin/keen
+    - bin/lightup
+    - bin/loopy
+    - bin/magnets
+    - bin/map
+    - bin/mines
+    - bin/mosaic
+    - bin/net
+    - bin/netslide
+    - bin/palisade
+    - bin/pattern
+    - bin/pearl
+    - bin/pegs
+    - bin/range
+    - bin/rect
+    - bin/samegame
+    - bin/signpost
+    - bin/singles
+    - bin/sixteen
+    - bin/slant
+    - bin/solo
+    - bin/tents
+    - bin/towers
+    - bin/tracks
+    - bin/twiddle
+    - bin/undead
+    - bin/unequal
+    - bin/unruly
+    - bin/untangle
 
-test: map --generate
+test:
+  - run: map --generate
+    if: linux
+  - run: puzzles --help
+    if: darwin
