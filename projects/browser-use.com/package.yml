@@ -13,10 +13,11 @@ runtime:
     PYTHONPATH: ${{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH
 
 build:
+  rust-lang.org: '*' # for rpds
   script:
     - python -m pip install --prefix={{prefix}} . playwright $ADDITIONAL_PACKAGES
     # needs headerpad
-    - run: 'python -m pip install --no-deps --force-reinstall --no-cache-dir -v --no-binary :all: --prefix={{prefix}} jiter'
+    - run: 'python -m pip install --no-deps --force-reinstall --no-cache-dir -v --no-binary :all: --prefix={{prefix}} jiter rpds-py'
       if: darwin
   env:
     darwin/x86-64:
