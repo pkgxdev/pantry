@@ -1,0 +1,22 @@
+distributable:
+  url: https://github.com/cargo-bins/cargo-binstall/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/cargo-binstall
+
+versions:
+  github: cargo-bins/cargo-binstall
+
+companions:
+  rust-lang.org: '*'
+  rust-lang.org/cargo: '*'
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.87'
+  script: cargo install --locked --path crates/bin --root {{prefix}}
+
+test:
+  - cargo-binstall --no-confirm semverator
+  - semverator validate 1.2.3
