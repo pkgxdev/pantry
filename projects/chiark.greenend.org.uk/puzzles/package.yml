@@ -26,7 +26,22 @@ build:
     - cmake . $ARGS
     - cmake --build . -j {{ hw.concurrency }}
     - cmake --install .
-    - run: ln -s ../Puzzles.app/Contents/MacOS/Puzzles puzzles
+    - run: install -Dm755 $PROP puzzles
+      prop: |
+        #!/bin/sh
+
+        # add --help and --version flags
+        if [ "$1" = "--help" ]; then
+          echo "This is a simple wrapper to start the puzzles application."
+          exit 0
+        elif [ "$1" = "--version" ]; then
+          echo "puzzles {{version}}-pkgx"
+          exit 0
+        fi
+
+        cd "$(dirname "$(readlink -f "$0")")/.."
+        open Puzzles.app
+      working-directory: ${{prefix}}/bin
       if: darwin
   env:
     ARGS:
@@ -81,5 +96,7 @@ provides:
 test:
   - run: map --generate
     if: linux
-  - run: puzzles --help
+  - run:
+      - puzzles --help
+      - test "$(puzzles --version)" = "puzzles {{version}}-pkgx"
     if: darwin
