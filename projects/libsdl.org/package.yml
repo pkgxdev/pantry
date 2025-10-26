@@ -8,6 +8,7 @@ versions:
 dependencies:
   linux:
     # all since v3.2.0
+    alsa-project.org/alsa-lib: '>=1.0.11'
     x.org/x11: '*'
     x.org/xcursor: '*'
     x.org/xi: '*'
@@ -50,8 +51,8 @@ build:
       - --prefix="{{prefix}}"
       - --with-x
       - --enable-hidapi
-      - --enable-pulseaudio
-      - --enable-pulseaudio-shared
+      - --enable-alsa
+      - --enable-alsa-shared
       - --enable-video-dummy
       - --enable-video-opengl
       - --enable-video-opengles
@@ -69,8 +70,8 @@ build:
       - -Wno-dev
       - -DSDL_INSTALL=ON
       - -DSDL_HIDAPI=ON
-      - -DSDL_PULSEAUDIO=ON
-      - -DSDL_PULSEAUDIO_SHARED=ON
+      - -DSDL_ALSA=ON
+      - -DSDL_ALSA_SHARED=ON
       - -DSDL_DUMMYVIDEO=ON
       - -DSDL_OPENGL=ON
       - -DSDL_OPENGLES=ON
@@ -81,6 +82,7 @@ build:
       - -DSDL_X11_XRANDR=ON
       - -DSDL_X11_XSHAPE=ON
       - -DSDL_X11_SHARED=ON
+    CFLAGS: -Wno-incompatible-function-pointer-types
 
 test:
   - run: cc $FIXTURE -o test -lSDL{{version.major}}
