@@ -1,6 +1,8 @@
 distributable:
-  url: https://github.com/unicode-org/icu/releases/download/release-{{version.major}}-{{version.minor}}/icu4c-{{version.major}}_{{version.minor}}-src.tgz
-  strip-components: 1
+  - url: https://github.com/unicode-org/icu/releases/download/{{version.tag}}/icu4c-{{version.major}}.{{version.minor}}-sources.tgz
+    strip-components: 1
+  - url: https://github.com/unicode-org/icu/releases/download/release-{{version.major}}-{{version.minor}}/icu4c-{{version.major}}_{{version.minor}}-src.tgz
+    strip-components: 1
 
 versions:
   github: unicode-org/icu/releases
@@ -10,11 +12,15 @@ build:
   working-directory: source
   dependencies:
     curl.se: '*'
+    darwin:
+      # xcode gets touchy about combining c and c++:
+      # error: invalid argument '-std=c11' not allowed with 'C++'
+      llvm.org: 20 # since 78.1
   script:
     # v74.1 replaced LICENSE with a broken symlink
-    - run: |
-        rm ../LICENSE
-        curl -L https://raw.githubusercontent.com/unicode-org/icu/main/LICENSE -o ../LICENSE
+    - run:
+        - rm ../LICENSE
+        - curl -L https://raw.githubusercontent.com/unicode-org/icu/main/LICENSE -o ../LICENSE
       if: '>=74.1'
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }}
