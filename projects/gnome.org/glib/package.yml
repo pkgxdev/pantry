@@ -30,18 +30,17 @@ build:
   dependencies:
     mesonbuild.com: ^1.2
     ninja-build.org: 1
-    freedesktop.org/pkg-config: ^0.29
     python.org: '>=3.5<3.12'
     gnome.org/gobject-introspection: '*'
     gnome.org/libxml2: ~2.13 # since 2.84.1, 2.14 changed the API version
   script:
     # needs python packaging module
-    - run: |
-        python -m venv venv
-        source venv/bin/activate
-        python -m pip install packaging
-        deactivate
-        PYTHONPATH="$(pwd)/venv/lib/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH"
+    - run:
+        - python -m venv venv
+        - source venv/bin/activate
+        - python -m pip install packaging
+        - deactivate
+        - PYTHONPATH="$(pwd)/venv/lib/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH"
 
     - meson out $ARGS
     - cd out
@@ -50,25 +49,27 @@ build:
 
     - GT='${prefix}/../../../gnu.org/gettext/v{{ deps.gnu.org/gettext.version.major }}'
 
-    - run: |
-        sed -i -e \
+    - run:
+        - |
+          sed -i -e \
           's|Libs: -L${libdir} -lglib-2.0 -lintl|Libs: -L${libdir} -lglib-2.0'\ -L$GT/lib\ -lintl\| \
           ./glib-2.0.pc
-        sed -i -e \
+        - |
+          sed -i -e \
           's|Cflags: -I${includedir}/glib-2.0 -I${libdir}/glib-2.0/include|Cflags: -I${includedir}/glib-2.0 -I${libdir}/glib-2.0/include'\ -I$GT/include\| \
           ./glib-2.0.pc
       working-directory: '{{prefix}}/lib/pkgconfig'
 
-    - run: |
-        mv glib-{{version.major}}.0/* .
-        rmdir glib-{{version.major}}.0
-        ln -s . glib-{{version.major}}.0
+    - run:
+        - mv glib-{{version.major}}.0/* .
+        - rmdir glib-{{version.major}}.0
+        - ln -s . glib-{{version.major}}.0
 
-        mv gio-unix-{{version.major}}.0/gio/* gio/
-        rmdir -p gio-unix-{{version.major}}.0/gio
-        ln -s . gio-unix-{{version.major}}.0
+        - mv gio-unix-{{version.major}}.0/gio/* gio/
+        - rmdir -p gio-unix-{{version.major}}.0/gio
+        - ln -s . gio-unix-{{version.major}}.0
 
-        ln -s ../lib/glib-{{version.major}}.0/include/* .
+        - ln -s ../lib/glib-{{version.major}}.0/include/* .
       working-directory: '{{prefix}}/include'
 
     - cp -a ../venv/lib/python{{deps.python.org.version.marketing}} "{{prefix}}"/lib
@@ -106,6 +107,12 @@ test:
     - unset LD_LIBRARY_PATH
     - DYLD_FALLBACK_LIBRARY_PATH_BAK=$DYLD_FALLBACK_LIBRARY_PATH
     - unset DYLD_FALLBACK_LIBRARY_PATH
+    # otherwise arch is failing
+    - run: |
+        if test "{{hw.platform}}" = "linux"; then
+          LDFLAGS="$LDFLAGS -lpcre2-32"
+        fi
+      if: '>=2.87'
     - cc $CFLAGS $LDFLAGS test.c
 
     - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH_BAK
