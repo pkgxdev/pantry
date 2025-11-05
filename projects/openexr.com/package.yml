@@ -15,7 +15,6 @@ dependencies:
 build:
   dependencies:
     cmake.org: '*'
-    freedesktop.org/pkg-config: '*'
     git-scm.org: '*'
     linux:
       kernel.org/linux-headers: '*' # needs HWCAP2_SVE2 for aarch64 since 3.4.0
@@ -25,7 +24,9 @@ build:
     # -shared and -pie don't mix
     - run:
         - cp $PROP g++-wrapper
+        - sed 's/g++/gcc/g' $PROP >gcc-wrapper
         - chmod +x g++-wrapper
+        - chmod +x gcc-wrapper
       prop: |
         #!/bin/bash
         # Capture all arguments into an array
@@ -60,6 +61,7 @@ build:
       ARGS:
         # since 3.3.0
         - -DCMAKE_EXE_LINKER_FLAGS="-Wl,-lstdc++fs"
+      CC: gcc-wrapper # since 3.2.5/3.3.6
       CXX: g++-wrapper
       PATH: $HOME/.local/bin:$PATH
 
