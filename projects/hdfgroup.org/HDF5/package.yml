@@ -13,7 +13,10 @@ dependencies:
 
 companions:
   freedesktop.org/pkg-config: '*'
-  gnu.org/gcc: '*'
+  linux:
+    gnu.org/gcc: '*'
+  darwin:
+    llvm.org: '>=17'
 
 build:
   dependencies:
@@ -75,6 +78,8 @@ build:
       working-directory: ${{prefix}}/bin
       prop: |
         s|{{deps.dkrz.de/libaec.prefix}}|{{pkgx.prefix}}/dkrz.de/libaec/v{{deps.dkrz.de/libaec.version.major}}|g
+        s|{{deps.llvm.org.prefix}}/bin/||g
+        s|{{deps.gnu.org/gcc.prefix}}/bin/||g
         s|{{prefix}}|\\$(cd \\$(dirname \\$0)/.. \&\& pwd)|g
         s|{{pkgx.prefix}}|\\$(cd \\$(dirname \\$0)/../../../.. \&\& pwd)|g
         s|\+brewing||g
