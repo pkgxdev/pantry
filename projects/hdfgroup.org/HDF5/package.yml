@@ -12,22 +12,66 @@ dependencies:
     zlib.net: 1
 
 companions:
+  freedesktop.org/pkg-config: '*'
   gnu.org/gcc: '*'
 
 build:
   dependencies:
+    cmake.org: '*' # v2
     gnu.org/autoconf: '*'
     gnu.org/automake: '*'
     gnu.org/libtool: '*'
-    gnu.org/gcc: '*' # gfortran
+    linux:
+      gnu.org/gcc: '*' # gfortran
+    darwin:
+      llvm.org: 20
 
   script:
-    - autoreconf --force --install --verbose
-    - ./configure $ARGS
-    - make --jobs {{hw.concurrency}} install
+    - run:
+        - cp $PROP gcc-wrapper
+        - chmod +x gcc-wrapper
+        - sed 's/gcc/g++/g' $PROP >g++-wrapper
+        - chmod +x g++-wrapper
+      prop: |
+        #!/bin/bash
+        # Capture all arguments into an array
+        ARGS=("$@")
+
+        # Check if the '-shared' flag is present in the arguments
+        if printf "%s\n" "${ARGS[@]}" | grep -q -e '-shared'; then
+
+          # Use a loop to filter out the '-pie' flag from the arguments
+          FILTERED_ARGS=()
+          for arg in "${ARGS[@]}"; do
+            if [ "$arg" != "-pie" ]; then
+              FILTERED_ARGS+=("$arg")
+            fi
+          done
+
+          # Pass the filtered arguments to gcc
+          exec gcc "${FILTERED_ARGS[@]}"
+        else
+          # Pass the original arguments to gcc
+          exec gcc "${ARGS[@]}"
+        fi
+      working-directory: $HOME/.local/bin
+      if: linux
+    - run:
+        - autoreconf --force --install --verbose
+        - ./configure $ARGS
+        - make --jobs {{hw.concurrency}} install
+      if: <2
+    - run:
+        - cmake -S .. -B . $CMAKE_ARGS
+        - cmake --build .
+        - cmake --install .
+      working-directory: build
+      if: '>=2'
 
     # relocate h5cc, h5c++, h5fc
-    - run: sed -i -f $PROP h5cc h5c++ h5fc
+    - run:
+        - sed -i -f $PROP h5cc h5c++
+        - if test -f h5fc; then sed -i -f $PROP h5fc; fi
       working-directory: ${{prefix}}/bin
       prop: |
         s|{{deps.dkrz.de/libaec.prefix}}|{{pkgx.prefix}}/dkrz.de/libaec/v{{deps.dkrz.de/libaec.version.major}}|g
@@ -35,19 +79,34 @@ build:
         s|{{pkgx.prefix}}|\\$(cd \\$(dirname \\$0)/../../../.. \&\& pwd)|g
         s|\+brewing||g
 
+    - run: find . -name \*.la -exec rm {} \;
+      working-directory: ${{prefix}}/lib
+
   env:
-    HDF5_ROOT: '{{prefix}}'
     ARGS:
-      - --prefix="$HDF5_ROOT"
+      - --prefix="{{prefix}}"
       - --disable-dependency-tracking
       - --disable-silent-rules
       - --enable-build-mode=production
-      - --enable-fortran
       - --enable-cxx
       - --with-szlib={{deps.dkrz.de/libaec.prefix}}
     linux:
+      PATH: $HOME/.local/bin:$PATH
+      CC: gcc-wrapper
+      CXX: g++-wrapper
+      LD: g++-wrapper
       ARGS:
+        - --enable-fortran
         - --with-zlib={{deps.zlib.net.prefix}}
+    CMAKE_ARGS:
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
+      - -DHDF5_USE_GNU_DIRS:BOOL=ON
+      - -DHDF5_INSTALL_CMAKE_DIR=lib/cmake/hdf5
+      - -DHDF5_BUILD_CPP_LIB:BOOL=ON
+      - -DHDF5_ENABLE_SZIP_SUPPORT:BOOL=ON
+      - -Dlibaec_DIR={{deps.dkrz.de/libaec.prefix}}/lib/cmake/libaec
+      # Disable Fortran for now
+      - -DHDF5_BUILD_FORTRAN:BOOL=OFF
 
 provides:
   - bin/h5c++
@@ -58,14 +117,12 @@ provides:
   - bin/h5delete
   - bin/h5diff
   - bin/h5dump
-  - bin/h5fc
   - bin/h5format_convert
   - bin/h5import
   - bin/h5jam
   - bin/h5ls
   - bin/h5mkgrp
   - bin/h5perf_serial
-  - bin/h5redeploy
   - bin/h5repack
   - bin/h5repart
   - bin/h5stat
@@ -74,6 +131,4 @@ provides:
 
 test:
   - h5cc test.c
-  - ./a.out | grep {{version}}
-  - h5fc test.f90
   - ./a.out | grep {{version}}
