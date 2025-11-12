@@ -15,6 +15,8 @@ dependencies:
   zlib.net: 1
   linux:
     gnu.org/gcc/libstdcxx: '*' # libstdc++, since 22.2.0
+  darwin:
+    libcxx.llvm.org: 21
 
 provides:
   - bin/node
@@ -27,7 +29,10 @@ build:
   dependencies:
     python.org: ~3.9
     linux:
-      gnu.org/gcc: '*'
+      gnu.org/gcc: '*' # needs the <version> include
+    darwin:
+      # fix for node25 builds on darwin.
+      llvm.org: 17
   script:
     # the nodejs build doesn't like mixing -shared and -pie
     - run:
@@ -72,6 +77,21 @@ build:
     - run: export LDFLAGS="$(echo $LDFLAGS | sed 's/-pie//')"
       if: ^23.5.0
 
+    # Downgrade -O3 to -O2 on linux x86-64 to try and complete build in under 6 hours
+    - run: |
+        for x in $(grep -Rlw -- -O3 . | grep -v gyp); do
+          sed -i 's/-O3/-O2/g' $x
+        done
+      if: linux/x86-64
+
+    # Fix simdutf atomic function calls in v25 breaking darwin builds
+    - run: sed -i -f $PROP builtins-typed-array.cc
+      prop: |
+        s/simdutf::atomic_base64_to_binary_safe/simdutf::base64_to_binary_safe/g
+        s/simdutf::atomic_binary_to_base64/simdutf::binary_to_base64/g
+      working-directory: deps/v8/src/builtins
+      if: ^25
+
     - make --jobs {{ hw.concurrency }} install
   env:
     ARGS:
@@ -89,7 +109,7 @@ build:
       LD: g++-wrapper
 
 test:
-  script: |
-    out=$(node $FIXTURE)
-    test "$out" = "Hello, world!"
+  script:
+    - out=$(node $FIXTURE)
+    - test "$out" = "Hello, world!"
   fixture: console.log("Hello, world!");
