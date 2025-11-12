@@ -13,7 +13,7 @@ platforms:
 
 build:
   dependencies:
-    bun.sh: =1.3.1 # since 1.0.15
+    bun.sh: =1.3.2 # since 1.0.56
     go.dev: '^1.24'
     python.org: 3 # since 0.4.45 for node-gyp
     npmjs.com: '*' # since 0.11.5 for husky
@@ -43,7 +43,7 @@ build:
 
     - run:
         - bun run ./script/build.ts --single
-        - install -Dm755 dist/opencode-{{hw.platform}}-*/bin/opencode {{prefix}}/bin/opencode
+        - install -Dm755 dist/opencode-{{hw.platform}}-$ARCH/bin/opencode {{prefix}}/bin/opencode
       working-directory: packages/opencode
       if: '>=1'
 
@@ -61,6 +61,10 @@ build:
     # since v1
     OPENCODE_CHANNEL: latest
     OPENCODE_VERSION: ${{version}}
+    x86-64:
+      ARCH: x64
+    aarch64:
+      ARCH: arm64
 
 provides:
   - bin/opencode
