@@ -14,18 +14,18 @@ build:
     linux/aarch64:
       # linux/aarch64 wants gold
       gnu.org/gcc: '*'
-      gnu.org/binutils: '*'
+      gnu.org/binutils: ~2.44 # ld.gold is deprecated after 2.44
   script:
-    - go build $GO_ARGS -ldflags="$LDFLAGS" .
+    - go build $GO_ARGS -ldflags="$GO_LDFLAGS" .
   env:
     GO_ARGS:
       - -trimpath
       - -o="{{prefix}}/bin/google-maps-scraper"
-    LDFLAGS:
+    GO_LDFLAGS:
       - -s
       - -w
     linux:
-      LDFLAGS:
+      GO_LDFLAGS:
         - -buildmode=pie
 
 provides:
