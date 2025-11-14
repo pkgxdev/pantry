@@ -14,9 +14,47 @@ dependencies:
   zlib.net: '*'
 
 build:
+  dependencies:
+    cmake.org: '*' # since 1.5.29
+    darwin:
+      llvm.org: 20 # since 1.5.29
   script:
-    - ./configure $ARGS
-    - make --jobs {{ hw.concurrency }} install
+    - run:
+        - cp $PROP gcc-wrapper
+        - chmod +x gcc-wrapper
+      prop: |
+        #!/bin/bash
+        # Capture all arguments into an array
+        ARGS=("$@")
+
+        # Check if the '-shared' flag is present in the arguments
+        if printf "%s\n" "${ARGS[@]}" | grep -q -e '-shared'; then
+
+          # Use a loop to filter out the '-pie' flag from the arguments
+          FILTERED_ARGS=()
+          for arg in "${ARGS[@]}"; do
+            if [ "$arg" != "-pie" ]; then
+              FILTERED_ARGS+=("$arg")
+            fi
+          done
+
+          # Pass the filtered arguments to gcc
+          exec gcc "${FILTERED_ARGS[@]}"
+        else
+          # Pass the original arguments to gcc
+          exec gcc "${ARGS[@]}"
+        fi
+      working-directory: $HOME/.local/bin
+      if: linux
+    - run:
+        - ./configure $ARGS
+        - make --jobs {{ hw.concurrency }} install
+      if: <1.5.29
+    - run:
+        - cmake -S . -B build $CMAKE_ARGS
+        - cmake --build build
+        - cmake --install build
+      if: '>=1.5.29'
   env:
     ARGS:
       - --prefix="{{prefix}}"
@@ -26,6 +64,21 @@ build:
       - --enable-mat73=yes
       - --with-hdf5={{deps.hdfgroup.org/HDF5.prefix}}
       - --with-zlib={{deps.zlib.net.prefix}}
+    CMAKE_ARGS:
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
+      - -DMATIO_WITH_HDF5=ON
+      - -DMATIO_WITH_ZLIB=ON
+      - -DMATIO_EXTENDED_SPARSE=ON
+      - -DMATIO_MAT73=ON
+    linux:
+      PATH: $HOME/.local/bin:$PATH
+      CC: gcc-wrapper
+      CXX: g++
+      LD: gcc-wrapper
+    darwin:
+      CC: clang
+      CXX: clang++
+      LD: clang
 
 provides:
   - bin/matdump
