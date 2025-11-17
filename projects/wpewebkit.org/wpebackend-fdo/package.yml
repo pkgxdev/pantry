@@ -1,38 +1,49 @@
 distributable:
   url: https://github.com/Igalia/WPEBackend-fdo/releases/download/{{version}}/wpebackend-fdo-{{version}}.tar.xz
   strip-components: 1
+
 versions:
   github: Igalia/WPEBackend-fdo
+
 platforms:
   - linux
+
 dependencies:
   gnome.org/glib: '*'
   github.com/anholt/libepoxy: '*'
   wpewebkit.org/libwpe: '*'
   mesa3d.org: '*'
   wayland.freedesktop.org: '*'
+
 build:
   dependencies:
     gnu.org/gcc: '*'
     mesonbuild.com: '*'
     ninja-build.org: '*'
-    freedesktop.org/pkg-config: '*'
   script:
+    # missing include in 1.16.1
+    - run: sed -i -f $PROP ws-egl.h
+      if: 1.16.1
+      working-directory: src
+      prop: |
+        /#include <functional>/a\
+        #include <unistd.h>
     - meson setup build $MESON_ARGS
     - meson compile -C build --verbose
     - meson install -C build
-    - run: |
-        mv wpe-fdo-1.0/* .
-        rmdir wpe-fdo-1.0
-        ln -s . wpe-fdo-1.0
+    - run:
+        - mv wpe-fdo-1.0/* .
+        - rmdir wpe-fdo-1.0
+        - ln -s . wpe-fdo-1.0
       working-directory: ${{prefix}}/include
   env:
-    LDFLAGS: "-fPIC"
+    LDFLAGS: '-fPIC'
     MESON_ARGS:
       - --prefix="{{prefix}}"
       - --libdir="{{prefix}}/lib"
       - --buildtype=release
       - --wrap-mode=nofallback
+
 test:
   dependencies:
     gnu.org/gcc: '*'
