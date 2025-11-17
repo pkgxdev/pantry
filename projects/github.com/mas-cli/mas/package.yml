@@ -30,6 +30,14 @@ build:
         static let swiftDriverVersion = "$SWIFT_DRIVER_VERSION"
       }
       EOF
+  # slightly changed build process in v3
+  - run:
+      - sed 's/enum Package/extension MAS/' Package.swift >MAS+BuildInformation.swift
+      - rm Package.swift
+      - "sed -i -e 's/\\.plugin(name: \"MASBuildToolPlugin\")//' ../../../Package.swift"
+    if: '>=3'
+    working-directory: Sources/mas/Utilities
+
   - swift build --configuration release
   - install -D .build/release/mas {{prefix}}/bin/mas
 
