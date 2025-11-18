@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/tilt-dev/tilt/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/tilt-dev/tilt/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
@@ -15,6 +15,7 @@ build:
     classic.yarnpkg.com: '*'
     linux/aarch64:
       gnu.org/gcc: '*' # cgo _really_ wants g++/ld.gold
+      gnu.org/binutils: ~2.44 # ld.gold is deprecated
   script:
     - make build-js
     - go mod download
@@ -36,6 +37,4 @@ build:
       LDFLAGS:
         - -buildmode=pie
 
-test:
-  script:
-    - tilt version | grep "v{{version}}"
+test: tilt version | grep "v{{version}}"
