@@ -13,25 +13,40 @@ platforms:
 
 build:
   dependencies:
-    bun.sh: =1.2.19
+    bun.sh: =1.3.2 # since 1.0.56
     go.dev: '^1.24'
     python.org: 3 # since 0.4.45 for node-gyp
     npmjs.com: '*' # since 0.11.5 for husky
   script:
     - run: npm i -g husky
       if: '>=0.11.5'
+
     - mkdir -p packages/opencode/dist
+
+    # out-of-date lockfile frequently released
+    - run: rm bun.lock
+      if: <1
+
+    - bun install --production
+
     - run:
         - go mod download
         - go build -ldflags "$GO_LDFLAGS" -o ../opencode/dist/tui ./cmd/opencode/main.go
       working-directory: packages/tui
-    # out-of-date lockfile frequently released
-    - rm bun.lock
+      if: <1
+
     - run:
-        - bun install --production
         - bun build --define "OPENCODE_VERSION='{{version}}'" ./src/index.ts ./dist/tui --compile --minify --target=bun --outfile ./dist/opencode
+        - install -Dm755 ./dist/opencode {{prefix}}/bin/opencode
       working-directory: packages/opencode
-    - install -Dm755 ./packages/opencode/dist/opencode {{prefix}}/bin/opencode
+      if: <1
+
+    - run:
+        - bun run ./script/build.ts --single
+        - install -Dm755 dist/opencode-{{hw.platform}}-$ARCH/bin/opencode {{prefix}}/bin/opencode
+      working-directory: packages/opencode
+      if: '>=1'
+
   skip: fix-patchelf
   env:
     PATH: $HOME/.local/bin:$PATH
@@ -43,6 +58,13 @@ build:
       CXXFLAGS: $CXXFLAGS -std=c++20
       GO_LDFLAGS:
         - -buildmode=pie
+    # since v1
+    OPENCODE_CHANNEL: latest
+    OPENCODE_VERSION: ${{version}}
+    x86-64:
+      ARCH: x64
+    aarch64:
+      ARCH: arm64
 
 provides:
   - bin/opencode

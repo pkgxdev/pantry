@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/biomejs/biome/archive/refs/tags/cli/v{{ version }}.tar.gz
+  url: https://github.com/biomejs/biome/archive/refs/tags/{{ version.tag }}.tar.gz
   strip-components: 1
 
 provides:
@@ -7,20 +7,16 @@ provides:
 
 versions:
   github: biomejs/biome
-  strip: /cli/v/
+  strip: /(cli/v|@biomejs/biome@)/
 
 build:
   working-directory: crates/biome_cli
   dependencies:
     rust-lang.org: '>=1.65'
     rust-lang.org/cargo: '*'
-  script:
-    cargo install --locked --path . --root {{prefix}}
+  script: cargo install --locked --path . --root {{prefix}}
   env:
-    RUSTFLAGS: "-C strip=symbols"
+    RUSTFLAGS: '-C strip=symbols'
     BIOME_VERSION: 'v{{version}}'
 
-test:
-  script:
-    - |
-      test "$(biome --version)" = "Version: v{{version}}"
+test: 'test "$(biome --version)" = "Version: v{{version}}"'

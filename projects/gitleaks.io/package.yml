@@ -9,7 +9,9 @@ build:
   script:
     - go build $GO_ARGS -ldflags="$LDFLAGS"
   env:
-    LDFLAGS: -X github.com/zricethezav/gitleaks/v{{version.major}}/cmd.Version={{version}}
+    LDFLAGS:
+      - -X github.com/zricethezav/gitleaks/v{{version.major}}/cmd.Version={{version}}
+      - -X github.com/zricethezav/gitleaks/v{{version.major}}/version.Version={{version}}
     GO_ARGS:
       - -trimpath
       - -o="{{prefix}}/bin/gitleaks"
@@ -24,13 +26,14 @@ test:
   script:
     - echo 'ghp_deadbeefdeadbeefdeadbeefdeadbeefdeadbeef' > README
     # Author identity unknown
-    - run: |
-        git config --global user.email "you@example.com"
-        git config --global user.name "Your Name"
+    - run:
+        - git config --global user.email "you@example.com"
+        - git config --global user.name "Your Name"
       if: linux
     - git init
     - git add README
     - git commit -m 'Initial commit'
     - (gitleaks detect 2>&1 || true) | tee output.log
     - grep '1 commits scanned' output.log
-    - gitleaks version | grep {{version}}
+    - gitleaks version | tee out
+    - grep {{version}} out
