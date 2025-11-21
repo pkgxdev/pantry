@@ -16,7 +16,8 @@ build:
     gnu.org/patch: '*'
   script:
     # duplicate dlopen definitons
-    - curl -L https://raw.githubusercontent.com/Homebrew/homebrew-core/1cf441a0/Patches/loki/loki-3.5.1-purego.patch | patch -p1
+    - run: curl -L https://raw.githubusercontent.com/Homebrew/homebrew-core/1cf441a0/Patches/loki/loki-3.5.1-purego.patch | patch -p1
+      if: '>=3.5<3.6'
     - go build -ldflags="$GO_LDFLAGS" -o {{prefix}}/bin/loki ./cmd/loki
     - install -Dm755 cmd/loki/loki-local-config.yaml {{prefix}}/etc/loki-local-config.yaml
   env:
