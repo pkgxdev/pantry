@@ -18,13 +18,15 @@ dependencies:
   github.com/json-c/json-c: 0.18
   gnu.org/libidn2: 2.3
   jemalloc.net: 5
-  # since 9.21.10
-  mesonbuild.com: 1
-  ninja-build.org: '*'
   linux:
     kernel.org/libcap: '*'
 
 build:
+  dependencies:
+    # since 9.21.10
+    mesonbuild.com: 1
+    cmake.org: 3
+    ninja-build.org: '*'
   env:
     ARGS:
       - --prefix="{{prefix}}"
@@ -46,7 +48,7 @@ build:
       if: <9.21.10
     - run:
         - meson setup build $MESON_ARGS
-        - meson compile -C build
+        - meson compile -C build -j4 # high concurrency leads to failed races.
         - meson install -C build
       if: '>=9.21.10'
 
