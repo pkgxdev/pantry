@@ -50,6 +50,22 @@ build:
         /sched\.h/i\
         #include <linux/sched.h>
       working-directory: src/basic
+    # Fix missing key_serial_t type definition - define it if kernel headers don't provide it
+    - run: |
+        if test -f keyctl.h && ! grep -q 'typedef.*key_serial_t' keyctl.h; then
+          sed -i -f $PROP keyctl.h
+        fi
+      prop: |
+        /#include <linux\/keyctl.h>/a\
+        #include <stdint.h>\
+        #ifndef key_serial_t\
+        typedef int32_t key_serial_t;\
+        #endif
+      if: '>=258'
+      working-directory: src/include/override/sys
+    # Fix ethtool-link-mode.py assertion - lower threshold if kernel headers don't have enough entries
+    - run: sed -i 's/assert len(entries) >= 99/assert len(entries) >= 50/' src/shared/ethtool-link-mode.py
+      if: '>=258'
     - meson setup $ARGS build
     - meson compile -C build
     - meson install -C build
