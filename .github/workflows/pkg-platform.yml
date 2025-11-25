@@ -50,6 +50,10 @@ on:
       AWS_S3_BUCKET: { required: true }
       AWS_SECRET_ACCESS_KEY: { required: true }
       AWS_CF_DISTRIBUTION_ID: { required: true }
+      IPFS_API_URL: { required: false }
+      IPFS_API_TOKEN: { required: false }
+      IPFS_CLUSTER_API_URL: { required: false }
+      IPFS_CLUSTER_AUTH: { required: false }
 
 env:
   BREWKIT_PKGJSON: ${{ inputs.pkg }}
@@ -80,7 +84,6 @@ jobs:
         with:
           version: 1.1.6
           PKGX_DIR: /opt
-
 
       - uses: pkgxdev/brewkit/build@v1
         with:
@@ -139,6 +142,8 @@ jobs:
         with:
           version: 1.1.6
 
+      - uses: actions/checkout@v4
+
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -178,15 +183,36 @@ jobs:
           sha256sum
           ${{ steps.bottle.outputs.filename }} > ${{ steps.bottle.outputs.filename }}.sha256sum
 
+      - name: ipfs
+        id: ipfs
+        uses: ./.github/actions/ipfs
+        with:
+          bottle-file: ${{ steps.bottle.outputs.filename }}
+          dry-run: ${{ inputs.dry-run }}
+          ipfs-api-url: ${{ secrets.IPFS_API_URL }}
+          ipfs-api-token: ${{ secrets.IPFS_API_TOKEN }}
+          ipfs-cluster-api-url: ${{ secrets.IPFS_CLUSTER_API_URL }}
+          ipfs-cluster-auth: ${{ secrets.IPFS_CLUSTER_AUTH }}
+          ipfs-gateway-url: ${{ secrets.IPFS_GATEWAY_URL }}
+
       - name: s3 put
         run: |
-          $AWS s3 cp ${{ steps.bottle.outputs.filename }}           $URL
-          $AWS s3 cp ${{ steps.bottle.outputs.filename }}.asc       $URL.asc
-          $AWS s3 cp ${{ steps.bottle.outputs.filename }}.sha256sum $URL.sha256sum
+          $AWS s3 cp $FILENAME           $URL
+          $AWS s3 cp $FILENAME.asc       $URL.asc
+          $AWS s3 cp $FILENAME.sha256sum $URL.sha256sum
 
-          echo "cf-paths=/$PREFIX /$PREFIX.asc /$PREFIX.sha256sum" >> $GITHUB_OUTPUT
+          if ! test -z "$CID"; then
+            echo "$CID" >$FILENAME.cid
+            $AWS s3 cp $FILENAME.cid     $URL.cid
+            echo "cf-paths=/$PREFIX /$PREFIX.asc /$PREFIX.sha256sum /$PREFIX.cid" >> $GITHUB_OUTPUT
+          else
+            echo "cf-paths=/$PREFIX /$PREFIX.asc /$PREFIX.sha256sum" >> $GITHUB_OUTPUT
+          fi
+
         env:
+          FILENAME: ${{ steps.bottle.outputs.filename }}
           URL: s3://${{ secrets.AWS_S3_BUCKET }}/${{ env.PREFIX }}
+          CID: ${{ steps.ipfs.outputs.cid }}
         id: put
 
       - name: s3 put file listing
