@@ -1,0 +1,141 @@
+distributable:
+  url: https://github.com/casdoor/casdoor/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+display-name: casdoor
+
+versions:
+  github: casdoor/casdoor
+
+build:
+  dependencies:
+    go.dev: ^1.21
+    nodejs.org: 18.19.0
+    classic.yarnpkg.com: ^1
+  env:
+    BUILD_DIR: web/build
+    FRONTEND_PATH: "{{prefix}}/${BUILD_DIR}"
+    SAMPLE_CONFIG_PATH: "{{prefix}}/etc/casdoor"
+    CGO_ENABLED: 0
+    GO_ARGS:
+      - -o "{{prefix}}/bin/"
+    GO_LDFLAGS:
+      - -s
+      - -w
+    linux:
+      GO_LDFLAGS:
+        - -buildmode=pie
+  script: 
+    - working-directory: web
+      run: |
+        yarn install --frozen-lockfile --network-timeout 1000000
+        NODE_OPTIONS="--max-old-space-size=4096" yarn run build
+    - working-directory: ${BUILD_DIR}
+      run: |
+        mkdir -p ${FRONTEND_PATH}
+        cp -R . ${FRONTEND_PATH}
+    - run: go build ${GO_ARGS} -ldflags="${GO_LDFLAGS}" ./
+    - working-directory: conf
+      run: |
+        mkdir -p ${SAMPLE_CONFIG_PATH}
+        cp ${PWD}/app.conf ${SAMPLE_CONFIG_PATH}
+provides:
+  - bin/casdoor
+
+test:
+  dependencies:
+#    curl.se: '*'
+    procps-ng: '*'
+    gnu.org/coreutils: ^9
+    pkgx.sh: ^1
+#    mariadb.com/server: ^12
+  env:
+#    INIT_DATA_URI: https://raw.githubusercontent.com/casdoor/casdoor/refs/heads/master/init_data.json.template
+    CONFIG_PATH: "${PWD}/conf/app.conf"
+    CASDOOR_BIN_PATH: "$(+casdoor which casdoor)"
+    CASDOOR_DIR_PATH: "$(dirname ${CASDOOR_BIN_PATH})"
+    FRONTEND_PATH: "$(dirname ${CASDOOR_DIR_PATH})/web/build"
+  script: 
+    #- printenv
+    #- exit 1
+    #- curl --location
+    #       --output init_data.json
+    #       ${INIT_DATA_URI}
+    - mkdir -p {conf,log,web}
+    - ln -s ${FRONTEND_PATH} web/build
+    - run: cat ${FIXTURE} > ${PWD}/conf/app.conf_
+      fixture:
+        extname: conf
+        content: |
+          [database]
+          driverName = sqlite
+          dataSourneName = ./casdoor.db?cache=shared
+          dbName = casdoor
+    - run: cat ${FIXTURE} > ${CONFIG_PATH}
+      fixture:
+        extname: conf
+        content: |
+          appname = casdoor
+          httpport = 8000
+          runmode = dev
+          copyrequestbody = true
+          driverName = sqlite
+          dataSourneName = /tmp/casdoor.db?cache=shared
+          dbName = casdoor
+          tableNamePrefix =
+          showSql = false
+          redisEndpoint =
+          defaultStorageProvider =
+          isCloudIntranet = false
+          authState = "casdoor"
+          socks5Proxy = "127.0.0.1:10808"
+          verificationCodeTimeout = 10
+          initScore = 0
+          logPostOnly = true
+          isUsernameLowered = false
+          origin =
+          originFrontend =
+          staticBaseUrl = "https://cdn.casbin.org"
+          isDemoMode = false
+          batchSize = 100
+          enableErrorMask = false
+          enableGzip = true
+          inactiveTimeoutMinutes =
+          ldapServerPort = 389
+          ldapsCertId = ""
+          ldapsServerPort = 636
+          radiusServerPort = 1812
+          radiusDefaultOrganization = "built-in"
+          radiusSecret = "secret"
+          quota = {"organization": -1, "user": -1, "application": -1, "provider": -1}
+          logConfig = {"adapter":"file", "filename": "logs/casdoor.log", "maxdays":99999, "perm":"0770"}
+          initDataNewOnly = false
+          initDataFile = "./init_data.json"
+          frontendBaseDir = "/tmp"
+    - ls -alFhR
+    #- casdoor -createDatabase=true
+    - casdoor -config "${CONFIG_PATH}" &
+    - sleep 5
+    - curl http://localhost:8000 | pup 'meta[name="description"] attr{content}' | grep 'Casdoor' || exit 1
+    - pkill casdoor
+#    - killall mysqld || true
+#    - mkdir -p mysql tmp
+    # GHA runs as root
+#    - run: |
+#        if test "$(id -u)" = "0"; then
+#          USER_ARG="--user=root"
+#        fi
+#    - mysql_install_db --no-defaults
+#      $USER_ARG
+#      --basedir={{ prefix }}
+#      --datadir=$(pwd)/mysql
+#      --tmpdir=$(pwd)/tmp
+#      --auth-root-authentication-method=normal
+#    - mysqld --no-defaults $USER_ARG --datadir=$(pwd)/mysql --port=3306 --tmpdir=$(pwd)/tmp &
+#    - sleep 5
+#    - mysql --port=3306 --user=root --password= --execute='show databases;'
+#    - mysqladmin --port=3306 --user=root --password= shutdown
+#    - sleep 5
+#    - (ps aux | grep mysqld | grep -v grep) && exit 1 || exit 0
+#    - cp -R {{prefix}}/etc/casdoor/ .
+#    - casdoor 
