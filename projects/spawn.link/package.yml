@@ -21,7 +21,7 @@ build:
       working-directory: buildtools
 
     # Don't try to chown/chmod on install
-    - sed -i -e '/\(chown\|chmod\)/d' libfuse/Makefile
+    - sed -i -e '/\(chown\|chmod\|CHOWN\|CHMOD\)/d' libfuse/Makefile
 
     - make --jobs {{ hw.concurrency }}
     - make install DESTDIR="{{prefix}}" PREFIX=""
@@ -29,6 +29,8 @@ build:
     CFLAGS: -Wno-implicit-function-declaration
     CC: clang
     CXX: clang++
+    linux:
+      LDFLAGS: -Wl,-lstdc++fs # since 2.41.0
 
 provides:
   - bin/mergerfs

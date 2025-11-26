@@ -45,24 +45,16 @@ build:
     working-directory: ${{prefix}}/bin
 
 test:
-  dependencies:
-    # 20.3.x causes a error on linux+aarch64 (technically docker)
-    # sh: 1: tldr: Text file busy
-    # https://github.com/nodejs/node/issues/48444
-    # This is a FIXME, but it should be reasonably harmless.
-    linux/aarch64:
-      nodejs.org: '<20.3'
-  script:
-    # doing first to test our shim works as expected
-    - npx -qy tldr ls
+  # doing first to test our shim works as expected
+  - npx -qy tldr ls
 
-    - npm install --global cowsay
+  - npm install --global cowsay
 
-    # verify install location is as we configure it
-    - $HOME/.local/bin/cowsay xyz.tea.hi
+  # verify install location is as we configure it
+  - $HOME/.local/bin/cowsay xyz.tea.hi
 
-    - |
-      if npm --version 2>&1 | grep 'Unknown builtin config'; then
-        echo "warning remains; fail"
-        exit 1
-      fi
+  - |
+    if npm --version 2>&1 | grep 'Unknown builtin config'; then
+      echo "warning remains; fail"
+      exit 1
+    fi

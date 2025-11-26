@@ -63,6 +63,13 @@ build:
 test:
   dependencies:
     curl.se: '*'
+    astral.sh/uv: '*'
   script:
-    - curl -LO "https://raw.githubusercontent.com/vanna-ai/vanna/{{ version.tag }}/tests/test_imports.py"
-    - python test_imports.py
+    - run:
+        - curl -LO "https://raw.githubusercontent.com/vanna-ai/vanna/{{ version.tag }}/tests/test_imports.py"
+        - python test_imports.py
+      if: <2
+    - run:
+        - curl -LO "https://raw.githubusercontent.com/vanna-ai/vanna/{{ version.tag }}/tests/test_database_sanity.py"
+        - uv run --with pytest test_database_sanity.py
+      if: '>=2'

@@ -49,4 +49,7 @@ provides:
   - bin/nerdctl.lima
   - bin/podman.lima
 
-test: limactl --version | grep {{version}}
+test:
+  # can't even call --version as root.
+  - if test "$(id -u)" = 0; then echo "Skipping test as root user"; exit 0; fi
+  - limactl --version | grep {{version}}
