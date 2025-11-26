@@ -103,8 +103,6 @@ test:
     - ls -alFhR
     - casdoor -config "${CONFIG_PATH}" & CASDOOR_PID=$!
     - sleep 5
-    - curl http://localhost:8000
-         | pup 'meta[name="description"] attr{content}'
-         | grep 'Casdoor'
-        || exit 1
+    - CASDOOR_OUTPUT="$(curl http://localhost:8000 | pup 'meta[name="description"] attr{content}')"
     - kill -9 ${CASDOOR_PID}
+    - cat "${CASDOOR_OUTPUT}" | grep 'Casdoor' && exit 0 || exit 1
