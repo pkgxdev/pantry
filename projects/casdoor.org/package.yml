@@ -50,10 +50,7 @@ test:
     pkgx.sh: ^1
     gnu.org/coreutils: ^9
     github.com/gromgit/pup: '*'
-    #github.com/lsof-org/lsof: '*'
     curl.se: '*'
-    linux:
-      gitlab.com/procps-ng/procps: '*'
   env:
     CONFIG_PATH: "${PWD}/conf/app.conf"
     CASDOOR_BIN_PATH: "$(+casdoor which casdoor)"
@@ -104,10 +101,10 @@ test:
           initDataFile = "./init_data.json"
           frontendBaseDir = "/tmp"
     - ls -alFhR
-    - (casdoor -config "${CONFIG_PATH}" || true) &
+    - casdoor -config "${CONFIG_PATH}" & CASDOOR_PID=$!
     - sleep 5
     - curl http://localhost:8000
          | pup 'meta[name="description"] attr{content}'
          | grep 'Casdoor'
         || exit 1
-    - pkill casdoor
+    - kill -9 ${CASDOOR_PID}
