@@ -1,0 +1,112 @@
+distributable:
+  url: https://github.com/golang/tools/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: golang/tools/tags
+
+provides:
+  - bin/goimports
+  - bin/callgraph
+  - bin/digraph
+  - bin/stringer
+  - bin/toolstash
+
+companions:
+  go.dev: '*'
+
+build:
+  dependencies:
+    go.dev: ~1.25
+  script:
+    - go mod download
+    - go build -v -trimpath -ldflags="$GO_LDFLAGS" -o {{prefix}}/bin/goimports ./cmd/goimports
+    - go build -v -trimpath -ldflags="$GO_LDFLAGS" -o {{prefix}}/bin/callgraph ./cmd/callgraph
+    - go build -v -trimpath -ldflags="$GO_LDFLAGS" -o {{prefix}}/bin/digraph ./cmd/digraph
+    - go build -v -trimpath -ldflags="$GO_LDFLAGS" -o {{prefix}}/bin/stringer ./cmd/stringer
+    - go build -v -trimpath -ldflags="$GO_LDFLAGS" -o {{prefix}}/bin/toolstash ./cmd/toolstash
+  env:
+    GO_LDFLAGS:
+      - -s
+      - -w
+    linux:
+      # or segmentation fault
+      # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
+      GO_LDFLAGS:
+        - -buildmode=pie
+
+test:
+  # goimports
+  - run: goimports -d $FIXTURE | tee out
+    fixture:
+      extname: go
+      contents: |
+        package main
+
+        func main() {
+          fmt.Println("hello")
+        }
+  - grep '+import "fmt"' out
+  # callgraph
+  - run: callgraph $FIXTURE | tee out
+    fixture:
+      extname: go
+      contents: |
+        package main
+
+        import "fmt"
+
+        func main() {
+          fmt.Println("hello")
+        }
+  - grep "fmt.Println" out
+  # digraph
+  - run: cp $FIXTURE clothes.txt
+    fixture: |
+      socks shoes
+      "boxer shorts" pants
+      pants belt shoes
+      shirt tie sweater
+      sweater jacket
+      hat
+  - cat clothes.txt | digraph reverse jacket | tee out
+  - run: test "$(cat out)" = "$(cat $FIXTURE)"
+    fixture: |
+      jacket
+      shirt
+      sweater
+
+  # stringer
+  - run: cp $FIXTURE pill.go
+    fixture: |
+      package main
+
+      //go:generate stringer -type=Pill
+      type Pill int
+
+      const (
+        Placebo Pill = iota
+        Aspirin
+        Ibuprofen
+        Paracetamol
+      )
+  - go mod init pilltest
+  - stringer -type=Pill
+  - grep "func (. Pill) String() string" pill_string.go
+
+  # toolstash
+  # this is just a basic smoke test to ensure the binary runs
+  - toolstash save
+  - toolstash restore
+  - run: toolstash go run $FIXTURE | tee out
+    fixture:
+      extname: go
+      contents: |
+        package main
+
+        import "fmt"
+
+        func main() {
+          fmt.Println("toolstash test")
+        }
+  - test "$(cat out)" = "toolstash test"
