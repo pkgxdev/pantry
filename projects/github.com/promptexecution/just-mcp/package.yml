@@ -1,0 +1,54 @@
+distributable:
+  url: https://github.com/PromptExecution/just-mcp/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: PromptExecution/just-mcp/tags
+  strip: /^v/
+
+description: Production-ready MCP server that exposes Justfile recipes over MCP.
+homepage: https://github.com/PromptExecution/just-mcp
+license: MIT
+
+build:
+  dependencies:
+    curl.se: '*'
+  working-directory: ${{prefix}}
+  script: |
+    case "{{hw.platform}}+{{hw.arch}}" in
+      linux+x86-64)
+        target="x86_64-unknown-linux-gnu"
+        ;;
+      linux+aarch64)
+        target="aarch64-unknown-linux-gnu"
+        ;;
+      darwin+x86-64)
+        target="x86_64-apple-darwin"
+        ;;
+      darwin+aarch64)
+        target="aarch64-apple-darwin"
+        ;;
+      windows+x86-64)
+        target="x86_64-pc-windows-msvc"
+        ;;
+      *)
+        echo "unsupported platform: {{hw.platform}}+{{hw.arch}}" >&2
+        exit 1
+        ;;
+    esac
+    archive="just-mcp-${target}.tar.gz"
+    curl -sSfL -o "$archive" "https://github.com/PromptExecution/just-mcp/releases/download/v{{version}}/${archive}"
+    tar -xzf "$archive"
+    mkdir -p {{ prefix }}/bin
+    if test "{{hw.platform}}" = "windows"; then
+      mv just-mcp.exe {{ prefix }}/bin/just-mcp.exe
+    else
+      mv just-mcp {{ prefix }}/bin/just-mcp
+    fi
+
+provides:
+  - bin/just-mcp
+  - bin/just-mcp.exe
+
+test: |
+  just-mcp --version
