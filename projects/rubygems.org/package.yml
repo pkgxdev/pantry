@@ -144,12 +144,16 @@ test:
       fi
 
     # test for https://github.com/pkgxdev/pantry/issues/4010
-    - run: |
-        mv $FIXTURE Gemfile
-        GEM_HOME=$HOME/.bundler bundle install --path vendor/bundle
+    - run: mv $FIXTURE Gemfile
       fixture: |
         source 'https://rubygems.org'
         gem 'warbler', platforms: :jruby
+    - run: GEM_HOME=$HOME/.bundler bundle install --path vendor/bundle
+      if: <4
+    - run:
+        - GEM_HOME=$HOME/.bundler bundle config set path 'vendor/bundle'
+        - GEM_HOME=$HOME/.bundler bundle install
+      if: '>=4'
 
     # verifies that our bundler can be used as a gem
     - run: rm -rf {{deps.ruby-lang.org.prefix}}/lib/ruby/gems/*/bundler*
