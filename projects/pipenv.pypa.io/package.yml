@@ -28,7 +28,7 @@ build:
     - working-directory: ${{prefix}}/bin
       run:
         - v=3.6
-        - vMax=3.13 #FIXME determine dynamically or even script this in the shim
+        - vMax=3.14 #FIXME determine dynamically or even script this in the shim
         - |
           while semverator lt $v $vMax; do
             v=$(semverator bump $v minor | cut -d. -f1,2)
@@ -45,12 +45,12 @@ test:
   - pipenv --version
   - pipenv --version 2>&1 | grep {{version}}
 
-  # changed to python3.9; 3.7/8 generate a lockfile resolver error
+  # changed to python3.10; 3.9 stopped working with 2025.1.1
   - run:
-      - source <(pkgx +python@3.9)
+      - source <(pkgx +python@3.10)
       # fixes loading libpython on linux
       - echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH" > .env
-      - pipenv --python 3.9
+      - pipenv --python 3.10
       - pipenv --verbose install pycowsay
       - pipenv run pycowsay "Hello World"
     working-directory: a
