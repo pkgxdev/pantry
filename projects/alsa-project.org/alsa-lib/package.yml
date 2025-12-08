@@ -4,7 +4,7 @@ distributable:
 
 versions:
   url: https://www.alsa-project.org/files/pub/lib/
-  match: /alsa-lib-\d+\.\d+\.\d+\.tar\.bz2/
+  match: /alsa-lib-\d+\.(\d+\.)+tar\.bz2/
   strip:
     - /^alsa-lib-/
     - /\.tar\.bz2$/
@@ -14,6 +14,10 @@ platforms:
 
 build:
   script:
+    # add def for older kernels
+    - run: sed -i '1i int close_range(unsigned int first, unsigned int last, int flags);' ucm_exec.c
+      working-directory: src/ucm
+      if: '>=1.2.15'
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
   env:
@@ -31,6 +35,14 @@ provides:
   - bin/aserver
 
 test:
-  script:
-    - cc test.c -lasound -o test
-    - ./test
+  - run: cc $FIXTURE -lasound -o test
+    fixture:
+      extname: c
+      content: |
+        #include <alsa/asoundlib.h>
+        int main(void) {
+            snd_ctl_card_info_t *info;
+            snd_ctl_card_info_alloca(&info);
+            return 0;
+        }
+  - ./test
