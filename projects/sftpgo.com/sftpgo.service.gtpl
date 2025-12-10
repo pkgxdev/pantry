@@ -6,8 +6,13 @@ After=network.target
 Type=simple
 User=_sftpgo
 Group=_sftpgo
-EnvironmentFile=/etc/sftpgo/sftpgo.env
-ExecStart=/bin/bash -c "/usr/local/bin/pkgx +${PKGX_SFTPGO_PROJECT}^${PKGX_SFTPGO_VERSION} sftpgo serve --config-file ${SFTPGO_CONFIG_FILE} --config-dir=${HOME}"
+ExecStart=/usr/local/bin/pkgx +{{
+  getenv "package_project" "SETUP_ERROR"
+}}^{{
+  getenv "package_version" "SETUP_ERROR"
+}} sftpgo serve --config-dir {{
+  getenv "app_conf_path" "SETUP_ERROR"
+}}
 ExecReload=/bin/kill -s HUP $MAINPID
 LimitNOFILE=8192
 KillMode=mixed
