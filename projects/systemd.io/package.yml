@@ -41,7 +41,8 @@ build:
     python.org: '>=3<3.12'
     rsync.samba.org: '*'
     linux:
-      kernel.org/linux-headers: '>=5.2' # for CLONE_PIDFD
+      kernel.org/linux-headers: '^6' # for keyctl.h headers
+      gnu.org/gcc: 14
   script:
     # systemd requires a newer version of some linux headers, but also needs the system
     # headers.
@@ -50,6 +51,15 @@ build:
         /sched\.h/i\
         #include <linux/sched.h>
       working-directory: src/basic
+
+    # Fix key_serial_t missing type - define it directly
+    - run: sed -i -f $PROP keyctl.h
+      prop: |
+        1i\\
+        #include <stdint.h>\\
+        typedef int32_t key_serial_t;\\
+      working-directory: src/include/override/sys
+
     - meson setup $ARGS build
     - meson compile -C build
     - meson install -C build
@@ -66,6 +76,8 @@ build:
         fi
       working-directory: '{{prefix}}/lib'
   env:
+    CFLAGS: $CFLAGS -isystem {{deps.kernel.org/linux-headers.prefix}}/include
+    CXXFLAGS: $CXXFLAGS -isystem {{deps.kernel.org/linux-headers.prefix}}/include
     ARGS:
       - --sysconfdir={{prefix}}/etc
       - --localstatedir={{prefix}}/var
