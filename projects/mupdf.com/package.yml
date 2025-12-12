@@ -39,9 +39,13 @@ build:
         - if test "$x" = "extract"; then continue; fi
         - if test "$x" = "lcms2"; then continue; fi
         - if test "$x" = "gumbo-parser"; then continue; fi
+        - if test "$x" = "mujs"; then continue; fi
         - rm -rf "$x"
         - done
       working-directory: thirdparty
+    - run: sed -i 's|"\.\./thirdparty/mujs/regexp\.h"|"../../thirdparty/mujs/regexp.h"|' stext-search.c
+      working-directory: source/fitz
+      if: '>=1.27'
     - run:
         # preserve quoting
         - declare -a DARWIN_ARGS
@@ -68,7 +72,7 @@ build:
     CXX: clang++
     LD: clang
     AS: llvm-as
-    CPATH: '$SRCROOT/thirdparty/gumbo-parser/src:$CPATH'
+    CPATH: '$SRCROOT/thirdparty/gumbo-parser/src:$SRCROOT/thirdparty/mujs:$CPATH'
     linux:
       LDFLAGS: $LDFLAGS -Wl,-allow-shlib-undefined
     darwin:
