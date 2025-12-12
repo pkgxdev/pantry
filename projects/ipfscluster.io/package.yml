@@ -1,0 +1,89 @@
+distributable:
+  url: https://github.com/ipfs-cluster/ipfs-cluster/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: ipfs-cluster/ipfs-cluster
+
+companions:
+  ipfs.tech: '*'
+
+build:
+  dependencies:
+    go.dev: ~1.24
+    git-scm.org: ^2
+  script:
+    - go build $GO_ARGS -o {{prefix}}/bin/ipfs-cluster-follow -ldflags "$GO_LDFLAGS" ./cmd/ipfs-cluster-follow
+    - go build $GO_ARGS -o {{prefix}}/bin/ipfs-cluster-ctl -ldflags "$GO_LDFLAGS" ./cmd/ipfs-cluster-ctl
+    - go build $GO_ARGS -o {{prefix}}/bin/ipfs-cluster-service -ldflags "$GO_LDFLAGS" ./cmd/ipfs-cluster-service
+  env:
+    GO_ARGS:
+      - -trimpath
+      - -mod=readonly
+    GO_LDFLAGS:
+      - -X main.commit=$(git rev-parse HEAD)
+    linux:
+      GO_LDFLAGS:
+        - -buildmode=pie
+
+test:
+  env:
+    # use /tmp to avoid long socket paths in CI (unix sockets have ~104 char limit)
+    # setting HOME ensures ~ expansions also use short paths
+    HOME: '$(mktemp -d -p /tmp)'
+    IPFS_PATH: $HOME/.ipfs
+  script:
+    # version checks
+    - ipfs-cluster-follow --version
+    - ipfs-cluster-ctl --version
+    - ipfs-cluster-service --version
+
+    # init ipfs (required for cluster-follow)
+    - mkdir -p $IPFS_PATH
+    - ipfs init --profile=lowpower
+
+    # configure peering with pkgx IPFS node for persistent connection
+    - >
+      ipfs config --json Peering.Peers
+      '[{"ID": "12D3KooWMca9XbHi3cQ3adUsmQkqav5e7DJHLZjg4Si9psdpZ13z", "Addrs": ["/dns4/ipfs-swarm.pkgx.dev/tcp/4001"]}]'
+
+    # init cluster follower with pkgx cluster
+    - ipfs-cluster-follow pkgx init https://dist.pkgx.dev/ipfs/cluster.json
+
+    # verify it created config
+    - test -f ~/.ipfs-cluster-follow/pkgx/service.json
+
+    # start IPFS daemon and capture PID
+    - ipfs daemon &
+    - IPFS_PID=$!
+    - sleep 2
+
+    # start cluster follower and capture PID
+    - ipfs-cluster-follow pkgx run &
+    - FOLLOWER_PID=$!
+    - sleep 5
+
+    # verify follower is running
+    - kill -0 $FOLLOWER_PID
+
+    # explicitly connect to pkgx swarm for faster bootstrap (peering will maintain it)
+    - ipfs swarm connect /dns4/ipfs-swarm.pkgx.dev/tcp/4001/p2p/12D3KooWMca9XbHi3cQ3adUsmQkqav5e7DJHLZjg4Si9psdpZ13z
+    - sleep 5
+    - ipfs swarm peers
+
+    # warm up bitswap session by checking block exists before full cat
+    - timeout 60 ipfs block stat bafkreidbncc66hjp54cfwxkx7daygwfvmeb6ys4vj3rjnwt7xyc4qvu4lm
+
+    # fetch a known file via local IPFS with timeout (proves follower + swarm works)
+    - timeout 60 ipfs cat bafkreidbncc66hjp54cfwxkx7daygwfvmeb6ys4vj3rjnwt7xyc4qvu4lm > foo.tar.gz
+    - tar ztvf foo.tar.gz | tee out
+    - grep curl.se/ca-certs out
+
+    # cleanup using captured PIDs
+    - kill $FOLLOWER_PID 2>/dev/null || true
+    - ipfs shutdown 2>/dev/null || kill $IPFS_PID 2>/dev/null || true
+
+provides:
+  - bin/ipfs-cluster-follow
+  - bin/ipfs-cluster-ctl
+  - bin/ipfs-cluster-service
