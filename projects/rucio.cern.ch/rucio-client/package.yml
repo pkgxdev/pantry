@@ -16,10 +16,13 @@ build:
     postgresql.org: '*' # to build psycopg2
   script:
     - bkpyvenv stage {{prefix}} {{version}}
-    - ${{prefix}}/venv/bin/pip install setuptools
+    - ${{prefix}}/venv/bin/pip install setuptools wheel
     # in 35.7.0 this got renamed to build_sdist_wheel.sh
     - ./tools/build_sdist*.sh clients
-    - ${{prefix}}/venv/bin/python setup.py install
+    - run: ${{prefix}}/venv/bin/python setup.py install
+      if: <39
+    - run: ${{prefix}}/venv/bin/python setuputil.py install
+      if: '>=39'
     # missing req
     - run: ${{prefix}}/venv/bin/pip install dogpile.cache
       if: '>=35'
