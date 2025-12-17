@@ -108,6 +108,14 @@ build:
       exec ruby "$0" "$@"
     working-directory: ${{prefix}}
 
+  # missing include?
+  - run: sed -i -f $PROP installer.rb
+    working-directory: ${{prefix}}/lib/rubygems
+    if: '>=4.0.2'
+    prop: |
+      1i\
+      require 'etc'\
+
   # no longer needed
   - rm -rf {{prefix}}/gems
 
