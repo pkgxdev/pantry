@@ -55,10 +55,12 @@ build:
 
     # workarounds for m1 build. see: https://github.com/opensearch-project/k-NN/blob/main/DEVELOPER_GUIDE.md#extra-setup-for-mac-m1-machines
     - run:
+        - if test "{{hw.platform}}+{{hw.arch}}" = "darwin+aarch64"; then
         - sed -i -e 's/-march=native/-mcpu=apple-m1/g' nmslib/similarity_search/CMakeLists.txt
         - sed -i -e 's/-mcpu=apple-a14/-mcpu=apple-m1/g' nmslib/python_bindings/setup.py
         - sed -i -e 's/__aarch64__/__undefine_aarch64__/g' faiss/faiss/utils/distances_simd.cpp
-      if: darwin/aarch64
+        - fi
+      if: <3.4.0
       working-directory: k-NN/jni/external
 
     - run:
@@ -79,7 +81,7 @@ build:
       working-directory: k-NN/jni/external/nmslib/similarity_search
       if: ^2
     - run:
-        - cmake .
+        - cmake . $CMAKE_ARGS
         - make
       working-directory: k-NN/jni
     - run: |
@@ -110,6 +112,8 @@ build:
     linux/x86-64:
       # /opt/gnu.org/binutils/v2.43.1/bin/ld: release/libopensearchknn_faiss_avx2.so: undefined reference to `_gfortran_concat_string'
       LDFLAGS: $LDFLAGS -Wl,-lgfortran
+      CMAKE_ARGS:
+        - -DBLAS_LIBRARIES={{deps.openblas.net.prefix}}/lib/libblas.so.{{deps.openblas.net.version.major}}
 
 provides:
   - bin/opensearch
