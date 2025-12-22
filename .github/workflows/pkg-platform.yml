@@ -115,6 +115,14 @@ jobs:
       PKGX_PANTRY_PATH: ${{ github.workspace }}
     steps:
       - uses: actions/checkout@v4
+      # need to update archlinux-keyring on run
+      # https://bbs.archlinux.org/viewtopic.php?id=304755
+      - run: |
+          if command -v pacman; then
+            pacman-key --init
+            pacman-key --populate archlinux
+            pacman -Sy --noconfirm archlinux-keyring
+          fi
       - uses: ./.github/actions/setup
       - uses: pkgxdev/setup@v2
         with:
