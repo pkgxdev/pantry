@@ -1,0 +1,35 @@
+distributable:
+  url: https://github.com/basecamp/kamal/archive/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: basecamp/kamal
+
+dependencies:
+  ruby-lang.org: ^3.1
+  rubygems.org: '*'
+
+build:
+  dependencies:
+    rubygems.org: '*'
+  env:
+    GEM_HOME: ${{prefix}}
+    GEM_PATH: ${{prefix}}
+  script:
+    - gem build kamal.gemspec
+
+    - gem install
+      --no-user-install
+      --bindir={{prefix}}/gems/bin
+      --no-document
+      kamal-{{version}}.gem
+
+    - install -Dm755 props/kamal "{{prefix}}"/bin/kamal
+
+provides:
+  - bin/kamal
+
+test:
+  - kamal --help
+  - kamal version
+  - test "$(kamal version)" = {{version}}
