@@ -1,0 +1,32 @@
+provides:
+  - bin/bb
+versions:
+  github: babashka/babashka
+build:
+  env:
+    BASE_URL: https://github.com/babashka/babashka/releases/download/v{{version}}
+    FILENAME_PREFIX: babashka-{{version}}-
+    darwin:
+      PLATFORM: macos
+    darwin/aarch64:
+      ARCH: aarch64
+    darwin/x86-64:
+      ARCH: amd64
+    linux:
+      PLATFORM: linux
+      SUFFIX: -static
+    linux/aarch64:
+      ARCH: aarch64
+    linux/x86-64:
+      ARCH: amd64
+  script: |
+    FILENAME="${FILENAME_PREFIX}${PLATFORM}-${ARCH}${SUFFIX}.tar.gz"
+    curl -L -o dist.tar.gz "${BASE_URL}/${FILENAME}"
+    tar xzf dist.tar.gz
+    mkdir -p {{prefix}}/bin
+    mv bb {{prefix}}/bin/bb
+    chmod +x {{prefix}}/bin/bb
+test:
+  script: |
+    bb --version | grep {{version}}
+    bb -e '(+ 1 2)' | grep 3
