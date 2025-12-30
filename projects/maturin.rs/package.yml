@@ -10,13 +10,13 @@ versions:
 
 build:
   dependencies:
-    rust-lang.org: ^1.56
-    rust-lang.org/cargo: ^0.77
+    rust-lang.org: ^1.85
+    rust-lang.org/cargo: "*"
   script:
     # missing version bump
     - sed -i '1,10s/^version = ".*"/version = "{{version}}"/' Cargo.toml
     - run: EXTRA_ARGS="-Znext-lockfile-bump"
-      if: '>=1.10'
+      if: ">=1.10"
     - cargo install --locked --path . --root {{prefix}} $EXTRA_ARGS
 
 test: maturin --version | grep {{version}}
