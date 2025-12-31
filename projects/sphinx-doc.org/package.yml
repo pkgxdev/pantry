@@ -1,19 +1,20 @@
 distributable:
-  url: https://github.com/sphinx-doc/sphinx/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/sphinx-doc/sphinx/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
   github: sphinx-doc/sphinx
 
 dependencies:
-  python.org: '>=3.8<3.12'
+  python.org: ">=3.12"
 
-build: |
-  python-venv.sh {{prefix}}/bin/sphinx-build
-  cd "{{prefix}}"/bin
-  ln sphinx-build sphinx-apidoc
-  ln sphinx-build sphinx-autogen
-  ln sphinx-build sphinx-quickstart
+build:
+  - python-venv.sh {{prefix}}/bin/sphinx-build
+  - run:
+      - ln -s sphinx-build sphinx-apidoc
+      - ln -s sphinx-build sphinx-autogen
+      - ln -s sphinx-build sphinx-quickstart
+    working-directory: "{{prefix}}/bin"
 
 provides:
   - bin/sphinx-apidoc
@@ -21,7 +22,7 @@ provides:
   - bin/sphinx-build
   - bin/sphinx-quickstart
 
-test: |
-  sphinx-quickstart -pPorject -aAuthor -v1.0 -q .
-  sphinx-build . ./build
-  test -f build/index.html
+test:
+  - sphinx-quickstart -pPorject -aAuthor -v1.0 -q .
+  - sphinx-build . ./build
+  - test -f build/index.html
