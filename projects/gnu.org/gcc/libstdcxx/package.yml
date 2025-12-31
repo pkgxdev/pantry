@@ -29,19 +29,31 @@ build:
     # Applying ians patches on x86-64 too, since he sometimes gets fixes in faster, like:
     # https://github.com/orgs/Homebrew/discussions/5216
     # If we have a patch, apply it
-    - run: |
-        if test -n "$PATCH{{version.major}}{{version.minor}}"; then
-          curl "$PATCH{{version.major}}{{version.minor}}" | patch -p1
-        fi
+    - run:
+        - if test -n "$PATCH{{version.major}}{{version.minor}}"; then
+        - curl "$PATCH{{version.major}}{{version.minor}}" | patch -p1
+        - fi
       if: darwin
       working-directory: ..
 
     # if there's no diff yet, unpack iains' source over ours
-    - run: |
-        if test -n "$BRANCH{{version.major}}{{version.minor}}"; then
-          curl -L "$BRANCH{{version.major}}{{version.minor}}" | tar xz --strip-components=1
-        fi
+    - run:
+        - if test -n "$BRANCH{{version.major}}{{version.minor}}"; then
+        - curl -L "$BRANCH{{version.major}}{{version.minor}}" | tar xz --strip-components=1
+        - fi
       if: darwin
+      working-directory: ..
+
+    - run:
+        - if test "{{hw.platform}}/{{hw.arch}}" = "darwin/x86-64"; then
+        # Apply CFI directive fix for x86-64 Darwin (LLVM assembler compatibility)
+        - patch -p1 < props/disable-cfi-x86-64-darwin.patch
+        # Disable MS ABI stubs on Darwin - not needed and causes CFI/LLVM assembler issues
+        - patch -p1 < props/disable-msabi-darwin.patch
+        # Remove old frame registration symbols from darwin-unwind.ver (GCC 15+ doesn't provide these)
+        - patch -p1 < props/remove-old-frame-symbols-darwin.patch
+        - fi
+      if: =15.2
       working-directory: ..
 
     # On Linux, we need to statically link libstdc++ and libgcc
@@ -50,14 +62,19 @@ build:
     - run: export ARGS=($ARGS)
       if: darwin
 
+    # needed to get the LDFLAGS to libgfortran on darwin
+    # for -headerpad_max_install_names
+    - run: export LDFLAGS_FOR_TARGET="$LDFLAGS"
+      if: darwin
+
     - ../configure "${ARGS[@]}"
     - make --jobs {{ hw.concurrency }}
     - make install-target-libstdc++-v3 install-target-libgcc
 
     # On Linux, we need to move the libraries to the lib directory.
-    - run: |
-        mv lib64/* lib/
-        rmdir lib64
+    - run:
+        - mv lib64/* lib/
+        - rmdir lib64
       if: linux
       working-directory: ${{prefix}}
 
@@ -84,6 +101,7 @@ build:
     BRANCH142: https://github.com/iains/gcc-14-branch/archive/refs/heads/gcc-14-2-darwin-pre-0.tar.gz
     BRANCH143: https://github.com/iains/gcc-14-branch/archive/refs/heads/gcc-14-3-darwin-pre-0.tar.gz
     BRANCH151: https://github.com/iains/gcc-15-branch/archive/refs/heads/gcc-15-1-darwin-rc1.tar.gz
+    BRANCH152: https://github.com/iains/gcc-15-branch/archive/refs/heads/gcc-15-2-darwin-pre-0.tar.gz
     ARGS:
       - --prefix={{ prefix }}
       - --libdir={{ prefix }}/lib
@@ -106,6 +124,7 @@ build:
         - -fPIC
         - -fPIE
     darwin:
+      LDFLAGS: $LDFLAGS -Wl,-headerpad_max_install_names
       ARGS:
         # Reliance on CLT hard path is yuck.
         - --with-sysroot=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
