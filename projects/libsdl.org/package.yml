@@ -8,20 +8,20 @@ versions:
 dependencies:
   linux:
     # all since v3.2.0
-    alsa-project.org/alsa-lib: '>=1.0.11'
-    x.org/x11: '*'
-    x.org/xcursor: '*'
-    x.org/xi: '*'
-    x.org/xrandr: '*'
-    x.org/xfixes: '*'
-    x.org/xrender: '*'
-    x.org/xscrnsaver: '*'
-    x.org/exts: '*'
+    alsa-project.org/alsa-lib: ">=1.0.11"
+    x.org/x11: "*"
+    x.org/xcursor: "*"
+    x.org/xi: "*"
+    x.org/xrandr: "*"
+    x.org/xfixes: "*"
+    x.org/xrender: "*"
+    x.org/xscrnsaver: "*"
+    x.org/exts: "*"
 
 build:
   dependencies:
-    gnu.org/autoconf: '*'
-    gnu.org/automake: '*'
+    gnu.org/autoconf: "*"
+    gnu.org/automake: "*"
     gnu.org/libtool: 2
     cmake.org: ^3
   script:
@@ -30,10 +30,15 @@ build:
         - make --jobs {{ hw.concurrency }} install
       if: <3.2
     - run:
+        - if test "{{hw.platform}}" = "linux"; then
+        - export CMAKE_ARGS="$CMAKE_ARGS -DSDL_X11_XTEST=OFF"
+        - fi
+      if: ">=3.4"
+    - run:
         - cmake -S .. $CMAKE_ARGS
         - cmake --build .
         - cmake --install .
-      if: '>=3.2'
+      if: ">=3.2"
       working-directory: build
 
     # often stuff expects SDL.h to be directly in the include-path
@@ -44,7 +49,7 @@ build:
       working-directory: ${{prefix}}/include
 
     - run: find . -name '*.la' -exec rm -f {} \;
-      working-directory: '{{prefix}}/lib'
+      working-directory: "{{prefix}}/lib"
 
   env:
     ARGS:
