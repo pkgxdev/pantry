@@ -176,13 +176,19 @@ test:
   - gcc --version | grep -q "pkgx GCC {{version}}"
   - gcc -print-libgcc-file-name
   - gcc -print-multiarch
-  # gha mac runners have broken SDKs...
+  # some gha mac runners have broken SDKs...
   - run:
-      - if ! test -f /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/AvailabilityInternalLegacy.h; then
+      - if ! test -f /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/AvailabilityInternalLegacy.h || ! test -f ; then
       - echo "Missing SDK; skipping remaining tests"
       - exit 0
       - fi
     if: darwin
+  - run:
+      - if test "{{hw.platform}}" = "darwin" && ! test -f /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/_bounds.h || ! test -f ; then
+      - echo "Missing SDK; skipping remaining tests"
+      - exit 0
+      - fi
+    if: ">=15.2"
   - gcc -o test1 test.c -lgmp
   - ./test1
   - g++ -o test2 test.cc
