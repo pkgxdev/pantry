@@ -50,6 +50,12 @@ test:
   #   linux:
   #     swift.org: '>=5.10'
   script:
+    - run: |
+        if ! test -f /usr/lib/swift/libswiftSynchronization.dylib; then
+          echo 'skipping test: missing libswiftSynchronization.dylib'
+          exit 0
+        fi
+      if: ">=3.4"
     - test "$(periphery version)" = {{version}}
     - SWIFT_VERSION=$(swift --version 2>&1 | sed -n 's/.*Swift version \([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/p')
     - |
@@ -57,12 +63,6 @@ test:
         echo 'skipping test: swift version too old'
         exit 0
         fi
-    - run: |
-        if ! test -f /usr/lib/swift/libswiftSynchronization.dylib; then
-          echo 'skipping test: missing libswiftSynchronization.dylib'
-          exit 0
-        fi
-      if: ">=3.4"
     - swift package init --name test --type executable
     - swift build --disable-sandbox
     - swift package --disable-sandbox describe --type json | tee manifest.json
