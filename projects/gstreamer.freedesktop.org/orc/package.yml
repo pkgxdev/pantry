@@ -4,18 +4,20 @@ distributable:
 
 versions:
   url: https://gstreamer.freedesktop.org/src/orc/
-  match: /orc-\d+\.\d+\.\d+\.tar\.xz/ 
+  match: /orc-\d+\.\d+\.\d+\.tar\.xz/
   strip:
     - /^orc-/
     - /\.tar\.xz$/
 
 build:
   dependencies:
-    mesonbuild.com: '*'
-    ninja-build.org: '*'
+    mesonbuild.com: "*"
+    ninja-build.org: "*"
   working-directory: build
   script:
-    - meson $ARGS -Dgtk_doc=disabled ..
+    - run: export ARGS="$(echo $ARGS | sed s'/gtk_doc/hotdoc/')"
+      if: ">=0.4.42"
+    - meson $ARGS ..
     - ninja -v
     - ninja install -v
   env:
@@ -24,6 +26,7 @@ build:
       - --libdir="{{prefix}}/lib"
       - --buildtype=release
       - --wrap-mode=nofallback
+      - -Dgtk_doc=disabled
 
 provides:
   - bin/orcc
@@ -31,5 +34,5 @@ provides:
 
 test:
   dependencies:
-    freedesktop.org/pkg-config: '*'
+    freedesktop.org/pkg-config: "*"
   script: pkg-config --modversion orc-{{version.marketing}} | grep {{version}}
