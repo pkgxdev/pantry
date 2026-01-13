@@ -14,7 +14,7 @@ runtime:
 build:
   dependencies:
     go.dev: ^1.21.4
-    curl.se: '*'
+    curl.se: "*"
   script:
     - go build $GO_ARGS -ldflags="$GO_LDFLAGS" ./main
     - run:
@@ -44,44 +44,46 @@ provides:
 test:
   dependencies:
     linux:
-      gitlab.com/procps-ng/procps: '*'
-  fixture: |
-    {
-      "log": {
-        "access": "./log"
-      },
-      "outbounds": [
-        {
-          "protocol": "freedom",
-          "tag": "direct"
-        }
-      ],
-      "routing": {
-        "rules": [
-          {
-            "ip": [
-              "geoip:private"
-            ],
-            "outboundTag": "direct",
-            "type": "field"
-          },
-          {
-            "domains": [
-              "geosite:private"
-            ],
-            "outboundTag": "direct",
-            "type": "field"
-          }
-        ]
-      }
-    }
+      gitlab.com/procps-ng/procps: "*"
   script:
     - $KILL xray || true
-    - cat $FIXTURE > $HOME/config.json
+    - run: cp $FIXTURE $HOME/config.json
+      fixture: |
+        {
+          "log": {
+            "access": "./log"
+          },
+          "outbounds": [
+            {
+              "protocol": "freedom",
+              "tag": "direct"
+            }
+          ],
+          "routing": {
+            "rules": [
+              {
+                "ip": [
+                  "geoip:private"
+                ],
+                "outboundTag": "direct",
+                "type": "field"
+              },
+              {
+                "domains": [
+                  "geosite:private"
+                ],
+                "outboundTag": "direct",
+                "type": "field"
+              }
+            ]
+          }
+        }
     - xray run --config {{prefix}}/etc/xray/config.json &
     - sleep 3
-    - xray -c $HOME/config.json -test | grep 'Configuration OK.'
-    - xray version | grep {{version}}
+    - xray -c $HOME/config.json -test | tee out
+    - grep 'Configuration OK.' out
+    - xray version | tee out
+    - grep {{version}} out
     - $KILL xray
   env:
     darwin:
