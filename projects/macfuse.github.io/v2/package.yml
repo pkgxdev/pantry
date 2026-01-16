@@ -11,45 +11,39 @@ platforms:
 
 build:
   dependencies:
-    mesonbuild.com: "*"
-    ninja-build.org: "*"
     git-scm.org: ^2
+    gnu.org/autoconf: "*"
+    gnu.org/automake: "*"
+    gnu.org/libtool: "*"
+    gnu.org/gettext: "*"
   script:
     - git submodule update --init --recursive
 
     - run:
-        - meson setup .. $ARGS
-        - meson compile
-        - meson install
-      working-directory: Library-3/build
-    - run: |
-        sed 's/Name: fuse3/Name: fuse/' fuse3.pc > fuse.pc
-      working-directory: ${{prefix}}/lib/pkgconfig
-
-    - run:
-        - mv fuse3/* .
-        - rmdir fuse3
-        - ln -s . fuse3
-      working-directory: ${{prefix}}/include
+        - ./makeconf.sh
+        - ./configure $ARGS
+        - make -j {{ hw.concurrency }}
+        - make install
+      working-directory: Library-2
   env:
+    UDEV_RULES_PATH: ${{prefix}}/etc/udev/rules.d
+    INIT_D_PATH: ${{prefix}}/etc/init.d
     ARGS:
-      - -Dudevrulesdir={{prefix}}/etc/udev/rules.d
-      - -Dinitscriptdir={{prefix}}/etc/init.d
-      - -Dsysconfdir={{prefix}}/etc
-      - -Duseroot=false
       - --prefix={{prefix}}
 
 test:
   dependencies:
     darwin/x86-64:
       llvm.org: "*" # xcode spins for 15+ minutes on darwin/x86-64 runners
+  env:
+    CFLAGS: $CFLAGS -D_FILE_OFFSET_BITS=64
   script:
-    - run: cc $FIXTURE -lfuse3 -o test
+    - run: cc $FIXTURE -lfuse -o test $CFLAGS
       fixture:
         extname: c
         content: |
-          #define FUSE_USE_VERSION 31
-          #include <fuse3/fuse.h>
+          #define FUSE_USE_VERSION 28
+          #include <fuse/fuse.h>
           #include <stdio.h>
           int main() {
             printf("%d%d\\n", FUSE_MAJOR_VERSION, FUSE_MINOR_VERSION);
