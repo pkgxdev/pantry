@@ -1,29 +1,31 @@
 distributable:
-  url: https://github.com/coredns/coredns/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/coredns/coredns/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
   github: coredns/coredns
+  ignore: /v0\d\d/ # pre v1.0.0 releases
 
 provides:
   - bin/coredns
 
 build:
-  script: |
-    make
-    mkdir -p "{{ prefix }}"/bin
-    mv coredns "{{ prefix }}"/bin/coredns
+  script: go build -ldflags "$GO_LDFLAGS" -o {{ prefix }}/bin/coredns
   dependencies:
-    go.dev: ^1.18
+    go.dev: ~1.24.0
 
   env:
-    LDFLAGS:
-      [-s, -w, "-X=main.Version={{version}}"]
+    GO_LDFLAGS:
+      - -s
+      - -w
+      - -X main.Version={{version}}
+      - -X github.com/coredns/coredns/coremain.GitCommit=pkgx
     linux:
       # or segmentation fault
       # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
-      LDFLAGS:
-      - -buildmode=pie
+      GO_LDFLAGS:
+        - -buildmode=pie
 
-test: |
-  coredns --version
+test:
+  - coredns --version | tee out
+  - grep {{version}} out
