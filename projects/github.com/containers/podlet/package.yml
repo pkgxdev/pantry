@@ -1,132 +1,26 @@
-# this is a basic template for packages we strongly recommend looking at the
-# contents of both:
-#
-# * https://github.com/pkgxdev/pantry
-#
-# as a learning guide and reference. For example, if you are package a `go`
-# project, then browse the listings and find a go package.
-
-
-# this is the source tarball. Swap the version out for {{version}} or we won’t
-# be able to upgrade the package when it updates!
 distributable:
-  #url: https://example.com/v{{version}}.tar.gz
   url: https://github.com/containers/podlet/archive/refs/tags/{{ version.tag }}.tar.gz
-  # this obscure option dictates how many components are removed from the
-  # extracted tarball. It only works with tarballs. You almost always want
-  # `1`. If after extraction the src-directory is funky try `0` or `2`.
   strip-components: 1
-  # alternatively, we can use direct git checkouts from refs
-  # but we should prefer official source distributions.
-  # often CI/CD will do some post-processing of the source
-  # for release, including setting version numbers, running
-  # autotools, etc.
-  #url: git+https://github.com/user/repo
-  #ref: v{{version}}}
 
-# if omitted, most tools will work by looking at either the provides: list, or require the
-# fully-qualified name of the package. providing a display-name looks better in `pkgxdev/ossapp`
-# and allows simpler commands like `pkgx install common-package-name`. this _should never_ conflict
-# with any other display-name, or we will become upset and probably yell and stuff.
 display-name: podlet
 
-# if there’s a github then we can parse the versions
 versions:
-  # if the repo has a github then we can parse versions
-  # this should be one of these (remove the rest or the YAML won’t parse)
-  #github: user/repo  # reads github tags but only tags of releases (this is usually what you want)
-  #github: user/repo/tags  # reads github tags from github
-  #github: user/repo/releases  # reads github release *titles* (for some repos this can work better)
   github: containers/podlet
 
-  # we also natively support gitlab releases and tags
-  # including gitlab.com and self-hosted gitlab instances
-  #gitlab: user/repo
-  #gitlab: user/repo/tags
-  #gitlab: user/repo/releases
-  # we support using project IDs, which can be found in the project’s settings
-  #gitlab: 1234567
-  #gitlab: 1234567/tags
-  #gitlab: 1234567/releases
-  # and all of the above with a custom gitlab instance
-  #gitlab: gitlab.example.com:user/repo
-  #gitlab: gitlab.example.com:user/repo/tags
-  #gitlab: gitlab.example.com:user/repo/releases
-  #gitlab: gitlab.example.com:1234567
-  #gitlab: gitlab.example.com:1234567/tags
-  #gitlab: gitlab.example.com:1234567/releases
-
-  # Alternatively, we have a generic web scraper that can parse versions from
-  # any website. This is useful for projects that don’t have a github or
-  # don’t use tags/releases. It works in three parts:
-  #url: https://example.com/  # the url to scrape
-  #match: /package-name-\d+\.\d+\.\d+\.tar\.gz/  # a regex to find versions
-  # ^^ REMOVE ALL BUT ONE!
-
-  # often maintainers prepend or append junk, this can be a single or an array of regexes.
-  # almost always required with web scraping.
-  strip:
-    - /^prefixed-garbage-/
-    - /-suffixed-garbage$/
-
-# this is an key/list of platforms that the package supports
-# usually omitted, which will default to all platforms
 platforms:
   - darwin
   - linux/x86-64
 
-dependencies:
-  # to figure out dependencies you can read the project’s README
-  # however it is often easier to read the [brew formula](https://formulae.brew.sh/formula/)
-  #
-  # see dist.pkgx.dev for the packages pkgx provides
-  # if you need a package that isn’t there, you may need to build it!
-  #
-  # see semver.org for version specifications
-  #foo.com: ^1.2.3
-
 build:
   dependencies:
-    #cmake.org: ^3
     rust-lang.org: '>=1.7.0'
     rust-lang.org/cargo: '*'
-    # ^^ use fully qualified names
-  script: |
-    #./configure $ARGS
-    #make --jobs {{ hw.concurrency }} install
-    cargo install --locked --path . --root {{prefix}}
-  # ^^ it’s extremely common for packages to require the above
-
-  # script also supports a list of commands, which is useful for complex builds
-  # or if you want to run a command in a different directory
-  #script:
-  #  - ./configure $ARGS
-  #  - make --jobs {{ hw.concurrency }} install
-  #  - run: ls -l
-  #    working-directory: ${{prefix}}/bin
-  #  - run: cat $PROP > foo
-  #    working-directory: ${{prefix}}/bin
-  #    prop: |
-  #      #!/bin/sh
-  #      exec ./bar $@
-  env:
-    # add any environment variables here
-    ARGS:
-      - --prefix="{{prefix}}"
-
+  script: cargo install --locked --path . --root {{prefix}}
 
 provides:
-  #- bin/foo
   - bin/podlet
-  # ^^ specify the binaries or pkgx shell integration won’t work
 
 test:
   dependencies:
-    #foo.com: '*'  # asterisk means “any version, usually the latest”
   script:
-    #test "$(foo --version)" = {{version}}
     podlet --version | grep {{version}}
-    # if it’s a tool check the version matches
-    # you should run the tool to check it works!
-    # if it's a library then you should *use* the library
-    # don’t forget to check other package.ymls in the pantry for examples!
