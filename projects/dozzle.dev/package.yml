@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/amir20/dozzle/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/amir20/dozzle/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
@@ -23,7 +23,8 @@ build:
     #   at FSWatcher._handle.onchange (node:internal/fs/watchers:214:21)
     - run: sudo launchctl limit maxfiles 16384 16384
       if: darwin/aarch64
-    - make -j {{hw.concurrency}} dist generate
+    # -j {{hw.concurrency}} can get too many open files.
+    - make dist generate
     - go build -ldflags "$GO_LDFLAGS" -o {{prefix}}/bin/dozzle .
   env:
     CGO_ENABLED: 0

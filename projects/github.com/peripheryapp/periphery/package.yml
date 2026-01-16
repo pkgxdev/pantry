@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/peripheryapp/periphery/archive/refs/tags/{{version}}.tar.gz
+  url: https://github.com/peripheryapp/periphery/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
@@ -9,8 +9,8 @@ platforms:
   - darwin
 
 dependencies:
-  curl.se: '*'
-  gnome.org/libxml2: '*'
+  curl.se: "*"
+  gnome.org/libxml2: "*"
 
 build:
   # dependencies:
@@ -26,7 +26,7 @@ build:
     - run:
         - swift build $SWIFT_ARGS
         - install -Dt {{prefix}}/bin .build/release/periphery
-      if: '>=3'
+      if: ">=3"
   env:
     SWIFT_ARGS:
       - --configuration release
@@ -43,20 +43,26 @@ provides:
 
 test:
   dependencies:
-    gnu.org/sed: '*'
-    crates.io/semverator: '*'
+    gnu.org/sed: "*"
+    crates.io/semverator: "*"
   #   darwin:
   #     apple.com/xcode: '>=15.3'
   #   linux:
   #     swift.org: '>=5.10'
   script:
+    - run: |
+        if ! test -f /usr/lib/swift/libswiftSynchronization.dylib; then
+          echo 'skipping test: missing libswiftSynchronization.dylib'
+          exit 0
+        fi
+      if: ">=3.4"
     - test "$(periphery version)" = {{version}}
     - SWIFT_VERSION=$(swift --version 2>&1 | sed -n 's/.*Swift version \([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/p')
     - |
       if ! semverator satisfies '>=5.10' $SWIFT_VERSION; then
         echo 'skipping test: swift version too old'
         exit 0
-      fi
+        fi
     - swift package init --name test --type executable
     - swift build --disable-sandbox
     - swift package --disable-sandbox describe --type json | tee manifest.json

@@ -23,7 +23,19 @@ provides:
   - bin/php-cs-fixer
 
 test:
-  - php-cs-fixer --version | grep {{version}}
-  - echo "<?php \$this->foo(   'Hello World!'   );" > test.php
+  - php-cs-fixer --version | tee out
+  - grep {{version}} out
+  - run: cp $FIXTURE test.php
+    fixture: "<?php $this->foo(   'Hello World!'   );"
+  # first run creates the config file
+  - run: php-cs-fixer fix test.php
+    if: <3.91
+  - run:
+      - cp $FIXTURE composer.json
+      # first run makes a config
+      - php-cs-fixer fix test.php
+      - php-cs-fixer fix test.php
+    fixture: '{}'
+    if: '>=3.91'
   - php-cs-fixer fix test.php
   - cat test.php | grep "\$this->foo('Hello World!');"

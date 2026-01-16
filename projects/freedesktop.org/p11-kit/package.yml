@@ -18,15 +18,29 @@ dependencies:
 
 build:
   dependencies:
-    freedesktop.org/pkg-config: '*'
     python.org: 3
+    # since 0.25.9
+    mesonbuild.com: '*'
+    ninja-build.org: '*'
   script:
-    - ./configure --prefix={{prefix}} --with-trust-paths={{deps.curl.se/ca-certs}}/ssl
-    - make -j {{ hw.concurrency }} install
+    - run:
+        - ./configure --prefix={{prefix}} --with-trust-paths={{deps.curl.se/ca-certs}}/ssl
+        - make -j {{ hw.concurrency }} install
+      if: <0.25.9
+    - run:
+        - meson setup build $MESON_ARGS
+        - meson compile -C build
+        - meson install -C build
+      if: '>=0.25.9'
     - run: find . -name '*.la' -exec rm {} \;
       working-directory: '{{prefix}}/lib'
     - run: ln -s p11-kit-1/p11-kit .
       working-directory: '{{prefix}}/include'
+  env:
+    MESON_ARGS:
+      - -Dsystemd=disabled
+      - --prefix={{prefix}}
+      - -Dtrust_paths={{deps.curl.se/ca-certs}}/ssl
 
 test:
   script: p11-kit list-modules

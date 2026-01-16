@@ -28,12 +28,36 @@ build:
         - ${{prefix}}/venv/bin/pip install .
         - bkpyvenv seal {{prefix}} btcli
       if: <8
+    # bad headerpad on macOS causing build failures
+    - run: 'python -m pip install --no-deps --force-reinstall --no-cache-dir -v --no-binary :all: --prefix={{prefix}} bittensor_drand'
+      if: '>=10'
     - run:
-        - pip install . --prefix={{prefix}}
-        - ln -s python{{deps.python.org.version.marketing}} {{prefix}}/lib/python{{deps.python.org.version.major}}
         # bad links to /opt/homebrew on darwin, aarch64 support on linux
         - 'python -m pip install --no-deps --force-reinstall --no-cache-dir -v --no-binary :all: --prefix={{prefix}} bittensor_wallet'
+        - pip install . --prefix={{prefix}} --no-build-isolation
+        - ln -s python{{deps.python.org.version.marketing}} {{prefix}}/lib/python{{deps.python.org.version.major}}
       if: '>=8'
+    # Library not loaded: /usr/local/opt/openssl@3/lib/libssl.3.dylib
+    # No such file or directory @ dir_initialize - /opt/homebrew/opt/openssl@3/lib (Errno::ENOENT)
+    - run: |
+        if test "{{hw.platform}}" = "darwin"; then
+          pkgx +openssl.org^3
+          cp -a {{pkgx.prefix}}/openssl.org/v3/lib/* {{prefix}}/lib/
+          otool -l bittensor_wallet/bittensor_wallet.cpython-311-darwin.so | grep -C5 openssl || true
+          install_name_tool -change ${HOMEBREW_PREFIX}/opt/openssl@3/lib/libssl.3.dylib {{prefix}}/lib/libssl.3.dylib bittensor_wallet/bittensor_wallet.cpython-311-darwin.so
+          install_name_tool -change ${HOMEBREW_PREFIX}/opt/openssl@3/lib/libcrypto.3.dylib {{prefix}}/lib/libcrypto.3.dylib bittensor_wallet/bittensor_wallet.cpython-311-darwin.so
+          otool -l bittensor_wallet/bittensor_wallet.cpython-311-darwin.so | grep -C5 openssl || true
+        fi
+      working-directory: '{{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages'
+      if: '>=10'
+  env:
+    darwin:
+      LDFLAGS: $LDFLAGS -Wl,-headerpad_max_install_names
+      OPENSSL_STATIC: '1'
+    darwin/x86-64:
+      HOMEBREW_PREFIX: /usr/local
+    darwin/aarch64:
+      HOMEBREW_PREFIX: /opt/homebrew
 
 test:
   dependencies:
@@ -57,7 +81,9 @@ test:
     - run: btcli --help | grep {{version}}
       if: <8
     - run: test "$(python -c 'import bittensor; print(bittensor.__version__)')" = "{{version}}"
-      if: '>=8'
+      if: '>=8<10'
+    - run: test "$(python -c 'import importlib.metadata; print(importlib.metadata.version("bittensor"))')" = "{{version}}"
+      if: '>=10'
 # removed in v8
 # provides:
 #   - bin/btcli

@@ -1,6 +1,8 @@
 distributable:
-  url: http://user-dirs.freedesktop.org/releases/xdg-user-dirs-{{version.tag}}.tar.gz
-  strip-components: 1
+  - url: https://user-dirs.freedesktop.org/releases/xdg-user-dirs-{{version.marketing}}.tar.xz
+    strip-components: 1
+  - url: https://user-dirs.freedesktop.org/releases/xdg-user-dirs-{{version.tag}}.tar.gz
+    strip-components: 1
 
 provides:
   - bin/xdg-user-dir
@@ -14,15 +16,27 @@ dependencies:
   gnu.org/libiconv: ^1.1
 
 build:
+  dependencies:
+    mesonbuild.com: '*' # >=0.19 uses meson build system
+    ninja-build.org: '*'
   script:
-    - ./configure
-        --prefix="{{ prefix }}"
-        --disable-documentation
-        # ^^ doesn’t build and docs don’t say what deps this needs to build
-    - make --jobs {{ hw.concurrency }} install
+    - run:
+        - ./configure
+          --prefix="{{ prefix }}"
+          --disable-documentation
+          # ^^ doesn’t build and docs don’t say what deps this needs to build
+        - make --jobs {{ hw.concurrency }} install
+      if: <0.19
+    - run:
+        - meson setup build $MESON_ARGS
+        - meson compile -C build
+        - meson install -C build
+      if: '>=0.19'
   env:
     # without this fails to add the transitive dependency
     LDFLAGS: -liconv
+    MESON_ARGS:
+      - --prefix={{ prefix }}
+      - -Ddocs=false
 
-test:
-  xdg-user-dir --help
+test: xdg-user-dir --help

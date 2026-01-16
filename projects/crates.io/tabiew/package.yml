@@ -10,21 +10,28 @@ versions:
 
 dependencies:
   linux:
-    openssl.org: '*'
+    openssl.org: "*"
 
 build:
   dependencies:
-    rust-lang.org/rustup: '*'
+    rust-lang.org/rustup: "*"
   script:
     # missed version bump
     - sed -i 's/^version = .*/version = "{{ version }}"/' Cargo.toml
     # requires nightly as of 0.10.0 for a polars feature
     - run:
+        - CHAIN=nightly
+        - POLARS="--features 'polars/nightly'"
+      if: <0.12
+    # switched to stable in 0.12.0
+    - run: CHAIN=stable
+      if: ">=0.12"
+    - run:
         - ln -sf {{deps.rust-lang.org/rustup.prefix}}/bin/rustup .
-        - rustup default nightly
+        - rustup default $CHAIN
         - ln -sf $HOME/.rustup/toolchains/*/bin/* .
       working-directory: $HOME/.cargo/bin
-    - cargo install --locked --path . --root {{prefix}} --features "polars/nightly"
+    - cargo install --locked --path . --root {{prefix}} $POLARS
   env:
     PATH: $HOME/.cargo/bin:$PATH
 

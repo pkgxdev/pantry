@@ -18,13 +18,15 @@ dependencies:
   github.com/json-c/json-c: 0.18
   gnu.org/libidn2: 2.3
   jemalloc.net: 5
-  # since 9.21.10
-  mesonbuild.com: 1
-  ninja-build.org: '*'
   linux:
     kernel.org/libcap: '*'
 
 build:
+  dependencies:
+    # since 9.21.10
+    mesonbuild.com: 1
+    cmake.org: 3
+    ninja-build.org: '*'
   env:
     ARGS:
       - --prefix="{{prefix}}"
@@ -34,8 +36,11 @@ build:
       - --with-lmdb={{deps.openldap.org/liblmdb.prefix}}
     MESON_ARGS:
       - --prefix="{{prefix}}"
-    # dyld[] missing symbol called
-    MACOSX_DEPLOYMENT_TARGET: 14.0
+    darwin:
+      MESON_ARGS:
+        - -Dnamed-lto=disabled # since 9.21.14, requires ld.lld
+      # dyld[] missing symbol called
+      MACOSX_DEPLOYMENT_TARGET: 14.0
   script:
     - run:
         - ./configure $ARGS
@@ -43,7 +48,7 @@ build:
       if: <9.21.10
     - run:
         - meson setup build $MESON_ARGS
-        - meson compile -C build
+        - meson compile -C build -j4 # high concurrency leads to failed races.
         - meson install -C build
       if: '>=9.21.10'
 

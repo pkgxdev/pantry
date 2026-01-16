@@ -17,20 +17,20 @@ build:
     go.dev: ^1.18
     linux:
       gnu.org/gcc: '*' # aarch64 wants `ld.gold`
+      gnu.org/binutils: ~2.44 # ld.gold is deprecated
   env:
     GOBIN: '{{prefix}}/bin'
     GO111MODULE: on
-    LDFLAGS:
+    GO_LDFLAGS:
       - -s
       - -w
       - -X=sigs.k8s.io/kustomize/api/provenance.version=kustomize/v{{version}}
     linux:
       # https://github.com/docker-library/golang/issues/402#issuecomment-982204575
-      LDFLAGS:
+      GO_LDFLAGS:
         - -buildmode=pie
-  script: go install -v -ldflags="$LDFLAGS" ./kustomize
+  script: go install -v -ldflags="$GO_LDFLAGS" ./kustomize
 
 test:
-  script: |
-    test "$(kustomize version) = {{ version }}"
-    kustomize build .
+  - test "$(kustomize version) = {{ version }}"
+  - kustomize build .

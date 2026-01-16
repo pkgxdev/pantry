@@ -1,24 +1,28 @@
 distributable:
-  url: https://github.com/qpdf/qpdf/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/qpdf/qpdf/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 display-name: qpdf
 
 versions:
   github: qpdf/qpdf
-  strip: /v/
 
 dependencies:
   zlib.net: ^1
   libjpeg-turbo.org: ^2
   openssl.org: ^1.1
   gnutls.org: ^3
+  linux:
+    gnu.org/gcc/libstdcxx: ^13 # needs newer libstdc++ for C++20 support
+
 build:
   dependencies:
     cmake.org: ^3
-    pyyaml.org/libyaml: '*'
+    pyyaml.org/libyaml: "*"
     python.org: ^3
-    pip.pypa.io: '*'
+    pip.pypa.io: "*"
+    linux:
+      gnu.org/gcc: ^13
   working-directory: build
   script:
     # requires pyyaml to build
@@ -32,6 +36,8 @@ build:
       -DCMAKE_INSTALL_PREFIX={{ prefix }}
       -DCMAKE_BUILD_TYPE=Release
       -DBUILD_DOC=0
+      -DCMAKE_CXX_STANDARD=20
+      -DCMAKE_CXX_STANDARD_REQUIRED=ON
       ..
     - cmake --build .
     - cmake --install .

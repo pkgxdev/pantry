@@ -8,9 +8,14 @@ versions:
 dependencies:
   pkgx.sh: 1
 
+runtime:
+  env:
+    # otherwise it doesn't use the path, for mysterious reasons, and checks /usr/bin preferentially.
+    ANSIBLE_PYTHON_INTERPRETER: '{{prefix}}/venv/bin/python'
+
 build:
   dependencies:
-    python.org: '>=3.7<3.12'
+    python.org: '>=3.12' # as of 2.20.0
   script:
     - bkpyvenv stage {{prefix}} {{version}}
 

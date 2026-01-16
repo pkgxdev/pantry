@@ -18,6 +18,15 @@ provides:
 
 test:
   script:
+    # dyld[81931]: Library not loaded: /usr/lib/swift/libswift_stdio.dylib
+    #   Referenced from: <08CC92CD-1C64-3B00-A572-6E253BF0FF70> /Users/runner/.pkgx/github.com/mono0926/LicensePlist/v3.27.2/bin/license-plist (built for macOS 15.0 which is newer than running OS)
+    #   Reason: tried: '/usr/lib/swift/libswift_stdio.dylib' (no such file), '/System/Volumes/Preboot/Cryptexes/OS/usr/lib/swift/libswift_stdio.dylib' (no such file), '/usr/lib/swift/libswift_stdio.dylib' (no such file, not in dyld cache)
+    # /Users/runner/work/pantry/pantry/testbeds/github.com__mono0926__LicensePlist-3.27.2.sh: line 38: 81931 Abort trap: 6              license-plist --suppress-opening-directory
+    - run: |
+        if test "$(sw_vers -productVersion | cut -d . -f 1)" -lt 15; then
+          exit 0
+        fi
+      if: darwin
     - test ! -z "${LICENSE_PLIST_GITHUB_TOKEN}" || unset LICENSE_PLIST_GITHUB_TOKEN
     - echo 'github "realm/realm-swift" "v10.20.2"' > Cartfile.resolved
     - license-plist --suppress-opening-directory | tee out

@@ -1,0 +1,71 @@
+distributable:
+  url: https://capnproto.org/capnproto-c++-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://capnproto.org/install.html
+  match: /capnproto-c\+\+-\d+(\.\d+)+\.tar\.gz/
+  strip:
+    - /capnproto-c\+\+-/
+    - /\.tar\.gz/
+
+dependencies:
+  zlib.net: '*'
+  linux:
+    openssl.org: ^1.1
+
+build:
+  dependencies:
+    cmake.org: ^3
+  script:
+    - cmake -S . -B build_shared -DBUILD_SHARED_LIBS=ON $CMAKE_ARGS
+    - cmake --build build_shared
+    - cmake --install build_shared
+    - cmake -S . -B build_static -DBUILD_SHARED_LIBS=OFF $CMAKE_ARGS
+    - cmake --build build_static
+    - cp -a build_static/src/capnp/*.a build_static/src/kj/*.a {{prefix}}/lib
+  env:
+    CMAKE_ARGS:
+      - -DCMAKE_CXX_STANDARD=20
+      - -DCMAKE_INSTALL_RPATH={{ prefix }}/lib
+      - -DCMAKE_INSTALL_PREFIX={{ prefix }}
+      - -DCMAKE_INSTALL_LIBDIR={{ prefix }}/lib
+      - -DCMAKE_BUILD_TYPE=Release
+      - -Wno-dev
+      - -DCMAKE_CXX_FLAGS=-fPIC
+      - -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+
+provides:
+  - bin/capnp
+  - bin/capnpc
+  - bin/capnpc-c++
+  - bin/capnpc-capnp
+
+test:
+  - echo "$(capnp id);" | tee test.capnp
+  - echo 'const dave :Text ="Is a happy little duck";' >> test.capnp
+  - test "$(capnp eval test.capnp dave)" = '"Is a happy little duck"'
+  - run: cp $FIXTURE person.capnp
+    fixture: |
+      @0x8e0594c8abeb307c;
+      struct Person {
+        id @0 :UInt32;
+        name @1 :Text;
+        email @2 :Text;
+      }
+  - run: cp $FIXTURE test.cpp
+    fixture: |
+      #include "person.capnp.h"
+      #include <capnp/message.h>
+      #include <capnp/serialize-packed.h>
+      #include <iostream>
+      void printPerson(int fd) {
+        ::capnp::PackedFdMessageReader message(fd);
+        Person::Reader person = message.getRoot<Person>();
+
+        std::cout << person.getName().cStr() << ": "
+                  << person.getEmail().cStr() << std::endl;
+      }
+  - capnp compile -oc++ person.capnp
+  - c++ -c test.cpp -fPIC -std=c++1y -o test.o
+  - c++ -shared test.o -fPIC -lcapnp -lkj -o test.so

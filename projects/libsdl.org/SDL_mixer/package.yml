@@ -1,0 +1,45 @@
+distributable:
+  url: https://github.com/libsdl-org/SDL_mixer/releases/download/release-{{version}}/SDL{{version.major}}_mixer-{{version}}.tar.gz
+  strip-components: 1
+  
+display-name: SDL_mixer
+
+versions:
+  github: libsdl-org/SDL_mixer/releases
+  
+dependencies:
+  libsdl.org: ^2.0.9
+  mpg123.de: '*'
+  wavpack.com: '>=4'
+  xiph.org/vorbis: '*'
+
+build:
+  script: |
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --disable-music-gme
+      - --disable-music-midi-fluidsynth
+      - --disable-music-midi-native
+      - --disable-music-mod
+      - --disable-music-mp3-minimp3
+      - --disable-music-ogg-stb
+      - --disable-music-opus
+      - --enable-music-mp3-mpg123
+      - --enable-music-ogg-vorbis
+      - --enable-music-wavpack-dsd
+      
+test:
+  - run: cc $FIXTURE -lSDL2_mixer
+    fixture:
+      extname: c
+      contents: |
+        #include <SDL2/SDL_mixer.h>
+        
+        int main() {
+          SDL_version *version = Mix_Linked_Version();
+          return 0;
+        }
+  - ./a.out

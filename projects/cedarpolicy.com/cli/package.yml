@@ -15,8 +15,12 @@ build:
     rust-lang.org: '>=1.65'
     rust-lang.org/cargo: '*'
   script:
-    # version bump got missed in 3.1.1
-    - sed -i 's/^version = ".*"$/version = "{{version}}"/' Cargo.toml
+    # version bump got missed in 3.1.1, 4.5.1
+    - run: sed -i -f $PROP Cargo.toml */Cargo.toml
+      working-directory: ..
+      prop: |
+        s/^version = ".*"$/version = "{{version}}"/
+        s/^cedar-policy\([-a-z]*\) = { version = "=[0-9\.]*"/cedar-policy\1 = { version = "={{version}}"/
     - cargo install --locked --path . --root {{prefix}}
 
 test:

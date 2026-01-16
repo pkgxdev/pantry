@@ -16,8 +16,10 @@ build:
   dependencies:
     gnu.org/bison: '*'
     gnu.org/texinfo: '*'
+    facebook.com/zstd: '*'
     linux:
       gnu.org/gcc: '*'
+      perl.org: ~5.40 # perl modules require matching minors
   script:
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }}
@@ -25,6 +27,7 @@ build:
   env:
     ARGS:
       - --prefix={{ prefix }}
+      - --with-zstd
     linux:
       ARGS:
         - --enable-ld=yes
@@ -68,7 +71,8 @@ provides:
     - bin/gprofng
     - bin/ld
     - bin/ld.bfd
-    - bin/ld.gold
+    # oof. deprecated: https://lists.gnu.org/archive/html/info-gnu/2025-02/msg00001.html
+    # - bin/ld.gold
     - bin/nm
     - bin/objcopy
     - bin/objdump

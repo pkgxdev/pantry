@@ -9,14 +9,48 @@ versions:
 dependencies:
   zlib.net: ^1
   openexr.com/imath: '*'
+  linux:
+    gnu.org/gcc/libstdcxx: 14 # needed since 3.4.0
 
 build:
   dependencies:
     cmake.org: '*'
-    freedesktop.org/pkg-config: '*'
     git-scm.org: '*'
+    linux:
+      kernel.org/linux-headers: '*' # needs HWCAP2_SVE2 for aarch64 since 3.4.0
+      gnu.org/gcc: 14
   working-directory: build
   script:
+    # -shared and -pie don't mix
+    - run:
+        - cp $PROP g++-wrapper
+        - sed 's/g++/gcc/g' $PROP >gcc-wrapper
+        - chmod +x g++-wrapper
+        - chmod +x gcc-wrapper
+      prop: |
+        #!/bin/bash
+        # Capture all arguments into an array
+        ARGS=("$@")
+
+        # Check if the '-shared' flag is present in the arguments
+        if printf "%s\n" "${ARGS[@]}" | grep -q -e '-shared'; then
+
+          # Use a loop to filter out the '-pie' flag from the arguments
+          FILTERED_ARGS=()
+          for arg in "${ARGS[@]}"; do
+            if [ "$arg" != "-pie" ]; then
+              FILTERED_ARGS+=("$arg")
+            fi
+          done
+
+          # Pass the filtered arguments to g++
+          exec g++ "${FILTERED_ARGS[@]}"
+        else
+          # Pass the original arguments to g++
+          exec g++ "${ARGS[@]}"
+        fi
+      working-directory: $HOME/.local/bin
+      if: linux
     - cmake .. $ARGS
     - make install
   env:
@@ -27,6 +61,9 @@ build:
       ARGS:
         # since 3.3.0
         - -DCMAKE_EXE_LINKER_FLAGS="-Wl,-lstdc++fs"
+      CC: gcc-wrapper # since 3.2.5/3.3.6
+      CXX: g++-wrapper
+      PATH: $HOME/.local/bin:$PATH
 
 provides:
   - bin/exr2aces

@@ -15,8 +15,10 @@ build:
   script:
     - ./configure $ARGS
     - make --jobs {{hw.concurrency}} install
-    # FIXME: this is a hack; we need to fix fixup.ts
-    - run: sed -i 's/\+brewing//g' *.la pkgconfig/*.pc
+    - run:
+        # FIXME: this is a hack; we need to fix fixup.ts
+        - sed -i 's/\+brewing//g' *.la pkgconfig/*.pc
+        - find . -name '*.la' -exec rm {} \;
       working-directory: '{{prefix}}/lib'
   env:
     ARGS:
@@ -37,7 +39,10 @@ test:
     - iproxy -s localhost 2222:2223 &
     - PID=$!
     - sleep 2
-    - curl -v telnet://localhost:2222 2>&1 | grep 'Connected to localhost'
+    - curl -v telnet://localhost:2222 2>&1 | tee out
+    - grep 'Connected to localhost' out || grep 'Established connection to localhost' out
     - kill $PID
-    - iproxy -v | grep {{version}}
-    - inetcat -v | grep {{version}}
+    - iproxy -v | tee out
+    - grep {{version}} out
+    - inetcat -v | tee out
+    - grep {{version}} out

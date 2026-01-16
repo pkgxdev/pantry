@@ -12,6 +12,7 @@ dependencies:
   libevent.org: ^2
   zeromq.org: ^4
   sqlite.org: ^3
+  capnproto.org: ^1 # since 30.0
   linux:
     gnu.org/gcc/libstdcxx: '*' # c++20 support and libc++
 
@@ -25,6 +26,7 @@ build:
     ninja-build.org: '*'
     linux:
       gnu.org/gcc: '*' # c++20 support and libc++
+      nixos.org/patchelf: '*'
   script:
     - run:
         - ./autogen.sh
@@ -37,6 +39,12 @@ build:
         - cmake --install . --prefix {{prefix}}
       working-directory: build
       if: '>=29'
+    # sqlite3 full path in the bins
+    - run:
+        - patchelf --replace-needed {{deps.sqlite.org.prefix}}/lib/libsqlite3.so libsqlite3.so bitcoin-wallet
+        - patchelf --replace-needed {{deps.sqlite.org.prefix}}/lib/libsqlite3.so libsqlite3.so bitcoind
+      if: linux
+      working-directory: '{{prefix}}/bin'
   env:
     linux:
       LDFLAGS: $LDFLAGS -lstdc++fs

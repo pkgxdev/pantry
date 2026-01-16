@@ -22,7 +22,16 @@ build:
   script:
     - ./configure $ARGS --with-readline-ldflags="-L{{deps.gnu.org/readline.prefix}}/lib -lreadline"
     - make --jobs {{ hw.concurrency }} install
+    - run: |
+        if [ ! -f libsqlite3.$SUFFIX ]; then
+          ln -s libsqlite3.0.$SUFFIX libsqlite3.$SUFFIX
+        fi
+      working-directory: ${{prefix}}/lib
   env:
+    linux:
+      SUFFIX: so
+    darwin:
+      SUFFIX: dylib
     ARGS:
       - --prefix={{ prefix }}
       - --enable-readline

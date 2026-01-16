@@ -23,22 +23,24 @@ build:
     - run: patch -p1 < props/main.py.patch
       if: =0.0.3
 
-    - run: |
-        bkpyvenv stage --engine=poetry {{prefix}} {{version}}
-        poetry install
-        bkpyvenv seal --engine=poetry {{prefix}} gpte gpt-engineer
+    - run:
+        - bkpyvenv stage --engine=poetry {{prefix}} {{version}}
+        # stale lock file in 0.2.8
+        - poetry lock
+        - poetry install
+        - bkpyvenv seal --engine=poetry {{prefix}} gpte gpt-engineer
       if: '>=0.2.6'
 
-    - run: |
-        bkpyvenv stage --engine=poetry {{prefix}} {{version}}
-        poetry install --with=experimental
-        bkpyvenv seal --engine=poetry {{prefix}} gpte gpt-engineer
+    - run:
+        - bkpyvenv stage --engine=poetry {{prefix}} {{version}}
+        - poetry install --with=experimental
+        - bkpyvenv seal --engine=poetry {{prefix}} gpte gpt-engineer
       if: '>=0.2.1<0.2.6'
 
-    - run: |
-        bkpyvenv stage {{prefix}} {{version}}
-        {{prefix}}/venv/bin/pip install .
-        bkpyvenv seal {{prefix}} gpte gpt-engineer
+    - run:
+        - bkpyvenv stage {{prefix}} {{version}}
+        - ${{prefix}}/venv/bin/pip install .
+        - bkpyvenv seal {{prefix}} gpte gpt-engineer
       if: '<0.2.1'
 
     # https://github.com/AntonOsika/gpt-engineer/issues/204

@@ -1,0 +1,26 @@
+distributable:
+  url: https://github.com/lsof-org/lsof/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+display-name: lsof
+
+versions:
+  github: lsof-org/lsof
+
+build:
+  dependencies:
+    gnu.org/coreutils: '*'
+    gnu.org/make: '*'
+    llvm.org: '*'
+    linux:
+      gnu.org/binutils: '*'
+  script:
+    - ./Configure -n {{ hw.platform }}
+    - make --jobs {{ hw.concurrency }}
+    - install -d "{{prefix}}/bin"
+    - install -m 755 lsof "{{prefix}}/bin/lsof"
+
+provides:
+  - bin/lsof
+
+test: test "$(lsof -v 2>&1 | head -n2 | grep revision | tr -d ' ' | cut -d':' -f2)" = {{version}}

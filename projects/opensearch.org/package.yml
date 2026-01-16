@@ -9,30 +9,36 @@ versions:
 
 dependencies:
   openjdk.org: ^21 # since v3
-  openmp.llvm.org: ^17
+  openmp.llvm.org: ^19
 
 build:
   dependencies:
     cmake.org: 3
     git-scm.org: '*'
     gnu.org/wget: '*'
-    gnu.org/gcc: ^12 # for gfortran
+    gnu.org/gcc: ^11 # for gfortran
     linux:
       # on mac we use the Accelerate framework instead, on linux this is linked statically
-      openblas.net: '*'
+      netlib.org/lapack: '*'
 
   script:
     # there seems to be a loader bug with trying to dlopen libc on macos 12 and earlier.
     # remove this step when macos 12 and under are no longer supported.
-    - run: sed -i 's|JNAKernel32Library.getInstance();|//JNAKernel32Library.getInstance();|' server/src/main/java/org/opensearch/bootstrap/Bootstrap.java
-      if: darwin/x86-64
+    - run:
+        - if test "{{hw.platform}}+{{hw.arch}}" = "darwin+x86-64"; then
+        - sed -i 's|JNAKernel32Library.getInstance();|//JNAKernel32Library.getInstance();|' server/src/main/java/org/opensearch/bootstrap/Bootstrap.java
+        - fi
+      if: ^2
     - ./gradlew -Dbuild.snapshot=false ":distribution:archives:no-jdk-{{hw.platform}}-tar:assemble"
     - run: tar --strip-components=1 -xf $SRCROOT/distribution/archives/no-jdk-{{hw.platform}}-tar/build/distributions/opensearch-*.tar.gz
       working-directory: ${{prefix}}
     # there seems to be a loader bug with trying to dlopen libc on macos 12 and earlier.
     # remove this step when macos 12 and under are no longer supported.
-    - run: rm -f lib/jna-*.jar
-      if: darwin/x86-64
+    - run:
+        - if test "{{hw.platform}}+{{hw.arch}}" = "darwin+x86-64"; then
+        - rm -f lib/jna-*.jar
+        - fi
+      if: ^2
       working-directory: ${{prefix}}
     - run: 'sed -i "s|#\s*cluster.name: .*|cluster.name: opensearch_pkgx|" opensearch.yml'
       working-directory: ${{prefix}}/config
@@ -55,10 +61,12 @@ build:
 
     # workarounds for m1 build. see: https://github.com/opensearch-project/k-NN/blob/main/DEVELOPER_GUIDE.md#extra-setup-for-mac-m1-machines
     - run:
+        - if test "{{hw.platform}}+{{hw.arch}}" = "darwin+aarch64"; then
         - sed -i -e 's/-march=native/-mcpu=apple-m1/g' nmslib/similarity_search/CMakeLists.txt
         - sed -i -e 's/-mcpu=apple-a14/-mcpu=apple-m1/g' nmslib/python_bindings/setup.py
         - sed -i -e 's/__aarch64__/__undefine_aarch64__/g' faiss/faiss/utils/distances_simd.cpp
-      if: darwin/aarch64
+        - fi
+      if: <3.4.0
       working-directory: k-NN/jni/external
 
     - run:
@@ -79,7 +87,7 @@ build:
       working-directory: k-NN/jni/external/nmslib/similarity_search
       if: ^2
     - run:
-        - cmake .
+        - cmake . $CMAKE_ARGS
         - make
       working-directory: k-NN/jni
     - run: |
@@ -98,7 +106,11 @@ build:
         - cp -v ./jni/release/libopensearchknn* ./build/distributions/lib
         - cd ./build/distributions
         - zip -r opensearch-knn-{{version}}.0.zip lib/
-        - '{{prefix}}/bin/opensearch-plugin install --batch file:`pwd`/opensearch-knn-{{version}}.0.zip'
+        # the code doesn't like the + in the path
+        - TMP=$(mktemp -d /tmp/opensearch-knn-XXXXXX)
+        - rmdir $TMP
+        - ln -s {{prefix}} $TMP
+        - '$TMP/bin/opensearch-plugin install --batch file:`pwd`/opensearch-knn-{{version}}.0.zip'
       working-directory: k-NN
     - run: echo 'export JAVA_LIBRARY_PATH="$OPENSEARCH_HOME/plugins/opensearch-knn/lib:$JAVA_LIBRARY_PATH"' >> opensearch-env
       working-directory: ${{prefix}}/bin
@@ -110,6 +122,10 @@ build:
     linux/x86-64:
       # /opt/gnu.org/binutils/v2.43.1/bin/ld: release/libopensearchknn_faiss_avx2.so: undefined reference to `_gfortran_concat_string'
       LDFLAGS: $LDFLAGS -Wl,-lgfortran
+    linux:
+      CMAKE_ARGS:
+        - -DLAPACK_LIBRARIES={{deps.netlib.org/lapack.prefix}}/lib/liblapack.so.{{deps.netlib.org/lapack.version.major}}
+        - -DBLAS_LIBRARIES={{deps.netlib.org/lapack.prefix}}/lib/libblas.so.{{deps.netlib.org/lapack.version.major}}
 
 provides:
   - bin/opensearch
