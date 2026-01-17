@@ -10,7 +10,18 @@ provides:
 
 build:
   dependencies:
-    go.dev: ~1.24.1
+    go.dev: ~1.25
+    # as of 0.17.5, nak switched to cgofuse to support windows
+    # unfortunately, this requires v2 of libfuse on both linux and darwin
+    # we provided neither, so both had to be provided.
+    # at least now we provide libfuse's v2 api, via:
+    # linux: github.com/libfuse/libfuse^2
+    # darwin: macfuse.github.io/v2
+    linux:
+      gnu.org/gcc: "*" # since 0.17.5 for cgofuse
+      github.com/libfuse/libfuse: 2 # since 0.17.5
+    darwin:
+      macfuse.github.io/v2: "*" # since 0.17.5
   script:
     - go mod download
     # missing go.sum entry for module providing package golang.org/x/sync/errgroup (imported by fiatjaf.com/nostr/sdk); to add:
@@ -30,11 +41,12 @@ build:
         - -buildmode=pie
 
 test:
+  - nak --version
   - test "$(nak --version)" = "nak version v{{version}}"
   # needs hints.bg to be created
   - run:
       - mkdir -p ~/.config/nak/outbox
       - touch ~/.config/nak/outbox/hints.bg
-    if: '>=0.14'
+    if: ">=0.14"
   - nak event > out
   - nak verify <out
