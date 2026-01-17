@@ -11,10 +11,10 @@ platforms:
 
 build:
   dependencies:
-    mesonbuild.com: '*'
-    ninja-build.org: '*'
+    mesonbuild.com: "*"
+    ninja-build.org: "*"
     linux:
-      gnu.org/gcc: '*'
+      gnu.org/gcc: "*"
   working-directory: build
   script:
     # -shared and -pie don't mix
@@ -54,6 +54,11 @@ build:
         sed 's/Name: fuse3/Name: fuse/' fuse3.pc > fuse.pc
       working-directory: ${{prefix}}/lib/pkgconfig
 
+    - run:
+        - mv fuse3/* .
+        - rmdir fuse3
+        - ln -s . fuse3
+      working-directory: ${{prefix}}/include
   env:
     linux:
       PATH: $HOME/.local/bin:$PATH
