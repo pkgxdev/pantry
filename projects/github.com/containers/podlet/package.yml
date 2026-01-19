@@ -7,10 +7,6 @@ display-name: podlet
 versions:
   github: containers/podlet
 
-platforms:
-  - darwin
-  - linux/x86-64
-
 build:
   dependencies:
     rust-lang.org: '>=1.7.0'
@@ -20,7 +16,4 @@ build:
 provides:
   - bin/podlet
 
-test:
-  dependencies:
-  script:
-    podlet --version | grep {{version}}
+test: test "$(podlet --version | grep {{version}} | cut -f2 -d' ')" = {{version}}
