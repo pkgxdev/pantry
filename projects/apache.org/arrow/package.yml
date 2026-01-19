@@ -9,49 +9,53 @@ versions:
     - /^arrow-/
 
 dependencies:
-  github.com/aws/aws-sdk-cpp: '*'
-  github.com/google/brotli: '*'
-  sourceware.org/bzip2: '*'
-  google.com/glog: '*'
-  grpc.io: '*'
-  lz4.org: '*'
-  openssl.org: '*'
-  rapidjson.org: '*'
-  github.com/google/re2: '*'
-  google.github.io/snappy: '*'
-  apache.org/thrift: '*'
-  github.com/JuliaStrings/utf8proc: '*'
-  facebook.com/zstd: '*'
+  github.com/aws/aws-sdk-cpp: "*"
+  github.com/google/brotli: "*"
+  sourceware.org/bzip2: "*"
+  google.com/glog: "*"
+  grpc.io: "*"
+  lz4.org: "*"
+  openssl.org: "*"
+  rapidjson.org: "*"
+  github.com/google/re2: "*"
+  google.github.io/snappy: "*"
+  apache.org/thrift: "*"
+  github.com/JuliaStrings/utf8proc: "*"
+  facebook.com/zstd: "*"
   darwin:
     c-ares.org: 1
-    libcxx.llvm.org: ~17 # since 18.1.0
+    libcxx.llvm.org: ~17
   linux:
     protobuf.dev: 30.0.0 # match grpc.io, so gdal.org can build, we bundle on darwin
+    gnu.org/gcc/libstdcxx: 14
+
 build:
   dependencies:
-    boost.org: '*'
+    boost.org: "*"
     cmake.org: 3
-    ninja-build.org: '*'
-    python.org: '<3.12'
+    ninja-build.org: "*"
+    python.org: "<3.12"
     llvm.org: ~17
+    linux:
+      gnu.org/gcc: 14
   working-directory: cpp
   script:
     - cmake -B $BUILD_DIR $CMAKE_ARGS
     - cmake --build $BUILD_DIR
     - cmake --install $BUILD_DIR
-    - run: |
-        sed -i.bak "s|$PKGX_DIR|\${pcfiledir}/../../../..|g" ./*.pc
-        rm ./*.bak
-      working-directory: '{{prefix}}/lib/pkgconfig'
+    - run: sed -i "s|$PKGX_DIR|\${pcfiledir}/../../../..|g" ./*.pc
+      working-directory: "{{prefix}}/lib/pkgconfig"
   env:
     BUILD_DIR: $(mktemp -d)
-    CC: clang
-    CXX: clang++
-    LD: clang
+    darwin:
+      CC: clang
+      CXX: clang++
+      LD: clang
     CMAKE_ARGS:
       - -DCMAKE_INSTALL_PREFIX="{{prefix}}
       - -DCMAKE_INSTALL_LIBDIR=lib
       - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_CXX_STANDARD=20 # needed as of v23
       - -DCMAKE_FIND_FRAMEWORK=LAST
       - -DCMAKE_VERBOSE_MAKEFILE=ON
       - -Wno-dev
@@ -80,6 +84,9 @@ build:
       - -DPARQUET_BUILD_EXECUTABLES=ON
       - -GNinja
     linux:
+      CC: gcc
+      CXX: g++
+      LD: gcc
       # version script issues with newer LLVMs
       LDFLAGS: $LDFLAGS -Wl,--undefined-version
     x86-64:
@@ -93,9 +100,10 @@ provides:
 
 test:
   dependencies:
-    freedesktop.org/pkg-config: '*'
+    freedesktop.org/pkg-config: "*"
+  env:
   script:
-    - run: c++ $FIXTURE -std=c++17 -larrow -o test
+    - run: c++ $FIXTURE -std=c++20 -larrow -o test
       fixture:
         extname: cpp
         content: |
@@ -105,7 +113,7 @@ test:
             return 0;
           }
     - ./test
-    - run: c++ $FIXTURE -std=c++17 -larrow -o version
+    - run: c++ $FIXTURE -std=c++20 -larrow -o version
       fixture:
         extname: cpp
         content: |
