@@ -10,16 +10,28 @@ versions:
 
 build:
   dependencies:
-    rust-lang.org: ">=1.56"
-    rust-lang.org/cargo: "*"
+    rust-lang.org/rustup: "*"
   script:
+    - run: ln -sf {{deps.rust-lang.org/rustup.prefix}}/bin/rustup rustup
+      working-directory: $HOME/.cargo/bin
+    - run: rustup default stable
+      if: <1.3
+    - run: rustup default nightly
+      if: ">=1.3"
+    - run: ln -sf $HOME/.rustup/toolchains/*/bin/* .
+      working-directory: $HOME/.cargo/bin
+
     - run: cargo install --path . --root {{prefix}}
-      if: <0.11.10 || >=1
+      if: <0.11.10 || >=1<1.3
     - run: cargo install --path skim --root {{prefix}}
       if: ">=0.11.10<1"
+    - run: cargo install --path . --root {{prefix}} --features nightly-frizbee
+      if: ">=1.3"
     - cp bin/sk-tmux {{prefix}}/bin
     - mkdir -p {{prefix}}/share
     - cp -a shell man {{prefix}}/share/
+  env:
+    PATH: $HOME/.cargo/bin:$PATH
 
 test:
   - run: test "$(cat $FIXTURE | sk -f wld)" = "world"
