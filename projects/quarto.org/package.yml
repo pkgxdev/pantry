@@ -1,0 +1,28 @@
+distributable:
+  url: https://github.com/quarto-dev/quarto-cli/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: quarto-dev/quarto-cli/releases/tags  # reads github *releases* but uses the tags of those releases
+  strip: /^v/
+
+dependencies:
+  lua.org: '*' 
+
+build:
+  dependencies:
+    curl.se: '*'
+    info-zip.org/unzip: '*'
+  script: |
+    ./configure.sh
+  # ^FIXME configure to create relocatable symlinks, not write to /usr/bin
+  env:
+    - QUARTO_ROOT=${{prefix}}
+
+provides:
+  - bin/quarto
+
+test:
+  script:
+    test "$(quarto --version)" = {{version}}
+    # FIXME write a proper test rendering a QMD to HTML
