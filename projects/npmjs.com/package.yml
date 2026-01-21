@@ -10,7 +10,7 @@ provides:
   - bin/npx
 
 dependencies:
-  nodejs.org: '*'
+  nodejs.org: "*"
 
 build:
   - run: ARGS="--install-links"
@@ -27,13 +27,13 @@ build:
         fi
       done
     working-directory: node_modules
-    if: '>=9.8.0'
+    if: ">=9.8.0"
 
   - node . install --global --prefix={{prefix}} $ARGS
 
   # since January, npm warns on bad config names
   - run: sed -i 's/update_notifier/update-notifier/' props/npmrc
-    if: '>=11.2'
+    if: ">=11.2"
 
   # configures npm to install to ~/.local
   - mv props/npmrc {{prefix}}/lib/node_modules/npm
@@ -46,7 +46,7 @@ build:
 
 test:
   # doing first to test our shim works as expected
-  - npx -qy tldr ls
+  - test "$(npx -y semver --increment major 1.2.3)" = "2.0.0"
 
   - npm install --global cowsay
 
