@@ -1,23 +1,27 @@
 distributable:
-  url: https://github.com/eliben/pycparser/archive/release_v{{version.marketing}}.tar.gz
+  url: https://github.com/eliben/pycparser/archive/{{version.tag}}.tar.gz
   strip-components: 1
+
 versions:
   github: eliben/pycparser/tags
   strip: /^release_v/
+
 runtime:
   env:
-    PYTHONPATH: '{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages:$PYTHONPATH'
+    PYTHONPATH: "{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages:$PYTHONPATH"
+
 dependencies:
   python.org: ~3.11
+
 build:
-  script:
-    - python -m pip install --prefix={{prefix}} .
-    - mkdir -p {{prefix}}/pkgshare
-    - cp -r examples {{prefix}}/pkgshare/
-    - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
-      working-directory: '{{prefix}}/lib'
+  - python -m pip install --prefix={{prefix}} .
+  - mkdir -p {{prefix}}/pkgshare
+  - cp -r examples {{prefix}}/pkgshare/
+  - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
+    working-directory: "{{prefix}}/lib"
+
 test:
   dependencies:
     linux:
-      llvm.org: '*' # `cpp`
+      llvm.org: "*" # `cpp`
   script: python {{prefix}}/pkgshare/examples/c-to-c.py {{prefix}}/pkgshare/examples/c_files/basic.c
