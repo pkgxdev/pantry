@@ -9,17 +9,16 @@ platforms:
   - linux
 
 dependencies:
-  github.com/thkukuk/libnsl: '*'
-  sourceforge.net/libtirpc: '*'
-  github.com/besser82/libxcrypt: '*'
+  github.com/thkukuk/libnsl: "*"
+  sourceforge.net/libtirpc: "*"
+  github.com/besser82/libxcrypt: "*"
 
 build:
   dependencies:
-    freedesktop.org/pkg-config: '*'
-    gnu.org/gcc: '*'
-    gnu.org/make: '*'
-    mesonbuild.com: '*' # since 1.7.0
-    ninja-build.org: '*' # since 1.7.0
+    gnu.org/gcc: "*"
+    gnu.org/make: "*"
+    mesonbuild.com: "*" # since 1.7.0
+    ninja-build.org: "*" # since 1.7.0
   script:
     # 1.6.0 is missing an include
     - run: |
@@ -67,11 +66,11 @@ build:
         - meson setup build $MESON_ARGS
         - meson compile -C build --verbose
         - meson install -C build
-      if: '>=1.7.0'
+      if: ">=1.7.0"
     - run: sed -i "s|{{prefix}}|\$(dirname \$0)/..|g" pam_namespace_helper
-      working-directory: '{{prefix}}/sbin'
+      working-directory: "{{prefix}}/sbin"
     - run: find . -name '*.la' -exec rm {} \;
-      working-directory: '{{prefix}}/lib'
+      working-directory: "{{prefix}}/lib"
   env:
     linux:
       PATH: $HOME/.local/bin:$PATH
@@ -97,6 +96,7 @@ build:
       - -Dsecuredir={{prefix}}/lib/security
       - -Dsysconfdir={{prefix}}/etc
       - -Dxml-catalog={{prefix}}/etc/xml/catalog
+      - -Dvendordir={{prefix}}/share/pam
       - -Dexamples=false
 
 provides:
@@ -108,8 +108,8 @@ provides:
 
 test:
   dependencies:
-    freedesktop.org/pkg-config: '*'
-    gnu.org/gcc: '*'
+    freedesktop.org/pkg-config: "*"
+    gnu.org/gcc: "*"
   script:
     - mkhomedir_helper || echo $? | grep 14
     - pkg-config --modversion pam | grep {{version}}
