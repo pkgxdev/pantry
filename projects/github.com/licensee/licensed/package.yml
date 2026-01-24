@@ -8,10 +8,6 @@ versions:
 dependencies:
   ruby-lang.org: ~3.4
   rubygems.org: "*"
-  linux:
-    gnome.org/libxml2: ~2.13 # for nokogiri, ABI changes in 2.14
-    gnome.org/libxslt: ~1.1.43 # for nokogiri
-    pcre.org: 8 # for nokogiri
 
 companions:
   linux:
@@ -20,6 +16,7 @@ companions:
 build:
   dependencies:
     cmake.org: ^4 # for Rugged
+    tukaani.org/xz: "*" # for nokogiri
   env:
     GEM_HOME: ${{prefix}}
     GEM_PATH: ${{prefix}}
@@ -31,7 +28,7 @@ build:
     # 1.18.10 to stay with libxml2 2.13 ABI
     - run:
         - gem uninstall nokogiri --all --ignore-dependencies
-        - gem install nokogiri -v 1.18.8 --platform=ruby -- --use-system-libraries
+        - gem install nokogiri -v 1.18.8 --platform=ruby
       if: linux
 
     - gem build licensed.gemspec
