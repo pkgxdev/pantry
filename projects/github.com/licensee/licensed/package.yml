@@ -28,9 +28,10 @@ build:
     - bundle config set without development test
     - bundle install
     # build nokogiri from source for linux for glibc version compatibility
+    # 1.18.10 to stay with libxml2 2.13 ABI
     - run:
         - gem uninstall nokogiri --all --ignore-dependencies
-        - gem install nokogiri --platform=ruby -- --use-system-libraries
+        - gem install nokogiri -v 1.18.10 --platform=ruby -- --use-system-libraries
       if: linux
 
     - gem build licensed.gemspec
