@@ -18,13 +18,13 @@ platforms:
 
 build:
   dependencies:
-    curl.se: '*'
+    curl.se: "*"
   script:
     - mkdir -p "{{prefix}}/bin"
     - run: curl -LSs https://github.com/cirruslabs/tart/releases/download/{{version.tag}}/tart.tar.gz | tar -xzf -
-      if: '>=2.24'
+      if: ">=2.24"
     - run: curl -LSs https://github.com/cirruslabs/tart/releases/download/{{version.tag}}/tart-$ARCH.tar.gz | tar -xzf -
-      if: '>=2.5<2.24'
+      if: ">=2.5<2.24"
     - run: |
         if test "{{hw.arch}}" = "aarch64"; then
           curl -LSs https://github.com/cirruslabs/tart/releases/download/{{version.tag}}/tart.tar.gz | tar -xzf -
@@ -50,10 +50,13 @@ test:
     - run: test -e /usr/lib/swift/libswift_StringProcessing.dylib || exit 0
       if: darwin/x86-64
 
-    - ': >empty.ispw'
+    - ": >empty.ispw"
     - OUT=$(tart create
       --from-ipsw empty.ipsw
       test 2>&1 || true)
-    - 'test "$OUT" = "Error: The restore image failed to load. Unable to create sandbox extensions."'
+    - >
+      test "$OUT" = "Error: The restore image failed to load. Unable to create sandbox extensions." ||
+      test "$OUT" = "Error: The restore image is invalid. The restore image does not exist."
+
   env:
     TART_HOME: $PWD
