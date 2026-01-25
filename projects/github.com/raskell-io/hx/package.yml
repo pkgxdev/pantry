@@ -10,16 +10,18 @@ versions:
 provides:
   - bin/hx
 
+companions:
+  haskell.org: "*"
+  haskell.org/cabal: "*"
+
 build:
   dependencies:
     rust-lang.org: '>=1.85'
     rust-lang.org/cargo: '*'
-    freedesktop.org/pkg-config: '*'
     openssl.org: ^1.1
-  script:
-    - cargo install --root={{prefix}} --locked --path=crates/hx-cli
+  script: cargo install --root={{prefix}} --locked --path=crates/hx-cli
 
 test:
-  script:
-    - hx --version | grep {{version}}
-    - hx doctor
+  - hx --version | tee out
+  - grep {{version}} out
+  - hx doctor
