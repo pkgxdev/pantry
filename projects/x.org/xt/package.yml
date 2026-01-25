@@ -10,20 +10,20 @@ versions:
     - /.tar.gz/
 
 dependencies:
-  x.org/ice: '*'
-  x.org/sm: '*'
-  x.org/x11: '*'
+  x.org/ice: "*"
+  x.org/sm: "*"
+  x.org/x11: "*"
 
 build:
-  dependencies:
-    freedesktop.org/pkg-config: ~0.29
-  script: |
-    ./configure \
-      --prefix="{{prefix}}" \
-      --sysconfdir="$SHELF"/etc \
-      --localstatedir="$SHELF"/var \
+  script:
+    - ./configure
+      --prefix="{{prefix}}"
+      --sysconfdir="$SHELF"/etc
+      --localstatedir="$SHELF"/var
       --with-appdefaultdir="$SHELF"/etc/X11/app-defaults
-    make --jobs {{ hw.concurrency }} install
+    - make --jobs {{ hw.concurrency }} install
+    - run: find . -name \*.la -exec rm -f {} \;
+      working-directory: "{{prefix}}/lib"
   env:
     SHELF: ${{pkgx.prefix}}/x.org
 
