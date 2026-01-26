@@ -11,8 +11,14 @@ versions:
     - /^LMDB_/
 
 build:
-  - sed -i -e 's/^prefix\t=/prefix\t?=/' Makefile
-  - make prefix={{prefix}} --jobs {{ hw.concurrency }} install
+  dependencies:
+    darwin:
+      gnu.org/patch: "*"
+  script:
+    - run: patch -p1 < props/mdb-darwin-fix.patch
+      if: darwin
+    - sed -i -e 's/^prefix\t=/prefix\t?=/' Makefile
+    - make prefix={{prefix}} --jobs {{ hw.concurrency }} install
 
 provides:
   - bin/mdb_copy
