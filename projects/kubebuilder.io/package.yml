@@ -1,19 +1,26 @@
 distributable:
-  url: https://github.com/kubernetes-sigs/kubebuilder/archive/refs/tags/{{version.tag}}.tar.gz
-  strip-components: 1
+  url: git+https://github.com/kubernetes-sigs/kubebuilder
+  ref: ${{version.tag}}
 
 versions:
   github: kubernetes-sigs/kubebuilder
 
 build:
   dependencies:
-    go.dev: ~1.23
-    gnu.org/coreutils: '*'
+    go.dev: ~1.25.3 # as of v4.11.1
+    gnu.org/coreutils: "*"
+    goreleaser.com: "*" # as of v4.11.1
   script:
     - run: go build -ldflags="$GO_LDFLAGS" -o '{{prefix}}/bin/kubebuilder' ./cmd
       if: <4.5.2
     - run: go build -ldflags="$GO_LDFLAGS" -o '{{prefix}}/bin/kubebuilder'
-      if: '>=4.5.2'
+      if: ">=4.5.2<4.11.1"
+    - run:
+        # make git clean
+        - rm -r props
+        - goreleaser build --clean --single-target --skip=validate
+        - install -Dm755 dist/kubebuilder_$(go env GOOS)_$(go env GOARCH)*/kubebuilder '{{prefix}}/bin/kubebuilder'
+      if: ">=4.11.1"
   env:
     CGO_ENABLED: 0
     GO_LDFLAGS:
@@ -34,11 +41,14 @@ provides:
 
 test:
   dependencies:
-    gnu.org/grep: '*'
+    gnu.org/grep: "*"
     go.dev: ^1.21
   script:
-    - kubebuilder version
-    - kubebuilder version | grep 'KubeBuilderVersion:"{{version}}"'
+    - kubebuilder version | tee out
+    - run: grep 'KubeBuilderVersion:"{{version}}"' out
+      if: <4.11.1
+    - run: grep 'KubeBuilder:.*{{version}}' out
+      if: ">=4.11.1"
     - run:
         - go mod init example.com
         - kubebuilder init --plugins go/v4 --project-version 3 --skip-go-version-check
