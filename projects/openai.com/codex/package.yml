@@ -12,21 +12,24 @@ versions:
   github: openai/codex
   strip: /^rust-v/
 
-dependencies:
-  openssl.org: ^1.1
-
 companions:
-  crates.io/ripgrep: '*'
-  git-scm.org: '>=2.39'
+  crates.io/ripgrep: "*"
+  git-scm.org: ">=2.39"
 
 build:
   dependencies:
-    rust-lang.org: '>=1.89'
+    rust-lang.org: ">=1.89"
   script:
     - cargo install --locked --path codex-rs/exec --root {{prefix}}
     - cargo install --locked --path codex-rs/cli --root {{prefix}}
     - cargo install --locked --path codex-rs/tui --root {{prefix}}
+  env:
+    OPENSSL_STATIC: 1
 
 test:
+  # issue #11669
+  # ensure libssl is not dynamically linked
+  - run: if ldd {{prefix}}/bin/codex | grep libssl; then echo "libssl linked"; exit 1; fi
+    if: linux
   - codex --help
   - test "$(codex --version)" = "codex-cli {{version}}"
