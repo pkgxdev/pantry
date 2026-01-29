@@ -6,28 +6,31 @@ dependencies:
   gnome.org/libxml2: ~2.13 # 2.14 changes the API
   #TODO ncurses
   tukaani.org/xz: 5 # autopoint needs this to unpack archives
+  gnu.org/libiconv: "*" # as of v1.0.0
 
 versions:
   github: autotools-mirror/gettext/tags
-  strip: /v/
 
 build:
-  script: |
-    ./configure \
-      --prefix={{ prefix }} \
-      --disable-debug \
-      --with-included-debug \
-      --with-included-libcroco \
-      --with-included-libunistring \
-      --without-included-libxml \
-      --disable-java \
-      --disable-csharp
-    make --jobs {{ hw.concurrency }}
-    make install
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
 
-    cd {{prefix}}/bin
-    sed -i.bak 's|{{prefix}}|"$(cd "$(dirname "$0")/.." \&\& pwd)"|' gettextize autopoint
-    rm gettextize.bak autopoint.bak
+    - run: sed -i 's|{{prefix}}|"$(cd "$(dirname "$0")/.." \&\& pwd)"|' gettextize autopoint
+      working-directory: ${{prefix}}/bin
+    - run: find . -name \*.la -exec rm -f {} \;
+      working-directory: ${{prefix}}/lib
+  env:
+    ARGS:
+      - --prefix={{ prefix }}
+      - --disable-debug
+      - --with-included-debug
+      - --with-included-libcroco
+      - --with-included-libunistring
+      - --without-included-libxml
+      - --disable-java
+      - --disable-csharp
 
 test: gettext test
 
