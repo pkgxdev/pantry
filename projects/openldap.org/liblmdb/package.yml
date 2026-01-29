@@ -15,10 +15,15 @@ build:
     darwin:
       gnu.org/patch: "*"
   script:
-    - run: patch -p1 < props/mdb-darwin-fix.patch
-      if: darwin
+    - run: if test "{{hw.platform}}" = "darwin"; then patch -p1 < props/mdb-darwin-fix.patch; fi
+      if: =0.9.34
     - sed -i -e 's/^prefix\t=/prefix\t?=/' Makefile
     - make prefix={{prefix}} --jobs {{ hw.concurrency }} install
+  env:
+    linux:
+      CC: clang
+      CXX: clang++
+      LD: clang
 
 provides:
   - bin/mdb_copy
