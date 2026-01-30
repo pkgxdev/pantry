@@ -5,18 +5,24 @@ distributable:
 versions:
   github: railwayapp/cli
 
-dependencies:
-  gnu.org/libiconv: 1 # as of v4.27.5
-
 build:
   dependencies:
     rust-lang.org: ^1.77
     rust-lang.org/cargo: "*"
+    darwin:
+      gnu.org/libiconv: "*" # transitive, but we need it here to get it *out*
   script:
     # 3.5.2 didn't bump version
     - run: sed -i 's/^version = ".*"$/version = "{{version}}"/' Cargo.toml
     - cargo add proc-macro2
     - cargo install $ARGS
+    # something weird is causing it to link in unneeded iconv in 4.27.5
+    - run:
+        - otool -l railway | grep libiconv
+        - install_name_tool -change "@rpath/gnu.org/libiconv/v{{deps.gnu.org/libiconv.version}}/lib/libiconv.2.dylib" "/usr/lib/libiconv.2.dylib" railway
+        - otool -l railway | grep libiconv
+      if: darwin
+      working-directory: ${{prefix}}/bin
   env:
     ARGS:
       - --root={{prefix}}
@@ -27,10 +33,6 @@ provides:
   - bin/railway
 
 test:
-  env:
-    RUST_BACKTRACE: full
-  script:
-    - railway init >out.stdout 2>out.log || true
-    - cat out.stdout
-    - cat out.log
-    - railway --version | grep {{version}}
+  - (railway init 2>&1 || true) | tee out
+  - grep 'Unauthorized. Please login with `railway login`' out
+  - railway --version | grep {{version}}
