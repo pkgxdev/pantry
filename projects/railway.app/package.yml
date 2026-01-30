@@ -7,14 +7,13 @@ versions:
 
 build:
   dependencies:
-    rust-lang.org: ^1.77
+    rust-lang.org: ">=1.77<1.93"
     rust-lang.org/cargo: "*"
   script:
     # 3.5.2 didn't bump version
     - run: sed -i 's/^version = ".*"$/version = "{{version}}"/' Cargo.toml
     - cargo add proc-macro2
     - cargo install $ARGS
-  skip: fix-machos # core dumps in v4.27.5
   env:
     ARGS:
       - --root={{prefix}}
