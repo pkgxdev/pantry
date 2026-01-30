@@ -7,7 +7,7 @@ versions:
 
 build:
   dependencies:
-    rust-lang.org: ">=1.77<1.93"
+    rust-lang.org: ^1.77
     rust-lang.org/cargo: "*"
   script:
     # 3.5.2 didn't bump version
@@ -24,6 +24,10 @@ provides:
   - bin/railway
 
 test:
-  - railway init 2>out.log || true
-  - cat out.log | grep 'Unauthorized. Please login with `railway login`'
-  - railway --version | grep {{version}}
+  env:
+    TRACE: lldb -b -o run -o bt --
+  script:
+    - $TRACE railway init 2>out.log || true
+    - cat out.log
+    - grep 'Unauthorized. Please login with `railway login`' out.log
+    - railway --version | grep {{version}}
