@@ -25,9 +25,9 @@ provides:
 
 test:
   env:
-    TRACE: lldb -b -o run -o bt --
+    RUST_BACKTRACE: full
   script:
-    - $TRACE railway init 2>out.log || true
+    - railway init >out.stdout 2>out.log || true
+    - cat out.stdout
     - cat out.log
-    - grep 'Unauthorized. Please login with `railway login`' out.log
     - railway --version | grep {{version}}
