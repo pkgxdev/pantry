@@ -8,10 +8,13 @@ versions:
 build:
   dependencies:
     linux:
-      gnu.org/gcc: '*'
-  script: |
-    make
-    make $ARGS install
+      gnu.org/gcc: "*"
+  script:
+    # v2.3.0 references SELinux-only `secontext` field unconditionally
+    - run: sed -i '/secontext/d' tree.c
+      if: darwin
+    - make
+    - make $ARGS install
 
   env:
     ARGS:
