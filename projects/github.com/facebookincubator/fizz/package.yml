@@ -1,10 +1,9 @@
 distributable:
-  url: https://github.com/facebookincubator/fizz/archive/refs/tags/v{{version.raw}}.tar.gz
+  url: https://github.com/facebookincubator/fizz/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
   github: facebookincubator/fizz/releases/tags
-  strip: /^v/
 
 dependencies:
   boost.org: "*"
@@ -35,10 +34,11 @@ build:
       gnu.org/gcc: 13
   script:
     # compilation errors in 2023.12.18.0 and beyond
-    - run: |
-        sed -i -e '/#include <fizz\/crypto\/aead\/AESGCM128.h>/a\
+    - run: sed -i -f $PROP FizzServerCommand.cpp
+      prop: |
+        /#include <fizz\/crypto\/aead\/AESGCM128.h>/a\
         #include <fizz/crypto/exchange/X25519.h>\
-        #include <fizz/protocol/OpenSSLFactory.h>' FizzServerCommand.cpp
+        #include <fizz/protocol/OpenSSLFactory.h>
       if: ">=2023.12.18.0"
       working-directory: fizz/tool
 
@@ -53,13 +53,11 @@ build:
     - cmake --build build
     - cmake --install build
 
-    - run: |
-        sed -E -i.bak \
-          -e "s:{{pkgx.prefix}}:\$\{_IMPORT_PREFIX\}/../../../..:g" \
-          -e '/^  INTERFACE_INCLUDE_DIRECTORIES/ s|/v([0-9]+)(\.[0-9]+)*[a-z]?/include|/v\1/include|g' \
-          -e '/^  INTERFACE_LINK_LIBRARIES/ s|/v([0-9]+)(\.[0-9]+)*[a-z]?/lib|/v\1/lib|g' \
+    - run: sed -E -i
+        -e "s:{{pkgx.prefix}}:\$\{_IMPORT_PREFIX\}/../../../..:g"
+        -e '/^  INTERFACE_INCLUDE_DIRECTORIES/ s|/v([0-9]+)(\.[0-9]+)*[a-z]?/include|/v\1/include|g'
+        -e '/^  INTERFACE_LINK_LIBRARIES/ s|/v([0-9]+)(\.[0-9]+)*[a-z]?/lib|/v\1/lib|g'
         fizz-targets.cmake
-        rm "{{prefix}}"/lib/cmake/fizz/fizz-targets.cmake.bak
       working-directory: "{{prefix}}/lib/cmake/fizz"
   env:
     ARGS:
@@ -76,15 +74,15 @@ build:
         - -DCMAKE_EXE_LINKER_FLAGS=-pie
 
 test:
-  fixture: |
-    #include <fizz/client/AsyncFizzClient.h>
-    #include <iostream>
+  - run: c++ -std=c++17 $FIXTURE -lfizz -lfolly -lgflags -lglog -levent -lsodium -lcrypto -lssl -lboost_context -o fixture
+    fixture:
+      extname: cpp
+      content: |
+        #include <fizz/client/AsyncFizzClient.h>
+        #include <iostream>
 
-    int main() {
-      auto context = fizz::client::FizzClientContext();
-      std::cout << toString(context.getSupportedVersions()[0]) << std::endl;
-    }
-  script: |
-    mv $FIXTURE test.cpp
-    c++ -std=c++17 test.cpp -lfizz -lfolly -lgflags -lglog -levent -lsodium -lcrypto -lssl -o fixture
-    ./fixture | grep TLS
+        int main() {
+          auto context = fizz::client::FizzClientContext();
+          std::cout << toString(context.getSupportedVersions()[0]) << std::endl;
+        }
+  - ./fixture | grep TLS
