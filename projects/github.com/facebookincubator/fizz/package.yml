@@ -7,17 +7,17 @@ versions:
   strip: /^v/
 
 dependencies:
-  boost.org: '*'
+  boost.org: "*"
   google.com/double-conversion: ^3
   fmt.dev: ^12
-  facebook.com/folly: '*'
-  gflags.github.io: '*'
-  google.com/glog: '<0.7' # glog 0.7.0 cannot be simply included
-  libevent.org: '*'
-  libsodium.org: '*'
+  facebook.com/folly: "*"
+  gflags.github.io: "*"
+  google.com/glog: "<0.7" # glog 0.7.0 cannot be simply included
+  libevent.org: "*"
+  libsodium.org: "*"
   lz4.org: 1
   openssl.org: ^1.1
-  google.github.io/snappy: '*'
+  google.github.io/snappy: "*"
   facebook.com/zstd: 1
   sourceware.org/bzip2: 1
   zlib.net: ^1
@@ -39,8 +39,15 @@ build:
         sed -i -e '/#include <fizz\/crypto\/aead\/AESGCM128.h>/a\
         #include <fizz/crypto/exchange/X25519.h>\
         #include <fizz/protocol/OpenSSLFactory.h>' FizzServerCommand.cpp
-      if: '>=2023.12.18.0'
+      if: ">=2023.12.18.0"
       working-directory: fizz/tool
+
+    # fizz references Folly::folly_benchmark but folly exports Folly::follybenchmark
+    - run: |
+        if ! grep -q 'Folly::folly_benchmark[^_]' {{deps.facebook.com/folly.prefix}}/lib/cmake/folly/folly-targets.cmake; then
+          sed -i 's/Folly::folly_benchmark/Folly::follybenchmark/' fizz/CMakeLists.txt
+        fi
+      if: ">=2026.2.2.0"
 
     - cmake -S fizz -B build $ARGS
     - cmake --build build
@@ -53,7 +60,7 @@ build:
           -e '/^  INTERFACE_LINK_LIBRARIES/ s|/v([0-9]+)(\.[0-9]+)*[a-z]?/lib|/v\1/lib|g' \
         fizz-targets.cmake
         rm "{{prefix}}"/lib/cmake/fizz/fizz-targets.cmake.bak
-      working-directory: '{{prefix}}/lib/cmake/fizz'
+      working-directory: "{{prefix}}/lib/cmake/fizz"
   env:
     ARGS:
       - -GNinja
