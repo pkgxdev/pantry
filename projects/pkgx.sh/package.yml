@@ -25,13 +25,15 @@ build:
     - run:
         - cargo install --path crates/cli --root "{{prefix}}"
         - strip '{{prefix}}/bin/pkgx'
-      if: '>=2'
+      if: ">=2"
   env:
     linux/aarch64:
       # deno's pre-built runtime doesn't support glibc old enough
-      DENORT_BIN: '{{deps.deno.land.prefix}}/bin/denort'
+      DENORT_BIN: "{{deps.deno.land.prefix}}/bin/denort"
     linux:
       # llvm-ar is required for rust builds
       AR: llvm-ar
+      # otherwise it complains about XZ_5.4 symbols
+      LZMA_API_STATIC: 1
 
 test: test "$(pkgx --version)" = "pkgx {{ version }}"
