@@ -16,28 +16,26 @@ runtime:
     # the `gpgconf` binary. NOTE causes warning messages on Darwin:
     #     error reading symlink '/proc/curproc/file': No such file or directory
     # which seemingly cannot be avoided without a patch
-    GNUPG_BUILD_ROOT: '{{prefix}}'
+    GNUPG_BUILD_ROOT: "{{prefix}}"
 
 dependencies:
   zlib.net: ^1.1
-  sourceware.org/bzip2: '*'
-  gnupg.org/npth: '*'
-  gnupg.org/libgpg-error: '*'
-  gnupg.org/libksba: '*'
+  sourceware.org/bzip2: "*"
+  gnupg.org/npth: "*"
+  gnupg.org/libgpg-error: "*"
+  gnupg.org/libksba: "*"
   gnupg.org/libassuan: 2
-  gnupg.org/libgcrypt: '*'
-  gnupg.org/pinentry: '*'
+  gnupg.org/libgcrypt: "*"
+  gnupg.org/pinentry: "*"
   gnutls.org: ^3
   openldap.org: ^2
   gnu.org/readline: ^8
   sqlite.org: ^3
-  darwin: # nobody added a comment to say why this is Darwin only
-    gnu.org/gettext: ^0.21
 
 build:
-  freedesktop.org/pkg-config: '*'
+  freedesktop.org/pkg-config: "*"
   linux:
-    gnu.org/gcc: '*'
+    gnu.org/gcc: "*"
   script:
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }}
@@ -49,11 +47,11 @@ build:
     - run: |
         sed -i.bak "s|{{prefix}}|\$(dirname \$0)/..|g" gpg-wks-client
         rm gpg-wks-client.bak
-      working-directory: '{{prefix}}/libexec'
+      working-directory: "{{prefix}}/libexec"
     - run: |
         mkdir -p var/run etc/gnupg
         chmod 700 etc/gnupg
-      working-directory: '{{prefix}}'
+      working-directory: "{{prefix}}"
 
     # nobody added a comment explaining why this conf is required
     - run: cp props/gpg.conf {{prefix}}/etc/gnupg/gpg.conf
