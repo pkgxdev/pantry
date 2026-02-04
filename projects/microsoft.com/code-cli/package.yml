@@ -14,16 +14,19 @@ dependencies:
 build:
   dependencies:
     rust-lang.org: ^1.81
-    rust-lang.org/cargo: '*'
+    rust-lang.org/cargo: "*"
   working-directory: cli
   script:
     # missed version bump
     - sed -i '1,10s/"version":.*/"version":"{{version}}",/' ../package.json
     - cargo install --locked --path . --root {{prefix}}
+    - run: install_name_tool -change "@rpath/gnu.org/libiconv/v1/lib/libiconv.2.dylib" "/usr/lib/libiconv.2.dylib" code
+      working-directory: ${{prefix}}/bin
+      if: darwin
   env:
     OPENSSL_NO_VENDOR: 1
-    OPENSSL_DIR: '{{deps.openssl.org.prefix}}'
-    VSCODE_CLI_VERSION: '{{version}}'
+    OPENSSL_DIR: "{{deps.openssl.org.prefix}}"
+    VSCODE_CLI_VERSION: "{{version}}"
 
 provides:
   - bin/code
