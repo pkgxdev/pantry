@@ -118,7 +118,10 @@ provides:
 
 build:
   script:
-    - ./configure --prefix={{ prefix }}
+    # add suppressed programs back
+    - run: export ARGS="$ARGS --enable-install-program=kill,uptime"
+      if: ">=3.9.0"
+    - ./configure --prefix={{ prefix }} $ARGS
     - make --jobs {{ hw.concurrency }} install
   env:
     FORCE_UNSAFE_CONFIGURE: 1 # some gha runners run as root
