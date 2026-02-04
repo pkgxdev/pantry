@@ -1,8 +1,12 @@
 distributable:
+  # and v0.9.0
+  - url: https://github.com/jbeder/yaml-cpp/archive/refs/tags/{{version.tag}}.tar.gz
+    strip-components: 1
   # Tag format changed with v0.8.0
-  #url: https://github.com/jbeder/yaml-cpp/archive/yaml-cpp-{{version}}.tar.gz
-  url: https://github.com/jbeder/yaml-cpp/archive/{{version}}.tar.gz
-  strip-components: 1
+  - url: https://github.com/jbeder/yaml-cpp/archive/{{version}}.tar.gz
+    strip-components: 1
+  - url: https://github.com/jbeder/yaml-cpp/archive/yaml-cpp-{{version}}.tar.gz
+    strip-components: 1
 
 versions:
   github: jbeder/yaml-cpp
@@ -19,17 +23,23 @@ build:
       -DYAML_CPP_BUILD_TESTS=OFF
       -DCMAKE_BUILD_TYPE=Release
 
-    - make --jobs {{hw.concurrency}} install
+    - run: make --jobs {{hw.concurrency}} install
+      if: <0.9
+
+    - run:
+        - cmake --build .
+        - cmake --install .
+      if: ">=0.9"
 
 test:
-  fixture: |
-    #include <yaml-cpp/yaml.h>
-    int main() {
-      YAML::Node node  = YAML::Load("[0, 0, 0]");
-      node[0] = 1;
-      return 0;
-    }
-  script: |
-    mv $FIXTURE b.cpp
-    c++ -std=c++11 -lyaml-cpp b.cpp
-    ./a.out
+  - run: c++ -std=c++11 -lyaml-cpp $FIXTURE
+    fixture:
+      extname: cpp
+      content: |
+        #include <yaml-cpp/yaml.h>
+        int main() {
+          YAML::Node node  = YAML::Load("[0, 0, 0]");
+          node[0] = 1;
+          return 0;
+        }
+  - ./a.out
