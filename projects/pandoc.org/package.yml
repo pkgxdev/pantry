@@ -46,6 +46,9 @@ build:
       if: darwin
       working-directory: ${{deps.haskell.org.prefix}}/.ghcup/ghc/{{deps.haskell.org.version}}/lib/ghc-{{deps.haskell.org.version}}/lib
 
+    - run: sed -i -f $PROP pandoc-cli.cabal ../pandoc.cabal
+      prop: >
+        s/build-depends:.*base.*/build-depends: base >=4.8 \&\& <5/
     - cabal v2-install $ARGS
   # else x86-64 segfaults
   skip: fix-patchelf
