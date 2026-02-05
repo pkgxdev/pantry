@@ -9,12 +9,13 @@ display-name: git
 
 dependencies:
   zlib.net: 1
-  gnu.org/gettext: ^0.21
   curl.se: ">=5"
   curl.se/ca-certs: "*"
   perl.org: "*"
   libexpat.github.io: ~2
-  gnu.org/libiconv: "*" # comes in via gettext :/
+  linux:
+    gnu.org/gettext: ^0.21
+    gnu.org/libiconv: "*" # comes in via gettext :/
 
 runtime:
   env:
@@ -38,7 +39,7 @@ build:
       working-directory: contrib/subtree
 
     - run:
-        - make CFLAGS="-g -O2 -Wall -I../../.." LDFLAGS="$LDFLAGS -lz -liconv -lintl"
+        - make CFLAGS="-g -O2 -Wall -I../../.." LDFLAGS="$LDFLAGS -lz -liconv"
         - install -Dm755 git-credential-osxkeychain "{{prefix}}"/bin
         - make clean
       working-directory: contrib/credential/osxkeychain
