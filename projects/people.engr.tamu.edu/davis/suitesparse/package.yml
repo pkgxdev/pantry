@@ -8,50 +8,20 @@ versions:
   github: DrTimothyAldenDavis/SuiteSparse
 
 dependencies:
-  glaros.dtc.umn.edu/metis: '*'
-  gnu.org/m4: '*'
-  netlib.org/lapack: '*'
-  gnu.org/gmp: '*'
-  openmp.llvm.org: '*'
-  gnu.org/mpfr: '*'
-  gnu.org/gcc: '*' # libfortran
+  glaros.dtc.umn.edu/metis: "*"
+  gnu.org/m4: "*"
+  netlib.org/lapack: "*"
+  gnu.org/gmp: "*"
+  openmp.llvm.org: "*"
+  gnu.org/mpfr: "*"
+  gnu.org/gcc: "*" # libfortran
 
 build:
   dependencies:
-    cmake.org: '*'
+    cmake.org: "*"
     linux:
-      gnu.org/make: '*'
+      gnu.org/make: "*"
   script:
-    # the libraries don't like mixing -shared and -pie
-    - run:
-        - cp $PROP gcc-wrapper
-        - chmod +x gcc-wrapper
-        - sed 's/gcc/g++/g' $PROP > g++-wrapper
-        - chmod +x g++-wrapper
-      prop: |
-        #!/bin/bash
-        # Capture all arguments into an array
-        ARGS=("$@")
-
-        # Check if the '-shared' flag is present in the arguments
-        if printf "%s\n" "${ARGS[@]}" | grep -q -e '-shared'; then
-
-          # Use a loop to filter out the '-pie' flag from the arguments
-          FILTERED_ARGS=()
-          for arg in "${ARGS[@]}"; do
-            if [ "$arg" != "-pie" ]; then
-              FILTERED_ARGS+=("$arg")
-            fi
-          done
-
-          # Pass the filtered arguments to gcc
-          exec gcc "${FILTERED_ARGS[@]}"
-        else
-          # Pass the original arguments to gcc
-          exec gcc "${ARGS[@]}"
-        fi
-      working-directory: $HOME/.local/bin
-      if: linux
     # version 7.2.1 shipped without bumping the version number
     - run: sed -i
         -e 's/^set ( SUITESPARSE_VERSION_MAJOR.*/set ( SUITESPARSE_VERSION_MAJOR {{version.major}} )/'
@@ -62,17 +32,17 @@ build:
     - make library $ARGS CMAKE_OPTIONS="$CMAKE_ARGS"
     - make install $ARGS CMAKE_OPTIONS="$CMAKE_ARGS"
     - run: ln -s mongoose suitesparse_mongoose
-      working-directory: '{{prefix}}/bin'
-      if: '<7.4.0'
+      working-directory: "{{prefix}}/bin"
+      if: "<7.4.0"
     - run: ln -s suitesparse_mongoose mongoose
-      working-directory: '{{prefix}}/bin'
-      if: '>=7.4.0'
+      working-directory: "{{prefix}}/bin"
+      if: ">=7.4.0"
     - run:
         - mv suitesparse/* .
         - rmdir suitesparse
         - ln -s . suitesparse
-      working-directory: '{{prefix}}/include'
-      if: '>=7.4.0'
+      working-directory: "{{prefix}}/include"
+      if: ">=7.4.0"
   env:
     ARGS:
       - INSTALL={{prefix}}
@@ -87,9 +57,6 @@ build:
       - -DBUILD_TESTING=OFF
       - -DBLA_VENDOR=LAPACK # not being autodetected as of 7.12.0
     linux:
-      PATH: $HOME/.local/bin:$PATH
-      CC: gcc-wrapper
-      CXX: g++-wrapper
       CMAKE_ARGS:
         - -DLAPACK_LIBRARIES={{deps.netlib.org/lapack.prefix}}/lib/liblapack.so.{{deps.netlib.org/lapack.version.major}}
         - -DBLAS_LIBRARIES={{deps.netlib.org/lapack.prefix}}/lib/libblas.so.{{deps.netlib.org/lapack.version.major}}
@@ -107,9 +74,9 @@ provides:
 
 test:
   dependencies:
-    freedesktop.org/pkg-config: '*'
+    freedesktop.org/pkg-config: "*"
     linux:
-      llvm.org: '*'
+      llvm.org: "*"
   script:
     - pkg-config --modversion SuiteSparse_config | grep {{version}}
     # gha mac runners have broken SDKs...

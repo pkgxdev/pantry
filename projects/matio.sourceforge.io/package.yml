@@ -10,42 +10,15 @@ versions:
   strip: /^files\/matio\//
 
 dependencies:
-  hdfgroup.org/HDF5: '*'
-  zlib.net: '*'
+  hdfgroup.org/HDF5: "*"
+  zlib.net: "*"
 
 build:
   dependencies:
-    cmake.org: '*' # since 1.5.29
+    cmake.org: "*" # since 1.5.29
     darwin:
       llvm.org: 20 # since 1.5.29
   script:
-    - run:
-        - cp $PROP gcc-wrapper
-        - chmod +x gcc-wrapper
-      prop: |
-        #!/bin/bash
-        # Capture all arguments into an array
-        ARGS=("$@")
-
-        # Check if the '-shared' flag is present in the arguments
-        if printf "%s\n" "${ARGS[@]}" | grep -q -e '-shared'; then
-
-          # Use a loop to filter out the '-pie' flag from the arguments
-          FILTERED_ARGS=()
-          for arg in "${ARGS[@]}"; do
-            if [ "$arg" != "-pie" ]; then
-              FILTERED_ARGS+=("$arg")
-            fi
-          done
-
-          # Pass the filtered arguments to gcc
-          exec gcc "${FILTERED_ARGS[@]}"
-        else
-          # Pass the original arguments to gcc
-          exec gcc "${ARGS[@]}"
-        fi
-      working-directory: $HOME/.local/bin
-      if: linux
     - run:
         - ./configure $ARGS
         - make --jobs {{ hw.concurrency }} install
@@ -54,7 +27,7 @@ build:
         - cmake -S . -B build $CMAKE_ARGS
         - cmake --build build
         - cmake --install build
-      if: '>=1.5.29'
+      if: ">=1.5.29"
   env:
     ARGS:
       - --prefix="{{prefix}}"
@@ -70,11 +43,6 @@ build:
       - -DMATIO_WITH_ZLIB=ON
       - -DMATIO_EXTENDED_SPARSE=ON
       - -DMATIO_MAT73=ON
-    linux:
-      PATH: $HOME/.local/bin:$PATH
-      CC: gcc-wrapper
-      CXX: g++
-      LD: gcc-wrapper
     darwin:
       CC: clang
       CXX: clang++

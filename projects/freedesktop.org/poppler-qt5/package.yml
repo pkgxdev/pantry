@@ -30,12 +30,12 @@ dependencies:
   darwin:
     gnupg.org/libassuan: ^2
   linux:
-    gnu.org/gcc: '*' # apparently, clang c++20 std isn't good enough
+    gnu.org/gcc: "*" # apparently, clang c++20 std isn't good enough
 
 build:
   dependencies:
-    cmake.org: '*'
-    gnome.org/gobject-introspection: '*'
+    cmake.org: "*"
+    gnome.org/gobject-introspection: "*"
     linux:
       gnu.org/binutils: ^2
       llvm.org: ~21.1 # as of 25.09.1
@@ -48,34 +48,6 @@ build:
         if echo $ORIG_AS | grep llvm.org; then
           mv ${ORIG_AS}{,.bak}
         fi
-      if: linux
-    # -shared and -pie don't mix
-    - run:
-        - cp $PROP g++-wrapper
-        - chmod +x g++-wrapper
-      prop: |
-        #!/bin/bash
-        # Capture all arguments into an array
-        ARGS=("$@")
-
-        # Check if the '-shared' flag is present in the arguments
-        if printf "%s\n" "${ARGS[@]}" | grep -q -e '-shared'; then
-
-          # Use a loop to filter out the '-pie' flag from the arguments
-          FILTERED_ARGS=()
-          for arg in "${ARGS[@]}"; do
-            if [ "$arg" != "-pie" ]; then
-              FILTERED_ARGS+=("$arg")
-            fi
-          done
-
-          # Pass the filtered arguments to g++
-          exec g++ "${FILTERED_ARGS[@]}"
-        else
-          # Pass the original arguments to g++
-          exec g++ "${ARGS[@]}"
-        fi
-      working-directory: $HOME/.local/bin
       if: linux
 
     - run:
@@ -118,11 +90,10 @@ build:
       - -DWITH_GObjectIntrospection=ON
     linux:
       # ld.lld: error: undefined symbol: std::filesystem::__cxx11::path::_M_split_cmpts()
-      LDFLAGS: '$LDFLAGS -lstdc++fs'
+      LDFLAGS: "$LDFLAGS -lstdc++fs"
       CC: gcc
-      CXX: g++-wrapper
+      CXX: g++
       LD: ld.gold
-      PATH: $HOME/.local/bin:$PATH
 
 provides:
   - bin/pdfattach
