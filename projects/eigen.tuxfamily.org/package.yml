@@ -12,17 +12,11 @@ dependencies:
 build:
   working-directory: build
   dependencies:
-    cmake.org: '^3'
+    cmake.org: "^3"
   script:
     - cmake .. -DCMAKE_INSTALL_PREFIX={{prefix}}
     - make install
 
-    # stuff expects `Eigen` to be in `include` rather than namespaced
-    - run:
-        - mv eigen3/* .
-        - rmdir eigen3
-        - ln -s . eigen3
-      working-directory: ${{prefix}}/include
     # the libraries are in share for some reason
     - run: ln -s share lib
       working-directory: ${{prefix}}

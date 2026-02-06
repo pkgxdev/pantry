@@ -9,20 +9,15 @@ versions:
 platforms:
   - linux
 dependencies:
-  kerberos.org: '*'
+  kerberos.org: "*"
 build:
   dependencies:
     linux:
       llvm.org: ^16
-      gnu.org/make: '*'
+      gnu.org/make: "*"
   script:
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
-    - run: |
-        mv tirpc/* .
-        rmdir tirpc
-        ln -s . tirpc
-      working-directory: ${{prefix}}/include
   env:
     LD: ld.lld
     ARGS:

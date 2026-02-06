@@ -7,26 +7,21 @@ versions:
 
 dependencies:
   eigen.tuxfamily.org: 3
-  gnu.org/gcc: '*' # for gfortran
+  gnu.org/gcc: "*" # for gfortran
   open-mpi.org: 5
   netlib.org/lapack: 3
 
 build:
   dependencies:
-    gnu.org/autoconf: '*'
-    gnu.org/automake: '*'
-    gnu.org/libtool: '*'
-    freedesktop.org/pkg-config: '*' # must be explicit or configure will fail
+    gnu.org/autoconf: "*"
+    gnu.org/automake: "*"
+    gnu.org/libtool: "*"
+    freedesktop.org/pkg-config: "*" # must be explicit or configure will fail
   script:
     - ./bootstrap
     - ./configure $ARGS
     - make
     - make install
-    - run:
-        - mv arpack/* .
-        - rmdir arpack
-        - ln -s . arpack
-      working-directory: ${{prefix}}/include
     - run: cp $SRCROOT/TESTS/{testA.mtx,dnsimp.f,mmio.f,debug.h} .
       working-directory: ${{prefix}}/share
   env:
@@ -47,7 +42,7 @@ build:
 
 test:
   dependencies:
-    freedesktop.org/pkg-config: '*'
+    freedesktop.org/pkg-config: "*"
   script:
     - gfortran $ARGS -o test
     - cp {{prefix}}/share/testA.mtx .
