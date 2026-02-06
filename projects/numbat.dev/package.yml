@@ -18,17 +18,29 @@ provides:
   - bin/numbat
 
 test:
-  fixture: |
-    print(8 km / (1 h + 25 min) -> km/h)
-    print(atan2(30 cm, 1 meter) -> degree)
-    let ω = 2π c / 660 nm
-    print("{ω -> 1/s}")
-    print("Energy of a red photon { ℏ ω -> eV }")
+  dependencies:
+    gnu.org/diffutils: "*"
   script:
-    - test "$(numbat $FIXTURE)" = "$OUT"
-  env:
-    OUT: |
-      5.64706 km/h
-      16.6992°
-      2.85402e+15 s⁻¹
-      Energy of a red photon 1.87855 eV
+    - run: cp $FIXTURE res
+      fixture: |
+        5.64706 km/h
+        16.6992°
+        2.85402e+15 s⁻¹
+        Energy of a red photon 1.87855 eV
+      if: "<1.21"
+    - run: cp $FIXTURE res
+      fixture: |
+        5.64706 km/h
+        16.6992°
+        2_854_017_526_225_535 s⁻¹
+        Energy of a red photon 1.87855 eV
+      if: ">=1.21"
+    - run: numbat $FIXTURE | tee out
+      fixture: |
+        print(8 km / (1 h + 25 min) -> km/h)
+        print(atan2(30 cm, 1 meter) -> degree)
+        let ω = 2π c / 660 nm
+        print("{ω -> 1/s}")
+        print("Energy of a red photon { ℏ ω -> eV }")
+    - printf "\n" >>out
+    - diff res out
