@@ -6,11 +6,11 @@ versions:
   github: GNOME/libxslt/tags
 
 dependencies:
-  gnome.org/libxml2: '*' # varies by version :(
+  gnome.org/libxml2: "*" # varies by version :(
 
 build:
   dependencies:
-    gnu.org/patch: '*'
+    gnu.org/patch: "*"
     gnome.org/libxml2: ~2.15.1 # since 1.1.45
   script:
     - patch -p1 < props/xslt-config.patch.in
@@ -23,10 +23,7 @@ build:
         -e 's|{{prefix}}|"$prefix"|g'
         -e 's|{{deps.gnome.org/libxml2.prefix}}|""$libxml2_prefix""|g'
         xslt-config
-      working-directory: '{{prefix}}/bin'
-
-    - run: find . -name \*.la -exec rm {} \;
-      working-directory: '{{prefix}}/lib'
+      working-directory: "{{prefix}}/bin"
   env:
     ARGS:
       - --prefix={{prefix}}

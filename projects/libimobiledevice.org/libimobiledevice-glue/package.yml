@@ -10,7 +10,7 @@ dependencies:
 
 build:
   dependencies:
-    gnu.org/libtool: '*'
+    gnu.org/libtool: "*"
   script:
     - ./configure $ARGS
     - make --jobs {{hw.concurrency}} install
@@ -18,9 +18,7 @@ build:
         mv libimobiledevice-glue/* .
         rmdir libimobiledevice-glue
         ln -s . libimobiledevice-glue
-      working-directory: '{{prefix}}/include'
-    - run: find . -name '*.la' -exec rm {} \;
-      working-directory: '{{prefix}}/lib'
+      working-directory: "{{prefix}}/include"
   env:
     ARGS:
       - --disable-debug
@@ -31,6 +29,6 @@ build:
 
 test:
   dependencies:
-    freedesktop.org/pkg-config: '*'
+    freedesktop.org/pkg-config: "*"
   script:
     - test "$(pkg-config --modversion libimobiledevice-glue-1.0)" = '{{version.tag}}'

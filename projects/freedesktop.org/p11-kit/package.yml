@@ -12,16 +12,16 @@ provides:
 
 dependencies:
   sourceware.org/libffi: ^3
-  curl.se/ca-certs: '*'
+  curl.se/ca-certs: "*"
   gnu.org/libtasn1: ^4
-  gnu.org/gettext: '*'
+  gnu.org/gettext: "*"
 
 build:
   dependencies:
     python.org: 3
     # since 0.25.9
-    mesonbuild.com: '*'
-    ninja-build.org: '*'
+    mesonbuild.com: "*"
+    ninja-build.org: "*"
   script:
     - run:
         - ./configure --prefix={{prefix}} --with-trust-paths={{deps.curl.se/ca-certs}}/ssl
@@ -31,11 +31,9 @@ build:
         - meson setup build $MESON_ARGS
         - meson compile -C build
         - meson install -C build
-      if: '>=0.25.9'
-    - run: find . -name '*.la' -exec rm {} \;
-      working-directory: '{{prefix}}/lib'
+      if: ">=0.25.9"
     - run: ln -s p11-kit-1/p11-kit .
-      working-directory: '{{prefix}}/include'
+      working-directory: "{{prefix}}/include"
   env:
     MESON_ARGS:
       - -Dsystemd=disabled
