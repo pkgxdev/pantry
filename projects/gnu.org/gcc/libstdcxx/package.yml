@@ -71,13 +71,6 @@ build:
     - make --jobs {{ hw.concurrency }}
     - make install-target-libstdc++-v3 install-target-libgcc
 
-    # On Linux, we need to move the libraries to the lib directory.
-    - run:
-        - mv lib64/* lib/
-        - rmdir lib64
-      if: linux
-      working-directory: ${{prefix}}
-
     # these don't always match {{version}}
     - run: ln -s {{version.major}}.* {{version.major}}
       working-directory: ${{prefix}}/include/c++
