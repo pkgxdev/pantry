@@ -13,11 +13,13 @@ dependencies:
 build:
   dependencies:
     cmake.org: ^3
-    python.org: '>=3<3.12'
+    python.org: ">=3<3.12"
     linux:
       gnu.org/gcc: 14
   working-directory: build
   script:
+    - run: MACOSX_DEPLOYMENT_TARGET=13.3
+      if: ">=4.15.5"
     - cmake .. $ARGS
     - make --jobs {{hw.concurrency}} install
   env:
@@ -47,7 +49,7 @@ provides:
 
 test:
   dependencies:
-    gnu.org/wget: '*'
+    gnu.org/wget: "*"
     python.org: ~3.11
   script:
     - wget https://raw.githubusercontent.com/Z3Prover/z3/master/examples/c/test_capi.c
