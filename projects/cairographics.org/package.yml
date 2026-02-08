@@ -16,11 +16,11 @@ dependencies:
   gnome.org/glib: 2
   freedesktop.org/fontconfig: 2
   sourceware.org/bzip2: 1
-  x.org/x11: '*'
-  x.org/xcb: '*'
-  x.org/exts: '*'
-  x.org/xrender: '*'
-  oberhumer.com/lzo: '*'
+  x.org/x11: "*"
+  x.org/xcb: "*"
+  x.org/exts: "*"
+  x.org/xrender: "*"
+  oberhumer.com/lzo: "*"
 
 build:
   dependencies:
@@ -43,15 +43,9 @@ build:
         meson setup build --prefix={{ prefix }} --buildtype=release $ARGS
         ninja -C build
         ninja -C build install
-      if: '>=1.18.0'
+      if: ">=1.18.0"
 
     - rm -rf {{prefix}}/share # docs are online
-
-    - run: |
-        mv cairo/* .
-        rmdir cairo
-        ln -s . cairo
-      working-directory: ${{ prefix }}/include
 
     - run: |
         if [ -d cairo ]; then

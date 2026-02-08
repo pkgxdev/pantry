@@ -12,53 +12,24 @@ dependencies:
     zlib.net: 1
 
 companions:
-  freedesktop.org/pkg-config: '*'
+  freedesktop.org/pkg-config: "*"
   linux:
-    gnu.org/gcc: '*'
+    gnu.org/gcc: "*"
   darwin:
-    llvm.org: '>=17'
+    llvm.org: ">=17"
 
 build:
   dependencies:
-    cmake.org: '*' # v2
-    gnu.org/autoconf: '*'
-    gnu.org/automake: '*'
-    gnu.org/libtool: '*'
+    cmake.org: "*" # v2
+    gnu.org/autoconf: "*"
+    gnu.org/automake: "*"
+    gnu.org/libtool: "*"
     linux:
-      gnu.org/gcc: '*' # gfortran
+      gnu.org/gcc: "*" # gfortran
     darwin:
       llvm.org: 20
 
   script:
-    - run:
-        - cp $PROP gcc-wrapper
-        - chmod +x gcc-wrapper
-        - sed 's/gcc/g++/g' $PROP >g++-wrapper
-        - chmod +x g++-wrapper
-      prop: |
-        #!/bin/bash
-        # Capture all arguments into an array
-        ARGS=("$@")
-
-        # Check if the '-shared' flag is present in the arguments
-        if printf "%s\n" "${ARGS[@]}" | grep -q -e '-shared'; then
-
-          # Use a loop to filter out the '-pie' flag from the arguments
-          FILTERED_ARGS=()
-          for arg in "${ARGS[@]}"; do
-            if [ "$arg" != "-pie" ]; then
-              FILTERED_ARGS+=("$arg")
-            fi
-          done
-
-          # Pass the filtered arguments to gcc
-          exec gcc "${FILTERED_ARGS[@]}"
-        else
-          # Pass the original arguments to gcc
-          exec gcc "${ARGS[@]}"
-        fi
-      working-directory: $HOME/.local/bin
-      if: linux
     - run:
         - autoreconf --force --install --verbose
         - ./configure $ARGS
@@ -69,7 +40,7 @@ build:
         - cmake --build .
         - cmake --install .
       working-directory: build
-      if: '>=2'
+      if: ">=2"
 
     # relocate h5cc, h5c++, h5fc
     - run:
@@ -81,7 +52,6 @@ build:
         s|{{deps.dkrz.de/libaec.prefix}}|{{pkgx.prefix}}/dkrz.de/libaec/v{{deps.dkrz.de/libaec.version.major}}|g
         s|{{deps.llvm.org.prefix}}/bin/||g
         s|{{deps.gnu.org/gcc.prefix}}/bin/||g
-        s|HOME/.local/bin/gcc-wrapper|gcc|g
         s|{{prefix}}|\\$(cd \\$(dirname \\$0)/.. \&\& pwd)|g
         s|{{pkgx.prefix}}|\\$(cd \\$(dirname \\$0)/../../../.. \&\& pwd)|g
         s|\+brewing||g
@@ -98,10 +68,6 @@ build:
       - --enable-cxx
       - --with-szlib={{deps.dkrz.de/libaec.prefix}}
     linux:
-      PATH: $HOME/.local/bin:$PATH
-      CC: gcc-wrapper
-      CXX: g++-wrapper
-      LD: g++-wrapper
       ARGS:
         - --enable-fortran
         - --with-zlib={{deps.zlib.net.prefix}}

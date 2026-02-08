@@ -29,34 +29,7 @@ build:
     # fix timeouts
     - run: sed -i 's/add_subdirectory(test)/#add_subdirectory(test)/' {os,utils}/CMakeLists.txt
       working-directory: eden/common
-    # -shared and -pie don't mix
-    - run:
-        - cp $PROP g++-wrapper
-        - chmod +x g++-wrapper
-      prop: |
-        #!/bin/bash
-        # Capture all arguments into an array
-        ARGS=("$@")
 
-        # Check if the '-shared' flag is present in the arguments
-        if printf "%s\n" "${ARGS[@]}" | grep -q -e '-shared'; then
-
-          # Use a loop to filter out the '-pie' flag from the arguments
-          FILTERED_ARGS=()
-          for arg in "${ARGS[@]}"; do
-            if [ "$arg" != "-pie" ]; then
-              FILTERED_ARGS+=("$arg")
-            fi
-          done
-
-          # Pass the filtered arguments to g++
-          exec g++ "${FILTERED_ARGS[@]}"
-        else
-          # Pass the original arguments to g++
-          exec g++ "${ARGS[@]}"
-        fi
-      working-directory: $HOME/.local/bin
-      if: linux
     - cmake -S . -B _build $ARGS
     - cmake --build _build
     - cmake --install _build
@@ -72,8 +45,6 @@ build:
       - -DCMAKE_CXX_STANDARD=20
       - -DCMAKE_CXX_STANDARD_REQUIRED=ON
     linux:
-      CXX: g++-wrapper
-      PATH: $HOME/.local/bin:$PATH
       ARGS:
         - -DCMAKE_C_FLAGS=-fPIC
         - -DCMAKE_CXX_FLAGS=-fPIC

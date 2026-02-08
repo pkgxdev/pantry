@@ -17,13 +17,6 @@ build:
     cmake .. -DCMAKE_INSTALL_PREFIX={{prefix}} -DCMAKE_BUILD_TYPE=Release
     make --jobs {{ hw.concurrency }} install
 
-    # fix unecessary prefixification of headers
-    cd {{prefix}}/include
-    mv openjpeg-{{version.marketing}}/* .
-    rmdir openjpeg-{{version.marketing}}
-    # keep unecessary prefixification for tools that expect it for some reason
-    ln -s . openjpeg-{{version.marketing}}
-
 provides:
   - bin/opj_compress
   - bin/opj_decompress
