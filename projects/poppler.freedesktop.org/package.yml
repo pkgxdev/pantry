@@ -25,21 +25,21 @@ provides:
 
 # TODO: Add in libopenjpeg, libtiff
 dependencies:
-  boost.org: '>=1.58.0'
-  cairographics.org: '>=1.16.0'
-  curl.se: '*'
-  freedesktop.org/fontconfig: '>=2.13'
-  freetype.org: '>=2.10'
-  gnome.org/glib: '>=2.64'
+  boost.org: ">=1.58.0"
+  cairographics.org: ">=1.16.0"
+  curl.se: "*"
+  freedesktop.org/fontconfig: ">=2.13"
+  freetype.org: ">=2.10"
+  gnome.org/glib: ">=2.64"
   gnome.org/libxml2: ~2.13 # since 25.4.0, 2.14 changed the API version
-  libjpeg-turbo.org: '*'
-  libpng.org: '*'
-  openjpeg.org: '*'
-  poppler.freedesktop.org/poppler-data: '*'
-  simplesystems.org/libtiff: '*'
-  zlib.net: '*'
-  mozilla.org/nss: '>=3.68'
-  gnupg.org/gpgme: '~1.19'
+  libjpeg-turbo.org: "*"
+  libpng.org: "*"
+  openjpeg.org: "*"
+  poppler.freedesktop.org/poppler-data: "*"
+  simplesystems.org/libtiff: "*"
+  zlib.net: "*"
+  mozilla.org/nss: ">=3.68"
+  gnupg.org/gpgme: "~1.19"
   gnupg.org/libgpg-error: 1
   gnupg.org/libassuan: 2
   littlecms.com: ^2.9
@@ -48,39 +48,11 @@ dependencies:
 
 build:
   dependencies:
-    cmake.org: '>=3.16.0'
-    gnome.org/gobject-introspection: '>=1.64.0'
+    cmake.org: ">=3.16.0"
+    gnome.org/gobject-introspection: ">=1.64.0"
     linux:
       gnu.org/gcc: 14
   script:
-    # -shared and -pie don't mix
-    - run:
-        - cp $PROP g++-wrapper
-        - chmod +x g++-wrapper
-      prop: |
-        #!/bin/bash
-        # Capture all arguments into an array
-        ARGS=("$@")
-
-        # Check if the '-shared' flag is present in the arguments
-        if printf "%s\n" "${ARGS[@]}" | grep -q -e '-shared'; then
-
-          # Use a loop to filter out the '-pie' flag from the arguments
-          FILTERED_ARGS=()
-          for arg in "${ARGS[@]}"; do
-            if [ "$arg" != "-pie" ]; then
-              FILTERED_ARGS+=("$arg")
-            fi
-          done
-
-          # Pass the filtered arguments to g++
-          exec g++ "${FILTERED_ARGS[@]}"
-        else
-          # Pass the original arguments to g++
-          exec g++ "${ARGS[@]}"
-        fi
-      working-directory: $HOME/.local/bin
-      if: linux
     - cmake -S . -B build_shared $ARGS
     - cmake --build build_shared
     - cmake --install build_shared
@@ -117,8 +89,5 @@ build:
         - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-lstdc++fs,--unresolved-symbols=ignore-in-shared-libs
       # references to gettid()
       LDFLAGS: $LDFLAGS -Wl,--unresolved-symbols=ignore-in-shared-libs
-    linux:
-      CXX: g++-wrapper
-      PATH: $HOME/.local/bin:$PATH
 
 test: pdfinfo test.pdf

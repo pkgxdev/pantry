@@ -18,35 +18,6 @@ build:
       gnu.org/gettext: "*" # for v2
   working-directory: build
   script:
-    # -shared and -pie don't mix
-    - run:
-        - cp $PROP gcc-wrapper
-        - chmod +x gcc-wrapper
-      prop: |
-        #!/bin/bash
-        # Capture all arguments into an array
-        ARGS=("$@")
-
-        # Check if the '-shared' flag is present in the arguments
-        if printf "%s\n" "${ARGS[@]}" | grep -q -e '-shared'; then
-
-          # Use a loop to filter out the '-pie' flag from the arguments
-          FILTERED_ARGS=()
-          for arg in "${ARGS[@]}"; do
-            if [ "$arg" != "-pie" ]; then
-              FILTERED_ARGS+=("$arg")
-            fi
-          done
-
-          # Pass the filtered arguments to gcc
-          exec gcc "${FILTERED_ARGS[@]}"
-        else
-          # Pass the original arguments to gcc
-          exec gcc "${ARGS[@]}"
-        fi
-      working-directory: $HOME/.local/bin
-      if: linux
-
     - run:
         # Fix type conflicts in fuse_kernel.h for aarch64
         - if test "{{hw.arch}}" = "aarch64"; then sed -i -f $PROP include/fuse_kernel.h; fi
@@ -74,17 +45,7 @@ build:
         sed 's/Name: fuse3/Name: fuse/' fuse3.pc > fuse.pc
       if: ^3
       working-directory: ${{prefix}}/lib/pkgconfig
-
-    - run:
-        - mv fuse3/* .
-        - rmdir fuse3
-        - ln -s . fuse3
-      if: ^3
-      working-directory: ${{prefix}}/include
   env:
-    linux:
-      PATH: $HOME/.local/bin:$PATH
-      CC: gcc-wrapper
     ARGS:
       - -Dudevrulesdir={{prefix}}/etc/udev/rules.d
       - -Dinitscriptdir={{prefix}}/etc/init.d

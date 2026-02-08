@@ -14,39 +14,39 @@ platforms:
   - linux
 
 dependencies:
-  libexpat.github.io: '*'
-  google.com/fullycapable: '*'
-  lz4.org: '*'
+  libexpat.github.io: "*"
+  google.com/fullycapable: "*"
+  lz4.org: "*"
   openssl.org: ^1.1
-  github.com/util-linux/util-linux: '*'
-  tukaani.org/xz: '*'
-  facebook.com/zstd: '*'
-  github.com/besser82/libxcrypt: '*'
-  curl.se: '*'
-  gnu.org/libidn2: '*'
-  gnutls.org: '*'
-  sourceware.org/bzip2: '*'
-  pcre.org/v2: '*'
+  github.com/util-linux/util-linux: "*"
+  tukaani.org/xz: "*"
+  facebook.com/zstd: "*"
+  github.com/besser82/libxcrypt: "*"
+  curl.se: "*"
+  gnu.org/libidn2: "*"
+  gnutls.org: "*"
+  sourceware.org/bzip2: "*"
+  pcre.org/v2: "*"
 
 build:
   dependencies:
-    gnu.org/coreutils: '*'
-    docbook.org: '*'
-    gnu.org/gettext: '*'
-    gnu.org/gperf: '*'
-    github.com/mattrobenolt/jinja2-cli: '*'
-    gnupg.org/libgpg-error: '*'
-    gnu.org/libtool: '*'
-    gnome.org/libxslt: '*'
+    gnu.org/coreutils: "*"
+    docbook.org: "*"
+    gnu.org/gettext: "*"
+    gnu.org/gperf: "*"
+    github.com/mattrobenolt/jinja2-cli: "*"
+    gnupg.org/libgpg-error: "*"
+    gnu.org/libtool: "*"
+    gnome.org/libxslt: "*"
     gnome.org/libxml2: ~2.13 # since 257.5, 2.14 changed the API version
-    gnu.org/m4: '*'
-    mesonbuild.com: '*'
-    ninja-build.org: '*'
-    freedesktop.org/pkg-config: '*'
-    python.org: '>=3<3.12'
-    rsync.samba.org: '*'
+    gnu.org/m4: "*"
+    mesonbuild.com: "*"
+    ninja-build.org: "*"
+    freedesktop.org/pkg-config: "*"
+    python.org: ">=3<3.12"
+    rsync.samba.org: "*"
     linux:
-      kernel.org/linux-headers: '>=5.2' # for CLONE_PIDFD
+      kernel.org/linux-headers: ">=5.2" # for CLONE_PIDFD
   script:
     # systemd requires a newer version of some linux headers, but also needs the system
     # headers.
@@ -58,18 +58,12 @@ build:
     - meson setup $ARGS build
     - meson compile -C build
     - meson install -C build
-    - run: |
-        if test -d systemd; then
-          mv systemd/* .
-          rmdir systemd
-          ln -s . systemd
-        fi
-      working-directory: '{{prefix}}/include'
+
     - run: |
         if test -d systemd; then
           ln -s systemd/lib* .
         fi
-      working-directory: '{{prefix}}/lib'
+      working-directory: "{{prefix}}/lib"
   env:
     ARGS:
       - --sysconfdir={{prefix}}/etc

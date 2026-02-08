@@ -12,14 +12,7 @@ build:
   dependencies:
     rust-lang.org: ">=1.65"
     rust-lang.org/cargo: "*"
-  script:
-    - cargo install --locked --path . --root {{prefix}}
-    # fix codesign errors
-    - run:
-        - codesign --remove-signature reshape || true
-        - codesign -s - --force reshape
-      if: darwin
-      working-directory: ${{prefix}}/bin
+  script: cargo install --locked --path . --root {{prefix}}
 
 test:
   - test "$(reshape --version)" = "Reshape {{version}}"

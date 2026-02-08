@@ -11,12 +11,7 @@ build:
     make --jobs {{ hw.concurrency }}
     make install
 
-    cd {{prefix}}/include
-    mv apr-{{version.major}}/* .
-    rmdir apr-{{version.major}}
-    ln -s . apr-{{version.major}}
-
-    cd ../bin
+    cd {{prefix}}/bin
     sed -i.bak "s_{{prefix}}_\$(cd \$(dirname \$0)/.. \&\& pwd)_g" apr-{{version.major}}-config
     rm apr-{{version.major}}-config.bak
 

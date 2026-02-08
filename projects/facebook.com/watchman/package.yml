@@ -49,35 +49,6 @@ build:
         - cat $mainfile
       working-directory: watchman
 
-    # the pywatchman build doesn't like mixing -shared and -pie
-    - run:
-        - cp $PROP gcc-wrapper
-        - chmod +x gcc-wrapper
-      prop: |
-        #!/bin/bash
-        # Capture all arguments into an array
-        ARGS=("$@")
-
-        # Check if the '-shared' flag is present in the arguments
-        if printf "%s\n" "${ARGS[@]}" | grep -q -e '-shared'; then
-
-          # Use a loop to filter out the '-pie' flag from the arguments
-          FILTERED_ARGS=()
-          for arg in "${ARGS[@]}"; do
-            if [ "$arg" != "-pie" ]; then
-              FILTERED_ARGS+=("$arg")
-            fi
-          done
-
-          # Pass the filtered arguments to gcc
-          exec gcc "${FILTERED_ARGS[@]}"
-        else
-          # Pass the original arguments to gcc
-          exec gcc "${ARGS[@]}"
-        fi
-      working-directory: $HOME/.local/bin
-      if: linux
-
     # version/path mismatch
     - run: |
         if test -f Cargo.toml; then
@@ -103,8 +74,7 @@ build:
       - -DPython3_EXECUTABLE={{deps.python.org.prefix}}/bin/python
       - -DUSE_SYS_PYTHON=OFF
     linux:
-      PATH: $HOME/.local/bin:$PATH
-      CC: gcc-wrapper
+      CC: gcc
       CXX: g++
       LD: g++
       # intentionally omit -pie so python lib builds

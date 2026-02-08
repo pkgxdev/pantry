@@ -18,7 +18,7 @@ build:
     ninja-build.org: 1
     freedesktop.org/pkg-config: ^0.29
     gnome.org/gobject-introspection: 1
-    python.org: '>=3<3.12' #FIXME rq’d by gnome.org/gobject-introspection but should be added by tea-env
+    python.org: ">=3<3.12" #FIXME rq’d by gnome.org/gobject-introspection but should be added by tea-env
   working-directory: build
   script:
     #FIXME so linux build finds the shared-mime-info cache
@@ -28,12 +28,6 @@ build:
     - meson setup $MESON_ARGS ..
     - ninja
     - ninja install
-
-    - run:
-        - mv gdk-pixbuf-{{version.major}}.0/* .
-        - rmdir gdk-pixbuf-{{version.major}}.0
-        - ln -s . gdk-pixbuf-{{version.major}}.0
-      working-directory: ${{prefix}}/include
   env:
     MESON_ARGS:
       - --buildtype=release
