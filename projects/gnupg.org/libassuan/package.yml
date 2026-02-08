@@ -18,9 +18,6 @@ build:
     - make
     - make check
     - make install
-    # .la are unrelocatable, but only used if found
-    - run: find . -name '*.la' -exec rm {} \;
-      working-directory: ${{prefix}}/lib
 
   dependencies:
     gnupg.org/libgpg-error: 1
@@ -29,6 +26,6 @@ build:
       # otherwise it tries to link both libc++ and libstdc++, which gives
       # duplicate symbol errors.
       CFLAGS: $CFLAGS -std=gnu89
-      CXXFLAGS: '$CXXFLAGS -stdlib=libstdc++ -std=c++03'
+      CXXFLAGS: "$CXXFLAGS -stdlib=libstdc++ -std=c++03"
 
 test: test "$(libassuan-config --version)" = "{{version}}"

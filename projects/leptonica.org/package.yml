@@ -13,16 +13,14 @@ dependencies:
   libjpeg-turbo.org: 2
   libpng.org: 1
   simplesystems.org/libtiff: 4
-  openjpeg.org: '*'
-  google.com/webp: '*'
+  openjpeg.org: "*"
+  google.com/webp: "*"
 
 build:
   script:
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }}
     - make install
-    - run: find . -name '*.la' -exec rm -f {} \;
-      working-directory: ${{ prefix }}/lib
   env:
     ARGS:
       - --prefix="{{prefix}}"
@@ -41,7 +39,7 @@ provides:
 
 test:
   dependencies:
-    gnu.org/wget: '*'
+    gnu.org/wget: "*"
   script:
     - wget https://people.math.sc.edu/Burkardt/data/tif/at3_1m4_01.tif
     - fileinfo at3_1m4_01.tif

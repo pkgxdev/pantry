@@ -11,15 +11,14 @@ dependencies:
 
 build:
   dependencies:
-    gnu.org/libtool: '*'
+    gnu.org/libtool: "*"
   script:
     - ./configure $ARGS
     - make --jobs {{hw.concurrency}} install
     - run:
         # FIXME: this is a hack; we need to fix fixup.ts
-        - sed -i 's/\+brewing//g' *.la pkgconfig/*.pc
-        - find . -name '*.la' -exec rm {} \;
-      working-directory: '{{prefix}}/lib'
+        - sed -i 's/\+brewing//g' pkgconfig/*.pc
+      working-directory: "{{prefix}}/lib"
   env:
     ARGS:
       - --disable-debug
@@ -34,7 +33,7 @@ provides:
 
 test:
   dependencies:
-    curl.se: '*'
+    curl.se: "*"
   script:
     - iproxy -s localhost 2222:2223 &
     - PID=$!
