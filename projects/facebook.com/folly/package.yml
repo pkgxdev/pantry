@@ -92,6 +92,8 @@ build:
         done
       working-directory: ${{prefix}}/lib
       if: darwin
+  # otherwise, include/folly/String.h shadows the stdlib string.h on darwin (case-insensitive).
+  skip: flatten-includes
   env:
     ARGS:
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
