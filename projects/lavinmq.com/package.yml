@@ -14,11 +14,11 @@ dependencies:
 build:
   dependencies:
     crystal-lang.org: ~1.18 # since 2.4.5
-    crystal-lang.org/shards: '*'
+    crystal-lang.org/shards: "*"
     lz4.org: ^1
-    gnu.org/help2man: =1.49.3
-    perl.org: =5.40.0
-    etcd.io: '*'
+    gnu.org/help2man: "*"
+    perl.org: =5.42.0
+    etcd.io: "*"
   script:
     # else fix-machos.rb fails
     - run: sed -i 's/--link-flags=-pie/--link-flags=-Wl,-pie,-headerpad_max_install_names/' Makefile
@@ -28,7 +28,7 @@ build:
       prop: |
         /useradd/s/^/#/g
         s/-o lavinmq -g lavinmq//g
-      if: '>=2.3.0'
+      if: ">=2.3.0"
     - make -j {{hw.concurrency}} install $ARGS
   env:
     ARGS:
@@ -38,7 +38,7 @@ build:
       - UNITDIR="{{prefix}}/etc"
       - DOCS=
       - CRYSTAL_FLAGS=-Dbake_static
-    CRYSTAL_PATH: './lib:$CRYSTAL_PATH'
+    CRYSTAL_PATH: "./lib:$CRYSTAL_PATH"
 
 provides:
   - bin/lavinmq
