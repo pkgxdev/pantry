@@ -60,6 +60,12 @@ build:
     - cmake -S . -B _build $CMAKE_ARGS
     - cmake --build _build
     - cmake --install _build
+
+    # TODO: ensure brewkit handles this properly.
+    - run: sed -i
+        -e "s:{{pkgx.prefix}}:\$\{_IMPORT_PREFIX\}/../../..:g"
+        mvfst-targets.cmake
+      working-directory: ${{prefix}}/lib/cmake/mvfst
   env:
     CMAKE_ARGS:
       - -DCMAKE_INSTALL_PREFIX="{{prefix}}
