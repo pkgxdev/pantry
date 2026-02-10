@@ -10,29 +10,44 @@ versions:
     - /\.tar\.xz/
 
 dependencies:
-  gnu.org/gettext: '*'
-  perl.org: 5.38 # perl modules require matching minors
+  gnu.org/gettext: "*"
+  perl.org: ~5.42 # perl modules require matching minors; must match gettext
 
 runtime:
   env:
-    PERL5LIB: '{{prefix}}/lib/perl5:{{prefix}}/libexec/lib/perl5:$PERL5LIB'
+    PERL5LIB: "{{prefix}}/lib/perl5:{{prefix}}/libexec/lib/perl5:$PERL5LIB"
 
 build:
   dependencies:
-    cpanmin.us: '*'
+    cpanmin.us: "*"
+    darwin:
+      pkgx.sh/brewkit: "*" # for fix-machos.rb
   script:
     - cpanm -l {{prefix}} Locale::gettext
     - ./configure $CONFIGURE_ARGS
     - make install
     - run: sed -i '1s|.*|#!/usr/bin/env perl|' help2man
       working-directory: ${{prefix}}/bin
+    # fix-machos fails on gettext.bundle (headerpad too small) so we move
+    # perl5 aside, run fix-machos on the rest, then move it back.
+    - run:
+        - SCRATCH=$(mktemp -d)
+        - mv perl5 "$SCRATCH"
+        - ${{deps.pkgx.sh/brewkit.prefix}}/lib/bin/fix-machos.rb {{prefix}} {{prefix}}
+        - mv ${SCRATCH}/perl5 .
+      if: darwin
+      working-directory: ${{prefix}}/lib
+  skip: fix-machos
   env:
-    PERL5LIB: '{{prefix}}/lib/perl5:{{prefix}}/libexec/lib/perl5:$PERL5LIB'
+    PERL5LIB: "{{prefix}}/lib/perl5:{{prefix}}/libexec/lib/perl5:$PERL5LIB"
     CONFIGURE_ARGS:
       - --disable-debug
       - --disable-dependency-tracking
       - --prefix="{{prefix}}"
       - --libdir="{{prefix}}/lib"
+    darwin:
+      GEM_HOME: "$HOME/gem"
+      LDFLAGS: $LDFLAGS -Wl,-headerpad_max_install_names
 
 provides:
   - bin/help2man
