@@ -82,8 +82,8 @@ jobs:
 
       - uses: pkgxdev/setup@v2
         with:
-          version: 1.1.6
           PKGX_DIR: /opt
+      - run: pkgx --sync
 
       - uses: pkgxdev/brewkit/build@v1
         with:
@@ -125,8 +125,8 @@ jobs:
           fi
       - uses: ./.github/actions/setup
       - uses: pkgxdev/setup@v2
-        with:
-          version: 1.1.6
+      - run: pkgx --sync
+
       - uses: pkgxdev/brewkit/download-build-artifact@v1
         with:
           pkg: ${{ inputs.pkg }}
@@ -147,8 +147,7 @@ jobs:
       PREFIX: ${{ needs.build.outputs.project }}/${{ needs.build.outputs.platform }}/${{ needs.build.outputs.arch }}/v${{ needs.build.outputs.version }}.tar.${{ matrix.compression }}
     steps:
       - uses: pkgxdev/setup@v2
-        with:
-          version: 1.1.6
+      - run: pkgx --sync
 
       - uses: actions/checkout@v4
 
@@ -260,8 +259,7 @@ jobs:
           aws-region: us-east-1
 
       - uses: pkgxdev/setup@v2
-        with:
-          version: 1.1.6
+      - run: pkgx --sync
 
       - name: generate versions.txt
         run: |
