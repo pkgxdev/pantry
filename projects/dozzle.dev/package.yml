@@ -10,12 +10,18 @@ provides:
 
 build:
   dependencies:
-    go.dev: ^1.21
-    pnpm.io: '*'
-    openssl.org: '*'
+    go.dev: =1.25.7
+    pnpm.io: "*"
+    openssl.org: "*"
+    # uses these tools directly since v10
+    protobuf.dev: "*"
+    abseil.io: 20250127
+    grpc.io/grpc-go: "*"
   script:
-    - make -j {{hw.concurrency}} tools
+    - run: make -j {{hw.concurrency}} tools
+      if: <10
     - run: cp ~/go/bin/* .
+      if: <10
       working-directory: ${{prefix}}/bin
     - pnpm install
     # otherwise:
