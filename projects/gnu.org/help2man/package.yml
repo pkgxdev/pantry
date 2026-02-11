@@ -35,6 +35,7 @@ build:
         - mv perl5 "$SCRATCH"
         - ${{deps.pkgx.sh/brewkit.prefix}}/lib/bin/fix-machos.rb {{prefix}} {{prefix}}
         - mv ${SCRATCH}/perl5 .
+        - find perl5 -name '*.bundle' -exec install_name_tool -add_rpath @loader_path/../../../../../.. {} \;
       if: darwin
       working-directory: ${{prefix}}/lib
   skip: fix-machos
