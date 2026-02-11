@@ -20,25 +20,24 @@ runtime:
 build:
   dependencies:
     cpanmin.us: "*"
-    darwin:
-      pkgx.sh/brewkit: "*" # for fix-machos.rb
   script:
-    - cpanm -l {{prefix}} Locale::gettext
+    # wrap cc so cpanm's XS link step gets -headerpad_max_install_names
+    # (PERL_MM_OPT/OTHERLDFLAGS don't propagate through MakeMaker)
+    - run:
+        - WRAP=$(mktemp -d)
+        - install -Dm755 $PROP $WRAP/cc
+        - PATH="$WRAP:$PATH" CC="$WRAP/cc" cpanm -l {{prefix}} Locale::gettext
+        - rm -rf "$WRAP"
+      prop: |
+        #!/bin/sh
+        exec /usr/bin/cc -Wl,-headerpad_max_install_names -Wl,-rpath,{{pkgx.prefix}} "$@"
+      if: darwin
+    - run: cpanm -l {{prefix}} Locale::gettext
+      if: linux
     - ./configure $CONFIGURE_ARGS
     - make install
     - run: sed -i '1s|.*|#!/usr/bin/env perl|' help2man
       working-directory: ${{prefix}}/bin
-    # fix-machos fails on gettext.bundle (headerpad too small) so we move
-    # perl5 aside, run fix-machos on the rest, then move it back.
-    - run:
-        - SCRATCH=$(mktemp -d)
-        - mv perl5 "$SCRATCH"
-        - ${{deps.pkgx.sh/brewkit.prefix}}/lib/bin/fix-machos.rb {{prefix}} {{prefix}}
-        - mv ${SCRATCH}/perl5 .
-        - find perl5 -name '*.bundle' -exec install_name_tool -add_rpath @loader_path/../../../../../.. {} \;
-      if: darwin
-      working-directory: ${{prefix}}/lib
-  skip: fix-machos
   env:
     PERL5LIB: "{{prefix}}/lib/perl5:{{prefix}}/libexec/lib/perl5:$PERL5LIB"
     CONFIGURE_ARGS:
@@ -47,7 +46,6 @@ build:
       - --prefix="{{prefix}}"
       - --libdir="{{prefix}}/lib"
     darwin:
-      GEM_HOME: "$HOME/gem"
       LDFLAGS: $LDFLAGS -Wl,-headerpad_max_install_names
 
 provides:
