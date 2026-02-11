@@ -11,19 +11,19 @@ versions:
     - /"$/
 
 dependencies:
-  pkgx.sh: ^1
+  pkgx.sh: ">=1"
 
 build:
   dependencies:
     python.org: ^3
   script:
-    - 'pip download --no-deps --no-binary :all: --dest . python-openstackclient=={{version}}'
+    - "pip download --no-deps --no-binary :all: --dest . python-openstackclient=={{version}}"
     - tar zxvf python_openstackclient-{{version}}.tar.gz --strip-components=1
     - bkpyvenv stage {{prefix}} {{version}}
     - ${{prefix}}/venv/bin/pip install .
     # somehow, this isn't working in v8.2.0
     - run: cp -a openstackclient {{prefix}}/venv/lib/python{{deps.python.org.version.marketing}}/site-packages/
-      if: '>=8.2'
+      if: ">=8.2"
     - bkpyvenv seal {{prefix}} openstack openstack-inventory
 
 provides:

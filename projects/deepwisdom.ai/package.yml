@@ -8,13 +8,13 @@ versions:
   github: geekan/MetaGPT
 
 dependencies:
-  pkgx.sh: ^1
+  pkgx.sh: ">=1"
   git-scm.org: ^2 # v0.7.0 requires it
 
 build:
   dependencies:
     # Python 3.12 ==> ModuleNotFoundError: No module named 'distutils'
-    python.org: '>=3.9<3.12'
+    python.org: ">=3.9<3.12"
   script:
     - bkpyvenv stage {{prefix}} {{version}}
     - ${{prefix}}/venv/bin/pip install .
@@ -28,7 +28,7 @@ test:
     OPENAI_API_KEY: metaGptTestKey
     OPENAI_API_MODEL: gpt-4-1106-preview
   dependencies:
-    gnu.org/coreutils: '*'
+    gnu.org/coreutils: "*"
   script:
     # starting with 0.7.0, it uses a config file instead of env vars
     - run: install -D $FIXTURE ~/.metagpt/config2.yaml
@@ -36,7 +36,7 @@ test:
         llm:
           api_key: "metaGptTestKey"
           model: "gpt-4-1106-preview"  # or gpt-3.5-turbo-1106 / gpt-4-1106-preview
-      if: '>=0.7.0'
+      if: ">=0.7.0"
 
     # for more tests we need to set valid OPENAI_API_KEY with gpt-4 access
     # the tag line got less cool after 0.6.0...

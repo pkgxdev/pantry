@@ -8,7 +8,7 @@ versions:
   github: casdoor/casdoor
 
 companions:
-  github.com/lsof-org/lsof: '*'
+  github.com/lsof-org/lsof: "*"
 
 build:
   dependencies:
@@ -28,7 +28,7 @@ build:
     linux:
       GO_LDFLAGS:
         - -buildmode=pie
-  script: 
+  script:
     - working-directory: web
       run: |
         yarn install --frozen-lockfile --network-timeout 1000000
@@ -47,16 +47,16 @@ provides:
 
 test:
   dependencies:
-    pkgx.sh: ^1
+    pkgx.sh: ">=1"
     gnu.org/coreutils: ^9
-    github.com/gromgit/pup: '*'
-    curl.se: '*'
+    github.com/gromgit/pup: "*"
+    curl.se: "*"
   env:
     CONFIG_PATH: "${PWD}/conf/app.conf"
     CASDOOR_BIN_PATH: "$(+casdoor which casdoor)"
     CASDOOR_DIR_PATH: "$(dirname ${CASDOOR_BIN_PATH})"
     FRONTEND_PATH: "$(dirname ${CASDOOR_DIR_PATH})/web/build"
-  script: 
+  script:
     - mkdir -p {conf,log,web}
     - ln -s ${FRONTEND_PATH} web/build
     - run: cat ${FIXTURE} > ${CONFIG_PATH}
