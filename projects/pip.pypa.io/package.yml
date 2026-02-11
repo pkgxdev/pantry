@@ -5,10 +5,10 @@ distributable:
 versions:
   github: pypa/pip/tags
   # FIXME: the major prior to 18 is 10, which is ancient and doesn't currently work
-  ignore: ['<18']
+  ignore: ["<18"]
 
 dependencies:
-  pkgx.sh: ^1
+  pkgx.sh: ">=1"
 
 build:
   dependencies:
@@ -85,7 +85,7 @@ test:
   - run:
       - pip install findtui --target foo
       - pip3.10 install findtui --target .
-    if: '>=19'
+    if: ">=19"
 
   - test -f findtui/main.py
 
@@ -93,12 +93,12 @@ test:
   - pip --version | grep {{version}}
 
   - run: test $(pip3.8 inspect | pkgx jq --raw-output .environment.python_version) = 3.8
-    if: '>=22<25.2' # inspect command introduced at v22, 25.5 doesn't support python3.8
+    if: ">=22<25.2" # inspect command introduced at v22, 25.5 doesn't support python3.8
   - run: |
       for v in 3.9 3.10 3.11; do
         test $(pip$v inspect | pkgx jq --raw-output .environment.python_version) = $v
       done
-    if: '>=22' # inspect command introduced at v22
+    if: ">=22" # inspect command introduced at v22
 
 provides:
   - bin/pip
