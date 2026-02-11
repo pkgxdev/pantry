@@ -118,10 +118,6 @@ jobs:
       # expect libc6-dev and possibly other base libraries.
       - run: apt-get -y update && apt-get -y install build-essential
         if: matrix.container == 'ubuntu'
-      - run: pacman -Sy --noconfirm gcc-libs
-        if: matrix.container == 'archlinux:base-20250202.0.304438'
-
-      - uses: actions/checkout@v4
       # need to update archlinux-keyring on run
       # https://bbs.archlinux.org/viewtopic.php?id=304755
       - run: |
@@ -129,7 +125,10 @@ jobs:
             pacman-key --init
             pacman-key --populate archlinux
             pacman -Sy --noconfirm archlinux-keyring
+            pacman -Sy --noconfirm gcc-libs
           fi
+
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
       - uses: pkgxdev/setup@v4
       - run: pkgx --sync
