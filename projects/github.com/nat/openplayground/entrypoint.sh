@@ -2,7 +2,7 @@
 
 set -em
 
-PORT=$(tea get-port)
+PORT=$(pkgx pkgx^1 get-port)
 
 openplayground run --port $PORT &
 
