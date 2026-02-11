@@ -8,8 +8,11 @@ versions:
 dependencies:
   php.net: ^8.2
   getcomposer.org: ^2.7
+
+companions:
   linux:
     info-zip.org/unzip: ^6
+    gnu.org/sed: "*" # needed to edit new deploys at run time
 
 build:
   # 5.11.1 shipped as 5.11.0
@@ -20,6 +23,13 @@ build:
   - cp -r ./* {{prefix}}/libexec
   - run: ln -s ../libexec/bin/laravel laravel
     working-directory: ${{prefix}}/bin
+  # patch installer so `laravel new` projects pass LD_LIBRARY_PATH to `artisan serve`
+  - run: sed -i -f $PROP NewCommand.php
+    prop: |
+      /\$process.*runCommands.*isSuccessful/a\
+                  $this->replaceInFile("'PATH',", "'PATH',\\n        'LD_LIBRARY_PATH',", "$directory/vendor/laravel/framework/src/Illuminate/Foundation/Console/ServeCommand.php");
+    if: linux
+    working-directory: ${{prefix}}/libexec/src
 
 provides:
   - bin/laravel
@@ -27,21 +37,18 @@ provides:
 test:
   dependencies:
     curl.se: "*"
-    pkgx.sh: ^1
+    pkgx.sh: ">=1"
   script:
     - laravel --version
     - laravel --version | grep {{version}}
     - laravel new blog --no-interaction
-    # FIXME: this has a library issue on debian:buster-slim _only_ that is eluding me.
-    - run: if test -f /etc/debian_version && grep ^10 /etc/debian_version; then exit 0; fi
     - run:
         - (php artisan serve --port=$PORT & echo $! > server.pid) | tee server.log &
         - sleep 15
-        - curl http://localhost:$PORT
         - curl -s http://localhost:$PORT | tee out
         - kill $(cat server.pid)
         - grep Laravel out
         - grep 'Server running' server.log
       working-directory: blog
   env:
-    PORT: $(pkgx get-port | tail -n1)
+    PORT: $(pkgx pkgx^1 get-port | tail -n1)
