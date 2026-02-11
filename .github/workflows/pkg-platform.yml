@@ -114,6 +114,10 @@ jobs:
     env:
       PKGX_PANTRY_PATH: ${{ github.workspace }}
     steps:
+      # pkgxdev/setup no longer seeds the base, and many tests
+      # expect libc6-dev and possibly other base libraries.
+      - run: apt-get -y update && apt-get -y install build-essential
+        if: matrix.container == 'ubuntu'
       - uses: actions/checkout@v4
       # need to update archlinux-keyring on run
       # https://bbs.archlinux.org/viewtopic.php?id=304755
