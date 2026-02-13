@@ -19,7 +19,6 @@ jobs:
       matrix: ${{ steps.process-diff.outputs.matrix }}
     steps:
       - uses: pkgxdev/setup@v4
-      - run: pkgx --sync
       - uses: actions/checkout@v4
       - uses: technote-space/get-diff-action@v6
         id: get-diff
@@ -29,6 +28,7 @@ jobs:
         id: process-diff
         env:
           PKGX_PANTRY_PATH: ${{ github.workspace }}
+          PKGX_PANTRY_DIR: ${{ github.workspace }}
         run: |
           if [ -n "${{ steps.get-diff.outputs.diff }}" ]; then
             for x in ${{ steps.get-diff.outputs.diff }}; do
@@ -54,6 +54,7 @@ jobs:
     name: ${{ matrix.pkg }} ${{ matrix.platform.tinyname }}
     env:
       PKGX_PANTRY_PATH: ${{ github.workspace }}
+      PKGX_PANTRY_DIR: ${{ github.workspace }}
     steps:
       - uses: actions/checkout@v4
 
@@ -66,7 +67,6 @@ jobs:
       - uses: pkgxdev/setup@v4
         with:
           PKGX_DIR: /opt
-      - run: pkgx --sync
 
       - uses: pkgxdev/brewkit/build@v1
         id: build
