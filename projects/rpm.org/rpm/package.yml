@@ -4,6 +4,8 @@ distributable:
 
 display-name: rpm
 
+platforms: [linux] # they don't officially support darwin, and it's a bear to patch
+
 versions:
   github: rpm-software-management/rpm
   strip:
@@ -20,19 +22,27 @@ dependencies:
   sqlite.org: "*"
   tukaani.org/xz: "*"
   facebook.com/zstd: "*"
-  fossies.org/libelf: "*"
-  linux:
-    elfutils.org: "*"
-  darwin:
-    openmp.llvm.org: "*"
+  gnu.org/nettle: 3
+  elfutils.org: "*"
+  gnu.org/gcc/libstdcxx: 14
+
 build:
   dependencies:
     cmake.org: ^3.18
     lua.org: "5.4"
     gnu.org/gettext: "*"
+    invisible-island.net/ncurses: "*"
     python.org: ">=3.10"
+    sr.ht/scdoc: "*"
+    rust-lang.org: ">=1.56"
+    curl.se: "*"
+    gnu.org/tar: "*"
+    gnu.org/gcc: 14
+    gnu.org/binutils: ~2.44
   env:
     CMAKE_ARGS:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
       - -DCMAKE_INSTALL_SYSCONFDIR={{prefix}}/etc
       - -DCMAKE_INSTALL_SHAREDSTATEDIR={{prefix}}/var/lib
       - -DCMAKE_INSTALL_LOCALSTATEDIR={{prefix}}/var
@@ -44,12 +54,21 @@ build:
       - -DENABLE_TESTSUITE=OFF
       - -DWITH_ACL=OFF
       - -DWITH_CAP=OFF
-    darwin:
-      CMAKE_ARGS:
-        - -DWITH_LIBDW=OFF
-      LDFLAGS: $LDFLAGS -lomp
   working-directory: build
   script:
+    - run:
+        - curl -L "https://github.com/rpm-software-management/rpm-sequoia/archive/refs/tags/v1.9.0.tar.gz" | tar zxvf - --strip-components=1
+        - cargo build --release
+        - mkdir -p {{prefix}}/lib/pkgconfig
+        - install -Dm644 target/release/librpm_sequoia.so {{prefix}}/lib/
+        - ln -s librpm_sequoia.so {{prefix}}/lib/librpm_sequoia.so.1
+        - sed 's|/usr/local|${pcfiledir}/../..|' target/release/rpm-sequoia.pc >{{prefix}}/lib/pkgconfig/rpm-sequoia.pc
+        - cat {{prefix}}/lib/pkgconfig/rpm-sequoia.pc
+        - ls -l {{prefix}}/lib
+        - export PKG_CONFIG_PATH="{{prefix}}/lib/pkgconfig:$PKG_CONFIG_PATH"
+        - export LIBRARY_PATH="{{prefix}}/lib:$LIBRARY_PATH"
+        - export LD_LIBRARY_PATH="{{prefix}}/lib:$LD_LIBRARY_PATH"
+      working-directory: r-s
     - cmake .. $CMAKE_ARGS
     - cmake --build .
     - cmake --install .
@@ -57,4 +76,4 @@ build:
 provides:
   - bin/rpm
 
-test: test "$(rpm --version)" = {{version}}
+test: test "$(rpm --version)" = "RPM version {{version}}"
