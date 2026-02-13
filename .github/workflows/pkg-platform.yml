@@ -71,6 +71,7 @@ jobs:
       arch: ${{ steps.build.outputs.arch }}
     env:
       PKGX_PANTRY_PATH: ${{ github.workspace }}
+      PKGX_PANTRY_DIR: ${{ github.workspace }}
     steps:
       - uses: actions/checkout@v4
 
@@ -83,7 +84,6 @@ jobs:
       - uses: pkgxdev/setup@v4
         with:
           PKGX_DIR: /opt
-      - run: pkgx --sync
 
       - uses: pkgxdev/brewkit/build@v1
         with:
@@ -113,6 +113,7 @@ jobs:
     container: ${{ matrix.container }}
     env:
       PKGX_PANTRY_PATH: ${{ github.workspace }}
+      PKGX_PANTRY_DIR: ${{ github.workspace }}
     steps:
       # pkgxdev/setup no longer seeds the base, and many tests
       # expect libc6-dev and possibly other base libraries.
@@ -131,7 +132,6 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
       - uses: pkgxdev/setup@v4
-      - run: pkgx --sync
 
       - uses: pkgxdev/brewkit/download-build-artifact@v1
         with:
@@ -153,7 +153,6 @@ jobs:
       PREFIX: ${{ needs.build.outputs.project }}/${{ needs.build.outputs.platform }}/${{ needs.build.outputs.arch }}/v${{ needs.build.outputs.version }}.tar.${{ matrix.compression }}
     steps:
       - uses: pkgxdev/setup@v4
-      - run: pkgx --sync
 
       - uses: actions/checkout@v4
 
@@ -265,7 +264,6 @@ jobs:
           aws-region: us-east-1
 
       - uses: pkgxdev/setup@v4
-      - run: pkgx --sync
 
       - name: generate versions.txt
         run: |
