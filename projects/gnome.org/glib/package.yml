@@ -20,18 +20,18 @@ dependencies:
   python.org: 3 # several of the bins are scripts
 
 companions:
-  gnome.org/gsettings-desktop-schemas: '*'
+  gnome.org/gsettings-desktop-schemas: "*"
 
 runtime:
   env:
-    PYTHONPATH: '{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages:$PYTHONPATH'
+    PYTHONPATH: "{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages:$PYTHONPATH"
 
 build:
   dependencies:
     mesonbuild.com: ^1.2
     ninja-build.org: 1
-    python.org: '>=3.5<3.12'
-    gnome.org/gobject-introspection: '*'
+    python.org: ">=3.5<3.12"
+    gnome.org/gobject-introspection: "*"
     gnome.org/libxml2: ~2.13 # since 2.84.1, 2.14 changed the API version
   script:
     # needs python packaging module
@@ -58,7 +58,7 @@ build:
           sed -i -e \
           's|Cflags: -I${includedir}/glib-2.0 -I${libdir}/glib-2.0/include|Cflags: -I${includedir}/glib-2.0 -I${libdir}/glib-2.0/include'\ -I$GT/include\| \
           ./glib-2.0.pc
-      working-directory: '{{prefix}}/lib/pkgconfig'
+      working-directory: "{{prefix}}/lib/pkgconfig"
 
     - run:
         - mv glib-{{version.major}}.0/* .
@@ -70,11 +70,11 @@ build:
         - ln -s . gio-unix-{{version.major}}.0
 
         - ln -s ../lib/glib-{{version.major}}.0/include/* .
-      working-directory: '{{prefix}}/include'
+      working-directory: "{{prefix}}/include"
 
     - cp -a ../venv/lib/python{{deps.python.org.version.marketing}} "{{prefix}}"/lib
     - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
-      working-directory: '{{prefix}}/lib'
+      working-directory: "{{prefix}}/lib"
 
     - run:
         sed -i -e 's_{{deps.mesonbuild.com.prefix}}/venv/bin/python_/usr/bin/env python_'
@@ -82,7 +82,7 @@ build:
         glib-genmarshal
         glib-mkenums
         gtester-report
-      working-directory: '{{prefix}}/bin'
+      working-directory: "{{prefix}}/bin"
 
   #REF https://github.com/Homebrew/homebrew-core/blob/d0e65698ccd502335bea68ce879ae02e1735db0d/Formula/glib.rb#L66-L67
   #FIXME hardcoded paths ^^
@@ -114,7 +114,7 @@ test:
     - unset LD_LIBRARY_PATH
     - DYLD_FALLBACK_LIBRARY_PATH_BAK=$DYLD_FALLBACK_LIBRARY_PATH
     - unset DYLD_FALLBACK_LIBRARY_PATH
-    - cc $CFLAGS $LDFLAGS test.c
+    - cc $CFLAGS test.c $LDFLAGS
 
     - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH_BAK
     - export DYLD_FALLBACK_LIBRARY_PATH=$DYLD_FALLBACK_LIBRARY_PATH_BAK
