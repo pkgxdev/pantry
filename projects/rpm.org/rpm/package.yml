@@ -1,0 +1,42 @@
+distributable:
+  url: http://ftp.rpm.org/releases/rpm-{{version.major}}.{{version.minor}}.x/rpm-{{version}}.tar.bz2
+  strip-components: 1
+
+display-name: rpm
+
+versions:
+  github: rpm-software-management/rpm/releases/tags
+  strip:
+    - /^rpm-/
+    - /-release$/
+
+dependencies:
+  lua.org: ^5.2
+
+build:
+  dependencies:
+    cmake.org: ^3.18
+    freedesktop.org/pkg-config: '*'
+    lua.org: '5.4'
+    rpm.org/popt: '*'
+    invisible-island.net/ncurses: '*'
+    gnu.org/readline: '*'
+
+  env: 
+    CMAKE_LIBRARY_PATH: ${{deps.invisible-island.net/ncurses.prefix}}/lib
+    CMAKE_INCLUDE_PATH: ${{deps.invisible-island.net/ncurses.prefix}}/include
+  script: |
+    mkdir -p _build
+    cd _build
+    #cmake -DCMAKE_LIBRARY_PATH="$CMAKE_LIBRARY_PATH" \
+    #      -DCMAKE_INCLUDE_PATH="$CMAKE_INCLUDE_PATH" \
+    cmake \
+          ..
+provides:
+  - bin/rpm
+
+test:
+  dependencies:
+    lua.org: ^5.2
+  script:
+    test "$(rpm --version)" = {{version}}
