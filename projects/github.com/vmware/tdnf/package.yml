@@ -1,22 +1,49 @@
 distributable:
-  url: https://github.com/vmware/tdnf/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/vmware/tdnf/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 display-name: tdnf
 
 versions:
-  github: vmware/tdnf 
+  github: vmware/tdnf
+
+platforms: [linux] # rpm doesn't support darwin, and patching is a nightmare.
+
+dependencies:
+  rpm.org/rpm: "*"
+  libexpat.github.io: "*"
+  sqlite.org: 3
+  opensuse.org/libsolv: "*"
+  gnupg.org/gpgme: "*"
+  gnupg.org/libgpg-error: "*"
+  openssl.org: ~1.1
+  curl.se: "*"
 
 build:
   dependencies:
     cmake.org: ^3
-  script: |
-    mkdir -p build
-    cd build
-    cmake ..
-    make --jobs {{ hw.concurrency }}
+  working-directory: build
+  script:
+    # tdnf hardcodes /etc paths, patch to use CMAKE_INSTALL_PREFIX
+    - run: sed -i -f $PROP ../CMakeLists.txt
+      prop: |
+        s|set(CMAKE_INSTALL_FULL_SYSCONDIR "/etc")|set(CMAKE_INSTALL_FULL_SYSCONDIR "${CMAKE_INSTALL_PREFIX}/etc")|
+        s|set(SYSCONFDIR /etc)|set(SYSCONFDIR "${CMAKE_INSTALL_PREFIX}/etc")|
+        s|set(MOTGEN_DIR /etc/motdgen.d)|set(MOTGEN_DIR "${CMAKE_INSTALL_PREFIX}/etc/motdgen.d")|
+    - mkdir -p {{prefix}}/etc {{prefix}}/var/lib/tdnf
+    - cmake .. $CMAKE_ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
+  env:
+    CMAKE_ARGS:
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_EXE_LINKER_FLAGS=-ldl
+      - -DCMAKE_SHARED_LINKER_FLAGS=-Wl,-ldl,-lssl,-lcrypto
+      - -DSYSTEMD_DIR={{prefix}}/lib/systemd/system
+      - -DHISTORY_DB_DIR={{prefix}}/var/lib/tdnf
 
 provides:
   - bin/tdnf
 
-test: test "$(tdnf --version)" = {{version}}
+test: 'test "$(tdnf --version)" = "tdnf: {{version}}"'
