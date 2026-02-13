@@ -5,38 +5,54 @@ distributable:
 display-name: rpm
 
 versions:
-  github: rpm-software-management/rpm/releases/tags
+  github: rpm-software-management/rpm
   strip:
     - /^rpm-/
     - /-release$/
 
 dependencies:
   lua.org: ^5.2
-
+  gnu.org/gmp: "*"
+  libarchive.org: "*"
+  darwinsys.com/file: "*"
+  rpm.org/popt: "*"
+  gnu.org/readline: "*"
+  sqlite.org: "*"
+  tukaani.org/xz: "*"
+  facebook.com/zstd: "*"
+  fossies.org/libelf: "*"
+  linux:
+    elfutils.org: "*"
+  darwin:
+    openmp.llvm.org: "*"
 build:
   dependencies:
     cmake.org: ^3.18
-    freedesktop.org/pkg-config: '*'
-    lua.org: '5.4'
-    rpm.org/popt: '*'
-    invisible-island.net/ncurses: '*'
-    gnu.org/readline: '*'
+    lua.org: "5.4"
+    linux:
+      gnu.org/gettext: "*"
+  env:
+    CMAKE_ARGS:
+      - -DCMAKE_INSTALL_SYSCONFDIR={{prefix}}/etc
+      - -DCMAKE_INSTALL_SHAREDSTATEDIR={{prefix}}/var/lib
+      - -DCMAKE_INSTALL_LOCALSTATEDIR={{prefix}}/var
+      - -DENABLE_NLS=ON
+      - -DENABLE_PLUGINS=OFF
+      - -DWITH_AUDIT=OFF
+      - -DWITH_SELINUX=OFF
+      - -DRPM_VENDOR=pkgx
+      - -DENABLE_TESTSUITE=OFF
+      - -DWITH_ACL=OFF
+      - -DWITH_CAP=OFF
+    darwin:
+      LDFLAGS: $LDFLAGS -lomp
+  working-directory: build
+  script:
+    - cmake .. $CMAKE_ARGS
+    - cmake --build .
+    - cmake --install .
 
-  env: 
-    CMAKE_LIBRARY_PATH: ${{deps.invisible-island.net/ncurses.prefix}}/lib
-    CMAKE_INCLUDE_PATH: ${{deps.invisible-island.net/ncurses.prefix}}/include
-  script: |
-    mkdir -p _build
-    cd _build
-    #cmake -DCMAKE_LIBRARY_PATH="$CMAKE_LIBRARY_PATH" \
-    #      -DCMAKE_INCLUDE_PATH="$CMAKE_INCLUDE_PATH" \
-    cmake \
-          ..
 provides:
   - bin/rpm
 
-test:
-  dependencies:
-    lua.org: ^5.2
-  script:
-    test "$(rpm --version)" = {{version}}
+test: test "$(rpm --version)" = {{version}}
