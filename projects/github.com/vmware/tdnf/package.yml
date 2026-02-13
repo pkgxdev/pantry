@@ -1,0 +1,22 @@
+distributable:
+  url: https://github.com/vmware/tdnf/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+display-name: tdnf
+
+versions:
+  github: vmware/tdnf 
+
+build:
+  dependencies:
+    cmake.org: ^3
+  script: |
+    mkdir -p build
+    cd build
+    cmake ..
+    make --jobs {{ hw.concurrency }}
+
+provides:
+  - bin/tdnf
+
+test: test "$(tdnf --version)" = {{version}}
