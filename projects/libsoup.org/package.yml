@@ -76,6 +76,8 @@ test:
     - run:
         - ldd test
         - SQLITE="$(ldd test | sed -n '/libsqlite3.so => not found/s/=>.*//p')"
-        - patchelf --replace-needed $SQLITE libsqlite3.so test
+        - if ! test -z "$SQLITE"; then patchelf --replace-needed $SQLITE libsqlite3.so test; fi
+        - ldd test
+        - find {{pkgx.prefix}} -name "*.so" -print -exec ldd {} \| grep "libsqlite3.so => not found" \;
       if: linux
     - ./test
