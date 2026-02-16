@@ -30,6 +30,7 @@ build:
     freedesktop.org/pkg-config: "*"
     python.org: ~3.11
     gnome.org/vala: "*"
+    nixos.org/patchelf: "*"
   script:
     - meson setup build $MESON_ARGS
     - meson compile -C build --verbose
@@ -41,6 +42,9 @@ build:
           ln -s $d $d2
         done
       working-directory: "{{prefix}}/include"
+    # TODO: I still don't know why libsqlite3.so doesn't link right.
+    - run: patchelf --replace-needed {{deps.sqlite.org.prefix}}/lib/libsqlite3.so libsqlite3.so
+      if: linux
   env:
     MESON_ARGS:
       - --prefix="{{prefix}}"
