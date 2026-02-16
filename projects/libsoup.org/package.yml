@@ -75,7 +75,7 @@ test:
     # TODO: I still don't know why libsqlite3.so doesn't link right.
     - run:
         - ldd test
-        - SQLITE="$(ldd test | sed -n '/\/libsqlite3.so/s/=>.*//p')"
+        - SQLITE="$(ldd test | sed -n '/libsqlite3.so => not found/s/=>.*//p')"
         - patchelf --replace-needed $SQLITE libsqlite3.so test
       if: linux
     - ./test
