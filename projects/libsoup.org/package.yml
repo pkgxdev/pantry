@@ -30,7 +30,8 @@ build:
     freedesktop.org/pkg-config: "*"
     python.org: ~3.11
     gnome.org/vala: "*"
-    nixos.org/patchelf: "*"
+    linux:
+      nixos.org/patchelf: "*"
   script:
     - meson setup build $MESON_ARGS
     - meson compile -C build --verbose
@@ -43,7 +44,9 @@ build:
         done
       working-directory: "{{prefix}}/include"
     # TODO: I still don't know why libsqlite3.so doesn't link right.
-    - run: patchelf --replace-needed {{deps.sqlite.org.prefix}}/lib/libsqlite3.so libsqlite3.so libsoup-*.so
+    - run:
+        - SQLITE="$(ldd libsoup-*.so | sed -n '/libsqlite3.so/s/=>.*//p')"
+        - patchelf --replace-needed {{deps.sqlite.org.prefix}}/lib/libsqlite3.so libsqlite3.so libsoup-*.so
       working-directory: "{{prefix}}/lib"
       if: linux
   env:
@@ -60,7 +63,8 @@ build:
 test:
   dependencies:
     freedesktop.org/pkg-config: "*"
-    nixos.org/patchelf: "*"
+    linux:
+      nixos.org/patchelf: "*"
   script:
     - run: cc test.c $(pkg-config --libs --cflags libsoup-3.0 sqlite3) -o test
       if: ">=3.6.6"
@@ -68,6 +72,10 @@ test:
       if: ">=2.90<3.6.6"
     - run: cc test.c $(pkg-config --libs --cflags libsoup-2.4) -o test
       if: "<2.90"
-    - run: ldd test
+    # TODO: I still don't know why libsqlite3.so doesn't link right.
+    - run:
+        - ldd test
+        - SQLITE="$(ldd test | sed -n '/libsqlite3.so/s/=>.*//p')"
+        - patchelf --replace-needed $SQLITE libsqlite3.so test
       if: linux
     - ./test
