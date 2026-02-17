@@ -13,53 +13,29 @@ versions:
 
 build:
   dependencies:
-    rust-lang.org/rustup: '*' # manages its own rust :/
-    facebook.com/zstd: '*' # builds its own, still needs our cli
-    ziglang.org: ~0.11
-    nodejs.org: '*'
-    yarnpkg.com: '*'
-    cmake.org: '*'
-    git-scm.org: '*'
-    linux:
-      info-zip.org/zip: '*'
-      llvm.org: ^17
+    rust-lang.org/rustup: "*" # manages its own rust :/
+    facebook.com/zstd: "*" # builds its own, still needs our cli
+    nodejs.org: "*"
+    yarnpkg.com: "*"
+    cmake.org: "*"
+    git-scm.org: "*"
   script:
-    - run: ln -sf {{deps.rust-lang.org/rustup.prefix}}/bin/rustup rustup
+    - run:
+        - ln -sf {{deps.rust-lang.org/rustup.prefix}}/bin/rustup rustup
+        - rustup default nightly
+        - rustup component add rust-src
+        - ln -sf $HOME/.rustup/toolchains/*/bin/* .
       working-directory: $HOME/.cargo/bin
+
     - git submodule update --init --checkout
     - yarn
-    - rustup default nightly
-    - make stdlib
-    - make libs-$ARCH
+    - node build.mjs
 
-    # the mapping from x86_64 > x64 exists for linux, but not darwin, oddly
-    # https://github.com/awslabs/llrt/pull/336
-    - run: sed -i -f $PROP Makefile
-      prop: |
-        /^llrt-linux-x86_64.zip/a\
-        llrt-darwin-x86_64.zip: llrt-darwin-x64.zip
-    - make release
-    - install -D target/*/release/llrt {{prefix}}/bin/llrt
+    - cargo install --path llrt --root {{prefix}}
   env:
     PATH: $HOME/.cargo/bin:$PATH # rustup
-    x86-64:
-      ARCH: x64
-    aarch64:
-      ARCH: arm64
-    linux:
-      CC: clang
-      CXX: clang++
-      LD: clang
-      AS: llvm-as
 
 test:
-  # FIXME: dumps core on ubuntu latest, but is fine on debian and arch, oddly.
-  - run: |
-      if test -f /etc/issue && grep -qi 'ubuntu' /etc/issue; then
-        echo "Skipping test on Ubuntu due to known issue with llrt."
-        exit 0
-      fi
-    if: '>=0.6<0.6.2'
   - llrt --version
   - llrt --version | grep {{version}}
   - run: test "$(llrt $FIXTURE)" = "Hello, world!"
