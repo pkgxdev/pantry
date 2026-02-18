@@ -2,7 +2,7 @@
 
 set -em
 
-PORT=$(pkgx pkgx^1 get-port)
+PORT=$(pkgx npx --yes get-port-cli)
 
 openplayground run --port $PORT &
 

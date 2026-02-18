@@ -12,7 +12,7 @@ build:
     - run: go build $ARGS -ldflags="$GO_LDFLAGS" ./src
       if: <1.85
     - run: go build $ARGS -ldflags="$GO_LDFLAGS" .
-      if: '>=1.85'
+      if: ">=1.85"
   env:
     COMMIT: $(git describe --always --abbrev=8 --dirty)
     DATE: $(date -u +%FT%TZ)
@@ -32,9 +32,9 @@ provides:
 test:
   env:
     PC_DISABLE_TUI: false
-    PC_PORT_NUM: $(pkgx get-port | tail -n1)
+    PC_PORT_NUM: $(npx --yes get-port-cli | tail -n1)
   dependencies:
-    pkgx.sh: ^1
+    npmjs.com: "*"
   script:
     - run: cp $FIXTURE process-compose.yaml
       fixture: |
