@@ -1,7 +1,7 @@
 #!/usr/bin/env -S pkgx bash
 # shellcheck shell=bash
 
-PORT=$(pkgx pkgx^1 get-port)
+PORT=$(pkgx npx --yes get-port-cli)
 
 set -emfo pipefail
 

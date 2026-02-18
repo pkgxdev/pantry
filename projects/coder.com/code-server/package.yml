@@ -16,15 +16,15 @@ dependencies:
 
 build:
   dependencies:
-    npmjs.com: '*'
-    python.org: '>=3.11'
+    npmjs.com: "*"
+    python.org: ">=3.11"
   script:
     - npm i $ARGS .
     - npm i -ddd --unsafe-perm $PKGS
     - run: cp -a $SRCROOT/* .
-      working-directory: '{{prefix}}/libexec'
+      working-directory: "{{prefix}}/libexec"
     - run: ln -s ../libexec/out/node/entry.js code-server
-      working-directory: '{{prefix}}/bin'
+      working-directory: "{{prefix}}/bin"
   env:
     ARGS:
       - -ddd
@@ -32,9 +32,9 @@ build:
       - --legacy-peer-deps
       - --omit=dev
     PKGS:
-      - '@microsoft/1ds-core-js'
+      - "@microsoft/1ds-core-js"
       - minimist
-      - '@vscode/spdlog'
+      - "@vscode/spdlog"
       - yauzl
     CXXFLAGS:
       - -DNODE_API_EXPERIMENTAL_NOGC_ENV_OPT_OUT
@@ -50,7 +50,7 @@ provides:
 
 test:
   dependencies:
-    curl.se: '*'
+    curl.se: "*"
     pkgx.sh: 1
   script:
     - code-server --version | grep {{version}}
@@ -65,4 +65,4 @@ test:
     - curl http://localhost:$PORT/login
     - kill $PID
   env:
-    PORT: $(pkgx get-port | tail -n1)
+    PORT: $(npx --yes get-port-cli | tail -n1)
