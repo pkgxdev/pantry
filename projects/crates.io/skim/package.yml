@@ -24,12 +24,12 @@ build:
     - run: ln -sf $HOME/.rustup/toolchains/*/bin/* .
       working-directory: $HOME/.cargo/bin
 
-    - run: cargo install --path . --root {{prefix}}
-      if: <0.11.10 || >=1<1.3
+    - run: cargo install --path . --root {{prefix}} --locked
+      if: <0.11.10 || >=1<1.3 || >=3.4
     - run: cargo install --path skim --root {{prefix}}
       if: ">=0.11.10<1"
     - run: cargo install --path . --root {{prefix}} --features nightly-frizbee
-      if: ">=1.3"
+      if: ">=1.3<3.4"
     - cp bin/sk-tmux {{prefix}}/bin
     - mkdir -p {{prefix}}/share
     - cp -a shell man {{prefix}}/share/
