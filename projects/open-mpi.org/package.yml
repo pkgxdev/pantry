@@ -5,6 +5,10 @@ distributable:
 versions:
   github: open-mpi/ompi/tags
 
+platforms:
+  - linux
+  - darwin/aarch64 # fortran not happy on increasingly ancient darwin/x86-64
+
 dependencies:
   open-mpi.org/hwloc: "*"
   openpmix.github.io: 5
@@ -113,6 +117,14 @@ test:
           exit 0
         fi
       if: darwin
+    # glibc too old, somehow, on arch
+    # /lib/../lib64/libgfortran.so: undefined reference to `log10f@GLIBC_2.43'
+    - run: |
+        if [ -f /etc/os-release ] && grep -q '^ID=arch' /etc/os-release; then
+          echo "Arch Linux detected! Not currently testable."
+          exit 0
+        fi
+      if: linux
     - mpicc hello.c -o hello
     - ./hello
     - mpirun ./hello
