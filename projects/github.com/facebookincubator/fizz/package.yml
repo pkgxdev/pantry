@@ -42,6 +42,10 @@ build:
       if: ">=2023.12.18.0"
       working-directory: fizz/tool
 
+    # glog <0.7 lacks MakeCheckOpValueString<std::nullptr_t> (libc++ only)
+    - run: sed -i 's/FIZZ_CHECK_EQ(awaiter_, nullptr)/FIZZ_CHECK(awaiter_ == nullptr)/' fizz/experimental/psp/PSP.cpp
+      if: darwin
+
     # fizz references Folly::folly_benchmark but folly exports Folly::follybenchmark
     - run: |
         if ! grep -q 'Folly::folly_benchmark[^_]' {{deps.facebook.com/folly.prefix}}/lib/cmake/folly/folly-targets.cmake; then
