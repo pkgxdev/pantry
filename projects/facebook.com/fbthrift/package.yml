@@ -49,6 +49,13 @@ build:
       working-directory: thrift/cmake
       if: darwin
 
+    # fmt 12 moved fmt::join to <fmt/ranges.h>; fbthrift doesn't include it
+    - run: sed -i -f $PROP RoundRobinRequestPile.h
+      prop: |
+        /AsyncProcessor\.h/a\
+        #include <fmt/ranges.h>
+      working-directory: thrift/lib/cpp2/server
+
     # llvm's `as` likes to be first, wrongly
     - run: export PATH={{deps.gnu.org/binutils.prefix}}/bin:$PATH
       if: linux
