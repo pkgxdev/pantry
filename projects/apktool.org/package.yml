@@ -26,14 +26,25 @@ provides:
 
 test:
   dependencies:
-    curl.se: '*'
+    curl.se: "*"
   script:
     - run: apktool --version | grep {{version}}
       if: <2.12
     - run: test "$(apktool version)" = "{{version}}"
-      if: '>=2.12'
+      if: ">=2.12"
     - curl -L "$TEST_APK" -o test.apk
     - apktool d test.apk
+    # apktool 3.x doesn't auto-include framework 1 in apktool.yml for
+    # resource-less APKs, so aapt2 can't resolve android:* attributes.
+    - run:
+        - echo '<resources/>' > dummy.xml
+        - cat $FIXTURE >> ../../apktool.yml
+      fixture: |
+        usesFramework:
+          ids:
+          - 1
+      working-directory: test/res/values
+      if: ">=3"
     - apktool b test
     - ls test/dist | grep test.apk
   env:
