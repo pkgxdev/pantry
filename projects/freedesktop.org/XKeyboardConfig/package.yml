@@ -1,24 +1,26 @@
 distributable:
   url: https://xorg.freedesktop.org/archive/individual/data/xkeyboard-config/xkeyboard-config-{{version.marketing}}.tar.xz
   strip-components: 1
+
 versions:
   url: https://xorg.freedesktop.org/archive/individual/data/xkeyboard-config/
   match: /xkeyboard-config-\d+\.\d+\.tar\.xz/
   strip:
     - /^xkeyboard-config-/
     - /\.tar\.xz/
+
 runtime:
   env:
-    XDG_CONFIG_HOME: '{{prefix}}/share/X11'
-    XKB_CONFIG_EXTRA_PATH: '{{prefix}}/share/locale'
+    XDG_CONFIG_HOME: "{{prefix}}/share/X11"
+    XKB_CONFIG_EXTRA_PATH: "{{prefix}}/share/locale"
+
 build:
   dependencies:
-    gnu.org/gettext: '*'
-    mesonbuild.com: '*'
-    ninja-build.org: '*'
-    freedesktop.org/pkg-config: '*'
+    gnu.org/gettext: "*"
+    mesonbuild.com: "*"
+    ninja-build.org: "*"
     python.org: ~3.11
-    gnome.org/libxslt: '*'
+    gnome.org/libxslt: =1.1.43 # 1.1.45 requires a newer libxml2 abi, but we're locked out by other deps.
   script:
     - meson setup build $MESON_ARGS
     - meson compile -C build --verbose
@@ -29,9 +31,10 @@ build:
       - --libdir="{{prefix}}/lib"
       - --buildtype=release
       - --wrap-mode=nofallback
+
 test:
   dependencies:
-    freedesktop.org/pkg-config: '*'
+    freedesktop.org/pkg-config: "*"
   script:
     - ls {{prefix}}/share/man/man7 | grep "xkeyboard-config.7"
     - pkg-config --variable=xkb_base xkeyboard-config | grep "share/X11/xkb"
