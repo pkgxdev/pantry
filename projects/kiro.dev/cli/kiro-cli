@@ -4,6 +4,11 @@ set -eu
 
 # get this script's path
 shim_path="$(realpath "$0")"
+binary_path="$(dirname "${shim_path}")/../libexec/kiro-cli"
+
+if [ -x "${binary_path}" ]; then
+	exec "${binary_path}" "$@"
+fi
 
 # will be replaced during build
 version="%%version%%"
@@ -35,9 +40,8 @@ echo "Downloading ${archive_url}..." >&2
 curl -fL -# -o "${archive_path}" "${archive_url}"
 unzip -q -o "${archive_path}" -d "${work_dir}" "${archive_binary_path}"
 
-# replace this script with the actual binary
-install -Dm755 "${work_dir}/${archive_binary_path}" "${shim_path}"
+install -Dm755 "${work_dir}/${archive_binary_path}" "${binary_path}"
 
 rm -rf "${work_dir}"
 
-exec "${shim_path}" "$@"
+exec "${binary_path}" "$@"
