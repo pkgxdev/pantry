@@ -1,0 +1,36 @@
+#!/usr/bin/env sh
+
+set -eu
+
+shim_path="$(realpath "$0")"
+binary_path="$(dirname "${shim_path}")/../libexec/kiro-cli"
+
+if [ ! -x "${binary_path}" ]; then
+  # will be replaced during build
+  version="%%version%%"
+
+  work_dir="$(mktemp -d /tmp/pkgx-kiro-cli-${version}-XXXXXXXXXX)"
+  trap 'rm -rf "${work_dir}"' EXIT
+
+  dmg_url="https://desktop-release.q.us-east-1.amazonaws.com/${version}/Kiro%20CLI.dmg"
+  dmg_path="${work_dir}/kiro-cli.dmg"
+
+  echo "Downloading ${dmg_url}..." >&2
+  curl -fL -# -o "${dmg_path}" "${dmg_url}"
+
+  mount_point="${work_dir}/mnt"
+  mkdir -p "${mount_point}"
+  hdiutil attach "${dmg_path}" -nobrowse -readonly -mountpoint "${mount_point}" >/dev/null
+
+  # find the .app bundle inside the DMG
+  app_path="$(find "${mount_point}" -maxdepth 1 -name '*.app' | head -1)"
+
+  install -d "$(dirname "${binary_path}")"
+  cp "${app_path}/Contents/MacOS/kiro-cli" "${binary_path}"
+  chmod 755 "${binary_path}"
+
+  hdiutil detach "${mount_point}" >/dev/null
+  rm -rf "${work_dir}"
+fi
+
+exec "${binary_path}" "$@"
