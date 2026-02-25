@@ -3,23 +3,25 @@
 set -eu
 
 # get this script's path
-script_path="$(realpath "$0")"
+shim_path="$(realpath "$0")"
 
 # will be replaced during build
 version="%%version%%"
 
-temp_dir="$(mktemp -d -p /tmp "pkgx-kiro-cli-${version}-XXXXXXXXXX")"
-trap 'rm -rf "${temp_dir}"' EXIT
+work_dir="$(mktemp -d -p /tmp "pkgx-kiro-cli-${version}-XXXXXXXXXX")"
+trap 'rm -rf "${work_dir}"' EXIT
 
 arch="$(uname -m)"
-download_url="https://desktop-release.q.us-east-1.amazonaws.com/${version}/kirocli-${arch}-linux.zip"
-download_file="${temp_dir}/kiro-cli.zip"
-archive_bin="kirocli/bin/kiro-cli"
+archive_url="https://desktop-release.q.us-east-1.amazonaws.com/${version}/kirocli-${arch}-linux.zip"
+archive_path="${work_dir}/kiro-cli.zip"
+archive_binary_path="kirocli/bin/kiro-cli"
 
-curl -fL -# -o "${download_file}" "${download_url}"
-unzip -q -o "${download_file}" -d "${temp_dir}" "${archive_bin}"
-install -Dm755 "${temp_dir}/kirocli/bin/kiro-cli" "${script_path}"
+curl -fL -# -o "${archive_path}" "${archive_url}"
+unzip -q -o "${archive_path}" -d "${work_dir}" "${archive_binary_path}"
 
-rm -rf "${temp_dir}"
+# replace this script with the actual binary
+install -Dm755 "${work_dir}/${archive_binary_path}" "${shim_path}"
 
-exec "${script_path}" "$@"
+rm -rf "${work_dir}"
+
+exec "${shim_path}" "$@"
