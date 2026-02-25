@@ -1,0 +1,28 @@
+versions:
+  url: https://desktop-release.q.us-east-1.amazonaws.com/latest/manifest.json
+  match: /"version":\s*"\d+\.\d+\.\d+"/
+  strip:
+    - /^"version":\s*"/
+    - /"$/
+
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+
+dependencies:
+  curl.se: "*"
+  info-zip.org/unzip: "*"
+
+build:
+  script:
+    - sed -i "s/%%version%%/{{version}}/g" props/kiro-cli
+    - install -Dm755 props/kiro-cli {{prefix}}/bin/kiro-cli
+
+provides:
+  - bin/kiro-cli
+
+test:
+  # first time will download, replace, and execute the actual binary
+  - test "$(kiro-cli --version)" = "kiro-cli {{version}}"
+  # second time will just execute the actual binary
+  - test "$(kiro-cli --version)" = "kiro-cli {{version}}"
