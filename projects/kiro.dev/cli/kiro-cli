@@ -2,46 +2,43 @@
 
 set -eu
 
-# get this script's path
 shim_path="$(realpath "$0")"
 binary_path="$(dirname "${shim_path}")/../libexec/kiro-cli"
 
-if [ -x "${binary_path}" ]; then
-	exec "${binary_path}" "$@"
-fi
+if ! [ -x "${binary_path}" ]; then
+  # will be replaced during build
+  version="%%version%%"
 
-# will be replaced during build
-version="%%version%%"
+  work_dir="$(mktemp -d -p /tmp "pkgx-kiro-cli-${version}-XXXXXXXXXX")"
+  trap 'rm -rf "${work_dir}"' EXIT
 
-work_dir="$(mktemp -d -p /tmp "pkgx-kiro-cli-${version}-XXXXXXXXXX")"
-trap 'rm -rf "${work_dir}"' EXIT
+  arch="$(uname -m)"
+  archive_variant=""
 
-arch="$(uname -m)"
-archive_suffix=""
-
-glibc_version="$(getconf GNU_LIBC_VERSION)"
-glibc_version="${glibc_version#"glibc "}"
-if [ -n "${glibc_version}" ]; then
-	glibc_major="${glibc_version%%.*}"
-	glibc_minor="${glibc_version#*.}"
-	glibc_minor="${glibc_minor%%.*}"
+  glibc_version="$(getconf GNU_LIBC_VERSION)"
+  glibc_version="${glibc_version#"glibc "}"
+  if [ -n "${glibc_version}" ]; then
+    glibc_major="${glibc_version%%.*}"
+    glibc_minor="${glibc_version#*.}"
+    glibc_minor="${glibc_minor%%.*}"
 
     # Use musl-based binaries for glic older than 2.34
-	if [ "${glibc_major}" -lt 2 ] || { [ "${glibc_major}" -eq 2 ] && [ "${glibc_minor}" -lt 34 ]; }; then
-		archive_suffix="-musl"
-	fi
+    if [ "${glibc_major}" -lt 2 ] || { [ "${glibc_major}" -eq 2 ] && [ "${glibc_minor}" -lt 34 ]; }; then
+      archive_variant="-musl"
+    fi
+  fi
+
+  archive_url="https://desktop-release.q.us-east-1.amazonaws.com/${version}/kirocli-${arch}-linux${archive_variant}.zip"
+  archive_path="${work_dir}/kiro-cli.zip"
+  archive_binary_path="kirocli/bin/kiro-cli"
+
+  echo "Downloading ${archive_url}..." >&2
+  curl -fL -# -o "${archive_path}" "${archive_url}"
+  unzip -q -o "${archive_path}" -d "${work_dir}" "${archive_binary_path}"
+
+  install -Dm755 "${work_dir}/${archive_binary_path}" "${binary_path}"
+
+  rm -rf "${work_dir}"
 fi
-
-archive_url="https://desktop-release.q.us-east-1.amazonaws.com/${version}/kirocli-${arch}-linux${archive_suffix}.zip"
-archive_path="${work_dir}/kiro-cli.zip"
-archive_binary_path="kirocli/bin/kiro-cli"
-
-echo "Downloading ${archive_url}..." >&2
-curl -fL -# -o "${archive_path}" "${archive_url}"
-unzip -q -o "${archive_path}" -d "${work_dir}" "${archive_binary_path}"
-
-install -Dm755 "${work_dir}/${archive_binary_path}" "${binary_path}"
-
-rm -rf "${work_dir}"
 
 exec "${binary_path}" "$@"
