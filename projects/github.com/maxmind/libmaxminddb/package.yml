@@ -7,11 +7,16 @@ versions:
 
 build:
   dependencies:
-    gnu.org/autoconf: '*'
-    gnu.org/libtool: '*'
-  script: |
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }} install
+    gnu.org/autoconf: "*"
+    gnu.org/libtool: "*"
+    curl.se: "*"
+    gnu.org/patch: "*"
+  script:
+    # Declaring these functions causes compilation failure on macOS because sys/endian.h header already defined macros with the same name
+    - run: curl -L https://patch-diff.githubusercontent.com/raw/maxmind/libmaxminddb/pull/419.diff | patch -p1
+      if: ">=1.13"
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
   env:
     ARGS:
       - --prefix="{{prefix}}"
@@ -22,5 +27,4 @@ build:
 provides:
   - bin/mmdblookup
 
-test:
-  mmdblookup --version | grep {{version}}
+test: mmdblookup --version | grep {{version}}
