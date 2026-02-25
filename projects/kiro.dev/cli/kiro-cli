@@ -12,7 +12,22 @@ work_dir="$(mktemp -d -p /tmp "pkgx-kiro-cli-${version}-XXXXXXXXXX")"
 trap 'rm -rf "${work_dir}"' EXIT
 
 arch="$(uname -m)"
-archive_url="https://desktop-release.q.us-east-1.amazonaws.com/${version}/kirocli-${arch}-linux.zip"
+archive_suffix="-linux.zip"
+
+glibc_version="$(getconf GNU_LIBC_VERSION)"
+glibc_version="${glibc_version#"glibc "}"
+if [ -n "${glibc_version}" ]; then
+	glibc_major="${glibc_version%%.*}"
+	glibc_minor="${glibc_version#*.}"
+	glibc_minor="${glibc_minor%%.*}"
+
+    # Use musl-based binaries for glic older than 2.34
+	if [ "${glibc_major}" -lt 2 ] || { [ "${glibc_major}" -eq 2 ] && [ "${glibc_minor}" -lt 34 ]; }; then
+		archive_suffix="-musl.zip"
+	fi
+fi
+
+archive_url="https://desktop-release.q.us-east-1.amazonaws.com/${version}/kirocli-${arch}${archive_suffix}"
 archive_path="${work_dir}/kiro-cli.zip"
 archive_binary_path="kirocli/bin/kiro-cli"
 
