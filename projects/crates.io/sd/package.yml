@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/chmln/sd/archive/refs/tags/v{{ version }}.tar.gz
+  url: https://github.com/chmln/sd/archive/refs/tags/{{ version.tag }}.tar.gz
   strip-components: 1
 
 provides:
@@ -7,15 +7,17 @@ provides:
 
 versions:
   github: chmln/sd
-  strip: /v/
 
 build:
   dependencies:
-    rust-lang.org: '>=1.65'
-    rust-lang.org/cargo: '*'
+    rust-lang.org: ">=1.65"
+    rust-lang.org/cargo: "*"
   script:
-    cargo install --locked --path . --root {{prefix}}
+    # missed version bump
+    - sed -i 's/^version = ".*"/version = "{{version}}"/' Cargo.toml
+    - run: cargo install --locked --path . --root {{prefix}}
+      if: <1.1.0
+    - run: cargo install --locked --path sd-cli --root {{prefix}}
+      if: ">=1.1.0"
 
-test:
-  script:
-    - test "$(sd --version)" = "sd {{version}}"
+test: test "$(sd --version)" = "sd {{version}}"
