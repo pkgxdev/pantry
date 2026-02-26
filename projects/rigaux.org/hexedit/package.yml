@@ -10,22 +10,19 @@ dependencies:
 
 build:
   dependencies:
-    gnu.org/autoconf: '*'
-  script: |
-    ./autogen.sh
-    ./configure --prefix={{prefix}}
-    make
-    make install
-
-test:
-  # hexedit -h shows usage and exits 1 (as noted in the previous FIXME).
-  # It's a curses tool, output checks are unreliable.
-  # Checking the documented exit code is the simplest robust test.
+    gnu.org/autoconf: "*"
   script:
-    # The `!` negates the exit status.
-    # This command succeeds if `hexedit -h` exits non-zero.
-    - run: "! hexedit -h >/dev/null 2>&1"
+    # hexedit is a TUI with no --version flag; patch one in for testing
+    - run: sed -i -f $PROP hexedit.c
+      prop: |
+        /streq(\*argv, "-s")/i\
+            if (streq(*argv, "-V") || streq(*argv, "--version")) { puts("hexedit {{version}}"); exit(0); } else
+    - ./autogen.sh
+    - ./configure --prefix={{prefix}}
+    - make
+    - make install
 
+test: test "$(hexedit --version)" = "hexedit {{version}}"
 
 provides:
   - bin/hexedit
