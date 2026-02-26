@@ -1,0 +1,283 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat <<'USAGE'
+nullclaw-init: initialize NullClaw config from a markdown manifest front matter.
+
+Usage:
+  nullclaw-init <manifest.md> [--write-only] [--output <config.json>]
+  nullclaw-init --help
+
+Options:
+  --write-only        Write config and exit without launching NullClaw.
+  --output <path>     Config output path (default: ~/.nullclaw/config.json).
+
+Manifest format:
+  YAML front matter between the first two lines containing only `---`.
+USAGE
+}
+
+manifest=""
+write_only=0
+output=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --help|-h)
+      usage
+      exit 0
+      ;;
+    --write-only)
+      write_only=1
+      shift
+      ;;
+    --output)
+      if [[ $# -lt 2 ]]; then
+        echo "error: --output requires a path" >&2
+        exit 2
+      fi
+      output="$2"
+      shift 2
+      ;;
+    -*)
+      echo "error: unknown flag: $1" >&2
+      usage >&2
+      exit 2
+      ;;
+    *)
+      if [[ -n "$manifest" ]]; then
+        echo "error: only one manifest path is supported" >&2
+        exit 2
+      fi
+      manifest="$1"
+      shift
+      ;;
+  esac
+done
+
+if [[ -z "$manifest" ]]; then
+  echo "error: missing manifest path" >&2
+  usage >&2
+  exit 2
+fi
+
+if [[ ! -f "$manifest" ]]; then
+  echo "error: manifest not found: $manifest" >&2
+  exit 2
+fi
+
+if [[ -z "$output" ]]; then
+  output="${HOME}/.nullclaw/config.json"
+fi
+
+if ! command -v yq >/dev/null 2>&1; then
+  echo "error: yq is required but not found in PATH" >&2
+  exit 2
+fi
+if ! command -v jq >/dev/null 2>&1; then
+  echo "error: jq is required but not found in PATH" >&2
+  exit 2
+fi
+
+frontmatter="$(
+  awk '
+    BEGIN { sep=0 }
+    /^---[[:space:]]*$/ { sep+=1; if (sep == 2) exit; next }
+    sep == 1 { print }
+  ' "$manifest"
+)"
+
+if [[ -z "${frontmatter//[[:space:]]/}" ]]; then
+  echo "error: no YAML front matter found in manifest" >&2
+  exit 2
+fi
+
+manifest_json="$(printf '%s\n' "$frontmatter" | yq -o=json '.')"
+
+jq_str() {
+  printf '%s' "$manifest_json" | jq -r "$1"
+}
+
+jq_json() {
+  printf '%s' "$manifest_json" | jq -c "$1"
+}
+
+provider="$(jq_str '.agent.model.provider // empty')"
+primary_model="$(jq_str '.agent.model.primary // empty')"
+provider_key_env="$(jq_str '.auth.provider_api_key_env // empty')"
+
+if [[ -z "$provider" ]]; then
+  echo "error: missing .agent.model.provider in manifest" >&2
+  exit 2
+fi
+if [[ -z "$primary_model" ]]; then
+  echo "error: missing .agent.model.primary in manifest" >&2
+  exit 2
+fi
+if [[ -z "$provider_key_env" ]]; then
+  echo "error: missing .auth.provider_api_key_env in manifest" >&2
+  exit 2
+fi
+
+provider_api_key="${!provider_key_env:-}"
+if [[ -z "$provider_api_key" ]]; then
+  echo "error: required environment variable is not set: $provider_key_env" >&2
+  exit 2
+fi
+
+default_temperature="$(jq_json '.agent.defaults.temperature // 0.7')"
+heartbeat_every="$(jq_str '.agent.defaults.heartbeat_every // "30m"')"
+workspace="$(jq_str '.runtime.workspace // "."')"
+workspace_only="$(jq_json '.runtime.workspace_only // true')"
+allow_public_bind="$(jq_json '.runtime.allow_public_bind // false')"
+tools_allowlist="$(jq_json '.runtime.tools_allowlist // []')"
+
+memory_backend="$(jq_str '.memory.backend // "sqlite"')"
+embedding_provider="$(jq_str '.memory.embedding_provider // "noop"')"
+vector_weight="$(jq_json '.memory.vector_weight // 0.7')"
+keyword_weight="$(jq_json '.memory.keyword_weight // 0.3')"
+hygiene_enabled="$(jq_json '.memory.hygiene_enabled // true')"
+embedding_key_env="$(jq_str '.memory.embedding_api_key_env // empty')"
+embedding_api_key=""
+if [[ -n "$embedding_key_env" ]]; then
+  embedding_api_key="${!embedding_key_env:-}"
+fi
+
+config_json="$(
+  jq -n \
+    --arg provider "$provider" \
+    --arg provider_api_key "$provider_api_key" \
+    --arg primary_model "$primary_model" \
+    --arg heartbeat_every "$heartbeat_every" \
+    --arg workspace "$workspace" \
+    --arg memory_backend "$memory_backend" \
+    --arg embedding_provider "$embedding_provider" \
+    --argjson default_temperature "$default_temperature" \
+    --argjson workspace_only "$workspace_only" \
+    --argjson allow_public_bind "$allow_public_bind" \
+    --argjson tools_allowlist "$tools_allowlist" \
+    --argjson vector_weight "$vector_weight" \
+    --argjson keyword_weight "$keyword_weight" \
+    --argjson hygiene_enabled "$hygiene_enabled" \
+    '{
+      default_temperature: $default_temperature,
+      models: {
+        providers: {
+          ($provider): {
+            api_key: $provider_api_key
+          }
+        }
+      },
+      agents: {
+        defaults: {
+          model: { primary: $primary_model },
+          heartbeat: { every: $heartbeat_every }
+        }
+      },
+      runtime: {
+        workspace: $workspace,
+        workspace_only: $workspace_only,
+        allow_public_bind: $allow_public_bind
+      },
+      tools: {
+        allowed: $tools_allowlist
+      },
+      memory: {
+        backend: $memory_backend,
+        embedding_provider: $embedding_provider,
+        vector_weight: $vector_weight,
+        keyword_weight: $keyword_weight,
+        hygiene_enabled: $hygiene_enabled
+      },
+      channels: {}
+    }'
+)"
+
+if [[ -n "$embedding_api_key" ]]; then
+  config_json="$(printf '%s' "$config_json" | jq --arg embedding_api_key "$embedding_api_key" '.memory.embedding_api_key = $embedding_api_key')"
+fi
+
+telegram_enabled="$(jq_str '.channels.telegram.enabled // false')"
+if [[ "$telegram_enabled" == "true" ]]; then
+  telegram_account="$(jq_str '.channels.telegram.account_id // "main"')"
+  telegram_token_env="$(jq_str '.channels.telegram.bot_token_env // empty')"
+  telegram_allow_from="$(jq_json '.channels.telegram.allow_from // []')"
+  if [[ -z "$telegram_token_env" ]]; then
+    echo "error: .channels.telegram.bot_token_env is required when telegram is enabled" >&2
+    exit 2
+  fi
+  telegram_token="${!telegram_token_env:-}"
+  if [[ -z "$telegram_token" ]]; then
+    echo "error: required environment variable is not set: $telegram_token_env" >&2
+    exit 2
+  fi
+  config_json="$(
+    printf '%s' "$config_json" | jq \
+      --arg account "$telegram_account" \
+      --arg bot_token "$telegram_token" \
+      --argjson allow_from "$telegram_allow_from" \
+      '.channels.telegram.accounts = {($account): {bot_token: $bot_token, allow_from: $allow_from}}'
+  )"
+fi
+
+discord_enabled="$(jq_str '.channels.discord.enabled // false')"
+if [[ "$discord_enabled" == "true" ]]; then
+  discord_account="$(jq_str '.channels.discord.account_id // "main"')"
+  discord_token_env="$(jq_str '.channels.discord.token_env // empty')"
+  discord_guild_id="$(jq_str '.channels.discord.guild_id // empty')"
+  discord_allow_from="$(jq_json '.channels.discord.allow_from // []')"
+  if [[ -z "$discord_token_env" ]]; then
+    echo "error: .channels.discord.token_env is required when discord is enabled" >&2
+    exit 2
+  fi
+  discord_token="${!discord_token_env:-}"
+  if [[ -z "$discord_token" ]]; then
+    echo "error: required environment variable is not set: $discord_token_env" >&2
+    exit 2
+  fi
+  config_json="$(
+    printf '%s' "$config_json" | jq \
+      --arg account "$discord_account" \
+      --arg token "$discord_token" \
+      --arg guild_id "$discord_guild_id" \
+      --argjson allow_from "$discord_allow_from" \
+      '.channels.discord.accounts = {($account): {token: $token, guild_id: $guild_id, allow_from: $allow_from}}'
+  )"
+fi
+
+mkdir -p "$(dirname "$output")"
+printf '%s\n' "$config_json" >"$output"
+chmod 600 "$output"
+
+echo "Wrote NullClaw config: $output"
+
+if [[ "$write_only" -eq 1 ]]; then
+  exit 0
+fi
+
+if ! command -v nullclaw >/dev/null 2>&1; then
+  echo "error: nullclaw binary not found in PATH" >&2
+  exit 2
+fi
+
+launch_mode="$(jq_str '.launch.mode // "agent"')"
+first_message="$(jq_str '.launch.first_message // empty')"
+
+case "$launch_mode" in
+  gateway)
+    exec nullclaw gateway
+    ;;
+  agent|"")
+    if [[ -n "$first_message" ]]; then
+      exec nullclaw agent -m "$first_message"
+    else
+      exec nullclaw agent
+    fi
+    ;;
+  *)
+    echo "error: unsupported launch.mode: $launch_mode (expected agent or gateway)" >&2
+    exit 2
+    ;;
+esac
+
