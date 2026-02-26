@@ -47,6 +47,8 @@ build:
         - sed "s|HOME|$HOME|" $PROP >prop.sed
         - sed -i -f prop.sed h5cc h5c++
         - if test -f h5fc; then sed -i -f prop.sed h5fc; fi
+        - CC="$(command -v cc)"
+        - sed -i "s/${CC}/cc/g" h5cc h5c++
       working-directory: ${{prefix}}/bin
       prop: |
         s|{{deps.dkrz.de/libaec.prefix}}|{{pkgx.prefix}}/dkrz.de/libaec/v{{deps.dkrz.de/libaec.version.major}}|g
