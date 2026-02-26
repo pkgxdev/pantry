@@ -1,0 +1,18 @@
+#!/usr/bin/env sh
+set -eu
+
+self="$(realpath "$0")"
+real="$(dirname "$self")/../libexec/protoc"
+
+# extract abseil version from Mach-O load commands
+# paths look like @rpath/abseil.io/v20250127/lib/libabsl_*.dylib
+abseil_version=$(otool -L "$real" 2>/dev/null \
+  | grep -o 'abseil\.io/v[0-9]*' \
+  | head -1 \
+  | sed 's|abseil\.io/v||')
+
+if [ -z "${abseil_version:-}" ]; then
+  exec "$real" "$@"
+fi
+
+exec pkgx +"abseil.io^${abseil_version}" "$real" "$@"

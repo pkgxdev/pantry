@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/protocolbuffers/protobuf/archive/refs/tags/v{{version.raw}}.tar.gz
+  url: https://github.com/protocolbuffers/protobuf/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
@@ -11,14 +11,16 @@ aliases: [protobuf]
 
 dependencies:
   zlib.net: ^1
-  # this is a bit of a hack, since they need their built version at link time
-  # but the built version *has* to drift :/
-  abseil.io: '*'
+  abseil.io: "*" # match build version. lame, i know. but the bins get wrappers to automate.
+  pkgx.sh: ">=1" # for the shims
+  linux:
+    gnu.org/binutils: "*" # readelf
+    gnu.org/sed: "*"
 
 build:
   dependencies:
     cmake.org: ^3
-    abseil.io: ^20250127 # FIXME: how? it links to e.g. libabsl_bad_any_cast_impl.so.2308.0.0
+    abseil.io: ^20250127
   working-directory: build
   script:
     # cmake really doesn't like this with new xcode
@@ -27,6 +29,14 @@ build:
       if: darwin
     - cmake .. $ARGS
     - make --jobs {{ hw.concurrency }} install
+    # wrapper script resolves the correct abseil.io version at runtime
+    - install -d {{prefix}}/libexec
+    - run:
+        - for BIN in *; do
+        - mv $BIN ../libexec/$BIN
+        - install -m755 $SRCROOT/props/protoc.{{hw.platform}} $BIN
+        - done
+      working-directory: ${{prefix}}/bin
   env:
     linux:
       # likely needs bumping to an unreleased abseil.io version
