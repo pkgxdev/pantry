@@ -10,15 +10,15 @@ dependencies:
 
 build:
   dependencies:
-    cmake.org: '*'
+    cmake.org: "*"
     git-scm.org: ^2
     ninja-build.org: ^1
-    python.org: '>=3.7<3.12'
+    python.org: ">=3.7<3.12"
   script: |
     git submodule update --init
     cmake -B $BUILD_DIR $CMAKE_ARGS
     ninja -C $BUILD_DIR
-    
+
     mkdir -p {{prefix}}
     cp -r $BUILD_DIR/bin {{prefix}}/
     cp -r $BUILD_DIR/lib {{prefix}}/
@@ -29,14 +29,16 @@ build:
       - -C./cmake/caches/PredefinedParams.cmake
       - -DSPIRV_BUILD_TESTS=ON
       - -DCMAKE_BUILD_TYPE=Release
+    linux:
+      # since 1.9.2602
+      LDFLAGS: $LDFLAGS -Wl,-lstdc++fs
 
 provides:
-  -  bin/dxc
-  -  bin/dxv
-  -  bin/dxa
-  -  bin/dxr
-  -  bin/dxl
+  - bin/dxc
+  - bin/dxv
+  - bin/dxa
+  - bin/dxr
+  - bin/dxl
 
 test:
-  script:
-    dxc --help
+  script: dxc --help
