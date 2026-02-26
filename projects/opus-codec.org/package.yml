@@ -11,18 +11,12 @@ build:
     gnu.org/autoconf: 2
     gnu.org/automake: 1.16
     gnu.org/libtool: 2.4
-    gnu.org/wget: '*' # downloads content at build time
+    gnu.org/wget: "*" # downloads content at build time
   script:
     - ./autogen.sh
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }}
     - make install
-
-    - run: |
-        mv opus/* .
-        rmdir opus
-        ln -s . opus
-      working-directory: ${{ prefix }}/include
   env:
     ARGS:
       - --prefix={{ prefix }}

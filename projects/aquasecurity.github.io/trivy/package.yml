@@ -10,23 +10,26 @@ dependencies:
 
 build:
   dependencies:
-    go.dev: '>=1.21'
+    go.dev: =1.25 # as of 0.67.0
     linux:
       # running gcc failed: exit status 1
       gnu.org/gcc: '*'
+      gnu.org/binutils: ~2.44 # ld.gold
   script:
-    - go build $ARGS -ldflags="$LDFLAGS" ./cmd/trivy
+    - run: export GOEXPERIMENT=jsonv2
+      if: '>=0.67.0'
+    - go build $ARGS -ldflags="$GO_LDFLAGS" ./cmd/trivy
   env:
     ARGS:
       - -trimpath
       - -o={{prefix}}/bin/trivy
-    LDFLAGS:
+    GO_LDFLAGS:
       - -s
       - -w
       - -X github.com/aquasecurity/trivy/pkg/version.ver={{version}}
       - -X github.com/aquasecurity/trivy/pkg/version/app.ver={{version}}
     linux:
-      LDFLAGS:
+      GO_LDFLAGS:
         - -buildmode=pie
 
 provides:

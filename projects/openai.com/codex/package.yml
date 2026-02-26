@@ -1,0 +1,39 @@
+distributable:
+  url: https://github.com/openai/codex/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/codex
+  - bin/codex-exec
+  - bin/codex-tui
+  - bin/md-events
+
+versions:
+  github: openai/codex
+  strip: /^rust-v/
+
+companions:
+  crates.io/ripgrep: "*"
+  git-scm.org: ">=2.39"
+
+dependencies:
+  linux:
+    kernel.org/libcap: ^1
+
+build:
+  dependencies:
+    rust-lang.org: ">=1.89"
+  script:
+    - cargo install --locked --path codex-rs/exec --root {{prefix}}
+    - cargo install --locked --path codex-rs/cli --root {{prefix}}
+    - cargo install --locked --path codex-rs/tui --root {{prefix}}
+  env:
+    OPENSSL_STATIC: 1
+
+test:
+  # issue #11669
+  # ensure libssl is not dynamically linked
+  - run: if ldd {{prefix}}/bin/codex | grep libssl; then echo "libssl linked"; exit 1; fi
+    if: linux
+  - codex --help
+  - test "$(codex --version)" = "codex-cli {{version}}"

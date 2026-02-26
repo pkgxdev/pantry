@@ -1,0 +1,50 @@
+distributable:
+  - url: https://github.com/pantoniou/libfyaml/releases/download/{{version.tag}}/libfyaml-{{version}}.tar.gz
+    strip-components: 1
+  # no easy way to get v0.9
+  - url: https://github.com/pantoniou/libfyaml/releases/download/{{version.tag}}/libfyaml-{{version.marketing}}.tar.gz
+    strip-components: 1
+
+versions:
+  github: pantoniou/libfyaml
+
+dependencies:
+  linux:
+    llvm.org: 22 # libclang, since 0.9.5
+
+build:
+  dependencies:
+    linux:
+      gnu.org/m4: "*"
+  script:
+    - ./configure $ARGS --prefix="{{prefix}}"
+    - make --jobs {{ hw.concurrency }} install
+
+provides:
+  - bin/fy-compose
+  - bin/fy-dump
+  - bin/fy-filter
+  - bin/fy-join
+  - bin/fy-testsuite
+  - bin/fy-tool
+  - bin/fy-ypath
+
+test:
+  - run: c++ $FIXTURE -o test -lfyaml
+    fixture:
+      extname: cpp
+      content: |
+        #ifdef HAVE_CONFIG_H
+        #include "config.h"
+        #endif
+
+        #include <iostream>
+        #include <libfyaml.h>
+
+        int main(int argc, char *argv[])
+        {
+          std::cout << fy_library_version() << std::endl;
+          return EXIT_SUCCESS;
+        }
+  - test "$(./test)" = "{{version}}" || test "$(./test)" = "{{version.marketing}}"
+  - test "$(fy-tool --version)" = "{{version}}" || test "$(fy-tool --version)" = "{{version.marketing}}"

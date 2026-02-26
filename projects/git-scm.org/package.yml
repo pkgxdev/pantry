@@ -9,16 +9,18 @@ display-name: git
 
 dependencies:
   zlib.net: 1
-  gnu.org/gettext: ^0.21
-  curl.se: '>=5'
-  curl.se/ca-certs: '*'
-  perl.org: '*'
+  curl.se: ">=5"
+  curl.se/ca-certs: "*"
+  perl.org: "*"
   libexpat.github.io: ~2
+  linux:
+    gnu.org/gettext: ^0.21
+    gnu.org/libiconv: "*" # comes in via gettext :/
 
 runtime:
   env:
-    GIT_TEMPLATE_DIR: '{{prefix}}/share/git-core/templates'
-    GIT_SSL_CAINFO: '{{deps.curl.se/ca-certs.prefix}}/ssl/cert.pem'
+    GIT_TEMPLATE_DIR: "{{prefix}}/share/git-core/templates"
+    GIT_SSL_CAINFO: "{{deps.curl.se/ca-certs.prefix}}/ssl/cert.pem"
 
 build:
   script:
@@ -31,15 +33,15 @@ build:
 
     - make install --jobs {{ hw.concurrency }} NO_TCLTK=1
 
-    - run: |
-        make
-        make install
+    - run:
+        - make
+        - make install
       working-directory: contrib/subtree
 
-    - run: |
-        make
-        mv git-credential-osxkeychain "{{prefix}}"/bin
-        make clean
+    - run:
+        - make CFLAGS="-g -O2 -Wall -I../../.." LDFLAGS="$LDFLAGS -lz -liconv"
+        - install -Dm755 git-credential-osxkeychain "{{prefix}}"/bin
+        - make clean
       working-directory: contrib/credential/osxkeychain
       if: darwin
 
@@ -52,9 +54,9 @@ build:
     - run: cp "$SRCROOT"/props/gitconfig "$SRCROOT"/props/gitignore .
       working-directory: ${{prefix}}/etc
 
-    - run: |
-        rm bin/git
-        cp $SRCROOT/props/git-shim bin/git
+    - run:
+        - rm bin/git
+        - cp $SRCROOT/props/git-shim bin/git
       working-directory: ${{prefix}}
   env:
     V: 1
@@ -62,31 +64,30 @@ build:
 
 test:
   dependencies:
-    pkgx.sh: ^1
+    pkgx.sh: ">=1"
   script:
     # bug in pkgx where it doesn’t auto sync for --provides
     - pkgx --sync
 
     # check that the templates can be found
-    - run: |
-        git clone https://github.com/teaxyz/white-paper 2>&1 | tee clone-output.txt
-        if grep -q 'warning: templates not found in' clone-output.txt; then
-          exit 1
-        fi
+    - run:
+        - git clone https://github.com/teaxyz/white-paper 2>&1 | tee clone-output.txt
+        - "if grep -q 'warning: templates not found in' clone-output.txt; then"
+        - exit 1
+        - fi
       working-directory: $(mktemp -d)
 
     - cd $(mktemp -d)
 
-    - run: |
-        touch .DS_Store testfile
-        git init
-        git add .
-        test "$(git diff --name-only --cached)" = "testfile"
+    - run:
+        - touch .DS_Store testfile
+        - git init
+        - git add .
+        - test "$(git diff --name-only --cached)" = "testfile"
 
     # necessary so `git commit` will work
-    - |
-      git config user.email "you@example.com"
-      git config user.name "Your Name"
+    - git config user.email "you@example.com"
+    - git config user.name "Your Name"
 
     # necessary to check the libexec binaries work
     - git commit --message "test"

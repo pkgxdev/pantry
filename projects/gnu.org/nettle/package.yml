@@ -1,48 +1,76 @@
 distributable:
-  url: https://ftp.gnu.org/gnu/nettle/nettle-{{version}}.tar.gz
+  url: https://ftp.gnu.org/gnu/nettle/nettle-{{version.raw}}.tar.gz
   strip-components: 1
 
 versions:
-  github: gnutls/nettle/tags
+  url: https://ftp.gnu.org/gnu/nettle
+  match: /nettle-\d+(\.\d+)+\.tar\.gz/
   strip:
-    - /^nettle_/
-    - /_release_\d+/
+    - /^nettle-/
+    - /\.tar\.gz$/
 
 build:
   dependencies:
-    gnu.org/gmp: '*'
-    gnu.org/m4: '*'
-  script: |
-    ./configure --prefix={{ prefix }}
-    make --jobs {{ hw.concurrency }} install
+    gnu.org/gmp: "*"
+    gnu.org/m4: "*"
+  script:
+    - ./configure --prefix={{ prefix }}
+    - make --jobs {{ hw.concurrency }} install
 
 test:
-  script: |
-    mv $FIXTURE test.c
-    cc -lnettle -o test test.c
-    ./test
-  fixture: |
-    #include <nettle/sha1.h>
-    #include <stdio.h>
+  - run: cc -lnettle -o test $FIXTURE
+    if: <4
+    fixture:
+      extname: c
+      content: |
+        #include <nettle/sha1.h>
+        #include <stdio.h>
 
-    int main()
-    {
-      struct sha1_ctx ctx;
-      uint8_t digest[SHA1_DIGEST_SIZE];
-      unsigned i;
+        int main()
+        {
+          struct sha1_ctx ctx;
+          uint8_t digest[SHA1_DIGEST_SIZE];
+          unsigned i;
 
-      sha1_init(&ctx);
-      sha1_update(&ctx, 4, "test");
-      sha1_digest(&ctx, SHA1_DIGEST_SIZE, digest);
+          sha1_init(&ctx);
+          sha1_update(&ctx, 4, "test");
+          sha1_digest(&ctx, SHA1_DIGEST_SIZE, digest);
 
-      printf("SHA1(test)=");
+          printf("SHA1(test)=");
 
-      for (i = 0; i<SHA1_DIGEST_SIZE; i++)
-        printf("%02x", digest[i]);
+          for (i = 0; i<SHA1_DIGEST_SIZE; i++)
+            printf("%02x", digest[i]);
 
-      printf("\\n");
-      return 0;
-    }
+          printf("\\n");
+          return 0;
+        }
+  - run: cc -lnettle -o test $FIXTURE
+    if: ">=4"
+    fixture:
+      extname: c
+      content: |
+        #include <nettle/sha1.h>
+        #include <stdio.h>
+
+        int main()
+        {
+          struct sha1_ctx ctx;
+          uint8_t digest[SHA1_DIGEST_SIZE];
+          unsigned i;
+
+          sha1_init(&ctx);
+          sha1_update(&ctx, 4, "test");
+          sha1_digest(&ctx, digest);
+
+          printf("SHA1(test)=");
+
+          for (i = 0; i<SHA1_DIGEST_SIZE; i++)
+            printf("%02x", digest[i]);
+
+          printf("\\n");
+          return 0;
+        }
+  - ./test
 
 provides:
   - bin/nettle-hash

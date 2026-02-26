@@ -15,6 +15,7 @@ dependencies:
   freetype.org: ^2
   gnu.org/gettext: ^0
   gnome.org/libxml2: ~2.13 # since 25.4.0, 2.14 changed the API version
+  gnome.org/libxslt: ~1.1.44 # 1.1.45 bumps the libxml2 version requirement
   gnome.org/glib: ^2
   gnupg.org/gpgme: ^1
   gnupg.org/libgpg-error: ^1
@@ -29,14 +30,15 @@ dependencies:
   darwin:
     gnupg.org/libassuan: ^2
   linux:
-    gnu.org/gcc: '*' # apparently, clang c++20 std isn't good enough
+    gnu.org/gcc: "*" # apparently, clang c++20 std isn't good enough
 
 build:
   dependencies:
-    cmake.org: '*'
-    gnome.org/gobject-introspection: '*'
+    cmake.org: "*"
+    gnome.org/gobject-introspection: "*"
     linux:
       gnu.org/binutils: ^2
+      llvm.org: ~21.1 # as of 25.09.1
   script:
     # FIXME:
     # llvm.org from a dep is infecting our build env for linux, where we _need_ gcc;
@@ -88,7 +90,7 @@ build:
       - -DWITH_GObjectIntrospection=ON
     linux:
       # ld.lld: error: undefined symbol: std::filesystem::__cxx11::path::_M_split_cmpts()
-      LDFLAGS: '$LDFLAGS -lstdc++fs'
+      LDFLAGS: "$LDFLAGS -lstdc++fs"
       CC: gcc
       CXX: g++
       LD: ld.gold

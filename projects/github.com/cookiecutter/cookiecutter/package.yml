@@ -6,7 +6,7 @@ versions:
   github: cookiecutter/cookiecutter
 
 dependencies:
-  pkgx.sh: ^1
+  pkgx.sh: ">=1"
 
 build:
   dependencies:
@@ -21,9 +21,10 @@ provides:
 
 test:
   dependencies:
-    git-scm.org: '*'
+    git-scm.org: "*"
   script:
     - git clone https://github.com/audreyr/cookiecutter-pypackage.git
     - cookiecutter --no-input cookiecutter-pypackage
-    - ls | grep 'python_boilerplate'
-    - cookiecutter --version | grep {{version}}
+    - test -d python_boilerplate || test -d python-boilerplate
+    - cookiecutter --version | tee out
+    - grep {{version}} out

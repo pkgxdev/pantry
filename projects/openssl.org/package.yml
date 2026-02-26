@@ -21,7 +21,7 @@ provides:
   - bin/c_rehash
 
 dependencies:
-  curl.se/ca-certs: '*'
+  curl.se/ca-certs: "*"
 
 build:
   dependencies:
@@ -30,27 +30,21 @@ build:
     - run: patch -p1 <props/x509_def.c.diff
       if: <3.4.0
     - run: patch -p1 <props/x509_def.c.post3.4.0.diff
-      if: '>=3.4.0'
+      if: ">=3.4.0"
 
     - ./Configure --prefix={{ prefix }} $ARCH no-tests $ARGS --openssldir={{prefix}}/ssl
     - make --jobs {{ hw.concurrency }}
     - make install_sw # `_sw` avoids installing docs
 
     - cd "{{prefix}}"
-    - run: |
-        if test -d lib64; then
-          mv lib64 lib
-          ln -s lib lib64
-        fi
-      working-directory: '{{prefix}}'
 
     - run: cp $SRCROOT/apps/openssl.cnf .
-      working-directory: '{{prefix}}/ssl'
+      working-directory: "{{prefix}}/ssl"
   env:
-    darwin/aarch64: { ARCH: 'darwin64-arm64-cc' }
-    darwin/x86-64: { ARCH: 'darwin64-x86_64-cc' }
-    linux/aarch64: { ARCH: 'linux-aarch64' }
-    linux/x86-64: { ARCH: 'linux-x86_64' }
+    darwin/aarch64: { ARCH: "darwin64-arm64-cc" }
+    darwin/x86-64: { ARCH: "darwin64-x86_64-cc" }
+    linux/aarch64: { ARCH: "linux-aarch64" }
+    linux/x86-64: { ARCH: "linux-x86_64" }
     darwin:
       # supposedly enables important optimizations
       ARGS: enable-ec_nistp_64_gcc_128
@@ -61,7 +55,7 @@ build:
 
 test:
   dependencies:
-    pkgx.sh: ^1
+    pkgx.sh: ">=1"
   script:
     - echo "This is a test file" > in
     - openssl dgst -sha256 -out out ./in

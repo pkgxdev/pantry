@@ -9,51 +9,46 @@ versions:
 
 dependencies:
   python.org: ~3.11
-  github.com/sekrit-twc/zimg: '*'
+  github.com/sekrit-twc/zimg: "*"
   linux:
     # Fix: version `GLIBCXX_3.4.30' not found (required by vspipe)
-    gnu.org/gcc/libstdcxx: '*'
+    gnu.org/gcc/libstdcxx: "*"
 
 runtime:
   env:
     # Fix: Could not find platform independent libraries
     #      PYTHONHOME = (not set)
-    PYTHONHOME: '{{deps.python.org.prefix}}'
-    PYTHONPATH: '{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages:$PYTHONPATH'
+    PYTHONHOME: "{{deps.python.org.prefix}}"
+    PYTHONPATH: "{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages:$PYTHONPATH"
 
 build:
   dependencies:
-    gnu.org/autoconf: '*'
-    gnu.org/automake: '*'
-    cython.org: '*'
-    gnu.org/libtool: '*'
-    nasm.us: '*'
-    freedesktop.org/pkg-config: '*'
+    gnu.org/autoconf: "*"
+    gnu.org/automake: "*"
+    cython.org: "*"
+    gnu.org/libtool: "*"
+    nasm.us: "*"
+    freedesktop.org/pkg-config: "*"
     linux:
-      gnu.org/gcc: '*'
+      gnu.org/gcc: "*"
   script:
     # error: 'to_chars' is unavailable: introduced in macOS 13.3
     - run: export MACOSX_DEPLOYMENT_TARGET=13.3
-      if: '>=69'
+      if: ">=69"
     # the following error is confusing with the above.
     # error: 'to_chars' is unavailable: introduced in macOS 13.4
     - run: export MACOSX_DEPLOYMENT_TARGET=13.4
-      if: '>=72'
+      if: ">=72"
     - ./autogen.sh
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
     - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}} || true
-      working-directory: '{{prefix}}/lib'
+      working-directory: "{{prefix}}/lib"
     - run: sed -i
         -e "s|{{pkgx.prefix}}|\${pcfiledir}/../../../..|g"
         -e "s|python.org/v{{deps.python.org.version}}|python.org/v{{deps.python.org.version.marketing}}|g"
         -e 's/\+brewing//g' *.pc
-      working-directory: '{{prefix}}/lib/pkgconfig'
-    - run: |
-        mv vapoursynth/* .
-        rmdir vapoursynth
-        ln -s . vapoursynth
-      working-directory: '{{prefix}}/include'
+      working-directory: "{{prefix}}/lib/pkgconfig"
   env:
     ARGS:
       - --prefix={{prefix}}
@@ -68,7 +63,7 @@ provides:
 
 test:
   dependencies:
-    crates.io/semverator: '*'
+    crates.io/semverator: "*"
   script:
     - run: |
         if test "{{hw.platform}}" = "darwin"; then
@@ -79,7 +74,7 @@ test:
             exit 0
           fi
         fi
-      if: '>=69'
+      if: ">=69"
     - vspipe --version
     - vspipe --version | grep {{version.major}}
     - python -c 'import vapoursynth'

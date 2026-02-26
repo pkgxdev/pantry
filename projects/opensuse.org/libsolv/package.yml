@@ -1,0 +1,65 @@
+distributable:
+  url: https://github.com/openSUSE/libsolv/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+display-name: libsolv
+
+versions:
+  github: openSUSE/libsolv/tags
+
+platforms: [linux]
+
+dependencies:
+  zlib.net: "*"
+  tukaani.org/xz: "*"
+  sourceware.org/bzip2: "*"
+  facebook.com/zstd: "*"
+  libexpat.github.io: "*"
+  rpm.org/rpm: "*"
+
+build:
+  dependencies:
+    cmake.org: ^3
+  script:
+    - cmake -S . -B build $CMAKE_ARGS
+    - cmake --build build
+    - cmake --install build
+  env:
+    CMAKE_ARGS:
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DENABLE_STATIC=ON
+      - -DENABLE_SUSEREPO=ON
+      - -DENABLE_COMPS=ON
+      - -DENABLE_HELIXREPO=ON
+      - -DENABLE_DEBIAN=ON
+      - -DENABLE_MDKREPO=ON
+      - -DENABLE_ARCHREPO=ON
+      - -DENABLE_CUDFREPO=ON
+      - -DENABLE_CONDA=ON
+      - -DENABLE_APPDATA=ON
+      - -DMULTI_SEMANTICS=ON
+      - -DENABLE_LZMA_COMPRESSION=ON
+      - -DENABLE_BZIP2_COMPRESSION=ON
+      - -DENABLE_ZSTD_COMPRESSION=ON
+      - -DENABLE_ZCHUNK_COMPRESSION=ON
+      - -DENABLE_RPMDB=ON
+      - -DENABLE_RPMMD=ON
+      - -DENABLE_RPMPKG=ON
+
+test:
+  - run: cc $FIXTURE -o test -lsolv
+    fixture:
+      extname: c
+      content: |
+        #include <solv/pool.h>
+        #include <solv/repo.h>
+
+        int main(int argc, char **argv) {
+          Pool *pool = pool_create();
+
+          Repo *repo = repo_create(pool, "test");
+
+          pool_free(pool);
+        }
+  - ./test

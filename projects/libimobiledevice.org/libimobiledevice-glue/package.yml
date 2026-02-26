@@ -10,18 +10,10 @@ dependencies:
 
 build:
   dependencies:
-    gnu.org/libtool: '*'
+    gnu.org/libtool: "*"
   script:
     - ./configure $ARGS
     - make --jobs {{hw.concurrency}} install
-    - run: |
-        mv libimobiledevice-glue/* .
-        rmdir libimobiledevice-glue
-        ln -s . libimobiledevice-glue
-      working-directory: '{{prefix}}/include'
-    # FIXME: this is a hack; we need to fix fixup.ts
-    - run: sed -i 's/\+brewing//g' *.la
-      working-directory: '{{prefix}}/lib'
   env:
     ARGS:
       - --disable-debug
@@ -32,6 +24,6 @@ build:
 
 test:
   dependencies:
-    freedesktop.org/pkg-config: '*'
+    freedesktop.org/pkg-config: "*"
   script:
     - test "$(pkg-config --modversion libimobiledevice-glue-1.0)" = '{{version.tag}}'

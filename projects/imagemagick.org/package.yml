@@ -27,31 +27,31 @@ provides:
   - bin/stream
 
 dependencies:
-    libpng.org: '*'
-    ijg.org: '*'
-    freetype.org: '*'
-    libjpeg-turbo.org: '*'
-    liblqr.wikidot.com: '*'
-    simplesystems.org/libtiff: '*'
-    gnu.org/libtool: '*'
-    littlecms.com: '*'
-    openexr.com: '*'
-    openjpeg.org: '*'
-    google.com/webp: '*'
-    tukaani.org/xz: '*'
-    sourceware.org/bzip2: '*'
-    gnome.org/libxml2: '*'
-    zlib.net: ^1
-    jpeg.org/jpegxl: '*'
-    perl.org: '*'
-    libzip.org: '*'
-    darwin:
-      openmp.llvm.org: '*'
-      github.com/strukturag/libheif: '*'
-    linux/x86-64:
-      github.com/strukturag/libheif: '*'
-    linux:
-      x.org/x11: '*'
+  libpng.org: "*"
+  ijg.org: "=8.4" # strange library versioning issues...
+  freetype.org: "*"
+  libjpeg-turbo.org: "*"
+  liblqr.wikidot.com: "*"
+  simplesystems.org/libtiff: "*"
+  gnu.org/libtool: "*"
+  littlecms.com: "*"
+  openexr.com: "*"
+  openjpeg.org: "*"
+  google.com/webp: "*"
+  tukaani.org/xz: "*"
+  sourceware.org/bzip2: "*"
+  gnome.org/libxml2: "*"
+  zlib.net: ^1
+  jpeg.org/jpegxl: "*"
+  perl.org: "*"
+  libzip.org: "*"
+  darwin:
+    openmp.llvm.org: "*"
+    github.com/strukturag/libheif: "*"
+  linux/x86-64:
+    github.com/strukturag/libheif: "*"
+  linux:
+    x.org/x11: "*"
 
 runtime:
   env:
@@ -65,15 +65,8 @@ build:
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
 
-    - run: sed -i'' -e 's|^prefix=.*|prefix=${MAGICK_HOME}|g' Magick++-config MagickCore-config MagickWand-config
+    - run: sed -i -e 's|^prefix=.*|prefix=${MAGICK_HOME}|g' Magick++-config MagickCore-config MagickWand-config
       working-directory: ${{prefix}}/bin
-
-    - run: |
-        mv ImageMagick-{{version.major}}/* .
-        rmdir ImageMagick-{{version.major}}
-        ln -s . ImageMagick-{{version.major}}
-      working-directory: ${{prefix}}/include
-
   env:
     # https://github.com/ImageMagick/ImageMagick/issues/1549
     LDFLAGS:
@@ -88,8 +81,8 @@ build:
       - --disable-silent-rules
       - --disable-opencl
       - --enable-static
-      - --disable-installed  # makes us relocatable
-      - --enable-shared      # https://github.com/pkgxdev/pantry/issues/4030
+      - --disable-installed # makes us relocatable
+      - --enable-shared # https://github.com/pkgxdev/pantry/issues/4030
       - --with-png=yes
       - --with-tiff=yes
       - --with-jxl=yes

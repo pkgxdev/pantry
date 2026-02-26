@@ -7,47 +7,45 @@ versions:
   strip: [/^GdkPixbuf /, / \(stable\)/]
 
 dependencies:
-  ijg.org: 9.6  # needs fixed major; sadly this includes the character > v9f
+  ijg.org: 9.6 # needs fixed major; sadly this includes the character > v9f
   gnome.org/glib: 2
   libpng.org: 1
   freedesktop.org/shared-mime-info: 2 #FIXME only on Linux
 
 build:
   dependencies:
-    mesonbuild.com: ^0.63
+    mesonbuild.com: 1 # since 2.43.2
     ninja-build.org: 1
     freedesktop.org/pkg-config: ^0.29
     gnome.org/gobject-introspection: 1
-    python.org: '>=3<3.12' #FIXME rq’d by gnome.org/gobject-introspection but should be added by tea-env
+    python.org: ">=3<3.12" #FIXME rq’d by gnome.org/gobject-introspection but should be added by tea-env
   working-directory: build
-  script: |
-    if test {{ hw.platform }} == linux; then
-      #FIXME so linux build finds the shared-mime-info cache
-      export XDG_DATA_DIRS="$XDG_DATA_DIRS:/usr/share"
-    fi
+  script:
+    #FIXME so linux build finds the shared-mime-info cache
+    - run: export XDG_DATA_DIRS="$XDG_DATA_DIRS:/usr/share"
+      if: linux
 
-    meson \
-        --buildtype=release \
-        --prefix={{prefix}} \
-        --libdir={{prefix}}/lib \
-      -Dman=false \
-      ..
-    ninja
-    ninja install
-    # ^^ man pages break the build due to needing some other dep
-
-    cd {{prefix}}/include
-    mv gdk-pixbuf-{{version.major}}.0/* .
-    rmdir gdk-pixbuf-{{version.major}}.0
-    ln -s . gdk-pixbuf-{{version.major}}.0
+    - meson setup $MESON_ARGS ..
+    - ninja
+    - ninja install
+  env:
+    MESON_ARGS:
+      - --buildtype=release
+      - --prefix={{prefix}}
+      - --libdir={{prefix}}/lib
+      - -Dman=false
+      # ^^ man pages break the build due to needing some other dep
+      - -Ddocumentation=false
+      - -Dglycin=disabled # since 2.43.3
+      - -Dthumbnailer=disabled # since 2.43.3
 
 #TODO we should read pkg config and add to the env ffs
 test:
   dependencies:
     freedesktop.org/pkg-config: ^0.29
-  script: |
-    cc test.c $CFLAGS $LDFLAGS
-    ./a.out
+  script:
+    - cc test.c $CFLAGS $LDFLAGS
+    - ./a.out
   env:
     CFLAGS: $(pkg-config --cflags gdk-pixbuf-2.0)
     LDFLAGS: $(pkg-config --libs gdk-pixbuf-2.0)
@@ -56,4 +54,3 @@ provides:
   - bin/gdk-pixbuf-csource
   - bin/gdk-pixbuf-pixdata
   - bin/gdk-pixbuf-query-loaders
-  - bin/gdk-pixbuf-thumbnailer

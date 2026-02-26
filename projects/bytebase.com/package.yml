@@ -6,10 +6,10 @@ versions:
   github: bytebase/bytebase
 
 dependencies:
-  nodejs.org: '>=23.11'
+  nodejs.org: ~24.1 # 24.4 has oom errors
 
 companions:
-  postgresql.org: '*' # since 3.6.0
+  postgresql.org: "*" # since 3.6.0
 
 platforms:
   - linux
@@ -27,12 +27,12 @@ platforms:
 build:
   dependencies:
     go.dev: ~1.24.2
-    pnpm.io: '*'
+    pnpm.io: "*"
     git-scm.org: ^2 # since 3.5.1
     linux:
       kerberos.org: 1 # added in 2.16.0
       # error: invalid linker name in argument '-fuse-ld=gold'
-      gnu.org/gcc: '*'
+      gnu.org/gcc: "*"
       # node-gyp
       python.org: ~3.10
   script:
@@ -43,7 +43,7 @@ build:
     # since 3.6.2
     - run: sed -i "s/^VERSION='.*'$/VERSION='{{version}}'/" build_init.sh
       working-directory: scripts
-      if: '>=3.6.2'
+      if: ">=3.6.2"
     - ./scripts/build_bytebase.sh {{prefix}}/bin
   env:
     linux:
@@ -54,8 +54,8 @@ provides:
 
 test:
   dependencies:
-    curl.se: '*'
-    pkgx.sh: ^1
+    curl.se: "*"
+    npmjs.com: "*"
   script:
     - bytebase version | grep {{version}}
     # we'd love to test this more on linux, but we have issues running initdb as root;
@@ -63,7 +63,7 @@ test:
     - run: exit 0
       if: linux
 
-    - FREE_PORT=$(pkgx get-port | tail -n1)
+    - FREE_PORT=$(npx --yes get-port-cli | tail -n1)
     - bytebase --port $FREE_PORT 2>&1 | tee out.log &
     - PID=$!
     - sleep 60

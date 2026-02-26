@@ -21,6 +21,10 @@ build:
     abseil.io: ^20250127 # FIXME: how? it links to e.g. libabsl_bad_any_cast_impl.so.2308.0.0
   working-directory: build
   script:
+    # cmake really doesn't like this with new xcode
+    - run: sed -i '/libprotobuf PRIVATE atomic/s/^/#/' protobuf-configure-target.cmake
+      working-directory: ../cmake
+      if: darwin
     - cmake .. $ARGS
     - make --jobs {{ hw.concurrency }} install
   env:
@@ -37,6 +41,9 @@ build:
       - -DCMAKE_BUILD_TYPE=Release
       - -Dprotobuf_ABSL_PROVIDER=package
       - -DCMAKE_PREFIX_PATH={{deps.abseil.io.prefix}}
+      # as of 32
+      - -Dprotobuf_FORCE_FETCH_DEPENDENCIES=OFF
+      - -Dprotobuf_LOCAL_DEPENDENCIES_ONLY=ON
 
 provides:
   - bin/protoc

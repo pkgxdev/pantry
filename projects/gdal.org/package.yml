@@ -6,14 +6,15 @@ versions:
   github: OSGeo/gdal
 
 dependencies:
-  apache.org/arrow: '*'
+  apache.org/arrow: 19
   heasarc.gsfc.nasa.gov/cfitsio: '*'
   epsilon-project.sourceforge.io: '*'
   libexpat.github.io: '*'
   gaia-gis.it/fossil/freexl: '*'
   libgeos.org: '*'
   giflib.sourceforge.io: '*'
-  hdfgroup.org/HDF5: '*'
+  # removed due to cmake duplication of libaec.
+  # hdfgroup.org/HDF5: '*'
   libjpeg-turbo.org: '*'
   jpeg.org/jpegxl: '*'
   github.com/json-c/json-c: '*'
@@ -26,8 +27,9 @@ dependencies:
   postgresql.org/libpq: '*'
   gaia-gis.it/libspatialite: '*'
   simplesystems.org/libtiff: '*'
-  gnome.org/libxml2: '*'
-  unidata.ucar.edu/netcdf: '*'
+  gnome.org/libxml2: ~2.13 # 2.14 changed the soname
+  # removed due to cmake duplication of libaec.
+  # unidata.ucar.edu/netcdf: '*'
   numpy.org: '*'
   openexr.com: '*'
   openjpeg.org: '*'
@@ -52,7 +54,8 @@ dependencies:
     curl.se: '*'
     github.com/util-linux/util-linux: '*'
     # apache.org/thrift: =0.20.0 # since 3.9.3
-    apache.org/thrift: =0.21.0 # since 3.10.0
+    # apache.org/thrift: =0.21.0 # since 3.10.0
+    apache.org/thrift: =0.22.0 # since 3.11.1
 
 runtime:
   env:
@@ -66,17 +69,27 @@ build:
     doxygen.nl: '*'
     linux:
       llvm.org: '*'
+      nixos.org/patchelf: '*'
   script:
     - cmake -S . -B build $CMAKE_ARGS
     - cmake --build build
     - cmake --install build
-    - run: |
-        sed -i.bak "s|{{prefix}}|\$(dirname \$0)/..|g" gdal-config
-        sed -i.bak "s|{{pkgx.prefix}}|\$(dirname \$0)/../../..|g" gdal-config
-        rm ./*.bak
+    - run:
+        - sed -i "s|{{prefix}}|\$(dirname \$0)/..|g" gdal-config
+        - sed -i "s|{{pkgx.prefix}}|\$(dirname \$0)/../../..|g" gdal-config
       working-directory: '{{prefix}}/bin'
     - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
       working-directory: '{{prefix}}/lib'
+    # sqlite3 full path in the bins
+    - run:
+        - ldd lib/libgdal.so
+        - ldd bin/gdalinfo
+        - patchelf --replace-needed {{deps.sqlite.org.prefix}}/lib/libsqlite3.so libsqlite3.so lib/libgdal.so
+        - patchelf --replace-needed {{deps.sqlite.org.prefix}}/lib/libsqlite3.so libsqlite3.so bin/gdalinfo
+        - ldd lib/libgdal.so
+        - ldd bin/gdalinfo
+      if: linux
+      working-directory: '{{prefix}}'
   env:
     CC: clang
     CXX: clang++
@@ -128,6 +141,12 @@ provides:
   - bin/sozip
 
 test:
+  # library debugging
+  - run:
+      - ldd {{prefix}}/lib/libgdal.so | grep sqlite
+      - ldd {{prefix}}/bin/gdalinfo | grep sqlite
+    if: linux
+  - gdalinfo --version
   - gdalinfo --version | grep {{version}}
   - gdalinfo --formats
   - ogrinfo --version | grep {{version}}

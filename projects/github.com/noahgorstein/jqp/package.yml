@@ -1,0 +1,30 @@
+distributable:
+  url: https://github.com/noahgorstein/jqp/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: noahgorstein/jqp
+
+provides:
+  - bin/jqp
+
+build:
+  script:
+    - go mod download
+    - go build -v -ldflags="$GO_LDFLAGS" -o {{prefix}}/bin/jqp .
+  dependencies:
+    go.dev: =1.25.5
+  env:
+    GO_LDFLAGS:
+      - -s
+      - -w
+      - -X github.com/noahgorstein/jqp/internal/version.Version={{version}}
+    linux:
+      # or segmentation fault
+      # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
+      GO_LDFLAGS:
+        - -buildmode=pie
+
+test:
+  - jqp --version | tee out
+  - grep 'jqp version {{version}}' out

@@ -1,0 +1,29 @@
+# because of the license we cannot redistribute the binary, so we provide a
+# shim that will download the binary on first execution and then execute it
+#
+# license: https://aws.amazon.com/pt/legal/aws-ip-license-terms/
+
+versions:
+  url: https://desktop-release.q.us-east-1.amazonaws.com/latest/manifest.json
+  match: /"version":\s*"\d+\.\d+\.\d+"/
+  strip:
+    - /^"version":\s*"/
+    - /"$/
+
+dependencies:
+  curl.se: "*"
+
+build:
+  - install -Dm755 props/kiro-cli.{{hw.platform}} {{prefix}}/bin/kiro-cli
+  - sed -i "s/%%version%%/{{version}}/g" {{prefix}}/bin/kiro-cli
+
+provides:
+  - bin/kiro-cli
+
+test:
+  # first time will download and execute the actual binary
+  - test ! -x {{prefix}}/libexec/kiro-cli
+  - test "$(kiro-cli --version)" = "kiro-cli {{version}}"
+  # second time will just execute the actual binary
+  - test -x {{prefix}}/libexec/kiro-cli
+  - test "$(kiro-cli --version)" = "kiro-cli {{version}}"

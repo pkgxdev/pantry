@@ -7,17 +7,12 @@ versions:
 
 build:
   dependencies:
-    gnu.org/autoconf: '*'
-    docbook.org: '*'
+    gnu.org/autoconf: "*"
+    docbook.org: "*"
   script:
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }}
     - make install
-    - run: |
-        mv jemalloc/* .
-        rmdir jemalloc
-        ln -s . jemalloc
-      working-directory: ${{prefix}}/include
 
     # jemalloc has a long-running issue on clang
     # https://github.com/jemalloc/jemalloc/issues/1557

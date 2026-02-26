@@ -6,29 +6,30 @@ versions:
   github: facebookexperimental/edencommon/tags
 
 dependencies:
-  facebook.com/folly: '*'
-  gflags.github.io: '*'
-  google.com/glog: '*'
-  facebook.com/fb303: '*' # since 2024.03.18.00
-  facebook.com/mvfst: '*' # since 2024.03.18.00
+  facebook.com/folly: "*"
+  gflags.github.io: "*"
+  google.com/glog: "*"
+  facebook.com/fb303: "*" # since 2024.03.18.00
+  facebook.com/mvfst: "*" # since 2024.03.18.00
   openssl.org: ^1.1
   sourceware.org/bzip2: ^1
   boost.org: ~1.88
   linux:
-    gnu.org/gcc/libstdcxx: 13
+    gnu.org/gcc/libstdcxx: 14
 
 build:
   dependencies:
-    cmake.org: '*'
-    google.com/googletest: '*'
+    cmake.org: "*"
+    google.com/googletest: "*"
     linux:
-      gnu.org/gcc: 13
+      gnu.org/gcc: 14
   script:
     # omit building py library
     - sed -i 's/COMPONENTS cpp2 py)/COMPONENTS cpp2)/' CMakeLists.txt
     # fix timeouts
     - run: sed -i 's/add_subdirectory(test)/#add_subdirectory(test)/' {os,utils}/CMakeLists.txt
       working-directory: eden/common
+
     - cmake -S . -B _build $ARGS
     - cmake --build _build
     - cmake --install _build
@@ -41,6 +42,8 @@ build:
       - -DCMAKE_VERBOSE_MAKEFILE=ON
       - -Wno-dev
       - -DBUILD_TESTING=OFF
+      - -DCMAKE_CXX_STANDARD=20
+      - -DCMAKE_CXX_STANDARD_REQUIRED=ON
     linux:
       ARGS:
         - -DCMAKE_C_FLAGS=-fPIC
@@ -50,9 +53,9 @@ build:
 test:
   dependencies:
     linux:
-      gnu.org/gcc: 13
+      gnu.org/gcc: 14
   script:
-    - c++ -std=c++17 test.cc -o test -ledencommon_utils -lfolly -lglog -lfmt $EXTRA
+    - c++ -std=c++20 test.cc -o test -ledencommon_utils -lfolly -lglog -lfmt $EXTRA
     - ./test 1
   env:
     linux:

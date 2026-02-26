@@ -1,0 +1,52 @@
+distributable: ~
+
+# TODO: build from source. Looks like it's using a bunch of stuff we
+# don't have packaged yet (like GraalVM and lein).
+# We should be able to bootstrap it from itself.
+warnings:
+  - vendored
+
+provides:
+  - bin/bb
+
+interprets:
+  extensions: [clj, cljc, cljs]
+  args: bb
+
+versions:
+  github: babashka/babashka
+
+build:
+  env:
+    BASE_URL: https://github.com/babashka/babashka/releases/download/{{version.tag}}
+    FILENAME_PREFIX: babashka-{{version}}-
+    darwin:
+      PLATFORM: macos
+    linux:
+      PLATFORM: linux
+      SUFFIX: -static
+    aarch64:
+      ARCH: aarch64
+    x86-64:
+      ARCH: amd64
+  script:
+    - curl -L "${BASE_URL}/${FILENAME_PREFIX}${PLATFORM}-${ARCH}${SUFFIX}.tar.gz" | tar zxvf -
+    - install -Dm755 bb {{prefix}}/bin/bb
+
+test:
+  dependencies:
+    pkgx.sh: ">=1"
+  script:
+    - test "$(bb --version)" = "babashka v{{version}}"
+    - test "$(bb -e '(+ 1 2)')" = "3"
+    - run:
+        - chmod +x $FIXTURE
+        - test "$(bb $FIXTURE)" = "Hello, babashka!"
+        - test "$(pkgx $FIXTURE)" = "Hello, babashka!"
+        - test "$($FIXTURE)" = "Hello, babashka!"
+      fixture:
+        content: |
+          #!/usr/bin/env bb
+
+          (println "Hello, babashka!")
+        extname: clj

@@ -25,17 +25,14 @@ build:
         extern char** environ;\
         #endif' \
         spawn-posix.c
-      if: '>=1.50'
+      if: ">=1.50"
       working-directory: src
     - ./configure --prefix={{prefix}} --enable-install-gpg-error-config
     - make
     - make check
     - make install
-    # .la are unrelocatable, but only used if found
-    - run: find . -name '*.la' -exec rm {} \;
-      working-directory: ${{prefix}}/lib
 
 test:
   script: test "$(gpg-error 56)" = "$OUTPUT"
   env:
-    OUTPUT: '56 = (0, 56) = (GPG_ERR_SOURCE_UNKNOWN, GPG_ERR_BAD_CERT_CHAIN) = (Unspecified source, Bad certificate chain)'
+    OUTPUT: "56 = (0, 56) = (GPG_ERR_SOURCE_UNKNOWN, GPG_ERR_BAD_CERT_CHAIN) = (Unspecified source, Bad certificate chain)"

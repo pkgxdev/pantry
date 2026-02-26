@@ -5,80 +5,79 @@ distributable:
 versions:
   github: pypa/pip/tags
   # FIXME: the major prior to 18 is 10, which is ancient and doesn't currently work
-  ignore: ['<18']
+  ignore: ["<18"]
 
 dependencies:
-  pkgx.sh: ^1
+  pkgx.sh: ">=1"
 
 build:
   dependencies:
     python.org: ~3.11
     crates.io/semverator: ^0.4.3
   script:
-  - pkgx curl -O https://bootstrap.pypa.io/get-pip.py
+    - pkgx curl -O https://bootstrap.pypa.io/get-pip.py
 
-  - rm -rf bootstrap && mkdir bootstrap
-  - python get-pip.py --target=bootstrap
+    - rm -rf bootstrap && mkdir bootstrap
+    - python get-pip.py --target=bootstrap
 
-  - PYTHONPATH=$PWD/bootstrap
+    - PYTHONPATH=$PWD/bootstrap
       python -m pip install .
-        --target={{prefix}}/libexec
+      --target={{prefix}}/libexec
 
-  - run:
-      # FIXME 3.7 *should* work but doesn't
-      - v=3.7
+    - run:
+        # FIXME 3.7 *should* work but doesn't
+        - v=3.7
 
-      # Python 3.12 had various breaking changes (semver is meaningless
-      # apparently) and thus pip less than 23.1.2 will not work with it
-      # FIXME hardcoding 3.12 sucks
-      - |
-        if semverator lt {{version}} 23.1.2; then
-          vMax=3.11
-        else
-          vMax=3.12
-        fi
+        # Python 3.12 had various breaking changes (semver is meaningless
+        # apparently) and thus pip less than 23.1.2 will not work with it
+        # FIXME hardcoding 3.12 sucks
+        - |
+          if semverator lt {{version}} 23.1.2; then
+            vMax=3.11
+          else
+            vMax=3.12
+          fi
 
-      - while semverator lt $v $vMax; do
-      -   v=$(semverator bump $v minor | cut -d. -f1,2)
+        - while semverator lt $v $vMax; do
+        - v=$(semverator bump $v minor | cut -d. -f1,2)
 
-      - |
+        - |
           install -D $PROP {{prefix}}/bin/pip$v
           echo "exec pkgx python@$v \"\$d/bin/pip\" \"\$@\"" >> {{prefix}}/bin/pip$v
-      - done
+        - done
+        # FIXME hardcoded `3`
+        - |
+          install -D $PROP {{prefix}}/bin/pip3
+          if semverator lt {{version}} 23.1.2; then
+            python="'python<3.12'"
+          else
+            python=python@3
+          fi
+          echo "exec pkgx $python \"\$d/bin/pip\" \"\$@\"" >> {{prefix}}/bin/pip3
 
-      # FIXME hardcoded `3`
-      - |
-        install -D $PROP {{prefix}}/bin/pip3
-        if semverator lt {{version}} 23.1.2; then
-          python="'python<3.12'"
+        - |
+          install -D $PROP {{prefix}}/bin/pip
+          if semverator lt {{version}} 23.1.2; then
+            python="'python<3.12'"
+          else
+            python=python
+          fi
+          echo "exec pkgx $python \"\$d/bin/pip\" \"\$@\"" >> {{prefix}}/bin/pip
+
+      prop: |
+        #!/bin/sh
+        d="$(cd "$(dirname "$0")"/.. && pwd)/libexec"
+        export PIP_DISABLE_PIP_VERSION_CHECK=1
+        if [ -n "$PYTHONPATH" ]; then
+          export PYTHONPATH="$d:$PYTHONPATH"
         else
-          python=python@3
+          export PYTHONPATH="$d"
         fi
-        echo "exec pkgx $python \"\$d/bin/pip\" \"\$@\"" >> {{prefix}}/bin/pip3
 
-      - |
-        install -D $PROP {{prefix}}/bin/pip
-        if semverator lt {{version}} 23.1.2; then
-          python="'python<3.12'"
-        else
-          python=python
-        fi
-        echo "exec pkgx $python \"\$d/bin/pip\" \"\$@\"" >> {{prefix}}/bin/pip
+    # cleanup unused files
+    - rm {{prefix}}/libexec/bin/pip?*
 
-    prop: |
-      #!/bin/sh
-      d="$(cd "$(dirname "$0")"/.. && pwd)/libexec"
-      export PIP_DISABLE_PIP_VERSION_CHECK=1
-      if [ -n "$PYTHONPATH" ]; then
-        export PYTHONPATH="$d:$PYTHONPATH"
-      else
-        export PYTHONPATH="$d"
-      fi
-
-  # cleanup unused files
-  - rm {{prefix}}/libexec/bin/pip?*
-
-  - fix-shebangs.ts {{prefix}}/libexec/bin/*
+    - fix-shebangs.ts {{prefix}}/libexec/bin/*
 
 test:
   - run: pkgx +python.org~3.9 pip install findtui --target .
@@ -86,18 +85,20 @@ test:
   - run:
       - pip install findtui --target foo
       - pip3.10 install findtui --target .
-    if: '>=19'
+    if: ">=19"
 
   - test -f findtui/main.py
 
   - pip --version | grep {{prefix}}
   - pip --version | grep {{version}}
 
+  - run: test $(pip3.8 inspect | pkgx jq --raw-output .environment.python_version) = 3.8
+    if: ">=22<25.2" # inspect command introduced at v22, 25.5 doesn't support python3.8
   - run: |
-      for v in 3.8 3.9 3.10 3.11; do
+      for v in 3.9 3.10 3.11; do
         test $(pip$v inspect | pkgx jq --raw-output .environment.python_version) = $v
       done
-    if: '>=22'  # inspect command introduced at v22
+    if: ">=22" # inspect command introduced at v22
 
 provides:
   - bin/pip

@@ -32,6 +32,9 @@ build:
   script:
     - run: sed -i -e "s_\$(MYCFLAGS)_${CFLAGS} -fPIC_" -e "s_\$(MYLDFLAGS)_${LDFLAGS}_" Makefile
       working-directory: src
+    # only `linux` after 5.5
+    - run: export OS="${OS%-readline}"
+      if: '>=5.5'
     - make $OS INSTALL_TOP={{prefix}}
     - make install INSTALL_TOP={{prefix}}
     # lua doesn't build liblua via makefile

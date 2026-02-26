@@ -10,26 +10,25 @@ versions:
     - /\.tar\.xz/
 
 dependencies:
-  gnome.org/glib-networking: '*'
-  gnutls.org: '*'
-  rockdaboot.github.io/libpsl: '*'
-  kerberos.org: '*'
-  gnome.org/libxml2: '*'
-  sqlite.org: '*'
-  nghttp2.org: '*'
+  gnome.org/glib-networking: "*"
+  gnutls.org: "*"
+  rockdaboot.github.io/libpsl: "*"
+  kerberos.org: "*"
+  gnome.org/libxml2: "*"
+  sqlite.org: "*"
+  nghttp2.org: "*"
   linux:
-    gnu.org/gettext: '*'
-    gnome.org/glib: '*'
-    github.com/google/brotli: '*'
+    gnu.org/gettext: "*"
+    gnome.org/glib: "*"
+    github.com/google/brotli: "*"
 
 build:
   dependencies:
-    gnome.org/gobject-introspection: '*'
-    mesonbuild.com: '*'
-    ninja-build.org: '*'
-    freedesktop.org/pkg-config: '*'
+    gnome.org/gobject-introspection: "*"
+    mesonbuild.com: "*"
+    ninja-build.org: "*"
     python.org: ~3.11
-    gnome.org/vala: '*'
+    gnome.org/vala: "*"
   script:
     - meson setup build $MESON_ARGS
     - meson compile -C build --verbose
@@ -40,24 +39,28 @@ build:
           d2=$(echo $d | sed -r 's/\.\/(libsoup.*)-[0-9]+\.[0-9]+$/\1/')
           ln -s $d $d2
         done
-      working-directory: '{{prefix}}/include'
+      working-directory: "{{prefix}}/include"
   env:
     MESON_ARGS:
       - --prefix="{{prefix}}"
       - --libdir="{{prefix}}/lib"
       - --buildtype=release
       - --wrap-mode=nofallback
-    linux:
-      CC: clang
-      CXX: clang++
-      LD: clang
 
 test:
   dependencies:
-    freedesktop.org/pkg-config: '*'
+    freedesktop.org/pkg-config: "*"
+    linux:
+      gnu.org/binutils: "*"
   script:
     - run: cc test.c $(pkg-config --libs --cflags libsoup-3.0) -o test
-      if: '>=2.90'
+      if: ">=2.90"
     - run: cc test.c $(pkg-config --libs --cflags libsoup-2.4) -o test
-      if: '<2.90'
+      if: "<2.90"
+    # verify no absolute paths baked into NEEDED entries
+    - run:
+        - if readelf -d test | grep NEEDED | grep -v /lib | grep /; then
+        - echo "Absolute paths in NEEDED entries" && exit 1
+        - fi
+      if: linux
     - ./test

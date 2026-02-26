@@ -10,7 +10,7 @@ provides:
   - bin/npx
 
 dependencies:
-  nodejs.org: '*'
+  nodejs.org: "*"
 
 build:
   - run: ARGS="--install-links"
@@ -27,13 +27,13 @@ build:
         fi
       done
     working-directory: node_modules
-    if: '>=9.8.0'
+    if: ">=9.8.0"
 
   - node . install --global --prefix={{prefix}} $ARGS
 
   # since January, npm warns on bad config names
   - run: sed -i 's/update_notifier/update-notifier/' props/npmrc
-    if: '>=11.2'
+    if: ">=11.2"
 
   # configures npm to install to ~/.local
   - mv props/npmrc {{prefix}}/lib/node_modules/npm
@@ -45,24 +45,16 @@ build:
     working-directory: ${{prefix}}/bin
 
 test:
-  dependencies:
-    # 20.3.x causes a error on linux+aarch64 (technically docker)
-    # sh: 1: tldr: Text file busy
-    # https://github.com/nodejs/node/issues/48444
-    # This is a FIXME, but it should be reasonably harmless.
-    linux/aarch64:
-      nodejs.org: '<20.3'
-  script:
-    # doing first to test our shim works as expected
-    - npx -qy tldr ls
+  # doing first to test our shim works as expected
+  - test "$(npx -y semver --increment major 1.2.3)" = "2.0.0"
 
-    - npm install --global cowsay
+  - npm install --global cowsay
 
-    # verify install location is as we configure it
-    - $HOME/.local/bin/cowsay xyz.tea.hi
+  # verify install location is as we configure it
+  - $HOME/.local/bin/cowsay xyz.tea.hi
 
-    - |
-      if npm --version 2>&1 | grep 'Unknown builtin config'; then
-        echo "warning remains; fail"
-        exit 1
-      fi
+  - |
+    if npm --version 2>&1 | grep 'Unknown builtin config'; then
+      echo "warning remains; fail"
+      exit 1
+    fi

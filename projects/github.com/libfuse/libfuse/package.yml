@@ -11,78 +11,86 @@ platforms:
 
 build:
   dependencies:
-    mesonbuild.com: '*'
-    ninja-build.org: '*'
+    mesonbuild.com: "*"
+    ninja-build.org: "*"
     linux:
-      gnu.org/gcc: '*'
+      gnu.org/gcc: 14
+      gnu.org/gettext: "*" # for v2
   working-directory: build
   script:
-    # -shared and -pie don't mix
     - run:
-        - cp $PROP gcc-wrapper
-        - chmod +x gcc-wrapper
+        # Fix type conflicts in fuse_kernel.h for aarch64
+        - if test "{{hw.arch}}" = "aarch64"; then sed -i -f $PROP include/fuse_kernel.h; fi
+        # glibc type conflicts
+        - sed -i 's/closefrom/fuse_closefrom/g' util/ulockmgr_server.c
+        - ./configure $V2_ARGS
+        - make -j {{hw.concurrency}}
+        - make install
+      if: <3
+      working-directory: $SRCROOT
       prop: |
-        #!/bin/bash
-        # Capture all arguments into an array
-        ARGS=("$@")
-
-        # Check if the '-shared' flag is present in the arguments
-        if printf "%s\n" "${ARGS[@]}" | grep -q -e '-shared'; then
-
-          # Use a loop to filter out the '-pie' flag from the arguments
-          FILTERED_ARGS=()
-          for arg in "${ARGS[@]}"; do
-            if [ "$arg" != "-pie" ]; then
-              FILTERED_ARGS+=("$arg")
-            fi
-          done
-
-          # Pass the filtered arguments to gcc
-          exec gcc "${FILTERED_ARGS[@]}"
-        else
-          # Pass the original arguments to gcc
-          exec gcc "${ARGS[@]}"
-        fi
-      working-directory: $HOME/.local/bin
-      if: linux
+        s/#define __s64 int64_t/typedef long long __s64;/
+        s/#define __u64 uint64_t/typedef unsigned long long __u64;/
+        s/#define __s32 int32_t/typedef int __s32;/
+        s/#define __u32 uint32_t/typedef unsigned int __u32;/
 
     - run: meson setup build $ARGS
+      if: ">=3"
       working-directory: ..
-    - meson compile
-    - meson install
+    - run:
+        - meson compile
+        - meson install
+      if: ">=3"
     - run: |
         sed 's/Name: fuse3/Name: fuse/' fuse3.pc > fuse.pc
+      if: ^3
       working-directory: ${{prefix}}/lib/pkgconfig
-
   env:
-    linux:
-      PATH: $HOME/.local/bin:$PATH
-      CC: gcc-wrapper
     ARGS:
       - -Dudevrulesdir={{prefix}}/etc/udev/rules.d
       - -Dinitscriptdir={{prefix}}/etc/init.d
       - -Dsysconfdir={{prefix}}/etc
       - -Duseroot=false
       - --prefix={{prefix}}
-
-provides:
-  - bin/fusermount3
+    V2_ARGS:
+      - --prefix={{prefix}}
+      - --sbindir={{prefix}}/sbin
+    UDEV_RULES_PATH: ${{prefix}}/etc/udev/rules.d
+    INIT_D_PATH: ${{prefix}}/etc/init.d
+    MOUNT_FUSE_PATH: ${{prefix}}/sbin
 
 test:
-  - run: cc $FIXTURE -lfuse3 -o test
-    fixture:
-      extname: c
-      content: |
-        #define FUSE_USE_VERSION 31
-        #include <fuse3/fuse.h>
-        #include <stdio.h>
-        int main() {
-          printf("%d%d\\n", FUSE_MAJOR_VERSION, FUSE_MINOR_VERSION);
-          printf("%d\\n", fuse_version());
-          return 0;
-        }
-  - run: test "$(./test)" = "$(cat $FIXTURE)"
-    fixture: |
-      {{version.major}}{{version.minor}}
-      {{version.major}}{{version.minor}}
-  - pkg-config --exists fuse
+  dependencies:
+    gnu.org/gcc: "*"
+  script:
+    - run: cc $FIXTURE -lfuse -o test -D_FILE_OFFSET_BITS=64
+      fixture:
+        extname: c
+        content: |
+          #define FUSE_USE_VERSION 28
+          #include <fuse.h>
+          #include <stdio.h>
+          int main() {
+            printf("%d%d\\n", FUSE_MAJOR_VERSION, FUSE_MINOR_VERSION);
+            printf("%d\\n", fuse_version());
+            return 0;
+          }
+      if: <3
+    - run: cc $FIXTURE -lfuse3 -o test
+      fixture:
+        extname: c
+        content: |
+          #define FUSE_USE_VERSION 31
+          #include <fuse3/fuse.h>
+          #include <stdio.h>
+          int main() {
+            printf("%d%d\\n", FUSE_MAJOR_VERSION, FUSE_MINOR_VERSION);
+            printf("%d\\n", fuse_version());
+            return 0;
+          }
+      if: ">=3"
+    - run: test "$(./test)" = "$(cat $FIXTURE)"
+      fixture: |
+        {{version.major}}{{version.minor}}
+        {{version.major}}{{version.minor}}
+    - pkg-config --exists fuse

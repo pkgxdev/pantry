@@ -1,21 +1,29 @@
 distributable:
-  url: https://github.com/rabbitmq/rabbitmq-server/releases/download/v{{version}}/rabbitmq-server-generic-unix-{{version}}.tar.xz
+  url: https://github.com/rabbitmq/rabbitmq-server/releases/download/{{version.tag}}/rabbitmq-server-generic-unix-{{version}}.tar.xz
   strip-components: 1
+
 versions:
   github: rabbitmq/rabbitmq-server
+
 warnings:
   - vendored
+
 dependencies:
-  erlang.org: '*'
+  erlang.org: "*"
+  linux:
+    # since v4.2.4 for GCC_12.0.0 and GLIBCXX_3.4.29
+    gnu.org/gcc: 14
+    gnu.org/gcc/libstdcxx: 14
+
 build:
-  script:
-    - run: |
-        cp -r $SRCROOT/* ./
-        find . -mindepth 1 -maxdepth 1 -name \*.pkgx.\* -exec rm -rf {} \;
-        if test -f pkgx.yaml; then rm pkgx.yaml; fi
-      working-directory: '{{prefix}}'
-    - run: mkdir -p lib/rabbitmq og/rabbitmq
-      working-directory: '{{prefix}}/var'
+  - run:
+      - cp -r $SRCROOT/* ./
+      - find . -mindepth 1 -maxdepth 1 -name \*.pkgx.\* -exec rm -rf {} \;
+      - if test -f pkgx.yaml; then rm pkgx.yaml; fi
+    working-directory: "{{prefix}}"
+  - run: mkdir -p lib/rabbitmq og/rabbitmq
+    working-directory: "{{prefix}}/var"
+
 provides:
   - bin/rabbitmqctl
   - bin/rabbitmq-defaults
@@ -27,6 +35,7 @@ provides:
   - bin/rabbitmq-streams
   - bin/rabbitmq-upgrade
   - bin/vmware-rabbitmq
+
 test:
   env:
     RABBITMQ_MNESIA_BASE: $PWD/var/lib/rabbitmq/mnesia

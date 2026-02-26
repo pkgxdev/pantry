@@ -56,7 +56,7 @@ build:
 
     - run:
         - curl -L "$res_critcl" | tar -xz --strip-components=1
-        - sed -i "s|package require Tcl 8.6|package require Tcl {{version.major}}|g" build.tcl
+        - sed -i "s|package require Tcl 8.6.9$|package require Tcl {{version.major}}|g" build.tcl
         - tclsh build.tcl install
       working-directory: critcl
 
@@ -68,26 +68,22 @@ build:
         - make --jobs {{hw.concurrency}} critcl
         - cp -r modules/tcllibc {{prefix}}/lib/
       working-directory: tcllib
-      # not working on 9 yet
-      if: <9
 
     - run:
         - curl -L "$res_tcltls" | tar -xz --strip-components=1
         - ./configure $TLS_ARGS
         - make --jobs {{hw.concurrency}} install
       working-directory: tcltls
-      # not working on 9 yet
-      if: <9
 
     - run:
         - curl -L "$res_itk4" | tar -xz --strip-components=1
         - itcl_dir=$(ls -d {{prefix}}/lib/itcl* | tail -n 1)
         - ./configure $ITK4_ARGS --with-itcl=$itcl_dir
         - make --jobs {{hw.concurrency}}
-        - make --jobs {{hw.concurrency}} install
+        # missing ./tclconfig/install-sh
+        - cp -a ../tcltls/tclconfig .
+        - make install
       working-directory: itk4
-      # not working on 9 yet
-      if: <9
 
     - rm {{prefix}}/bin/sqlite3_analyzer
 
@@ -102,19 +98,22 @@ build:
       prop: |
         s|='\(.*\){{prefix}}\(.*\)'|="\1$(cd $(dirname $0) \&\& pwd)/../..\2"|g
         s|="\(.*\){{prefix}}\(.*\)"|="\1$(cd $(dirname $0) \&\& pwd)/../..\2"|g
+  # causes 9.0.2 to error on aarch64
+  skip: fix-machos
   env:
-    res_critcl: https://github.com/andreas-kupries/critcl/archive/refs/tags/3.2.tar.gz
-    res_tcllib: https://downloads.sourceforge.net/project/tcllib/tcllib/1.21/tcllib-1.21.tar.xz
-    res_tcltls: https://core.tcl-lang.org/tcltls/uv/tcltls-1.7.22.tar.gz
+    res_critcl: https://github.com/andreas-kupries/critcl/archive/refs/tags/3.3.1.tar.gz
+    res_tcllib: https://downloads.sourceforge.net/project/tcllib/tcllib/2.0/tcllib-2.0.tar.xz
+    res_tcltls: https://core.tcl-lang.org/tcltls/tarball/e03e54ee87/tcltls-e03e54ee87.tar.gz
     res_tk: https://downloads.sourceforge.net/project/tcl/Tcl/{{version}}/tk{{version}}-src.tar.gz
     patch_1: https://raw.githubusercontent.com/macports/macports-ports/db4f8f774193/x11/tk/files/fix-themechanged-error.patch
     patch_2: https://raw.githubusercontent.com/macports/macports-ports/6a93695d61d3/x11/tk/files/fix-kvo-crash.diff
-    res_itk4: https://downloads.sourceforge.net/project/incrtcl/%5Bincr%20Tcl_Tk%5D-4-source/itk%204.1.0/itk4.1.0.tar.gz
+    res_itk4: https://github.com/tcltk/itk/archive/refs/tags/itk-4-2-3.tar.gz
     ARGS:
       - --prefix={{prefix}}
       - --includedir={{prefix}}/include/tcl-tk
       - --mandir={{prefix}}/share/man
       - --enable-threads
+      - --enable-64bit
     TCL_PACKAGE_PATH: '{{prefix}}/lib'
     PATH: '{{prefix}}/bin:$PATH'
     TLS_ARGS:
@@ -130,9 +129,6 @@ build:
       - --with-tk={{prefix}}/lib
       - --with-tkinclude={{prefix}}/include/tcl-tk
       - --with-itcl={{prefix}}/lib/itcl*
-    x86-64:
-      ARGS:
-        - --enable-64bit
 
 provides:
   - bin/tclsh
@@ -140,5 +136,42 @@ provides:
   - bin/critcl
 
 test:
-  - tclsh test.tcl
-  - tclsh version.tcl | grep {{version}}
+  - run: tclsh $FIXTURE | tee out.log
+    fixture:
+      extname: tcl
+      content: |
+        puts [info patchlevel]
+        exit
+  - grep {{version}} out.log
+  - run: wish $FIXTURE
+    fixture:
+      extname: tcl
+      content: |
+        # Check that Itcl and Itk load, and that we can define, instantiate,
+        # and query the properties of a widget.
+
+        # If anything errors, just exit
+        catch {
+            package require Itcl
+            package require Itk
+
+            # Define class
+            itcl::class TestClass {
+                inherit itk::Toplevel
+                constructor {args} {
+                    itk_component add bye {
+                        button $itk_interior.bye -text "Bye"
+                    }
+                    eval itk_initialize $args
+                }
+            }
+
+            # Create an instance
+            set testobj [TestClass .#auto]
+
+            # Check the widget has a bye component with text property "Bye"
+            if {[[$testobj component bye] cget -text]=="Bye"} {
+                puts "OK"
+            }
+        }
+        exit

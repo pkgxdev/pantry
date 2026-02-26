@@ -1,0 +1,54 @@
+distributable:
+  url: git+https://github.com/macfuse/macfuse.git
+  ref: ${{version.tag}}
+
+versions:
+  github: macfuse/macfuse
+  strip: /^macfuse-/
+
+platforms:
+  - darwin
+
+build:
+  dependencies:
+    git-scm.org: ^2
+    gnu.org/autoconf: "*"
+    gnu.org/automake: "*"
+    gnu.org/libtool: "*"
+    gnu.org/gettext: "*"
+  script:
+    - git submodule update --init --recursive
+
+    - run:
+        - ./makeconf.sh
+        - ./configure $ARGS
+        - make -j {{ hw.concurrency }}
+        - make install
+      working-directory: Library-2
+  env:
+    UDEV_RULES_PATH: ${{prefix}}/etc/udev/rules.d
+    INIT_D_PATH: ${{prefix}}/etc/init.d
+    ARGS:
+      - --prefix={{prefix}}
+
+test:
+  dependencies:
+    darwin/x86-64:
+      llvm.org: "*" # xcode spins for 15+ minutes on darwin/x86-64 runners
+  env:
+    CFLAGS: $CFLAGS -D_FILE_OFFSET_BITS=64
+  script:
+    - run: cc $FIXTURE -lfuse -o test $CFLAGS
+      fixture:
+        extname: c
+        content: |
+          #define FUSE_USE_VERSION 28
+          #include <fuse/fuse.h>
+          #include <stdio.h>
+          int main() {
+            printf("%d%d\\n", FUSE_MAJOR_VERSION, FUSE_MINOR_VERSION);
+            printf("%d\\n", fuse_version());
+            return 0;
+          }
+    - ./test
+    - pkg-config --exists fuse

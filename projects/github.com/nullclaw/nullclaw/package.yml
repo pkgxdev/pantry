@@ -1,0 +1,107 @@
+distributable: ~
+
+display-name: nullclaw
+
+versions:
+  github: nullclaw/nullclaw
+
+warnings:
+  - vendored
+
+provides:
+  - bin/nullclaw
+  - bin/nullclaw-init
+
+dependencies:
+  github.com/mikefarah/yq: "*"
+  stedolan.github.io/jq: "*"
+  gnu.org/sed: "*"
+
+build:
+  dependencies:
+    curl.se: "*"
+    gnu.org/coreutils: "*"
+  script:
+    - curl -fsSL "https://github.com/nullclaw/nullclaw/releases/download/{{version.tag}}/${ASSET}" -o nullclaw
+    - printf "%s  %s\n" "$SHA256" "nullclaw" | sha256sum -c -
+    - install -Dm755 nullclaw {{prefix}}/bin/nullclaw
+    - install -Dm755 props/nullclaw-init {{prefix}}/bin/nullclaw-init
+  env:
+    darwin/aarch64:
+      ASSET: "nullclaw-macos-aarch64.bin"
+      SHA256: "99eefbea5693a4544424b0e8dd607060204b802e0ac43cb756108fe90df66006"
+    darwin/x86-64:
+      ASSET: "nullclaw-macos-x86_64.bin"
+      SHA256: "25be482920715e1c7109615e448e343123e4e0cf287bc9bf94f17aa087154c1e"
+    linux/aarch64:
+      ASSET: "nullclaw-linux-aarch64.bin"
+      SHA256: "f22ac6034a073af24a1dfb4b57323e118c6f96d46f6dd94f8a6d8103fa528e93"
+    linux/x86-64:
+      ASSET: "nullclaw-linux-x86_64.bin"
+      SHA256: "cb50709cebe917ebee88cd06f6b7166abd6d657bdd13e2a76b5cbf55ea97fb88"
+
+test:
+  dependencies:
+    crates.io/semverator: "*"
+  script:
+    # requires GLIBC_2.34
+    - run:
+        - LIBCV=$(getconf GNU_LIBC_VERSION | sed 's/^glibc //')
+        - |
+          if ! semverator gt $LIBCV 2.34; then
+            echo "Skipping test on glibc $LIBCV"
+            exit 0
+          fi
+      if: linux
+    - nullclaw --version
+    - run: nullclaw help >/dev/null 2>&1 || true
+    - run: nullclaw-init --help | grep -q 'nullclaw-init'
+    - run:
+        - export OPENROUTER_API_KEY="test-key"
+        - nullclaw-init $FIXTURE --write-only --output ./nullclaw-config.json
+        - test -f ./nullclaw-config.json
+        - jq -e '.agents.defaults.model.primary == "openrouter/anthropic/claude-sonnet-4"' ./nullclaw-config.json
+        - jq -e '.models.providers.openrouter.api_key == "test-key"' ./nullclaw-config.json
+      fixture:
+        extname: md
+        content: |
+          ---
+          agent:
+            id: "support-bot"
+            model:
+              provider: "openrouter"
+              primary: "openrouter/anthropic/claude-sonnet-4"
+            defaults:
+              temperature: 0.3
+              heartbeat_every: "30m"
+          auth:
+            provider_api_key_env: "OPENROUTER_API_KEY"
+          runtime:
+            workspace: "."
+            workspace_only: true
+            allow_public_bind: false
+            tools_allowlist:
+              - "shell"
+              - "file_read"
+          memory:
+            backend: "sqlite"
+            embedding_provider: "noop"
+            vector_weight: 0.7
+            keyword_weight: 0.3
+            hygiene_enabled: true
+          channels:
+            telegram:
+              enabled: false
+              account_id: "main"
+              bot_token_env: "TELEGRAM_BOT_TOKEN"
+              allow_from: []
+            discord:
+              enabled: false
+              account_id: "main"
+              token_env: "DISCORD_BOT_TOKEN"
+              guild_id: ""
+              allow_from: []
+          launch:
+            mode: "agent"
+            first_message: "Hello, nullclaw!"
+          ---

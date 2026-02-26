@@ -2,6 +2,27 @@
 
 set -e
 
+d="$(cd "$(dirname "$0")/../.." && pwd)"
+pkgx_dir="$(cd "$d/../.." && pwd)"
+
+# Only set GIT_SSL_CAINFO if no system CA store exists
+if [ -z "$GIT_SSL_CAINFO" ]; then
+    for sys_ca in \
+        /etc/ssl/certs/ca-certificates.crt \
+        /etc/pki/tls/certs/ca-bundle.crt \
+        /etc/ssl/cert.pem \
+        /usr/local/etc/openssl/cert.pem
+    do
+        [ -f "$sys_ca" ] && break
+    done
+
+    if [ ! -f "$sys_ca" ]; then
+        for f in "$pkgx_dir"/curl.se/ca-certs/v*/ssl/cert.pem; do
+        [ -f "$f" ] && export GIT_SSL_CAINFO="$f" && break
+        done
+    fi
+fi
+
 # This function searches through the provided arguments
 # to find the first non-option argument, which is assumed
 # to be the git subcommand.
@@ -38,11 +59,11 @@ libexec="$(cd "$(dirname "$0")/.." && pwd)"/libexec
 cmd=$(find_git_subcommand "$@")
 
 _provides() {
-  if foo="$(pkgx --provider git-"$cmd")"; then
+  if foo="$(pkgx pkgx^1 --provider git-"$cmd")"; then
     echo "$foo"
   else
     # syncing is slow but let’s be sure about it
-    pkgx --sync --provider git-"$cmd"
+    pkgx pkgx^1 --sync --provider git-"$cmd"
   fi
 }
 

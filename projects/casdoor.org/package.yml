@@ -1,0 +1,108 @@
+distributable:
+  url: https://github.com/casdoor/casdoor/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+display-name: casdoor
+
+versions:
+  github: casdoor/casdoor
+
+companions:
+  github.com/lsof-org/lsof: "*"
+
+build:
+  dependencies:
+    go.dev: ^1.21
+    nodejs.org: 18.19.0
+    classic.yarnpkg.com: ^1
+  env:
+    BUILD_DIR: web/build
+    FRONTEND_PATH: "{{prefix}}/${BUILD_DIR}"
+    SAMPLE_CONFIG_PATH: "{{prefix}}/etc/casdoor"
+    CGO_ENABLED: 0
+    GO_ARGS:
+      - -o "{{prefix}}/bin/"
+    GO_LDFLAGS:
+      - -s
+      - -w
+    linux:
+      GO_LDFLAGS:
+        - -buildmode=pie
+  script:
+    - working-directory: web
+      run: |
+        yarn install --frozen-lockfile --network-timeout 1000000
+        NODE_OPTIONS="--max-old-space-size=4096" yarn run build
+    - working-directory: ${BUILD_DIR}
+      run: |
+        mkdir -p ${FRONTEND_PATH}
+        cp -R . ${FRONTEND_PATH}
+    - run: go build ${GO_ARGS} -ldflags="${GO_LDFLAGS}" ./
+    - working-directory: conf
+      run: |
+        mkdir -p ${SAMPLE_CONFIG_PATH}
+        cp ${PWD}/app.conf ${SAMPLE_CONFIG_PATH}
+provides:
+  - bin/casdoor
+
+test:
+  dependencies:
+    pkgx.sh: ">=1"
+    gnu.org/coreutils: ^9
+    github.com/gromgit/pup: "*"
+    curl.se: "*"
+  env:
+    CONFIG_PATH: "${PWD}/conf/app.conf"
+    CASDOOR_BIN_PATH: "$(+casdoor which casdoor)"
+    CASDOOR_DIR_PATH: "$(dirname ${CASDOOR_BIN_PATH})"
+    FRONTEND_PATH: "$(dirname ${CASDOOR_DIR_PATH})/web/build"
+  script:
+    - mkdir -p {conf,log,web}
+    - ln -s ${FRONTEND_PATH} web/build
+    - run: cat ${FIXTURE} > ${CONFIG_PATH}
+      fixture:
+        extname: conf
+        content: |
+          appname = casdoor
+          httpport = 8000
+          runmode = dev
+          copyrequestbody = true
+          driverName = sqlite
+          dataSourneName = /tmp/casdoor.db?cache=shared
+          dbName = casdoor
+          tableNamePrefix =
+          showSql = false
+          redisEndpoint =
+          defaultStorageProvider =
+          isCloudIntranet = false
+          authState = "casdoor"
+          socks5Proxy = "127.0.0.1:10808"
+          verificationCodeTimeout = 10
+          initScore = 0
+          logPostOnly = true
+          isUsernameLowered = false
+          origin =
+          originFrontend =
+          staticBaseUrl = "https://cdn.casbin.org"
+          isDemoMode = false
+          batchSize = 100
+          enableErrorMask = false
+          enableGzip = true
+          inactiveTimeoutMinutes =
+          ldapServerPort = 389
+          ldapsCertId = ""
+          ldapsServerPort = 636
+          radiusServerPort = 1812
+          radiusDefaultOrganization = "built-in"
+          radiusSecret = "secret"
+          quota = {"organization": -1, "user": -1, "application": -1, "provider": -1}
+          logConfig = {"adapter":"file", "filename": "logs/casdoor.log", "maxdays":99999, "perm":"0770"}
+          initDataNewOnly = false
+          initDataFile = "./init_data.json"
+          frontendBaseDir = "/tmp"
+    - ls -alFhR
+    - casdoor -config "${CONFIG_PATH}" & CASDOOR_PID=$!
+    - sleep 5
+    - CASDOOR_OUTPUT="$(curl http://localhost:8000 | pup 'meta[name="description"] attr{content}')"
+    - kill -9 ${CASDOOR_PID}
+    - grep 'Casdoor' <<< "${CASDOOR_OUTPUT}" && exit 0 || exit 1

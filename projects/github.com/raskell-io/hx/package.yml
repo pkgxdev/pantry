@@ -1,0 +1,27 @@
+distributable:
+  url: https://github.com/raskell-io/hx/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+display-name: hx
+
+versions:
+  github: raskell-io/hx
+
+provides:
+  - bin/hx
+
+companions:
+  haskell.org: "*"
+  haskell.org/cabal: "*"
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.85'
+    rust-lang.org/cargo: '*'
+    openssl.org: ^1.1
+  script: cargo install --root={{prefix}} --locked --path=crates/hx-cli
+
+test:
+  - hx --version | tee out
+  - grep {{version}} out
+  - hx doctor

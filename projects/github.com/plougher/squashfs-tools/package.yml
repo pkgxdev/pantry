@@ -5,8 +5,7 @@ distributable:
 versions:
   github: plougher/squashfs-tools
 
-display-name:
-  SquashFS-Tools
+display-name: SquashFS-Tools
 
 dependencies:
   lz4.org: 1
@@ -16,14 +15,20 @@ dependencies:
   zlib.net: 1
 
 build:
+  dependencies:
+    curl.se: '*'
+    gnu.org/patch: '*'
   working-directory: squashfs-tools
   script:
+    # add the missing pthread.h header, upstream pr ref, https://github.com/plougher/squashfs-tools/pull/312
+    - run: curl 'https://github.com/plougher/squashfs-tools/commit/8b9288365fa0a0d80d8be82a3a6b42ea1c12629a.patch?full_index=1' | patch
+      if: =4.7
     - make $ARGS
     - mkdir -p {{prefix}}/bin
     - install mksquashfs unsquashfs sqfscat sqfstar {{prefix}}/bin
   env:
     ARGS:
-      - EXTRA_CFLAGS=-std=gnu89
+      - EXTRA_CFLAGS=-std=gnu99
       - LZ4_SUPPORT=1
       - LZO_SUPPORT=1
       - XZ_SUPPORT=1
@@ -41,8 +46,8 @@ test:
   dependencies:
     gnu.org/diffutils: '*'
   script:
-    - mksquashfs -version | grep "mksquashfs version {{version}}"
-    - (unsquashfs -v || true) | grep "unsquashfs version {{version}}"
+    - mksquashfs -version | grep "mksquashfs version {{version.raw}}"
+    - (unsquashfs -v || true) | grep "unsquashfs version {{version.raw}}"
     - run:
         - echo 1 >test1
         - echo 2 >test2

@@ -7,7 +7,7 @@ versions:
   strip: /^Libarchive /
 
 dependencies:
-  gnu.org/coreutils: '*'
+  gnu.org/coreutils: "*"
   lz4.org: 1
   tukaani.org/xz: 5
   facebook.com/zstd: 1
@@ -23,10 +23,7 @@ build:
 
     # https://github.com/libarchive/libarchive/issues/1819
     - run: 'sed -i ''/Requires\.private: iconv/d'' libarchive.pc'
-      working-directory: '{{prefix}}/lib/pkgconfig'
-
-    - run: find . -name \*.la -exec rm {} \;
-      working-directory: '{{prefix}}/lib'
+      working-directory: "{{prefix}}/lib/pkgconfig"
   env:
     ARGS:
       - --prefix={{prefix}}
@@ -36,9 +33,9 @@ build:
       - --without-openssl # mtree hashing now possible without OpenSSL
       - --with-expat # best xar hashing option
     linux/x86-64:
-      CFLAGS: '$CFLAGS -fPIC'
-      CXXFLAGS: '$CXXFLAGS -fPIC'
-      LDFLAGS: '$LDFLAGS -pie'
+      CFLAGS: "$CFLAGS -fPIC"
+      CXXFLAGS: "$CXXFLAGS -fPIC"
+      LDFLAGS: "$LDFLAGS -pie"
 
 provides:
   - bin/bsdcat

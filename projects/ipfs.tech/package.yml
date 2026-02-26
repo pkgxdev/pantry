@@ -8,21 +8,18 @@ versions:
 
 build:
   dependencies:
-    go.dev: '>=1.20'
-    gnu.org/patch: '*'
+    go.dev: ">=1.20"
+    gnu.org/patch: "*"
   script:
-    # Need to pass -buildmode=pie to the build
-    # or segmentation fault
-    # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
-    - run: patch -p1 <props/ldflags.diff
+    - run: sed -i 's/-ldflags="/-ldflags="-buildmode=pie /g' Rules.mk
+      working-directory: cmd/ipfs
       if: linux
     - make build CGO_ENABLED=0
     - mkdir -p {{prefix}}/bin
     - mv cmd/ipfs/ipfs {{prefix}}/bin
 
 test:
-  script:
-    ipfs init
+  script: ipfs init
   env:
     # This keeps the test from polluting the user's home directory (and causing a later,
     # presumably intentional, `ipfs init` from erroring).

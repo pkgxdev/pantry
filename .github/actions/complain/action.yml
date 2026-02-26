@@ -13,6 +13,12 @@ inputs:
 runs:
   using: composite
   steps:
+    # prevent issue storms by randomizing the delay before we check/create
+    # otherwise, if multiple builds fail at once, they will all try to create issues
+    - name: Variable Sleep
+      shell: bash
+      run: sleep $(( RANDOM % 120 ))
+
     - name: Find Issue
       uses: actions-cool/issues-helper@v3
       id: find

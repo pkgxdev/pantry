@@ -34,10 +34,10 @@ provides:
 
 test:
   dependencies:
-    mongodb.com/shell: '*'
-    pkgx.sh: 1
+    mongodb.com/shell: "*"
+    npmjs.com: "*"
     linux:
-      crates.io/semverator: '*'
+      crates.io/semverator: "*"
   script:
     # doesn't support macOS 13
     - run: |
@@ -55,8 +55,14 @@ test:
       if: linux
 
     - mkdir -p data/{db,log/mongodb}
-    - mongod --dbpath data/db --logpath data/log/mongodb/mongo.log --port $PORT --fork
+    - run: mongod --dbpath data/db --logpath data/log/mongodb/mongo.log --port $PORT --fork
+      if: linux
+    - run:
+        - mongod --dbpath data/db --logpath data/log/mongodb/mongo.log --port $PORT &
+        - PID=$!
+        - sleep 5
+      if: darwin
     - mongosh --port $PORT --eval 'db.version()'
     - "mongosh --port $PORT --eval 'db.adminCommand({ shutdown: 1 })' || true"
   env:
-    PORT: $(pkgx get-port | tail -n1)
+    PORT: $(npx --yes get-port-cli | tail -n1)

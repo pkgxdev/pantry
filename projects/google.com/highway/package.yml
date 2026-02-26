@@ -13,8 +13,8 @@ build:
     - cmake --build builddir
     - cmake --install builddir
 
-    - mkdir -p {{prefix}}/share/hwy/examples
-    - cp -R hwy/examples {{prefix}}/share/hwy/
+    - mkdir -p {{prefix}}/share/
+    - cp -R hwy {{prefix}}/share/
   env:
     ARGS:
       - -DBUILD_SHARED_LIBS=ON
@@ -29,13 +29,15 @@ build:
 
 test:
   env:
+    linux:
+      CXXFLAGS: $CXXFLAGS -pthread
     linux/x86-64:
       # ld.lld: error: undefined reference due to --no-allow-shlib-undefined: __extendhfsf2
       CXXFLAGS: $CXXFLAGS -Wl,--allow-shlib-undefined
   script:
-    - mkdir -p hwy
-    - cp -R {{prefix}}/share/hwy/examples hwy/
-    - c++ -std=c++11 -lhwy -I. hwy/examples/profiler_example.cc $CXXFLAGS
+    - cp -R {{prefix}}/share/hwy .
+    - c++ -std=c++11 -lhwy -I. hwy/examples/benchmark.cc $CXXFLAGS
+    # the benchmark doesn't like GHA's runners for this arch
+    - run: exit 0
+      if: darwin/x86-64
     - ./a.out
-    # ^^ the -I. is because bizarely profiler_example.cc configures other headers to
-    # include itself but only on intel…

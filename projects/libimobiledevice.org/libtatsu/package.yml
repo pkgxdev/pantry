@@ -1,0 +1,38 @@
+distributable:
+  url: https://github.com/libimobiledevice/libtatsu/releases/download/{{version.tag}}/libtatsu-{{version.tag}}.tar.bz2
+  strip-components: 1
+
+versions:
+  github: libimobiledevice/libtatsu
+
+dependencies:
+  libimobiledevice.org/libplist: ^2.6
+  rockdaboot.github.io/libpsl: "*"
+  curl.se: ">=7"
+
+build:
+  dependencies:
+    gnu.org/libtool: "*"
+  script:
+    - ./configure $ARGS
+    - make --jobs {{hw.concurrency}} install
+  env:
+    ARGS:
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --disable-silent-rules
+      - --prefix={{prefix}}
+      - --libdir={{prefix}}/lib
+
+test:
+  - run: cc -ltatsu $FIXTURE -o test
+    fixture:
+      extname: c
+      content: |
+        #include "libtatsu/tss.h"
+
+        int main(int argc, char* argv[]) {
+          tss_set_debug_level(0);
+          return 0;
+        }
+  - ./test

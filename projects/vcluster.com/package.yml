@@ -16,6 +16,7 @@ build:
     linux:
       # gcc: error: invalid linker name in argument '-fuse-ld=gold'
       gnu.org/gcc: '*'
+      gnu.org/binutils: ~2.44 # ld.gold is deprecated in binutils 2.45+
   script:
     - go generate ./...
     - go build $ARGS -ldflags="$GO_LDFLAGS" ./cmd/vclusterctl/main.go
@@ -40,11 +41,13 @@ provides:
   - bin/vcluster
 
 test:
-  - export PATH={{deps.helm.sh.prefix}}/bin:$PATH
-  - vcluster --version | grep {{version}}
-  - vcluster --help | grep 'vcluster root command'
-  - (vcluster create vcluster -n vcluster --create-namespace 2>&1 || true) | tee out.log
-  - run: cat out.log | grep 'please make sure you have access to a kubernetes cluster and the command'
-    if: <0.25
-  - run: cat out.log | grep 'failed to get kube client config'
-    if: '>=0.25'
+  env:
+    PATH: '{{deps.helm.sh.prefix}}/bin:$PATH'
+  script:
+    - vcluster --version | grep {{version}}
+    - vcluster --help | grep 'vcluster root command'
+    - (vcluster create vcluster -n vcluster --create-namespace 2>&1 || true) | tee out.log
+    - run: cat out.log | grep 'please make sure you have access to a kubernetes cluster and the command'
+      if: <0.24.2
+    - run: cat out.log | grep 'failed to get kube client config'
+      if: '>=0.24.2'

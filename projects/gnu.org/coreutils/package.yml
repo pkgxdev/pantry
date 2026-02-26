@@ -17,7 +17,7 @@ provides:
   - bin/basename
   - bin/basenc
   - bin/cat
-  - bin/chcon
+  # - bin/chcon # removed in 9.9
   - bin/chgrp
   - bin/chmod
   - bin/chown
@@ -77,7 +77,7 @@ provides:
   - bin/realpath
   - bin/rm
   - bin/rmdir
-  - bin/runcon
+  # - bin/runcon # removed in 9.9
   - bin/seq
   - bin/sha1sum
   - bin/sha224sum
@@ -118,7 +118,10 @@ provides:
 
 build:
   script:
-    - ./configure --prefix={{ prefix }}
+    # add suppressed programs back
+    - run: export ARGS="$ARGS --enable-install-program=kill,uptime"
+      if: ">=3.9.0"
+    - ./configure --prefix={{ prefix }} $ARGS
     - make --jobs {{ hw.concurrency }} install
   env:
     FORCE_UNSAFE_CONFIGURE: 1 # some gha runners run as root

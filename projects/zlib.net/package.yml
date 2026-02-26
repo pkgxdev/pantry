@@ -3,12 +3,12 @@ distributable:
   strip-components: 1
 
 versions:
-  github: madler/zlib/tags
+  github: madler/zlib
 
 build:
-  script: |
-    ./configure --prefix="{{prefix}}"
-    make --jobs {{ hw.concurrency }} install
+  script:
+    - ./configure --prefix="{{prefix}}"
+    - make --jobs {{ hw.concurrency }} install
   env:
     linux:
       CFLAGS:
@@ -17,9 +17,9 @@ build:
         - -Wl,--undefined-version
 
 test:
-  script: |
-    cc test.c -lz
-    OUT=$(echo "$INPUT" | ./a.out | ./a.out -d)
-    test "$OUT" = "$INPUT"
+  script:
+    - cc test.c -lz
+    - OUT=$(echo "$INPUT" | ./a.out | ./a.out -d)
+    - test "$OUT" = "$INPUT"
   env:
     INPUT: Hello, World!

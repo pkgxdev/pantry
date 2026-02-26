@@ -1,0 +1,60 @@
+distributable:
+  url: https://registry.npmjs.org/openclaw/-/openclaw-{{version}}.tgz
+  strip-components: 1
+
+display-name: openclaw
+
+versions:
+  npm: openclaw
+  ignore: 0.0.1
+
+provides:
+  - bin/openclaw
+  - bin/openclaw-init
+
+dependencies:
+  nodejs.org: "*"
+  github.com/mikefarah/yq: "*"
+  stedolan.github.io/jq: "*"
+  gnu.org/sed: "*"
+
+build:
+  dependencies:
+    nodejs.org: "*"
+    npmjs.com: "*"
+    linux:
+      cmake.org: 3
+  script:
+    - npm i $ARGS .
+    - install -Dm755 props/openclaw-init {{prefix}}/bin/openclaw-init
+  env:
+    ARGS:
+      - --global
+      - --prefix={{prefix}}
+      - --install-links
+      - --unsafe-perm
+
+test:
+  - openclaw --version | grep -q "{{version}}"
+  - run: openclaw help >/dev/null 2>&1 || true
+  - run: openclaw-init --help | grep -q "openclaw-init"
+  - run:
+      - export OPENAI_API_KEY="test-key"
+      - openclaw-init $FIXTURE --write-only --output ./openclaw.json
+      - test -f ./openclaw.json
+      - jq -e '.agent.model == "openai/gpt-5"' ./openclaw.json
+      - jq -e '.agents.defaults.workspace == "."' ./openclaw.json
+    fixture:
+      extname: md
+      content: |
+        ---
+        agent:
+          model: "openai/gpt-5"
+        auth:
+          provider_api_key_env: "OPENAI_API_KEY"
+        runtime:
+          workspace: "."
+        launch:
+          mode: "agent"
+          first_message: "Hello from OpenClaw!"
+        ---

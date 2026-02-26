@@ -18,9 +18,7 @@ jobs:
     outputs:
       matrix: ${{ steps.process-diff.outputs.matrix }}
     steps:
-      - uses: pkgxdev/setup@v2
-        with:
-          version: 1.1.6
+      - uses: pkgxdev/setup@v4
       - uses: actions/checkout@v4
       - uses: technote-space/get-diff-action@v6
         id: get-diff
@@ -30,6 +28,7 @@ jobs:
         id: process-diff
         env:
           PKGX_PANTRY_PATH: ${{ github.workspace }}
+          PKGX_PANTRY_DIR: ${{ github.workspace }}
         run: |
           if [ -n "${{ steps.get-diff.outputs.diff }}" ]; then
             for x in ${{ steps.get-diff.outputs.diff }}; do
@@ -55,6 +54,7 @@ jobs:
     name: ${{ matrix.pkg }} ${{ matrix.platform.tinyname }}
     env:
       PKGX_PANTRY_PATH: ${{ github.workspace }}
+      PKGX_PANTRY_DIR: ${{ github.workspace }}
     steps:
       - uses: actions/checkout@v4
 
@@ -64,9 +64,8 @@ jobs:
           p12-password: ${{ secrets.APPLE_CERTIFICATE_P12_PASSWORD }}
           APPLE_IDENTITY: ${{ github.repository == 'pkgxdev/pantry' && secrets.APPLE_IDENTITY || '-' }}
 
-      - uses: pkgxdev/setup@v2
+      - uses: pkgxdev/setup@v4
         with:
-          version: 1.1.6
           PKGX_DIR: /opt
 
       - uses: pkgxdev/brewkit/build@v1

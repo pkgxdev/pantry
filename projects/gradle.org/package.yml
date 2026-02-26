@@ -1,23 +1,30 @@
 distributable:
   url: https://services.gradle.org/distributions/gradle-{{version.raw}}-all.zip
-  strip-components: 1
+
 versions:
   url: https://services.gradle.org/distributions/
   match: /gradle-\d+(\.\d+)*-all\.zip/
   strip:
     - /^gradle-/
     - /-all\.zip/
+
 dependencies:
   openjdk.org: '*'
+
 build:
   working-directory: gradle-{{version.raw}}
   script:
     - find bin -name \*.bat -exec rm {} \;
     - mkdir -p {{prefix}}
-    - mv bin docs lib src {{prefix}}/
+    - cp -a bin docs lib src {{prefix}}/
+
 provides:
   - bin/gradle
+
 test:
+  dependencies:
+    # so we can still test v7
+    openjdk.org: 17
   script:
     - gradle --version | grep {{version.marketing}}
     - gradle build --no-daemon | grep "gradle works!"

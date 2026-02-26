@@ -11,22 +11,29 @@ provides:
   - bin/watch
 
 dependencies:
-  invisible-island.net/ncurses: '>=6.0'
+  invisible-island.net/ncurses: ">=6.0"
 
 build:
   dependencies:
-    gnu.org/autoconf: '*'
-    gnu.org/automake: '*'
-    gnu.org/gettext: '*'
-    gnu.org/libtool: '*'
-    freedesktop.org/pkg-config: '*'
+    gnu.org/autoconf: "*"
+    gnu.org/automake: "*"
+    gnu.org/gettext: "*"
+    gnu.org/libtool: "*"
+    gnu.org/m4: "*"
+    freedesktop.org/pkg-config: "*"
   script:
+    # since we don't run autopoint, which freaks out, we still need config.rpath.
+    - run:
+        - cp {{deps.gnu.org/gettext.prefix}}/share/gettext/config.rpath .
+        - mkdir -p po
+        - touch po/Makefile.in.in
+      if: ">=4.0.6"
     - autoreconf -fiv
     - ./configure $ARGS
     - make src/watch
-    - mkdir -p "{{ prefix }}"/bin
-    - mv src/watch "{{ prefix }}"/bin
+    - install -Dm755 src/watch "{{ prefix }}"/bin/watch
   env:
+    AUTOPOINT: "true"
     ARGS:
       - --disable-dependency-tracking
       - --prefix={{ prefix }}

@@ -6,21 +6,20 @@ versions:
   gitlab: gnutls/gnutls/tags
 
 dependencies:
-  freedesktop.org/p11-kit: '*'
-  gnu.org/libidn2: '*'
+  freedesktop.org/p11-kit: "*"
+  gnu.org/libidn2: "*"
   gnu.org/libunistring: ^1
   gnu.org/libtasn1: ^4
-  gnu.org/nettle: '*'
-  gnu.org/gettext: '*'
-  gnu.org/gmp: '*'
+  gnu.org/nettle: ^3
+  gnu.org/gettext: "*"
+  gnu.org/gmp: "*"
   unbound.net: ^1
-  curl.se/ca-certs: '*'
+  curl.se/ca-certs: "*"
 
 build:
   dependencies:
     linux:
-      gnu.org/gcc: '*'
-    freedesktop.org/pkg-config: '*'
+      gnu.org/gcc: "*"
   script:
     # clang doesn't like the -march=all flag
     - run: sed -i -e 's/-march=all/-mcpu=generic/' Makefile.am Makefile.in
@@ -30,9 +29,13 @@ build:
     #FIXME: use similar logic to the one in openssl.org/x509_def.c to
     # locate {{deps.curl.se/ca-certs.prefix}}/ssl/cert.pem
 
-    - ./configure --prefix={{ prefix }} --disable-guile
+    - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
   env:
+    ARGS:
+      - --prefix={{ prefix }}
+      - --disable-guile
+      - --disable-doc
     darwin:
       CFLAGS: $CFLAGS -Wno-implicit-int
 

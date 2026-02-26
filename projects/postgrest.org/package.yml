@@ -9,6 +9,7 @@ dependencies:
   postgresql.org/libpq: 17
   zlib.net: ~1.3
   gnu.org/gcc/libstdcxx: 14
+  gnome.org/libxml2: ~2.13 # 2.14 changes library api version
 
 # FIXME: zlib and libpq haskell modules build intermediary tools, which
 # can't find our RPATH, due to DYLD_LIBRARY_PATH being filtered on subinvokations.
@@ -22,7 +23,7 @@ build:
     haskell.org/cabal: ^3
     linux:
       gnu.org/gcc: '*'
-      gnu.org/binutils: '*'
+      gnu.org/binutils: ~2.44 # higher might no longer include ld.gold
   env:
     ARGS:
       - --jobs={{hw.concurrency}}
@@ -39,4 +40,5 @@ test:
   - postgrest --dump-config >out 2>&1
   - grep db-anon-role out
   - grep "Failed to query database settings for the config parameters" out
-  - postgrest --version | grep 'PostgREST {{version}}'
+  - postgrest --version | tee out
+  - grep 'PostgREST {{version}}' out || grep '^PostgREST {{version.marketing}}$' out

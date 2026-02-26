@@ -1,0 +1,47 @@
+distributable:
+  url: https://github.com/Zouuup/landrun/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+display-name: landrun
+
+versions:
+  github: Zouuup/landrun
+
+platforms:
+  - linux
+
+build:
+  dependencies:
+    go.dev: '^1.18'
+  script:
+    - go mod download
+    - go build -ldflags "$LDFLAGS" -o {{prefix}}/bin/landrun ./cmd/landrun
+  env:
+    LDFLAGS:
+      - -s
+      - -w
+      - -buildmode=pie
+
+provides:
+  - bin/landrun
+
+test:
+  dependencies:
+    curl.se: '*'
+    gnu.org/coreutils: '*'
+  env:
+    linux/aarch64:
+      # ARM64 GitHub Action runners don't support landlock, so we use --best-effort
+      # on all positive tests to avoid failing the build. If landlock is supported
+      # in the future, remove it.
+      LANDRUN_FLAGS: --best-effort
+  script:
+    # No permissions, should fail to execute any binary
+    - if landrun true; then exit 1; fi
+    # No filesystem permissions, should fail to read or write
+    - if landrun --rox $PKGX_DIR/ $(command -v ls) /etc; then exit 1; fi
+    - if landrun --rox $PKGX_DIR/ $(command -v touch) $PWD/landrun_should_fail; then exit 1; fi
+    # Add read/write permissions
+    - landrun $LANDRUN_FLAGS --rox / $(command -v ls) $PWD
+    - landrun $LANDRUN_FLAGS --rox / --rw $PWD $(command -v touch) $PWD/landrun_rw
+    - landrun $LANDRUN_FLAGS --rox / $(command -v cat) $PWD/landrun_rw

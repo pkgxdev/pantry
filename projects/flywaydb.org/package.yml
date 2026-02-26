@@ -1,4 +1,5 @@
-distributable: ~
+distributable:
+  ~
   # FIXME: AlreadyExists: File exists (os error 17): mkdir '~/pantry/srcs/flywaydb.org-10.10.0'
   # https://github.com/pkgxdev/brewkit/issues/321
 
@@ -19,7 +20,10 @@ build:
   dependencies:
     curl.se: '*'
   script:
-    - curl -L 'https://search.maven.org/remotecontent?filepath=org/flywaydb/flyway-commandline/{{version.raw}}/flyway-commandline-{{version.raw}}.tar.gz' | tar xz
+    - run: URL='https://search.maven.org/remotecontent?filepath=org/flywaydb/flyway-commandline/{{version.raw}}/flyway-commandline-{{version.raw}}.tar.gz'
+      if: <11.11
+    - run: URL='https://github.com/flyway/flyway/releases/download/flyway-{{version.raw}}/flyway-commandline-{{version.raw}}.tar.gz'
+    - curl -L "$URL" | tar xz
     - mkdir -p {{prefix}}/libexec
     - cp -r ./flyway-{{version}}/* {{prefix}}/libexec/
     - run: ln -s ../libexec/flyway flyway

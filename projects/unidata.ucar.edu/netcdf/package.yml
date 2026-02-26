@@ -6,19 +6,19 @@ versions:
   github: Unidata/netcdf-c
 
 dependencies:
-  hdfgroup.org/HDF5: '*'
-  sourceware.org/bzip2: '*'
-  curl.se: '*'
-  gnome.org/libxml2: '*'
-  zlib.net: '*'
+  hdfgroup.org/HDF5: "*"
+  sourceware.org/bzip2: "*"
+  curl.se: "*"
+  gnome.org/libxml2: ~2.13
+  zlib.net: "*"
 
 build:
   dependencies:
-    gnu.org/make: '*'
-    cmake.org: '*'
-    gnu.org/m4: '*'
+    gnu.org/make: "*"
+    cmake.org: "*"
+    gnu.org/m4: "*"
     linux:
-      gnu.org/gcc: '*'
+      gnu.org/gcc: "*"
   script:
     - run:
         - cmake -S . -B build_shared $ARGS -DBUILD_SHARED_LIBS=ON
@@ -82,15 +82,19 @@ provides:
 test:
   dependencies:
     linux:
-      gnu.org/gcc: '*'
+      gnu.org/gcc: "*"
   script:
-    - $CC test.c -lnetcdf -o test
+    - $CC test.c -o test $LIBS
     - ./test | grep {{version}}
     - nc-config --version | grep {{version}}
   env:
+    LIBS:
+      - -lnetcdf
     linux:
       CC: gcc
       LD: ld
+      LIBS:
+        - -lxml2
     darwin:
       CC: clang
       LD: /usr/bin/ld

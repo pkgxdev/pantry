@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/koalaman/shellcheck/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/koalaman/shellcheck/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
@@ -13,12 +13,12 @@ dependencies:
 
 build:
   dependencies:
-    haskell.org: ^9
+    haskell.org: ~9.8
     haskell.org/cabal: ^3
-  script: |-
-    mkdir -p "{{prefix}}/bin"
-    cabal update
-    cabal install $ARGS
+  script:
+    - mkdir -p "{{prefix}}/bin"
+    - cabal update
+    - cabal install $ARGS
   env:
     ARGS:
       - --install-method=copy
@@ -28,5 +28,4 @@ test:
   fixture: |
     #!/bin/sh
     echo "Hello, world!"
-  script:
-    shellcheck $FIXTURE
+  script: shellcheck $FIXTURE

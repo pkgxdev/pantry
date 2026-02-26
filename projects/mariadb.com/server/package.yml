@@ -9,13 +9,13 @@ versions:
   strip: /^mariadb-/
 
 platforms:
-  - darwin
+  - darwin/aarch64 # elderly x86-64 started developing core dumps in 12.2.1
   - linux/x86-64
 
 dependencies:
   sourceware.org/bzip2: ^1
   github.com/besser82/libxcrypt: ^4
-  gnome.org/libxml2: '*' # sadly, varies by build, match our deps
+  gnome.org/libxml2: ~2.13 # 2.14 changed the api version
   invisible-island.net/ncurses: ^6
   zlib.net: ^1
   openssl.org: ^1.1
@@ -24,12 +24,12 @@ dependencies:
 
 build:
   dependencies:
-    cmake.org: '*'
-    freedesktop.org/pkg-config: '*'
-    gnu.org/bison: '*'
-    gnu.org/coreutils: '*'
-    git-scm.org: '*'
-    groonga.org: '*'
+    cmake.org: "*"
+    freedesktop.org/pkg-config: "*"
+    gnu.org/bison: "*"
+    gnu.org/coreutils: "*"
+    git-scm.org: "*"
+    groonga.org: 15
     linux:
       fmt.dev: ^9
   script:
@@ -47,7 +47,7 @@ build:
             storage/innobase/os/os0file.cc \
             extra/mariabackup/xtrabackup.cc
         fi
-      if: '>=11.3.2'
+      if: ">=11.3.2"
 
     # -DINSTALL_* are relative to prefix
     - cmake -S . -B build $CMAKE_ARGS
@@ -87,7 +87,7 @@ build:
       - -DCMAKE_INSTALL_PREFIX={{ prefix }}
       - -DMYSQL_DATADIR={{ prefix }}/var/mysql
       - -DINSTALL_SYSCONFDIR=etc
-      - -DINSTALL_INCLUDEDIR=include/mysql
+      - -DINSTALL_INCLUDEDIR=include
       - -DINSTALL_MANDIR=share/man
       - -DINSTALL_DOCDIR=share/doc/mariadb
       - -DINSTALL_INFODIR=share/info

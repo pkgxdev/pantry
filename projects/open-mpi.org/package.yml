@@ -5,18 +5,22 @@ distributable:
 versions:
   github: open-mpi/ompi/tags
 
+platforms:
+  - linux
+  - darwin/aarch64 # fortran not happy on increasingly ancient darwin/x86-64
+
 dependencies:
-  open-mpi.org/hwloc: '*'
+  open-mpi.org/hwloc: "*"
   openpmix.github.io: 5
-  libevent.org: '*'
+  libevent.org: "*"
 
 companions:
-  gnu.org/gcc: '*' # for gfortran
-  gnu.org/inetutils: '*' # for rsh
+  gnu.org/gcc: "*" # for gfortran
+  gnu.org/inetutils: "*" # for rsh
 
 runtime:
   env:
-    OPAL_PREFIX: '{{prefix}}'
+    OPAL_PREFIX: "{{prefix}}"
     # OMPI_CC: gcc
     # OMPI_CXX: g++
     # OMPI_FC: gfortran
@@ -33,8 +37,8 @@ build:
     zlib.net: ^1
     python.org: ^3
     # needed for gfortran
-    gnu.org/binutils: '*'
-    gnu.org/gcc: '*'
+    gnu.org/binutils: "*"
+    gnu.org/gcc: "*"
   script:
     - run: rm -rf hwloc* libevent* openpmix*
       working-directory: 3rd-party
@@ -44,13 +48,9 @@ build:
     - make --jobs {{ hw.concurrency }} install
 
     - run: sed -i "s|linker_flags=.*|linker_flags=|g" *-wrapper-data.txt
-      working-directory: '{{prefix}}/share/openmpi'
+      working-directory: "{{prefix}}/share/openmpi"
 
     - install {{prefix}}/lib/*.mod {{prefix}}/include/
-
-    # .la files are not relocatable
-    - run: find . -name '*.la' -exec rm {} \;
-      working-directory: '{{prefix}}/lib'
   env:
     CXXFLAGS:
       - -std=c++11
@@ -108,7 +108,7 @@ provides:
 
 test:
   dependencies:
-    freedesktop.org/pkg-config: '*'
+    freedesktop.org/pkg-config: "*"
   script:
     # some gha mac runners have broken SDKs...
     - run: |
@@ -117,6 +117,14 @@ test:
           exit 0
         fi
       if: darwin
+    # glibc too old, somehow, on arch
+    # /lib/../lib64/libgfortran.so: undefined reference to `log10f@GLIBC_2.43'
+    - run: |
+        if [ -f /etc/os-release ] && grep -q '^ID=arch' /etc/os-release; then
+          echo "Arch Linux detected! Not currently testable."
+          exit 0
+        fi
+      if: linux
     - mpicc hello.c -o hello
     - ./hello
     - mpirun ./hello

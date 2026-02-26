@@ -29,8 +29,5 @@ provides:
 
 test:
   - socat -V | grep {{version}}
-  - run: |
-      echo -e "GET / HTTP/1.1\r\nhost: example.com\r\nConnection: close\r\n\r\n" | socat - TCP4:example.com:80
-  - run: |
-      echo -e "GET / HTTP/1.1\r\nhost: example.com\r\nConnection: close\r\n\r\n" | socat - TCP4:example.com:80 > index.html
-  - cat index.html | grep "<title>Example Domain</title>"
+  - 'echo -e "GET / HTTP/1.1\r\nhost: www.dest-unreach.org\r\nConnection: close\r\n\r\n" | socat - TCP4:www.dest-unreach.org:80 | tee index.html'
+  - grep "<title>Welcome to dest-unreach.org!</title>" index.html

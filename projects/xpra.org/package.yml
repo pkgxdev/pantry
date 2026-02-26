@@ -14,7 +14,7 @@ runtime:
     GI_TYPELIB_PATH: '{{deps.gnome.org/gobject-introspection.prefix}}/lib/girepository-1.0:{{deps.gnome.org/glib.prefix}}/lib/girepository-1.0:{{deps.gtk.org/gtk3.prefix}}/lib/girepository-1.0:{{deps.gnome.org/pango.prefix}}/lib/girepository-1.0:{{deps.harfbuzz.org.prefix}}/lib/girepository-1.0:{{deps.gnome.org/gdk-pixbuf.prefix}}/lib/girepository-1.0:{{deps.gnome.org/atk.prefix}}/lib/girepository-1.0'
 
 dependencies:
-  pkgx.sh: ^1
+  pkgx.sh: ">=1"
   python.org: '~3.11'
   cython.org: '*'
   tukaani.org/xz: '*'
@@ -36,6 +36,7 @@ dependencies:
   x.org/xtst: '*'
   x.org/libxres: '*'
   x.org/xfixes: '*'
+  x.org/xcursor: '*' # since 6.4
 
   videolan.org/x264: '*'
   webmproject.org/libvpx: '*'
@@ -55,7 +56,7 @@ build:
   script:
     - bkpyvenv stage {{prefix}} {{version}}
     - ${{prefix}}/venv/bin/pip install cython
-    - ${{prefix}}/venv/bin/pip install .
+    - ${{prefix}}/venv/bin/pip install . --no-build-isolation
     - bkpyvenv seal {{prefix}} xpra
 
 provides:

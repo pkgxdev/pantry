@@ -6,25 +6,25 @@ versions:
   github: facebook/mvfst/tags
 
 dependencies:
-  boost.org: '*'
-  github.com/facebookincubator/fizz: '*'
-  fmt.dev: ^10
-  facebook.com/folly: '*'
-  gflags.github.io: '*'
-  google.com/glog: '*'
-  openssl.org: '*'
+  boost.org: "*"
+  github.com/facebookincubator/fizz: "*"
+  fmt.dev: ^12
+  facebook.com/folly: "*"
+  gflags.github.io: "*"
+  google.com/glog: "*"
+  openssl.org: "*"
   linux:
     libsodium.org: ^1.0.19
-    gnu.org/gcc/libstdcxx: 13
+    gnu.org/gcc/libstdcxx: 14
 
 build:
   dependencies:
-    cmake.org: '*'
+    cmake.org: "*"
     linux:
-      gnu.org/gcc: 13
-      gnu.org/binutils: '*'
-      gnu.org/make: '*'
-      kernel.org/linux-headers: '*'
+      gnu.org/gcc: 14
+      gnu.org/binutils: "*"
+      gnu.org/make: "*"
+      kernel.org/linux-headers: "*"
   script:
     # llvm's `as` likes to be first, wrongly
     - run: export PATH={{deps.gnu.org/binutils.prefix}}/bin:$PATH
@@ -43,7 +43,7 @@ build:
         +  QuicTransportBaseLite.cpp
            QuicTransportFunctions.cpp
          )
-         
+
         diff --git a/quic/state/CMakeLists.txt b/quic/state/CMakeLists.txt
         index 0916546fe..14297bb30 100644
         --- a/quic/state/CMakeLists.txt
@@ -54,12 +54,18 @@ build:
            AckHandlers.cpp
         +  AckedPacketIterator.cpp
          )
-         
+
          set_property(TARGET mvfst_state_ack_handler PROPERTY VERSION ${PACKAGE_VERSION})
       if: <2024.10.14.0
     - cmake -S . -B _build $CMAKE_ARGS
     - cmake --build _build
     - cmake --install _build
+
+    # TODO: ensure brewkit handles this properly.
+    - run: sed -i
+        -e "s:{{pkgx.prefix}}:\$\{_IMPORT_PREFIX\}/../../..:g"
+        mvfst-targets.cmake
+      working-directory: ${{prefix}}/lib/cmake/mvfst
   env:
     CMAKE_ARGS:
       - -DCMAKE_INSTALL_PREFIX="{{prefix}}
@@ -81,15 +87,15 @@ build:
 
 test:
   dependencies:
-    google.com/googletest: '*'
-    cmake.org: '*'
-    gnu.org/gawk: '*'
-    pkgx.sh: ^1
-    curl.se: '*'
+    google.com/googletest: "*"
+    cmake.org: "*"
+    gnu.org/gawk: "*"
+    npmjs.com: "*"
+    curl.se: "*"
     linux:
-      gnu.org/gcc: '*'
-      gnu.org/binutils: '*'
-      gnu.org/make: '*'
+      gnu.org/gcc: 14
+      gnu.org/binutils: ~2.44
+      gnu.org/make: "*"
   env:
     linux:
       CC: gcc
@@ -123,7 +129,7 @@ test:
           quic/common/test/TestUtils.cpp
           quic/common/test/TestPacketBuilders.cpp
         )
-        target_link_libraries(echo ${mvfst_LIBRARIES} fizz::fizz_test_support GTest::gmock)
+        target_link_libraries(echo mvfst::mvfst mvfst::mvfst_server_server mvfst::mvfst_fizz_client_handshake ${GFLAGS_LIBRARIES} fizz::fizz_test_support GTest::gmock)
         target_include_directories(echo PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
     - cmake .
@@ -137,7 +143,7 @@ test:
       if: linux
 
     # Find a free port
-    - PORT=$(pkgx get-port | tail -n1)
+    - PORT=$(npx --yes get-port-cli | tail -n1)
 
     - ./echo --mode server --port $PORT -use_datagrams=true &
     - sleep 5

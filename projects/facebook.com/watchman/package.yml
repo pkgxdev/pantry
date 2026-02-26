@@ -10,10 +10,10 @@ dependencies:
   # facebook.com/edencommon: '{{version}}'
   # facebook.com/fb303: '{{version}}'
   # facebook.com/folly: '{{version}}'
-  facebook.com/edencommon: '*'
-  facebook.com/fb303: '*'
-  facebook.com/folly: '*'
-  fmt.dev: '>=9'
+  facebook.com/edencommon: "*"
+  facebook.com/fb303: "*"
+  facebook.com/folly: "*"
+  fmt.dev: ">=9"
   gflags.github.io: ^2
   google.com/glog: ^0.6
   libevent.org: ^2.1
@@ -23,21 +23,21 @@ dependencies:
   python.org: ~3.11
   linux:
     libcxx.llvm.org: 18 # libunwind
-    gnu.org/gcc/libstdcxx: 13
+    gnu.org/gcc/libstdcxx: 14
 
 build:
   dependencies:
-    cmake.org: '*'
-    github.com/skystrife/cpptoml: '*'
+    cmake.org: "*"
+    github.com/skystrife/cpptoml: "*"
     # these need version locking, but we don't support that yet
     # facebook.com/fbthrift: '{{version}}'
     # facebook.com/mvfst: '{{version}}'
-    facebook.com/fbthrift: '*'
-    facebook.com/mvfst: '*'
-    google.com/googletest: '*'
-    rust-lang.org: '*'
+    facebook.com/fbthrift: "*"
+    facebook.com/mvfst: "*"
+    google.com/googletest: "*"
+    rust-lang.org: "*"
     linux:
-      gnu.org/gcc: 13
+      gnu.org/gcc: 14
   script:
     # replace build-time WATCHMAN_STATE_DIR with run-time WATCHMAN_STATE_DIR
     - run:
@@ -48,35 +48,6 @@ build:
         - sed -i "s/$oldline/$newline/" "$mainfile"
         - cat $mainfile
       working-directory: watchman
-
-    # the pywatchman build doesn't like mixing -shared and -pie
-    - run:
-        - cp $PROP gcc-wrapper
-        - chmod +x gcc-wrapper
-      prop: |
-        #!/bin/bash
-        # Capture all arguments into an array
-        ARGS=("$@")
-
-        # Check if the '-shared' flag is present in the arguments
-        if printf "%s\n" "${ARGS[@]}" | grep -q -e '-shared'; then
-
-          # Use a loop to filter out the '-pie' flag from the arguments
-          FILTERED_ARGS=()
-          for arg in "${ARGS[@]}"; do
-            if [ "$arg" != "-pie" ]; then
-              FILTERED_ARGS+=("$arg")
-            fi
-          done
-
-          # Pass the filtered arguments to gcc
-          exec gcc "${FILTERED_ARGS[@]}"
-        else
-          # Pass the original arguments to gcc
-          exec gcc "${ARGS[@]}"
-        fi
-      working-directory: $HOME/.local/bin
-      if: linux
 
     # version/path mismatch
     - run: |
@@ -103,8 +74,7 @@ build:
       - -DPython3_EXECUTABLE={{deps.python.org.prefix}}/bin/python
       - -DUSE_SYS_PYTHON=OFF
     linux:
-      PATH: $HOME/.local/bin:$PATH
-      CC: gcc-wrapper
+      CC: gcc
       CXX: g++
       LD: g++
       # intentionally omit -pie so python lib builds
@@ -117,7 +87,7 @@ build:
 
 runtime:
   env:
-    WATCHMAN_STATE_DIR: '{{prefix}}/var/run/watchman'
+    WATCHMAN_STATE_DIR: "{{prefix}}/var/run/watchman"
 
 provides:
   - bin/watchman

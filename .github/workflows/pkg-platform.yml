@@ -50,6 +50,10 @@ on:
       AWS_S3_BUCKET: { required: true }
       AWS_SECRET_ACCESS_KEY: { required: true }
       AWS_CF_DISTRIBUTION_ID: { required: true }
+      IPFS_API_URL: { required: false }
+      IPFS_API_TOKEN: { required: false }
+      IPFS_CLUSTER_API_URL: { required: false }
+      IPFS_CLUSTER_AUTH: { required: false }
 
 env:
   BREWKIT_PKGJSON: ${{ inputs.pkg }}
@@ -67,19 +71,19 @@ jobs:
       arch: ${{ steps.build.outputs.arch }}
     env:
       PKGX_PANTRY_PATH: ${{ github.workspace }}
+      PKGX_PANTRY_DIR: ${{ github.workspace }}
     steps:
       - uses: actions/checkout@v4
-
-      - uses: pkgxdev/setup@v2
-        with:
-          version: 1.1.6
-          PKGX_DIR: /opt
 
       - uses: ./.github/actions/setup
         with:
           p12-file-base64: ${{ secrets.APPLE_CERTIFICATE_P12 }}
           p12-password: ${{ secrets.APPLE_CERTIFICATE_P12_PASSWORD }}
           APPLE_IDENTITY: ${{ secrets.APPLE_IDENTITY }}
+
+      - uses: pkgxdev/setup@v4
+        with:
+          PKGX_DIR: /opt
 
       - uses: pkgxdev/brewkit/build@v1
         with:
@@ -109,11 +113,26 @@ jobs:
     container: ${{ matrix.container }}
     env:
       PKGX_PANTRY_PATH: ${{ github.workspace }}
+      PKGX_PANTRY_DIR: ${{ github.workspace }}
     steps:
-      - uses: pkgxdev/setup@v2
-        with:
-          version: 1.1.6
+      # pkgxdev/setup no longer seeds the base, and many tests
+      # expect libc6-dev and possibly other base libraries.
+      - run: apt-get -y update && apt-get -y install build-essential
+        if: matrix.container == 'ubuntu'
+      # need to update archlinux-keyring on run
+      # https://bbs.archlinux.org/viewtopic.php?id=304755
+      - run: |
+          if command -v pacman; then
+            pacman-key --init
+            pacman-key --populate archlinux
+            pacman -Sy --noconfirm archlinux-keyring
+            pacman -Sy --noconfirm gcc libatomic_ops libxcrypt-compat
+          fi
+
       - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - uses: pkgxdev/setup@v4
+
       - uses: pkgxdev/brewkit/download-build-artifact@v1
         with:
           pkg: ${{ inputs.pkg }}
@@ -133,9 +152,9 @@ jobs:
       AWS: ${{ inputs.dry-run && 'echo' || 'aws' }}
       PREFIX: ${{ needs.build.outputs.project }}/${{ needs.build.outputs.platform }}/${{ needs.build.outputs.arch }}/v${{ needs.build.outputs.version }}.tar.${{ matrix.compression }}
     steps:
-      - uses: pkgxdev/setup@v2
-        with:
-          version: 1.1.6
+      - uses: pkgxdev/setup@v4
+
+      - uses: actions/checkout@v4
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -176,15 +195,36 @@ jobs:
           sha256sum
           ${{ steps.bottle.outputs.filename }} > ${{ steps.bottle.outputs.filename }}.sha256sum
 
+      - name: ipfs
+        id: ipfs
+        uses: ./.github/actions/ipfs
+        with:
+          bottle-file: ${{ steps.bottle.outputs.filename }}
+          dry-run: ${{ inputs.dry-run }}
+          ipfs-api-url: ${{ secrets.IPFS_API_URL }}
+          ipfs-api-token: ${{ secrets.IPFS_API_TOKEN }}
+          ipfs-cluster-api-url: ${{ secrets.IPFS_CLUSTER_API_URL }}
+          ipfs-cluster-auth: ${{ secrets.IPFS_CLUSTER_AUTH }}
+          ipfs-gateway-url: ${{ secrets.IPFS_GATEWAY_URL }}
+
       - name: s3 put
         run: |
-          $AWS s3 cp ${{ steps.bottle.outputs.filename }}           $URL
-          $AWS s3 cp ${{ steps.bottle.outputs.filename }}.asc       $URL.asc
-          $AWS s3 cp ${{ steps.bottle.outputs.filename }}.sha256sum $URL.sha256sum
+          $AWS s3 cp $FILENAME           $URL
+          $AWS s3 cp $FILENAME.asc       $URL.asc
+          $AWS s3 cp $FILENAME.sha256sum $URL.sha256sum
 
-          echo "cf-paths=/$PREFIX /$PREFIX.asc /$PREFIX.sha256sum" >> $GITHUB_OUTPUT
+          if ! test -z "$CID"; then
+            echo "$CID" >$FILENAME.cid
+            $AWS s3 cp $FILENAME.cid     $URL.cid
+            echo "cf-paths=/$PREFIX /$PREFIX.asc /$PREFIX.sha256sum /$PREFIX.cid" >> $GITHUB_OUTPUT
+          else
+            echo "cf-paths=/$PREFIX /$PREFIX.asc /$PREFIX.sha256sum" >> $GITHUB_OUTPUT
+          fi
+
         env:
+          FILENAME: ${{ steps.bottle.outputs.filename }}
           URL: s3://${{ secrets.AWS_S3_BUCKET }}/${{ env.PREFIX }}
+          CID: ${{ steps.ipfs.outputs.cid }}
         id: put
 
       - name: s3 put file listing
@@ -223,9 +263,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - uses: pkgxdev/setup@v2
-        with:
-          version: 1.1.6
+      - uses: pkgxdev/setup@v4
 
       - name: generate versions.txt
         run: |

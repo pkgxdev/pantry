@@ -6,12 +6,12 @@ versions:
   github: aws/aws-sam-cli
 
 dependencies:
-  pkgx.sh: ^1
+  pkgx.sh: ">=1"
 
 build:
   dependencies:
-    python.org: ^3.11
-    rust-lang.org: '*'
+    python.org: ~3.13
+    rust-lang.org: "*"
   script:
     - bkpyvenv stage {{prefix}} {{version}}
     - ${{prefix}}/venv/bin/pip install .
@@ -21,5 +21,7 @@ provides:
   - bin/sam
 
 test:
-  - sam --version | grep {{version}}
-  - sam validate --region us-east-1 2>&1 | grep 'is a valid SAM Template'
+  - sam --version | tee out
+  - grep {{version}} out
+  - sam validate --region us-east-1 2>&1 | tee out
+  - grep 'is a valid SAM Template' out
