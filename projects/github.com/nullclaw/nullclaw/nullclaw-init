@@ -79,14 +79,12 @@ if ! command -v jq >/dev/null 2>&1; then
   echo "error: jq is required but not found in PATH" >&2
   exit 2
 fi
+if ! command -v sed >/dev/null 2>&1; then
+  echo "error: sed is required but not found in PATH" >&2
+  exit 2
+fi
 
-frontmatter="$(
-  awk '
-    BEGIN { sep=0 }
-    /^---[[:space:]]*$/ { sep+=1; if (sep == 2) exit; next }
-    sep == 1 { print }
-  ' "$manifest"
-)"
+frontmatter="$(sed '/^--- *$/,/^--- *$/{ /^--- *$/d; p; }' "$manifest")"
 
 if [[ -z "${frontmatter//[[:space:]]/}" ]]; then
   echo "error: no YAML front matter found in manifest" >&2
@@ -280,4 +278,3 @@ case "$launch_mode" in
     exit 2
     ;;
 esac
-
