@@ -3,8 +3,9 @@
 set -eu
 
 shim_path="$(realpath "$0")"
+shim_name="$(basename "${shim_path}")"
 binary_dir="$(dirname "${shim_path}")/../libexec/bin"
-binary_path="${binary_dir}/kiro-cli"
+binary_path="${binary_dir}/${shim_name}"
 
 if [ ! -x "${binary_path}" ]; then
   # will be replaced during build
@@ -40,8 +41,5 @@ if [ ! -x "${binary_path}" ]; then
 
   rm -rf "${work_dir}"
 fi
-
-# so that kiro-cli can find kiro-cli-chat
-export PATH="${binary_dir}:${PATH}"
 
 exec "${binary_path}" "$@"

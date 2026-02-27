@@ -14,18 +14,23 @@ dependencies:
   curl.se: "*"
 
 build:
-  - install -Dm755 props/kiro-cli.{{hw.platform}} {{prefix}}/bin/kiro-cli
-  - sed -i "s/%%version%%/{{version}}/g" {{prefix}}/bin/kiro-cli
+  - sed -i "s/%%version%%/{{version}}/g" props/shim.{{hw.platform}}
+  - install -Dm755 props/shim.{{hw.platform}} {{prefix}}/bin/kiro-cli
+  - install -Dm755 props/shim.{{hw.platform}} {{prefix}}/bin/kiro-cli-chat
+  - install -Dm755 props/shim.{{hw.platform}} {{prefix}}/bin/kiro-cli-term
 
 provides:
   - bin/kiro-cli
+  - bin/kiro-cli-chat
+  - bin/kiro-cli-term
 
 test:
   # first time will download and execute the actual binary
-  - test ! -x {{prefix}}/libexec/bin/kiro-cli
-  - test "$(kiro-cli --version)" = "kiro-cli {{version}}"
+  - kiro-cli --version | tee /dev/stderr | grep -w "{{version}}"
   # second time will just execute the actual binary
-  - test -x {{prefix}}/libexec/bin/kiro-cli
-  - test "$(kiro-cli --version)" = "kiro-cli {{version}}"
+  - timeout 0.5 kiro-cli --version | tee /dev/stderr | grep -w "{{version}}"
+  # check the other binaries too
+  - kiro-cli-chat --version | tee /dev/stderr | grep -w "{{version}}"
+  - kiro-cli-term --version | tee /dev/stderr | grep -w "{{version}}"
   # this will fail if kiro-cli cannot find kiro-cli-chat
   - kiro-cli chat --help >/dev/null
