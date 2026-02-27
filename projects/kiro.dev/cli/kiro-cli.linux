@@ -3,7 +3,7 @@
 set -eu
 
 shim_path="$(realpath "$0")"
-binary_dir="$(dirname "${shim_path}")/../libexec"
+binary_dir="$(dirname "${shim_path}")/../libexec/bin"
 binary_path="${binary_dir}/kiro-cli"
 
 if [ ! -x "${binary_path}" ]; then
@@ -34,15 +34,14 @@ if [ ! -x "${binary_path}" ]; then
 
   echo "Downloading ${archive_url}..." >&2
   curl -fL -# -o "${archive_path}" "${archive_url}"
-  tar -xzf "${archive_path}" -C "${work_dir}" kirocli/bin/kiro-cli kirocli/bin/kiro-cli-chat
 
-  install -Dm755 "${work_dir}/kirocli/bin/kiro-cli" "${binary_path}"
-  install -Dm755 "${work_dir}/kirocli/bin/kiro-cli-chat" "${binary_dir}/kiro-cli-chat"
+  install -d "${binary_dir}"
+  tar -xzf "${archive_path}" -C "${binary_dir}" --strip-components=2 kirocli/bin
 
   rm -rf "${work_dir}"
 fi
 
 # so that kiro-cli can find kiro-cli-chat
-export PATH="${binary_dir}:$PATH"
+export PATH="${binary_dir}:${PATH}"
 
 exec "${binary_path}" "$@"

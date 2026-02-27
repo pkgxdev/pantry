@@ -22,8 +22,10 @@ provides:
 
 test:
   # first time will download and execute the actual binary
-  - test ! -x {{prefix}}/libexec/kiro-cli
+  - test ! -x {{prefix}}/libexec/bin/kiro-cli
   - test "$(kiro-cli --version)" = "kiro-cli {{version}}"
   # second time will just execute the actual binary
-  - test -x {{prefix}}/libexec/kiro-cli
+  - test -x {{prefix}}/libexec/bin/kiro-cli
   - test "$(kiro-cli --version)" = "kiro-cli {{version}}"
+  # this will fail if kiro-cli cannot find kiro-cli-chat
+  - kiro-cli chat --help >/dev/null
