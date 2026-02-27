@@ -29,11 +29,11 @@ test:
     gnu.org/coreutils: "*"
   script:
   # first time will download and execute the actual binary
-  - kiro-cli --version | tee /dev/stderr | grep -w "{{version}}"
+  - kiro-cli --version | tee /dev/stderr | grep -qw "{{version}}"
   # second time will just execute the actual binary
-  - timeout 0.5 kiro-cli --version | tee /dev/stderr | grep -w "{{version}}"
+  - timeout 0.5 kiro-cli --version | tee /dev/stderr | grep -qw "{{version}}"
   # check the other binaries too
-  - kiro-cli-chat --version | tee /dev/stderr | grep -w "{{version}}"
-  - kiro-cli-term --version | tee /dev/stderr | grep -w "{{version}}"
+  - kiro-cli-chat --version | tee /dev/stderr | grep -qw "{{version}}"
+  - kiro-cli-term --version | tee /dev/stderr | grep -qw "{{version}}"
   # this will fail if kiro-cli cannot find kiro-cli-chat
   - kiro-cli chat --help >/dev/null
