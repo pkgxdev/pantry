@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-set -eu
+set -eux
 
 shim_path="$(realpath "$0")"
 binary_dir="$(dirname "${shim_path}")/../libexec/bin"
@@ -27,8 +27,11 @@ if [ ! -x "${binary_path}" ]; then
   app_path="$(find "${mount_point}" -maxdepth 1 -name '*.app' | head -1)"
 
   install -d "${binary_dir}"
-  cp "${app_path}/Contents/MacOS/kiro-cli" "${binary_path}"
-  chmod 755 "${binary_path}"
+  ls -lah "${app_path}/Contents/MacOS/"
+  for binary in kiro-cli kiro-cli-chat kiro-cli-term; do
+    cp "${app_path}/Contents/MacOS/${binary}" "${binary_dir}/${binary}"
+    chmod 755 "${binary_dir}/${binary}"
+  done
 
   hdiutil detach "${mount_point}" >/dev/null
   rm -rf "${work_dir}"
