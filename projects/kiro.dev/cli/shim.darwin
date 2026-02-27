@@ -3,7 +3,9 @@
 set -eu
 
 shim_path="$(realpath "$0")"
-binary_path="$(dirname "${shim_path}")/../libexec/kiro-cli"
+shim_name="$(basename "${shim_path}")"
+binary_dir="$(dirname "${shim_path}")/../libexec/Contents/MacOS"
+binary_path="${binary_dir}/${shim_name}"
 
 if [ ! -x "${binary_path}" ]; then
   # will be replaced during build
@@ -22,12 +24,13 @@ if [ ! -x "${binary_path}" ]; then
   mkdir -p "${mount_point}"
   hdiutil attach "${dmg_path}" -nobrowse -readonly -mountpoint "${mount_point}" >/dev/null
 
-  # find the .app bundle inside the DMG
-  app_path="$(find "${mount_point}" -maxdepth 1 -name '*.app' | head -1)"
+  app_path="${mount_point}/Kiro CLI.app"
 
-  install -d "$(dirname "${binary_path}")"
-  cp "${app_path}/Contents/MacOS/kiro-cli" "${binary_path}"
-  chmod 755 "${binary_path}"
+  install -d "${binary_dir}"
+  for binary in kiro-cli kiro-cli-chat kiro-cli-term; do
+    cp "${app_path}/Contents/MacOS/${binary}" "${binary_dir}/${binary}"
+    chmod 755 "${binary_dir}/${binary}"
+  done
 
   hdiutil detach "${mount_point}" >/dev/null
   rm -rf "${work_dir}"

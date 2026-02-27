@@ -14,16 +14,38 @@ dependencies:
   curl.se: "*"
 
 build:
-  - install -Dm755 props/kiro-cli.{{hw.platform}} {{prefix}}/bin/kiro-cli
-  - sed -i "s/%%version%%/{{version}}/g" {{prefix}}/bin/kiro-cli
+  - sed -i "s/%%version%%/{{version}}/g" props/shim.{{hw.platform}}
+  - install -Dm755 props/shim.{{hw.platform}} {{prefix}}/bin/kiro-cli
+  - install -Dm755 props/shim.{{hw.platform}} {{prefix}}/bin/kiro-cli-chat
+  - install -Dm755 props/shim.{{hw.platform}} {{prefix}}/bin/kiro-cli-term
 
 provides:
   - bin/kiro-cli
+  - bin/kiro-cli-chat
+  - bin/kiro-cli-term
 
 test:
-  # first time will download and execute the actual binary
-  - test ! -x {{prefix}}/libexec/kiro-cli
-  - test "$(kiro-cli --version)" = "kiro-cli {{version}}"
-  # second time will just execute the actual binary
-  - test -x {{prefix}}/libexec/kiro-cli
-  - test "$(kiro-cli --version)" = "kiro-cli {{version}}"
+  dependencies:
+    gnu.org/coreutils: "*"
+  env:
+    linux:
+      BINS: "{{prefix}}/libexec/bin"
+    darwin:
+      BINS: "{{prefix}}/libexec/Contents/MacOS"
+  script:
+    # first time will download and execute the actual binary
+    - rm -rf {{prefix}}/libexec
+    - test ! -f "$BINS/kiro-cli"
+    - test ! -f "$BINS/kiro-cli-chat"
+    - test ! -f "$BINS/kiro-cli-term"
+    - kiro-cli --version | grep -w "{{version}}"
+    # second time will just execute the actual binary
+    - test -f "$BINS/kiro-cli"
+    - timeout 0.5 kiro-cli --version | grep -w "{{version}}"
+    # check the other binaries too
+    - kiro-cli-chat --version | grep -w "{{version}}"
+    - test -f "$BINS/kiro-cli-chat"
+    - kiro-cli-term --version | grep -w "{{version}}"
+    - test -f "$BINS/kiro-cli-term"
+    # this will fail if kiro-cli cannot find kiro-cli-chat
+    - kiro-cli chat --help >/dev/null
