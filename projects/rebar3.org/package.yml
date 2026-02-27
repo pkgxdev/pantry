@@ -6,13 +6,19 @@ versions:
   github: erlang/rebar3
 
 dependencies:
-  erlang.org: '*'
+  erlang.org: "*"
+  linux:
+    gnu.org/gcc/libstdcxx: 14 # since 3.27.0
 
 build:
-  - ./bootstrap
-  - install -D rebar3 {{prefix}}/bin/rebar3
-  - run: cp -a $SRCROOT/apps/rebar/priv/shell-completion .
-    working-directory: ${{prefix}}/share
+  dependencies:
+    linux:
+      gnu.org/gcc: 14 # since 3.27.0
+  script:
+    - ./bootstrap
+    - install -D rebar3 {{prefix}}/bin/rebar3
+    - run: cp -a $SRCROOT/apps/rebar/priv/shell-completion .
+      working-directory: ${{prefix}}/share
 
 provides:
   - bin/rebar3
