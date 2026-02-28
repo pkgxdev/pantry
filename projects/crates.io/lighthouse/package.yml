@@ -7,14 +7,23 @@ versions:
 
 dependencies:
   zlib.net: ^1
+  linux:
+    tukaani.org/xz: "*" # liblzma for xdelta3-rs, since 8.1.1
 
 build:
   dependencies:
     rust-lang.org: ^1.78 # stdsimd changes
-    rust-lang.org/cargo: '*'
+    rust-lang.org/cargo: "*"
     cmake.org: ^3.12
-    protobuf.dev: '*'
-  script: make CARGO_INSTALL_EXTRA_FLAGS="--root {{prefix}}"
+    protobuf.dev: "*"
+    linux:
+      llvm.org: "*" # for bindgen
+  script:
+    - run:
+        - export LIBCLANG_PATH=$(llvm-config --libdir)
+        - export BINDGEN_EXTRA_CLANG_ARGS="--sysroot=/ -isystem /usr/include/$(uname -m)-linux-gnu"
+      if: linux
+    - make CARGO_INSTALL_EXTRA_FLAGS="--root {{prefix}}"
   test: make test-release
 
 provides:
