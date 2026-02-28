@@ -1,47 +1,57 @@
 distributable:
   url: https://ftp.gnu.org/gnu/groff/groff-{{version}}.tar.gz
   strip-components: 1
+
 versions:
   url: https://ftp.gnu.org/gnu/groff/
   match: /groff-\d+\.\d+\.\d+\.tar\.gz/
   strip:
     - /^groff-/
     - /\.tar\.gz/
+
 dependencies:
-  ghostscript.com: '*'
-  netpbm.sourceforge.net: '*'
-  github.com/rrthomas/psutils: '*'
-  freedesktop.org/uchardet: '*'
-  perl.org: '*'
+  ghostscript.com: "*"
+  netpbm.sourceforge.net: "*"
+  github.com/rrthomas/psutils: "*"
+  freedesktop.org/uchardet: "*"
+  perl.org: "*"
   linux:
-    gnome.org/glib: '*'
+    gnome.org/glib: "*"
+    gnu.org/gcc/libstdcxx: 14 # since 1.24.0
+
 runtime:
   env:
-    GROFF_FONT_PATH: '{{prefix}}/share/groff/{{version}}/font'
-    GROFF_TMAC_PATH: '{{prefix}}/share/groff/{{version}}/tmac'
+    GROFF_FONT_PATH: "{{prefix}}/share/groff/{{version}}/font"
+    GROFF_TMAC_PATH: "{{prefix}}/share/groff/{{version}}/tmac"
+
 build:
   dependencies:
     linux:
-      gnu.org/gcc: '*'
-    gnu.org/make: '*'
-    freedesktop.org/pkg-config: '*'
-    gnu.org/bison: '*'
-    gnu.org/texinfo: '*'
+      gnu.org/gcc: 14
+    gnu.org/make: "*"
+    freedesktop.org/pkg-config: "*"
+    gnu.org/bison: "*"
+    gnu.org/texinfo: "*"
   script:
     - ./configure $ARGS
     - make --jobs {{hw.concurrency}}
     - make --jobs {{hw.concurrency}} install
-    - run: |
-        sed -i.bak "1s|.*|#!/usr/bin/env perl|g" afmtodit grog gropdf mmroff pdfmom
-        sed -i.bak "s|$PKGX_DIR|\$ENV{'PKGX_DIR'}|g" afmtodit chem glilypond gperl gropdf
-        sed -i.bak "s|$PKGX_DIR|\$PKGX_DIR|g" neqn nroff
-        rm ./*.bak
-      working-directory: '{{prefix}}/bin'
+    - run:
+        - sed -i "1s|.*|#!/usr/bin/env perl|g" afmtodit grog gropdf mmroff pdfmom
+        - sed -i "s|$PKGX_DIR|\$ENV{'PKGX_DIR'}|g" afmtodit chem glilypond gperl gropdf
+        - sed -i "s|$PKGX_DIR|\$PKGX_DIR|g" neqn nroff
+        # apparent configure bug in 1.24.0
+        - sed -i "s|@g@||g" neqn
+      working-directory: "{{prefix}}/bin"
   env:
+    darwin:
+      # otherwise, it falls back to /usr/bin/perl
+      PERL: ${{deps.perl.org.prefix}}/bin/perl
     ARGS:
       - --prefix="{{prefix}}"
       - --without-x
       - --with-uchardet
+
 provides:
   - bin/addftinfo
   - bin/afmtodit
@@ -70,7 +80,6 @@ provides:
   - bin/neqn
   - bin/nroff
   - bin/pdfmom
-  - bin/pdfroff
   - bin/pfbtops
   - bin/pic
   - bin/pic2graph
@@ -82,10 +91,10 @@ provides:
   - bin/tbl
   - bin/tfmtodit
   - bin/troff
+
 test:
-  script:
-    - groff --version | grep {{version}}
-    - grog --version | grep {{version}}
-    - neqn --version | grep {{version}}
-    - groff -Tps test.ms > test.ps
-    - cat test.ps | grep {{version}}
+  - groff --version | grep {{version}}
+  - grog --version | grep {{version}}
+  - neqn --version | grep {{version}}
+  - groff -Tps test.ms > test.ps
+  - cat test.ps | grep {{version}}
