@@ -1,0 +1,119 @@
+distributable:
+  url: https://ftp.gnu.org/gnu/glibc/glibc-{{ version.raw }}.tar.gz
+  strip-components: 1
+
+versions:
+  #TODO HTML listing: https://ftp.gnu.org/gnu/glibc/
+  - 2.28
+  # - 2.33
+
+platforms:
+  linux/x86-64
+
+build:
+  dependencies:
+    gnu.org/make: '>=3.79'
+    gnu.org/gawk: '>=3'
+    gnu.org/gcc: ^13.2
+    gnu.org/gettext: ~0.22.4
+    gnu.org/texinfo: ^7
+    gnu.org/bison: ^3
+    perl.org: ^5
+    python.org: ~3.11
+  working-directory:
+    build
+  script:
+    - ../configure $ARGS
+    - make all V=1 #-j {{hw.concurrency}}
+    - make install
+
+    - run: |
+        for s in $SCRIPTS; do
+          sed -i.bak 's|{{prefix}}|"$(cd "$(dirname "$0")/.." \&\& pwd)"|' $s
+          rm $s.bak
+        done
+      working-directory: ${{prefix}}/bin
+
+    - run: ln -s ../lib/ld-{{ version.marketing }}.so ld.so
+      working-directory: ${{prefix}}/bin
+  test:
+    make test
+  env:
+    SCRIPTS:
+      - catchsegv
+      - ldd
+      - mtrace
+      - sotruss
+      - tzselect
+      - xtrace
+    ARGS:
+      - --prefix={{ prefix }}
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --disable-silent-rules
+      - --disable-werror
+      - --enable-obsolete-rpc
+      - --without-gd
+      - --without-selinux
+      - --enable-kernel=2.6.0
+      - --with-binutils={{deps.gnu.org/binutils.prefix}}/bin
+      - --disable-multi-arch  # ChatGPT suggested
+    CFLAGS: -O2 -fPIC
+    CXXFLAGS: -O2 -fPIC
+    LDFLAGS: -pie
+
+test:
+  dependencies:
+    gnu.org/gcc: '*'
+  env:
+    linux/x86-64:
+      ARCH: x86_64
+    linux/aarch64:
+      ARCH: aarch64
+  script:
+    - gcc -o test1 test.c -fPIC -pie
+    - ./test1
+
+    - |
+      gcc \
+        -nostdinc \
+        -nostdlib \
+        -I{{deps.gnu.org/gcc.prefix}}/lib/gcc/$ARCH-unknown-linux-gnu/{{deps.gnu.org/gcc.version}}/include \
+        -Wl,--rpath="{{prefix}}/lib" \
+        -Wl,--dynamic-linker={{prefix}}/bin/ld.so \
+        -std=c11 \
+        -o test2 \
+        -v \
+        $CFLAGS \
+        {{prefix}}/lib/crti.o \
+        {{prefix}}/lib/crt1.o \
+        {{prefix}}/lib/crtn.o \
+        test.c \
+        -fPIC \
+        -pie
+
+    - test "$(./test2)" = "gnu_get_libc_version() = {{version.marketing}}"
+
+provides:
+  - bin/catchsegv
+  - bin/gencat
+  - bin/getconf
+  - bin/getent
+  - bin/iconv
+  - bin/ldd
+  - bin/locale
+  - bin/localedef
+  - bin/makedb
+  - bin/mtrace
+  - bin/pcprofiledump
+  - bin/pldd
+  - bin/sotruss
+  - bin/sprof
+  - bin/tzselect
+  - bin/xtrace
+  - sbin/iconvconfig
+  - sbin/ldconfig
+  - sbin/nscd
+  - sbin/sln
+  - sbin/zdump
+  - sbin/zic
