@@ -1,0 +1,57 @@
+distributable:
+  url: https://github.com/envoyproxy/envoy/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: envoyproxy/envoy
+
+build:
+  dependencies:
+    github.com/bazelbuild/bazelisk: '*'
+    gnu.org/automake: '*'
+    cmake.org: '*'
+    gnu.org/libtool: '*'
+    ninja-build.org: '*'
+    linux:
+      llvm.org: '*'
+    python.org: ~3.12
+    git-scm.org: '*'
+  script:
+    # Initialize Git repo as Bazel requires git for workspace status
+    - git init
+    - git config --global user.email "pkgxdev@example.com"
+    - git config --global user.name "pkgxdev"
+    - git add .
+    - git commit -m "Initialize repository"
+
+    # python_rules has a whole thing (which lots of people are complaining about) where it
+    # refuses to run as root. docker doesn't much care, so...
+    - run: sed -i 's/ignore_root_user_error = ignore_root_user_error/ignore_root_user_error = True/' repositories_extra.bzl
+      working-directory: bazel
+      if: linux
+
+    - bazel build $BAZEL_OPTS //source/exe:envoy-static.stripped
+    - install -m 755 -D bazel-bin/source/exe/envoy-static.stripped {{prefix}}/bin/envoy
+  env:
+    linux:
+      BAZEL_LINKOPTS: '-lm'
+      BAZEL_LINKLIBS: '-lstdc++ -lm'
+      BAZEL_OPTS:
+        - --config=clang
+        - --copt=-Wno-thread-safety-reference-return
+        - --copt=-Wno-unused-but-set-variable
+        - --copt=-Wno-missing-template-arg-list-after-template-kw
+        - --copt=-std=c++20
+    BAZEL_OPTS:
+      - --compilation_mode=opt
+      - --curses=no
+      - --verbose_failures
+      - --define=wasm=disabled
+      - --cxxopt=-std=c++20
+
+provides:
+  - bin/envoy
+
+test:
+  - envoy --version | grep {{version}}
+  - envoy --help
