@@ -124,7 +124,9 @@ build:
 
     - run: sed -i
         -e 's|$(DESTDIR){{prefix}}|$(topdir)|g'
-        -e 's|CONFIG\["topdir"\] = .*|CONFIG\["topdir"\] = TOPDIR|g'
+        -e 's|CONFIG\["topdir"\] = .*|CONFIG\["topdir"\] = TOPDIR\n  CONFIG["kegdir"] = KEGDIR|g'
+        -e 's|CONFIG\["bindir"\] = .*|CONFIG\["bindir"\] = File.join(KEGDIR, "bin")|g'
+        -e 's|CONFIG\["sysconfdir"\] = .*|CONFIG\["sysconfdir"\] = File.join(KEGDIR, "etc")|g'
         -e 's|CONFIG\["INSTALL"\] =.*|CONFIG\["INSTALL"\] = "/usr/bin/install"|g'
         -e 's|CONFIG\["MJIT_CC"\] =.*|CONFIG\["MJIT_CC"\] = "/usr/bin/cc"|g'
         rbconfig.rb
@@ -187,6 +189,44 @@ test:
           end
           puts fib(35)
         extname: rb
+
+    # For all RbConfig relocation tests, the expected keg root is derived
+    # from the actual runtime location of rbconfig.rb itself —
+    # 3 directories above it: <keg>/lib/ruby/<version>/rbconfig.rb
+
+    - run: ruby $FIXTURE
+      fixture:
+        extname: rb
+        content: |
+          require 'rbconfig'
+          rbconfig_path = $LOADED_FEATURES.grep(/rbconfig\.rb$/).first
+          expected = File.expand_path("../../../..", rbconfig_path)
+          actual   = RbConfig::CONFIG["kegdir"]
+          abort "kegdir — expected #{expected.inspect}, got #{actual.inspect}" unless actual == expected
+          puts "kegdir OK: #{actual}"
+
+    - run: ruby $FIXTURE
+      fixture:
+        extname: rb
+        content: |
+          require 'rbconfig'
+          rbconfig_path = $LOADED_FEATURES.grep(/rbconfig\.rb$/).first
+          expected = File.join(File.expand_path("../../../..", rbconfig_path), "bin")
+          actual   = RbConfig::CONFIG["bindir"]
+          abort "bindir — expected #{expected.inspect}, got #{actual.inspect}" unless actual == expected
+          abort "ruby executable not found at #{actual}/ruby" unless File.exist?("#{actual}/ruby")
+          puts "bindir OK: #{actual}"
+
+    - run: ruby $FIXTURE
+      fixture:
+        extname: rb
+        content: |
+          require 'rbconfig'
+          rbconfig_path = $LOADED_FEATURES.grep(/rbconfig\.rb$/).first
+          expected = File.join(File.expand_path("../../../..", rbconfig_path), "etc")
+          actual   = RbConfig::CONFIG["sysconfdir"]
+          abort "sysconfdir — expected #{expected.inspect}, got #{actual.inspect}" unless actual == expected
+          puts "sysconfdir OK: #{actual}"
 
 provides:
   - bin/erb
