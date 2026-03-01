@@ -139,6 +139,15 @@ test:
     # for debug
     - gem env
 
+    # Verify RUBY EXECUTABLE points to the pkgx ruby installation.
+    # Guards against rbconfig.rb path relocation regressions where
+    # broken bindir causes rubygems to reference the wrong ruby binary.
+    - run: |
+        ruby_prefix="{{deps.ruby-lang.org.prefix}}"
+        gem env | grep "RUBY EXECUTABLE" | grep -q "$ruby_prefix/bin/ruby" \
+          || { echo "RUBY EXECUTABLE not pointing to pkgx ruby"; gem env; exit 1; }
+        echo "gem env OK"
+
     - |
       gem install awesome_print --verbose
       ruby -e 'require "rubygems"' -e 'require "awesome_print"' -e'ap $LOAD_PATH'
