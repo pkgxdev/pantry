@@ -48,9 +48,12 @@ build:
           curl -LS https://github.com/facebook/folly/commit/5dccf473579645f2b022bd9eeb6c7a42ea1eb1cb.patch | patch -R -p1 || true
         fi
       if: ">=2024.07<2024.07.15"
-    # Fix duplicate symbol definitions for newer versions (>=2024.07.15)
-    # Remove -use library definitions that cause duplicate symbols
-    - run: if test "{{hw.platform}}/{{hw.arch}}" = "linux/aarch64"; then patch -p1 < props/memcpy.patch; fi
+    # remove -use library targets that cause duplicate symbols on linux/aarch64
+    - run: |
+        if test "{{hw.platform}}/{{hw.arch}}" = "linux/aarch64"; then
+          sed -i '/NAME memcpy_aarch64-use/,/^)/d; /NAME memset_aarch64-use/,/^)/d' folly/external/aor/CMakeLists.txt
+          sed -i '/^folly_add_library($/{ N; /\n$/d; }' folly/external/aor/CMakeLists.txt
+        fi
       if: ">=2026.1.19"
 
     # missing header?
