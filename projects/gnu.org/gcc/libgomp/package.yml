@@ -72,15 +72,16 @@ build:
     - make install-target-libgomp
 
     # Create pkg-config file for libgomp (GCC doesn't provide one by default)
+    # On 64-bit architectures, create in lib64 and symlink from lib
     - run: |
-        mkdir -p "{{prefix}}/$LIBDIR/pkgconfig"
+        mkdir -p "{{prefix}}/lib64/pkgconfig"
         sed -e 's|@PREFIX@|${pcfiledir}/../..|g' \
-            -e "s|@LIBDIR@|$LIBDIR|g" \
+            -e 's|@LIBDIR@|lib64|g' \
             -e "s|@VERSION@|{{version.raw}}|g" \
             -e "s|@TARGET@|{{hw.target}}|g" \
-            "$PROP" > "{{prefix}}/$LIBDIR/pkgconfig/gomp.pc"
-        cat "{{prefix}}/$LIBDIR/pkgconfig/gomp.pc"
-      if: linux
+            "$PROP" > "{{prefix}}/lib64/pkgconfig/gomp.pc"
+        cat "{{prefix}}/lib64/pkgconfig/gomp.pc"
+      if: linux/x86-64|linux/aarch64
       prop: |
         prefix=@PREFIX@
         libdir=@PREFIX@/@LIBDIR@
@@ -93,15 +94,15 @@ build:
         Libs: -L@PREFIX@/@LIBDIR@ -lgomp
         Cflags: -I@PREFIX@/lib/gcc/@TARGET@/@VERSION@/include
     
-    # Create symlinks in lib/ if files are in lib64/
+    # Create symlinks in lib/ pointing to lib64/
     - run: |
-        mkdir -p "{{prefix}}/lib"
+        mkdir -p "{{prefix}}/lib/pkgconfig"
         cd "{{prefix}}/lib"
         for f in ../lib64/libgomp.*; do
           ln -sf "$f" "$(basename "$f")"
         done
-        mkdir -p pkgconfig
-        ln -sf ../../lib64/pkgconfig/gomp.pc pkgconfig/gomp.pc
+        cd pkgconfig
+        ln -sf ../../lib64/pkgconfig/gomp.pc gomp.pc
       if: linux/x86-64|linux/aarch64
 
   env:
