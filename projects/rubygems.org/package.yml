@@ -157,10 +157,11 @@ test:
           echo "$gem_paths" | grep -q "$1" \
             || { echo "GEM PATHS missing: $1"; gem env; exit 1; }
         }
-        check_path "$ruby_prefix/lib/ruby/gems/$ruby_version"
+        rubygems_prefix="$(gem env | grep 'RUBYGEMS PREFIX' | awk '{print $NF}')"
+        check_path "/usr/local/lib/ruby/gems/$ruby_version"
+        check_path "$rubygems_prefix"
         check_path "$HOME/.gem/ruby/$ruby_version"
         check_path "$ruby_prefix/lib/ruby/gems/$ruby_version"
-        check_path "rubygems.org"
         echo "GEM PATHS OK"
 
     - |
