@@ -75,26 +75,20 @@ build:
     # On 64-bit architectures, create in lib64 and copy to lib
     - run: |
         mkdir -p "{{prefix}}/lib64/pkgconfig"
-        sed -e 's|@PREFIX@|${pcfiledir}/../..|g' \
-            -e 's|@LIBDIR@|lib64|g' \
-            -e "s|@VERSION@|{{version.raw}}|g" \
-            -e "s|@TARGET@|{{hw.target}}|g" \
-            "$PROP" > "{{prefix}}/lib64/pkgconfig/gomp.pc"
-        cat "{{prefix}}/lib64/pkgconfig/gomp.pc"
+        cat "${PROP}" > "{{prefix}}/lib64/pkgconfig/gomp.pc"
       if: linux/x86-64|linux/aarch64
       prop: |
-        prefix=@PREFIX@
-        libdir=@PREFIX@/@LIBDIR@
-        includedir=@PREFIX@/lib/gcc/@TARGET@/@VERSION@/include
+        prefix=\${pcfiledir}/../..
+        libdir=\${prefix}/lib64
+        includedir=\${prefix}/lib/gcc/{{ hw.target }}/{{ version.raw }}/include
         
         Name: libgomp
         Description: GNU Offloading and Multi Processing Runtime Library
-        Version: @VERSION@
+        Version: {{ version.raw }}
         Requires:
-        Libs: -L@PREFIX@/@LIBDIR@ -lgomp
-        Cflags: -I@PREFIX@/lib/gcc/@TARGET@/@VERSION@/include
+        Libs: -L${libdir} -lgomp
+        Cflags: -I${includedir}
     
-    # Create library symlinks in lib/ pointing to lib64/
     - run: |
         mkdir -p "{{prefix}}/lib/pkgconfig"
         cd "{{prefix}}/lib"
