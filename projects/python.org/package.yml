@@ -16,7 +16,7 @@ versions:
     - 2.[0-6].x
 
 companions:
-  pip.pypa.io: '*'
+  pip.pypa.io: "*"
 
 unpackaged:
   - version: ^2
@@ -34,7 +34,7 @@ interprets:
   args: python
 
 dependencies:
-  zlib.net: 1
+  zlib.net: =1.3.1 # match tcl version exactly
   sourceware.org/bzip2: 1
   openssl.org: ^1.1
   sourceware.org/libffi: 3
@@ -44,19 +44,15 @@ dependencies:
   sqlite.org: 3
   gnu.org/readline: 8
   invisible-island.net/ncurses: 6
-  facebook.com/zstd: '>=1.5' # undefined symbol: ZSTD_defaultCLevel
-  linux:
-    tcl-lang.org: '*'
-  darwin:
-    tcl-lang.org: =8.6.16 # 9.0.2 introduced a build issue on darwin
+  facebook.com/zstd: ">=1.5" # undefined symbol: ZSTD_defaultCLevel
+  tcl-lang.org: =8.6.16 # 9.0.2 introduced a build issue on darwin
   # linux:
   #   oracle.com/berkeley-db: 18
 
 build:
   dependencies:
-    freedesktop.org/pkg-config: ^0.29
-    gnu.org/patch: '*'
-    curl.se: '*'
+    gnu.org/patch: "*"
+    curl.se: "*"
   script:
     # MacPorts has a series of patches to keep python2 working
     - run: |
@@ -66,75 +62,69 @@ build:
       if: ^2
 
     # fixes the build scripts so they use the standard environment variables we set
-    - run: |
-        sed -i.bak -e 's|system_lib_dirs = .*|system_lib_dirs = os.getenv("LIBRARY_PATH").split(":")|' ./setup.py
-        sed -i.bak -e 's|system_include_dirs = .*|system_include_dirs = os.getenv("CPATH").split(":")|' ./setup.py
+    - run:
+        - sed -i -e 's|system_lib_dirs = .*|system_lib_dirs = os.getenv("LIBRARY_PATH").split(":")|' ./setup.py
+        - sed -i -e 's|system_include_dirs = .*|system_include_dirs = os.getenv("CPATH").split(":")|' ./setup.py
       if: <3.12
 
     # older versions use a different config dir
-    - run: |
-        confdir="$libdir/config"
+    - run:
+        - confdir="$libdir/config"
 
         # aarch64 not happy with this
-        ARGS=${ARGS/--with-ensurepip/--without-ensurepip}
+        - ARGS=${ARGS/--with-ensurepip/--without-ensurepip}
       if: ^2
 
     # 3.7 and older use `3.7m` for config dir
-    - run: |
-        confdir=$(echo $confdir | sed -e 's/\(config-{{ version.marketing }}\)/\1m/')
+    - run:
+        - confdir=$(echo $confdir | sed -e 's/\(config-{{ version.marketing }}\)/\1m/')
 
         # 3.7 and older use `python3.7m` for include dir
-        SUFFIX=m
+        - SUFFIX=m
 
         # 3.7 aborts on linux+aarch64 with this
-        ARGS=${ARGS/--with-ensurepip/--without-ensurepip}
-      if: '>=3<3.8'
+        - ARGS=${ARGS/--with-ensurepip/--without-ensurepip}
+      if: ">=3<3.8"
 
     # 3.5 and older don't append the platform to confdir
     - run: confdir="$libdir/config-{{version.marketing}}m"
-      if: '>=3<3.6'
+      if: ">=3<3.6"
 
     # Older patches have configure issues that aren't present in newer patches
     - run: |
         if test "{{hw.platform}}" = "darwin"; then
-          sed -i.bak \
+          sed -i \
               -e 's/ppc)/arm64)/g' \
               -e 's/MACOSX_DEFAULT_ARCH="ppc.*$/MACOSX_DEFAULT_ARCH="arm64"/g' \
               configure
-          rm configure.bak
         fi
-      if: '>=3<3.9.1'
+      if: ">=3<3.9.1"
 
     - run: |
         if test "{{hw.platform}}" = "darwin"; then
-          sed -i.bak -e 's/^MULTIARCH=.*$/MULTIARCH=""/' configure
-          rm configure.bak
+          sed -i -e 's/^MULTIARCH=.*$/MULTIARCH=""/' configure
         fi
-      if: '>=3<3.10.1'
+      if: ">=3<3.10.1"
 
       # Some old versions don't support macOS 11 and greater in their configures
     - run: |
         if test "{{hw.platform}}" = "darwin"; then
           curl -L https://github.com/python/cpython/commit/8ea6353.patch | patch -p1
         fi
-      if: '>=3.8<3.8.4 || >=3<3.7.8'
+      if: ">=3.8<3.8.4 || >=3<3.7.8"
 
     # Versions older than 3.5.3 have an include issue on darwin
     - run: patch -p1 < props/patch3.5.diff
-      if: '>=3.5<3.5.3'
+      if: ">=3.5<3.5.3"
 
     # Whitespace difference in 3.4...
     - run: patch -p1 < props/patch3.4.diff
-      if: '~3.4.1'
+      if: "~3.4.1"
 
     # 3.12.0 needs help with mpdecimal
-    - run: |
-        sed -i.bak 's/libmpdec_machine=universal/libmpdec_machine=x64/' configure
-        rm configure.bak
+    - run: sed -i 's/libmpdec_machine=universal/libmpdec_machine=x64/' configure
       if: darwin/x86-64
-    - run: |
-        sed -i.bak 's/libmpdec_machine=universal/libmpdec_machine=uint128/' configure
-        rm configure.bak
+    - run: sed -i 's/libmpdec_machine=universal/libmpdec_machine=uint128/' configure
       if: darwin/aarch64
 
     - ./configure $ARGS
@@ -145,11 +135,12 @@ build:
     - cp props/sitecustomize.py {{prefix}}/lib/python{{version.marketing}}
 
     # provide unversioned symlinks
-    - run: |
-        for x in python idle pydoc; do
-          ln -sf ${x}{{ version.marketing }} $x
-        done
-        ln -sf python{{ version.marketing }}-config python-config
+    - run:
+        - |
+          for x in python idle pydoc; do
+            ln -sf ${x}{{ version.marketing }} $x
+          done
+        - ln -sf python{{ version.marketing }}-config python-config
       working-directory: ${{prefix}}/bin
 
     # we provide the binaries in a separate package
@@ -159,21 +150,21 @@ build:
       working-directory: ${{prefix}}/bin
 
     # make relocatable
-    - run: |
-        for binfile in $shebangs $confdir/python-config.py; do
-          if ! test -f $binfile; then
-            binfile=${binfile/{{version.marketing}}/{{version.marketing}}$SUFFIX}
-          fi
-          if ! test -f $binfile; then
-            continue
-          fi
-          binfile=$(readlink -f $binfile)
-          sed -i.bak -e 's|#!{{ prefix }}/bin/|#!/usr/bin/env |g' $binfile
-          rm $binfile.bak
-        done
+    - run:
+        - |
+          for binfile in $shebangs $confdir/python-config.py; do
+            if ! test -f $binfile; then
+              binfile=${binfile/{{version.marketing}}/{{version.marketing}}$SUFFIX}
+            fi
+            if ! test -f $binfile; then
+              continue
+            fi
+            binfile=$(readlink -f $binfile)
+            sed -i.bak -e 's|#!{{ prefix }}/bin/|#!/usr/bin/env |g' $binfile
+            rm $binfile.bak
+          done
 
-        sed -i.bak -e 's|{{ prefix }}|\\$(or $(PKGX_DIR),$(HOME)/.pkgx)/python.org/v{{version.major}}|g' $confdir/Makefile
-        rm $confdir/Makefile.bak
+        - sed -i -e 's|{{ prefix }}|\\$(or $(PKGX_DIR),$(HOME)/.pkgx)/python.org/v{{version.major}}|g' $confdir/Makefile
       working-directory: ${{prefix}}
 
     - run: cat $PROP >> _sysconfigdata__*.py
@@ -195,14 +186,15 @@ build:
     # ^^ makes rm -rf ~/.tea/python.org on macOS fail
 
     # some stuff expects python includes to be accessible without the prefix
-    - run: |
-        mv python{{version.marketing}}$SUFFIX/* .
-        rmdir python{{version.marketing}}$SUFFIX
-        ln -s . python{{version.marketing}}
+    - run:
+        - mv python{{version.marketing}}$SUFFIX/* .
+        - rmdir python{{version.marketing}}$SUFFIX
+        - ln -s . python{{version.marketing}}
         # Keep the suffixed version if we started with one
-        if test -n "$SUFFIX"; then
-          ln -s . python{{version.marketing}}$SUFFIX
-        fi
+        - |
+          if test -n "$SUFFIX"; then
+            ln -s . python{{version.marketing}}$SUFFIX
+          fi
       working-directory: ${{prefix}}/include
 
   env:
@@ -254,7 +246,7 @@ build:
 
 test:
   dependencies:
-    crates.io/semverator: '*'
+    crates.io/semverator: "*"
   script:
     # Check if sqlite is ok, because we build with --enable-loadable-sqlite-extensions
     # and it can occur that building sqlite silently fails if OSX's sqlite is used.
@@ -297,15 +289,15 @@ test:
         exit 1
       fi
 
-    - run: |
-        mv $FIXTURE b.c
-        cc -c b.c
-      fixture: |
-        #include <Python.h>
-        #include <python{{version.major}}.{{version.minor}}/Python.h>
+    - run: cc -c $FIXTURE
+      fixture:
+        extname: c
+        content: |
+          #include <Python.h>
+          #include <python{{version.major}}.{{version.minor}}/Python.h>
 
     - run: SUFFIX=m
-      if: '>=3<3.8'
+      if: ">=3<3.8"
 
     - run: test $(python $FIXTURE) = {{prefix}}/include/python{{version.marketing}}$SUFFIX
       fixture: |
