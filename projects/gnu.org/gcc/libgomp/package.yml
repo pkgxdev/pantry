@@ -94,13 +94,13 @@ build:
     
     # Create library symlinks in lib/ pointing to lib64/
     - run: |
-        mkdir -p "{{prefix}}/lib"
+        mkdir -p "{{prefix}}/lib/pkgconfig"
         cd "{{prefix}}/lib"
         for f in ../lib64/libgomp.*; do
           ln -sf "$f" "$(basename "$f")"
         done
-        # Symlink pkgconfig directory to avoid duplicating files
-        ln -sf ../lib64/pkgconfig pkgconfig
+        # Symlink individual gomp.pc file instead of entire directory
+        ln -sf ../../lib64/pkgconfig/gomp.pc pkgconfig/gomp.pc
       if: linux/x86-64|linux/aarch64
 
   env:
@@ -185,13 +185,6 @@ test:
       LDFLAGS: "-L{{prefix}}/lib"
   script:
     - run: |
-        echo "=== Debug: checking gomp.pc files ==="
-        ls -la {{prefix}}/lib64/pkgconfig/ || echo "lib64/pkgconfig NOT FOUND"
-        ls -la {{prefix}}/lib/pkgconfig/ || echo "lib/pkgconfig NOT FOUND"  
-        ls -la {{prefix}}/lib/pkgconfig || echo "pkgconfig symlink broken"
-        echo "=== lib64/pkgconfig/gomp.pc content ==="
-        cat {{prefix}}/lib64/pkgconfig/gomp.pc || echo "CANNOT READ"
-        echo "=== Testing pkg-config ==="
         pkg-config --exists gomp
         pkg-config --modversion gomp
       if: linux
