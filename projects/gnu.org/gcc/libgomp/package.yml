@@ -185,6 +185,13 @@ test:
       LDFLAGS: "-L{{prefix}}/lib"
   script:
     - run: |
+        echo "=== Debug: checking gomp.pc files ==="
+        ls -la {{prefix}}/lib64/pkgconfig/ || echo "lib64/pkgconfig NOT FOUND"
+        ls -la {{prefix}}/lib/pkgconfig/ || echo "lib/pkgconfig NOT FOUND"  
+        ls -la {{prefix}}/lib/pkgconfig || echo "pkgconfig symlink broken"
+        echo "=== lib64/pkgconfig/gomp.pc content ==="
+        cat {{prefix}}/lib64/pkgconfig/gomp.pc || echo "CANNOT READ"
+        echo "=== Testing pkg-config ==="
         pkg-config --exists gomp
         pkg-config --modversion gomp
       if: linux
