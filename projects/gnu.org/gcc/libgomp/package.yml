@@ -177,9 +177,12 @@ build:
 test:
   dependencies:
     freedesktop.org/pkg-config: "*"
+    linux:
+      gnu.org/gcc: "*"
   env:
     linux:
       PKG_CONFIG_PATH: "{{prefix}}/lib/pkgconfig:{{prefix}}/lib64/pkgconfig:$PKG_CONFIG_PATH"
+      CFLAGS: "-I{{prefix}}/lib/gcc/{{hw.target}}/{{version.raw}}/include"
   script:
     - run: |
         pkg-config --exists gomp
@@ -189,7 +192,7 @@ test:
       if: linux
     - run: test -f {{prefix}}/lib/libgomp.dylib
       if: darwin
-    - run: cc -x c -fopenmp "$FIXTURE" -o test
+    - run: cc -x c -fopenmp $CFLAGS "$FIXTURE" -o test
       fixture: |
         #include <omp.h>
         #include <stdio.h>
