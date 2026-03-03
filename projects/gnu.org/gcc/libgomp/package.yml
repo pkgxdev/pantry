@@ -71,6 +71,38 @@ build:
     - make all-target-libgomp --jobs {{ hw.concurrency }}
     - make install-target-libgomp
 
+    # Create pkg-config file for libgomp (GCC doesn't provide one by default)
+    - run: |
+        mkdir -p "{{prefix}}/$LIBDIR/pkgconfig"
+        sed -e "s|@PREFIX@|{{prefix}}|g" \
+            -e "s|@LIBDIR@|$LIBDIR|g" \
+            -e "s|@VERSION@|{{version.raw}}|g" \
+            -e "s|@TARGET@|{{hw.target}}|g" \
+            "$PROP" > "{{prefix}}/$LIBDIR/pkgconfig/gomp.pc"
+      if: linux
+      prop: |
+        prefix=${pcfiledir}/../..
+        libdir=${prefix}/@LIBDIR@
+        includedir=${prefix}/lib/gcc/@TARGET@/@VERSION@/include
+        
+        Name: libgomp
+        Description: GNU Offloading and Multi Processing Runtime Library
+        Version: @VERSION@
+        Requires:
+        Libs: -L${libdir} -lgomp
+        Cflags: -I${includedir}
+    
+    # Create symlinks in lib/ if files are in lib64/
+    - run: |
+        mkdir -p "{{prefix}}/lib"
+        cd "{{prefix}}/lib"
+        for f in ../lib64/libgomp.*; do
+          ln -sf "$f" "$(basename "$f")"
+        done
+        mkdir -p pkgconfig
+        ln -sf ../../lib64/pkgconfig/gomp.pc pkgconfig/gomp.pc
+      if: linux/x86-64|linux/aarch64
+
   env:
     # Branch from the Darwin maintainer of GCC, with a few generic fixes and
     # Apple Silicon support, located at https://github.com/iains/gcc-12-branch
@@ -107,6 +139,7 @@ build:
         - --enable-pie-tools
         - --enable-host-pie
     linux/x86-64:
+      LIBDIR: lib64
       LDFLAGS:
         - -pie
       CFLAGS:
@@ -115,6 +148,8 @@ build:
       CXXFLAGS:
         - -fPIC
         - -fPIE
+    linux/aarch64:
+      LIBDIR: lib64
     darwin:
       LDFLAGS: $LDFLAGS -Wl,-headerpad_max_install_names
       ARGS:
@@ -140,6 +175,9 @@ build:
 test:
   dependencies:
     freedesktop.org/pkg-config: "*"
+  env:
+    linux:
+      PKG_CONFIG_PATH: "{{prefix}}/lib/pkgconfig:{{prefix}}/lib64/pkgconfig:$PKG_CONFIG_PATH"
   script:
     - run: |
         pkg-config --exists gomp
@@ -149,17 +187,15 @@ test:
       if: linux
     - run: test -f {{prefix}}/lib/libgomp.dylib
       if: darwin
-    - cc -fopenmp test.c -o test
-    - ./test
-  fixture:
-    extname: c
-    content: |
-      #include <omp.h>
-      #include <stdio.h>
-      int main() {
-        #pragma omp parallel
-        {
-          printf("Hello from thread %d\n", omp_get_thread_num());
+    - run: cc -x c -fopenmp "$FIXTURE" -o test
+      fixture: |
+        #include <omp.h>
+        #include <stdio.h>
+        int main() {
+          #pragma omp parallel
+          {
+            printf("Hello from thread %d\n", omp_get_thread_num());
+          }
+          return 0;
         }
-        return 0;
-      }
+    - ./test
