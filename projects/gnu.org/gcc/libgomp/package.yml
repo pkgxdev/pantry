@@ -79,18 +79,19 @@ build:
             -e "s|@VERSION@|{{version.raw}}|g" \
             -e "s|@TARGET@|{{hw.target}}|g" \
             "$PROP" > "{{prefix}}/$LIBDIR/pkgconfig/gomp.pc"
+        cat "{{prefix}}/$LIBDIR/pkgconfig/gomp.pc"
       if: linux
       prop: |
-        prefix=${pcfiledir}/../..
-        libdir=${prefix}/@LIBDIR@
-        includedir=${prefix}/lib/gcc/@TARGET@/@VERSION@/include
+        prefix=@PREFIX@
+        libdir=@PREFIX@/@LIBDIR@
+        includedir=@PREFIX@/lib/gcc/@TARGET@/@VERSION@/include
         
         Name: libgomp
         Description: GNU Offloading and Multi Processing Runtime Library
         Version: @VERSION@
         Requires:
-        Libs: -L${libdir} -lgomp
-        Cflags: -I${includedir}
+        Libs: -L@PREFIX@/@LIBDIR@ -lgomp
+        Cflags: -I@PREFIX@/lib/gcc/@TARGET@/@VERSION@/include
     
     # Create symlinks in lib/ if files are in lib64/
     - run: |
