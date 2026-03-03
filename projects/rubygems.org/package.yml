@@ -103,10 +103,12 @@ build:
         #!/bin/sh
         d="$(cd "$(dirname "$0")"/.. && pwd)"
         export RUBYLIB="$d/lib"
+        user_gem_dir="$(ruby -e 'require "rubygems"; print Gem.user_dir')"
+        ruby_gem_dir="$(ruby -e 'require "rbconfig"; print File.join(RbConfig::CONFIG["rubylibprefix"], "gems", RbConfig::CONFIG["ruby_version"])')"
         if [ -z "$GEM_PATH" ]; then
-          export GEM_PATH="$d"
+          export GEM_PATH="$d:$user_gem_dir:$ruby_gem_dir"
         else
-          export GEM_PATH="$d:$GEM_PATH"
+          export GEM_PATH="$d:$user_gem_dir:$ruby_gem_dir:$GEM_PATH"
         fi
         exec ruby "$0" "$@"
       working-directory: ${{prefix}}
