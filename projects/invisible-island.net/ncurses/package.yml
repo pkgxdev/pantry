@@ -92,6 +92,12 @@ test:
     - pkg-config --modversion ncursesw | grep {{version.marketing}}
     - pkg-config --libs ncursesw | grep '{{prefix}}'
 
+    # verify tinfo.pc symlink exists on linux
+    - run: test -L {{prefix}}/lib/pkgconfig/tinfo.pc
+      if: linux
+    - run: pkg-config --modversion tinfo | grep {{version.marketing}}
+      if: linux
+
     # https://github.com/pkgxdev/pantry/issues/1658
     - tmux -c ls
 
