@@ -72,7 +72,7 @@ build:
     - make install-target-libgomp
 
     # Create pkg-config file for libgomp (GCC doesn't provide one by default)
-    # On 64-bit architectures, create in lib64 and symlink from lib
+    # On 64-bit architectures, create in lib64 and copy to lib
     - run: |
         mkdir -p "{{prefix}}/lib64/pkgconfig"
         sed -e 's|@PREFIX@|${pcfiledir}/../..|g' \
@@ -94,15 +94,15 @@ build:
         Libs: -L@PREFIX@/@LIBDIR@ -lgomp
         Cflags: -I@PREFIX@/lib/gcc/@TARGET@/@VERSION@/include
     
-    # Create symlinks in lib/ pointing to lib64/
+    # Create library symlinks in lib/ pointing to lib64/
     - run: |
         mkdir -p "{{prefix}}/lib/pkgconfig"
         cd "{{prefix}}/lib"
         for f in ../lib64/libgomp.*; do
           ln -sf "$f" "$(basename "$f")"
         done
-        cd pkgconfig
-        ln -sf ../../lib64/pkgconfig/gomp.pc gomp.pc
+        # Also copy gomp.pc to lib/pkgconfig to avoid symlink issues
+        cp ../lib64/pkgconfig/gomp.pc pkgconfig/gomp.pc
       if: linux/x86-64|linux/aarch64
 
   env:
@@ -182,14 +182,6 @@ test:
       PKG_CONFIG_PATH: "{{prefix}}/lib/pkgconfig:{{prefix}}/lib64/pkgconfig:$PKG_CONFIG_PATH"
   script:
     - run: |
-        echo "=== Checking for gomp.pc files ==="
-        ls -la {{prefix}}/lib64/pkgconfig/gomp.pc || echo "lib64/pkgconfig/gomp.pc NOT FOUND"
-        ls -la {{prefix}}/lib/pkgconfig/gomp.pc || echo "lib/pkgconfig/gomp.pc NOT FOUND"
-        echo "=== Content of lib64/pkgconfig/gomp.pc ==="
-        cat {{prefix}}/lib64/pkgconfig/gomp.pc || echo "CANNOT READ FILE"
-        echo "=== PKG_CONFIG_PATH ==="
-        echo "$PKG_CONFIG_PATH"
-        echo "=== Testing pkg-config ==="
         pkg-config --exists gomp
         pkg-config --modversion gomp
       if: linux
