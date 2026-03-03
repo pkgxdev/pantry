@@ -72,31 +72,35 @@ build:
     - make install-target-libgomp
 
     # Create pkg-config file for libgomp (GCC doesn't provide one by default)
-    # On 64-bit architectures, create in lib64 and copy to lib
+    # On 64-bit architectures, create in lib64 and symlink from lib
     - run: |
         mkdir -p "{{prefix}}/lib64/pkgconfig"
-        cat "${PROP}" > "{{prefix}}/lib64/pkgconfig/gomp.pc"
+        sed -e 's|@TARGET@|{{hw.target}}|g' \
+            -e 's|@VERSION@|{{version.raw}}|g' \
+            "$PROP" > "{{prefix}}/lib64/pkgconfig/gomp.pc"
+        cat "{{prefix}}/lib64/pkgconfig/gomp.pc"
       if: linux/x86-64|linux/aarch64
       prop: |
-        prefix=\${pcfiledir}/../..
-        libdir=\${prefix}/lib64
-        includedir=\${prefix}/lib/gcc/{{ hw.target }}/{{ version.raw }}/include
+        prefix=${pcfiledir}/../..
+        libdir=${prefix}/lib64
+        includedir=${prefix}/lib/gcc/@TARGET@/@VERSION@/include
         
         Name: libgomp
         Description: GNU Offloading and Multi Processing Runtime Library
-        Version: {{ version.raw }}
+        Version: @VERSION@
         Requires:
         Libs: -L${libdir} -lgomp
         Cflags: -I${includedir}
     
+    # Create library symlinks in lib/ pointing to lib64/
     - run: |
-        mkdir -p "{{prefix}}/lib/pkgconfig"
+        mkdir -p "{{prefix}}/lib"
         cd "{{prefix}}/lib"
         for f in ../lib64/libgomp.*; do
           ln -sf "$f" "$(basename "$f")"
         done
-        # Also copy gomp.pc to lib/pkgconfig to avoid symlink issues
-        cp ../lib64/pkgconfig/gomp.pc pkgconfig/gomp.pc
+        # Symlink pkgconfig directory to avoid duplicating files
+        ln -sf ../lib64/pkgconfig pkgconfig
       if: linux/x86-64|linux/aarch64
 
   env:
