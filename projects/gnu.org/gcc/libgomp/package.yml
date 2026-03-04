@@ -78,7 +78,6 @@ build:
         sed -e 's|@TARGET@|{{hw.target}}|g' \
             -e 's|@VERSION@|{{version.raw}}|g' \
             "$PROP" > "{{prefix}}/lib64/pkgconfig/gomp.pc"
-        cat "{{prefix}}/lib64/pkgconfig/gomp.pc"
       if: linux/x86-64|linux/aarch64
       prop: |
         prefix=${pcfiledir}/../..
@@ -99,7 +98,8 @@ build:
         for f in ../lib64/libgomp.*; do
           ln -sf "$f" "$(basename "$f")"
         done
-        # Symlink individual gomp.pc file instead of entire directory
+        # Symlink gomp.pc file - remove stale symlink if it exists
+        rm -f pkgconfig/gomp.pc
         ln -sf ../../lib64/pkgconfig/gomp.pc pkgconfig/gomp.pc
       if: linux/x86-64|linux/aarch64
 
@@ -185,28 +185,7 @@ test:
       LDFLAGS: "-L{{prefix}}/lib"
   script:
     - run: |
-        echo "=== Debugging pkg-config issue ==="
-        echo "prefix={{prefix}}"
-        echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
-        echo ""
-        echo "=== lib/pkgconfig content ==="
-        ls -la {{prefix}}/lib/pkgconfig/ || echo "Directory does not exist"
-        echo ""
-        echo "=== lib64/pkgconfig content ==="
-        ls -la {{prefix}}/lib64/pkgconfig/ || echo "Directory does not exist"
-        echo ""
-        echo "=== Checking gomp.pc ==="
-        if [ -L {{prefix}}/lib/pkgconfig/gomp.pc ]; then
-          echo "Symlink exists, target:"
-          readlink -f {{prefix}}/lib/pkgconfig/gomp.pc
-        fi
-        if [ -f {{prefix}}/lib64/pkgconfig/gomp.pc ]; then
-          echo "File content:"
-          cat {{prefix}}/lib64/pkgconfig/gomp.pc
-        fi
-        echo ""
-        echo "=== Running pkg-config ==="
-        pkg-config --exists gomp && echo "SUCCESS" || (echo "FAILED with code $?"; pkg-config --debug gomp 2>&1 | head -20)
+        pkg-config --exists gomp
         pkg-config --modversion gomp
       if: linux
     - run: test -f {{prefix}}/lib/libgomp.so
