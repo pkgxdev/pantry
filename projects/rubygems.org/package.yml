@@ -103,10 +103,12 @@ build:
         #!/bin/sh
         d="$(cd "$(dirname "$0")"/.. && pwd)"
         export RUBYLIB="$d/lib"
+        user_gem_dir="$(ruby -e 'require "rubygems"; print Gem.user_dir')"
+        ruby_gem_dir="$(ruby -e 'require "rbconfig"; print File.join(RbConfig::CONFIG["rubylibprefix"], "gems", RbConfig::CONFIG["ruby_version"])')"
         if [ -z "$GEM_PATH" ]; then
-          export GEM_PATH="$d"
+          export GEM_PATH="$d:$user_gem_dir:$ruby_gem_dir"
         else
-          export GEM_PATH="$d:$GEM_PATH"
+          export GEM_PATH="$d:$user_gem_dir:$ruby_gem_dir:$GEM_PATH"
         fi
         exec ruby "$0" "$@"
       working-directory: ${{prefix}}
@@ -138,6 +140,29 @@ test:
   script:
     # for debug
     - gem env
+
+    # Verify RUBY EXECUTABLE points to the pkgx ruby installation
+    - run: |
+        ruby_prefix="{{deps.ruby-lang.org.prefix}}"
+        gem env | grep "RUBY EXECUTABLE" | grep -q "$ruby_prefix/bin/ruby" \
+          || { echo "RUBY EXECUTABLE not pointing to pkgx ruby"; gem env; exit 1; }
+        echo "gem env OK"
+
+    # Verify GEM PATHS includes all expected locations
+    - run: |
+        ruby_prefix="{{deps.ruby-lang.org.prefix}}"
+        ruby_version="$(ruby -e 'puts RbConfig::CONFIG["ruby_version"]')"
+        gem_paths="$(gem env | grep -A 100 'GEM PATHS')"
+        check_path() {
+          echo "$gem_paths" | grep -q "$1" \
+            || { echo "GEM PATHS missing: $1"; gem env; exit 1; }
+        }
+        rubygems_prefix="$(gem env | grep 'RUBYGEMS PREFIX' | awk '{print $NF}')"
+        check_path "/usr/local/lib/ruby/gems/$ruby_version"
+        check_path "$rubygems_prefix"
+        check_path "$HOME/.gem/ruby/$ruby_version"
+        check_path "$ruby_prefix/lib/ruby/gems/$ruby_version"
+        echo "GEM PATHS OK"
 
     - |
       gem install awesome_print --verbose

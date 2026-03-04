@@ -122,13 +122,29 @@ build:
       if: ">=4"
       working-directory: ${{prefix}}/{{prefix}}
 
-    - run: sed -i
-        -e 's|$(DESTDIR){{prefix}}|$(topdir)|g'
-        -e 's|CONFIG\["topdir"\] = .*|CONFIG\["topdir"\] = TOPDIR|g'
-        -e 's|CONFIG\["INSTALL"\] =.*|CONFIG\["INSTALL"\] = "/usr/bin/install"|g'
-        -e 's|CONFIG\["MJIT_CC"\] =.*|CONFIG\["MJIT_CC"\] = "/usr/bin/cc"|g'
-        rbconfig.rb
+    - run: sed -i -f $PROP rbconfig.rb
+      prop: |
+        s|$$(DESTDIR){{prefix}}|$$(topdir)|g
+        s|CONFIG\["prefix"\] = .*|CONFIG\["prefix"\] = KEGDIR|g
+        s|CONFIG\["topdir"\] = .*|CONFIG\["topdir"\] = KEGDIR\n  CONFIG["kegdir"] = KEGDIR\n  CONFIG["sitearchdir"] = File.join(KEGDIR, "lib", "ruby", "site_ruby", File.basename(File.dirname(__FILE__)))|g
+        s|CONFIG\["bindir"\] = .*|CONFIG\["bindir"\] = File.join(KEGDIR, "bin")|g
+        s|CONFIG\["sysconfdir"\] = .*|CONFIG\["sysconfdir"\] = File.join(KEGDIR, "etc")|g
+        s|CONFIG\["rubyhdrdir"\] = .*|CONFIG\["rubyhdrdir"\] = File.join(KEGDIR, "include")|g
+        s|CONFIG\["rubyarchhdrdir"\] = .*|CONFIG\["rubyarchhdrdir"\] = File.join(KEGDIR, "include")|g
+        s|CONFIG\["rubylibprefix"\] = .*|CONFIG\["rubylibprefix"\] = File.join(KEGDIR, "lib", "ruby")|g
+        s|CONFIG\["rubylibdir"\] = .*|CONFIG\["rubylibdir"\] = File.join(KEGDIR, "lib", "ruby", File.basename(File.dirname(__FILE__)))|g
+        s|CONFIG\["archdir"\] = .*|CONFIG\["archdir"\] = File.join(KEGDIR, "lib", "ruby", File.basename(File.dirname(__FILE__)))|g
+        s|CONFIG\["rubyarchdir"\] = .*|CONFIG\["rubyarchdir"\] = File.join(KEGDIR, "lib", "ruby", File.basename(File.dirname(__FILE__)))|g
+        s|CONFIG\["sitehdrdir"\] = .*|CONFIG\["sitehdrdir"\] = File.join(KEGDIR, "include", "site_ruby")|g
+        s|CONFIG\["vendorhdrdir"\] = .*|CONFIG\["vendorhdrdir"\] = File.join(KEGDIR, "include", "vendor_ruby")|g
+        s|CONFIG\["INSTALL"\] =.*|CONFIG\["INSTALL"\] = "/usr/bin/install"|g
       working-directory: ${{prefix}}/lib/ruby/{{version.marketing}}.0
+
+    - run: |
+        sed -i -e 's|CONFIG\["MJIT_CC"\] =.*|CONFIG\["MJIT_CC"\] = "/usr/bin/cc"|g' rbconfig.rb
+      if: "<4"
+      working-directory: ${{prefix}}/lib/ruby/{{version.marketing}}.0
+
   env:
     CFLAGS: $CFLAGS -Wno-implicit-function-declaration
     ARGS:
@@ -141,7 +157,7 @@ build:
       - --disable-multiarch # ^^
       - --with-vendordir=no # is empty so don’t pollute
       - --with-vendorarchdir=no # ^^
-      - --with-sitearchdir=no # ^^
+      - --with-sitearchdir=/lib/ruby/site_ruby # gets topdir prefix bc enable-load-relative
       - --enable-yjit # https://github.com/pkgxdev/pantry/issues/3538
       - --disable-install-doc
 
@@ -187,6 +203,46 @@ test:
           end
           puts fib(35)
         extname: rb
+
+
+    # Verify all RbConfig::CONFIG paths are correctly relocated at runtime.
+    # Expected values are derived independently from the actual location of
+    # rbconfig.rb itself (<keg>/lib/ruby/<version>/rbconfig.rb), 4 levels up,
+    # so this test is self-contained and doesn't rely on any of the values it's testing.
+    - run: ruby $FIXTURE
+      fixture:
+        extname: rb
+        content: |
+          require 'rbconfig'
+          rbconfig_path = $LOADED_FEATURES.grep(/rbconfig\.rb$/).first
+          kegdir = File.expand_path("../../../..", rbconfig_path)
+          v = File.basename(File.dirname(rbconfig_path))
+          errors = []
+          {
+            "prefix"         => kegdir,
+            "kegdir"         => kegdir,
+            "topdir"         => kegdir,
+            "bindir"         => File.join(kegdir, "bin"),
+            "sysconfdir"     => File.join(kegdir, "etc"),
+            "rubyhdrdir"     => File.join(kegdir, "include"),
+            "rubyarchhdrdir" => File.join(kegdir, "include"),
+            "rubylibprefix"  => File.join(kegdir, "lib", "ruby"),
+            "rubylibdir"     => File.join(kegdir, "lib", "ruby", v),
+            "rubyarchdir"    => File.join(kegdir, "lib", "ruby", v),
+            "archdir"        => File.join(kegdir, "lib", "ruby", v),
+            "sitearchdir"    => File.join(kegdir, "lib", "ruby", "site_ruby", v),
+            "sitehdrdir"     => File.join(kegdir, "include", "site_ruby"),
+            "vendorhdrdir"   => File.join(kegdir, "include", "vendor_ruby"),
+            "INSTALL"        => "/usr/bin/install",
+          }.each do |key, expected|
+            actual = RbConfig::CONFIG[key]
+            errors << "#{key} — expected #{expected.inspect}, got #{actual.inspect}" unless actual == expected
+          end
+          if RbConfig::CONFIG["MJIT_CC"]
+            errors << "MJIT_CC — expected \"/usr/bin/cc\", got #{RbConfig::CONFIG["MJIT_CC"].inspect}" unless RbConfig::CONFIG["MJIT_CC"] == "/usr/bin/cc"
+          end
+          abort errors.join("\n") unless errors.empty?
+          puts "RbConfig OK"
 
 provides:
   - bin/erb
