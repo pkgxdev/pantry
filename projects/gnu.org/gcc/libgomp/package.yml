@@ -71,28 +71,17 @@ build:
     - make all-target-libgomp --jobs {{ hw.concurrency }}
     - make install-target-libgomp
 
-    # Debug: check after sed and before symlink
-    - run: |
-        echo "=== Verifying gomp.pc file ==="
-        ls -la "{{prefix}}/lib64/pkgconfig/gomp.pc"
-        echo ""
-        echo "=== First 5 lines of gomp.pc ==="
-        head -5 "{{prefix}}/lib64/pkgconfig/gomp.pc"
-      if: linux/x86-64|linux/aarch64
-
     # Create pkg-config file for libgomp (GCC doesn't provide one by default)
-    # On 64-bit architectures, create in lib64 and symlink from lib
+    # On 64-bit Linux, create in lib64 and symlink from lib
     - run: |
         mkdir -p "{{prefix}}/lib64/pkgconfig"
         # Remove any stale symlink/file that might exist
         rm -f "{{prefix}}/lib64/pkgconfig/gomp.pc"
         # Use sed with tee to capture output to file
+        echo "=== Creating gomp.pc with content: ==="
         sed -e 's|@TARGET@|{{hw.target}}|g' \
             -e 's|@VERSION@|{{version.raw}}|g' \
             "$PROP" | tee "{{prefix}}/lib64/pkgconfig/gomp.pc"
-        echo ""
-        echo "File created at: {{prefix}}/lib64/pkgconfig/gomp.pc"
-        file "{{prefix}}/lib64/pkgconfig/gomp.pc"
       if: linux/x86-64|linux/aarch64
       prop: |
         prefix=${pcfiledir}/../..
@@ -105,6 +94,15 @@ build:
         Requires:
         Libs: -L${libdir} -lgomp
         Cflags: -I${includedir}
+    
+    # Debug: verify file creation
+    - run: |
+        echo "=== Verifying gomp.pc file ==="
+        ls -la "{{prefix}}/lib64/pkgconfig/gomp.pc"
+        echo ""
+        echo "=== First 5 lines ==="
+        head -5 "{{prefix}}/lib64/pkgconfig/gomp.pc"
+      if: linux/x86-64|linux/aarch64
     
     # Create library symlinks in lib/ pointing to lib64/
     - run: |
