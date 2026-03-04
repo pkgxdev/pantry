@@ -185,7 +185,28 @@ test:
       LDFLAGS: "-L{{prefix}}/lib"
   script:
     - run: |
-        pkg-config --exists gomp
+        echo "=== Debugging pkg-config issue ==="
+        echo "prefix={{prefix}}"
+        echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
+        echo ""
+        echo "=== lib/pkgconfig content ==="
+        ls -la {{prefix}}/lib/pkgconfig/ || echo "Directory does not exist"
+        echo ""
+        echo "=== lib64/pkgconfig content ==="
+        ls -la {{prefix}}/lib64/pkgconfig/ || echo "Directory does not exist"
+        echo ""
+        echo "=== Checking gomp.pc ==="
+        if [ -L {{prefix}}/lib/pkgconfig/gomp.pc ]; then
+          echo "Symlink exists, target:"
+          readlink -f {{prefix}}/lib/pkgconfig/gomp.pc
+        fi
+        if [ -f {{prefix}}/lib64/pkgconfig/gomp.pc ]; then
+          echo "File content:"
+          cat {{prefix}}/lib64/pkgconfig/gomp.pc
+        fi
+        echo ""
+        echo "=== Running pkg-config ==="
+        pkg-config --exists gomp && echo "SUCCESS" || (echo "FAILED with code $?"; pkg-config --debug gomp 2>&1 | head -20)
         pkg-config --modversion gomp
       if: linux
     - run: test -f {{prefix}}/lib/libgomp.so
