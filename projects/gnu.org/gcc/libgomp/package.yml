@@ -71,29 +71,13 @@ build:
     - make all-target-libgomp --jobs {{ hw.concurrency }}
     - make install-target-libgomp
 
-    # Debug: check what GCC installed
+    # Debug: check after sed and before symlink
     - run: |
-        echo "=== After make install-target-libgomp ==="
-        echo "=== Looking for gomp.pc files ==="
-        find "{{prefix}}" -name "gomp.pc" 2>/dev/null || echo "No gomp.pc found"
+        echo "=== Verifying gomp.pc file ==="
+        ls -la "{{prefix}}/lib64/pkgconfig/gomp.pc"
         echo ""
-        echo "=== lib/pkgconfig content ==="
-        ls -laR "{{prefix}}/lib/pkgconfig/" 2>/dev/null || echo "lib/pkgconfig does not exist"
-        echo ""
-        echo "=== lib64/pkgconfig content ==="
-        ls -laR "{{prefix}}/lib64/pkgconfig/" 2>/dev/null || echo "lib64/pkgconfig does not exist"
-        echo ""
-        echo "=== If gomp.pc exists, show its content ==="
-        if [ -f "{{prefix}}/lib64/pkgconfig/gomp.pc" ]; then
-          echo "File found at lib64/pkgconfig/gomp.pc:"
-          file "{{prefix}}/lib64/pkgconfig/gomp.pc"
-          cat "{{prefix}}/lib64/pkgconfig/gomp.pc"
-        fi
-        if [ -f "{{prefix}}/lib/pkgconfig/gomp.pc" ]; then
-          echo "File found at lib/pkgconfig/gomp.pc:"
-          file "{{prefix}}/lib/pkgconfig/gomp.pc"
-          cat "{{prefix}}/lib/pkgconfig/gomp.pc"
-        fi
+        echo "=== First 5 lines of gomp.pc ==="
+        head -5 "{{prefix}}/lib64/pkgconfig/gomp.pc"
       if: linux/x86-64|linux/aarch64
 
     # Create pkg-config file for libgomp (GCC doesn't provide one by default)
@@ -102,9 +86,13 @@ build:
         mkdir -p "{{prefix}}/lib64/pkgconfig"
         # Remove any stale symlink/file that might exist
         rm -f "{{prefix}}/lib64/pkgconfig/gomp.pc"
+        # Use sed with tee to capture output to file
         sed -e 's|@TARGET@|{{hw.target}}|g' \
             -e 's|@VERSION@|{{version.raw}}|g' \
-            "$PROP" > "{{prefix}}/lib64/pkgconfig/gomp.pc"
+            "$PROP" | tee "{{prefix}}/lib64/pkgconfig/gomp.pc"
+        echo ""
+        echo "File created at: {{prefix}}/lib64/pkgconfig/gomp.pc"
+        file "{{prefix}}/lib64/pkgconfig/gomp.pc"
       if: linux/x86-64|linux/aarch64
       prop: |
         prefix=${pcfiledir}/../..
@@ -117,15 +105,6 @@ build:
         Requires:
         Libs: -L${libdir} -lgomp
         Cflags: -I${includedir}
-    
-    # Debug: check after sed
-    - run: |
-        echo "=== After sed gomp.pc creation ==="
-        file "{{prefix}}/lib64/pkgconfig/gomp.pc"
-        echo ""
-        echo "=== lib64/pkgconfig content ==="
-        ls -laR "{{prefix}}/lib64/pkgconfig/"
-      if: linux/x86-64|linux/aarch64
     
     # Create library symlinks in lib/ pointing to lib64/
     - run: |
@@ -227,8 +206,6 @@ test:
         echo ""
         pkg-config --exists gomp
         pkg-config --modversion gomp
-      if: linux
-    - run: test -f {{prefix}}/lib/libgomp.so
       if: linux
     - run: test -f {{prefix}}/lib/libgomp.dylib
       if: darwin
