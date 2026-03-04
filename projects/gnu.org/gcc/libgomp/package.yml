@@ -75,6 +75,8 @@ build:
     # On 64-bit architectures, create in lib64 and symlink from lib
     - run: |
         mkdir -p "{{prefix}}/lib64/pkgconfig"
+        # Remove any stale symlink that might exist
+        rm -f "{{prefix}}/lib64/pkgconfig/gomp.pc"
         sed -e 's|@TARGET@|{{hw.target}}|g' \
             -e 's|@VERSION@|{{version.raw}}|g' \
             "$PROP" > "{{prefix}}/lib64/pkgconfig/gomp.pc"
