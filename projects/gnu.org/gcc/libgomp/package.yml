@@ -72,16 +72,16 @@ build:
     - make install-target-libgomp
 
     # Create pkg-config file for libgomp (GCC doesn't provide one by default)
-    # On 64-bit Linux, create in lib64 and symlink from lib
+    # Install in share/pkgconfig to avoid lib/lib64 symlink edge-cases
     - run: |
-        mkdir -p "{{prefix}}/lib64/pkgconfig"
+        mkdir -p "{{prefix}}/share/pkgconfig"
         # Remove any stale symlink/file that might exist
-        rm -f "{{prefix}}/lib64/pkgconfig/gomp.pc"
+        rm -f "{{prefix}}/share/pkgconfig/gomp.pc"
         # Use sed with tee to capture output to file
         echo "=== Creating gomp.pc with content: ==="
         sed -e 's|@TARGET@|{{hw.target}}|g' \
             -e 's|@VERSION@|{{version.raw}}|g' \
-            "$PROP" | tee "{{prefix}}/lib64/pkgconfig/gomp.pc"
+            "$PROP" | tee "{{prefix}}/share/pkgconfig/gomp.pc"
       if: linux/x86-64|linux/aarch64
       prop: |
         prefix=${pcfiledir}/../..
@@ -98,10 +98,10 @@ build:
     # Debug: verify file creation
     - run: |
         echo "=== Verifying gomp.pc file ==="
-        ls -la "{{prefix}}/lib64/pkgconfig/gomp.pc"
+        ls -la "{{prefix}}/share/pkgconfig/gomp.pc"
         echo ""
         echo "=== First 5 lines ==="
-        head -5 "{{prefix}}/lib64/pkgconfig/gomp.pc"
+        head -5 "{{prefix}}/share/pkgconfig/gomp.pc"
       if: linux/x86-64|linux/aarch64
     
     # Create library symlinks in lib/ pointing to lib64/
@@ -111,9 +111,7 @@ build:
         for f in ../lib64/libgomp.*; do
           ln -sf "$f" "$(basename "$f")"
         done
-        # Symlink gomp.pc file - remove stale symlink if it exists
-        rm -f pkgconfig/gomp.pc
-        ln -sf ../../lib64/pkgconfig/gomp.pc pkgconfig/gomp.pc
+        # keep lib symlinks for libgomp.* compatibility
       if: linux/x86-64|linux/aarch64
 
   env:
@@ -192,15 +190,14 @@ test:
   env:
     CFLAGS: "-I{{prefix}}/lib/gcc/{{hw.target}}/{{version.raw}}/include"
     linux:
-      PKG_CONFIG_PATH: "{{prefix}}/lib/pkgconfig:{{prefix}}/lib64/pkgconfig:$PKG_CONFIG_PATH"
+      PKG_CONFIG_PATH: "{{prefix}}/share/pkgconfig:$PKG_CONFIG_PATH"
       LDFLAGS: "-L{{prefix}}/lib -L{{prefix}}/lib64"
     darwin:
       LDFLAGS: "-L{{prefix}}/lib"
   script:
     - run: |
         echo "=== Checking gomp.pc installation ==="
-        ls -la {{prefix}}/lib64/pkgconfig/gomp.pc
-        ls -la {{prefix}}/lib/pkgconfig/gomp.pc
+        ls -la {{prefix}}/share/pkgconfig/gomp.pc
         echo ""
         pkg-config --exists gomp
         pkg-config --modversion gomp
