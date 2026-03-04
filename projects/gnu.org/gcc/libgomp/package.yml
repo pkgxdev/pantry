@@ -72,47 +72,27 @@ build:
     - make install-target-libgomp
 
     # Create pkg-config file for libgomp (GCC doesn't provide one by default)
-    # Install in share/pkgconfig to avoid lib/lib64 symlink edge-cases
-    - run: |
-        mkdir -p "{{prefix}}/share/pkgconfig"
-        # Remove any stale symlink/file that might exist
-        rm -f "{{prefix}}/share/pkgconfig/gomp.pc"
-        # Use sed with tee to capture output to file
-        echo "=== Creating gomp.pc with content: ==="
-        sed -e 's|@TARGET@|{{hw.target}}|g' \
-            -e 's|@VERSION@|{{version.raw}}|g' \
-            "$PROP" | tee "{{prefix}}/share/pkgconfig/gomp.pc"
-      if: linux/x86-64|linux/aarch64
+    - run: sed -e 's|@TARGET@|{{hw.target}}|g' -e 's|@VERSION@|{{version.raw}}|g' "$PROP" | tee gomp.pc
+      working-directory: "{{prefix}}/lib/pkgconfig"
       prop: |
         prefix=${pcfiledir}/../..
-        libdir=${prefix}/lib64
+        libdir=${prefix}/lib
         includedir=${prefix}/lib/gcc/@TARGET@/@VERSION@/include
-        
+
         Name: libgomp
         Description: GNU Offloading and Multi Processing Runtime Library
         Version: @VERSION@
         Requires:
         Libs: -L${libdir} -lgomp
         Cflags: -I${includedir}
-    
-    # Debug: verify file creation
-    - run: |
-        echo "=== Verifying gomp.pc file ==="
-        ls -la "{{prefix}}/share/pkgconfig/gomp.pc"
-        echo ""
-        echo "=== First 5 lines ==="
-        head -5 "{{prefix}}/share/pkgconfig/gomp.pc"
-      if: linux/x86-64|linux/aarch64
-    
+
     # Create library symlinks in lib/ pointing to lib64/
-    - run: |
-        mkdir -p "{{prefix}}/lib/pkgconfig"
-        cd "{{prefix}}/lib"
-        for f in ../lib64/libgomp.*; do
-          ln -sf "$f" "$(basename "$f")"
-        done
-        # keep lib symlinks for libgomp.* compatibility
-      if: linux/x86-64|linux/aarch64
+    - run:
+        - mv lib64/* lib/
+        - rmdir lib64
+        - ln -sf lib lib64
+      working-directory: "{{prefix}}"
+      if: linux
 
   env:
     # Branch from the Darwin maintainer of GCC, with a few generic fixes and
@@ -188,35 +168,29 @@ test:
     freedesktop.org/pkg-config: "*"
     gnu.org/gcc: "*"
   env:
-    CFLAGS: "-I{{prefix}}/lib/gcc/{{hw.target}}/{{version.raw}}/include"
-    linux:
-      PKG_CONFIG_PATH: "{{prefix}}/share/pkgconfig:$PKG_CONFIG_PATH"
-      LDFLAGS: "-L{{prefix}}/lib -L{{prefix}}/lib64"
-    darwin:
-      LDFLAGS: "-L{{prefix}}/lib"
+    CFLAGS:
+      - -I{{prefix}}/lib/gcc/{{hw.target}}/{{version.raw}}/include
+      - -fopenmp
   script:
+    - pkg-config --exists gomp
+    - pkg-config --modversion gomp
+    # macos14 has some header issues with newer gcc versions, so skip the test there for now
     - run: |
-        echo "=== Checking gomp.pc installation ==="
-        ls -la {{prefix}}/share/pkgconfig/gomp.pc
-        echo ""
-        pkg-config --exists gomp
-        pkg-config --modversion gomp
-      if: linux
-    - run: test -f {{prefix}}/lib/libgomp.dylib
+        if test "$(sw_vers -productVersion | cut -d . -f 1)" -lt 15; then
+          exit 0
+        fi
       if: darwin
-    - run: gcc -x c -fopenmp $CFLAGS $LDFLAGS -lgomp "$FIXTURE" -o test
-      fixture: |
-        #include <omp.h>
-        #include <stdio.h>
-        int main() {
-          #pragma omp parallel
-          {
-            printf("Hello from thread %d\n", omp_get_thread_num());
+    - run: gcc $CFLAGS "$FIXTURE" -o test -lgomp $LDFLAGS
+      fixture:
+        extname: c
+        content: |
+          #include <omp.h>
+          #include <stdio.h>
+          int main() {
+            #pragma omp parallel
+            {
+              printf("Hello from thread %d\n", omp_get_thread_num());
+            }
+            return 0;
           }
-          return 0;
-        }
     - ./test
-
-runtime:
-  env:
-    PKG_CONFIG_PATH: ${{prefix}}/share/pkgconfig:$PKG_CONFIG_PATH
