@@ -41,7 +41,20 @@ test:
   dependencies:
     python.org: ">=3<3.12"
   script:
-    - cc `xml2-config --cflags --libs` $CFLAGS test.c
+    - run: cc $FIXTURE `xml2-config --cflags --libs` $CFLAGS
+      fixture:
+        extname: c
+        content: |
+          #include <libxml/tree.h>
+
+          int main() {
+            xmlDocPtr doc = xmlNewDoc(BAD_CAST "1.0");
+            xmlNodePtr root_node = xmlNewNode(NULL, BAD_CAST "root");
+            xmlDocSetRootElement(doc, root_node);
+            xmlFreeDoc(doc);
+            return 0;
+          }
+
     - ./a.out
 
     - python -c "import libxml2"
