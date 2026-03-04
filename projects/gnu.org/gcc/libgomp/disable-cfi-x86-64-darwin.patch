@@ -1,0 +1,55 @@
+--- a/libgcc/config/i386/resms64x.h
++++ b/libgcc/config/i386/resms64x.h
+@@ -32,8 +32,10 @@
+  * function.  */
+ 
+ 	.text
++#ifndef __APPLE__
+ 	cfi_startproc()
+ 	cfi_def_cfa(%r10, 8)
++#endif
+ MS2SYSV_STUB_BEGIN(resms64x_18)
+ 	mov	-0x70(%rsi),%r15
+ MS2SYSV_STUB_BEGIN(resms64x_17)
+@@ -51,9 +53,13 @@
+ 	SSE_RESTORE
+ 	mov	-0x38(%rsi),%rsi
+ 	mov	%r10,%rsp
++#ifndef __APPLE__
+ 	cfi_def_cfa_register(%rsp)
++#endif
+ 	ret
++#ifndef __APPLE__
+ 	cfi_endproc()
++#endif
+ MS2SYSV_STUB_END(resms64x_12)
+ MS2SYSV_STUB_END(resms64x_13)
+ MS2SYSV_STUB_END(resms64x_14)
+--- a/libgcc/config/i386/resms64fx.h
++++ b/libgcc/config/i386/resms64fx.h
+@@ -33,9 +33,11 @@
+  * from the function.  */
+ 
+ 	.text
++#ifndef __APPLE__
+ 	cfi_startproc()
+ 	cfi_offset(%rbp, -16)
+ 	cfi_def_cfa(%rbp, 16)
++#endif
+ MS2SYSV_STUB_BEGIN(resms64fx_17)
+ 	mov	-0x68(%rsi),%r15
+ MS2SYSV_STUB_BEGIN(resms64fx_16)
+@@ -51,9 +53,13 @@
+ 	SSE_RESTORE
+ 	mov	-0x38(%rsi),%rsi
+ 	leaveq
++#ifndef __APPLE__
+ 	cfi_def_cfa(%rsp, 8)
++#endif
+ 	ret
++#ifndef __APPLE__
+ 	cfi_endproc()
++#endif
+ MS2SYSV_STUB_END(resms64fx_12)
+ MS2SYSV_STUB_END(resms64fx_13)
+ MS2SYSV_STUB_END(resms64fx_14)
