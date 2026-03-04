@@ -122,23 +122,22 @@ build:
       if: ">=4"
       working-directory: ${{prefix}}/{{prefix}}
 
-    - run: |
-        sed -i \
-          -e 's|$(DESTDIR){{prefix}}|$(topdir)|g' \
-          -e 's|CONFIG\["prefix"\] = .*|CONFIG\["prefix"\] = KEGDIR|g' \
-          -e 's|CONFIG\["topdir"\] = .*|CONFIG\["topdir"\] = KEGDIR\n  CONFIG["kegdir"] = KEGDIR\n  CONFIG["sitearchdir"] = File.join(KEGDIR, "lib", "ruby", "site_ruby", File.basename(File.dirname(__FILE__)))|g' \
-          -e 's|CONFIG\["bindir"\] = .*|CONFIG\["bindir"\] = File.join(KEGDIR, "bin")|g' \
-          -e 's|CONFIG\["sysconfdir"\] = .*|CONFIG\["sysconfdir"\] = File.join(KEGDIR, "etc")|g' \
-          -e 's|CONFIG\["rubyhdrdir"\] = .*|CONFIG\["rubyhdrdir"\] = File.join(KEGDIR, "include")|g' \
-          -e 's|CONFIG\["rubyarchhdrdir"\] = .*|CONFIG\["rubyarchhdrdir"\] = File.join(KEGDIR, "include")|g' \
-          -e 's|CONFIG\["rubylibprefix"\] = .*|CONFIG\["rubylibprefix"\] = File.join(KEGDIR, "lib", "ruby")|g' \
-          -e 's|CONFIG\["rubylibdir"\] = .*|CONFIG\["rubylibdir"\] = File.join(KEGDIR, "lib", "ruby", File.basename(File.dirname(__FILE__)))|g' \
-          -e 's|CONFIG\["archdir"\] = .*|CONFIG\["archdir"\] = File.join(KEGDIR, "lib", "ruby", File.basename(File.dirname(__FILE__)))|g' \
-          -e 's|CONFIG\["rubyarchdir"\] = .*|CONFIG\["rubyarchdir"\] = File.join(KEGDIR, "lib", "ruby", File.basename(File.dirname(__FILE__)))|g' \
-          -e 's|CONFIG\["sitehdrdir"\] = .*|CONFIG\["sitehdrdir"\] = File.join(KEGDIR, "include", "site_ruby")|g' \
-          -e 's|CONFIG\["vendorhdrdir"\] = .*|CONFIG\["vendorhdrdir"\] = File.join(KEGDIR, "include", "vendor_ruby")|g' \
-          -e 's|CONFIG\["INSTALL"\] =.*|CONFIG\["INSTALL"\] = "/usr/bin/install"|g' \
-          rbconfig.rb
+    - run: sed -i -f $PROP rbconfig.rb
+      prop: |
+        s|$$(DESTDIR){{prefix}}|$$(topdir)|g
+        s|CONFIG\["prefix"\] = .*|CONFIG\["prefix"\] = KEGDIR|g
+        s|CONFIG\["topdir"\] = .*|CONFIG\["topdir"\] = KEGDIR\n  CONFIG["kegdir"] = KEGDIR\n  CONFIG["sitearchdir"] = File.join(KEGDIR, "lib", "ruby", "site_ruby", File.basename(File.dirname(__FILE__)))|g
+        s|CONFIG\["bindir"\] = .*|CONFIG\["bindir"\] = File.join(KEGDIR, "bin")|g
+        s|CONFIG\["sysconfdir"\] = .*|CONFIG\["sysconfdir"\] = File.join(KEGDIR, "etc")|g
+        s|CONFIG\["rubyhdrdir"\] = .*|CONFIG\["rubyhdrdir"\] = File.join(KEGDIR, "include")|g
+        s|CONFIG\["rubyarchhdrdir"\] = .*|CONFIG\["rubyarchhdrdir"\] = File.join(KEGDIR, "include")|g
+        s|CONFIG\["rubylibprefix"\] = .*|CONFIG\["rubylibprefix"\] = File.join(KEGDIR, "lib", "ruby")|g
+        s|CONFIG\["rubylibdir"\] = .*|CONFIG\["rubylibdir"\] = File.join(KEGDIR, "lib", "ruby", File.basename(File.dirname(__FILE__)))|g
+        s|CONFIG\["archdir"\] = .*|CONFIG\["archdir"\] = File.join(KEGDIR, "lib", "ruby", File.basename(File.dirname(__FILE__)))|g
+        s|CONFIG\["rubyarchdir"\] = .*|CONFIG\["rubyarchdir"\] = File.join(KEGDIR, "lib", "ruby", File.basename(File.dirname(__FILE__)))|g
+        s|CONFIG\["sitehdrdir"\] = .*|CONFIG\["sitehdrdir"\] = File.join(KEGDIR, "include", "site_ruby")|g
+        s|CONFIG\["vendorhdrdir"\] = .*|CONFIG\["vendorhdrdir"\] = File.join(KEGDIR, "include", "vendor_ruby")|g
+        s|CONFIG\["INSTALL"\] =.*|CONFIG\["INSTALL"\] = "/usr/bin/install"|g
       working-directory: ${{prefix}}/lib/ruby/{{version.marketing}}.0
 
     - run: |
