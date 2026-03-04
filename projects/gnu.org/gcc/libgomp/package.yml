@@ -71,11 +71,36 @@ build:
     - make all-target-libgomp --jobs {{ hw.concurrency }}
     - make install-target-libgomp
 
+    # Debug: check what GCC installed
+    - run: |
+        echo "=== After make install-target-libgomp ==="
+        echo "=== Looking for gomp.pc files ==="
+        find "{{prefix}}" -name "gomp.pc" 2>/dev/null || echo "No gomp.pc found"
+        echo ""
+        echo "=== lib/pkgconfig content ==="
+        ls -laR "{{prefix}}/lib/pkgconfig/" 2>/dev/null || echo "lib/pkgconfig does not exist"
+        echo ""
+        echo "=== lib64/pkgconfig content ==="
+        ls -laR "{{prefix}}/lib64/pkgconfig/" 2>/dev/null || echo "lib64/pkgconfig does not exist"
+        echo ""
+        echo "=== If gomp.pc exists, show its content ==="
+        if [ -f "{{prefix}}/lib64/pkgconfig/gomp.pc" ]; then
+          echo "File found at lib64/pkgconfig/gomp.pc:"
+          file "{{prefix}}/lib64/pkgconfig/gomp.pc"
+          cat "{{prefix}}/lib64/pkgconfig/gomp.pc"
+        fi
+        if [ -f "{{prefix}}/lib/pkgconfig/gomp.pc" ]; then
+          echo "File found at lib/pkgconfig/gomp.pc:"
+          file "{{prefix}}/lib/pkgconfig/gomp.pc"
+          cat "{{prefix}}/lib/pkgconfig/gomp.pc"
+        fi
+      if: linux/x86-64|linux/aarch64
+
     # Create pkg-config file for libgomp (GCC doesn't provide one by default)
     # On 64-bit architectures, create in lib64 and symlink from lib
     - run: |
         mkdir -p "{{prefix}}/lib64/pkgconfig"
-        # Remove any stale symlink that might exist
+        # Remove any stale symlink/file that might exist
         rm -f "{{prefix}}/lib64/pkgconfig/gomp.pc"
         sed -e 's|@TARGET@|{{hw.target}}|g' \
             -e 's|@VERSION@|{{version.raw}}|g' \
@@ -92,6 +117,15 @@ build:
         Requires:
         Libs: -L${libdir} -lgomp
         Cflags: -I${includedir}
+    
+    # Debug: check after sed
+    - run: |
+        echo "=== After sed gomp.pc creation ==="
+        file "{{prefix}}/lib64/pkgconfig/gomp.pc"
+        echo ""
+        echo "=== lib64/pkgconfig content ==="
+        ls -laR "{{prefix}}/lib64/pkgconfig/"
+      if: linux/x86-64|linux/aarch64
     
     # Create library symlinks in lib/ pointing to lib64/
     - run: |
