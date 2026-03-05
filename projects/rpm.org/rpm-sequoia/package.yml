@@ -37,8 +37,13 @@ runtime:
 test:
   dependencies:
     openssl.org: "*"
+    gnu.org/gcc: "*"
   env:
-    LD_LIBRARY_PATH: "{{deps.openssl.org.prefix}}/lib:$LD_LIBRARY_PATH"
+    LD_LIBRARY_PATH: "{{prefix}}/lib:{{deps.openssl.org.prefix}}/lib:$LD_LIBRARY_PATH"
+    PKG_CONFIG_PATH: "{{prefix}}/lib/pkgconfig"
   script:
     - test -f {{prefix}}/lib/librpm_sequoia.so
     - test -f {{prefix}}/lib/pkgconfig/rpm-sequoia.pc
+    # Test C linkage with the rpm-sequoia library
+    - gcc -v fixture.c -o test_link $(pkg-config --cflags --libs rpm-sequoia)
+    - ./test_link
