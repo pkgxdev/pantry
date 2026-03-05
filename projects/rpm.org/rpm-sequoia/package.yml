@@ -41,10 +41,11 @@ test:
     freedesktop.org/pkg-config: "*"
   env:
     LD_LIBRARY_PATH: "{{prefix}}/lib:{{deps.openssl.org.prefix}}/lib:$LD_LIBRARY_PATH"
-    PKG_CONFIG_PATH: "{{prefix}}/lib/pkgconfig"
+    PKG_CONFIG_PATH: "{{prefix}}/lib/pkgconfig:{{deps.openssl.org.prefix}}/lib/pkgconfig:$PKG_CONFIG_PATH"
   script:
     - test -f {{prefix}}/lib/librpm_sequoia.so
     - test -f {{prefix}}/lib/pkgconfig/rpm-sequoia.pc
+    - pkg-config --exists rpm-sequoia
     # Test C linkage with the rpm-sequoia library
     - gcc -v fixture.c -o test_link $(pkg-config --cflags --libs rpm-sequoia)
     - ./test_link
