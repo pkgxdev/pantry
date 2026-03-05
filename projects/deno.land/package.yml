@@ -15,14 +15,14 @@ interprets:
 
 runtime:
   env:
-    DENO_NO_UPDATE_CHECK: 'true'
+    DENO_NO_UPDATE_CHECK: "true"
     # we cannot do this, as it breaks cross-compilation.
     # linux/aarch64:
     # theirs doesn't support glibc old enough
     #   DENORT_BIN: '{{prefix}}/bin/denort'
 
 companions:
-  info-zip.org/unzip: '*' # needed to download the compilation runtime
+  info-zip.org/unzip: "*" # needed to download the compilation runtime
 
 build:
   script:
@@ -42,7 +42,7 @@ build:
         - export FFI_VER=$(grep -A1 'name = "libffi"' Cargo.lock | sed -n -f $PROP)
         - export FFI_SYS_VER=$(grep -A1 'name = "libffi-sys"' Cargo.lock | sed -n -f $PROP)
       prop: /^version = /s/^version = "\(.*\)"$/\1/p
-      if: '>=2'
+      if: ">=2"
     # deno v2 uses libffi-sys; we need to vendor it to link our own libffi statically
     - run:
         - cargo vendor third-party
@@ -57,7 +57,7 @@ build:
         println!("cargo:rustc-link-lib=static=ffi");\n\
         println!("cargo:rustc-link-search={{deps.sourceware.org/libffi.prefix}}/lib");|
       working-directory: ext/ffi
-      if: '>=2'
+      if: ">=2"
 
     # https://github.com/denoland/deno/issues/15596 -- reported fixed in 1.25.3
     - run: |
@@ -68,13 +68,15 @@ build:
           # our LLVM cannot build with deployment target set to 10.6
           sed -i s/MACOSX_DEPLOYMENT_TARGET/\#/ ext/ffi/tinycc/Makefile
         fi
-      if: '>=1.25.0<1.25.4'
+      if: ">=1.25.0<1.25.4"
 
     # change default bindir to ~/.local/bin per our conventions
     - run: INSTALLER_RS=cli/tools/installer.rs
       if: <2.4
     - run: INSTALLER_RS=cli/tools/installer/mod.rs
-      if: '>=2.4'
+      if: ">=2.4<2.7.2"
+    - run: INSTALLER_RS=cli/tools/installer/global.rs
+      if: ">=2.7.2"
     - sed -i -e 's/home_path.push(".deno")/home_path.push(".local")/' $INSTALLER_RS
     - grep home_path $INSTALLER_RS
 
@@ -89,18 +91,18 @@ build:
 
     - cargo install --locked --path cli --root "{{ prefix }}" $EXTRA_ARGS
     - run: cargo install --locked --path cli/rt --root "{{ prefix }}" $EXTRA_ARGS
-      if: '>=2.1.7'
+      if: ">=2.1.7"
   dependencies:
-    llvm.org: '*'
+    llvm.org: "*"
     # rust-lang.org: various
-    rust-lang.org/rustup: '*' # to install the correct rust version
+    rust-lang.org/rustup: "*" # to install the correct rust version
     git-scm.org: 2 # to build tinycc
-    curl.se: '*' # required to download v8 (python is another option)
+    curl.se: "*" # required to download v8 (python is another option)
     cmake.org: ^3 # deno.land>=1.36.1 requires cmake
-    protobuf.dev: '*' # deno.land>=1.36.4 requires protoc
+    protobuf.dev: "*" # deno.land>=1.36.4 requires protoc
     github.com/mikefarah/yq: ^4
     crates.io/semverator: ^0
-    sourceware.org/libffi: '>=3.2.1' # v2
+    sourceware.org/libffi: ">=3.2.1" # v2
   env:
     linux:
       CC: clang
@@ -111,7 +113,7 @@ build:
 test:
   dependencies:
     linux/aarch64:
-      gnu.org/coreutils: '*' # for stat and numfmt
+      gnu.org/coreutils: "*" # for stat and numfmt
   script:
     - deno --version
     - deno --version | grep {{version}}
@@ -130,7 +132,7 @@ test:
         if test "{{hw.platform}}/{{hw.arch}}" = "linux/aarch64"; then
           test "$(stat -c %s ./test | numfmt --to=iec-i)" = "$(stat -c %s "{{prefix}}/bin/denort" | numfmt --to=iec-i)"
         fi
-      if: '>=1.40.5'
+      if: ">=1.40.5"
 
     # tests download of dependencies
     - deno eval 'import { VERSION } from "https://deno.land/std@0.221.0/version.ts"; console.log(VERSION);' | tee /dev/stderr | grep -q ^0.221.0$
@@ -147,4 +149,4 @@ test:
       LIST_LIBS: ldd
     linux/aarch64:
       # their downloadable runtime doesn't support glibc old enough
-      DENORT_BIN: '{{prefix}}/bin/denort'
+      DENORT_BIN: "{{prefix}}/bin/denort"
