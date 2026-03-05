@@ -19,12 +19,14 @@ dependencies:
   darwinsys.com/file: "*"
   rpm.org/popt: "*"
   gnu.org/readline: "*"
+  invisible-island.net/ncurses: "*"
   sqlite.org: "*"
   tukaani.org/xz: "*"
   facebook.com/zstd: "*"
   gnu.org/nettle: 3
   elfutils.org: "*"
-  gnu.org/gcc/libstdcxx: 14
+  gnu.org/gcc/libstdcxx: ">=15"
+  gnu.org/gcc/libgomp: ">=15"
 
 build:
   dependencies:
@@ -37,11 +39,15 @@ build:
     rust-lang.org: ">=1.56"
     curl.se: "*"
     gnu.org/tar: "*"
-    gnu.org/gcc: 14
+    gnu.org/gcc: 15
     gnu.org/binutils: ~2.44
   env:
+    CC: gcc
+    CXX: g++
     CMAKE_ARGS:
       - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_C_COMPILER=gcc
+      - -DCMAKE_CXX_COMPILER=g++
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
       - -DCMAKE_INSTALL_SYSCONFDIR={{prefix}}/etc
       - -DCMAKE_INSTALL_SHAREDSTATEDIR={{prefix}}/var/lib
@@ -61,7 +67,7 @@ build:
         - cargo build --release
         - mkdir -p {{prefix}}/lib/pkgconfig
         - install -Dm644 target/release/librpm_sequoia.so {{prefix}}/lib/
-        - ln -s librpm_sequoia.so {{prefix}}/lib/librpm_sequoia.so.1
+        - ln -sf librpm_sequoia.so {{prefix}}/lib/librpm_sequoia.so.1
         - sed 's|/usr/local|${pcfiledir}/../..|' target/release/rpm-sequoia.pc >{{prefix}}/lib/pkgconfig/rpm-sequoia.pc
         - cat {{prefix}}/lib/pkgconfig/rpm-sequoia.pc
         - ls -l {{prefix}}/lib
