@@ -1,15 +1,13 @@
 distributable:
-  url: https://github.com/rpm-software-management/rpm-sequoia/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/rpm-software-management/rpm-sequoia/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 display-name: rpm-sequoia
 
 versions:
   github: rpm-software-management/rpm-sequoia/tags
-  strip:
-    - /^v/
 
-platforms: [linux] 
+platforms: [linux]
 
 dependencies:
   openssl.org: "*"
@@ -17,35 +15,34 @@ dependencies:
 build:
   dependencies:
     rust-lang.org: ">=1.85"
-    openssl.org: "*"
   env:
     OPENSSL_DIR: "{{deps.openssl.org.prefix}}"
-    LDFLAGS: "-L{{deps.openssl.org.prefix}}/lib"
-    CPPFLAGS: "-I{{deps.openssl.org.prefix}}/include"
-    PKG_CONFIG_PATH: "{{deps.openssl.org.prefix}}/lib/pkgconfig:$PKG_CONFIG_PATH"
   script:
     - cargo build --release --no-default-features --features crypto-openssl
-    - mkdir -p {{prefix}}/lib/pkgconfig
-    - install -Dm755 target/release/librpm_sequoia.so {{prefix}}/lib/
-    - ln -sf librpm_sequoia.so {{prefix}}/lib/librpm_sequoia.so.1
-    - sed 's|/usr/local|{{prefix}}|' target/release/rpm-sequoia.pc >{{prefix}}/lib/pkgconfig/rpm-sequoia.pc
-
-runtime:
-  env:
-    LD_LIBRARY_PATH: "{{deps.openssl.org.prefix}}/lib:$LD_LIBRARY_PATH"
+    - run: install -Dm755 $SRCROOT/target/release/librpm_sequoia.so librpm_sequoia.so
+      working-directory: ${{prefix}}/lib/
+    - run: ln -s librpm_sequoia.so librpm_sequoia.so.1
+      working-directory: ${{prefix}}/lib
+      if: linux
+    - run: sed 's|/usr/local|{{prefix}}|' $SRCROOT/target/release/rpm-sequoia.pc >rpm-sequoia.pc
+      working-directory: ${{prefix}}/lib/pkgconfig/
 
 test:
   dependencies:
-    openssl.org: "*"
     gnu.org/gcc: "*"
-    freedesktop.org/pkg-config: "*"
-  env:
-    LD_LIBRARY_PATH: "{{prefix}}/lib:{{deps.openssl.org.prefix}}/lib:$LD_LIBRARY_PATH"
-    PKG_CONFIG_PATH: "{{prefix}}/lib/pkgconfig:{{deps.openssl.org.prefix}}/lib/pkgconfig:$PKG_CONFIG_PATH"
   script:
     - test -f {{prefix}}/lib/librpm_sequoia.so
     - test -f {{prefix}}/lib/pkgconfig/rpm-sequoia.pc
     - pkg-config --exists rpm-sequoia
     # Test C linkage with the rpm-sequoia library
-    - gcc -v fixture.c -o test_link $(pkg-config --cflags --libs rpm-sequoia)
+    - run: gcc -v $FIXTURE -o test_link $(pkg-config --cflags --libs rpm-sequoia)
+      fixture:
+        extname: c
+        content: |
+          #include <stdio.h>
+
+          int main(void) {
+            puts("rpm-sequoia library linkage test passed");
+            return 0;
+          }
     - ./test_link
