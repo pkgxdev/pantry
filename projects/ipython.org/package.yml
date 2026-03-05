@@ -14,15 +14,15 @@ dependencies:
 
 build:
   dependencies:
-    python.org: ">=3.7<3.12"
+    python.org: ">=3.12<3.15" # since 9.11.0
   script:
     # broken version number in 8.19.1
-    - run: sed -i
-        -e 's/^_version_major = .*/_version_major = {{version.major}}/'
-        -e 's/^_version_minor = .*/_version_minor = {{version.minor}}/'
-        -e 's/^_version_patch = .*/_version_patch = {{version.patch}}/'
-        -e 's/^_version_extra = .*/_version_extra = ""/'
-        release.py
+    - run: sed -i -f $PROP release.py
+      prop: |
+        s/^_version_major = .*/_version_major = {{version.major}}/
+        s/^_version_minor = .*/_version_minor = {{version.minor}}/
+        s/^_version_patch = .*/_version_patch = {{version.patch}}/
+        s/^_version_extra = .*/_version_extra = ""/
       working-directory: IPython/core
     - bkpyvenv stage {{prefix}} {{version}}
     - ${{prefix}}/venv/bin/python -m pip install .
