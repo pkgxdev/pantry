@@ -13,7 +13,7 @@ versions:
     - /-release$/
 
 dependencies:
-  lua.org: "5.4"
+  lua.org: "*"
   gnu.org/gmp: "*"
   libarchive.org: "*"
   darwinsys.com/file: "*"
@@ -31,14 +31,14 @@ dependencies:
 build:
   dependencies:
     cmake.org: ^3.18
-    lua.org: "5.4"
+    lua.org: "*"
     gnu.org/gettext: "*"
     invisible-island.net/ncurses: "*"
     python.org: ">=3.10"
     sr.ht/scdoc: "*"
     curl.se: "*"
     gnu.org/tar: "*"
-    gnu.org/gcc: 15
+    gnu.org/gcc:  ">=15"
     gnu.org/binutils: ~2.44
     rust-lang.org: ">=1.85"
     openssl.org: "*"
@@ -58,6 +58,7 @@ build:
       - -DCMAKE_INSTALL_SYSCONFDIR={{prefix}}/etc
       - -DCMAKE_INSTALL_SHAREDSTATEDIR={{prefix}}/var/lib
       - -DCMAKE_INSTALL_LOCALSTATEDIR={{prefix}}/var
+      - -DCMAKE_PREFIX_PATH={{deps.lua.org.prefix}}
       - -DENABLE_NLS=ON
       - -DENABLE_PLUGINS=OFF
       - -DWITH_AUDIT=OFF
@@ -86,7 +87,7 @@ build:
 runtime:
   env:
     RPM_CONFIGDIR: "{{prefix}}/lib/rpm"
-    LD_LIBRARY_PATH: "{{deps.openssl.org.prefix}}/lib:$LD_LIBRARY_PATH"
+    LD_LIBRARY_PATH: "{{deps.openssl.org.prefix}}/lib:{{deps.lua.org.prefix}}/lib:$LD_LIBRARY_PATH"
 
 provides:
   - bin/rpm
@@ -94,6 +95,7 @@ provides:
 test:
   dependencies:
     openssl.org: "*"
+    lua.org: "*"
   env:
-    LD_LIBRARY_PATH: "{{deps.openssl.org.prefix}}/lib:$LD_LIBRARY_PATH"
+    LD_LIBRARY_PATH: "{{deps.openssl.org.prefix}}/lib:{{deps.lua.org.prefix}}/lib:$LD_LIBRARY_PATH"
   script: test "$(rpm --version)" = "RPM version {{version}}"
