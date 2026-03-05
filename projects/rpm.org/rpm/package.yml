@@ -41,9 +41,13 @@ build:
     gnu.org/tar: "*"
     gnu.org/gcc: 15
     gnu.org/binutils: ~2.44
+    gnu.org/nettle: 3
   env:
     CC: gcc
     CXX: g++
+    PKG_CONFIG_PATH: "{{deps.gnu.org/nettle}}/lib/pkgconfig:$PKG_CONFIG_PATH"
+    LIBRARY_PATH: "{{deps.gnu.org/nettle}}/lib:$LIBRARY_PATH"
+    LD_LIBRARY_PATH: "{{deps.gnu.org/nettle}}/lib:$LD_LIBRARY_PATH"
     CMAKE_ARGS:
       - -DCMAKE_BUILD_TYPE=Release
       - -DCMAKE_C_COMPILER=gcc
@@ -64,6 +68,9 @@ build:
   script:
     - run:
         - curl -L "https://github.com/rpm-software-management/rpm-sequoia/archive/refs/tags/v1.10.1.tar.gz" | tar zxvf - --strip-components=1
+        - export PKG_CONFIG_PATH="{{deps.gnu.org/nettle}}/lib/pkgconfig:$PKG_CONFIG_PATH"
+        - export LIBRARY_PATH="{{deps.gnu.org/nettle}}/lib:$LIBRARY_PATH"
+        - export LD_LIBRARY_PATH="{{deps.gnu.org/nettle}}/lib:$LD_LIBRARY_PATH"
         - cargo build --release
         - mkdir -p {{prefix}}/lib/pkgconfig
         - install -Dm644 target/release/librpm_sequoia.so {{prefix}}/lib/
