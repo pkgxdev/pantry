@@ -11,18 +11,20 @@ provides:
 runtime:
   env:
     CARGO_INSTALL_ROOT: ${{home}}/.local
+    linux:
+      CARGO_HTTP_CAINFO: ${{deps.curl.se/ca-certs.prefix}}/ssl/cert.pem
 
 companions:
   git-scm.org: ^2
-  rust-lang.org: '*'
+  rust-lang.org: "*"
 
 dependencies:
   zlib.net: ^1
   libgit2.org: ~1.7 # links to libgit2.so.1.7
-  curl.se/ca-certs: '*'
+  curl.se/ca-certs: "*"
   linux:
-    llvm.org: '*' # FIXME only need the linker actually
-    curl.se: '*'
+    llvm.org: "*" # FIXME only need the linker actually
+    curl.se: "*"
     # ^^ Apple adds patches to curl on Darwin that prevent breakage with this pkg
     # NOTE maybe in general we should just use darwin curl?
     # https://github.com/pkgxdev/pantry/issues/3520
@@ -30,31 +32,28 @@ dependencies:
 build:
   dependencies:
     rust-lang.org: ^1.85 # since cargo 0.86, edition2024
-    gnu.org/tar: '*'
-    tukaani.org/xz: '*'
-    freedesktop.org/pkg-config: ^0.29
-    rust-lang.org/cargo: '*'
+    gnu.org/tar: "*"
+    tukaani.org/xz: "*"
+    rust-lang.org/cargo: "*"
   script:
     # otherwise we are not ABI compatible and new macOS versions may break
     # this happened with Sonoma
     # this instead seems to break cargo on sonoma
     # after 0.75
-    - run: |
-        sed -i "/^\[features\]\$/a\
-        default = ['curl/force-system-lib-on-osx']" \
-        Cargo.toml
+    - run: sed -i -f $PROP Cargo.toml
+      prop: |
+        /^\[features\]\$/a\
+        default = ['curl/force-system-lib-on-osx']
       if: <0.76.0
     - cargo install --root={{ prefix }} --locked --path=.
   env:
     LIBGIT2_SYS_USE_PKG_CONFIG: 1
     LIBSSH2_SYS_USE_PKG_CONFIG: 1
-    linux:
-      AR: llvm-ar
 
 test:
   dependencies: #FIXME brewkit should add companions to the test env
     git-scm.org: ^2
-    rust-lang.org: '*'
+    rust-lang.org: "*"
   script:
     - cargo init . --name xyz_tea_fixture
     - echo 'fn main() {println!("Hello World!");}' >src/main.rs
