@@ -6,8 +6,8 @@ versions:
   github: rubocop/rubocop/tags
 
 dependencies:
-  ruby-lang.org: '>=3.1<3.3.7' # currently 3.3.7 has issues finding racc
-  rubygems.org: '*'
+  ruby-lang.org: ">=3.1<3.3.7" # currently 3.3.7 has issues finding racc
+  rubygems.org: "*"
 
 build:
   env:
@@ -16,11 +16,14 @@ build:
   script:
     - gem build rubocop.gemspec
 
+    - run: EXTRA_GEMS="racc" # since 1.85.1
+      if: ">=1.85.1"
+
     - gem install
       --no-user-install
       --bindir={{prefix}}/gems/bin
       --no-document
-      rubocop-{{version}}.gem
+      rubocop-{{version}}.gem $EXTRA_GEMS
 
     - install -Dm755 props/rubocop "{{prefix}}"/bin/rubocop
 
