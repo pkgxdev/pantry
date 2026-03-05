@@ -86,8 +86,14 @@ build:
 runtime:
   env:
     RPM_CONFIGDIR: "{{prefix}}/lib/rpm"
+    LD_LIBRARY_PATH: "{{deps.openssl.org.prefix}}/lib:$LD_LIBRARY_PATH"
 
 provides:
   - bin/rpm
 
-test: test "$(rpm --version)" = "RPM version {{version}}"
+test:
+  dependencies:
+    openssl.org: "*"
+  env:
+    LD_LIBRARY_PATH: "{{deps.openssl.org.prefix}}/lib:$LD_LIBRARY_PATH"
+  script: test "$(rpm --version)" = "RPM version {{version}}"
