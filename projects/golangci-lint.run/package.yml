@@ -7,14 +7,8 @@ warnings:
 build:
   dependencies:
     curl.se: '*'
-    info-zip.org/unzip: '*'
   working-directory: ${{prefix}}
   script: curl -sSfL "https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh" | sh -s -- -b ./bin v{{version}}
-  env:
-    darwin/aarch64: { PLATFORM: darwin-aarch64 }
-    darwin/x86-64: { PLATFORM: darwin-x64 }
-    linux/aarch64: { PLATFORM: linux-aarch64 }
-    linux/x86-64: { PLATFORM: linux-x64 }
 
 provides:
   - bin/golangci-lint
@@ -23,7 +17,7 @@ test:
   # FIXME: this works around a bug introduced in 1.53.0
   # https://github.com/golangci/golangci-lint/issues/3862#issuecomment-1572973588
   dependencies:
-    go.dev: ^1.17
+    go.dev: ^1.24
   script: golangci-lint help linters
   env:
     GOROOT: $(go env GOROOT)
