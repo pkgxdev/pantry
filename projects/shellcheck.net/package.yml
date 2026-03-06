@@ -9,16 +9,18 @@ provides:
   - bin/shellcheck
 
 dependencies:
-  sourceware.org/libffi: 3
+  sourceware.org/libffi: ^3
 
 build:
   dependencies:
     haskell.org: ~9.8
     haskell.org/cabal: ^3
+    linux:
+      gnu.org/binutils: ~2.44 # haskell is picky about linkers
   script:
     - mkdir -p "{{prefix}}/bin"
     - cabal update
-    - cabal install $ARGS
+    - cabal install $ARGS --jobs
   env:
     ARGS:
       - --install-method=copy
@@ -28,4 +30,6 @@ test:
   fixture: |
     #!/bin/sh
     echo "Hello, world!"
-  script: shellcheck $FIXTURE
+  script:
+    - shellcheck --version
+    - shellcheck $FIXTURE
