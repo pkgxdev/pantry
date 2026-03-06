@@ -12,7 +12,7 @@ dependencies:
 
 build:
   dependencies:
-    python.org: ~3.11
+    python.org: ~3.13
     crates.io/semverator: ^0.4.3
   script:
     - pkgx curl -O https://bootstrap.pypa.io/get-pip.py
@@ -25,17 +25,13 @@ build:
       --target={{prefix}}/libexec
 
     - run:
-        # FIXME 3.7 *should* work but doesn't
-        - v=3.7
+        - v=3.8
 
-        # Python 3.12 had various breaking changes (semver is meaningless
-        # apparently) and thus pip less than 23.1.2 will not work with it
-        # FIXME hardcoding 3.12 sucks
         - |
           if semverator lt {{version}} 23.1.2; then
             vMax=3.11
           else
-            vMax=3.12
+            vMax=3.14
           fi
 
         - while semverator lt $v $vMax; do
@@ -92,19 +88,16 @@ test:
   - pip --version | grep {{prefix}}
   - pip --version | grep {{version}}
 
-  - run: test $(pip3.8 inspect | pkgx jq --raw-output .environment.python_version) = 3.8
-    if: ">=22<25.2" # inspect command introduced at v22, 25.5 doesn't support python3.8
   - run: |
-      for v in 3.9 3.10 3.11; do
+      for v in 3.9 3.10 3.11 3.12 3.13; do
         test $(pip$v inspect | pkgx jq --raw-output .environment.python_version) = $v
       done
     if: ">=22" # inspect command introduced at v22
 
 provides:
   - bin/pip
-  - bin/pip3.8
   - bin/pip3.9
   - bin/pip3.10
   - bin/pip3.11
-#FIXME  - bin/pip3.12
-#FIXME  - bin/pip{{deps.python.org.version.major}}
+  - bin/pip3.12
+  - bin/pip3.13
