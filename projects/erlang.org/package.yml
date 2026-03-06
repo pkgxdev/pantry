@@ -22,7 +22,7 @@ versions:
   strip: /^OTP /
 
 dependencies:
-  openssl.org: ^1.1
+  openssl.org: '>=1.1'
   invisible-island.net/ncurses: "*"
   linux/x86-64:
     gnu.org/gcc/libstdcxx: "*"
@@ -37,6 +37,8 @@ build:
     linux/x86-64:
       gnu.org/gcc: "*"
   script:
+    - run: ARGS="$ARGS --enable-hipe"
+      if: <26
     - ./configure $ARGS
     - make -j {{hw.concurrency}}
     - make install
@@ -51,7 +53,6 @@ build:
       - --disable-silent-rules
       - --prefix={{prefix}}
       - --enable-dynamic-ssl-lib
-      - --enable-hipe
       - --enable-smp-support
       - --enable-threads
       - --enable-pie
@@ -69,7 +70,7 @@ build:
 
 test:
   dependencies:
-    pkgx.sh: 1
+    npmjs.com: "*"
   script:
     - epmd -kill || true
     - epmd -daemon -address 127.0.0.1 -relaxed_command_check
