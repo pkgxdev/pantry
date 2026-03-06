@@ -9,7 +9,7 @@ provides:
   - bin/shellcheck
 
 dependencies:
-  sourceware.org/libffi: 3
+  sourceware.org/libffi: ^3
 
 build:
   dependencies:
@@ -18,7 +18,7 @@ build:
   script:
     - mkdir -p "{{prefix}}/bin"
     - cabal update
-    - cabal install $ARGS
+    - cabal install $ARGS --jobs
   env:
     ARGS:
       - --install-method=copy
@@ -28,4 +28,6 @@ test:
   fixture: |
     #!/bin/sh
     echo "Hello, world!"
-  script: shellcheck $FIXTURE
+  script:
+    - shellcheck --version
+    - shellcheck $FIXTURE
