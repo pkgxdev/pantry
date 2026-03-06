@@ -22,7 +22,7 @@ versions:
   strip: /^OTP /
 
 dependencies:
-  openssl.org: ^1.1
+  openssl.org: '>=1.1'
   invisible-island.net/ncurses: "*"
   linux/x86-64:
     gnu.org/gcc/libstdcxx: "*"
@@ -34,10 +34,15 @@ runtime:
 build:
   dependencies:
     perl.org: ">=5"
+    crates.io/semverator: '*'
     linux/x86-64:
       gnu.org/gcc: "*"
   script:
-    - ./configure $ARGS
+    - run: |
+        if semverator lt {{version}} 26; then
+          ARGS="$ARGS --enable-hipe"
+        fi
+        ./configure $ARGS
     - make -j {{hw.concurrency}}
     - make install
   env:
@@ -51,7 +56,6 @@ build:
       - --disable-silent-rules
       - --prefix={{prefix}}
       - --enable-dynamic-ssl-lib
-      - --enable-hipe
       - --enable-smp-support
       - --enable-threads
       - --enable-pie
