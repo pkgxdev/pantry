@@ -13,14 +13,14 @@ companions:
   python.org: "*"
 
 dependencies:
-  libgit2.org: ~1.7 # links to libgit2.so.1.7
+  libgit2.org: '>=1.7<2'
 
 build:
   dependencies:
     linux:
       nixos.org/patchelf: ^0.18
       sqlite.org: "*" # as of v0.5.22, to build libz-ng-sys
-    cmake.org: ^3.28
+    cmake.org: '>=3.28'
     rust-lang.org/cargo: ^0
     maturin.rs: ^1.4.0
     info-zip.org/unzip: ^6
@@ -75,7 +75,11 @@ test:
           flask run --port $PORT &
           PID=$!
         # otherwise the server may not be ready
-        - sleep 10
+        - |
+          for i in $(seq 1 15); do
+            curl -sf 127.0.0.1:$PORT && break
+            sleep 1
+          done
         - test "$(curl 127.0.0.1:$PORT)" = "<p>Hello, World!</p>"
         # TODO need to install a signal handler or our build servers could be left with a running flask process
-        - kill $PID
+        - kill $PID || true
