@@ -32,59 +32,21 @@ dependencies:
 build:
   dependencies:
     cmake.org: ^3.18
-    lua.org: ~5.4
     zlib.net: "*"
-    sqlite.org: "*"
-    tukaani.org/xz: "*"
-    libarchive.org: "*"
-    darwinsys.com/file: "*"
     gnu.org/gettext: "*"
-    invisible-island.net/ncurses: "*"
     python.org: ">=3.10"
     sr.ht/scdoc: "*"
     curl.se: "*"
     gnu.org/tar: "*"
     gnu.org/gcc: ">=15"
     gnu.org/binutils: ~2.44
-    openssl.org: "*"
-    rpm.org/rpm-sequoia: "*"
   env:
     CC: gcc
     CXX: g++
-    _PKG_CONFIG_PATHS:
-      - "{{deps.rpm.org/rpm-sequoia.prefix}}/lib/pkgconfig"
-      - "{{deps.rpm.org/popt.prefix}}/lib/pkgconfig"
-      - "{{deps.gnu.org/readline.prefix}}/lib/pkgconfig"
-      - "{{deps.invisible-island.net/ncurses.prefix}}/lib/pkgconfig"
-      - "{{deps.facebook.com/zstd.prefix}}/lib/pkgconfig"
-      - "{{deps.elfutils.org.prefix}}/lib/pkgconfig"
-      - "{{deps.zlib.net.prefix}}/lib/pkgconfig"
-      - "{{deps.sqlite.org.prefix}}/lib/pkgconfig"
-      - "{{deps.tukaani.org/xz.prefix}}/lib/pkgconfig"
-      - "{{deps.libarchive.org.prefix}}/lib/pkgconfig"
-      - "{{deps.lua.org.prefix}}/lib/pkgconfig"
-      - "{{deps.openssl.org.prefix}}/lib/pkgconfig"
-    _LDFLAGS:
-      - "-L{{deps.darwinsys.com/file.prefix}}/lib"
+    LDFLAGS:
+      - $LDFLAGS
       - "-Wl,-rpath,{{deps.rpm.org/rpm-sequoia.prefix}}/lib"
-    #
-    # is it possible to have the array syntax built-in?
-    # maybe with
-    # VAR1:
-    #   join: ':'
-    #   values:
-    #     - a
-    #     - b
-    # VAR2:
-    #   join: ';'
-    #   values:
-    #     - a
-    #     - b
-    _LD_LIBRARY_PATHS:
-      - "{{deps.darwinsys.com/file.prefix}}/lib"
-      - "{{deps.openssl.org.prefix}}/lib"
-      - "{{deps.rpm.org/rpm-sequoia.prefix}}/lib"
-    _INSTALL_RPATH_PATHS:
+    INSTALL_RPATH_PATHS:
       - "$ORIGIN/../lib"
       - "{{deps.rpm.org/rpm-sequoia.prefix}}/lib"
       - "{{deps.openssl.org.prefix}}/lib"
@@ -119,14 +81,12 @@ build:
       - -DXGETTEXT={{deps.gnu.org/gettext.prefix}}/bin/xgettext
   working-directory: build
   script:
-    - export PKG_CONFIG_PATH=$(echo "$_PKG_CONFIG_PATHS" | tr ' ' ':'):$PKG_CONFIG_PATH
-    - export LDFLAGS="$(echo "$_LDFLAGS" | tr '\n' ' ')"
-    - export LD_LIBRARY_PATH=$(echo "$_LD_LIBRARY_PATHS" | tr ' ' ':'):$LD_LIBRARY_PATH
-    - export INSTALL_RPATH=$(echo "$_INSTALL_RPATH_PATHS" | tr ' ' ';')
-    - cmake "$PKGX_PANTRY_DIR/srcs/rpm.org__rpm-{{version}}" $CMAKE_ARGS -DCMAKE_INSTALL_RPATH="$INSTALL_RPATH"
+    - cmake .. $CMAKE_ARGS -DCMAKE_INSTALL_RPATH="$INSTALL_RPATH"
     - cmake --build .
     - cmake --install .
-    - ln -sf "{{deps.lua.org.prefix}}/lib/liblua.so" "{{prefix}}/lib/liblua.so"
+    # fix lua lib issues
+    - run: cp "{{deps.lua.org.prefix}}/lib/liblua.so" liblua.so
+      working-directory: ${{prefix}}/lib
 
 runtime:
   env:
@@ -136,10 +96,6 @@ provides:
   - bin/rpm
 
 test:
-  dependencies:
-    openssl.org: "*"
-    lua.org: ~5.4
-    rpm.org/rpm-sequoia: "*"
   env:
     RPM_CONFIGDIR: "{{prefix}}/lib/rpm"
   script:
