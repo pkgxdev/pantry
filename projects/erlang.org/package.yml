@@ -34,15 +34,12 @@ runtime:
 build:
   dependencies:
     perl.org: ">=5"
-    crates.io/semverator: '*'
     linux/x86-64:
       gnu.org/gcc: "*"
   script:
-    - run: |
-        if semverator lt {{version}} 26; then
-          ARGS="$ARGS --enable-hipe"
-        fi
-        ./configure $ARGS
+    - run: ARGS="$ARGS --enable-hipe"
+      if: <26
+    - ./configure $ARGS
     - make -j {{hw.concurrency}}
     - make install
   env:
@@ -73,7 +70,7 @@ build:
 
 test:
   dependencies:
-    pkgx.sh: 1
+    npmjs.com: "*"
   script:
     - epmd -kill || true
     - epmd -daemon -address 127.0.0.1 -relaxed_command_check
