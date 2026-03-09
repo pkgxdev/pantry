@@ -11,8 +11,10 @@ versions:
 
 build:
   dependencies:
-    rust-lang.org: '>=1.65'
-    rust-lang.org/cargo: '*'
+    rust-lang.org: ">=1.65"
+    rust-lang.org/cargo: "*"
+    linux:
+      gnu.org/gcc: "*" # clang doesn't handle avx512f attributes properly
   script:
     # 0.0.4, 1.0.2 got released without a version bump
     - run: sed -i -e 's/^version = ".*"/version = "{{version}}"/' Cargo.toml
@@ -23,9 +25,9 @@ build:
 
 test:
   env:
-    DATABASE_URL: 'sqlite://./database.sqlite'
+    DATABASE_URL: "sqlite://./database.sqlite"
   dependencies:
-    sqlite.org: '*'
+    sqlite.org: "*"
   script:
     - test "$(geni --version)" = "geni v{{version}}"
     - geni new test
