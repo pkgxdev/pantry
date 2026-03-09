@@ -13,15 +13,14 @@ versions:
 
 dependencies:
   linux:
-    gtk.org/gtk3: '*'
+    gtk.org/gtk3: "*"
 
 build:
   dependencies:
-    cmake.org: '>=3.5'
-    chiark.greenend.org.uk/halibut: '*'
+    cmake.org: ">=3.5"
+    chiark.greenend.org.uk/halibut: "*"
     linux:
       llvm.org: 20
-      imagemagick.org: '*'
   script:
     - cmake . $ARGS
     - cmake --build . -j {{ hw.concurrency }}
@@ -47,6 +46,9 @@ build:
     ARGS:
       - -DCMAKE_BUILD_TYPE=Release
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
+    linux:
+      ARGS:
+        - -Dbuild_icons=FALSE
 
 provides:
   darwin:
