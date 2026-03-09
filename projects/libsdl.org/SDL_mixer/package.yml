@@ -1,22 +1,35 @@
 distributable:
   url: https://github.com/libsdl-org/SDL_mixer/releases/download/release-{{version}}/SDL{{version.major}}_mixer-{{version}}.tar.gz
   strip-components: 1
-  
+
 display-name: SDL_mixer
 
 versions:
   github: libsdl-org/SDL_mixer/releases
-  
+
 dependencies:
-  libsdl.org: ^2.0.9
-  mpg123.de: '*'
-  wavpack.com: '>=4'
-  xiph.org/vorbis: '*'
+  libsdl.org: "*" # complicated; needs to match the major of this package.
+  mpg123.de: "*"
+  wavpack.com: ">=4"
+  xiph.org/vorbis: "*"
+  cmake.org: "*" # since 3.2.0
 
 build:
-  script: |
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }} install
+  dependencies:
+    pkgx.sh: ">=1"
+  script:
+    - source <(pkgx +libsdl.org@{{version.major}})
+    - run:
+        - ./configure $ARGS
+        - make --jobs {{ hw.concurrency }} install
+      if: <3.2
+    - run:
+        - export CMAKE_PREFIX_PATH="{{pkgx.prefix}}/libsdl.org/v{{version.major}}:$CMAKE_PREFIX_PATH"
+        - cmake -S . -B build $CMAKE_ARGS
+        - cmake --build build
+        - cmake --install build
+      if: ">=3.2"
+
   env:
     ARGS:
       - --prefix={{prefix}}
@@ -30,16 +43,43 @@ build:
       - --enable-music-mp3-mpg123
       - --enable-music-ogg-vorbis
       - --enable-music-wavpack-dsd
-      
+    CMAKE_ARGS:
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DSDLMIXER_DEPS_SHARED=OFF
+      - -DSDLMIXER_VENDORED=OFF
+      - -DSDLMIXER_GME=OFF
+      - -DSDLMIXER_MIDI=OFF
+      - -DSDLMIXER_MOD=OFF
+      - -DSDLMIXER_MP3_DRMP3=OFF
+      - -DSDLMIXER_VORBIS_STB=OFF
+      - -DSDLMIXER_OPUS=OFF
+      - -DSDLMIXER_FLAC=OFF
+      - -DSDLMIXER_WAVPACK_DSD=ON
+      - -DSDLMIXER_TESTS=OFF
+      - -DSDLMIXER_EXAMPLES=OFF
+
 test:
   - run: cc $FIXTURE -lSDL2_mixer
+    if: <3
     fixture:
       extname: c
       contents: |
         #include <SDL2/SDL_mixer.h>
-        
+
         int main() {
           SDL_version *version = Mix_Linked_Version();
           return 0;
+        }
+  - run: cc $FIXTURE -lSDL3_mixer
+    if: ">=3"
+    fixture:
+      extname: c
+      contents: |
+        #include <SDL3_mixer/SDL_mixer.h>
+
+        int main() {
+          int version = MIX_Version();
+          return version > 0 ? 0 : 1;
         }
   - ./a.out
