@@ -13,22 +13,20 @@ build:
     cmake.org: ">=3.1"
     linux:
       gnu.org/gcc: "^14"
-  script: |
-    cmake -S . -B build \
-      -DCMAKE_INSTALL_PREFIX={{prefix}} \
-      -DCMAKE_BUILD_TYPE=Release \
+  script:
+    - cmake -S . -B build
+      -DCMAKE_INSTALL_PREFIX={{prefix}}
+      -DCMAKE_BUILD_TYPE=Release
       -Dtoml11_BUILD_TESTS=OFF
-    cmake --build build
-    cmake --install build
+    - cmake --build build
+    - cmake --install build
 
 test:
   dependencies:
      linux:
         gnu.org/gcc: "^14"
   script:
-  - run: |
-      c++ $FIXTURE -o test -std=c++14
-      ./test
+  - run: c++ $FIXTURE -o test -std=c++14
     fixture:
       extname: cpp
       content: |
@@ -40,3 +38,4 @@ test:
           std::cout << toml::find<std::string>(data, "test") << std::endl;
           return 0;
         }
+  - ./test
