@@ -8,7 +8,7 @@ distributable:
 platforms: [linux]
 
 versions:
-  github: rpm-software-management/dnf5/releases/tags
+  github: rpm-software-management/dnf5
 
 dependencies:
   rpm.org/rpm: "*"
@@ -35,57 +35,6 @@ build:
     python.org: ">=3.9"
     github.com/ToruNiina/toml11: "*"
   env:
-    _CMAKE_PREFIX_PATHS:
-      - "{{deps.github.com/ToruNiina/toml11.prefix}}"
-      - "{{deps.fmt.dev.prefix}}"
-    _CPLUS_INCLUDE_PATHS:
-      - "{{deps.fmt.dev.prefix}}/include"
-      - "{{deps.github.com/ToruNiina/toml11.prefix}}/include"
-      - "{{deps.opensuse.org/libsolv.prefix}}/include"
-      - "{{deps.rpm.org/librepo.prefix}}/include"
-      - "{{deps.gnome.org/glib.prefix}}/include/glib-2.0"
-      - "{{deps.gnome.org/glib.prefix}}/lib/glib-2.0/include"
-      - "{{deps.gnome.org/libxml2.prefix}}/include/libxml2"
-      - "{{deps.github.com/json-c/json-c.prefix}}/include"
-      - "{{deps.sqlite.org.prefix}}/include"
-      - "{{deps.curl.se.prefix}}/include"
-      - "{{deps.openssl.org.prefix}}/include"
-      - "{{deps.rpm.org/rpm.prefix}}/include"
-      - "{{deps.github.com/util-linux/util-linux.prefix}}/include"
-    _PKG_CONFIG_PATHS:
-      - "{{deps.fmt.dev.prefix}}/lib/pkgconfig"
-      - "{{deps.github.com/json-c/json-c.prefix}}/lib/pkgconfig"
-      - "{{deps.savannah.nongnu.org/acl.prefix}}/lib/pkgconfig"
-      - "{{deps.opensuse.org/libsolv.prefix}}/lib/pkgconfig"
-      - "{{deps.rpm.org/rpm.prefix}}/lib/pkgconfig"
-      - "{{deps.rpm.org/popt.prefix}}/lib/pkgconfig"
-      - "{{deps.rpm.org/librepo.prefix}}/lib/pkgconfig"
-      - "{{deps.gnome.org/glib.prefix}}/lib/pkgconfig"
-      - "{{deps.gnome.org/libxml2.prefix}}/lib/pkgconfig"
-      - "{{deps.pcre.org/v2.prefix}}/lib/pkgconfig"
-      - "{{deps.sourceware.org/libffi.prefix}}/lib/pkgconfig"
-      - "{{deps.curl.se.prefix}}/lib/pkgconfig"
-      - "{{deps.openssl.org.prefix}}/lib/pkgconfig"
-      - "{{deps.zlib.net.prefix}}/lib/pkgconfig"
-      - "{{deps.sqlite.org.prefix}}/lib/pkgconfig"
-      - "{{deps.github.com/util-linux/util-linux.prefix}}/lib/pkgconfig"
-    _LIBRARY_PATHS:
-      - "{{deps.fmt.dev.prefix}}/lib"
-      - "{{deps.github.com/json-c/json-c.prefix}}/lib"
-      - "{{deps.savannah.nongnu.org/acl.prefix}}/lib"
-      - "{{deps.opensuse.org/libsolv.prefix}}/lib"
-      - "{{deps.rpm.org/rpm.prefix}}/lib"
-      - "{{deps.rpm.org/popt.prefix}}/lib"
-      - "{{deps.rpm.org/librepo.prefix}}/lib"
-      - "{{deps.gnome.org/glib.prefix}}/lib"
-      - "{{deps.gnome.org/libxml2.prefix}}/lib"
-      - "{{deps.pcre.org/v2.prefix}}/lib"
-      - "{{deps.sourceware.org/libffi.prefix}}/lib"
-      - "{{deps.curl.se.prefix}}/lib"
-      - "{{deps.openssl.org.prefix}}/lib"
-      - "{{deps.zlib.net.prefix}}/lib"
-      - "{{deps.sqlite.org.prefix}}/lib"
-      - "{{deps.github.com/util-linux/util-linux.prefix}}/lib"
     CMAKE_ARGS:
       - -DCMAKE_BUILD_TYPE=Release
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
@@ -110,57 +59,31 @@ build:
       - -DWITH_PLUGIN_APPSTREAM=OFF
       - -DWITH_PYTHON_PLUGINS_LOADER=OFF
   script:
-    - export CMAKE_PREFIX_PATH=$(echo "$_CMAKE_PREFIX_PATHS" | tr ' ' ':'):$CMAKE_PREFIX_PATH
-    - export CPLUS_INCLUDE_PATH=$(echo "$_CPLUS_INCLUDE_PATHS" | tr ' ' ':'):$CPLUS_INCLUDE_PATH
-    - export PKG_CONFIG_PATH=$(echo "$_PKG_CONFIG_PATHS" | tr ' ' ':'):$PKG_CONFIG_PATH
-    - export LIBRARY_PATH=$(echo "$_LIBRARY_PATHS" | tr ' ' ':'):$LIBRARY_PATH
-    - export LD_LIBRARY_PATH=$(echo "$_LIBRARY_PATHS" | tr ' ' ':'):$LD_LIBRARY_PATH
     - sed -i 's|set(SYSTEMD_DIR "/usr/lib/systemd/system")|set(SYSTEMD_DIR "{{prefix}}/lib/systemd/system")|' CMakeLists.txt
     - cmake . $CMAKE_ARGS
     - cmake --build . --target libdnf5 --target libdnf5-cli
     - cmake --install .
-    - cd {{prefix}}/lib
-    - |
-      for lib in libdnf5.so libdnf5-cli.so; do
-        if [ -f "$lib" ]; then
-          mv "$lib" "${lib}.{{version}}"
-          ln -s "${lib}.{{version}}" "${lib}.{{version.major}}"
-          ln -s "${lib}.{{version.major}}" "$lib"
-        fi
-      done
+    - run: |
+        for lib in libdnf5.so libdnf5-cli.so; do
+          if [ -f "$lib" ]; then
+            mv "$lib" "${lib}.{{version}}"
+            ln -s "${lib}.{{version}}" "${lib}.{{version.major}}"
+            ln -s "${lib}.{{version.major}}" "$lib"
+          fi
+        done
+      working-directory: ${{prefix}}/lib
 
 test:
-  env:
-    _PKG_CONFIG_PATHS:
-      - "{{prefix}}/lib/pkgconfig"
-      - "{{deps.fmt.dev.prefix}}/lib/pkgconfig"
-      - "{{deps.github.com/json-c/json-c.prefix}}/lib/pkgconfig"
-      - "{{deps.savannah.nongnu.org/acl.prefix}}/lib/pkgconfig"
-      - "{{deps.opensuse.org/libsolv.prefix}}/lib/pkgconfig"
-      - "{{deps.rpm.org/rpm.prefix}}/lib/pkgconfig"
-      - "{{deps.rpm.org/popt.prefix}}/lib/pkgconfig"
-      - "{{deps.rpm.org/librepo.prefix}}/lib/pkgconfig"
-      - "{{deps.gnome.org/glib.prefix}}/lib/pkgconfig"
-      - "{{deps.gnome.org/libxml2.prefix}}/lib/pkgconfig"
-      - "{{deps.pcre.org/v2.prefix}}/lib/pkgconfig"
-      - "{{deps.sourceware.org/libffi.prefix}}/lib/pkgconfig"
-      - "{{deps.curl.se.prefix}}/lib/pkgconfig"
-      - "{{deps.openssl.org.prefix}}/lib/pkgconfig"
-      - "{{deps.zlib.net.prefix}}/lib/pkgconfig"
-      - "{{deps.sqlite.org.prefix}}/lib/pkgconfig"
-      - "{{deps.github.com/util-linux/util-linux.prefix}}/lib/pkgconfig"
-  script:
-    - export PKG_CONFIG_PATH=$(echo "$_PKG_CONFIG_PATHS" | tr ' ' ':'):$PKG_CONFIG_PATH
-    - test -f {{prefix}}/lib/libdnf5.so.{{version}}
-    - test -L {{prefix}}/lib/libdnf5.so.{{version.major}}
-    - test -L {{prefix}}/lib/libdnf5.so
-    - run: c++ $FIXTURE -o test $(pkg-config --cflags --libs libdnf5)
-      fixture:
-        extname: cpp
-        content: |
-          #include <libdnf5/version.hpp>
+  - test -f {{prefix}}/lib/libdnf5.so.{{version}}
+  - test -L {{prefix}}/lib/libdnf5.so.{{version.major}}
+  - test -L {{prefix}}/lib/libdnf5.so
+  - run: c++ $FIXTURE -o test $(pkg-config --cflags --libs libdnf5)
+    fixture:
+      extname: cpp
+      content: |
+        #include <libdnf5/version.hpp>
 
-          int main() {
-            return 0;
-          }
-    - ./test
+        int main() {
+          return 0;
+        }
+  - ./test
