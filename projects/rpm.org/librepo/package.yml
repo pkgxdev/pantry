@@ -1,0 +1,102 @@
+display-name: librepo
+summary: Library for downloading linux repository metadata and packages
+
+distributable:
+  url: https://github.com/rpm-software-management/librepo/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+platforms: [linux]
+
+versions:
+  github: rpm-software-management/librepo/releases/tags
+
+dependencies:
+  gnome.org/glib: "*"
+  gnome.org/libxml2: "*"
+  savannah.nongnu.org/attr: "*"
+  curl.se: "*"
+  openssl.org: "*"
+  rpm.org/rpm: "*"
+  rpm.org/popt: "*"
+  zlib.net: "*"
+  pcre.org/v2: "*"
+  sourceware.org/libffi: "*"
+
+build:
+  dependencies:
+    cmake.org: ">=3.16"
+    gnu.org/gcc: "^14"
+    python.org: ">=3.9"
+  env:
+    _PKG_CONFIG_PATHS:
+      - "{{deps.gnome.org/glib.prefix}}/lib/pkgconfig"
+      - "{{deps.gnome.org/libxml2.prefix}}/lib/pkgconfig"
+      - "{{deps.curl.se.prefix}}/lib/pkgconfig"
+      - "{{deps.openssl.org.prefix}}/lib/pkgconfig"
+      - "{{deps.rpm.org/rpm.prefix}}/lib/pkgconfig"
+      - "{{deps.rpm.org/popt.prefix}}/lib/pkgconfig"
+      - "{{deps.zlib.net.prefix}}/lib/pkgconfig"
+      - "{{deps.pcre.org/v2.prefix}}/lib/pkgconfig"
+      - "{{deps.sourceware.org/libffi.prefix}}/lib/pkgconfig"
+    CMAKE_ARGS:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DUSE_GPGME=OFF
+      - -DWITH_ZCHUNK=OFF
+      - -DENABLE_TESTS=OFF
+      - -DENABLE_PYTHON=OFF
+      - -DENABLE_DOCS=OFF
+    _CMAKE_LIBRARY_PATHS:
+      - "{{deps.gnome.org/glib.prefix}}/lib"
+      - "{{deps.gnome.org/libxml2.prefix}}/lib"
+      - "{{deps.curl.se.prefix}}/lib"
+      - "{{deps.openssl.org.prefix}}/lib"
+      - "{{deps.rpm.org/rpm.prefix}}/lib"
+      - "{{deps.rpm.org/popt.prefix}}/lib"
+      - "{{deps.zlib.net.prefix}}/lib"
+      - "{{deps.pcre.org/v2.prefix}}/lib"
+      - "{{deps.sourceware.org/libffi.prefix}}/lib"
+  script:
+    - export PKG_CONFIG_PATH=$(echo "$_PKG_CONFIG_PATHS" | tr ' ' ':'):$PKG_CONFIG_PATH
+    - export LIBRARY_PATH=$(echo "$_CMAKE_LIBRARY_PATHS" | tr ' ' ':'):$LIBRARY_PATH
+    - export LD_LIBRARY_PATH=$(echo "$_CMAKE_LIBRARY_PATHS" | tr ' ' ':'):$LD_LIBRARY_PATH
+    - cmake -S . -B build $CMAKE_ARGS
+    - cmake --build build  
+    - cmake --install build
+    - cd {{prefix}}/lib
+    - |
+      if [ -f "librepo.so.0" ]; then
+        mv "librepo.so.0" "librepo.so.0.{{version}}"
+        ln -sf "librepo.so.0.{{version}}" "librepo.so.0"
+        ln -sf "librepo.so.0" "librepo.so"
+      fi
+
+test:
+  env:
+    _PKG_CONFIG_PATHS:
+      - "{{prefix}}/lib/pkgconfig"
+      - "{{deps.gnome.org/glib.prefix}}/lib/pkgconfig"
+      - "{{deps.gnome.org/libxml2.prefix}}/lib/pkgconfig"
+      - "{{deps.curl.se.prefix}}/lib/pkgconfig"
+      - "{{deps.openssl.org.prefix}}/lib/pkgconfig"
+      - "{{deps.rpm.org/rpm.prefix}}/lib/pkgconfig"
+      - "{{deps.rpm.org/popt.prefix}}/lib/pkgconfig"
+      - "{{deps.zlib.net.prefix}}/lib/pkgconfig"
+      - "{{deps.pcre.org/v2.prefix}}/lib/pkgconfig"
+      - "{{deps.sourceware.org/libffi.prefix}}/lib/pkgconfig"
+  script:
+    - export PKG_CONFIG_PATH=$(echo "$_PKG_CONFIG_PATHS" | tr ' ' ':'):$PKG_CONFIG_PATH
+    - test -f {{prefix}}/lib/librepo.so.0.{{version}}
+    - test -L {{prefix}}/lib/librepo.so.0
+    - test -L {{prefix}}/lib/librepo.so
+    - test -f {{prefix}}/include/librepo/librepo.h
+    - run: cc $FIXTURE -o test $(pkg-config --cflags --libs librepo)
+      fixture:
+        extname: c
+        content: |
+          #include <librepo/librepo.h>
+
+          int main(void) {
+            return 0;
+          }
+    - ./test
