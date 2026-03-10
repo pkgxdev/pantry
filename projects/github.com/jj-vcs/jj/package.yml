@@ -1,22 +1,19 @@
 distributable:
-  url: https://github.com/jj-vcs/jj/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/jj-vcs/jj/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 display-name: jj
 
 versions:
   github: jj-vcs/jj/tags
-  strip: /v/
 
 provides:
   - bin/jj
 
 build:
   dependencies:
-    rust-lang.org: "*"
-    rust-lang.org/cargo: "*"
+    rust-lang.org: ^1.89
+    rust-lang.org/cargo: ^0.91
   script: cargo install --locked --path cli --root {{prefix}} --bin jj
 
-test:
-  script: |
-    {{prefix}}/bin/jj --version
+test: test "$(jj --version)" = "jj {{version}}"
