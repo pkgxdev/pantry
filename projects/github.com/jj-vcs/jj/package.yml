@@ -16,4 +16,6 @@ build:
     rust-lang.org/cargo: ^0.91
   script: cargo install --locked --path cli --root {{prefix}} --bin jj
 
-test: test "$(jj --version)" = "jj {{version}}-"*
+test:
+  - jj --version 2>&1 | tee out
+  - grep "jj {{version}}" out
