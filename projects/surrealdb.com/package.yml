@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/surrealdb/surrealdb/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/surrealdb/surrealdb/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 provides:
@@ -13,13 +13,19 @@ dependencies:
 
 build:
   dependencies:
-    rust-lang.org: '>=1.60'
-    rust-lang.org/cargo: '*'
-    freedesktop.org/pkg-config: ^0.29
-    gnu.org/patch: '*' # rquickjs-sys:build.rs:L132
-  script: cargo install --path . --locked --root {{prefix}}
+    rust-lang.org: ">=1.60"
+    rust-lang.org/cargo: "*"
+    gnu.org/patch: "*" # rquickjs-sys:build.rs:L132
+  script:
+    # async state machines can exceed the default recursion limit (128)
+    - run: sed -i -f $PROP lib.rs
+      if: ^3.0.3
+      prop: |
+        1i #![recursion_limit = "256"]
+      working-directory: surrealdb/server/src
+    - cargo install --path . --locked --root {{prefix}}
   env:
-    SURREAL_BUILD_METADATA: 'pkgx'
+    SURREAL_BUILD_METADATA: "pkgx"
     RUSTFLAGS:
       # required as of v1.4.0
       - --cfg surrealdb_unstable
