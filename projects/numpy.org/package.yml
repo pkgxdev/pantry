@@ -10,7 +10,7 @@ dependencies:
   python.org: ^3.11
 
 companions:
-  gnu.org/gcc: '*' #gfortran (no Fortran compiler found)
+  gnu.org/gcc: "*" #gfortran (no Fortran compiler found)
 
 runtime:
   env:
@@ -18,8 +18,8 @@ runtime:
 
 build:
   dependencies:
-    cython.org/libcython: '*'
-    llvm.org: '*' # fails with gcc
+    cython.org/libcython: "*"
+    llvm.org: "*" # fails with gcc
   script:
     - run: |
         cat <<EOF > site.cfg
@@ -53,7 +53,9 @@ provides:
 
 test:
   dependencies:
-    llvm.org: '*' # fails with gcc
+    llvm.org: "*" # fails with gcc
+    darwin/x86-64:
+      gnu.org/gcc: 14 # gfortan isn't happy on v15
   script:
     - python test.py
     - f2py -v | grep {{version}}
