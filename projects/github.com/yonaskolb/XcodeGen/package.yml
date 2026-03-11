@@ -9,14 +9,47 @@ platforms:
 
 provides:
   - bin/xcodegen
+  - bin/xcodegen-init
+
+dependencies:
+  github.com/mikefarah/yq: "*"
+  stedolan.github.io/jq: "*"
 
 warnings:
   - vendored
 
 build:
   working-directory: ${{prefix}}/bin
-  script: cp "$SRCROOT"/xcodegen/bin/xcodegen .
+  script:
+    - cp "$SRCROOT"/xcodegen/bin/xcodegen .
+    - install -m755 "$SRCROOT"/props/xcodegen-init ./xcodegen-init
 
 test:
-  script: |
-    [[ "$(xcodegen --version)" = "Version: {{version}}" ]]
+  script:
+    - run: '[[ "$(xcodegen --version)" = "Version: {{version}}" ]]'
+    - run: xcodegen-init --help | grep -q xcodegen-init
+    - run: |
+        cat > ./manifest.md <<'EOF'
+        ---
+        project:
+          name: "SampleApp"
+        options:
+          bundleIdPrefix: "com.example"
+        target:
+          name: "SampleApp"
+          type: "application"
+          platform: "iOS"
+          deploymentTarget: "17.0"
+          sources:
+            - "Sources"
+        settings:
+          base:
+            SWIFT_VERSION: "5.10"
+        ---
+        EOF
+        mkdir -p ./Sources
+        xcodegen-init ./manifest.md --write-only --output ./project.yml
+        test -f ./project.yml
+        grep -q '^name: SampleApp$' ./project.yml
+        grep -q '^  SampleApp:$' ./project.yml
+        xcodegen dump --spec ./project.yml --type yaml >/dev/null
