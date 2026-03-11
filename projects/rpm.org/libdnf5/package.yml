@@ -110,6 +110,17 @@ build:
       - -DWITH_PLUGIN_APPSTREAM=OFF
       - -DWITH_PYTHON_PLUGINS_LOADER=OFF
   script:
+    - run: |
+        compat_include="$PWD/.compat-headers"
+        compat_solv_dir="$compat_include/solv"
+        mkdir -p "$compat_solv_dir"
+
+        libsolv_include="{{deps.opensuse.org/libsolv.prefix}}/include"
+        if [ -f "$libsolv_include/pool_parserpmrichdep.h" ] && [ ! -f "$libsolv_include/solv/pool_parserpmrichdep.h" ]; then
+          printf '%s\n' '#include <pool_parserpmrichdep.h>' > "$compat_solv_dir/pool_parserpmrichdep.h"
+        fi
+
+        export CPLUS_INCLUDE_PATH="$compat_include:${CPLUS_INCLUDE_PATH:-}"
     - export CMAKE_PREFIX_PATH=$(echo "$_CMAKE_PREFIX_PATHS" | tr ' ' ':'):$CMAKE_PREFIX_PATH
     - export CPLUS_INCLUDE_PATH=$(echo "$_CPLUS_INCLUDE_PATHS" | tr ' ' ':'):$CPLUS_INCLUDE_PATH
     - export PKG_CONFIG_PATH=$(echo "$_PKG_CONFIG_PATHS" | tr ' ' ':'):$PKG_CONFIG_PATH
