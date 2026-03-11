@@ -114,15 +114,22 @@ build:
         compat_include="$PWD/.compat-headers"
         compat_solv_dir="$compat_include/solv"
         mkdir -p "$compat_solv_dir"
-
-        libsolv_include="{{deps.opensuse.org/libsolv.prefix}}/include"
-        if [ -f "$libsolv_include/pool_parserpmrichdep.h" ] && [ ! -f "$libsolv_include/solv/pool_parserpmrichdep.h" ]; then
-          printf '%s\n' '#include <pool_parserpmrichdep.h>' > "$compat_solv_dir/pool_parserpmrichdep.h"
-        fi
-
-        export CPLUS_INCLUDE_PATH="$compat_include:${CPLUS_INCLUDE_PATH:-}"
+        cat > "$compat_solv_dir/pool_parserpmrichdep.h" <<'EOF'
+        #ifndef POOL_PARSERPMRICHDEP_H
+        #define POOL_PARSERPMRICHDEP_H
+        #include <solv/pool.h>
+        #ifdef __cplusplus
+        extern "C" {
+        #endif
+        extern Id pool_parserpmrichdep(Pool *pool, const char *dep);
+        #ifdef __cplusplus
+        }
+        #endif
+        #endif
+        EOF
     - export CMAKE_PREFIX_PATH=$(echo "$_CMAKE_PREFIX_PATHS" | tr ' ' ':'):$CMAKE_PREFIX_PATH
     - export CPLUS_INCLUDE_PATH=$(echo "$_CPLUS_INCLUDE_PATHS" | tr ' ' ':'):$CPLUS_INCLUDE_PATH
+    - export CPLUS_INCLUDE_PATH=$PWD/.compat-headers:$CPLUS_INCLUDE_PATH
     - export PKG_CONFIG_PATH=$(echo "$_PKG_CONFIG_PATHS" | tr ' ' ':'):$PKG_CONFIG_PATH
     - export LIBRARY_PATH=$(echo "$_LIBRARY_PATHS" | tr ' ' ':'):$LIBRARY_PATH
     - export LD_LIBRARY_PATH=$(echo "$_LIBRARY_PATHS" | tr ' ' ':'):$LD_LIBRARY_PATH
