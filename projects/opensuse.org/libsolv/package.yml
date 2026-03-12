@@ -21,9 +21,24 @@ build:
   dependencies:
     cmake.org: ^3
   script:
+    - run: cp $PROP pool_parserpmrichdep.h
+      working-directory: .compat-headers/solv
+      prop: |
+        #ifndef POOL_PARSERPMRICHDEP_H
+        #define POOL_PARSERPMRICHDEP_H
+        #include <solv/pool.h>
+        #ifdef __cplusplus
+        extern "C" {
+        #endif
+        extern Id pool_parserpmrichdep(Pool *pool, const char *dep);
+        #ifdef __cplusplus
+        }
+        #endif
+        #endif
     - cmake -S . -B build $CMAKE_ARGS
     - cmake --build build
     - cmake --install build
+    - install -Dm644 .compat-headers/solv/pool_parserpmrichdep.h {{prefix}}/include/solv/pool_parserpmrichdep.h
   env:
     CMAKE_ARGS:
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
