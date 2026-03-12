@@ -1,0 +1,88 @@
+display-name: DNF5
+summary: Next-generation RPM package management system
+
+distributable:
+  url: https://github.com/rpm-software-management/dnf5/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+platforms: [linux]
+
+versions:
+  github: rpm-software-management/dnf5
+
+dependencies:
+  rpm.org/rpm: "*"
+  rpm.org/libdnf5: "*"
+  rpm.org/librepo: "*"
+  rpm.org/popt: "*"
+  opensuse.org/libsolv: "*"
+  github.com/json-c/json-c: "*"
+  gnome.org/glib: "*"
+  gnome.org/libxml2: "*"
+  pcre.org/v2: "*"
+  sourceware.org/libffi: "*"
+  fmt.dev: "*"
+  savannah.nongnu.org/acl: "*"
+  curl.se: "*"
+  openssl.org: "*"
+  sqlite.org: "*"
+  github.com/util-linux/util-linux: "*"
+
+build:
+  dependencies:
+    cmake.org: ">=3.16"
+    gnu.org/gcc: "^14"
+    python.org: ">=3.9"
+    gnu.org/gettext: "*"
+    doxygen.nl: "*"
+    github.com/ToruNiina/toml11: "*"
+  env:
+    CMAKE_ARGS:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_INSTALL_SYSCONFDIR={{prefix}}/etc
+      - -DCMAKE_INSTALL_LOCALSTATEDIR={{prefix}}/var
+      - -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined
+      - -DBASH_COMPLETION_COMPLETIONSDIR={{prefix}}/share/bash-completion/completions
+      - -DWITH_TRANSLATIONS=OFF
+      - -DWITH_DNF5=ON
+      - -DWITH_DNF5_PLUGINS=OFF
+      - -DWITH_DNF5DAEMON_CLIENT=OFF
+      - -DWITH_DNF5DAEMON_SERVER=OFF
+      - -DWITH_HTML=OFF
+      - -DWITH_MAN=OFF
+      - -DWITH_GO=OFF
+      - -DWITH_PERL5=OFF
+      - -DWITH_PYTHON3=OFF
+      - -DWITH_RUBY=OFF
+      - -DWITH_TESTS=OFF
+      - -DWITH_MODULEMD=OFF
+      - -DWITH_SYSTEMD=OFF
+      - -DWITH_PLUGIN_ACTIONS=OFF
+      - -DWITH_PLUGIN_EXPIRED_PGP_KEYS=OFF
+      - -DWITH_PLUGIN_LOCAL=OFF
+      - -DWITH_PLUGIN_MANIFEST=OFF
+      - -DWITH_PLUGIN_APPSTREAM=OFF
+      - -DWITH_PYTHON_PLUGINS_LOADER=OFF
+      - -DWITH_PLUGIN_RHSM=OFF
+  script:
+    - sed -i 's|set(SYSTEMD_DIR "/usr/lib/systemd/system")|set(SYSTEMD_DIR "{{prefix}}/lib/systemd/system")|' CMakeLists.txt
+    - sed -i 's|set (BASH_COMPLETION_COMPLETIONSDIR "/etc/bash_completion.d")|set (BASH_COMPLETION_COMPLETIONSDIR "{{prefix}}/share/bash-completion/completions")|' dnf5/CMakeLists.txt
+    - sed -i '/find_package(bash-completion)/a set(BASH_COMPLETION_COMPLETIONSDIR "{{prefix}}/share/bash-completion/completions")' dnf5/CMakeLists.txt
+    - cmake . $CMAKE_ARGS
+    - cmake --build . --target dnf5
+    - cmake --install .
+
+provides:
+  - bin/dnf5
+
+runtime:
+  env:
+    RPM_CONFIGDIR: "{{deps.rpm.org/rpm.prefix}}/lib/rpm"
+    RPMRC: "{{deps.rpm.org/rpm.prefix}}/lib/rpm/rpmrc"
+
+test:
+  - dnf5 --version 2>&1 | tee out
+  - test "$(cat out | head -n1 | awk '{print $3}')" == "{{version.tag}}"
+  - dnf5 --help
+ 
