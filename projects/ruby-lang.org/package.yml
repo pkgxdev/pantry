@@ -25,6 +25,12 @@ build:
       rubygems.org: "*"
       # ^^ only linux because we got issues on darwin currently and darwin provides ruby (for now)
   script:
+    - run: ARGS="$ARGS --with-sitearchdir={{prefix}}/lib/ruby/site_ruby"
+      if: <4
+    # gets topdir prefix bc enable-load-relative. in v4
+    - run: ARGS="$ARGS --with-sitearchdir=/lib/ruby/site_ruby"
+      if: ">=4"
+
     - patch -p1 -F5 < props/mkconfig.rb.diff
 
     - CC=cc CXX=c++ ./configure $ARGS
@@ -157,7 +163,6 @@ build:
       - --disable-multiarch # ^^
       - --with-vendordir=no # is empty so don’t pollute
       - --with-vendorarchdir=no # ^^
-      - --with-sitearchdir=/lib/ruby/site_ruby # gets topdir prefix bc enable-load-relative
       - --enable-yjit # https://github.com/pkgxdev/pantry/issues/3538
       - --disable-install-doc
 
@@ -203,7 +208,6 @@ test:
           end
           puts fib(35)
         extname: rb
-
 
     # Verify all RbConfig::CONFIG paths are correctly relocated at runtime.
     # Expected values are derived independently from the actual location of
