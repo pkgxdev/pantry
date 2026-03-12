@@ -78,15 +78,11 @@ provides:
 
 runtime:
   env:
-    LD_LIBRARY_PATH: "{{prefix}}/lib:$LD_LIBRARY_PATH"
     RPM_CONFIGDIR: "{{deps.rpm.org/rpm.prefix}}/lib/rpm"
     RPMRC: "{{deps.rpm.org/rpm.prefix}}/lib/rpm/rpmrc"
 
 test:
-  env:
-    RPM_CONFIGDIR: "{{deps.rpm.org/rpm.prefix}}/lib/rpm"
-    RPMRC: "{{deps.rpm.org/rpm.prefix}}/lib/rpm/rpmrc"
-  script:
-    - test "$(dnf5 --version | head -n1 | awk '{print $3}')" == "{{version.tag}}"
-    - dnf5 --help
+  - dnf5 --version 2>&1 | tee out
+  - test "$(cat out | head -n1 | awk '{print $3}')" == "{{version.tag}}"
+  - dnf5 --help
  
