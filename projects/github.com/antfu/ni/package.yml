@@ -6,8 +6,8 @@ versions:
   github: antfu/ni
 
 dependencies:
-  nodejs.org: '>=14'
-  npmjs.com: '*'
+  nodejs.org: ">=14"
+  npmjs.com: "*"
 
 build:
   dependencies:
@@ -38,7 +38,11 @@ build:
       if: <25
     - run: ln -s nup nu
       working-directory: ${{prefix}}/bin
-      if: '>=25'
+      if: ">=25"
+  # in v29 @rolldown/binding-darwin-arm64 has binary blobs that don't have enough room
+  # to rewrite the headers (and don't need it anyway)
+  skip: fix-machos
+
 provides:
   - bin/na
   - bin/nci
@@ -52,5 +56,5 @@ provides:
 test:
   # or errors
   - run: touch .nirc
-    if: '>=0.21.9'
+    if: ">=0.21.9"
   - (ni --version || true) | grep {{version}}
