@@ -41,18 +41,11 @@ runs:
       if: runner.os == 'macOS' && inputs.p12-password && inputs.p12-file-base64
       run: security delete-keychain signing_temp.keychain || true
 
-    - uses: apple-actions/import-codesign-certs@v2
+    - uses: apple-actions/import-codesign-certs@v6
       if: runner.os == 'macOS' && inputs.p12-password && inputs.p12-file-base64
       with:
         p12-file-base64: ${{ inputs.p12-file-base64 }}
         p12-password: ${{ inputs.p12-password }}
-
-    # Needed for self-hosted runner, since it doesn't destroy itself automatically.
-    - name: Delete keychain
-      uses: webiny/action-post-run@3.0.0
-      if: runner.os == 'macOS' && inputs.p12-password && inputs.p12-file-base64
-      with:
-        run: security delete-keychain signing_temp.keychain
 
     # the intention is to make none of these required eventually
     - name: apt-get install
