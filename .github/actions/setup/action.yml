@@ -47,13 +47,6 @@ runs:
         p12-file-base64: ${{ inputs.p12-file-base64 }}
         p12-password: ${{ inputs.p12-password }}
 
-    # Needed for self-hosted runner, since it doesn't destroy itself automatically.
-    - name: Delete keychain
-      uses: webiny/action-post-run@1bf3b5b9b29d8c6141db0222d20b6f9fb5e75c46
-      if: runner.os == 'macOS' && inputs.p12-password && inputs.p12-file-base64
-      with:
-        run: security delete-keychain signing_temp.keychain
-
     # the intention is to make none of these required eventually
     - name: apt-get install
       run: |
