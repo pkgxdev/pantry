@@ -33,4 +33,29 @@ build:
     - cargo install --path spider_cli --root {{prefix}} --features smart,spider/serde
   skip: fix-patchelf # dumps on x86-64
 
-test: spider -v --url https://choosealicense.com crawl
+test:
+  dependencies:
+    linux/x86-64:
+      gnu.org/binutils: "*"
+      darwinsys.com/file: "*"
+      strace.io: "*"
+  script:
+    - run:
+        - BIN=$(command -v spider)
+        - echo "=== file ==="
+        - file $BIN
+        - echo "=== readelf -h (ELF type) ==="
+        - readelf -h $BIN | grep -i type
+        - echo "=== readelf -d (RPATH/RUNPATH) ==="
+        - readelf -d $BIN | grep -iE 'rpath|runpath|needed' || echo "(none)"
+        - echo "=== ldd ==="
+        - ldd $BIN
+        - echo "=== AVX instruction count ==="
+        - objdump -d $BIN | grep -c -iE 'vmov|vpadd|vpxor|vbroadcast|vzero' || echo "0"
+        - echo "=== CPU flags ==="
+        - grep -oP 'flags\s*:\s*\K.*' /proc/cpuinfo | head -1
+        - strace -f -o /tmp/spider.strace spider -v --url https://choosealicense.com crawl || true
+        - tail -50 /tmp/spider.strace
+        - grep -i 'SIGILL\|io_uring\|mmap\|mprotect' /tmp/spider.strace
+      if: linux/x86-64
+    - spider -v --url https://choosealicense.com crawl
