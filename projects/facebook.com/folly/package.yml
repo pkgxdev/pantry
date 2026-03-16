@@ -64,6 +64,9 @@ build:
         /ChecksumDetail.h/a\
         #include <stdexcept>
 
+    # folly/system/os/linux.cpp is compiled on all platforms since 2026.3.16.0
+    - run: sed -i '/linux\.cpp/d' folly/system/os/CMakeLists.txt
+      if: darwin
     - cmake $ARGS -DBUILD_SHARED_LIBS=ON -S . -B shared
     - cmake --build shared
     - cmake --install shared
