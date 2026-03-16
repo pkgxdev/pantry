@@ -56,12 +56,12 @@ test:
         - grep -oP 'flags\s*:\s*\K.*' /proc/cpuinfo | head -1
         - echo "=== SIGILL crash analysis ==="
         - RUST_BACKTRACE=full strace -f -o /tmp/spider.strace spider -v --url https://choosealicense.com crawl 2>&1 || true
-        - FAULT=$(grep 'si_addr=' /tmp/spider.strace | grep -oP 'si_addr=\K0x[0-9a-f]+')
+        - FAULT=$(grep 'si_addr=' /tmp/spider.strace | grep -oP 'si_addr=\K0x[0-9a-f]+' || true)
         - echo "fault addr=$FAULT"
         - echo "=== /proc/pid maps (text segment base) ==="
         - grep ' r.xp ' /tmp/spider.strace | head -5 || true
         - echo "=== last 20 lines before crash ==="
-        - grep -B20 'SIGILL' /tmp/spider.strace | head -25
+        - grep -B20 'SIGILL' /tmp/spider.strace | head -25 || true
         - echo "=== finding faulting function ==="
         - |
           if test -n "$FAULT"; then
