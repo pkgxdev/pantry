@@ -24,6 +24,10 @@ build:
       prop: |
         /^serde_json =/a\
         openssl-sys = { version = "*", features = ["vendored"] }
+    # io_uring is default-on but SIGILLs on CI ubuntu runners (since v2.47.22)
+    - run: sed -i 's/"io_uring",\? *//' Cargo.toml
+      working-directory: spider
+      if: linux/x86-64
     # _requires_ spider/serde to build since 2.37.120
     - cargo install --path spider_cli --root {{prefix}} --features smart,spider/serde
   skip: fix-patchelf # dumps on x86-64
