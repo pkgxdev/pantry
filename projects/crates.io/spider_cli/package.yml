@@ -54,8 +54,29 @@ test:
         - objdump -d $BIN | grep -c -iE 'vmov|vpadd|vpxor|vbroadcast|vzero' || echo "0"
         - echo "=== CPU flags ==="
         - grep -oP 'flags\s*:\s*\K.*' /proc/cpuinfo | head -1
-        - strace -f -o /tmp/spider.strace spider -v --url https://choosealicense.com crawl || true
-        - tail -50 /tmp/spider.strace
-        - grep -i 'SIGILL\|io_uring\|mmap\|mprotect' /tmp/spider.strace
+        - echo "=== SIGILL crash analysis ==="
+        - RUST_BACKTRACE=full strace -f -o /tmp/spider.strace spider -v --url https://choosealicense.com crawl 2>&1 || true
+        - FAULT=$(grep 'si_addr=' /tmp/spider.strace | grep -oP 'si_addr=\K0x[0-9a-f]+')
+        - echo "fault addr=$FAULT"
+        - echo "=== /proc/pid maps (text segment base) ==="
+        - grep ' r.xp ' /tmp/spider.strace | head -5 || true
+        - echo "=== last 20 lines before crash ==="
+        - grep -B20 'SIGILL' /tmp/spider.strace | head -25
+        - echo "=== finding faulting function ==="
+        - |
+          if test -n "$FAULT"; then
+            # get text base from strace: first execve'd process mmap with PROT_EXEC
+            TEXTBASE=$(grep -oP 'mmap\(\K0x55[0-9a-f]+' /tmp/spider.strace | head -1)
+            if test -z "$TEXTBASE"; then
+              TEXTBASE=$(grep 'mprotect.*PROT_READ\b' /tmp/spider.strace | grep -oP '0x55[0-9a-f]+' | head -1)
+            fi
+            echo "text base=$TEXTBASE"
+            if test -n "$TEXTBASE"; then
+              OFFSET=$(printf '%x' $(($FAULT - $TEXTBASE)))
+              echo "file offset=0x$OFFSET"
+              addr2line -e $BIN -f -p 0x$OFFSET || true
+              nm -n $BIN | awk -v off="0x$OFFSET" 'BEGIN{o=strtonum(off)} {if(strtonum("0x"$1)>o && prev){print prev; exit}} {prev=$0}' || true
+            fi
+          fi
       if: linux/x86-64
     - spider -v --url https://choosealicense.com crawl
