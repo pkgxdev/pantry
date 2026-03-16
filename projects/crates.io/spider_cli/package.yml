@@ -65,18 +65,15 @@ test:
         - echo "=== finding faulting function ==="
         - |
           if test -n "$FAULT"; then
-            # get text base from strace: first execve'd process mmap with PROT_EXEC
-            TEXTBASE=$(grep -oP 'mmap\(\K0x55[0-9a-f]+' /tmp/spider.strace | head -1)
-            if test -z "$TEXTBASE"; then
-              TEXTBASE=$(grep 'mprotect.*PROT_READ\b' /tmp/spider.strace | grep -oP '0x55[0-9a-f]+' | head -1)
-            fi
-            echo "text base=$TEXTBASE"
-            if test -n "$TEXTBASE"; then
-              OFFSET=$(printf '%x' $(($FAULT - $TEXTBASE)))
-              echo "file offset=0x$OFFSET"
-              addr2line -e $BIN -f -p 0x$OFFSET || true
-              nm -n $BIN | awk -v off="0x$OFFSET" 'BEGIN{o=strtonum(off)} {if(strtonum("0x"$1)>o && prev){print prev; exit}} {prev=$0}' || true
-            fi
+            # use strace -i to get instruction pointer, which for PIE = file offset + base
+            # instead, compute base from known mprotect of RELRO segment (782336 bytes from run 1)
+            # dump all large mprotect PROT_READ calls to find the RELRO one
+            echo "=== mprotect PROT_READ calls ==="
+            grep 'mprotect.*PROT_READ)' /tmp/spider.strace | head -10 || true
+            echo "=== readelf -l RELRO ==="
+            readelf -l $BIN | grep -A1 GNU_RELRO || true
+            echo "=== readelf -l all LOAD segments ==="
+            readelf -l $BIN | grep -A1 'LOAD\|Entry' | head -20 || true
           fi
       if: linux/x86-64
     - spider -v --url https://choosealicense.com crawl
