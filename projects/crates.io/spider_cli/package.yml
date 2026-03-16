@@ -65,15 +65,15 @@ test:
         - echo "=== finding faulting function ==="
         - |
           if test -n "$FAULT"; then
-            # use strace -i to get instruction pointer, which for PIE = file offset + base
-            # instead, compute base from known mprotect of RELRO segment (782336 bytes from run 1)
-            # dump all large mprotect PROT_READ calls to find the RELRO one
-            echo "=== mprotect PROT_READ calls ==="
-            grep 'mprotect.*PROT_READ)' /tmp/spider.strace | head -10 || true
-            echo "=== readelf -l RELRO ==="
-            readelf -l $BIN | grep -A1 GNU_RELRO || true
-            echo "=== readelf -l all LOAD segments ==="
-            readelf -l $BIN | grep -A1 'LOAD\|Entry' | head -20 || true
+            # offset is consistently 0x7b2ca7 across all ASLR'd runs
+            OFFSET=0x7b2ca7
+            echo "known offset=$OFFSET"
+            echo "=== addr2line ==="
+            addr2line -e $BIN -f -p $OFFSET 2>&1 || true
+            echo "=== objdump (is it ud2?) ==="
+            objdump -d --start-address=0x7b2c90 --stop-address=0x7b2cb0 $BIN || true
+            echo "=== nm nearest ==="
+            nm -n $BIN | awk -v o=0x7b2ca7 'BEGIN{t=strtonum(o)} /^[0-9a-f]+ [tT]/{if(strtonum("0x"$1)>t){print prev; exit}; prev=$0}' || true
           fi
       if: linux/x86-64
     - spider -v --url https://choosealicense.com crawl
