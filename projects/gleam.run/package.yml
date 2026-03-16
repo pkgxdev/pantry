@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/gleam-lang/gleam/archive/refs/tags/v{{ version }}.tar.gz
+  url: https://github.com/gleam-lang/gleam/archive/refs/tags/{{ version.tag }}.tar.gz
   strip-components: 1
 
 provides:
@@ -7,22 +7,25 @@ provides:
 
 versions:
   github: gleam-lang/gleam
-  strip: /v/
+
+dependencies:
+  linux:
+    gnu.org/gcc/libstdcxx: 14 # since v1.15.0
 
 build:
   dependencies:
     # edition2024 in v1.9.0
-    rust-lang.org: '>=1.85'
-    rust-lang.org/cargo: '>=0.86'
+    rust-lang.org: ">=1.85"
+    rust-lang.org/cargo: ">=0.86"
   script:
     - run: cargo install --path compiler-cli --force --locked --root {{prefix}}
       if: <1.9
     - run: cargo install --path gleam-bin --force --locked --root {{prefix}}
-      if: '>=1.9'
+      if: ">=1.9"
 
 test:
   dependencies:
-    erlang.org: '*'
+    erlang.org: "*"
   script:
     - gleam --version
     - gleam new pkgx_test_project
