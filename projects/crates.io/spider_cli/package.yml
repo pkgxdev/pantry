@@ -10,8 +10,12 @@ versions:
 
 build:
   dependencies:
-    rust-lang.org: '>=1.56'
-    rust-lang.org/cargo: '*'
+    rust-lang.org: ">=1.56"
+    rust-lang.org/cargo: "*"
+  env:
+    linux/x86-64:
+      # otherwise we're starting to see core dumps on the ubuntu test runner
+      RUSTFLAGS: -C target-cpu=x86-64
   script:
     # needs openssl 3 on linux, but our rust locks us to 1.1.1
     - run: sed -f $PROP -i Cargo.toml
