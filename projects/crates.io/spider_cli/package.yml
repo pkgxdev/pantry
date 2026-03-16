@@ -14,8 +14,9 @@ build:
     rust-lang.org/cargo: "*"
   env:
     linux/x86-64:
-      # otherwise we're starting to see core dumps on the ubuntu test runner
-      RUSTFLAGS: -C target-cpu=x86-64
+      # -pie: ubuntu requires PIE (passes on debian without it, SIGILL on ubuntu)
+      # target-cpu: prevent AVX etc. that CI runners may not support
+      RUSTFLAGS: -C target-cpu=x86-64 -C link-args=-pie
   script:
     # needs openssl 3 on linux, but our rust locks us to 1.1.1
     - run: sed -f $PROP -i Cargo.toml
@@ -25,7 +26,7 @@ build:
         /^serde_json =/a\
         openssl-sys = { version = "*", features = ["vendored"] }
     # io_uring is default-on but SIGILLs on CI ubuntu runners (since v2.47.22)
-    - run: sed -i 's/"io_uring",\? *//' Cargo.toml
+    - run: sed -i -E 's/,? *"io_uring"//' Cargo.toml
       working-directory: spider
       if: linux/x86-64
     # _requires_ spider/serde to build since 2.37.120
