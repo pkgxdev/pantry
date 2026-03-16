@@ -10,7 +10,7 @@ platforms:
 
 build:
   dependencies:
-    crates.io/semverator: '*'
+    crates.io/semverator: "*"
   script:
     # tweak swift-tools to our installed
     - run:
@@ -29,9 +29,16 @@ provides:
 
 test:
   dependencies:
-    curl.se: '*'
+    curl.se: "*"
   script:
     - xcresultparser --version | grep {{version}}
+    # v2+ requires Xcode 16 xcresulttool, only available on macOS 15+
+    - run: |
+        if test "$(sw_vers -productVersion | cut -d . -f 1)" -lt 15; then
+          echo "Xcode too old; skipping."
+          exit 0
+        fi
+      if: ^2
     - curl -L "${TESTDATA}" | tar -xz
     - xcresultparser -o txt SanityResults.xcresult > output.txt
     - cat output.txt | grep 'Number of tests = 1'
