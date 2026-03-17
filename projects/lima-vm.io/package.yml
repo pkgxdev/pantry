@@ -6,18 +6,18 @@ versions:
   github: lima-vm/lima
 
 dependencies:
-  qemu.org: '*'
+  qemu.org: "*"
 
 build:
   dependencies:
-    go.dev: '*'
+    go.dev: "*"
     linux:
-      gnu.org/gcc: '*'
+      gnu.org/gcc: "*"
   script:
     - run:
-        - sed -i -e's/ldflags="/ldflags="-buildmode=pie /' Makefile
-        - mkdir .bin
-        - ln -s "$(command -v gcc)" .bin/$ARCH-linux-gnu-gcc
+        - sed -i -e's/ldflags="/ldflags="-buildmode=pie /' ../Makefile
+        - ln -s "{{deps.gnu.org/gcc.prefix}}/bin/$ARCH-linux-gnu-gcc" .
+      working-directory: .bin
       if: linux
     - make $ARGS binaries
     - mkdir -p {{prefix}}
@@ -30,7 +30,7 @@ build:
     ARGS:
       - VERSION={{version}}
     linux:
-      PATH: '$SRCROOT/.bin:$PATH'
+      PATH: "$SRCROOT/.bin:$PATH"
       ARGS:
         - CONFIG_GUESTAGENT_ARCH_ARMV7L=n
         - CONFIG_GUESTAGENT_ARCH_RISCV64=n
