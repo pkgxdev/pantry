@@ -41,7 +41,9 @@ test:
     RABBITMQ_MNESIA_BASE: $PWD/var/lib/rabbitmq/mnesia
   script:
     - killall rabbitmq-server || true
-    - rabbitmq-server -detached && sleep 30
-    # Let's give the server 15 seconds to start
-    - rabbitmqctl status | grep "Virtual host count"
-    - rabbitmqctl stop | grep "Stopping and halting node"
+    - rabbitmq-server -detached
+    - rabbitmqctl await_startup --timeout 60
+    - rabbitmqctl status 2>&1 | tee out
+    - grep "Virtual host count" out
+    - rabbitmqctl stop 2>&1 | tee out
+    - grep "Stopping and halting node" out
