@@ -6,48 +6,47 @@ versions:
   github: libvips/libvips
 
 dependencies:
-  mozilla.org/mozjpeg: '*'
-  cairographics.org: '*'
-  heasarc.gsfc.nasa.gov/cfitsio: '*'
-  github.com/dloebl/cgif: '*'
-  fftw.org: '*'
-  freedesktop.org/fontconfig: '*'
-  gnu.org/gettext: '*'
-  gnome.org/glib: '*'
-  graphicsmagick.org: '*'
-  jpeg.org/jpegxl: '*'
-  libexif.github.io: '*'
-  gnome.org/libgsf: '*'
-  github.com/strukturag/libheif: '*'
-  pngquant.org/lib: '*'
-  matio.sourceforge.io: '*'
-  gnome.org/librsvg: '*'
-  libspng.org: '*'
-  simplesystems.org/libtiff: '*'
-  littlecms.com: '*'
-  openexr.com: '*'
-  openjpeg.org: '*'
+  mozilla.org/mozjpeg: "*"
+  cairographics.org: "*"
+  heasarc.gsfc.nasa.gov/cfitsio: "*"
+  github.com/dloebl/cgif: "*"
+  fftw.org: "*"
+  freedesktop.org/fontconfig: "*"
+  gnu.org/gettext: "*"
+  gnome.org/glib: "*"
+  graphicsmagick.org: "*"
+  jpeg.org/jpegxl: "*"
+  libexif.github.io: "*"
+  gnome.org/libgsf: "*"
+  github.com/strukturag/libheif: "*"
+  pngquant.org/lib: "*"
+  matio.sourceforge.io: "*"
+  gnome.org/librsvg: "*"
+  libspng.org: "*"
+  simplesystems.org/libtiff: "*"
+  littlecms.com: "*"
+  openexr.com: "*"
+  openjpeg.org: "*"
   # openslide.org: '*' # brings in ijg.org via gdk-pixbuf
-  gstreamer.freedesktop.org/orc: '*'
-  gnome.org/pango: '*'
-  poppler.freedesktop.org: '*'
-  google.com/webp: '*'
-  libexpat.github.io: '*'
-  zlib.net: '*'
+  gstreamer.freedesktop.org/orc: "*"
+  gnome.org/pango: "*"
+  poppler.freedesktop.org: "*"
+  google.com/webp: "*"
+  libexpat.github.io: "*"
+  zlib.net: "*"
 
 build:
   dependencies:
-    gnome.org/gobject-introspection: '*'
-    mesonbuild.com: '*'
-    ninja-build.org: '*'
+    gnome.org/gobject-introspection: "*"
+    mesonbuild.com: "*"
+    ninja-build.org: "*"
+    linux:
+      gnu.org/gcc: 14 # 8.18.1 had avx-512 issues with highway
   script:
     - meson setup build $MESON_ARGS
     - meson compile -C build
     - meson install -C build
   env:
-    CC: clang
-    CXX: clang++
-    LD: clang
     MESON_ARGS:
       - --prefix="{{prefix}}"
       - --libdir="{{prefix}}/lib"
@@ -58,8 +57,8 @@ build:
     linux:
       LDFLAGS: $LDFLAGS -Wl,-lstdc++fs
     linux/x86-64:
-      # ld.lld: error: undefined reference due to --no-allow-shlib-undefined: __extendhfsf2
-      LDFLAGS: $LDFLAGS -Wl,--allow-shlib-undefined
+      # __extendhfsf2 is hidden in libgcc.a; use shared libgcc so g-i introspection can link
+      LDFLAGS: $LDFLAGS -shared-libgcc
 
 provides:
   - bin/vips
