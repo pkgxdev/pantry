@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/llvm/llvm-project/releases/download/llvmorg-{{version}}/openmp-{{version}}.src.tar.xz
+  url: https://github.com/llvm/llvm-project/releases/download/llvmorg-{{version}}/llvm-project-{{version}}.src.tar.xz
   strip-components: 1
 
 display-name: libomp
@@ -10,27 +10,18 @@ versions:
 
 build:
   dependencies:
-    cmake.org: '*'
-    llvm.org: '*'
-    gnu.org/wget: '*'
+    cmake.org: "*"
     linux:
       python.org: ~3.11
-      perl.org: '*'
-  script: |
-    mkdir -p src
-    find . -maxdepth 1 ! -name '.' ! -name 'src' -exec mv {} ./src/ \;
-    mkdir -p cmake
-    wget $CMAKE_URL && tar -xf cmake-{{version}}.src.tar.xz -C ./cmake --strip-components=1
-    rm cmake-{{version}}.src.tar.xz
-    cmake -S src -B build/shared $ARGS
-    cmake --build build/shared
-    cmake --install build/shared
-    cmake -S src -B build/static -DLIBOMP_ENABLE_SHARED=OFF $ARGS
-    cmake --build build/static
-    cmake --install build/static
-
+      perl.org: "*"
+  script:
+    - cmake -S openmp -B build/shared $ARGS
+    - cmake --build build/shared
+    - cmake --install build/shared
+    - cmake -S openmp -B build/static -DLIBOMP_ENABLE_SHARED=OFF $ARGS
+    - cmake --build build/static
+    - cmake --install build/static
   env:
-    CMAKE_URL: 'https://github.com/llvm/llvm-project/releases/download/llvmorg-{{version}}/cmake-{{version}}.src.tar.xz'
     ARGS:
       - -DLIBOMP_INSTALL_ALIASES=OFF
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
@@ -44,7 +35,24 @@ build:
 
 test:
   dependencies:
-    llvm.org: '*'
+    llvm.org: "*"
   script:
-    - clang++ -Werror -Xpreprocessor -fopenmp test.cpp -std=c++11 -lomp -o test
+    - run: clang++ -Werror -Xpreprocessor -fopenmp $FIXTURE -std=c++11 -lomp -o test
+      fixture:
+        extname: cpp
+        content: |
+          #include <omp.h>
+          #include <array>
+          int main (int argc, char** argv) {
+              std::array<size_t,2> arr = {0,0};
+              #pragma omp parallel num_threads(2)
+              {
+                  size_t tid = omp_get_thread_num();
+                  arr.at(tid) = tid + 1;
+              }
+              if(arr.at(0) == 1 && arr.at(1) == 2)
+                  return 0;
+              else
+                  return 1;
+          }
     - ./test
