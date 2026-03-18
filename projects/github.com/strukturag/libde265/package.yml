@@ -7,12 +7,28 @@ versions:
 
 build:
   dependencies:
-    gnu.org/autoconf: '*'
-    gnu.org/automake: '*'
-  script: |
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }} install
+    gnu.org/autoconf: "*"
+    gnu.org/automake: "*"
+    cmake.org: "*" # since 1.0.17
+  script:
+    - run:
+        - ./configure $ARGS
+        - make --jobs {{ hw.concurrency }} install
+      if: <1.0.17
+    - run:
+        - cmake -S . -B build $CMAKE_ARGS
+        - cmake --build build
+        - cmake --install build
+      if: ">=1.0.17"
   env:
+    CMAKE_ARGS:
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DENABLE_SDL=OFF
+      - -DENABLE_TOOLS=ON
+    linux:
+      CMAKE_ARGS:
+        - -DCMAKE_EXE_LINKER_FLAGS=-lpthread
     ARGS:
       - --prefix="{{prefix}}"
       - --disable-dependency-tracking
@@ -28,10 +44,9 @@ provides:
   - bin/block-rate-estim
   - bin/gen-enc-table
   - bin/rd-curves
-  - bin/tests
   - bin/yuv-distortion
 
 test:
   dependencies:
-    freedesktop.org/pkg-config: '*'
+    freedesktop.org/pkg-config: "*"
   script: pkg-config --modversion libde265 | grep {{ version }}
