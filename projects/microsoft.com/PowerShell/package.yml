@@ -19,7 +19,7 @@ interprets:
   args: pwsh
 
 dependencies:
-  openssl.org: '^1.1'
+  openssl.org: "^1.1"
   linux:
     unicode.org: ^71
 
@@ -28,18 +28,32 @@ warnings:
 
 build:
   dependencies:
-    curl.se: '*'
+    curl.se: "*"
   working-directory: ${{prefix}}/bin
   script:
     - curl -L "https://github.com/PowerShell/PowerShell/releases/download/{{version.tag}}/powershell-{{version}}-${PLATFORM}.tar.gz" | tar zxf -
     - chmod +x pwsh
   env:
     darwin/aarch64: { PLATFORM: osx-arm64 }
-    darwin/x86-64:  { PLATFORM: osx-x64 }
-    linux/aarch64:  { PLATFORM: linux-arm64 }
-    linux/x86-64:   { PLATFORM: linux-x64 }
+    darwin/x86-64: { PLATFORM: osx-x64 }
+    linux/aarch64: { PLATFORM: linux-arm64 }
+    linux/x86-64: { PLATFORM: linux-x64 }
 
 provides:
   - bin/pwsh
 
-test: test "$(pwsh --version)" = "PowerShell {{version}}"
+test:
+  dependencies:
+    linux:
+      crates.io/semverator: "*"
+  script:
+    # requires GLIBC_2.33
+    - run:
+        - LIBCV=$(getconf GNU_LIBC_VERSION | sed 's/^glibc //')
+        - |
+          if  semverator lt $LIBCV 2.33; then
+            echo "Skipping test on glibc $LIBCV"
+            exit 0
+          fi
+      if: linux
+    - test "$(pwsh --version)" = "PowerShell {{version}}"
