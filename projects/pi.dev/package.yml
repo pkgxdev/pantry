@@ -32,8 +32,10 @@ build:
       - --unsafe-perm
 
 test:
-  - pi --version | grep -q "{{version}}"
-  - run: pi-init --help | grep -q "pi-init"
+  - pi --version 2>&1 | tee out
+  - grep "{{version}}" out
+  - pi-init --help 2>&1 | tee out
+  - grep "pi-init" out
   - run:
       - export OPENAI_API_KEY="test-key"
       - pi-init $FIXTURE --write-only --output ./settings.json
