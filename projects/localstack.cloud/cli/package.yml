@@ -6,7 +6,6 @@ distributable:
 
 versions:
   github: localstack/localstack-cli
-  strip: /^v/
 
 dependencies:
   pkgx.sh: ">=1"
@@ -30,7 +29,5 @@ provides:
 
 test:
   - localstack --version
-  - run: test "$(localstack --version)" = {{version}}
-    if: <4
-  - run: test "$(localstack --version)" = 'LocalStack CLI {{version}}'
-    if: ">=4"
+  - test "$(localstack --version)" = {{version}} ||
+    test "$(localstack --version)" = 'LocalStack CLI {{version}}'
