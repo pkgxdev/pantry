@@ -61,8 +61,12 @@ test:
     linux:
       gnu.org/gcc: 14
   script:
-    - c++ $CXXFLAGS 'EchoClient.cpp' -o EchoClient
-    - c++ $CXXFLAGS 'EchoServer.cpp' -o EchoServer
+    - run: STD=c++17
+      if: <2026.3.23
+    - run: STD=c++20
+      if: ">=2026.3.23"
+    - c++ -std=$STD 'EchoClient.cpp' -o EchoClient $LIBS
+    - c++ -std=$STD 'EchoServer.cpp' -o EchoServer $LIBS
 
     # This should all work; but it doesn't in GHA.
     # We should FIXME.
@@ -94,8 +98,7 @@ test:
     # - grep "Hello from tea!" out
     # - grep "Another test line." out
   env:
-    CXXFLAGS:
-      - -std=c++17
+    LIBS:
       - -lgflags
       - -lglog
       - -lfolly
@@ -108,10 +111,10 @@ test:
       - -levent
       - -lboost_context
     darwin:
-      CXXFLAGS:
+      LIBS:
         - -lc++abi
     linux:
-      CXXFLAGS:
+      LIBS:
         - -ldl
         - -lpthread
         - -latomic
