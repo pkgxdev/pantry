@@ -78,15 +78,23 @@ build:
         - -DCMAKE_EXE_LINKER_FLAGS=-pie
 
 test:
-  - run: c++ -std=c++17 $FIXTURE -lfizz -lfolly -lgflags -lglog -levent -lsodium -lcrypto -lssl -lboost_context -o fixture
-    fixture:
-      extname: cpp
-      content: |
-        #include <fizz/client/AsyncFizzClient.h>
-        #include <iostream>
+  dependencies:
+    linux:
+      gnu.org/gcc: 14
+  script:
+    - run: STD=c++17
+      if: <2026.3.23
+    - run: STD=c++20
+      if: ">=2026.3.23"
+    - run: c++ -std=$STD $FIXTURE -lfizz -lfolly -lgflags -lglog -levent -lsodium -lcrypto -lssl -lboost_context -o fixture
+      fixture:
+        extname: cpp
+        content: |
+          #include <fizz/client/AsyncFizzClient.h>
+          #include <iostream>
 
-        int main() {
-          auto context = fizz::client::FizzClientContext();
-          std::cout << toString(context.getSupportedVersions()[0]) << std::endl;
-        }
-  - ./fixture | grep TLS
+          int main() {
+            auto context = fizz::client::FizzClientContext();
+            std::cout << toString(context.getSupportedVersions()[0]) << std::endl;
+          }
+    - ./fixture | grep TLS
