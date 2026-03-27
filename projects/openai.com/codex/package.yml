@@ -22,16 +22,17 @@ dependencies:
 
 build:
   dependencies:
-    rust-lang.org: ">=1.89"
+    rust-lang.org: "~1.89.0"
   script:
     - cargo install --locked --path codex-rs/exec --root {{prefix}}
     - cargo install --locked --path codex-rs/cli --root {{prefix}}
     - cargo install --locked --path codex-rs/tui --root {{prefix}}
   env:
     OPENSSL_STATIC: 1
-    linux/x86-64:
+    linux:
       # big job sigkills
-      CARGO_BUILD_JOBS: 2
+      CARGO_BUILD_JOBS: 1
+      RUSTFLAGS: -C codegen-units=1
 
 test:
   # issue #11669
