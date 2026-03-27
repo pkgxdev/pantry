@@ -1,17 +1,16 @@
 distributable:
-  url: https://github.com/blacktop/ipsw/archive/refs/tags/v{{ version }}.tar.gz
+  url: https://github.com/blacktop/ipsw/archive/refs/tags/{{ version.tag }}.tar.gz
   strip-components: 1
 
 versions:
   github: blacktop/ipsw
-  strip: /v/
 
 provides:
   - bin/ipsw
 
 build:
   dependencies:
-    go.dev: ^1.22
+    go.dev: ~1.26
   script:
     - go build -v -trimpath -ldflags="$GO_LDFLAGS" -o '{{ prefix }}/bin/ipsw' ./cmd/ipsw
   env:
@@ -27,5 +26,7 @@ build:
         - -buildmode=pie
 
 test:
-  - ipsw version | grep '{{ version }}'
-  - ipsw device-list | grep 'iPad'
+  - ipsw version | tee out
+  - grep '{{ version }}' out
+  - ipsw device-list | tee out
+  - grep 'iPad' out
