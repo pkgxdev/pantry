@@ -1,23 +1,27 @@
 distributable:
   url: https://download.gnome.org/sources/vala/{{version.marketing}}/vala-{{version}}.tar.xz
   strip-components: 1
+
 versions:
   url: https://download.gnome.org/sources/vala/cache.json
   match: /vala-\d+\.\d+\.\d+\.tar\.xz/
   strip:
     - /^vala-/
     - /\.tar\.xz/
+
 dependencies:
-  gnome.org/glib: '*'
-  graphviz.org: '*'
-  freedesktop.org/pkg-config: '*'
-  gnu.org/gettext: '*'
+  gnome.org/glib: "*"
+  graphviz.org: "*"
+  freedesktop.org/pkg-config: "*"
+  gnu.org/gettext: "*"
+
 build:
   dependencies:
-    gnu.org/bison: '*'
-    github.com/westes/flex: '*'
-    gnome.org/libxslt: '*'
-    gnome.org/gobject-introspection: '*'
+    gnu.org/bison: "*"
+    github.com/westes/flex: "*"
+    gnome.org/libxslt: =1.1.43
+    gnome.org/libxml2: ~2.13 # abi changed in 2.14
+    gnome.org/gobject-introspection: "*"
   script:
     - ./configure $CONFIGURE_ARGS
     - make --jobs {{hw.concurrency}}
@@ -47,16 +51,18 @@ build:
       - --prefix="{{prefix}}"
       - --libdir="{{prefix}}/lib"
       - --disable-silent-rules
+
 provides:
   - bin/vala
   - bin/valac
   - bin/valadoc
   - bin/vala-gen-introspect
   - bin/vapigen
+
 test:
   dependencies:
     linux:
-      llvm.org: '*'
+      llvm.org: "*"
   script:
     - valac -g --cc=clang --save-temps test.vala
     - ls | grep "test.c"
