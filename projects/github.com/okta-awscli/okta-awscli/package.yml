@@ -1,0 +1,30 @@
+distributable:
+  url: https://github.com/okta-awscli/okta-awscli/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+display-name: okta-awscli
+
+versions:
+  github: okta-awscli/okta-awscli
+
+dependencies:
+  sourceware.org/libffi: ^3
+  pkgx.sh: ">=1"
+
+build:
+  dependencies:
+    rust-lang.org: ">=1.48.0" # needed for cryptography
+    rust-lang.org/cargo: "*"
+    python.org: ">=3.7<3.12"
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} okta-awscli
+
+test:
+  # Pretty much anything else appears to require AWS credentials
+  - okta-awscli --version | tee out
+  - grep "{{version}}" out
+
+provides:
+  - bin/okta-awscli
