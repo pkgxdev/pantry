@@ -4,13 +4,48 @@ distributable:
 
 versions:
   github: Mbed-TLS/mbedtls
+  strip:
+    - /^v/
+    - /^mbedtls-/
 
 provides:
-  - bin/generic_sum
+  - bin/aead_demo
+  - bin/cert_app
+  - bin/cert_req
+  - bin/cert_write
+  - bin/crl_app
+  - bin/crypto_examples
+  - bin/dtls_client
+  - bin/dtls_server
+  - bin/generate_random_uuid
+  - bin/hmac_demo
+  - bin/key_ladder_demo
+  - bin/key_ladder_demo.sh
+  - bin/load_roots
+  - bin/mbedtls-selftest
+  - bin/metatest
+  - bin/mini_client
+  - bin/pem2der
+  - bin/psa_constant_names
+  - bin/psa_hash
+  - bin/query_compile_time_config
+  - bin/query_included_headers
+  - bin/req_app
+  - bin/ssl_client1
+  - bin/ssl_client2
+  - bin/ssl_context_info
+  - bin/ssl_fork_server
+  - bin/ssl_mail_client
+  - bin/ssl_pthread_server
+  - bin/ssl_server
+  - bin/ssl_server2
+  - bin/strerror
+  - bin/udp_proxy
+  - bin/zeroize
 
 build:
   dependencies:
-    cmake.org: '*'
+    cmake.org: "*"
     linux/aarch64:
       llvm.org: <16 # otherwise we get an error from the arm_neon.h include
     python.org: ~3.11
@@ -19,17 +54,15 @@ build:
     # MBEDTLS_THREADING_C - allow use of mutexes within mbed TLS
     # MBEDTLS_SSL_DTLS_SRTP - enable DTLS-SRTP extension
     - run: CFG=include/mbedtls/mbedtls_config.h
-      if: '>=3'
+      if: ">=3"
     - run: CFG=include/mbedtls/config.h
-      if: '<3'
+      if: "<3"
 
-    - |
-      sed -i.bak \
-        -e "s://#define MBEDTLS_THREADING_PTHREAD:#define MBEDTLS_THREADING_PTHREAD:" \
-        -e "s://#define MBEDTLS_THREADING_C:#define MBEDTLS_THREADING_C:" \
-        -e "s://#define MBEDTLS_SSL_DTLS_SRTP:#define MBEDTLS_SSL_DTLS_SRTP:" \
-        $CFG
-      rm $CFG.bak
+    - run: sed -i -f $PROP $CFG
+      prop: |
+        s://#define MBEDTLS_THREADING_PTHREAD:#define MBEDTLS_THREADING_PTHREAD:
+        s://#define MBEDTLS_THREADING_C:#define MBEDTLS_THREADING_C:
+        s://#define MBEDTLS_SSL_DTLS_SRTP:#define MBEDTLS_SSL_DTLS_SRTP:
 
     - cmake -S . -B build $ARGS
     - cmake --build build
@@ -44,13 +77,14 @@ build:
       working-directory: ${{prefix}}/bin/
 
     # Rename benchmark & selftest, which are awfully generic names.
-    - run: |
-        mv benchmark mbedtls-benchmark
-        mv selftest mbedtls-selftest
+    - run:
+        - test ! -f benchmark || mv benchmark mbedtls-benchmark
+        - test ! -f selftest || mv selftest mbedtls-selftest
       working-directory: ${{prefix}}/bin
 
     # Demonstration files shouldn't be in the main bin
     - run: mv ../bin/mpi_demo mpi_demo
+      if: <4
       working-directory: ${{prefix}}/libexec
   env:
     ARGS:
@@ -63,7 +97,13 @@ build:
 
 test:
   script:
-    - printf '%s' 'This is a test file' > testfile.txt
-    - test "$(generic_sum SHA256 testfile.txt)" = "$SUM"
+    - run:
+        - printf '%s' 'This is a test file' > testfile.txt
+        - test "$(generic_sum SHA256 testfile.txt)" = "$SUM"
+      if: <4
+    - run:
+        - psa_hash | tee out
+        - grep '7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069' out
+      if: ">=4"
   env:
     SUM: e2d0fe1585a63ec6009c8016ff8dda8b17719a637405a4e23c0ff81339148249  testfile.txt
