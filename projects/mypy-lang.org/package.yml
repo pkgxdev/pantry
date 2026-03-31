@@ -10,7 +10,7 @@ dependencies:
 
 build:
   dependencies:
-    python.org: '>=3<3.14'
+    python.org: ">=3<3.14"
   env:
     MYPY_USE_MYPYC: 1
     MYPYC_OPT_LEVEL: 3
@@ -19,13 +19,13 @@ build:
     # pathspec 1.0+ re-exports GitWildMatchPatternError as a deprecated alias,
     # which fails mypy's attr-defined check during mypyc self-compilation.
     # Install build deps manually with pathspec pinned, then build without isolation.
-    - ${{prefix}}/venv/bin/pip install "setuptools>=75.1.0" "pathspec>=0.9,<1" "typing_extensions>=4.6.0" "mypy_extensions>=1.0.0" "librt>=0.6.2" "types-psutil" "types-setuptools"
+    - ${{prefix}}/venv/bin/pip install "setuptools>=75.1.0" "pathspec>=1.0.4" "typing_extensions>=4.6.0" "mypy_extensions>=1.0.0" "librt>=0.6.2" "types-psutil" "types-setuptools"
     - ${{prefix}}/venv/bin/pip install --no-build-isolation .
     - bkpyvenv seal {{prefix}} mypy
-    - run: |
-        ln -s mypy mypyc
-        ln -s mypy dmypy
-      working-directory: '{{prefix}}/bin'
+    - run:
+        - ln -s mypy mypyc
+        - ln -s mypy dmypy
+      working-directory: "{{prefix}}/bin"
 
 provides:
   - bin/mypy
@@ -37,4 +37,4 @@ test:
   - mypyc --version | grep {{version}}
   - dmypy --version | grep {{version}}
   - run: echo $(mypy $FIXTURE || true) | grep "Incompatible types in assignment"
-    fixture: 'a: str = 1'
+    fixture: "a: str = 1"
