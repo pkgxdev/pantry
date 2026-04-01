@@ -12,12 +12,15 @@ dependencies:
 build:
   dependencies:
     rust-lang.org: ^1.65
-    rust-lang.org/cargo: '*'
+    rust-lang.org/cargo: "*"
     cmake.org: ^3 # as of 1.12.0 for libz-ng-sys crate
     git-scm.org: 2 # as of 2.3.1 for the _required_ examples subrepo
   script:
     - git submodule update --init --recursive
-    - cargo install --locked --path . --root {{prefix}}
+    - run: cargo install --locked --path . --root {{prefix}}
+      if: <4
+    - run: cargo install --locked --path crates/leo --root {{prefix}}
+      if: ">=4"
 
 provides:
   - bin/leo
@@ -29,6 +32,6 @@ test:
   - run: leo build | grep "Compiled 'main.leo' into Aleo instructions"
     if: <2
   - run: leo build | grep "Compiled 'helloworld.aleo' into Aleo instructions"
-    if: '>=2'
+    if: ">=2"
   - leo run main 21u32 32u32 | grep "53u32"
   - leo --version | grep {{version}}
