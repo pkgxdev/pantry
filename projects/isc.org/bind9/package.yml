@@ -19,14 +19,16 @@ dependencies:
   gnu.org/libidn2: 2.3
   jemalloc.net: 5
   linux:
-    kernel.org/libcap: '*'
+    kernel.org/libcap: "*"
 
 build:
   dependencies:
     # since 9.21.10
     mesonbuild.com: 1
     cmake.org: 3
-    ninja-build.org: '*'
+    ninja-build.org: "*"
+    linux:
+      nixos.org/patchelf: "*"
   env:
     ARGS:
       - --prefix="{{prefix}}"
@@ -50,7 +52,15 @@ build:
         - meson setup build $MESON_ARGS
         - meson compile -C build -j4 # high concurrency leads to failed races.
         - meson install -C build
-      if: '>=9.21.10'
+      if: ">=9.21.10"
+
+    - run:
+        - for BIN in *; do
+        - patchelf --replace-needed {{deps.openldap.org/liblmdb.prefix}}/lib/pkgconfig/../../lib/liblmdb.so liblmdb.so $BIN
+        - ldd $BIN | grep liblmdb || true
+        - done
+      working-directory: ${{prefix}}/bin
+      if: linux
 
 provides:
   - bin/arpaname
