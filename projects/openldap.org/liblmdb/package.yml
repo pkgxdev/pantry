@@ -19,6 +19,20 @@ build:
       if: =0.9.34
     - sed -i -e 's/^prefix\t=/prefix\t?=/' Makefile
     - make prefix={{prefix}} --jobs {{ hw.concurrency }} install
+
+    # generate pkgconfig file (lmdb doesn't ship one)
+    - run: cp $PROP {{prefix}}/lib/pkgconfig/lmdb.pc
+      prop: |
+        prefix={{prefix}}
+        libdir=${prefix}/lib
+        includedir=${prefix}/include
+        Name: lmdb
+        Description: Lightning Memory-Mapped Database
+        Version: {{version}}
+        Libs: -L${libdir} -llmdb
+        Cflags: -I${includedir}
+      working-directory: ${{prefix}}/lib/pkgconfig
+
   env:
     linux:
       CC: clang
