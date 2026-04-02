@@ -114,6 +114,13 @@ build:
         fi
       if: <2.39
 
+    # pidfd-utils.c uses Linux-only headers (sys/vfs.h, pidfd, pidfs)
+    - run: |
+        if test darwin = {{hw.platform}}; then
+          echo '/* pidfd is Linux-only */' > lib/pidfd-utils.c
+        fi
+      if: '>=2.42'
+
     # FIXME: waitpid (new in 2.39) fails to build
     - sed -i 's/build_waitpid=yes ;;/build_waitpid=no ;;/g' configure
 
