@@ -1,0 +1,27 @@
+distributable:
+  url: https://github.com/abishekvashok/cmatrix/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: abishekvashok/cmatrix
+
+dependencies:
+  invisible-island.net/ncurses: "*"
+
+build:
+  dependencies:
+    gnu.org/autoconf: "*"
+    gnu.org/automake: "*"
+    gnu.org/libtool: "*"
+  script:
+    - autoreconf -i
+    - ./configure --prefix="{{prefix}}"
+    - make
+    - make install
+
+provides:
+  - bin/cmatrix
+
+test:
+  - cmatrix -V | tee out
+  - grep {{version.marketing}} out
