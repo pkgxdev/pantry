@@ -15,8 +15,11 @@ build:
     go.dev: 1.23
     gnu.org/make: "*"
   script:
-    - echo "{{version}}" > VERSION
-    - sed -i -e 's/1.2.0.0/{{version.raw}}/g' src/version/version.go
+    # recommended to keep the bumped, incorrect version, as of 1.2.804.0
+    - run:
+        - echo "{{version}}" > VERSION
+        - sed -i -e 's/1.2+.0.0/{{version.raw}}/g' src/version/version.go
+      if: <1.2.804
     - make GO_BUILD="go build" build-${PLATFORM}
     - mkdir -p "{{ prefix }}"/bin
     - mv ./bin/${BIN_DIR}/session-manager-plugin "{{prefix}}"/bin/
@@ -31,6 +34,8 @@ provides:
   - bin/session-manager-plugin
 
 test:
+  dependencies:
+    crates.io/semverator: "*"
   script:
-    - test "$(session-manager-plugin --version)" = {{version}}
+    - semverator satisfies ">={{version.raw}}" "$(session-manager-plugin --version)"
     - session-manager-plugin
