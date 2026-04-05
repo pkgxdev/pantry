@@ -8,7 +8,7 @@ versions:
     - /^R/
 
 dependencies:
-  python.org: ~3.11
+  python.org: ~3.12
   github.com/sekrit-twc/zimg: "*"
   linux:
     # Fix: version `GLIBCXX_3.4.30' not found (required by vspipe)
@@ -16,10 +16,11 @@ dependencies:
 
 runtime:
   env:
-    # Fix: Could not find platform independent libraries
-    #      PYTHONHOME = (not set)
     PYTHONHOME: "{{deps.python.org.prefix}}"
-    PYTHONPATH: "{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages:$PYTHONPATH"
+    PYTHONPATH: "{{prefix}}/venv/lib/python{{deps.python.org.version.marketing}}/site-packages:{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages:$PYTHONPATH"
+    linux:
+      # v74 needs this. :(
+      LD_PRELOAD: "{{deps.python.org.prefix}}/lib/libpython{{deps.python.org.version.marketing}}.so.1.0:$LD_PRELOAD"
 
 build:
   dependencies:
@@ -29,6 +30,9 @@ build:
     gnu.org/libtool: "*"
     nasm.us: "*"
     freedesktop.org/pkg-config: "*"
+    # since v74
+    mesonbuild.com: "*"
+    ninja-build.org: "*"
     linux:
       gnu.org/gcc: "*"
   script:
@@ -39,16 +43,27 @@ build:
     # error: 'to_chars' is unavailable: introduced in macOS 13.4
     - run: export MACOSX_DEPLOYMENT_TARGET=13.4
       if: ">=72"
-    - ./autogen.sh
-    - ./configure $ARGS
-    - make --jobs {{ hw.concurrency }} install
-    - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}} || true
-      working-directory: "{{prefix}}/lib"
-    - run: sed -i
-        -e "s|{{pkgx.prefix}}|\${pcfiledir}/../../../..|g"
-        -e "s|python.org/v{{deps.python.org.version}}|python.org/v{{deps.python.org.version.marketing}}|g"
-        -e 's/\+brewing//g' *.pc
-      working-directory: "{{prefix}}/lib/pkgconfig"
+
+    - run:
+        - ./autogen.sh
+        - ./configure $ARGS
+        - make --jobs {{ hw.concurrency }} install
+        - sed -i -f $PROP "{{prefix}}/lib/pkgconfig"/*.pc
+      prop: |
+        s|{{pkgx.prefix}}|\${pcfiledir}/../../../..|g
+        s|python.org/v{{deps.python.org.version}}|python.org/v{{deps.python.org.version.marketing}}|g
+        s/\+brewing//g
+      if: <74
+
+    - run:
+        - bkpyvenv stage {{prefix}} {{version}}
+        - ${{prefix}}/venv/bin/python -m pip install .
+        - bkpyvenv seal {{prefix}} vspipe vapoursynth
+        - mkdir -p {{prefix}}/lib
+        - cd {{prefix}}/lib
+        - ln -s $(find ../venv/lib/ -type f -name lib\*) ./
+      if: ">=74"
+    - ln -s python{{deps.python.org.version.marketing}} {{prefix}}/lib/python{{deps.python.org.version.major}} || true
   env:
     ARGS:
       - --prefix={{prefix}}
@@ -60,10 +75,14 @@ build:
 
 provides:
   - bin/vspipe
+  - bin/vapoursynth
 
 test:
   dependencies:
     crates.io/semverator: "*"
+    linux:
+      strace.io: "*"
+      gnu.org/coreutils: "*"
   script:
     - run: |
         if test "{{hw.platform}}" = "darwin"; then
@@ -75,6 +94,6 @@ test:
           fi
         fi
       if: ">=69"
-    - vspipe --version
-    - vspipe --version | grep {{version.major}}
     - python -c 'import vapoursynth'
+    - vspipe --version | tee out
+    - grep {{version.major}} out
