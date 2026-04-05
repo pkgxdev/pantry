@@ -14,16 +14,22 @@ provides:
 
 build:
   dependencies:
-    go.dev: ^1.21
+    go.dev: ~1.23.0
     sr.ht/scdoc: "*"
   script:
-    - make PREFIX="{{prefix}}" SHAREDIR="~/.pkgx/aerc-mail.org/v{{version}}/share/aerc" LIBEXECDIR="~/.pkgx/aerc-mail.org/v{{version}}/libexec/aerc" VERSION="{{version}}" --jobs {{hw.concurrency}}
-    - make install PREFIX="{{prefix}}"
+    - make $MAKE_ARGS --jobs {{hw.concurrency}}
+    - make install $MAKE_ARGS
   env:
     GO111MODULE: on
     linux:
       CGO_ENABLED: 1
       GO_EXTLINK_ENABLED: 1
+    MAKE_ARGS:
+      - PREFIX="{{prefix}}"
+      - SHAREDIR="~/.pkgx/aerc-mail.org/v{{version}}/share/aerc"
+      - LIBEXECDIR="~/.pkgx/aerc-mail.org/v{{version}}/libexec/aerc"
+      - VERSION="{{version}}"
 
 test:
-  aerc -v | grep {{version}}
+  - aerc -v | tee out
+  - grep {{version}} out
