@@ -9,22 +9,26 @@ provides:
   - bin/cython
 
 dependencies:
-  python.org: '<3.12'
+  python.org: "<3.13"
 
 runtime:
   env:
-    PYTHONPATH: '{{prefix}}/venv/lib/python3.11/site-packages:$PYTHONPATH'
+    PYTHONPATH: "{{prefix}}/venv/lib/python{{deps.python.org.version.major}}/site-packages:$PYTHONPATH"
 
 build:
-  script: python-venv.py {{prefix}}/bin/cython
+  script:
+    - python-venv.py {{prefix}}/bin/cython
+    - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
+      working-directory: ${{prefix}}/venv/lib
+    - python -m pip install --prefix={{prefix}}/venv setuptools
   dependencies:
-    pip.pypa.io: '*'
+    pip.pypa.io: "*"
 
 test:
   dependencies:
-    llvm.org: '*'
+    llvm.org: "*"
   env:
-    PYTHONPATH: '{{prefix}}/venv/lib/python3.11/site-packages'
+    PYTHONPATH: "{{prefix}}/venv/lib/python{{deps.python.org.version.major}}/site-packages:$PYTHONPATH"
     linux:
       CC: clang
       AS: llvm-as
