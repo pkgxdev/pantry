@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/stepchowfun/docuum/archive/refs/tags/v{{ version }}.tar.gz
+  url: https://github.com/stepchowfun/docuum/archive/refs/tags/{{ version.tag }}.tar.gz
   strip-components: 1
 
 provides:
@@ -7,15 +7,15 @@ provides:
 
 versions:
   github: stepchowfun/docuum
-  strip: /v/
 
 build:
   dependencies:
-    rust-lang.org: '>=1.65'
-    rust-lang.org/cargo: '*'
-  script:
-    cargo install --locked --path . --root {{prefix}}
+    rust-lang.org: ">=1.65"
+    rust-lang.org/cargo: "*"
+  script: cargo install --locked --path . --root {{prefix}}
 
 test:
-  script:
-    - test "$(docuum --version)" = "Docuum {{version}}"
+  - run: test "$(docuum --version)" = "Docuum {{version}}"
+    if: <0.27
+  - run: test "$(docuum --version)" = "docuum {{version}}"
+    if: ">=0.27"
