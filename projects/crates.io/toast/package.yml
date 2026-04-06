@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/stepchowfun/toast/archive/refs/tags/v{{ version }}.tar.gz
+  url: https://github.com/stepchowfun/toast/archive/refs/tags/{{ version.tag }}.tar.gz
   strip-components: 1
 
 provides:
@@ -7,15 +7,15 @@ provides:
 
 versions:
   github: stepchowfun/toast
-  strip: /v/
 
 build:
   dependencies:
-    rust-lang.org: '>=1.65'
-    rust-lang.org/cargo: '*'
-  script:
-    cargo install --locked --path . --root {{prefix}}
+    rust-lang.org: ">=1.65"
+    rust-lang.org/cargo: "*"
+  script: cargo install --locked --path . --root {{prefix}}
 
 test:
-  script:
-    - test "$(toast --version)" = "Toast {{version}}"
+  - run: test "$(toast --version)" = "Toast {{version}}"
+    if: <0.48.0
+  - run: test "$(toast --version)" = "toast {{version}}"
+    if: ">=0.48.0"
