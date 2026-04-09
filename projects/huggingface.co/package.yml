@@ -28,12 +28,16 @@ build:
         - bkpyvenv seal {{prefix}} hf
         - ln -s hf {{prefix}}/venv/bin/huggingface-cli
         - ln -s hf {{prefix}}/bin/huggingface-cli
-      if: ">=1"
+      if: ">=1<1.10.1"
+    - run: bkpyvenv seal {{prefix}} hf huggingface-cli
+      if: ">=1.10.1"
 
 provides:
   - bin/hf
   - bin/huggingface-cli
 
 test:
-  - huggingface-cli --help
+  # deprecated
+  - run: huggingface-cli --help
+    if: <1.10.1
   - hf --help
