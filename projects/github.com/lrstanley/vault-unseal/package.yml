@@ -9,22 +9,22 @@ versions:
 
 build:
   dependencies:
-    go.dev: '*'
+    go.dev: "*"
   env:
     CGO_ENABLED: 0
     GO_LDFLAGS:
-    - -s
-    - -w
-    - -X main.version="{{ version }}"
-    - -X main.commit="$( git rev-parse HEAD )"
-    - -X main.date="$( date --iso-8601=minutes )"
+      - -s
+      - -w
+      - -X main.version="{{ version }}"
+      - -X main.commit="$( git rev-parse HEAD )"
+      - -X main.date="$( date --iso-8601=minutes )"
     linux:
       GO_LDFLAGS:
-      - -buildmode=pie
+        - -buildmode=pie
   script:
-  - go build -v -ldflags="${GO_LDFLAGS}" -o "{{ prefix }}"/bin/vault-unseal
+    - go build -v -ldflags="${GO_LDFLAGS}" -o "{{ prefix }}"/bin/vault-unseal
 
 provides:
-- bin/vault-unseal
+  - bin/vault-unseal
 
-test: test "$(vault-unseal --version|cut -d ' ' -f 3)" = {{version}}
+test: test "$(vault-unseal --version| head -n1 | cut -d ' ' -f 3)" = {{version}}
