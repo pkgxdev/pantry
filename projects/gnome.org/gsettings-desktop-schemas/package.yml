@@ -6,28 +6,27 @@ versions:
   gitlab: gitlab.gnome.org:GNOME/gsettings-desktop-schemas/tags
 
 dependencies:
-  gnome.org/glib: '*'
-  libexpat.github.io: '*'
+  gnome.org/glib: "*"
+  libexpat.github.io: "*"
 
 runtime:
   env:
-    SCHEMADIR: '{{prefix}}/share/glib-2.0/schemas'
+    SCHEMADIR: "{{prefix}}/share/glib-2.0/schemas"
 
 build:
   dependencies:
-    gnome.org/gobject-introspection: '*'
-    mesonbuild.com: '*'
-    ninja-build.org: '*'
-    freedesktop.org/pkg-config: '*'
+    gnome.org/gobject-introspection: ~1.86
+    mesonbuild.com: ~1.9
+    ninja-build.org: "*"
     python.org: ~3.11
   script:
     - meson setup build $ARGS
     - meson compile -C build --verbose
     - meson install -C build
     - run: glib-compile-schemas .
-      working-directory: '{{prefix}}/share/glib-2.0/schemas'
+      working-directory: "{{prefix}}/share/glib-2.0/schemas"
   env:
-    DESTDIR: '/'
+    DESTDIR: "/"
     ARGS:
       - --prefix="{{prefix}}"
       - --libdir="{{prefix}}/lib"
@@ -36,8 +35,8 @@ build:
 
 test:
   dependencies:
-    freedesktop.org/pkg-config: '*'
-  script: |
-    pkg-config --modversion gsettings-desktop-schemas | grep {{version.marketing}}
-    cc test.c -I{{prefix}}/include/gsettings-desktop-schemas -o test
-    ./test
+    freedesktop.org/pkg-config: "*"
+  script:
+    - pkg-config --modversion gsettings-desktop-schemas | grep {{version.marketing}}
+    - cc test.c -I{{prefix}}/include/gsettings-desktop-schemas -o test
+    - ./test
