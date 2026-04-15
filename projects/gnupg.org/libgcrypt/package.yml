@@ -18,11 +18,11 @@ provides:
 build:
   dependencies:
     gnupg.org/libgpg-error: ^1.49
-    darwinsys.com/file: '*' # needed for configure to build dylibs
+    darwinsys.com/file: "*" # needed for configure to build dylibs
     darwin:
-      llvm.org: '*'
+      llvm.org: "*"
     linux:
-      gnu.org/gcc: '*'
+      gnu.org/gcc: "*"
   script:
     - ./configure $ARGS
     - CFLAGS="$CFLAGS -O0" make -C random rndjent.o rndjent.lo
@@ -33,6 +33,7 @@ build:
     darwin:
       CC: clang
       CXX: clang++
+      CFLAGS: $CFLAGS -Wno-incompatible-pointer-types
     ARGS:
       - --prefix={{prefix}}
       - --enable-static
@@ -43,6 +44,5 @@ build:
         - -Wl,-lpthread
 
 test:
-  script: |
-    OUT=$(echo foo | hmac256 -)
-    test "$OUT" = "9619c032ccc62b07274634a032c322580848455327d4a9aa3d323702673cf2a2"
+  - OUT=$(echo foo | hmac256 -)
+  - test "$OUT" = "9619c032ccc62b07274634a032c322580848455327d4a9aa3d323702673cf2a2"
