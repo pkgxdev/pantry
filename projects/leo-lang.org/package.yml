@@ -17,6 +17,9 @@ build:
     git-scm.org: 2 # as of 2.3.1 for the _required_ examples subrepo
   script:
     - git submodule update --init --recursive
+    # bad version into
+    - run: sed -i 's/4\.0\.1/{{version}}/g' $(find . -name Cargo.toml)
+      if: =4.0.2
     - run: cargo install --locked --path . --root {{prefix}}
       if: <4
     - run: cargo install --locked --path crates/leo --root {{prefix}}
