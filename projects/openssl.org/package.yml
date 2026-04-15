@@ -18,7 +18,6 @@ versions:
 
 provides:
   - bin/openssl
-  - bin/c_rehash
 
 dependencies:
   curl.se/ca-certs: "*"
@@ -35,8 +34,6 @@ build:
     - ./Configure --prefix={{ prefix }} $ARCH no-tests $ARGS --openssldir={{prefix}}/ssl
     - make --jobs {{ hw.concurrency }}
     - make install_sw # `_sw` avoids installing docs
-
-    - cd "{{prefix}}"
 
     - run: cp $SRCROOT/apps/openssl.cnf .
       working-directory: "{{prefix}}/ssl"
