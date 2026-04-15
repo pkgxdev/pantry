@@ -10,49 +10,49 @@ versions:
     - /\.tar\.xz/
 
 dependencies:
-  libexpat.github.io: '*'
-  x.org/x11: '*'
-  x.org/xcb: '*'
-  x.org/xdamage: '*'
-  x.org/exts: '*'
-  invisible-island.net/ncurses: '*'
-  zlib.net: '*'
-  x.org/xrandr: '*'
+  libexpat.github.io: "*"
+  x.org/x11: "*"
+  x.org/xcb: "*"
+  x.org/xdamage: "*"
+  x.org/exts: "*"
+  invisible-island.net/ncurses: "*"
+  zlib.net: "*"
+  x.org/xrandr: "*"
   darwin:
-    gnu.org/gettext: '*'
+    gnu.org/gettext: "*"
   linux:
     gnome.org/libxml2: ~2.13 # since 25.0.3, 2.14 changed the API version
-    elfutils.org: '*'
-    khronos.org/glslang: '*'
-    info-zip.org/zip: '*'
+    elfutils.org: "*"
+    khronos.org/glslang: "*"
+    info-zip.org/zip: "*"
     dri.freedesktop.org: ^2.4.110
-    intel.com/libva: '*'
-    freedesktop.org/vdpau: '*'
-    x.org/xfixes: '*'
-    x.org/xshmfence: '*'
-    x.org/xv: '*'
-    x.org/xxf86vm: '*'
-    llvm.org: '*'
-    github.com/lm-sensors/lm-sensors: '*'
-    wayland.freedesktop.org: '*'
-    wayland.freedesktop.org/protocols: '*'
+    intel.com/libva: "*"
+    freedesktop.org/vdpau: "*"
+    x.org/xfixes: "*"
+    x.org/xshmfence: "*"
+    x.org/xv: "*"
+    x.org/xxf86vm: "*"
+    llvm.org: "*"
+    github.com/lm-sensors/lm-sensors: "*"
+    wayland.freedesktop.org: "*"
+    wayland.freedesktop.org/protocols: "*"
 
 build:
   dependencies:
-    gnu.org/bison: '*'
-    mesonbuild.com: '*'
-    ninja-build.org: '*'
-    freedesktop.org/pkg-config: '*'
-    pygments.org: '*'
+    gnu.org/bison: "*"
+    mesonbuild.com: "*"
+    ninja-build.org: "*"
+    freedesktop.org/pkg-config: "*"
+    pygments.org: "*"
     python.org: ~3.11
-    x.org/protocol: '*'
-    github.com/westes/flex: '*'
-    llvm.org: '*' # since 24.2, for llvmpipe
+    x.org/protocol: "*"
+    github.com/westes/flex: "*"
+    llvm.org: "*" # since 24.2, for llvmpipe
     linux:
-      curl.se: '*'
+      curl.se: "*"
       cmake.org: 3 # since 24.3
-      rust-lang.org: '*' # since 24.3
-      rust-lang.org/rust-bindgen: '*' # since 24.3
+      rust-lang.org: "*" # since 24.3
+      rust-lang.org/rust-bindgen: "*" # since 24.3
   script:
     - curl -L "$Mako" | tar zxf -
     - curl -L "$MarkupSafe" | tar zxf -
@@ -92,10 +92,10 @@ build:
     - run:
         - python -m venv venv
         - source venv/bin/activate
-        - python -m pip install pyyaml
+        - python -m pip install pyyaml packaging
         - deactivate
         - export PYTHONPATH=$SRCROOT/venv/lib/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH
-      if: '>=24.2'
+      if: ">=24.2"
 
     - meson setup build $MESON_ARGS
     - meson compile -C build --verbose
@@ -103,7 +103,7 @@ build:
   env:
     Mako: https://files.pythonhosted.org/packages/05/5f/2ba6e026d33a0e6ddc1dddf9958677f76f5f80c236bd65309d280b166d3e/Mako-1.2.4.tar.gz
     MarkupSafe: https://files.pythonhosted.org/packages/95/7e/68018b70268fb4a2a605e2be44ab7b4dd7ce7808adae6c5ef32e34f4b55a/MarkupSafe-2.1.2.tar.gz
-    PYTHONPATH: '{{deps.pygments.org.prefix}}/venv/lib/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH'
+    PYTHONPATH: "{{deps.pygments.org.prefix}}/venv/lib/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH"
     MESON_ARGS:
       - --libdir=lib
       - --prefix={{prefix}}
@@ -134,9 +134,9 @@ build:
 
 test:
   dependencies:
-    freedesktop.org/pkg-config: '*'
+    freedesktop.org/pkg-config: "*"
     linux:
-      gnu.org/gcc/libstdcxx: '*' # libgcc
+      gnu.org/gcc/libstdcxx: "*" # libgcc
   env:
     FLAGS:
       - -lX11
@@ -147,7 +147,7 @@ test:
         - -lGl
     linux:
       FLAGS:
-        - '{{prefix}}/lib/libGL.so.1'
+        - "{{prefix}}/lib/libGL.so.1"
   script:
     - clang glxgears.c -o gears $FLAGS
     - pkg-config --modversion gl | grep {{version}}
