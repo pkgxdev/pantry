@@ -16,7 +16,7 @@ build:
 
     # jemalloc has a long-running issue on clang
     # https://github.com/jemalloc/jemalloc/issues/1557
-    - run: sed -i 's/defined(JEMALLOC_USE_CXX_THROW)/defined(JEMALLOC_USE_CXX_THROW) \&\& \!defined(__clang__)/g' jemalloc.h
+    - run: find . -name jemalloc.h -exec sed -i 's/defined(JEMALLOC_USE_CXX_THROW)/defined(JEMALLOC_USE_CXX_THROW) \&\& \!defined(__clang__)/g' {} \;
       working-directory: ${{prefix}}/include
       if: linux
   env:
