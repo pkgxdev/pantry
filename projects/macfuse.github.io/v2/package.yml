@@ -16,8 +16,23 @@ build:
     gnu.org/automake: "*"
     gnu.org/libtool: "*"
     gnu.org/gettext: "*"
+    curl.se: "*"
   script:
     - git submodule update --init --recursive
+
+    # extract MFMount.framework from the macFUSE release DMG
+    # Library-2 links against it as of 5.2.0
+    - run:
+        - DMG_DIR=$(mktemp -d)
+        - curl -LSsf https://github.com/macfuse/macfuse/releases/download/macfuse-{{version}}/macfuse-{{version}}.dmg -o $TMPDIR/macfuse.dmg
+        - hdiutil attach $TMPDIR/macfuse.dmg -nobrowse -mountpoint $DMG_DIR/dmg
+        - pkgutil --expand "$DMG_DIR/dmg/Install macFUSE.pkg" $DMG_DIR/pkg
+        - hdiutil detach $DMG_DIR/dmg
+        - cd $DMG_DIR/pkg/Core.pkg && cat Payload | gunzip | cpio -id
+        - cp -a Library/Filesystems/macfuse.fs/Contents/Frameworks/MFMount.framework $SRCROOT/
+        - cd $SRCROOT
+        - rm -rf $DMG_DIR $TMPDIR/macfuse.dmg
+      if: ">=5.2"
 
     - run:
         - ./makeconf.sh
@@ -25,11 +40,24 @@ build:
         - make -j {{ hw.concurrency }}
         - make install
       working-directory: Library-2
+
+    # bundle MFMount.framework and rewrite libfuse's load path to use it
+    - run:
+        - cp -a $SRCROOT/MFMount.framework .
+        - install_name_tool -change
+          /Library/Filesystems/macfuse.fs/Contents/Frameworks/MFMount.framework/Versions/A/MFMount
+          @loader_path/MFMount.framework/Versions/A/MFMount
+          libfuse.2.dylib
+      working-directory: ${{prefix}}/lib/
+      if: ">=5.2"
   env:
     UDEV_RULES_PATH: ${{prefix}}/etc/udev/rules.d
     INIT_D_PATH: ${{prefix}}/etc/init.d
     ARGS:
       - --prefix={{prefix}}
+      - --disable-example
+    CFLAGS: $CFLAGS -F$SRCROOT
+    LDFLAGS: $LDFLAGS -F$SRCROOT
 
 test:
   dependencies:
