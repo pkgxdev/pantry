@@ -56,6 +56,10 @@ build:
       if: '>=1.68<1.70'
       working-directory: src/bootstrap
 
+    # prevent system LLVM headers from interfering with bundled LLD build
+    - run: export CMAKE_PREFIX_PATH=$(echo $CMAKE_PREFIX_PATH | tr ':' '\n' | grep -v llvm.org | tr '\n' ':' | sed 's/:$//')
+      if: linux
+
     - ./configure $ARGS
     - make install
 
