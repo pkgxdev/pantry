@@ -89,6 +89,10 @@ build:
       LD: gcc
       # version script issues with newer LLVMs
       LDFLAGS: $LDFLAGS -Wl,--undefined-version
+      # clang-17 (from llvm.org) can't find gcc 14's libstdc++ headers (e.g. <bit>)
+      # because pkgx paths aren't in its auto-detection; point it at gcc's install dir
+      CMAKE_ARGS:
+        - -DARROW_GANDIVA_PC_CXX_FLAGS=--gcc-install-dir=$(g++ -print-libgcc-file-name | xargs dirname)
     x86-64:
       CMAKE_ARGS:
         - -DARROW_MIMALLOC=ON
@@ -101,6 +105,8 @@ provides:
 test:
   dependencies:
     freedesktop.org/pkg-config: "*"
+    linux:
+      gnu.org/gcc: 14
   env:
   script:
     - run: c++ $FIXTURE -std=c++20 -larrow -o test
