@@ -1,19 +1,24 @@
 distributable:
   url: https://fftw.org/fftw-{{version}}.tar.gz
   strip-components: 1
+
 versions:
   url: https://fftw.org/download.html
   match: /fftw-\d+\.\d+\.\d+\.tar\.gz/
   strip:
     - /^fftw-/
     - /\.tar\.gz/
+
 dependencies:
-  open-mpi.org: '*'
+  open-mpi.org: "*"
+
 build:
   dependencies:
-    freedesktop.org/pkg-config: '*'
+    # for FORTRAN
+    gnu.org/gcc: 14
+    gnu.org/binutils: ~2.44
   script:
-    - ./configure --enable-single $ARGS
+    - ./configure --enable-single $ARGS || (cat config.log && false)
     - make --jobs {{hw.concurrency}} install
     - make clean
     - ./configure $ARGS
@@ -22,20 +27,47 @@ build:
     - ./configure --enable-long-double $ARGS
     - make --jobs {{hw.concurrency}} install
   env:
-    CC: clang
     ARGS:
       - --enable-shared
       - --disable-debug
       - --prefix={{prefix}}
       - --enable-threads
       - --disable-dependency-tracking
+    darwin:
+      CC: clang
+      LDFLAGS: $LDFLAGS -Wl,-headerpad_max_install_names
+
 provides:
   - bin/fftw-wisdom
   - bin/fftw-wisdom-to-conf
   - bin/fftwf-wisdom
   - bin/fftwl-wisdom
+
 test:
+  env:
+    darwin:
+      CC: clang
+    linux:
+      CC: cc
   script:
-    - fftw-wisdom --version | grep {{version}}
-    - cc -o fftw fftw.c -lfftw3
+    - fftw-wisdom --version | tee out
+    - grep {{version}} out
+    - run: $CC -o fftw $FIXTURE -lfftw3
+      fixture:
+        extname: c
+        contents: |
+          #include <fftw3.h>
+          int main(int argc, char* *argv)
+          {
+              fftw_complex *in, *out;
+              fftw_plan p;
+              long N = 1;
+              in = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * N);
+              out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * N);
+              p = fftw_plan_dft_1d(N, in, out, FFTW_FORWARD, FFTW_ESTIMATE);
+              fftw_execute(p); /* repeat as needed */
+              fftw_destroy_plan(p);
+              fftw_free(in); fftw_free(out);
+              return 0;
+          }
     - ./fftw
