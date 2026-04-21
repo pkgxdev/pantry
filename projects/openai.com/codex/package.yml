@@ -30,9 +30,10 @@ build:
   env:
     OPENSSL_STATIC: 1
     linux:
-      # big job sigkills
+      # big job sigkills; workspace's fat LTO + codegen-units=1 OOMs during final link
       CARGO_BUILD_JOBS: 1
       RUSTFLAGS: -C codegen-units=1
+      CARGO_PROFILE_RELEASE_LTO: "off"
 
 test:
   # issue #11669
