@@ -26,7 +26,7 @@ build:
   # patch installer so `laravel new` projects pass LD_LIBRARY_PATH to `artisan serve`
   - run: sed -i -f $PROP NewCommand.php
     prop: |
-      /\$process.*runCommands.*isSuccessful/a\
+      /))->isSuccessful/a\
                   $this->replaceInFile("'PATH',", "'PATH',\\n        'LD_LIBRARY_PATH',", "$directory/vendor/laravel/framework/src/Illuminate/Foundation/Console/ServeCommand.php");
     if: linux
     working-directory: ${{prefix}}/libexec/src
