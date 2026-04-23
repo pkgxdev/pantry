@@ -3,14 +3,14 @@ distributable:
   strip-components: 1
 
 versions:
-  npm: '@bitwarden/cli'
+  npm: "@bitwarden/cli"
 
 dependencies:
   nodejs.org: ^20
 
 build:
   dependencies:
-    npmjs.com: '*'
+    npmjs.com: "*"
     darwin:
       github.com/fastfloat/fast_float: ^8 # needed to work with Xcode >=16.2
     linux:
@@ -18,11 +18,22 @@ build:
   script:
     - npm i husky
     - run: npm i semver
-      if: '>=2025.5.0'
+      if: ">=2025.5.0"
     - git init
     - npm i $ARGS .
     - run: ln -s ../libexec/bin/bw bw
       working-directory: ${{prefix}}/bin
+      if: <2025
+    # 2025.x+ ships a bw_setup.js launcher that spawns `./bun bw1.js` from
+    # cwd. A bare symlink + PATH invocation leaves cwd = caller's dir, so
+    # bun can't find bw1.js. Wrap it so we always cd into the install dir.
+    - run: install -m755 $PROP bw
+      prop: |
+        #!/bin/sh
+        cd "$(dirname $0)/../libexec/bin"
+        exec node bw "$@"
+      working-directory: ${{prefix}}/bin
+      if: ">=2026.4.0"
   env:
     linux:
       CC: clang
