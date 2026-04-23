@@ -1,0 +1,59 @@
+distributable:
+  url: https://www.freedesktop.org/software/colord/releases/colord-{{version}}.tar.xz
+  strip-components: 1
+
+display-name: colord
+
+versions:
+  github: hughsie/colord/tags
+
+dependencies:
+  gnome.org/glib: '>=2.58'
+  gnome.org/libgudev: '*'
+  hughsie.com/libgusb: '>=0.2.7'
+  littlecms.com: '>=2.6'
+  sqlite.org: '>=3'
+  systemd.io: '*'
+
+# companions:
+#   debian.org/bash-completion: '>=2'
+
+build:
+  dependencies:
+    gnome.org/gobject-introspection: '*'
+    gnome.org/libxslt: '*'
+    gnome.org/vala: '*'
+    mesonbuild.com: '>=0.52'
+    ninja-build.org: '>=1.8.2'
+  script:
+    - patch -p1 < props/relocatable.patch
+    - meson setup build $ARGS
+    - meson compile -C build --jobs {{ hw.concurrency }}
+    - meson install -C build
+    - run: glib-compile-schemas .
+      working-directory: ${{prefix}}/share/glib-2.0/schemas
+  env:
+    ARGS:
+     - --buildtype=release
+     - --prefix={{prefix}}
+     - --libdir=lib
+     - -Dlibcolordcompat=true
+     - -Dargyllcms_sensor=false
+     - -Dvapi=true
+     - -Ddaemon=false
+     - -Dtests=false
+     - -Ddocs=false
+     - -Dman=false
+     - -Dbash_completion=false
+
+provides:
+  - bin/cd-create-profile
+  - bin/cd-fix-profile
+  - bin/cd-iccdump
+  - bin/cd-it8
+  - bin/colormgr
+
+test:
+  # I can't get dbus-daemon to work, so this is the next best thing
+  - run: './colord-session --verbose | grep "CdMain: lost name: org.freedesktop.ColorHelper"'
+    working-directory: ${{prefix}}/libexec
