@@ -39,9 +39,16 @@ provides:
 test:
   env:
     RABBITMQ_MNESIA_BASE: $PWD/var/lib/rabbitmq/mnesia
+    RABBITMQ_NODENAME: rabbit@localhost
+    LANG: C.UTF-8
+    LC_ALL: C.UTF-8
   script:
+    # clean up orphaned stuff
     - killall rabbitmq-server || true
-    - rabbitmq-server -detached
+    - killall epmd || true
+    - killall beam.smp || true
+    - rabbitmq-server &
+    - sleep 5
     - rabbitmqctl await_startup --timeout 60
     - rabbitmqctl status 2>&1 | tee out
     - grep "Virtual host count" out
