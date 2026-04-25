@@ -19,7 +19,7 @@ build:
         ln -s ../libexec/bin/better-commits better-commits
         ln -s ../libexec/bin/better-commits-init better-commits-init
         ln -s ../libexec/bin/git-bc git-bc
-      working-directory: '{{prefix}}/bin'
+      working-directory: "{{prefix}}/bin"
   env:
     ARGS:
       - -ddd
@@ -39,4 +39,7 @@ provides:
 test:
   - git init
   - better-commits-init
-  - cat .better-commits.json | grep 'A code change that neither fixes a bug nor adds a feature'
+  - run: cat .better-commits.json | grep 'A code change that neither fixes a bug nor adds a feature'
+    if: <1.21
+  - run: cat .better-commits.jsonc | grep 'A code change that neither fixes a bug nor adds a feature'
+    if: ">=1.21"
