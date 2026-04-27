@@ -25,13 +25,15 @@ build:
       --target={{prefix}}/libexec
 
     - run:
-        - v=3.8
+        - v=3.9
 
         - |
           if semverator lt {{version}} 23.1.2; then
             vMax=3.11
-          else
+          elif semverator lt {{version}} 26.1; then
             vMax=3.14
+          else
+            vMax=3.15
           fi
 
         - while semverator lt $v $vMax; do
@@ -89,15 +91,15 @@ test:
   - pip --version | grep {{version}}
 
   - run: |
-      for v in 3.9 3.10 3.11 3.12 3.13; do
+      for v in 3.10 3.11 3.12 3.13 3.14; do
         test $(pip$v inspect | pkgx jq --raw-output .environment.python_version) = $v
       done
     if: ">=22" # inspect command introduced at v22
 
 provides:
   - bin/pip
-  - bin/pip3.9
   - bin/pip3.10
   - bin/pip3.11
   - bin/pip3.12
   - bin/pip3.13
+  - bin/pip3.14
