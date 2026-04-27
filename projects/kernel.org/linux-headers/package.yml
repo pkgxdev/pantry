@@ -4,6 +4,11 @@ distributable:
 
 versions:
   # FIXME: source for _all_ mainline versions
+  - url: "https://cdn.kernel.org/pub/linux/kernel/v7.x/"
+    match: /linux-\d+\.\d+\.\d+\.tar\.xz/
+    strip:
+      - /linux-/
+      - /\.tar\.xz/
   - url: "https://cdn.kernel.org/pub/linux/kernel/v6.x/"
     match: /linux-\d+\.\d+\.\d+\.tar\.xz/
     strip:
@@ -24,12 +29,10 @@ build:
 
 test:
   #define KERNEL_VERSION(a,b,c) (((a) << 16) + ((b) << 8) + ((c) > 255 ? 255 : (c)))
-  - run:
-      PATCH=$(test {{version.patch}} -gt 255
-        && echo 255
-        || echo {{version.patch}})
-  - run:
-      V=$(({{version.major}} * 65536
-        + {{version.minor}} * 256
-        + $PATCH))
+  - run: PATCH=$(test {{version.patch}} -gt 255
+      && echo 255
+      || echo {{version.patch}})
+  - run: V=$(({{version.major}} * 65536
+      + {{version.minor}} * 256
+      + $PATCH))
   - grep "LINUX_VERSION_CODE $V" "{{prefix}}/include/linux/version.h"
