@@ -8,14 +8,14 @@ versions:
 
 build:
   dependencies:
-    cmake.org: '*'
+    cmake.org: "*"
   script:
     - cmake -S . -B build $ARGS
     - cmake --build build
     - cmake --install build
   env:
     ARGS:
-      - -DCMAKE_INSTALL_PREFIX="{{prefix}}
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
       - -DCMAKE_INSTALL_LIBDIR=lib
       - -DCMAKE_BUILD_TYPE=Release
       - -DCMAKE_FIND_FRAMEWORK=LAST
@@ -24,6 +24,9 @@ build:
       - -DBUILD_TESTING=OFF
       - -DURIPARSER_BUILD_TESTS=OFF
       - -DURIPARSER_BUILD_DOCS=OFF
+    linux:
+      ARGS:
+        - -DCMAKE_C_FLAGS=-D_GNU_SOURCE
 
 provides:
   - bin/uriparse
