@@ -1,0 +1,21 @@
+distributable:
+  url: https://github.com/borkdude/jet/releases/download/v${{version}}/jet-${{version}}-${{os}}-${{arch}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: borkdude/jet
+
+provides:
+  - bin/jet
+
+build:
+  script:
+    - run: |
+        mkdir -p "${{prefix}}/bin"
+        mv jet "${{prefix}}/bin/jet"
+        chmod +x "${{prefix}}/bin/jet"
+      working-directory: "${{prefix}}"
+
+test:
+  script: |
+    test "$(jet --version)" = "${{version}}"
