@@ -37,10 +37,9 @@ test:
     - run: cat $FIXTURE >test.ab
       fixture:
         extname: ab
-        content: |
-          echo ((12 + 34) * 9) % 4
+        content: echo(((12 + 34) * 9) % 4)
     - test "$(amber test.ab)" = 2
-    - test "$(pkgx test.ab)" = 2
+    - test "$(pkgx --sync test.ab)" = 2
     - run: amber test.ab test.sh
       if: <0.4
     - run: amber build test.ab
