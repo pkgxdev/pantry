@@ -1,6 +1,7 @@
-distributable:
-  url: https://github.com/borkdude/jet/releases/download/v${{version}}/jet-${{version}}-${{os}}-${{arch}}.tar.gz
-  strip-components: 1
+distributable: ~
+
+warnings:
+  - vendored
 
 versions:
   github: borkdude/jet
@@ -9,13 +10,18 @@ provides:
   - bin/jet
 
 build:
-  script:
-    - run: |
-        mkdir -p "${{prefix}}/bin"
-        mv jet "${{prefix}}/bin/jet"
-        chmod +x "${{prefix}}/bin/jet"
-      working-directory: "${{prefix}}"
+  dependencies:
+    curl.se: "*"
+  working-directory: ${{prefix}}/bin
+  script: curl -LsS https://github.com/borkdude/jet/releases/download/{{version.tag}}/jet-{{version}}-$PLATFORM-$ARCH.tar.gz | tar zxf -
+  env:
+    darwin:
+      PLATFORM: macos
+    linux:
+      PLATFORM: linux
+    aarch64:
+      ARCH: aarch64
+    x86-64:
+      ARCH: amd64
 
-test:
-  script: |
-    test "$(jet --version)" = "${{version}}"
+test: test "$(jet --version)" = "{{version}}"
