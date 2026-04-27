@@ -8,9 +8,14 @@ versions:
 platforms: linux
 
 build:
-  script: |
-    ./configure $ARGS
-    make --jobs {{hw.concurrency}} install
+  dependencies:
+    linux:
+      kernel.org/linux-headers: ">=6.20" # as of v7
+  script:
+    - run: cp {{deps.kernel.org/linux-headers.prefix}}/include/linux/time_types.h bundled/linux/include/uapi/linux/
+      if: ">=7"
+    - ./configure $ARGS
+    - make --jobs {{hw.concurrency}} install
   env:
     ARGS:
       - --disable-dependency-tracking
