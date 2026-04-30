@@ -18,7 +18,7 @@ platforms:
   # broken on linux pending https://github.com/mamba-org/mamba/issues/2650
 
 dependencies:
-  curl.se/ca-certs: '*'
+  curl.se/ca-certs: "*"
 
 runtime:
   env:
@@ -26,25 +26,30 @@ runtime:
 
 build:
   dependencies:
-    curl.se: '*'
-    sourceware.org/bzip2: '*'
+    curl.se: "*"
+    sourceware.org/bzip2: "*"
   working-directory: "{{prefix}}"
-  script: |
-    curl -L \
-      "https://github.com/mamba-org/micromamba-releases/releases/download/{{version.tag}}/micromamba-$PID.tar.bz2" \
+  script:
+    - curl -L
+      "https://github.com/mamba-org/micromamba-releases/releases/download/{{version.tag}}/micromamba-$PID.tar.bz2"
       | tar xj
-    rm -rf info
+    - rm -rf info
   env:
-    linux/x86-64: {PID: linux-64}
-    linux/aarch64: {PID: linux-aarch64}
-    darwin/x86-64: {PID: osx-64}
-    darwin/aarch64: {PID: osx-arm64}
+    linux/x86-64: { PID: linux-64 }
+    linux/aarch64: { PID: linux-aarch64 }
+    darwin/x86-64: { PID: osx-64 }
+    darwin/aarch64: { PID: osx-arm64 }
 
 test:
-  - micromamba | grep {{version}}
+  env:
+    linux:
+      SH: bash
+    darwin:
+      SH: zsh
+  script:
+    - micromamba | grep {{version}}
 
-  - |
-    eval "$(micromamba shell hook --shell bash)"
-    micromamba create numpy --channel anaconda --prefix mm-prefix --yes
-    micromamba activate mm-prefix
-    ./test.py
+    - eval "$(micromamba shell hook --shell $SH)"
+    - micromamba create numpy --channel anaconda --prefix mm-prefix --yes
+    - micromamba activate mm-prefix
+    - ./test.py
