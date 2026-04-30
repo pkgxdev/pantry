@@ -49,6 +49,12 @@ test:
   script:
     - micromamba | grep {{version}}
 
+    # not working on macOS 14 as of v2.6
+    - run: |
+        if test "$(sw_vers -productVersion | cut -d . -f 1)" -lt 15; then
+          exit 0
+        fi
+      if: darwin
     - eval "$(micromamba shell hook --shell $SH)"
     - micromamba create numpy --channel anaconda --prefix mm-prefix --yes
     - micromamba activate mm-prefix
