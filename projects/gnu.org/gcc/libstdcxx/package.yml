@@ -41,7 +41,7 @@ build:
         - if test -n "$BRANCH{{version.major}}{{version.minor}}"; then
         - curl -L "$BRANCH{{version.major}}{{version.minor}}" | tar xz --strip-components=1
         - fi
-      if: darwin
+      if: darwin/aarch64
       working-directory: ..
 
     - run:
@@ -49,11 +49,16 @@ build:
         # Apply CFI directive fix for x86-64 Darwin (LLVM assembler compatibility)
         - patch -p1 < props/disable-cfi-x86-64-darwin.patch
         # Disable MS ABI stubs on Darwin - not needed and causes CFI/LLVM assembler issues
-        - patch -p1 < props/disable-msabi-darwin.patch
+        # context differs between 15.2 and 16.x (extra_parts dropped libd10-uwfef.a in 16)
+        - if test {{version.major}} -ge 16; then
+        -   patch -p1 < props/disable-msabi-darwin-v16.patch
+        - else
+        -   patch -p1 < props/disable-msabi-darwin.patch
+        - fi
         # Remove old frame registration symbols from darwin-unwind.ver (GCC 15+ doesn't provide these)
         - patch -p1 < props/remove-old-frame-symbols-darwin.patch
         - fi
-      if: =15.2
+      if: ">=15.2"
       working-directory: ..
 
     # On Linux, we need to statically link libstdc++ and libgcc
@@ -95,6 +100,7 @@ build:
     BRANCH143: https://github.com/iains/gcc-14-branch/archive/refs/heads/gcc-14-3-darwin-pre-0.tar.gz
     BRANCH151: https://github.com/iains/gcc-15-branch/archive/refs/heads/gcc-15-1-darwin-rc1.tar.gz
     BRANCH152: https://github.com/iains/gcc-15-branch/archive/refs/heads/gcc-15-2-darwin-pre-0.tar.gz
+    BRANCH161: https://github.com/iains/gcc-darwin-arm64/archive/refs/heads/master-wip-apple-si-on-r16-8803-g376d03b7b44da2.tar.gz
     ARGS:
       - --prefix={{ prefix }}
       - --libdir={{ prefix }}/lib
