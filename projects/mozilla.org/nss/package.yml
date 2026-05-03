@@ -1,6 +1,7 @@
 distributable:
   url: https://ftp.mozilla.org/pub/security/nss/releases/NSS_{{version.major}}_{{version.minor}}_RTM/src/nss-{{version.marketing}}.tar.gz
   strip-components: 1
+
 versions:
   #url: https://ftp.mozilla.org/pub/security/nss/releases/
   #match: /NSS_\d+_\d+_RTM/
@@ -8,28 +9,30 @@ versions:
   #  - /^NSS_/
   #  - /_RTM/
   - 3.92
+  - 3.98
+  - 3.119
+
 dependencies:
-  mozilla.org/nspr: '*'
-  sqlite.org: '*'
-  zlib.net: '*'
+  mozilla.org/nspr: "*"
+  sqlite.org: "*"
+  zlib.net: "*"
+
 build:
   dependencies:
     linux:
-      gnu.org/gcc: '*'
-      gnu.org/make: '*'
+      gnu.org/gcc: "*"
+      gnu.org/make: "*"
     darwin/aarch64:
-      llvm.org: '*'
+      llvm.org: "*"
   script:
-    - run: |
-        sed -i.bak 's|-install_name @executable_path|-install_name {{prefix}}/lib|g' coreconf/Darwin.mk
-        rm coreconf/Darwin.mk.bak
-        sed -i.bak 's|@executable_path|{{prefix}}/lib|g' lib/freebl/config.mk
-        rm lib/freebl/config.mk.bak
-        make all $ARGS
+    - run:
+        - sed -i 's|-install_name @executable_path|-install_name {{prefix}}/lib|g' coreconf/Darwin.mk
+        - sed -i 's|@executable_path|{{prefix}}/lib|g' lib/freebl/config.mk
+        - make all $ARGS
       working-directory: nss
-    - run: | 
-        mkdir -p bin lib/pkgconfig include/dbm include/nss
-        cat <<< "$PC_FILE" > lib/pkgconfig/nss.pc
+    - run:
+        - mkdir -p bin lib/pkgconfig include/dbm include/nss
+        - cat <<< "$PC_FILE" > lib/pkgconfig/nss.pc
       working-directory: "{{prefix}}"
     - cat <<< "$CONFIG_FILE" > ./dist/nss-config
     - install ./dist/nss-config {{prefix}}/bin/
@@ -71,6 +74,7 @@ build:
       Requires: nspr >= 4.12
       Libs: -L\${libdir} -lnss3 -lnssutil3 -lsmime3 -lssl3
       Cflags: -I\${includedir}
+
 provides:
   - bin/addbuiltin
   - bin/certutil
@@ -133,9 +137,10 @@ provides:
   - bin/sdrtest
   - bin/signver
   - bin/validation
+
 test:
   dependencies:
-    freedesktop.org/pkg-config: '*'
+    freedesktop.org/pkg-config: "*"
   script:
     - pkg-config --modversion nss | grep {{version}}
     - certutil -N -d ./ -f passwd
