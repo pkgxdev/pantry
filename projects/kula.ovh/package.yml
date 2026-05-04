@@ -14,6 +14,7 @@ build:
   dependencies:
     go.dev: ^1.25
   env:
+    CONFIG_FILE: config.example.yaml
     VERSION: ${{version.tag}}
     CGO_ENABLED: 0
     CMD_DIR: ./cmd/kula
@@ -29,7 +30,7 @@ build:
                -o "{{prefix}}"/bin/kula
                -trimpath
                "${CMD_DIR}"
-    - install -d config.example.yaml {{prefix}}/etc/
+    - install -D -m 0644 ${CONFIG_FILE} {{prefix}}/etc/${CONFIG_FILE}
 
 provides:
   - bin/foo
