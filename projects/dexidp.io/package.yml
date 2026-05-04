@@ -18,10 +18,10 @@ build:
       GO_LDFLAGS:
       - -buildmode=pie 
   script:
-    - sed -i 's|DEV|{{version}}' cmd/dex/version.go
+    - sed -i 's|DEV|{{version}}|g' cmd/dex/version.go
     - go build -v -ldflags="${GO_LDFLAGS}" -o "{{prefix}}"/bin/dex "${CMD_DIR}"
 
 provides:
   - bin/dex
 
-test: test "$(dex version)" = {{version}}
+test: test "$(dex version|grep Dex|tr -d' '|cut -d':' -f2)" = {{version}}
