@@ -45,6 +45,10 @@ build:
       CC: "{{deps.gnu.org/gcc.prefix}}/bin/gcc"
     darwin/aarch64:
       CC: "{{deps.llvm.org.prefix}}/bin/clang"
+    darwin/x86-64:
+      # `uname -p` returns `i386` on Intel Macs, which makes coreconf/Darwin.mk
+      # build with `-arch i386` — macOS dropped that arch.
+      CPU_ARCH: x86_64
     ARGS:
       - BUILD_OPT=1
       - NSS_ALLOW_SSLKEYLOGFILE=1
