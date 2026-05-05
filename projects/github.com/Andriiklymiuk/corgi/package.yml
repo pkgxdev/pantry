@@ -1,0 +1,29 @@
+distributable:
+  url: https://github.com/Andriiklymiuk/corgi/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+display-name: corgi
+description: Multi-service / db / tunnel orchestrator from a single yml file
+license: MIT
+
+versions:
+  github: Andriiklymiuk/corgi
+  strip: /v/
+
+build:
+  dependencies:
+    go.dev: ^1.25
+  env:
+    CGO_ENABLED: 0
+    LDFLAGS:
+      - -s
+      - -w
+    linux:
+      LDFLAGS:
+        - -buildmode=pie
+  script: go build -v -ldflags="${LDFLAGS}" -o {{prefix}}/bin/corgi
+
+provides:
+  - bin/corgi
+
+test: test "$(corgi --version | head -1 | awk '{print $NF}')" = {{version}}
