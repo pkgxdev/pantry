@@ -57,6 +57,13 @@ build:
     - curl -L "$Mako" | tar zxf -
     - curl -L "$MarkupSafe" | tar zxf -
 
+    # Avoid an infinite install_megadrivers loop on Darwin where the driver
+    # symlink is swrast_dri.so but the megadriver suffix is dylib.
+    - run: sed -i -f $PROP install_megadrivers.py
+      prop: /libname_suffix/s/while ext/while ext and ext/
+      if: darwin
+      working-directory: bin
+
     # removed in 24.3.0
     - run: |
         if test "{{hw.platform}}" = "linux"; then
@@ -99,10 +106,11 @@ build:
 
     - meson setup build $MESON_ARGS
     - meson compile -C build --verbose
-    - meson install -C build
+    - meson install -C build --no-rebuild
   env:
     Mako: https://files.pythonhosted.org/packages/05/5f/2ba6e026d33a0e6ddc1dddf9958677f76f5f80c236bd65309d280b166d3e/Mako-1.2.4.tar.gz
     MarkupSafe: https://files.pythonhosted.org/packages/95/7e/68018b70268fb4a2a605e2be44ab7b4dd7ce7808adae6c5ef32e34f4b55a/MarkupSafe-2.1.2.tar.gz
+    MESA_GIT_SHA1_OVERRIDE: "0000000000"
     PYTHONPATH: "{{deps.pygments.org.prefix}}/venv/lib/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH"
     MESON_ARGS:
       - --libdir=lib
@@ -111,7 +119,19 @@ build:
       - --wrap-mode=nofallback
     darwin:
       MESON_ARGS:
+        - -Dplatforms=x11
         - -Dglx=xlib
+        - -Dgallium-drivers=llvmpipe # drop softpipe; llvmpipe is the fast one
+        - -Dvulkan-drivers= # no vulkan on darwin via mesa
+        - -Dvideo-codecs= # not needed for xlib glx
+        - -Dgles1=disabled
+        - -Dgles2=disabled # unless something downstream needs them
+        - -Dlmsensors=disabled # if it tries to autodetect on darwin
+        - -Doptimization=2
+        - -Db_ndebug=true
+        - -Dtools=
+        - -Dlibunwind=disabled
+        - -Dshader-cache=disabled
     linux:
       MESON_ARGS:
         - -Dplatforms=x11,wayland
