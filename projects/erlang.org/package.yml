@@ -42,6 +42,11 @@ build:
     - ./configure $ARGS
     - make -j {{hw.concurrency}}
     - make install
+    # Surface dyn_erl so the launcher's self-relocation fallback works through
+    # the bin/erl symlink (without it, the script falls through to the hardcoded
+    # build-time ROOTDIR and fails outside pkgx env).
+    - run: ln -s ../lib/erlang/erts-*/bin/dyn_erl dyn_erl
+      working-directory: ${{prefix}}/bin
   env:
     CC: cc
     CXX: c++
@@ -74,6 +79,7 @@ test:
   script:
     - epmd -kill || true
     - epmd -daemon -address 127.0.0.1 -relaxed_command_check
+    - env -u ERL_ROOTDIR erl -version
     - run: test "$(escript $FIXTURE 10)" = "factorial 10 = 3628800"
       fixture:
         extname: erl
