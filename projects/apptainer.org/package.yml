@@ -14,16 +14,16 @@ platforms: [linux]
 
 dependencies:
   github.com/seccomp/libseccomp: 2
-  curl.se/ca-certs: '*'
+  curl.se/ca-certs: "*"
 
 companions:
-  github.com/plougher/squashfs-tools: '*'
+  github.com/plougher/squashfs-tools: "*"
 
 build:
   dependencies:
-    go.dev: ~1.21
+    go.dev: ~1.25.7
     linux:
-      gnu.org/gcc: '*' # it wants to use ld.gold
+      gnu.org/gcc: 14 # it wants to use ld.gold
       gnu.org/binutils: ~2.44 # higher might no longer include ld.gold
   script:
     - echo {{version}} >VERSION
@@ -41,7 +41,6 @@ build:
       - --sysconfdir={{prefix}}/etc
       - --localstatedir={{prefix}}/var
       - --without-suid
-      - -P release-stripped
       - -v
     CFLAGS: $CFLAGS -O0
 
