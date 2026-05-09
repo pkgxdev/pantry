@@ -76,23 +76,22 @@ provides:
   - bin/emacs
 
 test:
-  script:
-    - emacs --version | grep "GNU Emacs {{version.marketing}}"
+  - emacs --version | grep "GNU Emacs {{version.marketing}}"
 
-    - four=$(emacs --batch --eval="(print (+ 2 2))")
-    - test $four = 4
+  - emacs --batch --eval="(print (+ 2 2))" | tee four
+  - test $(cat four) = 4
 
-    - emacs -batch -l $FIXTURE
+  - run: emacs -batch -l $FIXTURE
+    fixture: |
+      (require 'simple)
+      (defun my-print-message ()
+        "Print a message to the *Messages* buffer"
+        (message "This is a message from my script"))
+      (my-print-message)
 
-    - emacs --batch --eval '(unless (treesit-available-p) (kill-emacs 1))'
-    - run: emacs --batch --eval '(unless (native-comp-available-p) (kill-emacs 1))'
-      if: linux
+  - emacs --batch --eval '(unless (treesit-available-p) (kill-emacs 1))'
+  - run: emacs --batch --eval '(unless (native-comp-available-p) (kill-emacs 1))'
+    if: linux
 
-    # test EMACSPATH
-    - emacs --batch --eval '(progn (package-initialize) (print (with-output-to-string (package-list-packages))) (kill-emacs))'
-  fixture: |
-    (require 'simple)
-    (defun my-print-message ()
-      "Print a message to the *Messages* buffer"
-      (message "This is a message from my script"))
-    (my-print-message)
+  # test EMACSPATH
+  - emacs --batch --eval '(progn (package-initialize) (print (with-output-to-string (package-list-packages))) (kill-emacs))'
