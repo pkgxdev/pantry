@@ -54,6 +54,15 @@ build:
         - ln -s . $DIR
       working-directory: ${{prefix}}/libexec/emacs/{{version.marketing}}
 
+    # Emacs consults same-directory pdump files before compiled-in PATH_EXEC.
+    # This keeps startup relocatable after brewkit moves +brewing to final.
+    - run:
+        - PDMP=$(find ../libexec/emacs/{{version.marketing}} -name 'emacs-*.pdmp' -type f -print -quit)
+        - test -n "$PDMP"
+        - ln -s "$PDMP" emacs.pdmp
+        - ln -s "$PDMP" emacs-{{version.marketing}}.pdmp
+      working-directory: ${{prefix}}/bin
+
   env:
     ARGS:
       - --prefix="{{prefix}}"
