@@ -7,69 +7,70 @@ versions:
 
 dependencies:
   apache.org/arrow: 19
-  heasarc.gsfc.nasa.gov/cfitsio: '*'
-  epsilon-project.sourceforge.io: '*'
-  libexpat.github.io: '*'
-  gaia-gis.it/fossil/freexl: '*'
-  libgeos.org: '*'
-  giflib.sourceforge.io: '*'
+  heasarc.gsfc.nasa.gov/cfitsio: "*"
+  epsilon-project.sourceforge.io: "*"
+  libexpat.github.io: "*"
+  gaia-gis.it/fossil/freexl: "*"
+  libgeos.org: "*"
+  giflib.sourceforge.io: "*"
   # removed due to cmake duplication of libaec.
   # hdfgroup.org/HDF5: '*'
-  libjpeg-turbo.org: '*'
-  jpeg.org/jpegxl: '*'
-  github.com/json-c/json-c: '*'
-  libarchive.org: '*'
-  github.com/OSGeo/libgeotiff: '*'
-  github.com/strukturag/libheif: '*'
-  github.com/libkml/libkml: '*'
-  github.com/Esri/lerc: '*'
-  libpng.org: '*'
-  postgresql.org/libpq: '*'
-  gaia-gis.it/libspatialite: '*'
-  simplesystems.org/libtiff: '*'
+  libjpeg-turbo.org: "*"
+  jpeg.org/jpegxl: "*"
+  github.com/json-c/json-c: "*"
+  libarchive.org: "*"
+  github.com/OSGeo/libgeotiff: "*"
+  github.com/strukturag/libheif: "*"
+  github.com/libkml/libkml: "*"
+  github.com/Esri/lerc: "*"
+  libpng.org: "*"
+  postgresql.org/libpq: "*"
+  gaia-gis.it/libspatialite: "*"
+  simplesystems.org/libtiff: "*"
   gnome.org/libxml2: ~2.13 # 2.14 changed the soname
   # removed due to cmake duplication of libaec.
   # unidata.ucar.edu/netcdf: '*'
-  numpy.org: '*'
-  openexr.com: '*'
-  openjpeg.org: '*'
-  openssl.org: '*'
-  pcre.org/v2: '*'
-  poppler.freedesktop.org: '*'
-  proj.org: '*'
+  numpy.org: "*"
+  openexr.com: "*"
+  openjpeg.org: "*"
+  openssl.org: "*"
+  pcre.org/v2: "*"
+  poppler.freedesktop.org: "*"
+  proj.org: "*"
   python.org: ~3.11
-  qhull.org: '*'
-  sqlite.org: '*'
-  unixodbc.org: '*'
-  google.com/webp: '*'
-  xerces.apache.org/xerces-c: '*'
-  tukaani.org/xz: '*'
-  facebook.com/zstd: '*'
-  protobuf.dev: '*'
-  abseil.io: '*'
-  zlib.net: '*'
-  dkrz.de/libaec: '*'
-  github.com/ebiggers/libdeflate: '*' # since 3.9.3
+  qhull.org: "*"
+  sqlite.org: "*"
+  unixodbc.org: "*"
+  google.com/webp: "*"
+  xerces.apache.org/xerces-c: "*"
+  tukaani.org/xz: "*"
+  facebook.com/zstd: "*"
+  protobuf.dev: "*"
+  abseil.io: "*"
+  zlib.net: "*"
+  dkrz.de/libaec: "*"
+  github.com/ebiggers/libdeflate: "*" # since 3.9.3
   linux:
-    curl.se: '*'
-    github.com/util-linux/util-linux: '*'
+    curl.se: "*"
+    gnu.org/gcc/libstdcxx: 14
+    github.com/util-linux/util-linux: "*"
     # apache.org/thrift: =0.20.0 # since 3.9.3
     # apache.org/thrift: =0.21.0 # since 3.10.0
     apache.org/thrift: =0.22.0 # since 3.11.1
 
 runtime:
   env:
-    PYTHONPATH: '{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages/osgeo:{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages/osgeo_utils:$PYTHONPATH'
+    PYTHONPATH: "{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages/osgeo:{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages/osgeo_utils:$PYTHONPATH"
 
 build:
   dependencies:
-    boost.org: '*'
-    cmake.org: '*'
-    swig.org: '*'
-    doxygen.nl: '*'
+    boost.org: "*"
+    cmake.org: "*"
+    swig.org: "*"
+    doxygen.nl: "*"
     linux:
-      llvm.org: '*'
-      nixos.org/patchelf: '*'
+      gnu.org/gcc: 14
+      nixos.org/patchelf: "*"
   script:
     - cmake -S . -B build $CMAKE_ARGS
     - cmake --build build
@@ -77,9 +78,9 @@ build:
     - run:
         - sed -i "s|{{prefix}}|\$(dirname \$0)/..|g" gdal-config
         - sed -i "s|{{pkgx.prefix}}|\$(dirname \$0)/../../..|g" gdal-config
-      working-directory: '{{prefix}}/bin'
+      working-directory: "{{prefix}}/bin"
     - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
-      working-directory: '{{prefix}}/lib'
+      working-directory: "{{prefix}}/lib"
     # sqlite3 full path in the bins
     - run:
         - ldd lib/libgdal.so
@@ -89,7 +90,7 @@ build:
         - ldd lib/libgdal.so
         - ldd bin/gdalinfo
       if: linux
-      working-directory: '{{prefix}}'
+      working-directory: "{{prefix}}"
   env:
     CC: clang
     CXX: clang++
@@ -104,10 +105,16 @@ build:
       - -DBUILD_TESTING=OFF
       - -DENABLE_PAM=ON
       - -DCMAKE_CXX_STANDARD=17
+      - -DCMAKE_CXX_STANDARD_REQUIRED=ON
     # otherwise is uses libdeflate from openexr
     darwin:
       LDFLAGS: $LDFLAGS {{deps.github.com/ebiggers/libdeflate.prefix}}/lib/libdeflate.dylib
     linux:
+      CC: gcc
+      CXX: g++
+      LD: gcc
+      CMAKE_ARGS:
+        - -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined
       LDFLAGS: $LDFLAGS {{deps.github.com/ebiggers/libdeflate.prefix}}/lib/libdeflate.so
 
 provides:
