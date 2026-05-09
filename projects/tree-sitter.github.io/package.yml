@@ -10,13 +10,33 @@ versions:
 
 build:
   dependencies:
+    gnu.org/make: "*"
     rust-lang.org: ^1.65
   script:
+    - make install PREFIX={{prefix}}
     - run: cargo install --root {{prefix}} --path cli
       if: <0.26
     - run: cargo install --root {{prefix}} --path crates/cli
-      if: '>=0.26'
+      if: ">=0.26"
 
 test:
-  - tree-sitter init-config
-  - tree-sitter dump-languages
+  dependencies:
+    freedesktop.org/pkg-config: "*"
+  script:
+    - tree-sitter init-config
+    - tree-sitter dump-languages
+    - pkg-config --modversion tree-sitter | grep {{version}}
+    - run: cc $FIXTURE -o test $(pkg-config --cflags --libs tree-sitter)
+      fixture:
+        extname: c
+        content: |
+          #include <tree_sitter/api.h>
+
+          int main(void)
+          {
+            TSParser *parser = ts_parser_new();
+            if (!parser) return 1;
+            ts_parser_delete(parser);
+            return 0;
+          }
+    - ./test
