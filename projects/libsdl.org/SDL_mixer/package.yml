@@ -60,26 +60,31 @@ build:
       - -DSDLMIXER_EXAMPLES=OFF
 
 test:
-  - run: cc $FIXTURE -lSDL2_mixer
-    if: <3
-    fixture:
-      extname: c
-      contents: |
-        #include <SDL2/SDL_mixer.h>
+  dependencies:
+    pkgx.sh: ">=1"
+  script:
+    - CC=$(command -v cc || command -v clang || command -v gcc || echo clang)
+    # force libsdl.org version
+    - run: pkgx +libsdl.org^2 $CC $FIXTURE -lSDL2_mixer
+      if: <3
+      fixture:
+        extname: c
+        contents: |
+          #include <SDL2/SDL_mixer.h>
 
-        int main() {
-          SDL_version *version = Mix_Linked_Version();
-          return 0;
-        }
-  - run: cc $FIXTURE -lSDL3_mixer
-    if: ">=3"
-    fixture:
-      extname: c
-      contents: |
-        #include <SDL3_mixer/SDL_mixer.h>
+          int main() {
+            SDL_version *version = Mix_Linked_Version();
+            return 0;
+          }
+    - run: pkgx +libsdl.org^3 $CC $FIXTURE -lSDL3_mixer
+      if: ">=3"
+      fixture:
+        extname: c
+        contents: |
+          #include <SDL3_mixer/SDL_mixer.h>
 
-        int main() {
-          int version = MIX_Version();
-          return version > 0 ? 0 : 1;
-        }
-  - ./a.out
+          int main() {
+            int version = MIX_Version();
+            return version > 0 ? 0 : 1;
+          }
+    - ./a.out
