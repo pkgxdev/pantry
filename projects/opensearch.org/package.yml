@@ -14,12 +14,12 @@ dependencies:
 build:
   dependencies:
     cmake.org: 3
-    git-scm.org: '*'
-    gnu.org/wget: '*'
+    git-scm.org: "*"
+    gnu.org/wget: "*"
     gnu.org/gcc: ^11 # for gfortran
     linux:
       # on mac we use the Accelerate framework instead, on linux this is linked statically
-      netlib.org/lapack: '*'
+      netlib.org/lapack: "*"
 
   script:
     # there seems to be a loader bug with trying to dlopen libc on macos 12 and earlier.
@@ -31,14 +31,6 @@ build:
       if: ^2
     - ./gradlew -Dbuild.snapshot=false ":distribution:archives:no-jdk-{{hw.platform}}-tar:assemble"
     - run: tar --strip-components=1 -xf $SRCROOT/distribution/archives/no-jdk-{{hw.platform}}-tar/build/distributions/opensearch-*.tar.gz
-      working-directory: ${{prefix}}
-    # there seems to be a loader bug with trying to dlopen libc on macos 12 and earlier.
-    # remove this step when macos 12 and under are no longer supported.
-    - run:
-        - if test "{{hw.platform}}+{{hw.arch}}" = "darwin+x86-64"; then
-        - rm -f lib/jna-*.jar
-        - fi
-      if: ^2
       working-directory: ${{prefix}}
     - run: 'sed -i "s|#\s*cluster.name: .*|cluster.name: opensearch_pkgx|" opensearch.yml'
       working-directory: ${{prefix}}/config
@@ -57,6 +49,7 @@ build:
         - git submodule update --init --recursive
         - git config --global user.email "hello@pkgx.dev"
         - git config --global user.name "pkgx"
+        - sed -i 's|\.withP2Mirrors(Map.of("https://download.eclipse.org/", "https://mirror.umd.edu/eclipse/"))||' gradle/formatting.gradle
       working-directory: k-NN
 
     # workarounds for m1 build. see: https://github.com/opensearch-project/k-NN/blob/main/DEVELOPER_GUIDE.md#extra-setup-for-mac-m1-machines
@@ -65,6 +58,8 @@ build:
         - sed -i -e 's/-march=native/-mcpu=apple-m1/g' nmslib/similarity_search/CMakeLists.txt
         - sed -i -e 's/-mcpu=apple-a14/-mcpu=apple-m1/g' nmslib/python_bindings/setup.py
         - sed -i -e 's/__aarch64__/__undefine_aarch64__/g' faiss/faiss/utils/distances_simd.cpp
+        - |
+          sed -i '/#pragma message WARN("ScalarProductSIMD<float>: SSE2 is not available/d' nmslib/similarity_search/src/distcomp_scalar.cc
         - fi
       if: <3.4.0
       working-directory: k-NN/jni/external
@@ -92,7 +87,9 @@ build:
       working-directory: k-NN/jni
     - run: |
         for LIB in *.jnilib; do
-          install_name_tool -add_rpath @loader_path $LIB
+          if ! otool -l "$LIB" | grep -q 'path @loader_path '; then
+            install_name_tool -add_rpath @loader_path "$LIB"
+          fi
         done
       working-directory: k-NN/jni/release
       if: darwin
@@ -110,7 +107,7 @@ build:
         - TMP=$(mktemp -d /tmp/opensearch-knn-XXXXXX)
         - rmdir $TMP
         - ln -s {{prefix}} $TMP
-        - '$TMP/bin/opensearch-plugin install --batch file:`pwd`/opensearch-knn-{{version}}.0.zip'
+        - "$TMP/bin/opensearch-plugin install --batch file:`pwd`/opensearch-knn-{{version}}.0.zip"
       working-directory: k-NN
     - run: echo 'export JAVA_LIBRARY_PATH="$OPENSEARCH_HOME/plugins/opensearch-knn/lib:$JAVA_LIBRARY_PATH"' >> opensearch-env
       working-directory: ${{prefix}}/bin
@@ -136,8 +133,8 @@ provides:
 test:
   dependencies:
     gnu.org/coreutils: ^9
-    stedolan.github.io/jq: '*'
-    curl.se: '*'
+    stedolan.github.io/jq: "*"
+    curl.se: "*"
   script:
     - opensearch-plugin list
 
@@ -151,7 +148,7 @@ test:
     - mkdir -p test/{data,logs}
     - PORT=$(shuf -i 2000-65000 -n 1)
     - run: ADDED_ARGS=-Ediscovery.type=single-node
-      if: '>=2.17.1'
+      if: ">=2.17.1"
     - opensearch -Ehttp.port=$PORT -Epath.data=$PWD/test/data -Epath.logs=$PWD/test/logs $ADDED_ARGS &
     - pid=$!
     - |
