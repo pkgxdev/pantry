@@ -13,6 +13,7 @@ dependencies:
   ffmpeg.org: "*"
   libusb.info: "*"
   libsdl.org: "*"
+  pkgx.sh: ">=1"
   linux:
     webmproject.org/libvpx: <1.15.1 # since 3.3, .9 lib api
   darwin:
@@ -25,7 +26,6 @@ build:
     ninja-build.org: "*"
     gnu.org/wget: "*"
     gnu.org/patch: "*"
-    pkgx.sh: ">=1"
   working-directory: build
   script:
     # quick post-release patch to address a build failure:
@@ -40,6 +40,17 @@ build:
       if: ">=4"
     - meson compile --verbose
     - meson install
+    - run:
+        - mv "../bin/scrcpy" .
+        - install -m755 $PROP "../bin/scrcpy"
+      prop: |
+        #!/bin/sh
+        set -e
+
+        d=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+        exec pkgx +libsdl.org^3 "$d/../libexec/scrcpy" "$@"
+      working-directory: "{{prefix}}/libexec"
+      if: ">=4"
 
   env:
     PREBUILT_SERVER_URL: https://github.com/Genymobile/scrcpy/releases/download/v{{version.marketing}}/scrcpy-server-v{{version.marketing}}
