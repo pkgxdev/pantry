@@ -22,7 +22,7 @@ versions:
   strip: /^OTP /
 
 dependencies:
-  openssl.org: '>=1.1'
+  openssl.org: ">=1.1"
   invisible-island.net/ncurses: "*"
   linux/x86-64:
     gnu.org/gcc/libstdcxx: "*"
@@ -42,11 +42,28 @@ build:
     - ./configure $ARGS
     - make -j {{hw.concurrency}}
     - make install
-    # Surface dyn_erl so the launcher's self-relocation fallback works through
-    # the bin/erl symlink (without it, the script falls through to the hardcoded
-    # build-time ROOTDIR and fails outside pkgx env).
+    # OTP 29 removed dyn_erl and the launcher no longer resolves symlink targets
+    # while searching for erts-*. Keep top-level tools relocatable by setting
+    # ERL_ROOTDIR relative to prefix/bin before delegating to lib/erlang/bin.
+    - run:
+        - for exe in ct_run dialyzer epmd erl erlc escript run_erl to_erl typer; do
+        - rm -f "$exe"
+        - install -m755 "$PROP" "$exe"
+        - done
+      prop: |
+        #!/bin/sh
+        set -e
+
+        d="$(cd "$(dirname "$0")"/.. && pwd)"
+        name=${0##*/}
+
+        export ERL_ROOTDIR="${ERL_ROOTDIR:-$d/lib/erlang}"
+        exec "$ERL_ROOTDIR/bin/$name" "$@"
+      working-directory: ${{prefix}}/bin
+      if: ">=29"
     - run: ln -s ../lib/erlang/erts-*/bin/dyn_erl dyn_erl
       working-directory: ${{prefix}}/bin
+      if: <29
   env:
     CC: cc
     CXX: c++
