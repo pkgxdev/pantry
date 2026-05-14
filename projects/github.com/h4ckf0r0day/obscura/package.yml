@@ -1,0 +1,20 @@
+distributable:
+  url: https://github.com/h4ckf0r0day/obscura/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/obscura
+  - bin/obscura-worker
+
+versions:
+  github: h4ckf0r0day/obscura
+
+build:
+  dependencies:
+    rust-lang.org: ">=1.75"
+    rust-lang.org/cargo: "*"
+  script: cargo install --locked --root {{prefix}} --path crates/obscura-cli --bin obscura --bin obscura-worker
+
+test:
+  - obscura fetch https://pkgx.dev/ --eval document.title | tee out
+  - grep -i pkgx out
