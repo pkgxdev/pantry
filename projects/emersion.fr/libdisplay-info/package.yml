@@ -1,0 +1,33 @@
+distributable:
+  # returns 403
+  # url: https://gitlab.freedesktop.org/emersion/libdisplay-info/-/releases/{{version}}/downloads/libdisplay-info-{{version}}.tar.xz
+  # strip-components: 1
+  url: git+https://gitlab.freedesktop.org/emersion/libdisplay-info
+  ref: ${{version}}
+
+display-name: libdisplay-info
+
+versions:
+  gitlab: gitlab.freedesktop.org:emersion/libdisplay-info
+
+build:
+  dependencies:
+    github.com/vcrhonek/hwdata: '*'
+    mesonbuild.com: '>=0.57'
+    ninja-build.org: '>=1.8.2'
+  script: |
+    meson setup build $ARGS
+    meson compile -C build --jobs {{ hw.concurrency }}
+    meson install -C build
+  env:
+    ARGS:
+      - --buildtype=release
+      - --prefix={{prefix}}
+      - --libdir=lib
+
+provides:
+  - bin/di-edid-decode
+
+test: |
+  wget https://gitlab.freedesktop.org/emersion/libdisplay-info/-/raw/main/test/data/cvt.edid
+  di-edid-decode cvt.edid
