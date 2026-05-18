@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/cedar-policy/cedar/archive/refs/tags/v{{ version }}.tar.gz
+  url: https://github.com/cedar-policy/cedar/archive/refs/tags/{{ version.tag }}.tar.gz
   strip-components: 1
 
 provides:
@@ -7,22 +7,19 @@ provides:
 
 versions:
   github: cedar-policy/cedar
-  strip: /v/
 
 build:
   working-directory: cedar-policy-cli
   dependencies:
-    rust-lang.org: '>=1.65'
-    rust-lang.org/cargo: '*'
+    rust-lang.org: ">=1.65"
+    rust-lang.org/cargo: "*"
   script:
     # version bump got missed in 3.1.1, 4.5.1
     - run: sed -i -f $PROP Cargo.toml */Cargo.toml
       working-directory: ..
       prop: |
         s/^version = ".*"$/version = "{{version}}"/
-        s/^cedar-policy\([-a-z]*\) = { version = "=[0-9\.]*"/cedar-policy\1 = { version = "={{version}}"/
+        s/^cedar-policy\([-a-z]*\) = { version = "[=^]*[0-9\.]*"/cedar-policy\1 = { version = "={{version}}"/
     - cargo install --locked --path . --root {{prefix}}
 
-test:
-  script:
-    - test "$(cedar --version)" = "cedar-policy-cli {{version}}"
+test: test "$(cedar --version)" = "cedar-policy-cli {{version}}"
