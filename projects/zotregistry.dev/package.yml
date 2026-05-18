@@ -9,17 +9,12 @@ versions:
 
 build:
   dependencies:
-    git-scm.org: '*'
-    npmjs.com: '*'
+    git-scm.org: "*"
+    npmjs.com: "*"
     go.dev: ^1.25
 
   env:
     MODULE_PATH: $(go list -m)
-    CONFIG_PACKAGE: ${MODULE_PATH}/pkg/api/config
-    CONFIG_RELEASE_TAG: ${CONFIG_PACKAGE}.ReleaseTag
-    CONFIG_COMMIT: ${CONFIG_PACKAGE}.Commit
-    CONFIG_BINARY_TYPE: ${CONFIG_PACKAGE}.BinaryType
-    CONFIG_GO_VERSION: ${CONFIG_PACKAGE}.GoVersion
     RELEASE_TAG: $(git describe --tags --abbrev=0)
     COMMIT: $(git describe --always --tags --long)
     ALL_EXTENSIONS: debug,imagetrust,lint,metrics,mgmt,profile,scrub,search,sync,ui,userprefs,events
@@ -30,10 +25,15 @@ build:
     GO_LDFLAGS:
       - -s
       - -w
-      - -X ${CONFIG_RELEASE_TAG}=${RELEASE_TAG}
-      - -X ${CONFIG_COMMIT}=${COMMIT}
-      - -X ${CONFIG_BINARY_TYPE}=${BINARY_TYPE}
-      - -X ${CONFIG_GO_VERSION}=${GO_VERSION}
+      - -X ${MODULE_PATH}/pkg/api/config.ReleaseTag=${RELEASE_TAG}
+      - -X ${MODULE_PATH}/pkg/api/config.Commit=${COMMIT}
+      - -X ${MODULE_PATH}/pkg/api/config.BinaryType=${BINARY_TYPE}
+      - -X ${MODULE_PATH}/pkg/api/config.GoVersion=${GO_VERSION}
+      # since 2.1.17
+      - -X ${MODULE_PATH}/pkg/buildinfo.ReleaseTag=${RELEASE_TAG}
+      - -X ${MODULE_PATH}/pkg/buildinfo.Commit=${COMMIT}
+      - -X ${MODULE_PATH}/pkg/buildinfo.BinaryType=${BINARY_TYPE}
+      - -X ${MODULE_PATH}/pkg/buildinfo.GoVersion=${GO_VERSION}
     ZUI_VERSION: $(grep -m1 ZUI_VERSION Makefile | cut -d' ' -f3)
     ZUI_REPO_OWNER: $(grep -m1 ZUI_REPO_OWNER Makefile | cut -d' ' -f3)
     ZUI_REPO_NAME: $(grep -m1 ZUI_REPO_NAME Makefile | cut -d' ' -f3)
@@ -45,29 +45,14 @@ build:
     - rm -Rf ./pkg/extensions/build
     - git clone --depth=1 --branch ${ZUI_VERSION} https://github.com/${ZUI_REPO_OWNER}/${ZUI_REPO_NAME}
     - working-directory: ${ZUI_REPO_NAME}
-      run: |
-        npm install
-        npm run build
+      run:
+        - npm install
+        - npm run build
     - cp -r ${ZUI_REPO_NAME}/build ./pkg/extensions/
-    - go build -v
-               -ldflags="${GO_LDFLAGS}"
-               -tags="${ALL_EXTENSIONS}"
-               -o "{{ prefix }}"/bin/zb
-               ./cmd/zb
-    - go build -v
-               -ldflags="${GO_LDFLAGS}"
-               -tags="${ALL_EXTENSIONS}"
-               -o "{{ prefix }}"/bin/zli
-               ./cmd/zli
-    - go build -v
-               -ldflags="${GO_LDFLAGS}"
-               -tags="${ALL_EXTENSIONS}"
-               -o "{{ prefix }}"/bin/zot
-               ./cmd/zot
-    - go build -v
-               -ldflags="${GO_LDFLAGS}"
-               -o "{{ prefix }}"/bin/zxp
-               ./cmd/zxp
+    - go build -v -ldflags="${GO_LDFLAGS}" -tags="${ALL_EXTENSIONS}" -o "{{ prefix }}"/bin/zb ./cmd/zb
+    - go build -v -ldflags="${GO_LDFLAGS}" -tags="${ALL_EXTENSIONS}" -o "{{ prefix }}"/bin/zli ./cmd/zli
+    - go build -v -ldflags="${GO_LDFLAGS}" -tags="${ALL_EXTENSIONS}" -o "{{ prefix }}"/bin/zot ./cmd/zot
+    - go build -v -ldflags="${GO_LDFLAGS}" -o "{{ prefix }}"/bin/zxp ./cmd/zxp
 
 provides:
   - bin/zb
@@ -75,9 +60,9 @@ provides:
   - bin/zot
   - bin/zxp
 
-test: 
+test:
   dependencies:
-    jq: '*'
+    jq: "*"
   fixture: |
     {
       "storage": {
