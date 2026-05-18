@@ -27,13 +27,19 @@ if (ghout) {
 async function get_config(pkg: {project: string}) {
   let { platforms, test } = await hooks.usePantry().project(pkg).yaml()
   const get_platforms = (() => {
+    // Windows is intentionally NOT in the default-platforms list: a
+    // pkg.yml has to opt in by listing `windows/x86-64` explicitly,
+    // because brewkit doesn't run on Windows runners yet — see the PR
+    // description. Once brewkit supports Windows, the default list
+    // should grow `windows/x86-64`.
     if (!platforms) return ["linux/x86-64", "linux/aarch64", "darwin/x86-64", "darwin/aarch64"]
     if (isString(platforms)) platforms = [platforms]
     if (!isArray(platforms)) throw new Error(`invalid platform node: ${platforms}`)
     const rv = []
     for (const platform of platforms) {
-      if (platform.match(/^(linux|darwin)\/(aarch64|x86-64)$/)) rv.push(platform)
+      if (platform.match(/^(linux|darwin|windows)\/(aarch64|x86-64)$/)) rv.push(platform)
       else if (platform.match(/^(linux|darwin)$/)) rv.push(`${platform}/x86-64`, `${platform}/aarch64`)
+      else if (platform === "windows") rv.push("windows/x86-64") // no arm64 windows runners yet
       else throw new Error(`invalid platform: ${platform}`)
     }
     return rv
@@ -83,5 +89,19 @@ function get_matrix(platform: string) {
         "test-os": [os],
         "test-container": [null],
         tinyname: "*nix·ARM64"
-  }}}
+      }}
+    case 'windows/x86-64': {
+      // Hosted GitHub runner; no self-hosted Windows pool today.
+      // brewkit/build@v1 doesn't have a Windows code path — this case
+      // exists so a pkg.yml that opts in to `windows/x86-64` produces
+      // a buildable matrix entry, surfacing brewkit's gap with a real
+      // CI failure rather than a "invalid platform" throw at planning.
+      const os = "windows-latest"
+      return {
+        os, name,
+        "test-os": [os],
+        "test-container": [null],
+        tinyname: "win64"
+      }}
+  }
 }
