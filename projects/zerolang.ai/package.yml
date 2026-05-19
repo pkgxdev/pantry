@@ -24,7 +24,11 @@ build:
     nodejs.org: "*"
     npmjs.com: "*"
   script:
+    - if test -f package-lock.json; then
     - npm ci
+    - else
+    - npm install
+    - fi
     - make -C native/zero-c OUT={{prefix}}/.zero/bin/zero
     - cp -a bin scripts node_modules skills skill-data {{prefix}}/
 
