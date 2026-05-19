@@ -5,7 +5,7 @@ distributable:
 display-name: tdnf
 
 versions:
-  github: vmware/tdnf
+  github: vmware/tdnf/releases
 
 platforms: [linux] # rpm doesn't support darwin, and patching is a nightmare.
 
@@ -46,4 +46,17 @@ build:
 provides:
   - bin/tdnf
 
-test: 'test "$(tdnf --version)" = "tdnf: {{version}}"'
+test:
+  env:
+    RELEASE: '10'
+    ROOTFS: rocky-${RELEASE}-rootfs
+  script:
+    - run: 'test "$(tdnf --version)" = "tdnf: {{version}}"'
+    - run: |
+        sudo pkgx tdnf install \
+          --installroot="$PWD/${ROOTFS}" \
+          --releasever=${RELEASE} \
+          --forcearch={{ hw.arch }} \
+          -y bash coreutils passwd iproute iputils procps-ng util-linux \
+          openssh-server openssh-clients less vim-minimal tar gzip \
+          which dnf yum
