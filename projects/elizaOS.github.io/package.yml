@@ -1,6 +1,6 @@
 distributable:
   url: git+https://github.com/elizaOS/eliza.git
-  ref: '{{version.tag}}'
+  ref: "{{version.tag}}"
 
 display-name: elizaOS
 
@@ -13,28 +13,29 @@ versions:
 
 provides:
   - bin/eliza
+  - bin/elizaos
 
 dependencies:
-  python.org: '>=2.7'
-  nodejs.org: ~23.3
-  pnpm.io: '*' # prior to 1.0.5
+  python.org: ">=2.7"
+  nodejs.org: ">=24<25"
+  pnpm.io: "*" # prior to 1.0.5
   bun.sh: ^1.2 # since 1.0.5
 
 companions:
   git-scm.org: 2
-  ffmpeg.org: '*'
+  ffmpeg.org: "*"
 
 build:
   dependencies:
     python.org: ~3.10 # node-gyp doesn't like later pythons
     pnpm.io: =9.15.7
-    curl.se: '*'
-    gnu.org/patch: '*'
-    gnu.org/sed: '*' # otherwise, weird path issues
-    git-scm.org: '*' # as of 1.0.9 for git submodules
+    curl.se: "*"
+    gnu.org/patch: "*"
+    gnu.org/sed: "*" # otherwise, weird path issues
+    git-scm.org: "*" # as of 1.0.9 for git submodules
   script:
     - run: curl 'https://github.com/adimverse/eliza/commit/d577fda887820e188b0e017f9869185be9fb3bc7.patch' | patch -p1
-      if: '>=0.1.8<0.1.9'
+      if: ">=0.1.8<0.1.9"
     # weird SSL error; guessing the cert path isn't
     # making it in
     - run: |
@@ -49,17 +50,30 @@ build:
         # missing directory
         - mkdir -p plugin-specification
         - bun install
-      if: '>=1.0.5'
+      if: ">=1.0.5<2"
+    - run:
+        # v2 includes a stale duplicate workspace on some tags
+        - rm -rf packages/browser-bridge
+        - bun install
+      if: ">=2"
+    - run: sed -i '/bunx --bun @biomejs\/biome format --write/,/});/d' packages/elizaos/build.ts
+      if: ">=2"
 
     # needs to find the module in the pnpm cache
     - run: ln -s {{deps.pnpm.io.prefix}} {{deps.pnpm.io.version}}
       working-directory: $PNPM_HOME/.tools/pnpm
-      if: '>=0.25.19<1.0.5'
+      if: ">=0.25.19<1.0.5"
 
     - run: pnpm run build
       if: <1.0.5
     - run: bun run build
-      if: '>=1.0.5'
+      if: ">=1.0.5<2"
+    - run:
+        - bun run build
+        # the biome format plugin is a dev dependency that adds a postbuild step to format the code, but it needs newer glibc on linux and it's not necessary since we're not including the source files
+        - sed -i '/bunx --bun @biomejs\/biome format --write/,/});/d' build.ts
+      working-directory: packages/elizaos
+      if: ">=2"
 
     # adapted from their Dockerfile
     - run:
@@ -70,6 +84,15 @@ build:
         - if test -d $SRCROOT/$DIR; then cp -R $SRCROOT/$DIR .; fi
         - done
       working-directory: ${{prefix}}/libexec
+      if: <2
+
+    # v2 is primarily the elizaos CLI; avoid copying the whole monorepo
+    - run:
+        - mkdir -p packages
+        - cp -R $SRCROOT/node_modules .
+        - cp -R $SRCROOT/packages/elizaos packages/
+      working-directory: ${{prefix}}/libexec
+      if: ">=2"
 
     - run: install -Dm755 $PROP eliza
       working-directory: ${{prefix}}/bin
@@ -107,7 +130,7 @@ build:
 
     - run: install -Dm755 $PROP eliza
       working-directory: ${{prefix}}/bin
-      if: '>=1.0.5'
+      if: ">=1.0.5<2"
       prop: |
         #!/bin/sh
 
@@ -124,6 +147,28 @@ build:
         cd "$(dirname "$(readlink -f "$0")")/../libexec" || exit 1
 
         bun run start
+
+    - run:
+        - install -Dm755 $PROP eliza
+        - ln -s eliza elizaos
+      working-directory: ${{prefix}}/bin
+      if: ">=2"
+      prop: |
+        #!/bin/sh
+
+        SELF="$0"
+        case "$SELF" in
+          */*) ;;
+          *) SELF="$(command -v "$0")" ;;
+        esac
+        BINDIR="$(cd "$(dirname "$SELF")" && pwd)"
+
+        if [ "$1" = "--version" ]; then
+          echo "elizaOS {{version}}"
+          exit 0
+        fi
+
+        exec node "$BINDIR/../libexec/packages/elizaos/dist/cli.js" "$@"
   skip:
     # takes 4+ hours
     - fix-patchelf
