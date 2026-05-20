@@ -106,11 +106,11 @@ build:
         # still ends up at $prefix/lib/ and pollutes consumers'
         # LD_LIBRARY_PATH (incompatible with the host's older ld-linux).
         LIBDIR="{{prefix}}/lib/glibc-{{version.marketing}}"
-        CFLAGS="-O2 -fPIC -fno-PIE $EXTRA_CFLAGS" \
-        LDFLAGS="-no-pie" \
+        CFLAGS="-O2 -fPIC $EXTRA_CFLAGS" \
           libc_cv_slibdir="$LIBDIR" \
           libc_cv_rtlddir="$LIBDIR" \
           libc_cv_complocaledir="$LIBDIR/locale" \
+          libc_cv_static_pie=no \
           ../configure $ARGS
 
     - make --jobs {{ hw.concurrency }} CFLAGS-regexp.c=-fno-common
