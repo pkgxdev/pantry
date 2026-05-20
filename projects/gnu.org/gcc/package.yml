@@ -96,6 +96,13 @@ build:
         export ARGS
       if: linux
 
+    # For old gcc (< 10) used in the HPC bootstrap cascade, also disable
+    # LTO and the linker plugin. Both load shared objects that mix libc
+    # versions across host ld-linux and the bottle's libc at link time.
+    # Modern gcc bottles (>= 10) keep LTO enabled.
+    - run: ARGS=("${ARGS[@]}" --disable-lto --disable-plugin); export ARGS
+      if: '<10'
+
     # Bake mpc / mpfr / gmp / zlib RUNPATH into all linked binaries so
     # the built gcc + cc1 / cc1plus run without requiring
     # LD_LIBRARY_PATH at runtime.
@@ -187,14 +194,6 @@ build:
       - --disable-bootstrap
       - --disable-nls
       - --with-system-zlib
-    # For old gcc (< 10) used in the HPC bootstrap cascade, also
-    # disable LTO and the linker plugin. Both load shared objects that
-    # mix libc versions across host ld-linux and the bottle's libc at
-    # link time. Modern gcc bottles (≥ 10) keep LTO enabled.
-    '<10':
-      ARGS:
-        - --disable-lto
-        - --disable-plugin
     linux:
       ARGS:
         - --disable-multilib
