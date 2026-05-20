@@ -166,18 +166,18 @@ build:
 # runtime behaviour is documented in the README (run on Alpine,
 # Debian 11, Ubuntu 22.04 across 9 versions × 2 arches).
 test:
-  - run:
-      - run: |
-        case "{{hw.arch}}" in
-          x86-64)  LDSO=ld-linux-x86-64.so.2 ;;
-          aarch64) LDSO=ld-linux-aarch64.so.1 ;;
-        esac
-      - LIBDIR="{{prefix}}/lib/glibc-{{version.marketing}}"
-      - test -f "$LIBDIR/libc.so.6"      || { echo "missing libc.so.6"; exit 1; }
-      - test -f "$LIBDIR/$LDSO"          || { echo "missing $LDSO"; exit 1; }
-      - test -f "{{prefix}}/include/stdio.h"  || { echo "missing stdio.h"; exit 1; }
-      - test -L "{{prefix}}/bin/ld.so"   || { echo "missing bin/ld.so symlink"; exit 1; }
-      - echo "all expected files present"
+  env:
+    x86-64:
+      LDSO: ld-linux-x86-64.so.2
+    aarch64:
+      LDSO: ld-linux-aarch64.so.1
+    LIBDIR: "{{prefix}}/lib/glibc-{{version.marketing}}"
+  script:
+    - test -f "$LIBDIR/libc.so.6"      || { echo "missing libc.so.6"; exit 1; }
+    - test -f "$LIBDIR/$LDSO"          || { echo "missing $LDSO"; exit 1; }
+    - test -f "{{prefix}}/include/stdio.h"  || { echo "missing stdio.h"; exit 1; }
+    - test -L "{{prefix}}/bin/ld.so"   || { echo "missing bin/ld.so symlink"; exit 1; }
+    - echo "all expected files present"
 
 provides:
   # Binaries that are installed across all supported versions
