@@ -69,30 +69,32 @@ build:
         MAJOR={{version.major}}; MINOR={{version.minor}}
         GV=$((MAJOR*100 + MINOR))
         if [ $GV -ge 232 ]; then
-          patch -p1 < $PROPS/dont-use-system-ld-so-cache.patch
+          patch -p1 < props/dont-use-system-ld-so-cache.patch
           patch -p1 --forward --no-backup-if-mismatch \
-            < $PROPS/dont-use-system-ld-so-preload.patch || true
+            < props/dont-use-system-ld-so-preload.patch || true
         fi
       working-directory: ..
 
     # glibc 2.17/2.18 configure has a python regex that rejects `make` >= 4.0.
     # 1-line fix preserving the same regex shape, accepting modern make.
+    # Use # as sed delimiter because the pattern itself contains |.
     - run: |
         if [ {{version.major}}{{version.minor}} -le 218 ]; then
-          sed -i 's|3.79\* | 3.\[89\]\*|3.79* | 3.[89]* | [4-9].* | [1-9][0-9]*|' configure
+          sed -i 's#3\.79\* | 3\.\[89\]\*#3.79* | 3.[89]* | [4-9].* | [1-9][0-9]*#' configure
         fi
-      working-directory: ../glibc-src
+      working-directory: ..
 
     # glibc < 2.32 has multiple tentative .bss definitions of __nss_*_database
     # that gcc 10+'s default -fno-common rejects. Add -fcommon for old glibc.
     - run: |
+        EXTRA_CFLAGS=""
         if [ {{version.major}}{{version.minor}} -lt 232 ]; then
-          export EXTRA_CFLAGS="-fcommon -Wno-error"
+          EXTRA_CFLAGS="-fcommon -Wno-error"
         fi
         CFLAGS="-O2 -fPIC $EXTRA_CFLAGS" LDFLAGS="-pie" \
           ../configure $ARGS
 
-    - make --jobs {{ hw.concurrency }}
+    - make --jobs {{ hw.concurrency }} CFLAGS-regexp.c=-fno-common
     - make install
 
     # Self-relocate generated scripts so the bottle works at any prefix.
@@ -114,7 +116,6 @@ build:
       working-directory: ${{prefix}}/bin
 
   env:
-    PROPS: ../props
     SCRIPTS:
       - catchsegv
       - ldd
