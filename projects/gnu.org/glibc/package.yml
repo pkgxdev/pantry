@@ -65,32 +65,26 @@ build:
     # On glibc < 2.32 the elf/Makefile is laid out differently and the cache
     # patch leaves `LD_SO_CACHE` referencing an undefined `PREFIX` macro.
     # We therefore gate the patches on the version.
-    - run: |
-        MAJOR={{version.major}}; MINOR={{version.minor}}
-        GV=$((MAJOR*100 + MINOR))
-        if [ $GV -ge 232 ]; then
-          patch -p1 < props/dont-use-system-ld-so-cache.patch
-          patch -p1 --forward --no-backup-if-mismatch \
-            < props/dont-use-system-ld-so-preload.patch || true
-        fi
+    - run:
+      - patch -p1 < props/dont-use-system-ld-so-cache.patch
+      - patch -p1 --forward --no-backup-if-mismatch < props/dont-use-system-ld-so-preload.patch || true
+      if: ">=2.32"
       working-directory: ..
 
     # glibc 2.17/2.18 configure has a python regex that rejects `make` >= 4.0.
     # 1-line fix preserving the same regex shape, accepting modern make.
     # Use # as sed delimiter because the pattern itself contains |.
-    - run: |
-        if [ {{version.major}}{{version.minor}} -le 218 ]; then
-          sed -i 's#3\.79\* | 3\.\[89\]\*#3.79* | 3.[89]* | [4-9].* | [1-9][0-9]*#' configure
-        fi
+    - run: sed -i 's#3\.79\* | 3\.\[89\]\*#3.79* | 3.[89]* | [4-9].* | [1-9][0-9]*#' configure
+      if: <2.19
       working-directory: ..
 
     # glibc < 2.32 has multiple tentative .bss definitions of __nss_*_database
     # that gcc 10+'s default -fno-common rejects. Add -fcommon for old glibc.
-    - run: |
-        EXTRA_CFLAGS=""
-        if [ {{version.major}}{{version.minor}} -lt 232 ]; then
-          EXTRA_CFLAGS="-fcommon -Wno-error"
-        fi
+    - run:
+        - EXTRA_CFLAGS=""
+        - if [ {{version.major}}{{version.minor}} -lt 232 ]; then
+        -  EXTRA_CFLAGS="-fcommon -Wno-error"
+        - fi
         # glibc decides its own pie/-shared per target — pkgx gcc 16
         # is built with --enable-default-pie, so its CC defaults add
         # -fPIE/-pie. That breaks glibc's static auxiliary tools
@@ -105,12 +99,12 @@ build:
         # --libdir alone only affects gconv/audit plugins; libc.so.6
         # still ends up at $prefix/lib/ and pollutes consumers'
         # LD_LIBRARY_PATH (incompatible with the host's older ld-linux).
-        LIBDIR="{{prefix}}/lib/glibc-{{version.marketing}}"
-        CFLAGS="-O2 -fPIC $EXTRA_CFLAGS" \
-          libc_cv_slibdir="$LIBDIR" \
-          libc_cv_rtlddir="$LIBDIR" \
-          libc_cv_complocaledir="$LIBDIR/locale" \
-          libc_cv_static_pie=no \
+        - LIBDIR="{{prefix}}/lib/glibc-{{version.marketing}}"
+        - CFLAGS="-O2 -fPIC $EXTRA_CFLAGS"
+          libc_cv_slibdir="$LIBDIR"
+          libc_cv_rtlddir="$LIBDIR"
+          libc_cv_complocaledir="$LIBDIR/locale"
+          libc_cv_static_pie=no
           ../configure $ARGS
 
     - make --jobs {{ hw.concurrency }} CFLAGS-regexp.c=-fno-common
@@ -120,8 +114,7 @@ build:
     - run: |
         for s in $SCRIPTS; do
           test -f $s || continue
-          sed -i.bak 's|{{prefix}}|"$(cd "$(dirname "$0")/.." \&\& pwd)"|' $s
-          rm $s.bak
+          sed -i 's|{{prefix}}|"$(cd "$(dirname "$0")/.." \&\& pwd)"|' $s
         done
       working-directory: ${{prefix}}/bin
 
@@ -173,17 +166,18 @@ build:
 # runtime behaviour is documented in the README (run on Alpine,
 # Debian 11, Ubuntu 22.04 across 9 versions × 2 arches).
 test:
-  - run: |
-      case "{{hw.arch}}" in
-        x86-64)  LDSO=ld-linux-x86-64.so.2 ;;
-        aarch64) LDSO=ld-linux-aarch64.so.1 ;;
-      esac
-      LIBDIR="{{prefix}}/lib/glibc-{{version.marketing}}"
-      test -f "$LIBDIR/libc.so.6"      || { echo "missing libc.so.6"; exit 1; }
-      test -f "$LIBDIR/$LDSO"          || { echo "missing $LDSO"; exit 1; }
-      test -f "{{prefix}}/include/stdio.h"  || { echo "missing stdio.h"; exit 1; }
-      test -L "{{prefix}}/bin/ld.so"   || { echo "missing bin/ld.so symlink"; exit 1; }
-      echo "all expected files present"
+  - run:
+      - run: |
+        case "{{hw.arch}}" in
+          x86-64)  LDSO=ld-linux-x86-64.so.2 ;;
+          aarch64) LDSO=ld-linux-aarch64.so.1 ;;
+        esac
+      - LIBDIR="{{prefix}}/lib/glibc-{{version.marketing}}"
+      - test -f "$LIBDIR/libc.so.6"      || { echo "missing libc.so.6"; exit 1; }
+      - test -f "$LIBDIR/$LDSO"          || { echo "missing $LDSO"; exit 1; }
+      - test -f "{{prefix}}/include/stdio.h"  || { echo "missing stdio.h"; exit 1; }
+      - test -L "{{prefix}}/bin/ld.so"   || { echo "missing bin/ld.so symlink"; exit 1; }
+      - echo "all expected files present"
 
 provides:
   # Binaries that are installed across all supported versions
