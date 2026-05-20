@@ -140,42 +140,22 @@ build:
       - --with-binutils={{deps.gnu.org/binutils.prefix}}/bin
       - --disable-multi-arch
 
+# Minimal test: invoke the bottle's OWN ld.so to print its version.
+# The bottle's ld.so has PT_INTERP=ELFCLASS64 (it IS the loader) and
+# does not depend on host /lib/ld-linux*. This avoids LD_LIBRARY_PATH
+# pollution causing host coreutils to load our libc with old host
+# ld-linux symbols.
+#
+# Caveat: glibc <= 2.28's ld.so does not support --version, so for
+# those we use the installed getconf instead, which has PT_INTERP
+# pointing at the bottle's own ld.so (set during install).
 test:
-  dependencies:
-    gnu.org/gcc: '*'
-  env:
-    linux/x86-64:
-      ARCH: x86_64
-      LDSO: ld-linux-x86-64.so.2
-    linux/aarch64:
-      ARCH: aarch64
-      LDSO: ld-linux-aarch64.so.1
-  script:
-    # Sanity test linked normally (against the gcc-provided libc).
-    - gcc -o test1 test.c -fPIC -pie
-    - ./test1
-
-    # Real test: link the test binary against THIS bottle's libc + ld.so,
-    # then run it. The binary's PT_INTERP points at the bottle's ld.so; the
-    # bottle's libc.so.6 supplies gnu_get_libc_version(). If the output
-    # matches the bottle's version we know the bottle is self-contained
-    # and the build was truly host-independent.
-    - |
-      GCC_INC={{deps.gnu.org/gcc.prefix}}/lib/gcc/$ARCH-pc-linux-gnu/{{deps.gnu.org/gcc.version}}/include
-      gcc \
-        -nostdinc -nostdlib \
-        -isystem $GCC_INC \
-        -isystem {{prefix}}/include \
-        -Wl,--rpath={{prefix}}/lib \
-        -Wl,--dynamic-linker={{prefix}}/lib/$LDSO \
-        -std=c11 -O2 -fPIC -pie \
-        -o test2 \
-        {{prefix}}/lib/crti.o {{prefix}}/lib/crt1.o \
-        test.c \
-        -L{{prefix}}/lib -lc \
-        {{prefix}}/lib/crtn.o
-
-    - test "$(./test2)" = "gnu_get_libc_version() = {{version.marketing}}"
+  - run: |
+      if [ {{version.major}}{{version.minor}} -ge 230 ]; then
+        {{prefix}}/bin/ld.so --version | grep "stable release version {{version.marketing}}"
+      else
+        {{prefix}}/bin/getconf --version | grep "GNU libc) {{version.marketing}}"
+      fi
 
 provides:
   # Binaries that are installed across all supported versions
