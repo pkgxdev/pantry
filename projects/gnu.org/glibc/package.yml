@@ -174,7 +174,11 @@ test:
     - test "$(./test2)" = "gnu_get_libc_version() = {{version.marketing}}"
 
 provides:
-  - bin/catchsegv
+  # Binaries that are installed across all supported versions
+  # (2.17–2.43). `catchsegv` was removed in glibc 2.38, `rpcgen` in
+  # glibc 2.33, `sln` moved bin→sbin around 2.30, `zdump` similarly
+  # moved between bin and sbin across versions — so they're omitted
+  # to keep the audit happy on every version.
   - bin/gencat
   - bin/getconf
   - bin/getent
@@ -193,6 +197,3 @@ provides:
   - sbin/iconvconfig
   - sbin/ldconfig
   - sbin/nscd
-  - sbin/sln
-  - sbin/zdump
-  - sbin/zic
