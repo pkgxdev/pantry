@@ -27,20 +27,20 @@ build:
   dependencies:
     gnu.org/bison: '*'
     gnu.org/texinfo: '*'
-    # --with-zstd: only added to binutils 2.39+. For older versions
-    # we drop the dep and the flag (see env section below).
-    '>=2.39':
-      facebook.com/zstd: '*'
+    # zstd is only used when --with-zstd is passed (>= 2.39). Cheap to
+    # always include as a build dep; the older versions' configure
+    # simply ignores it.
+    facebook.com/zstd: '*'
     linux:
       gnu.org/gcc: '*'
       perl.org: ~5.40 # perl modules require matching minors
 
   script:
-    # gcc 7.5 (used as host compiler when bootstrapping the cascade for
-    # glibc ≤ 2.26) emits zlib-compressed .debug_info sections that very
-    # old binutils ld can't decompress. The pantry-CI host gcc is modern,
-    # so this only matters when the recipe is used inside the cascade.
-    # Harmless no-op for normal builds.
+    # --with-zstd: only added to binutils 2.39+. Append at script time
+    # so old versions don't trip configure with "unrecognized option".
+    - run: export ARGS="$ARGS --with-zstd"
+      if: '>=2.39'
+
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }}
     - make install
@@ -49,10 +49,6 @@ build:
     ARGS:
       - --prefix={{ prefix }}
       - --disable-werror  # old versions hit -Wformat warnings with modern gcc
-    # --with-zstd only valid for ≥ 2.39 (config option didn't exist before)
-    '>=2.39':
-      ARGS:
-        - --with-zstd
     linux:
       ARGS:
         - --enable-ld=yes
