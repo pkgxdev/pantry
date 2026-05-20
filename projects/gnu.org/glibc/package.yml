@@ -91,7 +91,11 @@ build:
         if [ {{version.major}}{{version.minor}} -lt 232 ]; then
           EXTRA_CFLAGS="-fcommon -Wno-error"
         fi
-        CFLAGS="-O2 -fPIC $EXTRA_CFLAGS" LDFLAGS="-pie" \
+        # glibc decides its own pie/-shared per target — DO NOT pass
+        # LDFLAGS=-pie at configure time, it leaks into static
+        # auxiliary tools (support/test-run-command etc.) and breaks
+        # them with "_DYNAMIC isn't defined".
+        CFLAGS="-O2 -fPIC $EXTRA_CFLAGS" \
           ../configure $ARGS
 
     - make --jobs {{ hw.concurrency }} CFLAGS-regexp.c=-fno-common
