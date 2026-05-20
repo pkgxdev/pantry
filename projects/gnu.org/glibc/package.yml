@@ -95,7 +95,17 @@ build:
         # LDFLAGS=-pie at configure time, it leaks into static
         # auxiliary tools (support/test-run-command etc.) and breaks
         # them with "_DYNAMIC isn't defined".
+        #
+        # libc_cv_slibdir / libc_cv_rtlddir override the autoconf-cached
+        # slibdir / rtlddir vars so libc.so.6 + ld-linux*.so go into the
+        # sub-libdir alongside our other libs. Without this, --libdir
+        # alone only affects gconv/audit plugins; libc.so.6 still ends
+        # up at $prefix/lib/.
+        LIBDIR="{{prefix}}/lib/glibc-{{version.marketing}}"
         CFLAGS="-O2 -fPIC $EXTRA_CFLAGS" \
+          libc_cv_slibdir="$LIBDIR" \
+          libc_cv_rtlddir="$LIBDIR" \
+          libc_cv_complocaledir="$LIBDIR/locale" \
           ../configure $ARGS
 
     - make --jobs {{ hw.concurrency }} CFLAGS-regexp.c=-fno-common
