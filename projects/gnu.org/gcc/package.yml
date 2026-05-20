@@ -1,10 +1,24 @@
 distributable:
-  url: https://ftp.gnu.org/gnu/gcc/gcc-{{version.raw}}/gcc-{{ version.raw }}.tar.xz
-  strip-components: 1
+  - url: https://ftp.gnu.org/gnu/gcc/gcc-{{version.raw}}/gcc-{{ version.raw }}.tar.xz
+    strip-components: 1
+  # Pre-5.5 gcc only published .tar.bz2 / .tar.gz; needed for cascade to
+  # glibc 2.17 (which empirically wants gcc ~7.5 to build cleanly).
+  - url: https://ftp.gnu.org/gnu/gcc/gcc-{{version.raw}}/gcc-{{ version.raw }}.tar.gz
+    strip-components: 1
+  - url: https://ftp.gnu.org/gnu/gcc/gcc-{{version.raw}}/gcc-{{ version.raw }}.tar.bz2
+    strip-components: 1
 
 versions:
   github: gcc-mirror/gcc/tags
   strip: /^releases\/gcc-/
+
+# NOTE: pkgx today ships 10.5 – 16.1. Older gcc (5–9) is required to
+# build glibc 2.17 – 2.26 (HPC / manylinux2014 / RHEL 7-8) because
+# glibc’s rtld sources emit relocation forms newer binutils ld reject
+# in shared/PIE mode, and modern gcc’s default code-gen choices (PIC
+# semantics, code-model defaults) conflict with old glibc build
+# assumptions. The empirically-validated cascade (linux/aarch64 and
+# linux/x86-64) is documented in projects/gnu.org/glibc/README.md.
 
 dependencies:
   gnu.org/binutils: "*" # linker needs `as`
@@ -68,6 +82,28 @@ build:
     - run: export ARGS=("${ARGS[@]}" --with-boot-ldflags="-static-libstdc++ -static-libgcc $LDFLAGS")
       if: linux
 
+    # PIE-by-default linux flags were added across gcc versions:
+    #   --enable-default-pie : gcc 6+
+    #   --enable-pie-tools   : gcc 9+
+    #   --enable-host-pie    : gcc 13+
+    # Add each only when the gcc version supports it, so older gcc
+    # (used in the HPC cascade to build glibc 2.17/2.24) doesn't fail
+    # configure with "unrecognized option".
+    - run: |
+        if [ {{version.major}} -ge 6 ];  then ARGS=("${ARGS[@]}" --enable-default-pie); fi
+        if [ {{version.major}} -ge 9 ];  then ARGS=("${ARGS[@]}" --enable-pie-tools); fi
+        if [ {{version.major}} -ge 13 ]; then ARGS=("${ARGS[@]}" --enable-host-pie); fi
+        export ARGS
+      if: linux
+
+    # Bake mpc / mpfr / gmp / zlib RUNPATH into all linked binaries so
+    # the built gcc + cc1 / cc1plus run without requiring
+    # LD_LIBRARY_PATH at runtime.
+    - run: |
+        DEPRP="{{deps.gnu.org/mpc.prefix}}/lib:{{deps.gnu.org/mpfr.prefix}}/lib:{{deps.gnu.org/gmp.prefix}}/lib:{{deps.zlib.net.prefix}}/lib"
+        export LDFLAGS="$LDFLAGS -Wl,-rpath,$DEPRP -Wl,-rpath-link,$DEPRP"
+      if: linux
+
     # needed to get the LDFLAGS to libgfortran on darwin
     # for -headerpad_max_install_names
     - run: export LDFLAGS_FOR_TARGET="$LDFLAGS"
@@ -76,6 +112,27 @@ build:
     - ../configure "${ARGS[@]}"
     - make --jobs {{ hw.concurrency }}
     - make install
+
+    # For old-gcc bottles intended to participate in the HPC cascade
+    # (gcc 5–9 used to build glibc 2.17–2.26), strip the era-mismatched
+    # include-fixed/bits/* files that gcc's install-time fixincludes
+    # generated from the host's modern glibc headers. They reference
+    # symbols (openat2, statx-flags-bits, ...) absent in the old glibc
+    # this gcc will build. Also strip the zlib-compressed .debug_info
+    # from libgcc/crt so very old binutils ld can read them.
+    # No-op for current gcc bottles (>= 10).
+    - run: |
+        if [ {{version.major}} -lt 10 ]; then
+          for d in {{prefix}}/lib/gcc/*/{{version.raw}}/include-fixed; do
+            [ -d "$d/bits" ] || continue
+            mv "$d/bits" "$d/bits.disabled-by-pantry" || true
+            mkdir -p "$d/bits"
+          done
+          find {{prefix}}/lib/gcc -name 'libgcc*.a' -o -name 'crt*.o' 2>/dev/null | while read f; do
+            {{deps.gnu.org/binutils.prefix}}/bin/strip --strip-debug "$f" 2>/dev/null || true
+          done
+        fi
+      if: linux
 
     # Since we depend on ourselves, this symlink might already exist
     - run: test -f gc++ || ln -sf c++ gc++
@@ -130,12 +187,17 @@ build:
       - --disable-bootstrap
       - --disable-nls
       - --with-system-zlib
+    # For old gcc (< 10) used in the HPC bootstrap cascade, also
+    # disable LTO and the linker plugin. Both load shared objects that
+    # mix libc versions across host ld-linux and the bottle's libc at
+    # link time. Modern gcc bottles (≥ 10) keep LTO enabled.
+    '<10':
+      ARGS:
+        - --disable-lto
+        - --disable-plugin
     linux:
       ARGS:
         - --disable-multilib
-        - --enable-default-pie
-        - --enable-pie-tools
-        - --enable-host-pie
     linux/x86-64:
       LDFLAGS:
         - -pie
