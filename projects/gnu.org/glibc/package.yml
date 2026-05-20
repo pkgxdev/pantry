@@ -110,13 +110,14 @@ build:
         done
       working-directory: ${{prefix}}/bin
 
-    # Convenience: arch-agnostic ld.so symlink.
+    # Convenience: arch-agnostic ld.so symlink that points into the
+    # sub-libdir (kept out of the top {{prefix}}/lib/).
     - run: |
         case "{{hw.arch}}" in
           x86-64)  L=ld-linux-x86-64.so.2 ;;
           aarch64) L=ld-linux-aarch64.so.1 ;;
         esac
-        ln -sf ../lib/$L ld.so
+        ln -sf ../lib/glibc-{{version.marketing}}/$L ld.so
       working-directory: ${{prefix}}/bin
 
   env:
@@ -129,6 +130,15 @@ build:
       - xtrace
     ARGS:
       - --prefix={{ prefix }}
+      # Install libs to a sub-dir of lib/ rather than directly. libpkgx's
+      # useShellEnv unconditionally adds {{prefix}}/lib/ to LD_LIBRARY_PATH
+      # for every dep, but ld.so searches LD_LIBRARY_PATH dirs non-
+      # recursively. Putting libc.so.6 et al at `lib/glibc-X.Y/` keeps
+      # them out of the top lib/ — so a downstream `pkgx +gnu.org/glibc`
+      # doesn't poison consumers' libc resolution and break host coreutils
+      # in the brewkit test sandbox. HPC cascade consumers route to
+      # `{{prefix}}/lib/glibc-X.Y/` explicitly anyway via gcc --sysroot.
+      - --libdir={{ prefix }}/lib/glibc-{{ version.marketing }}
       - --disable-debug
       - --disable-dependency-tracking
       - --disable-silent-rules
