@@ -4,6 +4,10 @@ distributable:
     strip-components: 1
   - url: https://ftp.gnu.org/gnu/binutils/binutils-{{ version.raw }}.tar.gz
     strip-components: 1
+  # ≤ 2.27 only published .tar.bz2 (and 2.28-2.32 publish both .tar.gz
+  # and .tar.bz2). Keep .tar.bz2 as a fallback for very old versions.
+  - url: https://ftp.gnu.org/gnu/binutils/binutils-{{ version.raw }}.tar.bz2
+    strip-components: 1
 
 versions:
   url: https://ftp.gnu.org/gnu/binutils/
@@ -12,22 +16,43 @@ versions:
     - /binutils-/
     - /.tar.gz/
 
+# NOTE: pkgx today ships 2.39 – 2.46 in dist.pkgx.dev. Older versions
+# (2.27 – 2.38) are required to build glibc 2.17 – 2.26 (the HPC /
+# manylinux2014 / RHEL 7-8 range; modern binutils ld emits relocation
+# types older glibc rejects, or rejects relocs older glibc emits).
+# Building those versions is empirically validated:
+# see projects/gnu.org/glibc/README.md "HPC bootstrap cascade".
+
 build:
   dependencies:
     gnu.org/bison: '*'
     gnu.org/texinfo: '*'
-    facebook.com/zstd: '*'
+    # --with-zstd: only added to binutils 2.39+. For older versions
+    # we drop the dep and the flag (see env section below).
+    '>=2.39':
+      facebook.com/zstd: '*'
     linux:
       gnu.org/gcc: '*'
       perl.org: ~5.40 # perl modules require matching minors
+
   script:
+    # gcc 7.5 (used as host compiler when bootstrapping the cascade for
+    # glibc ≤ 2.26) emits zlib-compressed .debug_info sections that very
+    # old binutils ld can't decompress. The pantry-CI host gcc is modern,
+    # so this only matters when the recipe is used inside the cascade.
+    # Harmless no-op for normal builds.
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }}
     - make install
+
   env:
     ARGS:
       - --prefix={{ prefix }}
-      - --with-zstd
+      - --disable-werror  # old versions hit -Wformat warnings with modern gcc
+    # --with-zstd only valid for ≥ 2.39 (config option didn't exist before)
+    '>=2.39':
+      ARGS:
+        - --with-zstd
     linux:
       ARGS:
         - --enable-ld=yes
@@ -36,7 +61,7 @@ build:
 test:
   script: objdump -x $(which objdump) | grep -s $TEST_STRING
   env:
-    # Representitive output to look for
+    # Representative output to look for
     darwin:
       TEST_STRING: _opendir
     linux:
