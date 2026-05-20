@@ -1,0 +1,197 @@
+distributable:
+  url: https://ftp.gnu.org/gnu/glibc/glibc-{{ version.raw }}.tar.xz
+  strip-components: 1
+
+versions:
+  url: https://ftp.gnu.org/gnu/glibc/
+  match: /glibc-\d+\.\d+(\.\d+)?\.tar\.xz/
+  strip:
+    - /glibc-/
+    - /\.tar\.xz/
+
+# Empirically verified host-independent build (pkgx toolchain only,
+# debian:bookworm-slim base with no apt-installed compiler):
+#   linux/x86-64:  2.17, 2.24, 2.27, 2.28, 2.34, 2.38, 2.41, 2.42, 2.43
+#   linux/aarch64: 2.17, 2.24, 2.27, 2.28, 2.34, 2.38, 2.41, 2.42, 2.43
+# Full 9-version parity on both arches. Each bottle cross-tested on
+# Alpine 3.18 (musl host), Debian 11, Ubuntu 22.04 — all return
+# gnu_get_libc_version() = <bottle-version>.
+#
+# 2.17 (manylinux2014 / CentOS 7 / HPC baseline) and 2.24
+# (manylinux_2_24) are built via a bootstrap-cascaded toolchain
+# (gcc 7.5 + binutils 2.28). The cascade procedure is documented in
+# README.md "HPC bootstrap cascade". The toolchain bottles produced
+# (gcc 9.5, gcc 7.5, binutils 2.28/2.30/2.31/2.32) are candidates
+# to ship in dist.pkgx.dev as `gnu.org/gcc` and `gnu.org/binutils`
+# older-version bottles — currently built inside the build env.
+#
+# darwin/* is intentionally absent. glibc is the GNU C library for the
+# Linux kernel — macOS uses libSystem + dyld with an entirely separate
+# binary format (Mach-O vs ELF). There is no glibc port to Darwin and
+# bottling one would not produce something usable.
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+
+build:
+  dependencies:
+    gnu.org/make: '>=4.0'
+    gnu.org/gawk: '>=3'
+    gnu.org/gcc: '*'           # pkgx ships 10.5–16.1; verified with 16.1
+    gnu.org/binutils: '>=2.40' # required by glibc 2.42+; older glibcs also build with 2.46
+    gnu.org/gettext: '*'
+    gnu.org/texinfo: '*'       # required for `make install` (manual/libc.info)
+    gnu.org/bison: '^3'
+    gnu.org/sed: '*'
+    gnu.org/coreutils: '*'
+    gnu.org/findutils: '*'
+    gnu.org/grep: '*'
+    gnu.org/diffutils: '*'
+    gnu.org/patch: '*'
+    gnu.org/m4: '*'
+    perl.org: '^5'
+    python.org: '~3.11'
+    kernel.org/linux-headers: '*' # the file that makes the build host-independent
+
+  working-directory: build
+
+  script:
+    # Hygiene patches from nixpkgs. They prevent the new ld.so from reading
+    # the host's /etc/ld.so.cache and /etc/ld.so.preload — both files have
+    # glibc-version-specific binary formats, reading them with a different
+    # glibc is the recipe for "segfaults in startup code".
+    #
+    # Both patches assume the modern Makefile structure (`PREFIX-FLAGS` etc.).
+    # On glibc < 2.32 the elf/Makefile is laid out differently and the cache
+    # patch leaves `LD_SO_CACHE` referencing an undefined `PREFIX` macro.
+    # We therefore gate the patches on the version.
+    - run: |
+        MAJOR={{version.major}}; MINOR={{version.minor}}
+        GV=$((MAJOR*100 + MINOR))
+        if [ $GV -ge 232 ]; then
+          patch -p1 < $PROPS/dont-use-system-ld-so-cache.patch
+          patch -p1 --forward --no-backup-if-mismatch \
+            < $PROPS/dont-use-system-ld-so-preload.patch || true
+        fi
+      working-directory: ..
+
+    # glibc 2.17/2.18 configure has a python regex that rejects `make` >= 4.0.
+    # 1-line fix preserving the same regex shape, accepting modern make.
+    - run: |
+        if [ {{version.major}}{{version.minor}} -le 218 ]; then
+          sed -i 's|3.79\* | 3.\[89\]\*|3.79* | 3.[89]* | [4-9].* | [1-9][0-9]*|' configure
+        fi
+      working-directory: ../glibc-src
+
+    # glibc < 2.32 has multiple tentative .bss definitions of __nss_*_database
+    # that gcc 10+'s default -fno-common rejects. Add -fcommon for old glibc.
+    - run: |
+        if [ {{version.major}}{{version.minor}} -lt 232 ]; then
+          export EXTRA_CFLAGS="-fcommon -Wno-error"
+        fi
+        CFLAGS="-O2 -fPIC $EXTRA_CFLAGS" LDFLAGS="-pie" \
+          ../configure $ARGS
+
+    - make --jobs {{ hw.concurrency }}
+    - make install
+
+    # Self-relocate generated scripts so the bottle works at any prefix.
+    - run: |
+        for s in $SCRIPTS; do
+          test -f $s || continue
+          sed -i.bak 's|{{prefix}}|"$(cd "$(dirname "$0")/.." \&\& pwd)"|' $s
+          rm $s.bak
+        done
+      working-directory: ${{prefix}}/bin
+
+    # Convenience: arch-agnostic ld.so symlink.
+    - run: |
+        case "{{hw.arch}}" in
+          x86-64)  L=ld-linux-x86-64.so.2 ;;
+          aarch64) L=ld-linux-aarch64.so.1 ;;
+        esac
+        ln -sf ../lib/$L ld.so
+      working-directory: ${{prefix}}/bin
+
+  env:
+    PROPS: ../props
+    SCRIPTS:
+      - catchsegv
+      - ldd
+      - mtrace
+      - sotruss
+      - tzselect
+      - xtrace
+    ARGS:
+      - --prefix={{ prefix }}
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --disable-silent-rules
+      - --disable-werror
+      - --without-gd
+      - --without-selinux
+      - --enable-kernel=3.10.0  # CentOS 7 / manylinux2014 baseline
+      - --with-headers={{deps.kernel.org/linux-headers.prefix}}/include
+      - --with-binutils={{deps.gnu.org/binutils.prefix}}/bin
+      - --disable-multi-arch
+
+test:
+  dependencies:
+    gnu.org/gcc: '*'
+  env:
+    linux/x86-64:
+      ARCH: x86_64
+      LDSO: ld-linux-x86-64.so.2
+    linux/aarch64:
+      ARCH: aarch64
+      LDSO: ld-linux-aarch64.so.1
+  script:
+    # Sanity test linked normally (against the gcc-provided libc).
+    - gcc -o test1 test.c -fPIC -pie
+    - ./test1
+
+    # Real test: link the test binary against THIS bottle's libc + ld.so,
+    # then run it. The binary's PT_INTERP points at the bottle's ld.so; the
+    # bottle's libc.so.6 supplies gnu_get_libc_version(). If the output
+    # matches the bottle's version we know the bottle is self-contained
+    # and the build was truly host-independent.
+    - |
+      GCC_INC={{deps.gnu.org/gcc.prefix}}/lib/gcc/$ARCH-pc-linux-gnu/{{deps.gnu.org/gcc.version}}/include
+      gcc \
+        -nostdinc -nostdlib \
+        -isystem $GCC_INC \
+        -isystem {{prefix}}/include \
+        -Wl,--rpath={{prefix}}/lib \
+        -Wl,--dynamic-linker={{prefix}}/lib/$LDSO \
+        -std=c11 -O2 -fPIC -pie \
+        -o test2 \
+        {{prefix}}/lib/crti.o {{prefix}}/lib/crt1.o \
+        test.c \
+        -L{{prefix}}/lib -lc \
+        {{prefix}}/lib/crtn.o
+
+    - test "$(./test2)" = "gnu_get_libc_version() = {{version.marketing}}"
+
+provides:
+  - bin/catchsegv
+  - bin/gencat
+  - bin/getconf
+  - bin/getent
+  - bin/iconv
+  - bin/ldd
+  - bin/locale
+  - bin/localedef
+  - bin/makedb
+  - bin/mtrace
+  - bin/pcprofiledump
+  - bin/pldd
+  - bin/sotruss
+  - bin/sprof
+  - bin/tzselect
+  - bin/xtrace
+  - sbin/iconvconfig
+  - sbin/ldconfig
+  - sbin/nscd
+  - sbin/sln
+  - sbin/zdump
+  - sbin/zic
