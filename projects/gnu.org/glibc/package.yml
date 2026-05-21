@@ -34,6 +34,16 @@ platforms:
   - linux/aarch64
 
 build:
+  # Skip brewkit's "SLOW rpath fixes" — it writes a 46-package
+  # transitive-deps $ORIGIN RPATH chain onto every ELF in the
+  # install, INCLUDING ld-linux-*.so.*. The loader parses its own
+  # RPATH at startup and SIGSEGVs (see pkgxdev/brewkit#345 and the
+  # diagnostic output in this PR's history). We do the patchelf
+  # ourselves below for the ELFs that actually need RPATH (bin/*),
+  # and leave ld.so alone.
+  skip:
+    - fix-patchelf
+
   dependencies:
     gnu.org/make: '>=4.0'
     gnu.org/gawk: '>=3'
@@ -52,6 +62,7 @@ build:
     perl.org: '^5'
     python.org: '~3.11'
     kernel.org/linux-headers: '*' # the file that makes the build host-independent
+    nixos.org/patchelf: '*'       # we patchelf bin/* ourselves (see `skip: fix-patchelf` above)
 
   working-directory: build
 
@@ -128,16 +139,11 @@ build:
         ln -sf ../lib/glibc-{{version.marketing}}/$L ld.so
       working-directory: ${{prefix}}/bin
 
-    # brewkit's fix-elf rewrites +brewing in ELF RPATH/RUNPATH, and
-    # fix-shebangs.ts handles shell scripts. glibc additionally installs
-    # libc.so, libm.so, etc. as TEXT linker scripts (GROUP (...)) that
-    # reference the install prefix by absolute path. Those need the
-    # same treatment, otherwise downstream `-lc` link attempts hit
-    # "cannot find +brewing/lib/glibc-X.Y/libc.so.6" once brewkit
-    # renames the install dir to drop the +brewing suffix.
-    #
-    # We identify the scripts by their first-line marker rather than
-    # `file(1)` (not on the test-sandbox PATH).
+    # libc.so / libm.so / … are TEXT linker scripts (GROUP (...)) with
+    # +brewing baked into absolute paths. Strip +brewing so downstream
+    # `-lc` doesn't hit "cannot find +brewing/lib/.../libc.so.6" after
+    # brewkit's +brewing → final-prefix rename. (Detect via first-line
+    # marker, not file(1) — not on the test-sandbox PATH.)
     - run: |
         for f in $(find . -maxdepth 2 -type f -name '*.so'); do
           if head -c 16 "$f" | grep -q "GNU ld script"; then
@@ -146,6 +152,33 @@ build:
           fi
         done
       working-directory: ${{prefix}}/lib
+
+    # With brewkit's fix-patchelf skipped (see `skip:` at top of build),
+    # we patchelf the ELFs that need it ourselves:
+    #
+    #   bin/*, sbin/*  — fix +brewing PT_INTERP, add $ORIGIN-relative
+    #                    RPATH so libc.so.6 resolves at runtime
+    #   lib/glibc-X.Y/ld-linux-*  — leave alone (it's the loader;
+    #                    bootstraps from nothing)
+    #   lib/glibc-X.Y/*.so.*  — co-located with libc.so.6, no extra
+    #                    RPATH needed (executable's RPATH propagates)
+    #
+    # patchelf --set-interpreter exits non-zero on non-ELF inputs;
+    # we use that to filter shell scripts etc. without needing file(1).
+    - run: |
+        case "{{hw.arch}}" in
+          x86-64)  LDSO=ld-linux-x86-64.so.2 ;;
+          aarch64) LDSO=ld-linux-aarch64.so.1 ;;
+        esac
+        LIBDIR={{prefix}}/lib/glibc-{{version.marketing}}
+        RPATH='$ORIGIN/../lib/glibc-{{version.marketing}}'
+        for f in {{prefix}}/bin/* {{prefix}}/sbin/*; do
+          [ -f "$f" ] && [ ! -L "$f" ] || continue
+          if patchelf --set-interpreter "$LIBDIR/$LDSO" "$f" 2>/dev/null; then
+            patchelf --force-rpath --set-rpath "$RPATH" "$f" 2>/dev/null
+            echo "patchelfd $f"
+          fi
+        done
 
   env:
     SCRIPTS:
