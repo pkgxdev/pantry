@@ -128,6 +128,21 @@ build:
         ln -sf ../lib/glibc-{{version.marketing}}/$L ld.so
       working-directory: ${{prefix}}/bin
 
+    # brewkit's fix-elf rewrites +brewing in ELF RPATH/RUNPATH, and
+    # fix-shebangs.ts handles shell scripts. glibc additionally installs
+    # libc.so, libpthread.so, etc. as TEXT linker scripts (GROUP (...))
+    # that reference the install prefix by absolute path. Those need
+    # the same treatment, otherwise downstream `-lc` link attempts hit
+    # "cannot find +brewing/lib/glibc-X.Y/libc.so.6" because the
+    # +brewing suffix is gone from the final install dir.
+    - run: |
+        for f in $(find . -maxdepth 2 -type f -name '*.so'); do
+          if file "$f" | grep -qE 'ASCII text|GNU ld script'; then
+            sed -i 's|+brewing||g' "$f"
+          fi
+        done
+      working-directory: ${{prefix}}/lib
+
   env:
     SCRIPTS:
       - catchsegv
