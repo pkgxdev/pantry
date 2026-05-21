@@ -1,9 +1,9 @@
 distributable:
-  url: https://mirror.kumi.systems/gnu/glibc/glibc-{{ version.raw }}.tar.xz
+  url: https://ftp.gnu.org/gnu/glibc/glibc-{{ version.raw }}.tar.xz
   strip-components: 1
 
 versions:
-  url: https://mirror.kumi.systems/gnu/glibc/
+  url: https://ftp.gnu.org/gnu/glibc/
   match: /glibc-\d+\.\d+(\.\d+)?\.tar\.xz/
   strip:
     - /glibc-/
@@ -158,14 +158,15 @@ build:
       - --with-binutils={{deps.gnu.org/binutils.prefix}}/bin
       - --disable-multi-arch
 
-# File-existence test only — using bash `test -f` builtin (no exec).
-# We can't usefully run the bottle's binaries from the brewkit testbed
-# because their PT_INTERP refers to the +brewing build path (still
-# present in ELF headers post-install), and brewkit's fix-elf only
-# patches RPATH not PT_INTERP. Cross-distro verification of actual
-# runtime behaviour is documented in the README (run on Alpine,
-# Debian 11, Ubuntu 22.04 across 9 versions × 2 arches).
+# Compile + run test.c against THIS bottle's libc + ld.so, then verify
+# gnu_get_libc_version() returns the bottle's version. We invoke the
+# bottle's loader explicitly (per Codex review on pkgxdev/brewkit#342)
+# to avoid relying on the test binary's PT_INTERP — brewkit's fix-elf
+# doesn't rewrite the interpreter today, so PT_INTERP still references
+# the +brewing build path.
 test:
+  dependencies:
+    gnu.org/gcc: '*'
   env:
     x86-64:
       LDSO: ld-linux-x86-64.so.2
@@ -173,11 +174,32 @@ test:
       LDSO: ld-linux-aarch64.so.1
     LIBDIR: "{{prefix}}/lib/glibc-{{version.marketing}}"
   script:
-    - test -f "$LIBDIR/libc.so.6"      || { echo "missing libc.so.6"; exit 1; }
-    - test -f "$LIBDIR/$LDSO"          || { echo "missing $LDSO"; exit 1; }
-    - test -f "{{prefix}}/include/stdio.h"  || { echo "missing stdio.h"; exit 1; }
-    - test -L "{{prefix}}/bin/ld.so"   || { echo "missing bin/ld.so symlink"; exit 1; }
-    - echo "all expected files present"
+    # 1) Layout sanity: the files we claim to ship really exist.
+    - test -f "$LIBDIR/libc.so.6"          || { echo "missing libc.so.6"; exit 1; }
+    - test -f "$LIBDIR/$LDSO"              || { echo "missing $LDSO"; exit 1; }
+    - test -f "{{prefix}}/include/stdio.h" || { echo "missing stdio.h"; exit 1; }
+    - test -L "{{prefix}}/bin/ld.so"       || { echo "missing bin/ld.so symlink"; exit 1; }
+
+    # 2) Compile test.c against the bottle's headers + libs + loader.
+    #    test.c is rsync'd into the testbed cwd by brewkit.
+    - run: |
+        gcc -o test-bottle test.c \
+          -nostdinc \
+          -isystem {{prefix}}/include \
+          -isystem {{deps.gnu.org/gcc.prefix}}/lib/gcc/*-linux-gnu/{{deps.gnu.org/gcc.version}}/include \
+          -L "$LIBDIR" \
+          -Wl,--rpath="$LIBDIR" \
+          -Wl,--dynamic-linker="$LIBDIR/$LDSO"
+
+    # 3) Run via the bottle's loader (works even if PT_INTERP wasn't
+    #    rewritten post +brewing-rename) and check the reported version.
+    - run: |
+        out=$("$LIBDIR/$LDSO" --library-path "$LIBDIR" ./test-bottle 2>&1 || true)
+        echo "test output: $out"
+        case "$out" in
+          "gnu_get_libc_version() = {{version.marketing}}"*) echo PASS ;;
+          *) echo "FAIL: expected gnu_get_libc_version() = {{version.marketing}}, got $out"; exit 1 ;;
+        esac
 
 provides:
   # Binaries that are installed across all supported versions
