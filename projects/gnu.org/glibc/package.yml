@@ -216,19 +216,23 @@ test:
           -Wl,--rpath="$LIBDIR" \
           -Wl,--dynamic-linker="$LIBDIR/$LDSO"
 
-    # 3) Diagnose: dump dynamic deps + RPATH + PT_INTERP up front so
-    #    a future test failure surfaces the layout, not just empty output.
+    # 3) Diagnose the loader itself before pointing it at anything.
+    #    A SIGSEGV in 0bd61f7a on /bin/true via our ld.so proved the
+    #    loader is broken regardless of binary, so dump its layout.
     - run: |
+        echo "--- file/RPATH/NEEDED on ld.so ---"
+        ls -la "$LIBDIR/$LDSO"
+        readelf -d "$LIBDIR/$LDSO" || true
+        echo "--- ld.so --version (should print glibc version) ---"
+        set +e
+        "$LIBDIR/$LDSO" --version 2>&1 | head -5
+        rc=$?
+        set -e
+        echo "ld.so --version exit: $rc"
         echo "--- readelf -d test-bottle ---"
-        "$LIBDIR/$LDSO" --library-path "$LIBDIR" /bin/true 2>/dev/null \
-          || echo "(note: loader smoke-check on /bin/true failed; we'll still try the test bin)"
-        if [ -x "$(command -v readelf)" ]; then
-          readelf -d ./test-bottle | head -30
-        fi
+        readelf -d ./test-bottle | head -30
 
     # 4) Run via the bottle's loader and check the reported version.
-    #    Capture stdout/stderr separately and surface the exit code so
-    #    a silent failure (e.g. SIGSEGV before printf) isn't swallowed.
     - run: |
         set +e
         stdout=$("$LIBDIR/$LDSO" --library-path "$LIBDIR" ./test-bottle 2>/tmp/test.err)
