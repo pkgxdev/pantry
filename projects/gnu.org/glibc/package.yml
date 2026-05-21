@@ -210,47 +210,55 @@ build:
       - --with-binutils={{deps.gnu.org/binutils.prefix}}/bin
       - --disable-multi-arch
 
-# Statically link test.c against the bottle's libc.a and verify
-# gnu_get_libc_version() returns the bottle's version. A static test
-# bypasses ld.so entirely — brewkit's "SLOW rpath fixes" bakes a
-# 46-package transitive-deps RPATH chain into ld.so itself which
-# makes the loader SIGSEGV on startup (separate brewkit bug). The
-# dynamic-loader path of the bottle is exercised by every package
-# that *depends* on this glibc, and was validated on Alpine 3.18 +
-# Debian 11 + Ubuntu 22.04 — see README.md.
+# Compile + run test.c against the bottle's libc + ld.so end-to-end.
+# Exercises every piece of the bottle: headers, crt files, libc.so.6,
+# the loader, and `iconv --version` to confirm the patchelf'd bin/* work.
+#
+# Previously the loader's RPATH was poisoned by brewkit's fix-patchelf
+# (a 46-pkg $ORIGIN chain → SIGSEGV at startup; see pkgxdev/brewkit#345).
+# Now that we `skip: fix-patchelf` and patchelf bin/* ourselves with
+# clean RPATH, the loader bootstraps cleanly and the bin/* work.
 test:
   dependencies:
     gnu.org/gcc: '*'
   env:
+    x86-64:
+      LDSO: ld-linux-x86-64.so.2
+    aarch64:
+      LDSO: ld-linux-aarch64.so.1
     LIBDIR: "{{prefix}}/lib/glibc-{{version.marketing}}"
   script:
     # 1) Layout sanity.
-    - test -f "$LIBDIR/libc.a"             || { echo "missing libc.a";   exit 1; }
-    - test -f "$LIBDIR/libc.so.6"          || { echo "missing libc.so.6";exit 1; }
-    - test -f "{{prefix}}/include/stdio.h" || { echo "missing stdio.h";  exit 1; }
+    - test -f "$LIBDIR/libc.so.6"          || { echo "missing libc.so.6"; exit 1; }
+    - test -f "$LIBDIR/$LDSO"              || { echo "missing $LDSO";     exit 1; }
+    - test -f "{{prefix}}/include/stdio.h" || { echo "missing stdio.h";   exit 1; }
     - test -L "{{prefix}}/bin/ld.so"       || { echo "missing bin/ld.so symlink"; exit 1; }
 
-    # 2) Statically link test.c against the bottle's libc.a + crt
-    #    files. test.c is rsync'd into the testbed cwd by brewkit.
-    #
-    #    -B $LIBDIR is required so gcc picks our Scrt1.o / crti.o /
-    #    crtn.o instead of the host's /usr/lib/<triple>/Scrt1.o —
-    #    the host's pre-2.34 Scrt1.o references __libc_csu_init /
-    #    __libc_csu_fini, removed from glibc upstream in 2.34.
+    # 2) Loader self-test (was SIGSEGV before the fix-patchelf skip).
     - run: |
-        gcc -static -o test-static test.c \
+        echo "--- ld.so --version ---"
+        "$LIBDIR/$LDSO" --version | head -2
+
+    # 3) Compile test.c dynamically against the bottle's headers /
+    #    libs / loader. -B $LIBDIR picks our Scrt1.o / crti.o / crtn.o
+    #    instead of the host's pre-2.34 versions which reference
+    #    removed __libc_csu_init / __libc_csu_fini.
+    - run: |
+        gcc -o test-bottle test.c \
           -nostdinc \
           -isystem {{prefix}}/include \
           -isystem {{deps.gnu.org/gcc.prefix}}/lib/gcc/*-linux-gnu/{{deps.gnu.org/gcc.version}}/include \
           -B "$LIBDIR" \
-          -L "$LIBDIR"
-        echo "--- file on test-static ---"
-        readelf -h test-static | grep -E "Type:|Class:|Machine:"
+          -L "$LIBDIR" \
+          -Wl,--rpath="$LIBDIR" \
+          -Wl,--dynamic-linker="$LIBDIR/$LDSO"
+        readelf -d test-bottle | grep -E "NEEDED|RPATH" | head -5
 
-    # 3) Run + verify version.
+    # 4) Run the dynamically-linked test bin — exercises PT_INTERP,
+    #    the loader, RPATH resolution, libc symbol lookup, printf, etc.
     - run: |
         set +e
-        stdout=$(./test-static 2>/tmp/test.err)
+        stdout=$(./test-bottle 2>/tmp/test.err)
         rc=$?
         stderr=$(cat /tmp/test.err)
         set -e
@@ -260,6 +268,17 @@ test:
         case "$stdout" in
           "gnu_get_libc_version() = {{version.marketing}}"*) echo PASS ;;
           *) echo "FAIL: expected gnu_get_libc_version() = {{version.marketing}}, got stdout=\"$stdout\" stderr=\"$stderr\" rc=$rc"; exit 1 ;;
+        esac
+
+    # 5) Bonus: one of the bottle's own bin/* should now work end-to-end.
+    #    iconv --version prints "iconv (GNU libc) X.Y" — confirms our
+    #    manual patchelf step gave bin/iconv a usable PT_INTERP + RPATH.
+    - run: |
+        out=$("{{prefix}}/bin/iconv" --version 2>&1 | head -1)
+        echo "bin/iconv --version: $out"
+        case "$out" in
+          *"(GNU libc) {{version.marketing}}"*) echo "bin/iconv PASS" ;;
+          *) echo "FAIL: expected '(GNU libc) {{version.marketing}}' in iconv --version output, got: $out"; exit 1 ;;
         esac
 
 provides:
