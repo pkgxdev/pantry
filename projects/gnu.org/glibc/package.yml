@@ -201,11 +201,17 @@ test:
 
     # 2) Compile test.c against the bottle's headers + libs + loader.
     #    test.c is rsync'd into the testbed cwd by brewkit.
+    #
+    #    -B $LIBDIR is required so gcc picks our Scrt1.o / crti.o /
+    #    crtn.o instead of the host's /usr/lib/<triple>/Scrt1.o —
+    #    the host's pre-2.34 Scrt1.o references __libc_csu_init /
+    #    __libc_csu_fini, removed from glibc upstream in 2.34.
     - run: |
         gcc -o test-bottle test.c \
           -nostdinc \
           -isystem {{prefix}}/include \
           -isystem {{deps.gnu.org/gcc.prefix}}/lib/gcc/*-linux-gnu/{{deps.gnu.org/gcc.version}}/include \
+          -B "$LIBDIR" \
           -L "$LIBDIR" \
           -Wl,--rpath="$LIBDIR" \
           -Wl,--dynamic-linker="$LIBDIR/$LDSO"
