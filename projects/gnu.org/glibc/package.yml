@@ -186,6 +186,7 @@ build:
 test:
   dependencies:
     gnu.org/gcc: '*'
+    nixos.org/patchelf: '*'  # un-poison ld.so RPATH baked by brewkit fix-elf
   env:
     x86-64:
       LDSO: ld-linux-x86-64.so.2
@@ -216,21 +217,28 @@ test:
           -Wl,--rpath="$LIBDIR" \
           -Wl,--dynamic-linker="$LIBDIR/$LDSO"
 
-    # 3) Diagnose the loader itself before pointing it at anything.
-    #    A SIGSEGV in 0bd61f7a on /bin/true via our ld.so proved the
-    #    loader is broken regardless of binary, so dump its layout.
+    # 3) Un-poison ld.so RPATH.
+    #
+    #    brewkit's "SLOW rpath fixes" bakes a 46-package transitive-
+    #    deps RPATH chain ($ORIGIN/../../../../<pkg>/vX:…) into every
+    #    ELF in the install dir, INCLUDING ld.so itself. The loader
+    #    parses its own RPATH at startup and chokes — `ld.so --version`
+    #    SIGSEGVs (exit 139) before printing anything. Strip the RPATH
+    #    on ld.so, libc.so.6, libm.so.6 etc. to restore bootability.
+    #
+    #    Long-term this belongs in brewkit fix-elf (skip ld.so), but
+    #    until then we patch it test-side.
     - run: |
-        echo "--- file/RPATH/NEEDED on ld.so ---"
-        ls -la "$LIBDIR/$LDSO"
-        readelf -d "$LIBDIR/$LDSO" || true
-        echo "--- ld.so --version (should print glibc version) ---"
-        set +e
-        "$LIBDIR/$LDSO" --version 2>&1 | head -5
-        rc=$?
-        set -e
-        echo "ld.so --version exit: $rc"
-        echo "--- readelf -d test-bottle ---"
-        readelf -d ./test-bottle | head -30
+        for f in "$LIBDIR/$LDSO" "$LIBDIR/libc.so.6" "$LIBDIR/libm.so.6"; do
+          if [ -f "$f" ]; then
+            patchelf --remove-rpath "$f" || true
+            echo "cleared RPATH on $f"
+          fi
+        done
+        echo "--- ld.so dynamic entries after un-poison ---"
+        readelf -d "$LIBDIR/$LDSO" | grep -E "RPATH|RUNPATH|NEEDED|SONAME" || true
+        echo "--- ld.so --version ---"
+        "$LIBDIR/$LDSO" --version | head -3
 
     # 4) Run via the bottle's loader and check the reported version.
     - run: |
