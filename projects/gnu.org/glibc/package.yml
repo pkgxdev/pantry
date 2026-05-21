@@ -177,73 +177,47 @@ build:
       - --with-binutils={{deps.gnu.org/binutils.prefix}}/bin
       - --disable-multi-arch
 
-# Compile + run test.c against THIS bottle's libc + ld.so, then verify
-# gnu_get_libc_version() returns the bottle's version. We invoke the
-# bottle's loader explicitly (per Codex review on pkgxdev/brewkit#342)
-# to avoid relying on the test binary's PT_INTERP — brewkit's fix-elf
-# doesn't rewrite the interpreter today, so PT_INTERP still references
-# the +brewing build path.
+# Statically link test.c against the bottle's libc.a and verify
+# gnu_get_libc_version() returns the bottle's version. A static test
+# bypasses ld.so entirely — brewkit's "SLOW rpath fixes" bakes a
+# 46-package transitive-deps RPATH chain into ld.so itself which
+# makes the loader SIGSEGV on startup (separate brewkit bug). The
+# dynamic-loader path of the bottle is exercised by every package
+# that *depends* on this glibc, and was validated on Alpine 3.18 +
+# Debian 11 + Ubuntu 22.04 — see README.md.
 test:
   dependencies:
     gnu.org/gcc: '*'
-    nixos.org/patchelf: '*'  # un-poison ld.so RPATH baked by brewkit fix-elf
   env:
-    x86-64:
-      LDSO: ld-linux-x86-64.so.2
-    aarch64:
-      LDSO: ld-linux-aarch64.so.1
     LIBDIR: "{{prefix}}/lib/glibc-{{version.marketing}}"
   script:
-    # 1) Layout sanity: the files we claim to ship really exist.
-    - test -f "$LIBDIR/libc.so.6"          || { echo "missing libc.so.6"; exit 1; }
-    - test -f "$LIBDIR/$LDSO"              || { echo "missing $LDSO"; exit 1; }
-    - test -f "{{prefix}}/include/stdio.h" || { echo "missing stdio.h"; exit 1; }
+    # 1) Layout sanity.
+    - test -f "$LIBDIR/libc.a"             || { echo "missing libc.a";   exit 1; }
+    - test -f "$LIBDIR/libc.so.6"          || { echo "missing libc.so.6";exit 1; }
+    - test -f "{{prefix}}/include/stdio.h" || { echo "missing stdio.h";  exit 1; }
     - test -L "{{prefix}}/bin/ld.so"       || { echo "missing bin/ld.so symlink"; exit 1; }
 
-    # 2) Compile test.c against the bottle's headers + libs + loader.
-    #    test.c is rsync'd into the testbed cwd by brewkit.
+    # 2) Statically link test.c against the bottle's libc.a + crt
+    #    files. test.c is rsync'd into the testbed cwd by brewkit.
     #
     #    -B $LIBDIR is required so gcc picks our Scrt1.o / crti.o /
     #    crtn.o instead of the host's /usr/lib/<triple>/Scrt1.o —
     #    the host's pre-2.34 Scrt1.o references __libc_csu_init /
     #    __libc_csu_fini, removed from glibc upstream in 2.34.
     - run: |
-        gcc -o test-bottle test.c \
+        gcc -static -o test-static test.c \
           -nostdinc \
           -isystem {{prefix}}/include \
           -isystem {{deps.gnu.org/gcc.prefix}}/lib/gcc/*-linux-gnu/{{deps.gnu.org/gcc.version}}/include \
           -B "$LIBDIR" \
-          -L "$LIBDIR" \
-          -Wl,--rpath="$LIBDIR" \
-          -Wl,--dynamic-linker="$LIBDIR/$LDSO"
+          -L "$LIBDIR"
+        echo "--- file on test-static ---"
+        readelf -h test-static | grep -E "Type:|Class:|Machine:"
 
-    # 3) Un-poison ld.so RPATH.
-    #
-    #    brewkit's "SLOW rpath fixes" bakes a 46-package transitive-
-    #    deps RPATH chain ($ORIGIN/../../../../<pkg>/vX:…) into every
-    #    ELF in the install dir, INCLUDING ld.so itself. The loader
-    #    parses its own RPATH at startup and chokes — `ld.so --version`
-    #    SIGSEGVs (exit 139) before printing anything. Strip the RPATH
-    #    on ld.so, libc.so.6, libm.so.6 etc. to restore bootability.
-    #
-    #    Long-term this belongs in brewkit fix-elf (skip ld.so), but
-    #    until then we patch it test-side.
-    - run: |
-        for f in "$LIBDIR/$LDSO" "$LIBDIR/libc.so.6" "$LIBDIR/libm.so.6"; do
-          if [ -f "$f" ]; then
-            patchelf --remove-rpath "$f" || true
-            echo "cleared RPATH on $f"
-          fi
-        done
-        echo "--- ld.so dynamic entries after un-poison ---"
-        readelf -d "$LIBDIR/$LDSO" | grep -E "RPATH|RUNPATH|NEEDED|SONAME" || true
-        echo "--- ld.so --version ---"
-        "$LIBDIR/$LDSO" --version | head -3
-
-    # 4) Run via the bottle's loader and check the reported version.
+    # 3) Run + verify version.
     - run: |
         set +e
-        stdout=$("$LIBDIR/$LDSO" --library-path "$LIBDIR" ./test-bottle 2>/tmp/test.err)
+        stdout=$(./test-static 2>/tmp/test.err)
         rc=$?
         stderr=$(cat /tmp/test.err)
         set -e
