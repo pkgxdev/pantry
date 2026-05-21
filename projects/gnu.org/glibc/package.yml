@@ -165,16 +165,23 @@ build:
     #
     # patchelf --set-interpreter exits non-zero on non-ELF inputs;
     # we use that to filter shell scripts etc. without needing file(1).
+    #
+    # {{prefix}} at build time is the .../v2.43.0+brewing path; brewkit
+    # renames it to .../v2.43.0 before the bottle ships. PT_INTERP needs
+    # the *post-rename* path, otherwise the binary references a path
+    # that no longer exists ("required file not found"). RPATH uses
+    # $ORIGIN-relative so it survives the rename automatically.
     - run: |
         case "{{hw.arch}}" in
           x86-64)  LDSO=ld-linux-x86-64.so.2 ;;
           aarch64) LDSO=ld-linux-aarch64.so.1 ;;
         esac
-        LIBDIR={{prefix}}/lib/glibc-{{version.marketing}}
+        PREFIX_FINAL=$(echo "{{prefix}}" | sed 's/+brewing$//')
+        LIBDIR_INTERP="$PREFIX_FINAL/lib/glibc-{{version.marketing}}"
         RPATH='$ORIGIN/../lib/glibc-{{version.marketing}}'
         for f in {{prefix}}/bin/* {{prefix}}/sbin/*; do
           [ -f "$f" ] && [ ! -L "$f" ] || continue
-          if patchelf --set-interpreter "$LIBDIR/$LDSO" "$f" 2>/dev/null; then
+          if patchelf --set-interpreter "$LIBDIR_INTERP/$LDSO" "$f" 2>/dev/null; then
             patchelf --force-rpath --set-rpath "$RPATH" "$f" 2>/dev/null
             echo "patchelfd $f"
           fi
