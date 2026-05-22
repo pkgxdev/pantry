@@ -65,9 +65,9 @@ build:
         # Disable MS ABI stubs on Darwin - not needed and causes CFI/LLVM assembler issues
         # context differs between 15.2 and 16.x (extra_parts dropped libd10-uwfef.a in 16)
         - if test {{version.major}} -ge 16; then
-        -   patch -p1 < props/disable-msabi-darwin-v16.patch
+        - patch -p1 < props/disable-msabi-darwin-v16.patch
         - else
-        -   patch -p1 < props/disable-msabi-darwin.patch
+        - patch -p1 < props/disable-msabi-darwin.patch
         - fi
         # Remove old frame registration symbols from darwin-unwind.ver (GCC 15+ doesn't provide these)
         - patch -p1 < props/remove-old-frame-symbols-darwin.patch
@@ -101,7 +101,7 @@ build:
     # versions across host ld-linux and the bottle's libc at link time.
     # Modern gcc bottles (>= 10) keep LTO enabled.
     - run: ARGS=("${ARGS[@]}" --disable-lto --disable-plugin); export ARGS
-      if: '<10'
+      if: "<10"
 
     # Bake mpc / mpfr / gmp / zlib RUNPATH into all linked binaries so
     # the built gcc + cc1 / cc1plus run without requiring
@@ -267,6 +267,5 @@ provides:
   - bin/gcov-dump
   - bin/gcov-tool
   - bin/gfortran
-  - bin/lto-dump
   - bin/nm
   - bin/ranlib
