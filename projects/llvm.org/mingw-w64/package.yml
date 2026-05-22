@@ -66,10 +66,15 @@ build:
     - test -d include && cp -a include "{{prefix}}"/ || true
 
 test:
+  # winehq.org/wine is a soft dep — if present, we actually run the
+  # cross-compiled .exe through wine and verify the output. If not,
+  # we fall back to a PE magic-byte check. See pkgxdev/brewkit#346
+  # discussion: wine in pantry would let us validate the cross-compile
+  # chain end-to-end without GitHub Windows runners.
+  dependencies:
+    winehq.org: '*'
   script:
-    # Cross-compile a trivial Windows binary, then verify the output
-    # is a valid PE32+ executable. We can't *run* it on the build host
-    # (it's a Windows .exe), but we can validate the file format.
+    # Cross-compile a trivial Windows binary for x86-64 and aarch64.
     - run: |
         cat > hello.c <<'EOF'
         #include <stdio.h>
@@ -81,10 +86,8 @@ test:
     - x86_64-w64-mingw32-clang -o hello-x86_64.exe hello.c
     - aarch64-w64-mingw32-clang -o hello-aarch64.exe hello.c
 
-    # File signature check: PE32+ is 0x5a4d ("MZ") at offset 0 + a PE
-    # header at offset specified by bytes 0x3c..0x3f. Simplest test:
-    # `file hello.exe` should report "PE32+ executable" — but file(1)
-    # isn't guaranteed on the test sandbox. Use head + magic bytes.
+    # Static signature check: PE32+ starts with "MZ" at offset 0.
+    # Always runs (cheap; doesn't need wine).
     - run: |
         for f in hello-x86_64.exe hello-aarch64.exe; do
           magic=$(head -c 2 "$f" | od -An -c | tr -s ' ' | sed 's/^ //;s/ $//')
@@ -93,6 +96,33 @@ test:
             *) echo "$f: NOT a PE binary (magic=$magic)"; exit 1 ;;
           esac
         done
+
+    # Dynamic check: actually run the .exe through wine. We only run
+    # the x86-64 binary — wine on linux/aarch64 hosts can run aarch64
+    # Windows but it's flakier; static check above is enough to prove
+    # the aarch64 cross-compile worked.
+    #
+    # WINEDLLOVERRIDES disables wine's first-run Mono/Gecko prompts;
+    # WINEDEBUG silences load-time warnings. Both standard for headless.
+    - run: |
+        if command -v wine64 >/dev/null 2>&1; then
+          WINE=wine64
+        elif command -v wine >/dev/null 2>&1; then
+          WINE=wine
+        else
+          echo "wine not available — skipping runtime test (compile + PE-magic-check only)"
+          exit 0
+        fi
+        export WINEDEBUG=-all
+        export WINEDLLOVERRIDES="mscoree=;mshtml="
+        export WINEPREFIX=$PWD/.wine
+        echo "running hello-x86_64.exe under $($WINE --version)"
+        out=$($WINE hello-x86_64.exe)
+        echo "wine stdout: $out"
+        case "$out" in
+          "Hello from native Windows cross-compile.") echo "RUN PASS" ;;
+          *) echo "RUN FAIL: unexpected output"; exit 1 ;;
+        esac
 
 provides:
   # x86_64 cross drivers
