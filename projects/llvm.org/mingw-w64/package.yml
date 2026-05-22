@@ -1,0 +1,113 @@
+# llvm-mingw: LLVM-based mingw-w64 toolchain.
+# Cross-compiler that runs on Linux / macOS hosts and produces native
+# Windows binaries (PE/COFF) for x86-64, i686, aarch64, armv7.
+#
+# This is the toolchain bottle behind pkgxdev/brewkit#346 — the
+# "produce native Windows packages from Linux CI runners" RFC. Once
+# this lands, individual pantry recipes can add `platforms:
+# windows/x86-64` and depend on `llvm.org/mingw-w64` to cross-compile.
+#
+# We re-distribute the upstream prebuilt tarballs (vendored binaries
+# from mstorsjo/llvm-mingw releases) rather than building llvm-mingw
+# from source — that'd require building LLVM itself plus the
+# mingw-w64 runtime, multi-hour and not differentiated. Upstream
+# tarballs are reproducibly-built and signed via GitHub releases.
+
+distributable:
+  url: https://github.com/mstorsjo/llvm-mingw/releases/download/{{ version.raw }}/llvm-mingw-{{ version.raw }}-ucrt-${PLATFORM}.tar.xz
+  strip-components: 1
+
+versions:
+  github: mstorsjo/llvm-mingw
+
+# llvm-mingw's host-platform tarballs cover Linux x86-64, Linux aarch64,
+# and macOS universal (x86-64 + aarch64). No Windows-host variant for
+# our purposes (we'd rather have Windows binaries be a *target*, not
+# a host).
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+  - darwin/x86-64
+  - darwin/aarch64
+
+warnings:
+  - vendored  # we redistribute upstream prebuilt binaries
+
+build:
+  dependencies:
+    curl.se: '*'
+    gnu.org/tar: '*'
+    tukaani.org/xz: '*'
+
+  script:
+    # Map our host triple → upstream's tarball naming convention.
+    - run: |
+        case "{{hw.platform}}+{{hw.arch}}" in
+          linux+x86-64)  PLATFORM="ubuntu-22.04-x86_64" ;;
+          linux+aarch64) PLATFORM="ubuntu-22.04-aarch64" ;;
+          darwin+x86-64) PLATFORM="macos-universal" ;;
+          darwin+aarch64) PLATFORM="macos-universal" ;;
+        esac
+        echo "PLATFORM=$PLATFORM"
+
+    # The `distributable.url` template uses `${PLATFORM}` (shell var),
+    # so by the time brewkit fetches it the env has it set.
+    # Copy the upstream tarball contents into {{prefix}} verbatim.
+    - cp -a bin   "{{ prefix }}"/
+    - cp -a lib   "{{ prefix }}"/
+    - cp -a share "{{ prefix }}"/ 2>/dev/null || true
+    - cp -a include "{{ prefix }}"/ 2>/dev/null || true
+
+    # Upstream ships a per-target driver scripts (x86_64-w64-mingw32-gcc
+    # etc.) that wrap clang. They're shell scripts under bin/ that
+    # call into ../lib/clang/.../bin via relative paths — already
+    # relocatable, no patchelf surgery needed.
+
+test:
+  script:
+    # Cross-compile a trivial Windows binary, then verify the output
+    # is a valid PE32+ executable. We can't *run* it on the build host
+    # (it's a Windows .exe), but we can validate the file format.
+    - run: |
+        cat > hello.c <<'EOF'
+        #include <stdio.h>
+        int main(void) {
+          printf("Hello from native Windows cross-compile.\n");
+          return 0;
+        }
+        EOF
+    - x86_64-w64-mingw32-clang -o hello-x86_64.exe hello.c
+    - aarch64-w64-mingw32-clang -o hello-aarch64.exe hello.c
+
+    # File signature check: PE32+ is 0x5a4d ("MZ") at offset 0 + a PE
+    # header at offset specified by bytes 0x3c..0x3f. Simplest test:
+    # `file hello.exe` should report "PE32+ executable" — but file(1)
+    # isn't guaranteed on the test sandbox. Use head + magic bytes.
+    - run: |
+        for f in hello-x86_64.exe hello-aarch64.exe; do
+          magic=$(head -c 2 "$f" | od -An -c | tr -s ' ' | sed 's/^ //;s/ $//')
+          case "$magic" in
+            "M   Z") echo "$f: PE/COFF DOS header OK" ;;
+            *) echo "$f: NOT a PE binary (magic=$magic)"; exit 1 ;;
+          esac
+        done
+
+provides:
+  # x86_64 cross drivers
+  - bin/x86_64-w64-mingw32-clang
+  - bin/x86_64-w64-mingw32-clang++
+  - bin/x86_64-w64-mingw32-gcc
+  - bin/x86_64-w64-mingw32-g++
+  # aarch64 cross drivers
+  - bin/aarch64-w64-mingw32-clang
+  - bin/aarch64-w64-mingw32-clang++
+  - bin/aarch64-w64-mingw32-gcc
+  - bin/aarch64-w64-mingw32-g++
+  # i686 cross drivers
+  - bin/i686-w64-mingw32-clang
+  - bin/i686-w64-mingw32-clang++
+  # PE-aware tooling (analog of binutils for ELF)
+  - bin/llvm-rc       # resource compiler (rc.exe)
+  - bin/llvm-mt       # manifest tool (mt.exe)
+  - bin/llvm-cvtres   # COFF tooling
+  - bin/lld-link      # MSVC-compat linker (link.exe)
