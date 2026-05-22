@@ -98,15 +98,22 @@ test:
     CLANG_X86_64: "{{prefix}}/bin/x86_64-w64-mingw32-clang"
     CLANG_AARCH64: "{{prefix}}/bin/aarch64-w64-mingw32-clang"
   script:
-    # Pre-flight: can clang actually run on this host?
-    #
-    # Upstream llvm-mingw tarballs are built against ubuntu-22.04
-    # (glibc 2.35). On a buster-sandbox host (glibc 2.28) clang can't
-    # load — `GLIBC_2.34 not found`. Skip gracefully then.
-    # (pkgxdev/pantry#12968 — now merged — provides a newer glibc
-    # bottle but isn't strictly required for this recipe's audit.)
+    # Diagnostics first — surface env + filesystem state so the
+    # darwin self-hosted-runner failure (logs not externally
+    # accessible) becomes visible to maintainers.
     - |
-      if ! "$CLANG_X86_64" --version >/dev/null 2>&1; then
+      echo "── env diagnostics ──"
+      echo "CLANG_X86_64=$CLANG_X86_64"
+      echo "CLANG_AARCH64=$CLANG_AARCH64"
+      echo "── filesystem check ──"
+      ls -la "$CLANG_X86_64"  2>&1 || echo "(missing: $CLANG_X86_64)"
+      ls -la "$CLANG_AARCH64" 2>&1 || echo "(missing: $CLANG_AARCH64)"
+
+    # Pre-flight: can clang actually run on this host?
+    # On a buster-sandbox host (glibc 2.28) clang can't load —
+    # `GLIBC_2.34 not found`. Skip gracefully then.
+    - |
+      if ! "$CLANG_X86_64" --version 2>&1; then
         echo "clang can't run on this host (likely glibc < 2.34) —"
         echo "skipping cross-compile test, recipe install OK."
         exit 0
