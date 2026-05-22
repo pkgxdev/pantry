@@ -60,10 +60,16 @@ build:
     # Copy the prebuilt toolchain into {{prefix}}. Upstream's drivers
     # (x86_64-w64-mingw32-clang etc.) are wrappers that call into
     # ../lib/clang/.../bin via relative paths — already relocatable.
-    - cp -a bin   "{{prefix}}"/
-    - cp -a lib   "{{prefix}}"/
-    - test -d share   && cp -a share   "{{prefix}}"/ || true
-    - test -d include && cp -a include "{{prefix}}"/ || true
+    # brewkit doesn't pre-create {{prefix}}, so mkdir it first;
+    # otherwise `cp -a bin {{prefix}}/` fails with "cannot create
+    # directory" on the first cp.
+    - run: |
+        mkdir -p "{{prefix}}"
+        cp -a bin "{{prefix}}/"
+        cp -a lib "{{prefix}}/"
+        for d in share include; do
+          [ -d "$d" ] && cp -a "$d" "{{prefix}}/"
+        done
 
 test:
   # winehq.org/wine is a soft dep — if present, we actually run the
