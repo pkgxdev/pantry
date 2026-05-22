@@ -1,0 +1,106 @@
+# Wine: Windows API implementation for POSIX hosts.
+#
+# Headless minimal build aimed at CI use — runs cross-compiled
+# Windows .exe files in brewkit's Linux test sandbox so we can
+# validate native-Windows pantry recipes without spinning up
+# GitHub Windows runners. See pkgxdev/pantry#12985 for context
+# and pkgxdev/brewkit#346 for the broader RFC.
+#
+# What's deliberately out of this build:
+#
+#   - X11 (--without-x): no GUI in CI
+#   - OpenGL/Vulkan/OSMesa: no 3D rendering
+#   - ALSA/PulseAudio/OSS: no audio
+#   - SDL/GStreamer: no media
+#   - CUPS/gphoto2/USB/V4L2/SANE/UDev: no peripherals
+#   - 32-bit Win support (--enable-archs=x86_64): 64-bit only
+#   - tests (--disable-tests): skip wine's own test suite (massive
+#     build-time saving, irrelevant for our use case)
+#
+# Result: a headless wine64 binary that can launch a console-only
+# Windows .exe and capture its stdout/stderr. Good for CLI tool
+# testing; not useful for GUI apps, games, or anything graphical.
+
+distributable:
+  url: https://dl.winehq.org/wine/source/{{ version.major }}.0/wine-{{ version.raw }}.tar.xz
+  strip-components: 1
+
+# Use the github mirror's tag list, filtering down to numeric semver
+# tags (excludes legacy daily-build tags like wine-20050930).
+versions:
+  github: wine-mirror/wine/tags
+  match: /^wine-\d{2,}\.\d+(\.\d+)?$/
+  strip: /^wine-/
+
+# Pilot scope: linux/x86-64 only. Once the integration with
+# brewkit#346 lands, expanding to linux/aarch64 + darwin/* is
+# a follow-up — both have wine-side complications:
+#   - linux/aarch64: wine can run aarch64 Windows binaries but
+#     x86-64 Windows requires qemu-user or hangover
+#   - darwin: Apple deprecated 32-bit; wine 11.x ships darwin
+#     support but it's a meaningful extra config dance
+platforms:
+  - linux/x86-64
+
+build:
+  dependencies:
+    gnu.org/bison: '^3'
+    github.com/westes/flex: '*'
+    perl.org: '^5'
+    gnu.org/gettext: '*'
+    freetype.org: '*'
+    gnutls.org: '*'
+    zlib.net: '*'
+    gnu.org/make: '*'
+    gnu.org/gcc: '*'
+    gnu.org/binutils: '*'
+
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
+
+  env:
+    ARGS:
+      - --prefix={{ prefix }}
+      - --enable-archs=x86_64       # 64-bit only — half the build, all we need
+      - --disable-tests             # skip wine's massive internal test suite
+      - --without-x                 # no X11
+      - --without-opengl
+      - --without-osmesa
+      - --without-vulkan
+      - --without-alsa
+      - --without-pulse
+      - --without-oss
+      - --without-sdl
+      - --without-gstreamer
+      - --without-cups
+      - --without-gphoto
+      - --without-capi
+      - --without-cms
+      - --without-udev
+      - --without-v4l2
+      - --without-sane
+      - --without-usb
+      - --without-pcap
+      - --without-fontconfig
+      - --without-krb5
+
+test:
+  # `wine64 --version` returns "wine-X.Y" on stable, "wine-X.Y (Staging)"
+  # on staging. We just check that it ran and printed a sane version.
+  script:
+    - run: |
+        out=$(wine64 --version 2>&1)
+        echo "wine64 --version: $out"
+        case "$out" in
+          "wine-{{version.marketing}}"*) echo PASS ;;
+          *) echo "FAIL: expected wine-{{version.marketing}}, got $out"; exit 1 ;;
+        esac
+
+provides:
+  - bin/wine
+  - bin/wine64
+  - bin/winepath
+  - bin/wineserver
+  - bin/winecfg
