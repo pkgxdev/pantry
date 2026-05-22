@@ -112,12 +112,14 @@ test:
     - aarch64-w64-mingw32-clang -o hello-aarch64.exe hello.c
 
     # Static signature check: PE32+ starts with "MZ" at offset 0.
+    # head -c 2 reads the raw bytes; "MZ" are printable so the shell
+    # capture works without any od/tr/sed gymnastics (which had subtle
+    # BSD-vs-GNU output-format differences and broke on darwin).
     - run: |
         for f in hello-x86_64.exe hello-aarch64.exe; do
-          magic=$(head -c 2 "$f" | od -An -c | tr -s ' ' | sed 's/^ //;s/ $//')
-          case "$magic" in
-            "M   Z") echo "$f: PE/COFF DOS header OK" ;;
-            *) echo "$f: NOT a PE binary (magic=$magic)"; exit 1 ;;
+          case "$(head -c 2 "$f")" in
+            MZ) echo "$f: PE/COFF DOS header OK" ;;
+            *)  echo "$f: NOT a PE binary"; exit 1 ;;
           esac
         done
 
