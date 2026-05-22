@@ -1,0 +1,314 @@
+distributable:
+  url: https://ftp.gnu.org/gnu/glibc/glibc-{{ version.raw }}.tar.xz
+  strip-components: 1
+
+versions:
+  url: https://ftp.gnu.org/gnu/glibc/
+  match: /glibc-\d+\.\d+(\.\d+)?\.tar\.xz/
+  strip:
+    - /glibc-/
+    - /\.tar\.xz/
+
+# Empirically verified host-independent build (pkgx toolchain only,
+# debian:bookworm-slim base with no apt-installed compiler):
+#   linux/x86-64:  2.17, 2.24, 2.27, 2.28, 2.34, 2.38, 2.41, 2.42, 2.43
+#   linux/aarch64: 2.17, 2.24, 2.27, 2.28, 2.34, 2.38, 2.41, 2.42, 2.43
+# Full 9-version parity on both arches. Each bottle cross-tested on
+# Alpine 3.18 (musl host), Debian 11, Ubuntu 22.04 — all return
+# gnu_get_libc_version() = <bottle-version>.
+#
+# 2.17 (manylinux2014 / CentOS 7 / HPC baseline) and 2.24
+# (manylinux_2_24) are built via a bootstrap-cascaded toolchain
+# (gcc 7.5 + binutils 2.28). The cascade procedure is documented in
+# README.md "HPC bootstrap cascade". The toolchain bottles produced
+# (gcc 9.5, gcc 7.5, binutils 2.28/2.30/2.31/2.32) are candidates
+# to ship in dist.pkgx.dev as `gnu.org/gcc` and `gnu.org/binutils`
+# older-version bottles — currently built inside the build env.
+#
+# darwin/* is intentionally absent. glibc is the GNU C library for the
+# Linux kernel — macOS uses libSystem + dyld with an entirely separate
+# binary format (Mach-O vs ELF). There is no glibc port to Darwin and
+# bottling one would not produce something usable.
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+
+build:
+  # Skip brewkit's "SLOW rpath fixes" — it writes a 46-package
+  # transitive-deps $ORIGIN RPATH chain onto every ELF in the
+  # install, INCLUDING ld-linux-*.so.*. The loader parses its own
+  # RPATH at startup and SIGSEGVs (see pkgxdev/brewkit#345 and the
+  # diagnostic output in this PR's history). We do the patchelf
+  # ourselves below for the ELFs that actually need RPATH (bin/*),
+  # and leave ld.so alone.
+  skip:
+    - fix-patchelf
+
+  dependencies:
+    gnu.org/make: '>=4.0'
+    gnu.org/gawk: '>=3'
+    gnu.org/gcc: '*'           # pkgx ships 10.5–16.1; verified with 16.1
+    gnu.org/binutils: '>=2.40' # required by glibc 2.42+; older glibcs also build with 2.46
+    gnu.org/gettext: '*'
+    gnu.org/texinfo: '*'       # required for `make install` (manual/libc.info)
+    gnu.org/bison: '^3'
+    gnu.org/sed: '*'
+    gnu.org/coreutils: '*'
+    gnu.org/findutils: '*'
+    gnu.org/grep: '*'
+    gnu.org/diffutils: '*'
+    gnu.org/patch: '*'
+    gnu.org/m4: '*'
+    perl.org: '^5'
+    python.org: '~3.11'
+    kernel.org/linux-headers: '*' # the file that makes the build host-independent
+    nixos.org/patchelf: '*'       # we patchelf bin/* ourselves (see `skip: fix-patchelf` above)
+
+  working-directory: build
+
+  script:
+    # Hygiene patches from nixpkgs. They prevent the new ld.so from reading
+    # the host's /etc/ld.so.cache and /etc/ld.so.preload — both files have
+    # glibc-version-specific binary formats, reading them with a different
+    # glibc is the recipe for "segfaults in startup code".
+    #
+    # Both patches assume the modern Makefile structure (`PREFIX-FLAGS` etc.).
+    # On glibc < 2.32 the elf/Makefile is laid out differently and the cache
+    # patch leaves `LD_SO_CACHE` referencing an undefined `PREFIX` macro.
+    # We therefore gate the patches on the version.
+    - run:
+      - patch -p1 < props/dont-use-system-ld-so-cache.patch
+      - patch -p1 --forward --no-backup-if-mismatch < props/dont-use-system-ld-so-preload.patch || true
+      if: ">=2.32"
+      working-directory: ..
+
+    # glibc 2.17/2.18 configure has a python regex that rejects `make` >= 4.0.
+    # 1-line fix preserving the same regex shape, accepting modern make.
+    # Use # as sed delimiter because the pattern itself contains |.
+    - run: sed -i 's#3\.79\* | 3\.\[89\]\*#3.79* | 3.[89]* | [4-9].* | [1-9][0-9]*#' configure
+      if: <2.19
+      working-directory: ..
+
+    # glibc < 2.32 has multiple tentative .bss definitions of __nss_*_database
+    # that gcc 10+'s default -fno-common rejects. Add -fcommon for old glibc.
+    - run:
+        - EXTRA_CFLAGS=""
+        - if [ {{version.major}}{{version.minor}} -lt 232 ]; then
+        -  EXTRA_CFLAGS="-fcommon -Wno-error"
+        - fi
+        # glibc decides its own pie/-shared per target — pkgx gcc 16
+        # is built with --enable-default-pie, so its CC defaults add
+        # -fPIE/-pie. That breaks glibc's static auxiliary tools
+        # (support/test-run-command et al) with "_DYNAMIC isn't
+        # defined". Explicitly disable the default with -fno-PIE and
+        # -no-pie at the link step; glibc adds them back per-target
+        # where actually wanted (shared libs use -fPIC anyway).
+        #
+        # libc_cv_slibdir / libc_cv_rtlddir override the autoconf-cached
+        # slibdir / rtlddir vars so libc.so.6 + ld-linux*.so go into
+        # the sub-libdir alongside our other libs. Without this,
+        # --libdir alone only affects gconv/audit plugins; libc.so.6
+        # still ends up at $prefix/lib/ and pollutes consumers'
+        # LD_LIBRARY_PATH (incompatible with the host's older ld-linux).
+        - LIBDIR="{{prefix}}/lib/glibc-{{version.marketing}}"
+        - CFLAGS="-O2 -fPIC $EXTRA_CFLAGS"
+          libc_cv_slibdir="$LIBDIR"
+          libc_cv_rtlddir="$LIBDIR"
+          libc_cv_complocaledir="$LIBDIR/locale"
+          libc_cv_static_pie=no
+          ../configure $ARGS
+
+    - make --jobs {{ hw.concurrency }} CFLAGS-regexp.c=-fno-common
+    - make install
+
+    # Self-relocate generated scripts so the bottle works at any prefix.
+    - run: |
+        for s in $SCRIPTS; do
+          test -f $s || continue
+          sed -i 's|{{prefix}}|"$(cd "$(dirname "$0")/.." \&\& pwd)"|' $s
+        done
+      working-directory: ${{prefix}}/bin
+
+    # Convenience: arch-agnostic ld.so symlink that points into the
+    # sub-libdir (kept out of the top {{prefix}}/lib/).
+    - run: |
+        case "{{hw.arch}}" in
+          x86-64)  L=ld-linux-x86-64.so.2 ;;
+          aarch64) L=ld-linux-aarch64.so.1 ;;
+        esac
+        ln -sf ../lib/glibc-{{version.marketing}}/$L ld.so
+      working-directory: ${{prefix}}/bin
+
+    # libc.so / libm.so / … are TEXT linker scripts (GROUP (...)) with
+    # +brewing baked into absolute paths. Strip +brewing so downstream
+    # `-lc` doesn't hit "cannot find +brewing/lib/.../libc.so.6" after
+    # brewkit's +brewing → final-prefix rename. (Detect via first-line
+    # marker, not file(1) — not on the test-sandbox PATH.)
+    - run: |
+        for f in $(find . -maxdepth 2 -type f -name '*.so'); do
+          if head -c 16 "$f" | grep -q "GNU ld script"; then
+            sed -i 's|+brewing||g' "$f"
+            echo "stripped +brewing from $f"
+          fi
+        done
+      working-directory: ${{prefix}}/lib
+
+    # With brewkit's fix-patchelf skipped (see `skip:` at top of build),
+    # we patchelf the ELFs that need it ourselves:
+    #
+    #   bin/*, sbin/*  — fix +brewing PT_INTERP, add $ORIGIN-relative
+    #                    RPATH so libc.so.6 resolves at runtime
+    #   lib/glibc-X.Y/ld-linux-*  — leave alone (it's the loader;
+    #                    bootstraps from nothing)
+    #   lib/glibc-X.Y/*.so.*  — co-located with libc.so.6, no extra
+    #                    RPATH needed (executable's RPATH propagates)
+    #
+    # patchelf --set-interpreter exits non-zero on non-ELF inputs;
+    # we use that to filter shell scripts etc. without needing file(1).
+    #
+    # {{prefix}} at build time is the .../v2.43.0+brewing path; brewkit
+    # renames it to .../v2.43.0 before the bottle ships. PT_INTERP needs
+    # the *post-rename* path, otherwise the binary references a path
+    # that no longer exists ("required file not found"). RPATH uses
+    # $ORIGIN-relative so it survives the rename automatically.
+    - run: |
+        case "{{hw.arch}}" in
+          x86-64)  LDSO=ld-linux-x86-64.so.2 ;;
+          aarch64) LDSO=ld-linux-aarch64.so.1 ;;
+        esac
+        PREFIX_FINAL=$(echo "{{prefix}}" | sed 's/+brewing$//')
+        LIBDIR_INTERP="$PREFIX_FINAL/lib/glibc-{{version.marketing}}"
+        RPATH='$ORIGIN/../lib/glibc-{{version.marketing}}'
+        for f in {{prefix}}/bin/* {{prefix}}/sbin/*; do
+          [ -f "$f" ] && [ ! -L "$f" ] || continue
+          if patchelf --set-interpreter "$LIBDIR_INTERP/$LDSO" "$f" 2>/dev/null; then
+            patchelf --force-rpath --set-rpath "$RPATH" "$f" 2>/dev/null
+            echo "patchelfd $f"
+          fi
+        done
+
+  env:
+    SCRIPTS:
+      - catchsegv
+      - ldd
+      - mtrace
+      - sotruss
+      - tzselect
+      - xtrace
+    ARGS:
+      - --prefix={{ prefix }}
+      # Install libs to a sub-dir of lib/ rather than directly. libpkgx's
+      # useShellEnv unconditionally adds {{prefix}}/lib/ to LD_LIBRARY_PATH
+      # for every dep, but ld.so searches LD_LIBRARY_PATH dirs non-
+      # recursively. Putting libc.so.6 et al at `lib/glibc-X.Y/` keeps
+      # them out of the top lib/ — so a downstream `pkgx +gnu.org/glibc`
+      # doesn't poison consumers' libc resolution and break host coreutils
+      # in the brewkit test sandbox. HPC cascade consumers route to
+      # `{{prefix}}/lib/glibc-X.Y/` explicitly anyway via gcc --sysroot.
+      - --libdir={{ prefix }}/lib/glibc-{{ version.marketing }}
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --disable-silent-rules
+      - --disable-werror
+      - --without-gd
+      - --without-selinux
+      - --enable-kernel=3.10.0  # CentOS 7 / manylinux2014 baseline
+      - --with-headers={{deps.kernel.org/linux-headers.prefix}}/include
+      - --with-binutils={{deps.gnu.org/binutils.prefix}}/bin
+      - --disable-multi-arch
+
+# Compile + run test.c against the bottle's libc + ld.so end-to-end.
+# Exercises every piece of the bottle: headers, crt files, libc.so.6,
+# the loader, and `iconv --version` to confirm the patchelf'd bin/* work.
+#
+# Previously the loader's RPATH was poisoned by brewkit's fix-patchelf
+# (a 46-pkg $ORIGIN chain → SIGSEGV at startup; see pkgxdev/brewkit#345).
+# Now that we `skip: fix-patchelf` and patchelf bin/* ourselves with
+# clean RPATH, the loader bootstraps cleanly and the bin/* work.
+test:
+  dependencies:
+    gnu.org/gcc: '*'
+  env:
+    x86-64:
+      LDSO: ld-linux-x86-64.so.2
+    aarch64:
+      LDSO: ld-linux-aarch64.so.1
+    LIBDIR: "{{prefix}}/lib/glibc-{{version.marketing}}"
+  script:
+    # 1) Layout sanity.
+    - test -f "$LIBDIR/libc.so.6"          || { echo "missing libc.so.6"; exit 1; }
+    - test -f "$LIBDIR/$LDSO"              || { echo "missing $LDSO";     exit 1; }
+    - test -f "{{prefix}}/include/stdio.h" || { echo "missing stdio.h";   exit 1; }
+    - test -L "{{prefix}}/bin/ld.so"       || { echo "missing bin/ld.so symlink"; exit 1; }
+
+    # 2) Loader self-test (was SIGSEGV before the fix-patchelf skip).
+    - run: |
+        echo "--- ld.so --version ---"
+        "$LIBDIR/$LDSO" --version | head -2
+
+    # 3) Compile test.c dynamically against the bottle's headers /
+    #    libs / loader. -B $LIBDIR picks our Scrt1.o / crti.o / crtn.o
+    #    instead of the host's pre-2.34 versions which reference
+    #    removed __libc_csu_init / __libc_csu_fini.
+    - run: |
+        gcc -o test-bottle test.c \
+          -nostdinc \
+          -isystem {{prefix}}/include \
+          -isystem {{deps.gnu.org/gcc.prefix}}/lib/gcc/*-linux-gnu/{{deps.gnu.org/gcc.version}}/include \
+          -B "$LIBDIR" \
+          -L "$LIBDIR" \
+          -Wl,--rpath="$LIBDIR" \
+          -Wl,--dynamic-linker="$LIBDIR/$LDSO"
+        readelf -d test-bottle | grep -E "NEEDED|RPATH" | head -5
+
+    # 4) Run the dynamically-linked test bin — exercises PT_INTERP,
+    #    the loader, RPATH resolution, libc symbol lookup, printf, etc.
+    - run: |
+        set +e
+        stdout=$(./test-bottle 2>/tmp/test.err)
+        rc=$?
+        stderr=$(cat /tmp/test.err)
+        set -e
+        echo "exit code: $rc"
+        echo "stdout: $stdout"
+        echo "stderr: $stderr"
+        case "$stdout" in
+          "gnu_get_libc_version() = {{version.marketing}}"*) echo PASS ;;
+          *) echo "FAIL: expected gnu_get_libc_version() = {{version.marketing}}, got stdout=\"$stdout\" stderr=\"$stderr\" rc=$rc"; exit 1 ;;
+        esac
+
+    # 5) Bonus: one of the bottle's own bin/* should now work end-to-end.
+    #    iconv --version prints "iconv (GNU libc) X.Y" — confirms our
+    #    manual patchelf step gave bin/iconv a usable PT_INTERP + RPATH.
+    - run: |
+        out=$("{{prefix}}/bin/iconv" --version 2>&1 | head -1)
+        echo "bin/iconv --version: $out"
+        case "$out" in
+          *"(GNU libc) {{version.marketing}}"*) echo "bin/iconv PASS" ;;
+          *) echo "FAIL: expected '(GNU libc) {{version.marketing}}' in iconv --version output, got: $out"; exit 1 ;;
+        esac
+
+provides:
+  # Binaries that are installed across all supported versions
+  # (2.17–2.43). `catchsegv` was removed in glibc 2.38, `rpcgen` in
+  # glibc 2.33, `sln` moved bin→sbin around 2.30, `zdump` similarly
+  # moved between bin and sbin across versions — so they're omitted
+  # to keep the audit happy on every version.
+  - bin/gencat
+  - bin/getconf
+  - bin/getent
+  - bin/iconv
+  - bin/ldd
+  - bin/locale
+  - bin/localedef
+  - bin/makedb
+  - bin/mtrace
+  - bin/pcprofiledump
+  - bin/pldd
+  - bin/sotruss
+  - bin/sprof
+  - bin/tzselect
+  - bin/xtrace
+  - sbin/iconvconfig
+  - sbin/ldconfig
+  - sbin/nscd
