@@ -38,31 +38,31 @@ build:
   # transitive-deps $ORIGIN RPATH chain onto every ELF in the
   # install, INCLUDING ld-linux-*.so.*. The loader parses its own
   # RPATH at startup and SIGSEGVs (see pkgxdev/brewkit#345 and the
-  # diagnostic output in this PR's history). We do the patchelf
-  # ourselves below for the ELFs that actually need RPATH (bin/*),
-  # and leave ld.so alone.
+  # diagnostic output in this PR's history). We handle relocatability
+  # below: linker scripts use basenames, and glibc-owned ELF tools are
+  # invoked through relative ld.so wrappers.
   skip:
     - fix-patchelf
 
   dependencies:
-    gnu.org/make: '>=4.0'
-    gnu.org/gawk: '>=3'
-    gnu.org/gcc: '*'           # pkgx ships 10.5–16.1; verified with 16.1
-    gnu.org/binutils: '>=2.40' # required by glibc 2.42+; older glibcs also build with 2.46
-    gnu.org/gettext: '*'
-    gnu.org/texinfo: '*'       # required for `make install` (manual/libc.info)
-    gnu.org/bison: '^3'
-    gnu.org/sed: '*'
-    gnu.org/coreutils: '*'
-    gnu.org/findutils: '*'
-    gnu.org/grep: '*'
-    gnu.org/diffutils: '*'
-    gnu.org/patch: '*'
-    gnu.org/m4: '*'
-    perl.org: '^5'
-    python.org: '~3.11'
-    kernel.org/linux-headers: '*' # the file that makes the build host-independent
-    nixos.org/patchelf: '*'       # we patchelf bin/* ourselves (see `skip: fix-patchelf` above)
+    gnu.org/make: ">=4.0"
+    gnu.org/gawk: ">=3"
+    gnu.org/gcc: "*" # pkgx ships 10.5–16.1; verified with 16.1
+    gnu.org/binutils: ">=2.40" # required by glibc 2.42+; older glibcs also build with 2.46
+    gnu.org/gettext: "*"
+    gnu.org/texinfo: "*" # required for `make install` (manual/libc.info)
+    gnu.org/bison: "^3"
+    gnu.org/sed: "*"
+    gnu.org/coreutils: "*"
+    gnu.org/findutils: "*"
+    gnu.org/grep: "*"
+    gnu.org/diffutils: "*"
+    gnu.org/patch: "*"
+    gnu.org/m4: "*"
+    perl.org: "^5"
+    python.org: "~3.11"
+    kernel.org/linux-headers: "*" # the file that makes the build host-independent
+    nixos.org/patchelf: "*" # used to detect ELF tools before wrapping them
 
   working-directory: build
 
@@ -77,8 +77,8 @@ build:
     # patch leaves `LD_SO_CACHE` referencing an undefined `PREFIX` macro.
     # We therefore gate the patches on the version.
     - run:
-      - patch -p1 < props/dont-use-system-ld-so-cache.patch
-      - patch -p1 --forward --no-backup-if-mismatch < props/dont-use-system-ld-so-preload.patch || true
+        - patch -p1 < props/dont-use-system-ld-so-cache.patch
+        - patch -p1 --forward --no-backup-if-mismatch < props/dont-use-system-ld-so-preload.patch || true
       if: ">=2.32"
       working-directory: ..
 
@@ -94,7 +94,7 @@ build:
     - run:
         - EXTRA_CFLAGS=""
         - if [ {{version.major}}{{version.minor}} -lt 232 ]; then
-        -  EXTRA_CFLAGS="-fcommon -Wno-error"
+        - EXTRA_CFLAGS="-fcommon -Wno-error"
         - fi
         # glibc decides its own pie/-shared per target — pkgx gcc 16
         # is built with --enable-default-pie, so its CC defaults add
@@ -131,63 +131,67 @@ build:
 
     # Convenience: arch-agnostic ld.so symlink that points into the
     # sub-libdir (kept out of the top {{prefix}}/lib/).
-    - run: |
-        case "{{hw.arch}}" in
-          x86-64)  L=ld-linux-x86-64.so.2 ;;
-          aarch64) L=ld-linux-aarch64.so.1 ;;
-        esac
-        ln -sf ../lib/glibc-{{version.marketing}}/$L ld.so
+    - run: ln -sf ../lib/glibc-{{version.marketing}}/$LDSO ld.so
       working-directory: ${{prefix}}/bin
 
     # libc.so / libm.so / … are TEXT linker scripts (GROUP (...)) with
-    # +brewing baked into absolute paths. Strip +brewing so downstream
-    # `-lc` doesn't hit "cannot find +brewing/lib/.../libc.so.6" after
-    # brewkit's +brewing → final-prefix rename. (Detect via first-line
-    # marker, not file(1) — not on the test-sandbox PATH.)
+    # absolute build-prefix paths. Make the GROUP members basenames so
+    # downstream `-L $LIBDIR -lc` works after the bottle relocates from
+    # /opt to ~/.pkgx (or anywhere else). Detect via first-line marker,
+    # not file(1) — not on the test-sandbox PATH.
     - run: |
+        PREFIX_FINAL=$(echo "{{prefix}}" | sed 's/+brewing$//')
         for f in $(find . -maxdepth 2 -type f -name '*.so'); do
           if head -c 16 "$f" | grep -q "GNU ld script"; then
-            sed -i 's|+brewing||g' "$f"
-            echo "stripped +brewing from $f"
+            sed -i \
+              -e 's|{{prefix}}/lib/glibc-{{version.marketing}}/||g' \
+              -e "s|$PREFIX_FINAL/lib/glibc-{{version.marketing}}/||g" \
+              "$f"
+            echo "relocated linker script $f"
           fi
         done
       working-directory: ${{prefix}}/lib
 
-    # With brewkit's fix-patchelf skipped (see `skip:` at top of build),
-    # we patchelf the ELFs that need it ourselves:
+    # PT_INTERP is absolute and cannot use $ORIGIN or fall back. Do not
+    # bake {{prefix}} or its post-rename variant into installed binaries:
+    # that breaks when the bottle relocates to ~/.pkgx. Instead, seal the
+    # glibc-owned ELF tools into libexec and replace bin/* / sbin/* with
+    # POSIX sh wrappers that invoke this bottle's ld.so by relative path.
     #
-    #   bin/*, sbin/*  — fix +brewing PT_INTERP, add $ORIGIN-relative
-    #                    RPATH so libc.so.6 resolves at runtime
-    #   lib/glibc-X.Y/ld-linux-*  — leave alone (it's the loader;
-    #                    bootstraps from nothing)
-    #   lib/glibc-X.Y/*.so.*  — co-located with libc.so.6, no extra
-    #                    RPATH needed (executable's RPATH propagates)
-    #
-    # patchelf --set-interpreter exits non-zero on non-ELF inputs;
-    # we use that to filter shell scripts etc. without needing file(1).
-    #
-    # {{prefix}} at build time is the .../v2.43.0+brewing path; brewkit
-    # renames it to .../v2.43.0 before the bottle ships. PT_INTERP needs
-    # the *post-rename* path, otherwise the binary references a path
-    # that no longer exists ("required file not found"). RPATH uses
-    # $ORIGIN-relative so it survives the rename automatically.
+    # Running an ELF through ld.so explicitly ignores the ELF's own
+    # PT_INTERP, so the inner libexec binaries may keep whatever glibc's
+    # build installed. The wrapper supplies --library-path explicitly.
     - run: |
-        case "{{hw.arch}}" in
-          x86-64)  LDSO=ld-linux-x86-64.so.2 ;;
-          aarch64) LDSO=ld-linux-aarch64.so.1 ;;
-        esac
-        PREFIX_FINAL=$(echo "{{prefix}}" | sed 's/+brewing$//')
-        LIBDIR_INTERP="$PREFIX_FINAL/lib/glibc-{{version.marketing}}"
-        RPATH='$ORIGIN/../lib/glibc-{{version.marketing}}'
-        for f in {{prefix}}/bin/* {{prefix}}/sbin/*; do
-          [ -f "$f" ] && [ ! -L "$f" ] || continue
-          if patchelf --set-interpreter "$LIBDIR_INTERP/$LDSO" "$f" 2>/dev/null; then
-            patchelf --force-rpath --set-rpath "$RPATH" "$f" 2>/dev/null
-            echo "patchelfd $f"
-          fi
+        for dir in bin sbin; do
+          mkdir -p "{{prefix}}/libexec/glibc-$dir"
+          for f in "{{prefix}}/$dir"/*; do
+            [ -f "$f" ] && [ ! -L "$f" ] || continue
+            patchelf --print-interpreter "$f" >/dev/null 2>&1 || continue
+            mv "$f" "{{prefix}}/libexec/glibc-$dir"
+            sed -e "s/@LDSO@/$LDSO/g" -e "s/@DIR@/$dir/g" "$PROP" >$f
+            chmod 775 $f
+            echo "wrapped $f"
+          done
         done
+      prop: |
+        #!/bin/sh
+
+        case "$0" in
+          */*) bindir=${0%/*} ;;
+          *) bindir=$(command -v -- "$0"); bindir=${bindir%/*} ;;
+        esac
+
+        prefix=$(CDPATH= cd -- "$bindir/.." && pwd)
+
+        libdir="$prefix/lib/glibc-{{version.marketing}}"
+
+        exec "$libdir/@LDSO@" --library-path "$libdir" "$prefix/libexec/glibc-@DIR@/$(basename "$0")" "$@"
 
   env:
+    x86-64:
+      LDSO: ld-linux-x86-64.so.2
+    aarch64:
+      LDSO: ld-linux-aarch64.so.1
     SCRIPTS:
       - catchsegv
       - ldd
@@ -212,22 +216,23 @@ build:
       - --disable-werror
       - --without-gd
       - --without-selinux
-      - --enable-kernel=3.10.0  # CentOS 7 / manylinux2014 baseline
+      - --enable-kernel=3.10.0 # CentOS 7 / manylinux2014 baseline
       - --with-headers={{deps.kernel.org/linux-headers.prefix}}/include
       - --with-binutils={{deps.gnu.org/binutils.prefix}}/bin
       - --disable-multi-arch
 
 # Compile + run test.c against the bottle's libc + ld.so end-to-end.
 # Exercises every piece of the bottle: headers, crt files, libc.so.6,
-# the loader, and `iconv --version` to confirm the patchelf'd bin/* work.
+# the loader, and `iconv --version` to confirm the wrapped bin/* work.
 #
 # Previously the loader's RPATH was poisoned by brewkit's fix-patchelf
 # (a 46-pkg $ORIGIN chain → SIGSEGV at startup; see pkgxdev/brewkit#345).
-# Now that we `skip: fix-patchelf` and patchelf bin/* ourselves with
-# clean RPATH, the loader bootstraps cleanly and the bin/* work.
+# Now that we `skip: fix-patchelf`, keep ld.so untouched, and wrap
+# bin/* through that loader, the loader bootstraps cleanly and the
+# bin/* work after relocation.
 test:
   dependencies:
-    gnu.org/gcc: '*'
+    gnu.org/gcc: "*"
   env:
     x86-64:
       LDSO: ld-linux-x86-64.so.2
@@ -242,51 +247,47 @@ test:
     - test -L "{{prefix}}/bin/ld.so"       || { echo "missing bin/ld.so symlink"; exit 1; }
 
     # 2) Loader self-test (was SIGSEGV before the fix-patchelf skip).
-    - run: |
-        echo "--- ld.so --version ---"
-        "$LIBDIR/$LDSO" --version | head -2
+    - echo "--- ld.so --version ---"
+    - '"$LIBDIR/$LDSO" --version | head -2'
 
     # 3) Compile test.c dynamically against the bottle's headers /
     #    libs / loader. -B $LIBDIR picks our Scrt1.o / crti.o / crtn.o
     #    instead of the host's pre-2.34 versions which reference
     #    removed __libc_csu_init / __libc_csu_fini.
-    - run: |
-        gcc -o test-bottle test.c \
-          -nostdinc \
-          -isystem {{prefix}}/include \
-          -isystem {{deps.gnu.org/gcc.prefix}}/lib/gcc/*-linux-gnu/{{deps.gnu.org/gcc.version}}/include \
-          -B "$LIBDIR" \
-          -L "$LIBDIR" \
-          -Wl,--rpath="$LIBDIR" \
-          -Wl,--dynamic-linker="$LIBDIR/$LDSO"
-        readelf -d test-bottle | grep -E "NEEDED|RPATH" | head -5
+    - gcc -o test-bottle test.c
+      -nostdinc
+      -isystem {{prefix}}/include
+      -isystem {{deps.gnu.org/gcc.prefix}}/lib/gcc/*-linux-gnu/{{deps.gnu.org/gcc.version}}/include
+      -B "$LIBDIR"
+      -L "$LIBDIR"
+      -Wl,--rpath="$LIBDIR"
+      -Wl,--dynamic-linker="$LIBDIR/$LDSO"
+    - readelf -d test-bottle | grep -E "NEEDED|RPATH|RUNPATH" | head -5
 
     # 4) Run the dynamically-linked test bin — exercises PT_INTERP,
     #    the loader, RPATH resolution, libc symbol lookup, printf, etc.
-    - run: |
-        set +e
-        stdout=$(./test-bottle 2>/tmp/test.err)
-        rc=$?
-        stderr=$(cat /tmp/test.err)
-        set -e
-        echo "exit code: $rc"
-        echo "stdout: $stdout"
-        echo "stderr: $stderr"
-        case "$stdout" in
-          "gnu_get_libc_version() = {{version.marketing}}"*) echo PASS ;;
-          *) echo "FAIL: expected gnu_get_libc_version() = {{version.marketing}}, got stdout=\"$stdout\" stderr=\"$stderr\" rc=$rc"; exit 1 ;;
-        esac
+    - set +e
+    - stdout=$(./test-bottle 2>/tmp/test.err)
+    - rc=$?
+    - stderr=$(cat /tmp/test.err)
+    - set -e
+    - 'echo "exit code: $rc"'
+    - 'echo "stdout: $stdout"'
+    - 'echo "stderr: $stderr"'
+    - case "$stdout" in
+    - '"gnu_get_libc_version() = {{version.marketing}}"*) echo PASS ;;'
+    - '*) echo "FAIL: expected gnu_get_libc_version() = {{version.marketing}}, got stdout=\"$stdout\" stderr=\"$stderr\" rc=$rc"; exit 1 ;;'
+    - esac
 
     # 5) Bonus: one of the bottle's own bin/* should now work end-to-end.
-    #    iconv --version prints "iconv (GNU libc) X.Y" — confirms our
-    #    manual patchelf step gave bin/iconv a usable PT_INTERP + RPATH.
-    - run: |
-        out=$("{{prefix}}/bin/iconv" --version 2>&1 | head -1)
-        echo "bin/iconv --version: $out"
-        case "$out" in
-          *"(GNU libc) {{version.marketing}}"*) echo "bin/iconv PASS" ;;
-          *) echo "FAIL: expected '(GNU libc) {{version.marketing}}' in iconv --version output, got: $out"; exit 1 ;;
-        esac
+    #    iconv --version prints "iconv (GNU libc) X.Y" — confirms the
+    #    wrapper can find this bottle's relocated ld.so + libc.
+    - out=$("{{prefix}}/bin/iconv" --version 2>&1 | head -1)
+    - 'echo "bin/iconv --version: $out"'
+    - case "$out" in
+    - '*"(GNU libc) {{version.marketing}}"*) echo "bin/iconv PASS" ;;'
+    - '*) echo "FAIL: expected (GNU libc) {{version.marketing}} in iconv --version output, got: $out"; exit 1 ;;'
+    - esac
 
 provides:
   # Binaries that are installed across all supported versions
