@@ -105,12 +105,12 @@ test:
     # load — `GLIBC_2.34 not found`. Skip gracefully then.
     # (pkgxdev/pantry#12968 — now merged — provides a newer glibc
     # bottle but isn't strictly required for this recipe's audit.)
-    - run: |
-        if ! "$CLANG_X86_64" --version >/dev/null 2>&1; then
-          echo "clang can't run on this host (likely glibc < 2.34) —"
-          echo "skipping cross-compile test, recipe install OK."
-          exit 0
-        fi
+    - |
+      if ! "$CLANG_X86_64" --version >/dev/null 2>&1; then
+        echo "clang can't run on this host (likely glibc < 2.34) —"
+        echo "skipping cross-compile test, recipe install OK."
+        exit 0
+      fi
 
     # Cross-compile a trivial Windows binary for x86-64 and aarch64.
     - run: cp $FIXTURE hello.c
@@ -127,13 +127,13 @@ test:
     # head -c 2 reads the raw bytes; "MZ" are printable so the shell
     # capture works without any od/tr/sed gymnastics (which had subtle
     # BSD-vs-GNU output-format differences and broke on darwin).
-    - run: |
-        for f in hello-x86_64.exe hello-aarch64.exe; do
-          case "$(head -c 2 "$f")" in
-            MZ) echo "$f: PE/COFF DOS header OK" ;;
-            *)  echo "$f: NOT a PE binary"; exit 1 ;;
-          esac
-        done
+    - |
+      for f in hello-x86_64.exe hello-aarch64.exe; do
+        case "$(head -c 2 "$f")" in
+          MZ) echo "$f: PE/COFF DOS header OK" ;;
+          *)  echo "$f: NOT a PE binary"; exit 1 ;;
+        esac
+      done
 
     # Dynamic check: actually run the .exe through wine. We only run
     # the x86-64 binary — wine on linux/aarch64 hosts can run aarch64
@@ -154,7 +154,7 @@ test:
 
     - echo "running hello-x86_64.exe under $($WINE --version)"
     - out=$($WINE hello-x86_64.exe)
-    - echo "wine stdout: $out"
+    - 'echo "wine stdout: $out"'
     - |
       case "$out" in
         "Hello from native Windows cross-compile.") echo "RUN PASS" ;;
