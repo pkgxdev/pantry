@@ -27,16 +27,15 @@ versions:
 # and macOS universal (x86-64 + aarch64). No Windows-host variant for
 # our purposes (we'd rather have Windows binaries be a *target*, not
 # a host).
-# Pilot scope: linux hosts only.
 #
-# The RFC at pkgxdev/brewkit#346 explicitly scopes Phase 0 to
-# "cross-compile from Linux CI runners". darwin host support is a
-# follow-up — pkgxdev's macOS self-hosted runners failed to build
-# this recipe (logs not externally accessible; likely a network or
-# tooling difference in the macOS sandbox vs the Linux containers).
-# We can investigate + re-enable darwin in a separate PR.
+# Hosts: linux + darwin. (Earlier rounds restricted to linux because
+# darwin failed and logs weren't externally accessible; @jhheider
+# shared the log on pkgxdev/pantry#12984 — the failure was the test
+# step invoking the compiler by bare name, which brewkit's sandbox
+# auto-fetched as a different clang. Fix below: invoke by full path.)
 platforms:
   - linux
+  - darwin
 
 warnings:
   - vendored  # we redistribute upstream prebuilt binaries
@@ -53,6 +52,10 @@ build:
         PLATFORM: ubuntu-22.04-x86_64
       linux/aarch64:
         PLATFORM: ubuntu-22.04-aarch64
+      darwin/x86-64:
+        PLATFORM: macos-universal
+      darwin/aarch64:
+        PLATFORM: macos-universal
     script:
     # Map our host triple → upstream's tarball naming convention,
     # then download + extract the prebuilt binary toolchain.
@@ -87,23 +90,25 @@ test:
     WINEDEBUG: -all
     WINEDLLOVERRIDES: "mscoree=;mshtml="
     WINEPREFIX: $PWD/.wine
+    # Pin our own bottle's binaries by full path. brewkit's test
+    # sandbox treats unfamiliar commands as external deps and routes
+    # them through `pkgx auto-fetch`, which (on darwin in earlier
+    # rounds) picked up a different clang that didn't know our mingw
+    # headers. Full path bypasses that.
+    CLANG_X86_64: "{{prefix}}/bin/x86_64-w64-mingw32-clang"
+    CLANG_AARCH64: "{{prefix}}/bin/aarch64-w64-mingw32-clang"
   script:
     # Pre-flight: can clang actually run on this host?
     #
-    # The upstream llvm-mingw tarballs are built against ubuntu-22.04
-    # (glibc 2.35). brewkit's test sandbox is debian:buster (glibc
-    # 2.28) which doesn't ship the symbols libLLVM.so.22.1 needs
-    # (`GLIBC_2.34 not found`). Until pkgxdev/pantry#12968 lands and
-    # we can declare `gnu.org/glibc: '>=2.34'` as a test dep,
-    # cross-compile testing on the existing CI sandbox is impossible.
-    #
-    # Skip gracefully so the recipe still installs + audits OK; once
-    # #12968 merges we add the glibc dep and re-enable the dynamic test.
+    # Upstream llvm-mingw tarballs are built against ubuntu-22.04
+    # (glibc 2.35). On a buster-sandbox host (glibc 2.28) clang can't
+    # load — `GLIBC_2.34 not found`. Skip gracefully then.
+    # (pkgxdev/pantry#12968 — now merged — provides a newer glibc
+    # bottle but isn't strictly required for this recipe's audit.)
     - run: |
-        if ! x86_64-w64-mingw32-clang --version >/dev/null 2>&1; then
+        if ! "$CLANG_X86_64" --version >/dev/null 2>&1; then
           echo "clang can't run on this host (likely glibc < 2.34) —"
           echo "skipping cross-compile test, recipe install OK."
-          echo "(unblocked by pkgxdev/pantry#12968 once merged)"
           exit 0
         fi
 
@@ -115,9 +120,8 @@ test:
           printf("Hello from native Windows cross-compile.\n");
           return 0;
         }
-        EOF
-    - x86_64-w64-mingw32-clang -o hello-x86_64.exe hello.c
-    - aarch64-w64-mingw32-clang -o hello-aarch64.exe hello.c
+    - $CLANG_X86_64  -o hello-x86_64.exe  hello.c
+    - $CLANG_AARCH64 -o hello-aarch64.exe hello.c
 
     # Static signature check: PE32+ starts with "MZ" at offset 0.
     # head -c 2 reads the raw bytes; "MZ" are printable so the shell
