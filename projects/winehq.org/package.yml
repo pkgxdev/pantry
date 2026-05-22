@@ -25,11 +25,16 @@ distributable:
   url: https://dl.winehq.org/wine/source/{{ version.major }}.0/wine-{{ version.raw }}.tar.xz
   strip-components: 1
 
-# Use the github mirror's tag list, filtering down to numeric semver
-# tags (excludes legacy daily-build tags like wine-20050930).
+# Use the github mirror's tag list, filtering to STABLE-branch tags
+# only (X.0 and X.0.Y). Wine's release naming:
+#   wine-X.0       — stable (annual, lives at dl.winehq.org/.../X.0/)
+#   wine-X.Y       — dev release (lives at dl.winehq.org/.../X.x/)
+#   wine-X.0-rcN   — release candidates (skipped)
+# We pick only stable so the URL template (.../{{major}}.0/) resolves.
+# Also excludes legacy daily-build tags like wine-20050930.
 versions:
   github: wine-mirror/wine/tags
-  match: /^wine-\d{2,}\.\d+(\.\d+)?$/
+  match: /^wine-\d{2,}\.0(\.\d+)?$/
   strip: /^wine-/
 
 # Pilot scope: linux/x86-64 only. Once the integration with
