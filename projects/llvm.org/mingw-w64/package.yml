@@ -27,11 +27,17 @@ versions:
 # and macOS universal (x86-64 + aarch64). No Windows-host variant for
 # our purposes (we'd rather have Windows binaries be a *target*, not
 # a host).
+# Pilot scope: linux hosts only.
+#
+# The RFC at pkgxdev/brewkit#346 explicitly scopes Phase 0 to
+# "cross-compile from Linux CI runners". darwin host support is a
+# follow-up — pkgxdev's macOS self-hosted runners failed to build
+# this recipe (logs not externally accessible; likely a network or
+# tooling difference in the macOS sandbox vs the Linux containers).
+# We can investigate + re-enable darwin in a separate PR.
 platforms:
   - linux/x86-64
   - linux/aarch64
-  - darwin/x86-64
-  - darwin/aarch64
 
 warnings:
   - vendored  # we redistribute upstream prebuilt binaries
@@ -49,8 +55,7 @@ build:
         case "{{hw.platform}}+{{hw.arch}}" in
           linux+x86-64)   PLATFORM="ubuntu-22.04-x86_64"  ;;
           linux+aarch64)  PLATFORM="ubuntu-22.04-aarch64" ;;
-          darwin+x86-64)  PLATFORM="macos-universal"      ;;
-          darwin+aarch64) PLATFORM="macos-universal"      ;;
+          # darwin hosts deferred to follow-up; see platforms: above
         esac
         URL="https://github.com/mstorsjo/llvm-mingw/releases/download/{{version.raw}}/llvm-mingw-{{version.raw}}-ucrt-${PLATFORM}.tar.xz"
         echo "fetching $URL"
