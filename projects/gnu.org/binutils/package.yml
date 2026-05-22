@@ -25,21 +25,32 @@ versions:
 
 build:
   dependencies:
-    gnu.org/bison: '*'
-    gnu.org/texinfo: '*'
+    gnu.org/bison: "*"
+    gnu.org/texinfo: "*"
     # zstd is only used when --with-zstd is passed (>= 2.39). Cheap to
     # always include as a build dep; the older versions' configure
     # simply ignores it.
-    facebook.com/zstd: '*'
+    facebook.com/zstd: "*"
     linux:
-      gnu.org/gcc: '*'
+      gnu.org/gcc: "*"
       perl.org: ~5.42 # perl modules require matching minors
 
   script:
+    - run: if test -f zutil.h; then sed -i '/define fdopen(fd,mode) NULL/d' zutil.h; fi
+      working-directory: zlib
+      if: <2.29
+
+    - run: if test -f errors.h; then sed -i -f $PROP errors.h; fi
+      working-directory: gold
+      prop: |
+        /#include "gold-threads.h"/i\
+        #include <string>
+      if: <2.29
+
     # --with-zstd: only added to binutils 2.39+. Append at script time
     # so old versions don't trip configure with "unrecognized option".
     - run: export ARGS="$ARGS --with-zstd"
-      if: '>=2.39'
+      if: ">=2.39"
 
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }}
@@ -48,14 +59,26 @@ build:
   env:
     ARGS:
       - --prefix={{ prefix }}
-      - --disable-werror  # old versions hit -Wformat warnings with modern gcc
+      - --disable-werror # old versions hit -Wformat warnings with modern gcc
     linux:
       ARGS:
         - --enable-ld=yes
         - --enable-gold=yes
 
 test:
-  script: objdump -x $(which objdump) | grep -s $TEST_STRING
+  script:
+    - run:
+        # On Darwin, the old versions don't support the Mach-O format at all, so test that they can read a simple static library instead.
+        - |
+          if test "$(uname)" = Darwin; then
+            printf 'int main(void) { return 0; }\n' > test.c
+            cc -c test.c -o test.o
+            ar rcS libtest.a test.o
+            strings libtest.a | grep -s _main
+            exit 0
+          fi
+      if: <2.29
+    - objdump -x $(which objdump) | grep -s $TEST_STRING
   env:
     # Representative output to look for
     darwin:
@@ -83,13 +106,7 @@ provides:
     - bin/as
     - bin/c++filt
     - bin/elfedit
-    - bin/gp-archive
-    - bin/gp-collect-app
-    - bin/gp-display-html
-    - bin/gp-display-src
-    - bin/gp-display-text
     - bin/gprof
-    - bin/gprofng
     - bin/ld
     - bin/ld.bfd
     # oof. deprecated: https://lists.gnu.org/archive/html/info-gnu/2025-02/msg00001.html
