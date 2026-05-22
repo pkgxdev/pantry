@@ -25,17 +25,19 @@ distributable:
   url: https://dl.winehq.org/wine/source/{{ version.major }}.0/wine-{{ version.raw }}.tar.xz
   strip-components: 1
 
-# Use the github mirror's tag list, filtering to STABLE-branch tags
-# only (X.0 and X.0.Y). Wine's release naming:
+# Wine's release naming:
 #   wine-X.0       — stable (annual, lives at dl.winehq.org/.../X.0/)
 #   wine-X.Y       — dev release (lives at dl.winehq.org/.../X.x/)
-#   wine-X.0-rcN   — release candidates (skipped)
-# We pick only stable so the URL template (.../{{major}}.0/) resolves.
-# Also excludes legacy daily-build tags like wine-20050930.
+#   wine-X.0-rcN   — release candidates
+#
+# We list ONLY stable major-version directories from the dl.winehq.org
+# index, then semver-sort to pick the latest. URL mode is required:
+# brewkit's `github:` mode silently ignores `match:`, so we can't use
+# it to filter dev releases out of the tag list.
 versions:
-  github: wine-mirror/wine/tags
-  match: /^wine-\d{2,}\.0(\.\d+)?$/
-  strip: /^wine-/
+  url: https://dl.winehq.org/wine/source/
+  match: /\d{2,}\.0\//
+  strip: /\//
 
 # Pilot scope: linux/x86-64 only. Once the integration with
 # brewkit#346 lands, expanding to linux/aarch64 + darwin/* is
