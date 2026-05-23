@@ -9,29 +9,20 @@ versions:
     - /glibc-/
     - /\.tar\.xz/
 
-# Empirically verified host-independent build (pkgx toolchain only,
-# debian:bookworm-slim base with no apt-installed compiler):
-#   linux/x86-64:  2.17, 2.24, 2.27, 2.28, 2.34, 2.38, 2.41, 2.42, 2.43
-#   linux/aarch64: 2.17, 2.24, 2.27, 2.28, 2.34, 2.38, 2.41, 2.42, 2.43
-# Full 9-version parity on both arches. Each bottle cross-tested on
-# Alpine 3.18 (musl host), Debian 11, Ubuntu 22.04 — all return
-# gnu_get_libc_version() = <bottle-version>.
+# Current support targets:
+#   linux/x86-64:  2.17+
+#   linux/aarch64: 2.28+
 #
-# 2.17 (manylinux2014 / CentOS 7 / HPC baseline) and 2.24
-# (manylinux_2_24) are built via a bootstrap-cascaded toolchain
-# (gcc 7.5 + binutils 2.28). The cascade procedure is documented in
-# README.md "HPC bootstrap cascade". The toolchain bottles produced
-# (gcc 9.5, gcc 7.5, binutils 2.28/2.30/2.31/2.32) are candidates
-# to ship in dist.pkgx.dev as `gnu.org/gcc` and `gnu.org/binutils`
-# older-version bottles — currently built inside the build env.
+# Older aarch64 glibc releases fail in rtld/ld.so with non-PIC relocation
+# errors under the modern pkgx toolchain. Treat <2.28 aarch64 as unsupported
+# unless/until we add a real old-toolchain bootstrap path.
 #
 # darwin/* is intentionally absent. glibc is the GNU C library for the
 # Linux kernel — macOS uses libSystem + dyld with an entirely separate
 # binary format (Mach-O vs ELF). There is no glibc port to Darwin and
 # bottling one would not produce something usable.
 platforms:
-  - linux/x86-64
-  - linux/aarch64
+  - linux
 
 build:
   # Skip brewkit's "SLOW rpath fixes" — it writes a 46-package
@@ -47,7 +38,10 @@ build:
   dependencies:
     gnu.org/make: ">=4.0"
     gnu.org/gawk: ">=3"
-    gnu.org/gcc: "*" # pkgx ships 10.5–16.1; verified with 16.1
+    gnu.org/gcc: 14 # gcc 16 trips old glibc aarch64 rtld / inline semantics
+    gnu.org/gmp: ">=4.2"
+    gnu.org/mpfr: ">=2.4.0"
+    gnu.org/mpc: ">=0.8.0"
     gnu.org/binutils: ">=2.40" # required by glibc 2.42+; older glibcs also build with 2.46
     gnu.org/gettext: "*"
     gnu.org/texinfo: "*" # required for `make install` (manual/libc.info)
@@ -62,11 +56,17 @@ build:
     perl.org: "^5"
     python.org: "~3.11"
     kernel.org/linux-headers: "*" # the file that makes the build host-independent
-    nixos.org/patchelf: "*" # used to detect ELF tools before wrapping them
 
   working-directory: build
 
   script:
+    - run:
+        - if test "{{hw.arch}}" = "aarch64"; then
+        - echo "glibc {{version}} is unsupported on linux/aarch64; this recipe supports linux/aarch64 from 2.28 onward."
+        - exit 1
+        - fi
+      if: <2.28
+
     # Hygiene patches from nixpkgs. They prevent the new ld.so from reading
     # the host's /etc/ld.so.cache and /etc/ld.so.preload — both files have
     # glibc-version-specific binary formats, reading them with a different
@@ -82,20 +82,57 @@ build:
       if: ">=2.32"
       working-directory: ..
 
-    # glibc 2.17/2.18 configure has a python regex that rejects `make` >= 4.0.
-    # 1-line fix preserving the same regex shape, accepting modern make.
-    # Use # as sed delimiter because the pattern itself contains |.
-    - run: sed -i 's#3\.79\* | 3\.\[89\]\*#3.79* | 3.[89]* | [4-9].* | [1-9][0-9]*#' configure
+    - run:
+        # glibc 2.17/2.18 configure has a version case that rejects `make` >= 4.0.
+        # Keep the same case-pattern shape, accepting modern make.
+        # Use # as sed delimiter because the pattern itself contains |.
+        - sed -i 's#3\.79\* | 3\.\[89\]\*#3.79* | 3.[89]* | [4-9].* | [1-9][0-9]*#' configure
+        # glibc 2.17/2.18 configure similarly only accepts gcc 4.x or 5–9.x.
+        # Modern pkgx gcc is 10+, so extend the existing case branch.
+        - sed -i 's#\[5-9\]\.\* )#[5-9].* | [1-9][0-9]*.* )#' configure
+        # The ld --no-whole-archive probe uses pre-C99 function definitions
+        # (`_start () {}`), but glibc itself still needs gnu99 later. Keep
+        # gnu89 scoped to this configure probe; do not put it in CFLAGS.
+        - sed -i '/checking for ld --no-whole-archive/,/-nostdlib/s/\$CFLAGS \$CPPFLAGS/\$CFLAGS -std=gnu89 \$CPPFLAGS/' configure
+        # Force the configure cache so Makeconfig gets `gnu89-inline-CFLAGS=-fgnu89-inline`.
+        - export libc_cv_gnu89_inline=yes
+        # Likewise, stdio lock cleanup macros require `exceptions=-fexceptions`.
+        - export libc_cv_gcc_exceptions=yes
+        # With current GCC/binutils, glibc 2.17's rtld link keeps explicit
+        # references to a few libc-private syscall wrappers that older builds
+        # used to fold away. Keep this scoped to rtld so normal libc remains
+        # upstream-shaped.
+        - rm -f build/elf/dl-pkgx-rtld-compat.* build/elf/dl-allobjs.os build/elf/librtld* build/elf/ld.so build/elf/ld-linux*
+        - install -m 644 props/dl-pkgx-rtld-compat-2.17.c sysdeps/unix/sysv/linux/dl-pkgx-rtld-compat.c
+        - grep -q 'dl-pkgx-rtld-compat' sysdeps/unix/sysv/linux/Makefile ||
+          sed -i 's/dl-fxstatat64/dl-fxstatat64 dl-pkgx-rtld-compat/' sysdeps/unix/sysv/linux/Makefile
+        - awk -f $PROP sysdeps/unix/sysv/linux/Makefile > sysdeps/unix/sysv/linux/Makefile.pkgx
+        - mv sysdeps/unix/sysv/linux/Makefile.pkgx sysdeps/unix/sysv/linux/Makefile
+        - cat props/sysdeps-Makefile >> sysdeps/unix/sysv/linux/Makefile
+        # glibc 2.17's early Makerules pass can evaluate before soversions.mk is
+        # included, clearing `static-only-routines` and omitting elf-init.oS from
+        # libc_nonshared.a. Dynamic build tools then fail to resolve
+        # __libc_csu_init/fini from crt1.o.
+        - sed -i '/ifndef libc.so-version/,/endif/s/^static-only-routines =/# static-only-routines =/' Makerules
+        # Ensure the nonshared archive actually carries the csu entry points used
+        # by crt1.o. crt1.o needs __libc_csu_init/fini from elf-init.oS, and this
+        # old release's generated stamp handling is fragile enough to pin directly.
+        - grep -q '^o-objects.oS += elf-init.oS$' csu/Makefile || echo 'o-objects.oS += elf-init.oS' >> csu/Makefile
+      prop: |
+        /# rtld-pkgx-alias-routines/ { skip = 1; next }
+        skip && /^ifeq \(\$\(subdir\),elf\)$/ { next }
+        skip && /^sysdep-rtld-routines \+=/ { next }
+        skip && /^endif$/ { skip = 0; next }
+        { print }
       if: <2.19
       working-directory: ..
 
-    # glibc < 2.32 has multiple tentative .bss definitions of __nss_*_database
-    # that gcc 10+'s default -fno-common rejects. Add -fcommon for old glibc.
     - run:
-        - EXTRA_CFLAGS=""
-        - if [ {{version.major}}{{version.minor}} -lt 232 ]; then
-        - EXTRA_CFLAGS="-fcommon -Wno-error"
-        - fi
+        # glibc 2.24's Makerules try to copy <cstdlib>/<cmath> by deriving their
+        # paths from `$(CXX) -M`; with modern C++ headers that probe can return
+        # empty, making `install $< $@T` call install with no source operand.
+        # Disable this optional workaround for the 2.24 build.
+        - sed -i 's/^ifneq (,$(CXX))/ifneq (,$(CXX_DISABLED_FOR_PKGX))/' Makerules
         # glibc decides its own pie/-shared per target — pkgx gcc 16
         # is built with --enable-default-pie, so its CC defaults add
         # -fPIE/-pie. That breaks glibc's static auxiliary tools
@@ -103,30 +140,44 @@ build:
         # defined". Explicitly disable the default with -fno-PIE and
         # -no-pie at the link step; glibc adds them back per-target
         # where actually wanted (shared libs use -fPIC anyway).
-        #
-        # libc_cv_slibdir / libc_cv_rtlddir override the autoconf-cached
-        # slibdir / rtlddir vars so libc.so.6 + ld-linux*.so go into
-        # the sub-libdir alongside our other libs. Without this,
-        # --libdir alone only affects gconv/audit plugins; libc.so.6
-        # still ends up at $prefix/lib/ and pollutes consumers'
-        # LD_LIBRARY_PATH (incompatible with the host's older ld-linux).
-        - LIBDIR="{{prefix}}/lib/glibc-{{version.marketing}}"
-        - CFLAGS="-O2 -fPIC $EXTRA_CFLAGS"
-          libc_cv_slibdir="$LIBDIR"
-          libc_cv_rtlddir="$LIBDIR"
-          libc_cv_complocaledir="$LIBDIR/locale"
-          libc_cv_static_pie=no
-          ../configure $ARGS
+        - EXTRA_CFLAGS="$EXTRA_CFLAGS -fno-PIE"
+        - LDFLAGS="$LDFLAGS -no-pie"
+      if: <2.25
+      working-directory: ..
 
-    - make --jobs {{ hw.concurrency }} CFLAGS-regexp.c=-fno-common
+    # glibc < 2.32 has multiple tentative .bss definitions of __nss_*_database
+    # that gcc 10+'s default -fno-common rejects. Add -fcommon for old glibc.
+    - run: EXTRA_CFLAGS="$EXTRA_CFLAGS -fcommon -Wno-error"
+      if: <2.32
+
+    # libc_cv_slibdir / libc_cv_rtlddir override the autoconf-cached
+    # slibdir / rtlddir vars so libc.so.6 + ld-linux*.so go into
+    # the sub-libdir alongside our other libs. Without this,
+    # --libdir alone only affects gconv/audit plugins; libc.so.6
+    # still ends up at $prefix/lib/ and pollutes consumers'
+    # LD_LIBRARY_PATH (incompatible with the host's older ld-linux).
+    - LIBDIR="{{prefix}}/lib/glibc-{{version.marketing}}"
+    - CFLAGS="-O2 $EXTRA_CFLAGS -fPIC"
+      CPP="gcc -E"
+      LDFLAGS="$LDFLAGS"
+      libc_cv_slibdir="$LIBDIR"
+      libc_cv_rtlddir="$LIBDIR"
+      libc_cv_complocaledir="$LIBDIR/locale"
+      libc_cv_static_pie=no
+      ../configure $ARGS
+
+    - run: MAKE_JOBS={{ hw.concurrency }}
+    - run: rm -f libc_nonshared.a libc_pic.a libc_pic.os */stamp.os */stamp.oS
+      if: <2.19
+    - make --jobs $MAKE_JOBS CFLAGS-regexp.c=-fno-common CFLAGS-obstack.c=-fno-common
     - make install
 
     # Self-relocate generated scripts so the bottle works at any prefix.
-    - run: |
-        for s in $SCRIPTS; do
-          test -f $s || continue
-          sed -i 's|{{prefix}}|"$(cd "$(dirname "$0")/.." \&\& pwd)"|' $s
-        done
+    - run:
+        - for s in $SCRIPTS; do
+        - test -f $s || continue
+        - sed -i 's|{{prefix}}|"$(cd "$(dirname "$0")/.." \&\& pwd)"|' $s
+        - done
       working-directory: ${{prefix}}/bin
 
     # Convenience: arch-agnostic ld.so symlink that points into the
@@ -139,17 +190,14 @@ build:
     # downstream `-L $LIBDIR -lc` works after the bottle relocates from
     # /opt to ~/.pkgx (or anywhere else). Detect via first-line marker,
     # not file(1) — not on the test-sandbox PATH.
-    - run: |
-        PREFIX_FINAL=$(echo "{{prefix}}" | sed 's/+brewing$//')
-        for f in $(find . -maxdepth 2 -type f -name '*.so'); do
-          if head -c 16 "$f" | grep -q "GNU ld script"; then
-            sed -i \
-              -e 's|{{prefix}}/lib/glibc-{{version.marketing}}/||g' \
-              -e "s|$PREFIX_FINAL/lib/glibc-{{version.marketing}}/||g" \
-              "$f"
-            echo "relocated linker script $f"
-          fi
-        done
+    - run:
+        - PREFIX_FINAL=$(echo "{{prefix}}" | sed 's/+brewing$//')
+        - for f in $(find . -maxdepth 2 -type f -name '*.so'); do
+        - if head -c 16 "$f" | grep -q "GNU ld script"; then
+        - sed -i -e 's|{{prefix}}/lib/glibc-{{version.marketing}}/||g' -e "s|$PREFIX_FINAL/lib/glibc-{{version.marketing}}/||g" "$f"
+        - echo "relocated linker script $f"
+        - fi
+        - done
       working-directory: ${{prefix}}/lib
 
     # PT_INTERP is absolute and cannot use $ORIGIN or fall back. Do not
@@ -161,18 +209,18 @@ build:
     # Running an ELF through ld.so explicitly ignores the ELF's own
     # PT_INTERP, so the inner libexec binaries may keep whatever glibc's
     # build installed. The wrapper supplies --library-path explicitly.
-    - run: |
-        for dir in bin sbin; do
-          mkdir -p "{{prefix}}/libexec/glibc-$dir"
-          for f in "{{prefix}}/$dir"/*; do
-            [ -f "$f" ] && [ ! -L "$f" ] || continue
-            patchelf --print-interpreter "$f" >/dev/null 2>&1 || continue
-            mv "$f" "{{prefix}}/libexec/glibc-$dir"
-            sed -e "s/@LDSO@/$LDSO/g" -e "s/@DIR@/$dir/g" "$PROP" >$f
-            chmod 775 $f
-            echo "wrapped $f"
-          done
-        done
+    - run:
+        - for dir in bin sbin; do
+        - mkdir -p "{{prefix}}/libexec/glibc-$dir"
+        - for f in "{{prefix}}/$dir"/*; do
+        - '[ -f "$f" ] && [ ! -L "$f" ] || continue'
+        - test "$(head -c 4 "$f" | od -An -tx1 | tr -d ' \n')" = "7f454c46" || continue
+        - mv "$f" "{{prefix}}/libexec/glibc-$dir"
+        - sed -e "s/@LDSO@/$LDSO/g" -e "s/@DIR@/$dir/g" "$PROP" > "$f"
+        - chmod 755 "$f"
+        - echo "wrapped $f"
+        - done
+        - done
       prop: |
         #!/bin/sh
 
@@ -232,7 +280,7 @@ build:
 # bin/* work after relocation.
 test:
   dependencies:
-    gnu.org/gcc: "*"
+    gnu.org/gcc: 14
   env:
     x86-64:
       LDSO: ld-linux-x86-64.so.2
@@ -247,8 +295,10 @@ test:
     - test -L "{{prefix}}/bin/ld.so"       || { echo "missing bin/ld.so symlink"; exit 1; }
 
     # 2) Loader self-test (was SIGSEGV before the fix-patchelf skip).
-    - echo "--- ld.so --version ---"
-    - '"$LIBDIR/$LDSO" --version | head -2'
+    # Older loaders treat bare `--version` as the executable name, so execute
+    # libc.so.6 through this bottle's loader instead.
+    - echo "--- ld.so libc.so.6 --version ---"
+    - '"$LIBDIR/$LDSO" --library-path "$LIBDIR" "$LIBDIR/libc.so.6"'
 
     # 3) Compile test.c dynamically against the bottle's headers /
     #    libs / loader. -B $LIBDIR picks our Scrt1.o / crti.o / crtn.o
