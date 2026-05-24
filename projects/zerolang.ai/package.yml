@@ -40,6 +40,7 @@ test:
   - zero --version | tee out
   - test "$(head -n1 out)" = "zero {{version}}"
   - run: cp $FIXTURE main.0
+    if: <0.1.4
     fixture: |
       fun answer() -> i32 {
         return 40 + 2
@@ -50,6 +51,15 @@ test:
           check world.out.write("math works\n")
         }
       }
+  - run: cp $FIXTURE main.0
+    if: ">=0.1.4"
+    fixture: |
+      fn answer i32
+        ret + 40 2
+
+      pub fn main Void world World !
+        if == answer() 42
+          check world.out.write "math works\n"
   - zero check main.0
   - zero run main.0 | tee out
   - test "$(cat out)" = "math works"
