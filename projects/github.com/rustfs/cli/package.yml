@@ -8,9 +8,13 @@ versions:
 build:
   dependencies:
     rust-lang.org/cargo: "*"
-  script: cargo install --locked --path crates/cli --root {{prefix}}
+  script:
+    - sed -i 's/^version = ".*"$/version = "{{version}}"/' Cargo.toml
+    - cargo install --locked --path crates/cli --root {{prefix}}
 
 provides:
   - bin/rc
 
-test: rc --version | grep "rc {{version}}"
+test:
+  - rc --version | tee out
+  - grep "rc {{version}}" out
