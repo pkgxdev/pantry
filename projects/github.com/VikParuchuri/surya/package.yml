@@ -7,6 +7,11 @@ display-name: Surya
 versions:
   github: VikParuchuri/surya
 
+# things like torch have dropped darwin/x86-64 support, so we need to exclude that platform
+platforms:
+  - linux
+  - darwin/aarch64
+
 dependencies:
   pkgx.sh: ">=1"
   linux:
@@ -19,11 +24,17 @@ build:
     python.org: ~3.11
     python-poetry.org: ^1.7
   script:
-    - bkpyvenv stage --engine=poetry {{prefix}} {{version}}
+    - run: bkpyvenv stage --engine=poetry {{prefix}} {{version}}
+      if: <0.20
+    - run: bkpyvenv stage {{prefix}} {{version}}
+      if: ">=0.20"
 
     # cv2 libs are compiled for MACOSX_DEPLOYMENT_TARGET=12.0
-    - run: poetry config --local installer.no-binary opencv-python
-      if: darwin
+    - run: |
+        if test "{{hw.platform}}" = "darwin"; then
+          poetry config --local installer.no-binary opencv-python
+        fi
+      if: <0.20
 
     # torch removed darwin/x86-64 binaries in 2.3.0
     # https://github.com/pytorch/pytorch/pull/116726
@@ -32,19 +43,28 @@ build:
           sed -i 's/^torch.*/torch = "=2.2.2"/' pyproject.toml
           poetry lock
         fi
-      if: ">=0.4.4"
+      if: ">=0.4.4<0.20"
 
     # pymupdf==1.25.3 has build failures on linux/aarch64
-    - run: poetry add 'pymupdf==1.25.2'
-      if: linux/aarch64
+    - run: |
+        if test "{{hw.platform}}/{{hw.arch}}" = "linux/aarch64"; then
+          poetry add 'pymupdf==1.25.2'
+        fi
+      if: <0.20
 
-    - poetry install
+    - run: poetry install
+      if: <0.20
+    - run: ${{prefix}}/venv/bin/pip install .
+      if: ">=0.20"
 
     # not found in some installs post 0.5
     - run: poetry add 'numpy<2'
-      if: ">=0.5"
+      if: ">=0.5<0.20"
 
-    - bkpyvenv seal --engine=poetry {{prefix}} surya_detect
+    - run: bkpyvenv seal --engine=poetry {{prefix}} surya_detect
+      if: <0.20
+    - run: bkpyvenv seal {{prefix}} surya_detect
+      if: ">=0.20"
 
 provides:
   - bin/surya_detect
@@ -53,11 +73,9 @@ test:
   dependencies:
     curl.se: "*"
   script:
-    # Skipping device Apple Paravirtual device that does not support Metal 2.0
-    # seems to be a known problem with Metal, Paravirtual devices, and Sonoma
-    - run: exit 0
-      if: darwin/x86-64
-
-    - curl -L "https://raw.githubusercontent.com/VikParuchuri/surya/master/static/images/benchmark_chart_small.png" -o test.png
+    - curl -L "https://raw.githubusercontent.com/VikParuchuri/surya/{{version.tag}}/static/images/excerpt.png" -o test.png
     - surya_detect ./test.png --images
-    - cat results/surya/test/results.json | grep "[209, 2, 722, 17]"
+    - |
+      grep -F '"bboxes": [{' results/surya/test/results.json
+    - |
+      grep -F '"confidence":' results/surya/test/results.json
