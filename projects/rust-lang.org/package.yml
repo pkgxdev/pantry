@@ -7,9 +7,9 @@ versions:
   strip: /^Rust /
 
 companions:
-  rust-lang.org/cargo: '*'
+  rust-lang.org/cargo: "*"
   linux:
-    llvm.org: '*'
+    llvm.org: "*"
 
 display-name: rust
 
@@ -40,11 +40,12 @@ build:
   dependencies:
     cmake.org: ^3.20
     ninja-build.org: ^1.10
-    python.org: '>=3<3.15'
-    openssl.org: '*' # needed to build openssl-sys
+    python.org: ">=3<3.15"
+    openssl.org: "*" # needed to build openssl-sys
     crates.io/semverator: 0
     linux:
       llvm.org: 21 # as of 1.91.0
+      rsync.samba.org: "*"
   script:
     # --enable-optimize not available as of 1.63.0
     - run: export ARGS="$ARGS --enable-optimize"
@@ -53,7 +54,7 @@ build:
     # 1.68.0 introduced a regression w.r.t. CI builds
     # https://github.com/rust-lang/rust/issues/108959
     - run: sed -i -e 's/CiEnv::is_ci()/CiEnv::is_ci() \&\& config.rust_info.is_managed_git_subrepository()/' native.rs
-      if: '>=1.68<1.70'
+      if: ">=1.68<1.70"
       working-directory: src/bootstrap
 
     # prevent system LLVM headers from interfering with bundled LLD build
@@ -83,18 +84,19 @@ build:
       - rust-analyzer
     linux:
       AR: llvm-ar
+      # python doesn't like long tmpdir paths.
+      TMPDIR: /tmp
     darwin:
       RUSTFLAGS:
         # for fix-machos
         - -C link-args=-headerpad_max_install_names
 
 test:
-  script:
-    - run: rustc $FIXTURE -o hello --crate-name hello
-      fixture:
-        extname: rs
-        content: |
-          fn main() {
-            println!("Hello World!");
-          }
-    - ./hello
+  - run: rustc $FIXTURE -o hello --crate-name hello
+    fixture:
+      extname: rs
+      content: |
+        fn main() {
+          println!("Hello World!");
+        }
+  - ./hello
