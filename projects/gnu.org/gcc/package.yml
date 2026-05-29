@@ -34,17 +34,6 @@ dependencies:
   darwin/x86-64: # since 15.1.0
     libisl.sourceforge.io: ^0
 
-# Expose the bottle's libc headers + libraries via standard env vars
-# so end-user invocations (`pkgx gcc test.c`) find stdlib.h, link
-# against the bottled libc, and resolve crt*.o for C/C++ output —
-# without needing distro `glibc-devel` / `libc6-dev` packages.
-# See pkgxdev/pantry#8423.
-runtime:
-  env:
-    linux:
-      CPATH: ${{deps.gnu.org/glibc.prefix}}/include${CPATH:+:$CPATH}
-      LIBRARY_PATH: ${{deps.gnu.org/glibc.prefix}}/lib${LIBRARY_PATH:+:$LIBRARY_PATH}
-
 build:
   dependencies:
     linux:
