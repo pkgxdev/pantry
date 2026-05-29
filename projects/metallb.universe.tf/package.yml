@@ -1,0 +1,50 @@
+# MetalLB — load-balancer implementation for bare-metal K8s (CNCF graduated).
+#
+# Provides L2 (ARP) and BGP modes to expose K8s Services as
+# LoadBalancer type without a cloud provider. The de-facto answer
+# for on-prem and home-lab K8s.
+
+distributable:
+  url: https://github.com/metallb/metallb/archive/refs/tags/v{{ version.raw }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: metallb/metallb
+  # Skip chart-only tags (metallb-chart-X.Y).
+  ignore:
+    - /^metallb-chart-/
+    - /^frr-tools-image-/
+    - /-rc\d+$/
+
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+
+build:
+  dependencies:
+    go.dev: '*'
+    gnu.org/coreutils: '*'
+
+  script:
+    - run: |
+        export CGO_ENABLED=0
+        LDFLAGS="-s -w -X go.universe.tf/metallb/internal/version.gitVersion=v{{ version.raw }}"
+        for cmd in controller speaker; do
+          if [ -d "$cmd" ]; then
+            go build -trimpath -ldflags "$LDFLAGS" \
+              -o "bin/metallb-$cmd" "./$cmd"
+          fi
+        done
+
+    - run: |
+        for bin in bin/*; do
+          install -Dm755 "$bin" "{{prefix}}/bin/$(basename "$bin")"
+        done
+
+test:
+  - test -x "{{prefix}}/bin/metallb-controller"
+  - test -x "{{prefix}}/bin/metallb-speaker"
+
+provides:
+  - bin/metallb-controller
+  - bin/metallb-speaker
