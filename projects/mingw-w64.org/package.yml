@@ -61,6 +61,11 @@ build:
         export AR="llvm-ar"
         export RANLIB="llvm-ranlib"
         export DLLTOOL="llvm-dlltool"
+        # winpthreads compiles .rc resource files via libtool;
+        # libtool needs RC set to recognise the rc-compile path.
+        # Without it, libtool errors with "unrecognised option: '-i'".
+        export RC="llvm-windres"
+        export WINDRES="llvm-windres"
 
         for T in x86_64-w64-mingw32 aarch64-w64-mingw32; do
           echo "══════ building mingw-w64 for $T ══════"
