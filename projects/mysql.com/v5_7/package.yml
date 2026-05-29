@@ -45,7 +45,10 @@ build:
   dependencies:
     cmake.org: ^3
     gnu.org/bison: '*'
-    gnu.org/gcc: ^13   # newer gcc rejects 5.7's pre-C++17 patterns
+    gnu.org/gcc/v8: '*'   # MySQL 5.7's vendored InnoDB uses unnamed
+                          # scoped enums + other pre-C++17 idioms that
+                          # gcc 12+ rejects. Use the dedicated gcc 8
+                          # recipe (companion PR).
   working-directory: build
   script:
     # 5.7's bundled boost has the old `cmake_minimum_required` which
