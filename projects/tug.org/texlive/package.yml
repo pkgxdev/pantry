@@ -1,0 +1,134 @@
+# TeX Live — comprehensive TeX/LaTeX distribution.
+#
+# Built from source via the `texlive-YYYYMMDD-source.tar.xz` release
+# bundle, which contains the *engines* (pdftex, xetex, luatex, dvips,
+# bibtex, makeindex, tlmgr, etc.). The macro packages (LaTeX, AMS,
+# beautifully-formatted whatever) are NOT bundled here — install them
+# via `tlmgr install <pkg>` after the bottle is set up.
+#
+# From-source over vendored — this builds the engines fresh against
+# pantry's freetype/cairo/poppler/harfbuzz instead of pulling the
+# precompiled binaries from the TeXLive installer.
+#
+# Build is heavy (~15-30 min on a fast runner) — texlive-source
+# bundles ~600MB of C/C++ source for ~50 engines + tools.
+
+distributable:
+  # version format is YYYYMMDD (TeXLive's release date). The directory
+  # is named by the year, the file by the full date.
+  url: https://ftp.math.utah.edu/pub/tex/historic/systems/texlive/{{ version.major }}/texlive-{{ version.raw }}-source.tar.xz
+  strip-components: 1
+
+versions:
+  url: https://ftp.math.utah.edu/pub/tex/historic/systems/texlive/2026/
+  match: /texlive-\d{8}-source\.tar\.xz/
+  strip:
+    - /texlive-/
+    - /-source\.tar\.xz/
+
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+  - darwin/x86-64
+  - darwin/aarch64
+
+dependencies:
+  # Engine runtime dependencies.
+  freetype.org: '*'
+  libpng.org: '*'
+  cairographics.org: '*'
+  pixman.org: '*'
+  poppler.freedesktop.org: '*'
+  harfbuzz.org: '*'
+  gnu.org/gmp: '*'
+  gnu.org/mpfr: '*'
+  freedesktop.org/fontconfig: '*'
+  zlib.net: '*'
+  perl.org: '*'                # required at runtime (tlmgr is Perl)
+
+build:
+  dependencies:
+    gnu.org/make: '*'
+    gnu.org/coreutils: '*'
+    gnu.org/sed: '*'
+    gnu.org/findutils: '*'
+    gnu.org/grep: '*'
+    gnu.org/m4: '*'
+    perl.org: '*'                # build scripts need Perl
+    freedesktop.org/pkg-config: '*'
+    linux:
+      gnu.org/gcc: '*'
+
+  script:
+    # TeXLive's configure has many sub-projects (each engine has its
+    # own). The top-level configure passes through to subdirs.
+    # --with-system-* makes texlive use pantry's libs instead of its
+    # vendored copies — keeps the bottle slim and lets pkgx manage
+    # the deps centrally.
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
+
+    # Strip +brewing from baked-in paths post-install — TeXLive's
+    # web2c/texmf.cnf and tlmgr scripts hardcode the configure-time
+    # prefix. Same pattern as R / Octave.
+    - run: |
+        cd "{{prefix}}"
+        grep -rIl '+brewing' bin texmf-dist texmf-var 2>/dev/null \
+          | xargs -r sed -i 's|+brewing||g'
+
+  env:
+    ARGS:
+      - --prefix={{ prefix }}
+      - --datarootdir={{ prefix }}/share
+      - --disable-native-texlive-build  # use a tlpkg-free layout
+      - --enable-shared
+      - --disable-static
+      # Use pantry's system libs instead of TeXLive's vendored copies.
+      - --with-system-zlib
+      - --with-system-libpng
+      - --with-system-freetype2
+      - --with-system-cairo
+      - --with-system-pixman
+      - --with-system-harfbuzz
+      - --with-system-poppler
+      - --with-system-gmp
+      - --with-system-mpfr
+      - --with-system-fontconfig
+      # Skip components that need extra deps (can add back if needed).
+      - --disable-xindy            # needs CLISP
+      - --disable-texlive-build    # don't build the full tlpkg installer
+      - --disable-dvisvgm          # needs xxhash + freetype-aware build
+
+test:
+  # Quick smoke tests on the major engines.
+  script:
+    - run: |
+        out=$(tex --version 2>&1 | head -1)
+        echo "tex: $out"
+        case "$out" in
+          *"TeX"*) echo "tex PASS" ;;
+          *) echo "FAIL: $out"; exit 1 ;;
+        esac
+    - pdftex --version 2>&1 | head -1
+    - xetex --version 2>&1 | head -1
+    - luatex --version 2>&1 | head -1
+
+provides:
+  # Major engines (from texk/ subtree). Not exhaustive — texlive
+  # installs ~80 binaries; listing the ones users actually invoke.
+  - bin/tex
+  - bin/pdftex
+  - bin/xetex
+  - bin/luatex
+  - bin/luahbtex
+  - bin/dvips
+  - bin/dvipdfm
+  - bin/dvipdfmx
+  - bin/bibtex
+  - bin/biber              # optional — may need extra deps
+  - bin/makeindex
+  - bin/mktexlsr
+  - bin/tlmgr              # TeX Live Manager (Perl)
+  - bin/kpsewhich
+  - bin/kpathsea
