@@ -232,7 +232,11 @@ build:
         esac
         bindir=$(cd "$(dirname "$0")" && pwd)
         gcc_root="$bindir/.."
-        real="$gcc_root/libexec/gcc-wrap/$target"
+        # IMPORTANT: keep the real binary in bin/ (as .${target}-real) so
+        # gcc's internal lookup for cc1 / cc1plus / collect2 (all relative
+        # to its own dir at lib/gcc/<triplet>/<ver>/) still resolves.
+        # Moving it under libexec/ broke that lookup (#13094 v1).
+        real="$bindir/.${target}-real"
         if [ -z "$CPATH" ]; then
           for d in "$bindir/../../../glibc/v"*; do
             [ -d "$d/include" ] && libc="$d" && break
@@ -275,7 +279,7 @@ build:
         cd {{prefix}}/bin
         for tool in gcc g++ cpp c++ gfortran; do
           [ -f "$tool" ] && [ ! -L "$tool" ] || continue
-          mv "$tool" ../libexec/gcc-wrap/
+          mv "$tool" ".${tool}-real"
           ln -sf ../libexec/gcc-wrap.sh "$tool"
         done
       if: linux
