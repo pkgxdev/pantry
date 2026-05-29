@@ -26,6 +26,13 @@ platforms:
   - linux/aarch64
   - darwin/x86-64
 
+# valgrind bakes VALGRIND_LIB into the binary at configure time using
+# the +brewing prefix; after brewkit renames the install dir, the path
+# no longer exists. Set runtime.env so pkgx exports the correct path.
+runtime:
+  env:
+    VALGRIND_LIB: ${{prefix}}/libexec/valgrind
+
 build:
   dependencies:
     gnu.org/make: '*'
