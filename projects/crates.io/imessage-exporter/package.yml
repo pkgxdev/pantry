@@ -8,10 +8,14 @@ provides:
 versions:
   github: ReagentX/imessage-exporter
 
+companions:
+  ffmpeg.org: "*"
+  imagemagick.org: "*"
+
 build:
   dependencies:
-    rust-lang.org: '>=1.56'
-    rust-lang.org/cargo: '*'
+    rust-lang.org: ">=1.95" # since v4.1.0
+    rust-lang.org/cargo: "*"
   working-directory: imessage-exporter
   script:
     # version unset
@@ -19,6 +23,10 @@ build:
     - cargo install --locked --path . --root {{prefix}}
 
 test:
-  - test "$(imessage-exporter --version)" = "iMessage Exporter {{version}}"
-  - 'imessage-exporter --diagnostics 2>&1'
-  - "imessage-exporter --diagnostics 2>&1 | grep 'Invalid configuration: Database'"
+  dependencies:
+    curl.se: "*"
+  script:
+    - test "$(imessage-exporter --version)" = "iMessage Exporter {{version}}"
+    - curl -LSsO https://raw.githubusercontent.com/ReagentX/imessage-exporter/refs/tags/{{version.tag}}/imessage-database/test_data/db/test.db
+    - imessage-exporter --diagnostics --db-path test.db 2>&1 | tee out
+    - grep 'iMessage Database Diagnostics' out
