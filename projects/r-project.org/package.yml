@@ -1,0 +1,95 @@
+# R — language + environment for statistical computing.
+#
+# Standalone CLI / Rscript build. No X11, no Tcl/Tk, no Java — for
+# data-science / stats workflows from the terminal. Users who need
+# GUI R should use the system R or RStudio packaged separately.
+
+distributable:
+  url: https://cran.r-project.org/src/base/R-{{ version.major }}/R-{{ version.raw }}.tar.gz
+  strip-components: 1
+
+# R's release directory layout is by major-version (R-4/, R-3/, …),
+# and the file inside is R-{major}.{minor}.{patch}.tar.gz.
+versions:
+  url: https://cran.r-project.org/src/base/R-4/
+  match: /R-\d+\.\d+\.\d+\.tar\.gz/
+  strip:
+    - /R-/
+    - /\.tar\.gz/
+
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+  - darwin/x86-64
+  - darwin/aarch64
+
+dependencies:
+  gnu.org/readline: '*'
+  pcre.org/v2: '*'
+  libpng.org: '*'
+  libjpeg-turbo.org: '*'
+  simplesystems.org/libtiff: '*'
+  cairographics.org: '*'
+  sourceware.org/bzip2: '*'
+  tukaani.org/xz: '*'
+  zlib.net: '*'
+  curl.se: '*'
+  gnu.org/gettext: '*'
+
+build:
+  dependencies:
+    gnu.org/gcc: '*'             # provides gfortran for R's numerical core
+    gnu.org/make: '*'
+    perl.org: '*'
+    gnu.org/coreutils: '*'
+    gnu.org/findutils: '*'
+    gnu.org/sed: '*'
+    gnu.org/grep: '*'
+
+  script:
+    - ./configure $ARGS
+    - make -j {{ hw.concurrency }}
+    - make install
+
+  env:
+    ARGS:
+      - --prefix={{ prefix }}
+      - --enable-R-shlib            # build libR.so for embedding
+      - --with-readline=yes
+      - --with-cairo=yes
+      - --with-libpng=yes
+      - --with-jpeglib=yes
+      - --with-libtiff=yes
+      - --with-pcre2=yes
+      - --with-blas                 # bundled BLAS (no external dep)
+      - --with-lapack               # bundled LAPACK
+      - --without-x                 # no X11 in CI / headless use case
+      - --without-tcltk             # no Tcl/Tk
+      - --enable-memory-profiling
+      - --disable-java              # no Java integration
+      - --disable-nls               # internationalisation (saves build time;
+                                    # re-enable if you need non-English msgs)
+
+test:
+  # `R --version` prints "R version X.Y.Z (YYYY-MM-DD) -- …" on
+  # the first line. We just check the version number matches.
+  # `Rscript -e 'cat(R.version.string)'` is a stronger end-to-end
+  # check that the interpreter actually loads and can execute.
+  script:
+    - run: |
+        out=$(R --version 2>&1 | head -1)
+        echo "R --version: $out"
+        case "$out" in
+          "R version {{version}} "*) echo "version PASS" ;;
+          *) echo "FAIL: expected R version {{version}}, got $out"; exit 1 ;;
+        esac
+    - run: |
+        out=$(Rscript -e 'cat(R.version$major, R.version$minor, sep=".")')
+        echo "Rscript: $out"
+        # Marketing version e.g. "4.5.3" — R.version$minor is "5.3"
+        # so concat is "4.5.3".
+        test "$out" = "{{version}}" || { echo "FAIL: $out != {{version}}"; exit 1; }
+
+provides:
+  - bin/R         # the interpreter
+  - bin/Rscript   # one-shot script runner
