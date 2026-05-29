@@ -10,7 +10,7 @@
 # Linux equivalent.
 
 distributable:
-  url: https://github.com/lima-vm/socket_vmnet/archive/refs/tags/v{{ version }}.tar.gz
+  url: https://github.com/lima-vm/socket_vmnet/archive/refs/tags/{{ version.tag }}.tar.gz
   strip-components: 1
 
 versions:
@@ -18,48 +18,39 @@ versions:
 
 # macOS only — vmnet.framework is Apple-specific.
 platforms:
-  - darwin/x86-64
-  - darwin/aarch64
+  - darwin
 
 build:
-  dependencies:
-    gnu.org/make: '*'
-    gnu.org/coreutils: '*'   # install(1)
+  env:
+    x86-64:
+      ARCH: x86_64
+    aarch64:
+      ARCH: arm64
   script:
-    # Map pkgx arch → Makefile's ARCH variable. Upstream Makefile
-    # checks for "arm64" / "x86_64" substrings in ARCH to set the
-    # `-arch` cflag + `--host` triple.
-    - run: |
-        case "{{hw.arch}}" in
-          x86-64)  export ARCH=x86_64 ;;
-          aarch64) export ARCH=arm64  ;;
-        esac
-        # VERSION normally comes from `git describe`; the source
-        # tarball has no .git so the Makefile falls back to "—".
-        # Override explicitly so the binary's embedded version is right.
-        make --jobs {{ hw.concurrency }} VERSION=v{{version}} all
+    # VERSION normally comes from `git describe`; the source
+    # tarball has no .git so the Makefile falls back to "—".
+    # Override explicitly so the binary's embedded version is right.
+    - make --jobs {{ hw.concurrency }} VERSION=v{{version}} all
 
     # Upstream's `make install` targets /opt/socket_vmnet with strict
     # ownership for a launchd setup. Pkgx bottles are user-owned;
     # we install binaries + docs into {{prefix}}, leaving the
     # sudoers/launchd templates as docs for users to wire up.
-    - run: |
-        mkdir -p "{{prefix}}/bin" "{{prefix}}/share/doc/socket_vmnet"
-        install -m755 socket_vmnet         "{{prefix}}/bin/"
-        install -m755 socket_vmnet_client "{{prefix}}/bin/"
-        cp README.md LICENSE               "{{prefix}}/share/doc/socket_vmnet/"
-        cp -R etc_sudoers.d launchd        "{{prefix}}/share/doc/socket_vmnet/"
+    - mkdir -p "{{prefix}}/bin" "{{prefix}}/share/doc/socket_vmnet"
+    - install -m755 socket_vmnet         "{{prefix}}/bin/"
+    - install -m755 socket_vmnet_client "{{prefix}}/bin/"
+    - cp README.md LICENSE               "{{prefix}}/share/doc/socket_vmnet/"
+    - cp -R etc_sudoers.d launchd        "{{prefix}}/share/doc/socket_vmnet/"
 
 test:
   # Full bridge functionality requires root + vmnet.framework setup
   # which we can't exercise from CI. Best we can do is check the
   # binary loads and shows --help / --version.
-  script:
-    # `--help` exits non-zero (usage goes to stderr, this is the binary's
-    # default behavior) so accept any exit code — we just want to confirm
-    # the binary loads and the OS can run it.
-    - (socket_vmnet --help 2>&1 || true) | head -5
-    - (socket_vmnet_client --help 2>&1 || true) | head -5
+  # `--help` exits non-zero (usage goes to stderr, this is the binary's
+  # default behavior) so accept any exit code — we just want to confirm
+  # the binary loads and the OS can run it.
+  - (socket_vmnet --help 2>&1 || true) | head -5
+  - (socket_vmnet_client --help 2>&1 || true) | head -5
 
 provides:
   - bin/socket_vmnet
