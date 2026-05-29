@@ -1,0 +1,77 @@
+distributable:
+  url: https://github.com/vercel-labs/zero/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: vercel-labs/zero
+
+# main.0:1:1 CGEN004: direct backend does not support target 'darwin-x64' for --emit exe
+#   expected: direct target with matching object format and architecture
+#   actual: target=darwin-x64 objectFormat=macho arch=x86_64 abi=darwin status=known-unimplemented
+#   help: direct executable backend is not implemented for this target/backend pair; use --emit obj for direct target objects or choose a supported direct executable target
+#   explain: zero explain CGEN004
+platforms:
+  - darwin/aarch64
+  - linux/x86-64
+
+companions:
+  ziglang.org: 0.14.1
+  nodejs.org: "*"
+  npmjs.com: "*"
+
+build:
+  dependencies:
+    nodejs.org: "*"
+    npmjs.com: "*"
+  script:
+    - if test -f package-lock.json; then
+    - npm ci
+    - else
+    - npm install
+    - fi
+    - make -C native/zero-c OUT={{prefix}}/.zero/bin/zero
+    - cp -a bin scripts node_modules skills skill-data {{prefix}}/
+
+provides:
+  - bin/zero
+
+test:
+  - zero skills get zero --json
+  - zero --version | tee out
+  - test "$(head -n1 out)" = "zero {{version}}"
+  - run: cp $FIXTURE main.0
+    if: <0.1.4
+    fixture: |
+      fun answer() -> i32 {
+        return 40 + 2
+      }
+
+      pub fun main(world: World) -> Void raises {
+        if answer() == 42 {
+          check world.out.write("math works\n")
+        }
+      }
+  - run: cp $FIXTURE main.0
+    if: ">=0.1.4<0.2.0"
+    fixture: |
+      fn answer i32
+        ret + 40 2
+
+      pub fn main Void world World !
+        if == answer() 42
+          check world.out.write "math works\n"
+  - run: cp $FIXTURE main.0
+    if: ">=0.2.0"
+    fixture: |
+      fn answer() -> i32 {
+          return 40 + 2
+      }
+
+      pub fn main(world: World) -> Void raises {
+          if answer() == 42 {
+              check world.out.write("math works\n")
+          }
+      }
+  - zero check main.0
+  - zero run main.0 | tee out
+  - test "$(cat out)" = "math works"

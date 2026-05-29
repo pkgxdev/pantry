@@ -12,7 +12,12 @@ build:
   dependencies:
     npmjs.com: '*'
   script:
-    npm i $ARGS .
+    # v11+: bin field points to ./bin/run but file is ./bin/run.js
+    - run: |
+        if ! test -f bin/run && test -f bin/run.js; then
+          sed -i 's|"./bin/run"|"./bin/run.js"|' package.json
+        fi
+    - npm i $ARGS .
   env:
     ARGS:
       - -ddd

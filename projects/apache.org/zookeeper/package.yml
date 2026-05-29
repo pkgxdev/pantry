@@ -1,17 +1,21 @@
 distributable:
   url: https://archive.apache.org/dist/zookeeper/zookeeper-{{version}}/apache-zookeeper-{{version}}.tar.gz
   strip-components: 1
+
 versions:
   url: https://archive.apache.org/dist/zookeeper/
   match: /zookeeper-\d+\.\d+\.\d+/
   strip:
     - /^zookeeper-/
+
 dependencies:
   openjdk.org: '*'
   openssl.org: '*'
+
 runtime:
   env:
     ZOODIR: '{{prefix}}'
+
 build:
   dependencies:
     gnu.org/autoconf: '*'
@@ -58,6 +62,7 @@ build:
         sed -i.bak 's|dataDir=/tmp/zookeeper|dataDir=\$ZOODIR/var/run/zookeper|' zoo.cfg
         rm -f zoo.cfg.bak
       working-directory: '{{prefix}}/conf'
+
 provides:
   - bin/zkCleanup
   - bin/zkCli
@@ -65,9 +70,7 @@ provides:
   - bin/zkServer-initialize
   - bin/zkServer
   - bin/zkSnapshotComparer
-  - bin/zkSnapshotRecursiveSummaryToolkit
   - bin/zkSnapShotToolkit
   - bin/zkTxnLogToolkit
-test:
-  script:
-    - zkServer version | grep {{version}}
+
+test: zkServer version | grep {{version}}

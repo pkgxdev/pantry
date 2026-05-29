@@ -10,8 +10,13 @@ versions:
 
 build:
   dependencies:
-    rust-lang.org: '>=1.56'
-    rust-lang.org/cargo: '*'
+    rust-lang.org: ">=1.56"
+    rust-lang.org/cargo: "*"
+  env:
+    linux/x86-64:
+      # -pie: ubuntu requires PIE (passes on debian without it, SIGILL on ubuntu)
+      # target-cpu: prevent AVX etc. that CI runners may not support
+      RUSTFLAGS: -C target-cpu=x86-64 -C link-args=-pie
   script:
     # needs openssl 3 on linux, but our rust locks us to 1.1.1
     - run: sed -f $PROP -i Cargo.toml
@@ -20,7 +25,55 @@ build:
       prop: |
         /^serde_json =/a\
         openssl-sys = { version = "*", features = ["vendored"] }
-    - cargo install --path spider_cli --root {{prefix}} --features smart
+    # io_uring is default-on but SIGILLs on CI ubuntu runners (since v2.47.22)
+    - run: sed -i -E 's/,? *"io_uring"//' Cargo.toml
+      working-directory: spider
+      if: linux/x86-64
+    # _requires_ spider/serde to build since 2.37.120
+    - cargo install --path spider_cli --root {{prefix}} --features smart,spider/serde
   skip: fix-patchelf # dumps on x86-64
 
-test: spider -v --url https://choosealicense.com crawl
+test:
+  dependencies:
+    linux/x86-64:
+      gnu.org/binutils: "*"
+      darwinsys.com/file: "*"
+      strace.io: "*"
+  script:
+    - run:
+        - BIN=$(command -v spider)
+        - echo "=== file ==="
+        - file $BIN
+        - echo "=== readelf -h (ELF type) ==="
+        - readelf -h $BIN | grep -i type
+        - echo "=== readelf -d (RPATH/RUNPATH) ==="
+        - readelf -d $BIN | grep -iE 'rpath|runpath|needed' || echo "(none)"
+        - echo "=== ldd ==="
+        - ldd $BIN
+        - echo "=== AVX instruction count ==="
+        - objdump -d $BIN | grep -c -iE 'vmov|vpadd|vpxor|vbroadcast|vzero' || echo "0"
+        - echo "=== CPU flags ==="
+        - grep -oP 'flags\s*:\s*\K.*' /proc/cpuinfo | head -1
+        - echo "=== SIGILL crash analysis ==="
+        - RUST_BACKTRACE=full strace -f -o /tmp/spider.strace spider -v --url https://choosealicense.com crawl 2>&1 || true
+        - FAULT=$(grep 'si_addr=' /tmp/spider.strace | grep -oP 'si_addr=\K0x[0-9a-f]+' || true)
+        - echo "fault addr=$FAULT"
+        - echo "=== /proc/pid maps (text segment base) ==="
+        - grep ' r.xp ' /tmp/spider.strace | head -5 || true
+        - echo "=== last 20 lines before crash ==="
+        - grep -B20 'SIGILL' /tmp/spider.strace | head -25 || true
+        - echo "=== finding faulting function ==="
+        - |
+          if test -n "$FAULT"; then
+            # offset is consistently 0x7b2ca7 across all ASLR'd runs
+            OFFSET=0x7b2ca7
+            echo "known offset=$OFFSET"
+            echo "=== addr2line ==="
+            addr2line -e $BIN -f -p $OFFSET 2>&1 || true
+            echo "=== objdump (is it ud2?) ==="
+            objdump -d --start-address=0x7b2c90 --stop-address=0x7b2cb0 $BIN || true
+            echo "=== nm nearest ==="
+            nm -n $BIN | awk -v o=0x7b2ca7 'BEGIN{t=strtonum(o)} /^[0-9a-f]+ [tT]/{if(strtonum("0x"$1)>t){print prev; exit}; prev=$0}' || true
+          fi
+      if: linux/x86-64
+    - spider -v --url https://choosealicense.com crawl

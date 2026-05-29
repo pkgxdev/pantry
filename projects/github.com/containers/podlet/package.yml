@@ -1,0 +1,19 @@
+distributable:
+  url: https://github.com/containers/podlet/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+display-name: podlet
+
+versions:
+  github: containers/podlet
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.7.0'
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path . --root {{prefix}}
+
+provides:
+  - bin/podlet
+
+test: test "$(podlet --version | grep {{version}} | cut -f2 -d' ')" = {{version}}

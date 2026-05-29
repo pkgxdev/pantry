@@ -2,7 +2,7 @@
 
 set -em
 
-PORT=$(tea get-port)
+PORT=$(pkgx npx --yes get-port-cli)
 
 openplayground run --port $PORT &
 

@@ -10,26 +10,25 @@ versions:
     - /.tar.gz/
 
 dependencies:
-  perl.org: '*'
+  perl.org: ~5.42 # requires stable minor; must match gettext's perl
 
 build:
   dependencies:
-    gnu.org/gettext: '*'
-    invisible-island.net/ncurses: '*'
-  script: |
-    ./configure --prefix={{ prefix }}
-    make --jobs {{ hw.concurrency }} install
+    gnu.org/gettext: "*"
+    invisible-island.net/ncurses: "*"
+  script:
+    - ./configure --prefix={{ prefix }}
+    - make --jobs {{ hw.concurrency }} install
 
-    cd {{prefix}}/bin
-    for file in pod2texi texi2any; do
-      sed -i.bak "s_#! {{deps.perl.org.prefix}}/bin/perl_#!/usr/bin/env perl_" $file
-      rm $file.bak
-    done
+    - run:
+        - sed -i "1s_#! .*/perl_#!/usr/bin/env perl_" pod2texi texi2any makeinfo
+        - head makeinfo
+      working-directory: ${{prefix}}/bin
 
 test:
-  script: |
-    makeinfo $FIXTURE
-    grep -q 'Hello World!' $(basename $FIXTURE).info
+  script:
+    - makeinfo $FIXTURE
+    - grep -q 'Hello World!' $(basename $FIXTURE).info
   fixture: |
     @ifnottex
     @node Top
@@ -47,4 +46,3 @@ provides:
   - bin/texi2dvi
   - bin/texi2pdf
   - bin/texindex
-

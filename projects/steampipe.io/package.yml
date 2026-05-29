@@ -1,6 +1,6 @@
 distributable:
-  url: https://github.com/turbot/steampipe/archive/refs/tags/v{{version}}.tar.gz
-  strip-components: 1
+  url: git+https://github.com/turbot/steampipe.git
+  ref: ${{ version.tag }}
 
 versions:
   github: turbot/steampipe
@@ -10,11 +10,23 @@ provides:
 
 build:
   dependencies:
-    go.dev: ^1.21
+    go.dev: ^1.24
+    goreleaser.com: '*'
+    git-scm.org: 2
   script:
     - go mod download
-    - go build -v -trimpath -ldflags="$GO_LDFLAGS" -o '{{prefix}}/bin/steampipe' .
+    - run: go build -v -trimpath -ldflags="$GO_LDFLAGS" -o '{{prefix}}/bin/steampipe' .
+      if: <2.1
+    - run:
+        - goreleaser build --clean --single-target --skip=validate
+        - install -Dm755 "dist/steampipe_${PLATFORM}/steampipe" "{{ prefix }}"/bin/steampipe
+      if: '>=2.1'
   env:
+    # as of v2.1.0
+    darwin/aarch64: { PLATFORM: darwin_arm64_v8.0, GOARCH: arm64, GOOS: darwin }
+    darwin/x86-64: { PLATFORM: darwin_amd64_v1, GOARCH: amd64, GOOS: darwin }
+    linux/aarch64: { PLATFORM: linux_arm64_v8.0, GOARCH: arm64, GOOS: linux }
+    linux/x86-64: { PLATFORM: linux_amd64_v1, GOARCH: amd64, GOOS: linux }
     GO111MODULE: on
     CGO_ENABLED: 0
     GO_LDFLAGS:

@@ -1,0 +1,62 @@
+distributable:
+  url: https://registry.npmjs.org/opencode-ai/-/opencode-ai-{{version}}.tgz
+  strip-components: 1
+
+display-name: opencode
+
+versions:
+  npm: opencode-ai
+
+platforms:
+  - linux/x86-64
+  - darwin
+
+provides:
+  - bin/opencode
+  - bin/opencode-init
+
+dependencies:
+  nodejs.org: "*"
+  github.com/mikefarah/yq: "*"
+  stedolan.github.io/jq: "*"
+  gnu.org/sed: "*"
+
+build:
+  dependencies:
+    nodejs.org: "*"
+    npmjs.com: "*"
+  script:
+    - npm i $ARGS .
+    - install -Dm755 props/opencode-init {{prefix}}/bin/opencode-init
+  env:
+    ARGS:
+      - --global
+      - --prefix={{prefix}}
+      - --install-links
+      - --unsafe-perm
+
+test:
+  - opencode --version
+  - opencode --version 2>&1 | grep "{{version}}"
+  - run: opencode --help >/dev/null 2>&1 || true
+  - run: opencode-init --help | grep -q "opencode-init"
+  - run:
+      - export OPENAI_API_KEY="test-key"
+      - opencode-init $FIXTURE --write-only --output ./opencode-init.json
+      - test -f ./opencode-init.json
+      - jq -e '.model == "openai/gpt-5"' ./opencode-init.json
+      - jq -e '.api_key_env == "OPENAI_API_KEY"' ./opencode-init.json
+    fixture:
+      extname: md
+      content: |
+        ---
+        agent:
+          model: "openai/gpt-5"
+        auth:
+          provider_api_key_env: "OPENAI_API_KEY"
+        runtime:
+          workspace: "."
+        launch:
+          mode: "interactive"
+          first_message: "Summarize this repository."
+        ---

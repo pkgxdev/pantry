@@ -1,10 +1,17 @@
 distributable:
   # original http://glaros.dtc.umn.edu/gkhome/fetch/sw/metis/metis-5.1.0.tar.gz -> no response
-  url: https://github.com/scivision/METIS/archive/v{{version}}.tar.gz
-  strip-components: 1
+  # next original: https://github.com/scivision/METIS/archive/v{{version}}.tar.gz
+  # strip-components: 1
+
+  # requires git checkout for submodule updates as of 5.2.1.2
+  url: git+https://github.com/scivision/METIS
+  ref: ${{version.tag}}
+
 display-name: metis
+
 versions:
   github: scivision/METIS/tags
+
 build:
   dependencies:
     gnu.org/make: '*'
@@ -28,6 +35,7 @@ build:
       - -DCMAKE_VERBOSE_MAKEFILE=ON
       - -Wno-dev
       - -DBUILD_TESTING=OFF
+
 provides:
   - bin/cmpfillin
   - bin/gpmetis
@@ -35,6 +43,7 @@ provides:
   - bin/m2gmetis
   - bin/mpmetis
   - bin/ndmetis
+
 test:
   dependencies:
     curl.se: '*'

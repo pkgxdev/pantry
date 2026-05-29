@@ -8,19 +8,20 @@ versions:
 dependencies:
   linux:
     # all since v3.2.0
-    x.org/x11: '*'
-    x.org/xcursor: '*'
-    x.org/xi: '*'
-    x.org/xrandr: '*'
-    x.org/xfixes: '*'
-    x.org/xrender: '*'
-    x.org/xscrnsaver: '*'
-    x.org/exts: '*'
+    alsa-project.org/alsa-lib: ">=1.0.11"
+    x.org/x11: "*"
+    x.org/xcursor: "*"
+    x.org/xi: "*"
+    x.org/xrandr: "*"
+    x.org/xfixes: "*"
+    x.org/xrender: "*"
+    x.org/xscrnsaver: "*"
+    x.org/exts: "*"
 
 build:
   dependencies:
-    gnu.org/autoconf: '*'
-    gnu.org/automake: '*'
+    gnu.org/autoconf: "*"
+    gnu.org/automake: "*"
     gnu.org/libtool: 2
     cmake.org: ^3
   script:
@@ -29,29 +30,23 @@ build:
         - make --jobs {{ hw.concurrency }} install
       if: <3.2
     - run:
+        - if test "{{hw.platform}}" = "linux"; then
+        - export CMAKE_ARGS="$CMAKE_ARGS -DSDL_X11_XTEST=OFF"
+        - fi
+      if: ">=3.4"
+    - run:
         - cmake -S .. $CMAKE_ARGS
         - cmake --build .
         - cmake --install .
-      if: '>=3.2'
+      if: ">=3.2"
       working-directory: build
-
-    # often stuff expects SDL.h to be directly in the include-path
-    - run:
-        - mv SDL{{version.major}}/* .
-        - rmdir SDL{{version.major}}
-        - ln -s . SDL{{version.major}}
-      working-directory: ${{prefix}}/include
-
-    - run: find . -name '*.la' -exec rm -f {} \;
-      working-directory: '{{prefix}}/lib'
-
   env:
     ARGS:
       - --prefix="{{prefix}}"
       - --with-x
       - --enable-hidapi
-      - --enable-pulseaudio
-      - --enable-pulseaudio-shared
+      - --enable-alsa
+      - --enable-alsa-shared
       - --enable-video-dummy
       - --enable-video-opengl
       - --enable-video-opengles
@@ -69,8 +64,8 @@ build:
       - -Wno-dev
       - -DSDL_INSTALL=ON
       - -DSDL_HIDAPI=ON
-      - -DSDL_PULSEAUDIO=ON
-      - -DSDL_PULSEAUDIO_SHARED=ON
+      - -DSDL_ALSA=ON
+      - -DSDL_ALSA_SHARED=ON
       - -DSDL_DUMMYVIDEO=ON
       - -DSDL_OPENGL=ON
       - -DSDL_OPENGLES=ON
@@ -81,6 +76,7 @@ build:
       - -DSDL_X11_XRANDR=ON
       - -DSDL_X11_XSHAPE=ON
       - -DSDL_X11_SHARED=ON
+    CFLAGS: -Wno-incompatible-function-pointer-types
 
 test:
   - run: cc $FIXTURE -o test -lSDL{{version.major}}

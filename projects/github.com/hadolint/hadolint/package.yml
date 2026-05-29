@@ -1,31 +1,46 @@
 distributable:
-  url: https://github.com/hadolint/hadolint/archive/v{{version}}.tar.gz
+  url: https://github.com/hadolint/hadolint/archive/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
   github: hadolint/hadolint
-  strip: /^v/
 
 build:
   dependencies:
-    haskell.org: ~9.2
+    haskell.org: ~9.10 # as over 2.14
     haskell.org/cabal: ^3
     git-scm.org: ^2 # cabal needs it for this one
+    linux:
+      gnu.org/binutils: ~2.44 # for ld
   env:
     ARGS:
       - --jobs={{hw.concurrency}}
       - --install-method=copy
       - --installdir={{prefix}}/bin
-  script: |
-    cabal v2-update
-    cabal v2-install $ARGS
+  script:
+    # haskell settings are a bear
+    - run: sed -i 's|Merge objects command.*|Merge objects command", "/usr/bin/ld")|' settings
+      working-directory: ${{deps.haskell.org.prefix}}/.ghcup/ghc/9.10.3/lib/ghc-9.10.3/lib
+      if: darwin
+    - run: sed -i 's|Merge objects command.*|Merge objects command", "{{deps.gnu.org/binutils.prefix}}/bin/ld")|' settings
+      working-directory: ${{deps.haskell.org.prefix}}/.ghcup/ghc/9.10.3/lib/ghc-9.10.3/lib
+      if: linux
+    # rpath breaks object merges, and we don't have external libs here anyway
+    - export LDFLAGS="$(echo $LDFLAGS | tr ' ' '\n' | grep -v -- '-rpath' | tr '\n' ' ')"
+    # zlib 0.7.0 breaks on macOS due to not finding zlib.dylib properly
+    - run: sed -i -f $PROP hadolint.cabal
+      prop: |
+        /xml-conduit/a\\
+            -- zlib 0.7.0 fails to find zlib.dylib on macOS\\
+            , zlib                  >= 0.6.0    \&\& < 0.7
+      if: darwin
+    - cabal v2-update
+    - cabal v2-install $ARGS
 
 provides:
   - bin/hadolint
 
 test:
-  fixture: |
-    FROM debian
-  script: |
-    hadolint --version | grep {{version}}
-    echo $(hadolint $FIXTURE || true) | grep DL3006
+  - hadolint --version | grep {{version}}
+  - run: echo $(hadolint $FIXTURE || true) | grep DL3006
+    fixture: FROM debian

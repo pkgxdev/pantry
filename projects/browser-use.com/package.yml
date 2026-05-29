@@ -13,11 +13,19 @@ runtime:
     PYTHONPATH: ${{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH
 
 build:
-  script: python -m pip install --prefix={{prefix}} . playwright $ADDITIONAL_PACKAGES
+  rust-lang.org: '*' # for rpds
+  script:
+    - python -m pip install --prefix={{prefix}} . playwright $ADDITIONAL_PACKAGES
+    # needs headerpad
+    - run: 'python -m pip install --no-deps --force-reinstall --no-cache-dir -v --no-binary :all: --prefix={{prefix}} jiter rpds-py'
+      if: darwin
+  skip: fix-machos # breaks binaries on aarch64
   env:
     darwin/x86-64:
       # torch removed darwin/x86-64 binaries in 2.3.0
       # https://github.com/pytorch/pytorch/pull/116726
       ADDITIONAL_PACKAGES: torch>=1.11.0,<2.3.0
+    darwin:
+      LDFLAGS: $LDFLAGS -Wl,-headerpad_max_install_names
 
 test: python -c 'import browser_use; print(browser_use)'

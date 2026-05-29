@@ -1,2 +1,0 @@
-puts [info patchlevel]
-exit

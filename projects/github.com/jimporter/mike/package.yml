@@ -1,0 +1,24 @@
+distributable:
+  url: https://github.com/jimporter/mike/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+display-name: mike
+
+versions:
+  github: jimporter/mike
+
+dependencies:
+  pkgx.sh: ">=1"
+
+build:
+  dependencies:
+    python.org: ^3
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} mike
+
+provides:
+  - bin/mike
+
+test: test "$(mike --version|cut -d' ' -f2)" = {{version}}

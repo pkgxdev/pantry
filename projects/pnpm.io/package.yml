@@ -11,16 +11,18 @@ provides:
   - bin/pnpx
 
 dependencies:
-  nodejs.org: '*'
+  nodejs.org: "*"
 
 build:
-  script: |
-    mkdir -p "{{prefix}}"
-    mv bin/pnpm.cjs bin/pnpm
-    mv bin/pnpx.cjs bin/pnpx
-    cp props/pnpmrc dist
-    cp -r bin dist package.json {{prefix}}
+  script:
+    - mkdir -p "{{prefix}}"
+    - ln -s pnpm.cjs bin/pnpm
+    - ln -s pnpx.cjs bin/pnpx
+    - chmod +x bin/*
+    - cp props/pnpmrc dist
+    - cp -r bin dist package.json {{prefix}}
 
 test:
-  script: |
-    pnpm doctor
+  - run: pnpm doctor
+    if: <11
+  - pnpm add express

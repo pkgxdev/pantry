@@ -23,8 +23,10 @@ build:
       gnu.org/gcc: 14
       llvm.org: '*'
   script:
-    # fix compilation error
-    - run: sed -i 's/ifdef __clang__/if 1/' intel_gpu_top.c
+    # fix compilation errors:
+    #  * __clang__ branch is the right one for our gcc+clang link toolchain
+    #  * asprintf needs _GNU_SOURCE under glibc; Makefile doesn't pass CFLAGS to these C files
+    - run: sed -i -e 's/ifdef __clang__/if 1/' -e '1i\#define _GNU_SOURCE' intel_gpu_top.c
       if: linux/x86-64
       working-directory: src/linux/intel_gpu_top
 

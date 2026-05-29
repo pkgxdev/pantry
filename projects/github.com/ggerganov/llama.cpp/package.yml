@@ -19,21 +19,20 @@ platforms:
   # Illegal instruction: 4 on darwin/x86-64
 
 dependencies:
-  pkgx.sh: ^1
+  pkgx.sh: ">=1"
   curl.se: 8 # libcurl, since b5064
   linux:
-    gnu.org/gcc/libstdcxx: '*' # clang doesn't provide omp.h, and we need libstdc++
+    gnu.org/gcc/libstdcxx: 14 # clang doesn't provide omp.h, and we need libstdc++
+    gnu.org/gcc: 14 # needs libgomp.so.1
 
 build:
   dependencies:
-    gnu.org/coreutils: '*'
-    git-scm.org: '*'
+    gnu.org/coreutils: "*"
+    git-scm.org: "*"
     python.org: ~3.11
     cmake.org: 3
-    linux:
-      gnu.org/gcc: '*'
     linux/aarch64:
-      kernel.org/linux-headers: '*' # hwcap.h
+      kernel.org/linux-headers: "*" # hwcap.h
   env:
     VIRTUAL_ENV: ${{prefix}}/venv
   script:
@@ -43,7 +42,7 @@ build:
 
     # this commit breaks linux/aarch64 - fixed in 1732
     - run: curl -LSs 'https://github.com/ggerganov/llama.cpp/pull/4630/commits/42f5246effafddcf87d67656b58e95030f4bc454.patch' | patch -p1 -R
-      if: '>=1705<1732'
+      if: ">=1705<1732"
     # -mcpu=native doesn't work on our docker builders
     - run: sed -i -e's/-mcpu=native/-mcpu=generic/g' CMakeLists.txt
       working-directory: ggml/src/ggml-cpu
@@ -66,7 +65,7 @@ build:
         - cmake -B build $CMAKE_ARGS
         - cmake --build build --config Release
         - cmake --install build --prefix {{prefix}}
-      if: '>=4242'
+      if: ">=4242"
 
     # https://github.com/ggerganov/llama.cpp/blob/master/examples/deprecation-warning/README.md
     - |
@@ -130,10 +129,10 @@ test:
   - run: llama.cpp --help
     if: <2453
   - run: llama.cpp --version
-    if: '>=2453<3368'
+    if: ">=2453<3368"
   # llama.cpp deprecated in v3368
   - run: llama-cli --version
-    if: '>=3368'
+    if: ">=3368"
   # ^^ testing more than this requires downloading the models 😬
 
 entrypoint: ./entrypoint.sh

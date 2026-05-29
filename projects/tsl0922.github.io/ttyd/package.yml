@@ -5,7 +5,7 @@ distributable:
 dependencies:
   libuv.org: 1
   github.com/json-c/json-c: ^0.16
-  libwebsockets.org: 4
+  libwebsockets.org: ~4.3 # ABI version changes in 4.4
   zlib.net: 1
 
 versions:
@@ -15,14 +15,13 @@ build:
   dependencies:
     cmake.org: 3
   working-directory: build
-  script: |
-    cmake .. -DCMAKE_INSTALL_PREFIX="{{prefix}}"
-    make --jobs {{hw.concurrency}}
-    make install
+  script:
+    - cmake .. -DCMAKE_INSTALL_PREFIX="{{prefix}}"
+    - make --jobs {{hw.concurrency}}
+    - make install
 
 #TODO test functionality
-test:
-  ttyd --help
+test: ttyd --help
 
 provides:
   - bin/ttyd

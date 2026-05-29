@@ -6,11 +6,16 @@ versions:
   github: ansible/ansible/tags # reads github *tags*
 
 dependencies:
-  pkgx.sh: 1
+  pkgx.sh: ">=1"
+
+runtime:
+  env:
+    # otherwise it doesn't use the path, for mysterious reasons, and checks /usr/bin preferentially.
+    ANSIBLE_PYTHON_INTERPRETER: "{{prefix}}/venv/bin/python"
 
 build:
   dependencies:
-    python.org: '>=3.7<3.12'
+    python.org: ">=3.12" # as of 2.20.0
   script:
     - bkpyvenv stage {{prefix}} {{version}}
 
@@ -46,8 +51,8 @@ test:
     # ensure paramiko is installed
     - ${{prefix}}/venv/bin/python -c "import paramiko"
   env:
-    VAULT_PASSWORD: '123456789'
-    SECRET_MESSAGE: 'Hello world!'
+    VAULT_PASSWORD: "123456789"
+    SECRET_MESSAGE: "Hello world!"
 
 provides:
   - bin/ansible

@@ -17,7 +17,7 @@ dependencies:
   protobuf.dev: ^21
   zlib.net: ^1.2
   facebook.com/zstd: ^1
-  curl.se: '>=6.0'
+  curl.se: ">=6.0"
   thrysoee.dk/editline: ^3
   developers.yubico.com/libfido2: ^1
   linux:
@@ -28,11 +28,11 @@ dependencies:
 build:
   dependencies:
     cmake.org: ^3
-    gnu.org/bison: '>=3.0.4'
+    gnu.org/bison: ">=3.0.4"
     linux:
       # llvm cannot find #include <bit>
       # use our libstdc++ instead
-      gnu.org/gcc: '*'
+      gnu.org/gcc: "*"
   working-directory: build
   script:
     # https://www.mail-archive.com/ports@freebsd.org/msg00418.html
@@ -46,7 +46,7 @@ build:
     # Call Stack (most recent call first):
     # CMakeLists.txt:1742 (MYSQL_CHECK_ZLIB)
     - run: export ARGS="$(echo $ARGS | sed 's/WITH_ZLIB=system/WITH_ZLIB=bundled/g')"
-      if: '>=8.0.33<8.0.38'
+      if: ">=8.0.33<8.0.38"
 
     - run: export ARGS="$ARGS -DCMAKE_C_STANDARD=17"
       if: ^8.4
@@ -134,11 +134,11 @@ provides:
 test:
   dependencies:
     gnu.org/coreutils: ^9
-    pkgx.sh: ^1
+    npmjs.com: "*"
   script:
     - mkdir -p mysql tmp
     - mysqld --no-defaults --initialize-insecure --user=$USER --datadir=$PWD/mysql --tmpdir=$PWD/tmp
-    - PORT=$(pkgx get-port | tail -n1)
+    - PORT=$(npx --yes get-port-cli | tail -n1)
     - mysqld --no-defaults --user=$USER --datadir=$PWD/mysql --port=$PORT --tmpdir=$PWD/tmp &
     - sleep 5
     - mysql --port=$PORT --user=root --password= --execute='show databases;'

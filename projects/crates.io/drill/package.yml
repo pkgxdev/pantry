@@ -13,24 +13,31 @@ dependencies:
 
 build:
   dependencies:
-    rust-lang.org: '>=1.56'
-    rust-lang.org/cargo: '*'
-  script: cargo install --path . --root {{prefix}}
+    rust-lang.org: ">=1.56"
+    rust-lang.org/cargo: "*"
+  script:
+    - sed -i '1,20s/^version = ".*"$/version = "{{version}}"/' Cargo.toml
+    - cargo install --path . --root {{prefix}}
 
 test:
-  - test "$(drill --version)" = "drill {{version}}"
-  - run: drill --benchmark $FIXTURE --stats
-    fixture:
-      extname: yml
-      content: |
-        ---
+  env:
+    RUST_BACKTRACE: 1
+  script:
+    - test "$(drill --version)" = "drill {{version}}"
+    # 0.9.0 crashes on long runtimes.
+    # https://github.com/fcsonline/drill/issues/216
+    - run: drill --benchmark $FIXTURE --stats --timeout 4
+      fixture:
+        extname: yml
+        content: |
+          ---
 
-        concurrency: 4
-        base: 'http://pkgx.sh'
-        iterations: 5
-        rampup: 2
+          concurrency: 4
+          base: 'http://pkgx.sh'
+          iterations: 5
+          rampup: 2
 
-        plan:
-          - name: Fetch root
-            request:
-              url: /
+          plan:
+            - name: Fetch root
+              request:
+                url: /

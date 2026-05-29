@@ -1,0 +1,24 @@
+distributable:
+  url: https://github.com/NQMVD/needs/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/needs
+
+versions:
+  github: NQMVD/needs
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.87'
+  script: cargo install --locked --path . --root {{prefix}}
+
+test:
+  dependencies:
+    rust-lang.org: '*'
+    rust-lang.org/cargo: '*'
+  script:
+    - needs --version
+    - needs --help
+    - needs cargo rust rustc
+    - needs --no-versions git make

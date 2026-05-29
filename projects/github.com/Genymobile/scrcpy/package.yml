@@ -10,31 +10,47 @@ platforms:
   - linux/x86-64
 
 dependencies:
-  ffmpeg.org: '*'
-  libusb.info: '*'
-  libsdl.org: '*'
+  ffmpeg.org: "*"
+  libusb.info: "*"
+  libsdl.org: "*"
+  pkgx.sh: ">=1"
+  linux:
+    webmproject.org/libvpx: <1.15.1 # since 3.3, .9 lib api
   darwin:
-    sourceware.org/bzip2: '*'
-    zlib.net: '*'
+    sourceware.org/bzip2: "*"
+    zlib.net: "*"
 
 build:
   dependencies:
-    mesonbuild.com: '*'
-    ninja-build.org: '*'
-    freedesktop.org/pkg-config: '*'
-    gnu.org/wget: '*'
-    gnu.org/patch: '*'
+    mesonbuild.com: "*"
+    ninja-build.org: "*"
+    gnu.org/wget: "*"
+    gnu.org/patch: "*"
   working-directory: build
   script:
     # quick post-release patch to address a build failure:
     # https://github.com/Genymobile/scrcpy/commit/4135c411af419f4f86dc9ec9301c88012d616c49
     - run: patch -p1 < props/4135c411af419f4f86dc9ec9301c88012d616c49.diff
       working-directory: ..
-      if: '>=2.3<2.3.2'
+      if: ">=2.3<2.3.2"
     - wget $PREBUILT_SERVER_URL -O scrcpy-server
-    - meson setup $ARGS ..
+    - run: meson setup $ARGS ..
+      if: <4
+    - run: pkgx +libsdl.org^3 meson setup $ARGS ..
+      if: ">=4"
     - meson compile --verbose
     - meson install
+    - run:
+        - mv "../bin/scrcpy" .
+        - install -m755 $PROP "../bin/scrcpy"
+      prop: |
+        #!/bin/sh
+        set -e
+
+        d=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+        exec pkgx +libsdl.org^3 "$d/../libexec/scrcpy" "$@"
+      working-directory: "{{prefix}}/libexec"
+      if: ">=4"
 
   env:
     PREBUILT_SERVER_URL: https://github.com/Genymobile/scrcpy/releases/download/v{{version.marketing}}/scrcpy-server-v{{version.marketing}}

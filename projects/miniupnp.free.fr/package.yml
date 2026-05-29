@@ -1,0 +1,24 @@
+distributable:
+  url: https://miniupnp.tuxfamily.org/files/download.php?file=miniupnpc-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://miniupnp.tuxfamily.org/files
+  match: /miniupnpc-\d+(\.\d+)+.tar.gz/
+  strip:
+    - /^miniupnpc-/
+    - /\.tar\.gz$/
+
+build:
+  - make INSTALLPREFIX={{prefix}} install
+
+provides:
+  - bin/external-ip
+  - bin/upnp-listdevices
+  - bin/upnpc
+
+test:
+  - (upnpc -l 2>&1 || true) | tee out
+  - grep 'List of UPNP devices found on the network' out || grep 'No IGD UPnP Device found on the network' out
+  - upnpc --help 2>&1 | tee out
+  - grep 'version {{version.raw}}' out

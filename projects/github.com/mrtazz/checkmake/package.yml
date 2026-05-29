@@ -8,16 +8,24 @@ versions:
 build:
   dependencies:
     go.dev: ^1.21
-  script: go build $ARGS -ldflags="$GO_LDFLAGS -X 'main.buildTime=$(date)' -X 'main.builder=pkgx'" ./
+  script:
+    - run: BIN_PATH=./
+      if: <0.3
+    - run: BIN_PATH=./cmd/checkmake
+      if: ">=0.3"
+    - go build $ARGS -ldflags="$GO_LDFLAGS" $BIN_PATH
   env:
     ARGS:
       - -trimpath
       - -o={{prefix}}/bin/checkmake
+      - -mod=mod
     GO_LDFLAGS:
       - -s
       - -w
       - -X 'main.version={{version}}'
       - -X 'main.goversion=go{{deps.go.dev.version}}'
+      - -X 'main.buildTime=$(date)'
+      - -X 'main.builder=pkgx'
     linux:
       GO_LDFLAGS:
         - -buildmode=pie
@@ -27,7 +35,7 @@ provides:
 
 test:
   - checkmake --version | grep {{version}}
-  - run: (checkmake $FIXTURE || true) | grep 'Missing required phony target'
+  - run: (checkmake $FIXTURE || true) 2>&1 | tee out
     fixture:
       extname: make
       content: |
@@ -54,3 +62,11 @@ test:
         .PHONY: clean
 
         .DEFAULT_GOAL: all
+  - run: grep 'Missing required phony target' out
+    if: "<0.3"
+  - run:
+      - 'grep "Error: violations found" out'
+      - grep "Required target" out
+      - grep "declared PHONY" out
+      - grep -F "PHONY." out
+    if: ">=0.3"

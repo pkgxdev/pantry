@@ -1,0 +1,101 @@
+name: pkgx/pantry/ipfs
+description: Generates IPFS CID, uploads to IPFS, and pins to cluster
+
+inputs:
+  bottle-file:
+    description: Path to the bottle file to upload
+    required: true
+  dry-run:
+    description: If true, skip actual uploads
+    required: false
+    default: 'false'
+  ipfs-api-url:
+    description: IPFS API endpoint URL
+    required: false
+  ipfs-api-token:
+    description: Bearer token for IPFS API authentication
+    required: false
+  ipfs-cluster-api-url:
+    description: IPFS Cluster API endpoint URL
+    required: false
+  ipfs-cluster-auth:
+    description: Authorization header value for Cluster API
+    required: false
+  ipfs-gateway-url:
+    description: Public IPFS gateway URL for generating IPFS URLs
+    required: false
+    default: 'https://ipfs.pkgx.dev'
+
+outputs:
+  cid:
+    description: IPFS Content Identifier (CID) for the bottle
+    value: ${{ steps.cid.outputs.cid }}
+  success:
+    description: Whether the upload succeeded ('true' or 'false')
+    value: ${{ steps.upload.outputs.success || 'false' }}
+
+runs:
+  using: composite
+  steps:
+    - name: Generate IPFS CID
+      id: cid
+      shell: bash
+      run: |
+        pkgx ipfs init --profile=lowpower >/dev/null 2>&1
+        CID=$(pkgx ipfs add --only-hash --quieter --cid-version=1 "${{ inputs.bottle-file }}")
+        echo "cid=$CID" >> $GITHUB_OUTPUT
+        echo "$CID" > "${{ inputs.bottle-file }}.cid"
+        echo "Generated CID: $CID"
+      env:
+        IPFS_PATH: /tmp/ipfs-$$
+
+    - name: Upload to IPFS
+      id: upload
+      shell: bash
+      continue-on-error: true
+      run: |
+        if [ "${{ inputs.dry-run }}" = "true" ] || [ -z "${{ inputs.ipfs-api-url }}" ] || [ -z "${{ inputs.ipfs-api-token }}" ]; then
+          echo "success=false" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+
+        echo "Uploading to IPFS..."
+        RESPONSE=$(curl -sS -X POST \
+          -F file=@${{ inputs.bottle-file }} \
+          -H "Authorization: Bearer ${{ inputs.ipfs-api-token }}" \
+          "${{ inputs.ipfs-api-url }}/api/v0/add?cid-version=1&pin=true&quieter=true")
+
+        UPLOAD_CID=$(echo "$RESPONSE" | jq -r .Hash)
+
+        if [ "$UPLOAD_CID" != "${{ steps.cid.outputs.cid }}" ]; then
+          echo "::error::CID mismatch! Expected ${{ steps.cid.outputs.cid }}, got $UPLOAD_CID"
+          echo "success=false" >> $GITHUB_OUTPUT
+          exit 1
+        fi
+
+        echo "Successfully uploaded to IPFS: $UPLOAD_CID"
+        echo "success=true" >> $GITHUB_OUTPUT
+
+    - name: Pin to IPFS Cluster
+      if: ${{ inputs.dry-run != 'true' && inputs.ipfs-cluster-api-url != '' && steps.upload.outcome == 'success' }}
+      shell: bash
+      continue-on-error: true
+      run: |
+        echo "Pinning to IPFS Cluster..."
+
+        AUTH_HEADER=""
+        if [ -n "${{ inputs.ipfs-cluster-auth }}" ]; then
+          AUTH_HEADER="Authorization: Bearer ${{ inputs.ipfs-cluster-auth }}"
+        fi
+
+        HTTP_CODE=$(curl -s -o /tmp/cluster-response.txt -w "%{http_code}" -X POST \
+          -H "Content-Type: application/json" \
+          ${AUTH_HEADER:+-H "$AUTH_HEADER"} \
+          -d '{"cid":"${{ steps.cid.outputs.cid }}","replication_factor_min":1,"replication_factor_max":3}' \
+          "${{ inputs.ipfs-cluster-api-url }}/pins/${{ steps.cid.outputs.cid }}")
+
+        if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+          echo "Pinned to IPFS Cluster (HTTP $HTTP_CODE)"
+        else
+          echo "::warning::IPFS Cluster pinning failed (HTTP $HTTP_CODE): $(cat /tmp/cluster-response.txt)"
+        fi
