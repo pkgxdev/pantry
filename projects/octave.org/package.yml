@@ -83,19 +83,14 @@ build:
       - --enable-shared
       - --disable-static            # smaller bottle
 
-# Octave bakes RPATH at +brewing path; after brewkit renames, liboctmex
-# and friends aren't found. Set LD_LIBRARY_PATH to point at the final
-# octave lib dir for end users.
-runtime:
-  env:
-    LD_LIBRARY_PATH: ${{prefix}}/lib/octave/{{version.raw}}${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
-    DYLD_LIBRARY_PATH: ${{prefix}}/lib/octave/{{version.raw}}${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}
-
 test:
   script:
     - run: |
-        export LD_LIBRARY_PATH="{{prefix}}/lib/octave/{{version.raw}}:$LD_LIBRARY_PATH"
-        export DYLD_LIBRARY_PATH="{{prefix}}/lib/octave/{{version.raw}}:$DYLD_LIBRARY_PATH"
+        # Octave libs live in a non-standard subdir lib/octave/X.Y.Z/ —
+        # add it to LD_LIBRARY_PATH explicitly so the loader finds
+        # liboctmex/liboctinterp at test time.
+        export LD_LIBRARY_PATH="{{prefix}}/lib/octave/{{version.raw}}${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+        export DYLD_LIBRARY_PATH="{{prefix}}/lib/octave/{{version.raw}}${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"
         out=$(octave-cli --version 2>&1 | head -1)
         echo "octave-cli --version: $out"
         case "$out" in
