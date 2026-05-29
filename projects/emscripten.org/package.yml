@@ -54,18 +54,16 @@ build:
         EOF
 
         # emscripten 5.0.x dropped the bare-name entry points in
-        # favor of .py-suffixed Python scripts (emcc.py, em++.py, ...).
-        # Wrap each as a small shell shim that invokes the .py via the
-        # bottle's pinned Python.
+        # favor of .py-suffixed Python scripts. Wrap each as a small
+        # shell shim. Use printf (not heredoc) — un-indented heredoc
+        # bodies break YAML's `|` block-scalar indentation rules.
         mkdir -p "{{prefix}}/bin"
+        PY="{{deps.python.org.prefix}}/bin/python3"
         for tool in emcc em++ emar emranlib emcmake emconfigure emmake emrun; do
           src="{{prefix}}/$tool.py"
           dst="{{prefix}}/bin/$tool"
           if [ -f "$src" ]; then
-            cat > "$dst" <<EOF
-#!/bin/sh
-exec "{{deps.python.org.prefix}}/bin/python3" "$src" "\$@"
-EOF
+            printf '#!/bin/sh\nexec "%s" "%s" "$@"\n' "$PY" "$src" > "$dst"
             chmod 755 "$dst"
           else
             echo "warn: $src does not exist — skipping"
