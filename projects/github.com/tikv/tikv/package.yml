@@ -30,12 +30,26 @@ build:
     gnu.org/automake: '*'
     gnu.org/libtool: '*'
     llvm.org: '*'
+    openssl.org: ^1.1
     linux:
       gnu.org/gcc: '*'
   env:
     PATH: $HOME/.cargo/bin:$PATH
     TIKV_FRAME_POINTER: '0'
     ENABLE_FIPS: '0'
+    # Pin gRPC + openssl-sys at pkgx OpenSSL 1.1.1w. Without this the
+    # build picks up whatever OpenSSL is on the runner's pkg-config
+    # path (Ubuntu 22.04 ships 3.0.x which dropped SSL_get_peer_certificate
+    # from its export table — gRPC's ssl_transport_security.cc fails to
+    # link).
+    OPENSSL_DIR: '{{deps.openssl.org.prefix}}'
+    OPENSSL_LIB_DIR: '{{deps.openssl.org.prefix}}/lib'
+    OPENSSL_INCLUDE_DIR: '{{deps.openssl.org.prefix}}/include'
+    OPENSSL_STATIC: '1'
+    # Tell gRPC's CMake to use the system's openssl (now pinned above)
+    # instead of building its own BoringSSL — which would also miss the
+    # symbol because BoringSSL renamed it.
+    GRPC_SSL_PROVIDER: package
     linux:
       CC: clang
       CXX: clang++
