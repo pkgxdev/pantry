@@ -13,14 +13,14 @@ distributable:
 
 versions:
   github: AppImageCommunity/zsync2
-  # Upstream releases as dated alphas (2.0.0-alpha-1-YYYYMMDD).
-  # Filter to those + transform to a parseable semver.
-  ignore:
-    - /^continuous$/
+  # Upstream releases as `2.0.0-alpha-1-YYYYMMDD` tags + a `continuous`
+  # tag. Transform to a semver-compatible string `2.0.0.YYYYMMDD` so
+  # pkgx parses it cleanly.
   transform: |
     v => {
+      if (v === 'continuous') return undefined;
       const m = v.match(/^2\.0\.0-alpha-1-(\d{8})$/);
-      return m ? `2.0.0-alpha.${m[1]}` : undefined;
+      return m ? `2.0.0.${m[1]}` : undefined;
     }
 
 platforms:
