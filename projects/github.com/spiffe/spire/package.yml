@@ -1,0 +1,38 @@
+distributable:
+  url: https://github.com/spiffe/spire/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: spiffe/spire
+
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+  - darwin/x86-64
+  - darwin/aarch64
+
+build:
+  dependencies:
+    go.dev: '*'
+  script:
+    - run: |
+        for cmd in spire-server spire-agent; do
+          (cd cmd/$cmd && go build -trimpath -ldflags "$GO_LDFLAGS" -o {{prefix}}/bin/$cmd .)
+        done
+  env:
+    CGO_ENABLED: 0
+    GO_LDFLAGS:
+      - -s
+      - -w
+      - -X github.com/spiffe/spire/pkg/common/version.gittag={{version.tag}}
+  skip: fix-patchelf
+
+provides:
+  - bin/spire-server
+  - bin/spire-agent
+
+test:
+  - run: |
+      {{prefix}}/bin/spire-server --version 2>&1 | grep -q {{version.raw}}
+  - run: |
+      {{prefix}}/bin/spire-agent --version 2>&1 | grep -q {{version.raw}}
