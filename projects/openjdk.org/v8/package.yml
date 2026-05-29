@@ -38,6 +38,7 @@ dependencies:
   freedesktop.org/fontconfig: '*'
   linux:
     alsa-project.org/alsa-lib: '*'
+    openprinting.github.io/cups: '*'    # JDK 8 configure requires cups headers
     x.org/x11: '*'
     x.org/exts: '*'
     x.org/xrender: '*'
@@ -102,7 +103,12 @@ build:
       #   --with-native-debug-symbols   → unrecognized
       # Pass only what JDK 8 understands.
       - --prefix={{ prefix }}
-      - --with-boot-jdk=$SRCROOT/boot-jdk
+      # On darwin the Temurin tarball wraps the JDK in
+      # Contents/Home/, so the actual bin/java lives at
+      # $SRCROOT/boot-jdk/Contents/Home/bin/java, not
+      # $SRCROOT/boot-jdk/bin/java. We set $BOOT_JDK_DIR per-platform
+      # above; use it here so configure finds bin/java on both OSes.
+      - --with-boot-jdk=$BOOT_JDK_DIR
       - --with-debug-level=release
       - --with-target-bits=64
       - --with-freetype=system
