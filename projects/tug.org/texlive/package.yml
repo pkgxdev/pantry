@@ -62,8 +62,10 @@ build:
     linux:
       gnu.org/gcc: '*'
 
-  # TeXLive's configure refuses in-source builds — use a build/ subdir.
-  working-directory: build
+  # TeXLive source ships a `build` script at the root (file, not dir),
+  # so `working-directory: build` (which mkdirs build/) collides. Use
+  # a different name for the out-of-source build dir.
+  working-directory: pkgx-build
   script:
     # TeXLive's configure has many sub-projects (each engine has its
     # own). The top-level configure passes through to subdirs.
