@@ -55,9 +55,18 @@ build:
 
         # Symlink the entry points to {{prefix}}/bin/.
         mkdir -p "{{prefix}}/bin"
+        # `[ ... ] && cmd` fails the whole script when [] is false under
+        # set -e — use explicit `if` to keep the iteration going if a
+        # tool doesn't exist (different emscripten releases ship slightly
+        # different sets).
         for tool in emcc em++ emar emranlib emcmake emconfigure emmake emrun; do
-          [ -f "{{prefix}}/$tool" ] && ln -sf "../$tool" "{{prefix}}/bin/$tool"
+          if [ -f "{{prefix}}/$tool" ]; then
+            ln -sf "../$tool" "{{prefix}}/bin/$tool"
+          else
+            echo "warn: $tool not found at {{prefix}}/$tool"
+          fi
         done
+        ls -la "{{prefix}}/bin/" | head -15
 
 test:
   script:
