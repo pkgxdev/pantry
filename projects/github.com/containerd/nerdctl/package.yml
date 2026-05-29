@@ -22,4 +22,8 @@ provides:
   - bin/nerdctl
 
 test:
-  - nerdctl --version | grep "nerdctl version {{version}}"
+  - test -x '{{prefix}}/bin/nerdctl'
+  # `nerdctl --version` and `--help` both initialize a containerd
+  # client and exit non-zero if no socket is reachable. `nerdctl -v`
+  # short-flag prints version then exits cleanly.
+  - "'{{prefix}}/bin/nerdctl' -v 2>&1 | head -1 | grep nerdctl"
