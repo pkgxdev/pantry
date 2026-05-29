@@ -24,10 +24,14 @@ versions:
     }
 
 platforms:
-  # zsync2 src uses linux-only POSIX (st_mtim, statvfs) and explicitly
-  # marks openGzFile() as "TODO: implement for this platform" on darwin.
   - linux/x86-64
   - linux/aarch64
+  # darwin builds via two source patches applied below — see darwin/
+  # script step. Limitation: compressed (.gz) seeds are unsupported on
+  # darwin (fopencookie is glibc-only; we return NULL, which falls back
+  # to fetching all blocks from the server).
+  - darwin/x86-64
+  - darwin/aarch64
 
 dependencies:
   openssl.org: '*'
@@ -46,6 +50,18 @@ build:
 
   working-directory: build
   script:
+    # darwin patches: st_mtim is glibc-only (darwin uses st_mtimespec);
+    # openGzFile() #errors on non-Linux because fopencookie is glibc-only.
+    # Returning NULL on darwin lets zsync fall back to fetching all
+    # blocks when the seed is .gz (uncompressed seeds work normally).
+    - run: |
+        sed -i.bak \
+          -e 's|return fstat\.st_mtim\.tv_sec;|return fstat.st_mtimespec.tv_sec;|' \
+          ../src/zsutil.cpp
+        sed -i.bak \
+          -e 's|#error TODO: implement openGzFile() for this platform!|return NULL;|' \
+          ../src/zsclient.cpp
+      if: darwin
     - cmake .. $ARGS
     - make --jobs {{ hw.concurrency }}
     - make install
