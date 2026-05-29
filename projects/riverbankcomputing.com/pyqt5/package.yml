@@ -6,7 +6,9 @@
 #
 # Closes part of pkgxdev/pantry#99 (Top 300 holdout #591).
 
-distributable: ~
+distributable:
+  url: https://pypi.io/packages/source/P/PyQt5/PyQt5-{{ version.raw }}.tar.gz
+  strip-components: 1
 
 versions:
   url: https://pypi.org/simple/pyqt5/
@@ -38,10 +40,11 @@ build:
       llvm.org: <17
 
   script:
-    # Install PyQt5 into a venv at {{prefix}}/venv. python-venv.sh
-    # is brewkit's helper that creates the venv, pip-installs the
-    # named package, and links a shim binary at {{prefix}}/bin.
-    - python-venv.sh "{{prefix}}/venv/bin/python" PyQt5=={{version}}
+    # python-venv.sh creates a venv at {{prefix}}/venv and pip-installs
+    # the SRCROOT (the extracted PyQt5 source) into it. PyQt5 has
+    # setup.py / pyproject.toml at its tarball root, so this works as
+    # a pip-installable source.
+    - python-venv.sh "{{prefix}}/venv/bin/python"
     # Expose the python binary as a marker so provides: has something.
     - run: |
         mkdir -p {{prefix}}/bin
