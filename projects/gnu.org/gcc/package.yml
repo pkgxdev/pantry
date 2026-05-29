@@ -26,6 +26,16 @@ dependencies:
   gnu.org/mpfr: ">=2.4.0"
   gnu.org/mpc: ">=0.8.0"
   zlib.net: ^1.3
+  linux:
+    # Bottle the libc the compiler can target so end-user invocations
+    # find stdlib.h + crt*.o + libc.so.6 without distro glibc-devel.
+    # See #8423. <2.38 avoids C23 symbol redirects that the host's
+    # older glibc lacks. The thin wrapper in build.script injects
+    # -isystem/-L at user-invocation time (NOT at gcc's own build),
+    # so the bootstrap loop is unaffected. The wrapper no-ops when
+    # CPATH is already set (brewkit build context).
+    gnu.org/glibc: "<2.38"
+    kernel.org/linux-headers: "*"
   darwin/x86-64: # since 15.1.0
     libisl.sourceforge.io: ^0
 
@@ -163,6 +173,48 @@ build:
         - codesign -s - --force libgcc_s.1.dylib
       if: darwin/x86-64
       working-directory: ${{prefix}}/lib
+
+    # Linux libc-wrapper: install a thin shim at bin/<compiler> that
+    # injects -isystem $glibc/include + -L$glibc/lib so end-user
+    # `pkgx gcc test.c` finds stdlib.h + crt*.o + libc.so.6 from the
+    # pkgx-integrated glibc bottle — without needing distro glibc-devel.
+    # The wrapper is INERT when CPATH is already populated (brewkit build
+    # context), so the gcc bootstrap loop is unaffected. See #8423.
+    - run: |
+        mkdir -p {{prefix}}/libexec/gcc-wrap
+        cat > {{prefix}}/libexec/gcc-wrap.sh <<'WRAPPER'
+        #!/bin/sh
+        # pkgx libc-wrapper around the real compiler. Resolves the sibling
+        # gnu.org/glibc bottle relative to its own install path and adds
+        # -isystem/-L only when the caller hasn't already set up CPATH
+        # (i.e. only for naked end-user invocations).
+        self_name=$(basename "$0")
+        case "$self_name" in
+          cc)   target=gcc ;;
+          gc++) target=c++ ;;
+          *)    target="$self_name" ;;
+        esac
+        bindir=$(cd "$(dirname "$0")" && pwd)
+        real="$bindir/../libexec/gcc-wrap/$target"
+        if [ -z "$CPATH" ]; then
+          for d in "$bindir/../../../glibc/v"*; do
+            [ -d "$d/include" ] && libc="$d" && break
+          done
+        fi
+        if [ -n "$libc" ]; then
+          exec "$real" -isystem "$libc/include" -L"$libc/lib" "$@"
+        else
+          exec "$real" "$@"
+        fi
+        WRAPPER
+        chmod +x {{prefix}}/libexec/gcc-wrap.sh
+        cd {{prefix}}/bin
+        for tool in gcc g++ cpp c++ gfortran; do
+          [ -f "$tool" ] && [ ! -L "$tool" ] || continue
+          mv "$tool" ../libexec/gcc-wrap/
+          ln -sf ../libexec/gcc-wrap.sh "$tool"
+        done
+      if: linux
 
   env:
     # Branch from the Darwin maintainer of GCC, with a few generic fixes and
