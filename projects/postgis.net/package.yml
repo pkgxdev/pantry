@@ -41,9 +41,21 @@ build:
 
   script:
     - ./configure $ARGS
-    - make --jobs {{ hw.concurrency }}
-    - make install
+    # postgis's `make all` triggers xsltproc → libxml2 ABI mismatch
+    # against our pantry libxml2 (libxslt expects .so.16 but pantry
+    # ships a different SO version). Build only the bits we need:
+    # libpostgis, raster, topology, tiger_geocoder. Skip `docs`.
+    - make --jobs {{ hw.concurrency }} -C postgis
+    - make --jobs {{ hw.concurrency }} -C raster
+    - make --jobs {{ hw.concurrency }} -C topology
+    - make -C postgis install
+    - make -C raster install
+    - make -C topology install
+    - make -C extensions install
+    - make -C loader install
+    - make -C utils install
   env:
+    XSLTPROC: /bin/false   # belt + braces — disable doc gen path
     ARGS:
       - --prefix={{ prefix }}
       - --with-pgconfig={{deps.postgresql.org.prefix}}/bin/pg_config
