@@ -31,7 +31,10 @@ platforms:
 build:
   dependencies:
     go.dev: ^1.18           # go.mod floor
-    gnu.org/gcc: '*'        # CGO toolchain for RocksDB et al
+    gnu.org/gcc: ^13        # CGO toolchain for RocksDB et al.
+                            # Pin <14 because RocksDB 6.3.6 (vendored)
+                            # uses pre-C++20 idioms that gcc 14+'s
+                            # libstdc++ rejects under the default std mode.
     cmake.org: '*'          # vendored snappy uses cmake
     gnu.org/make: '*'
     gnu.org/coreutils: '*'  # install(1)
