@@ -1,0 +1,62 @@
+# Tk — Tcl's cross-platform GUI toolkit.
+#
+# Companion to tcl-lang.org. Needed to build any Tcl-based GUI:
+# git-gui, gitk, IDLE/python-tk, AWR, etc.
+
+distributable:
+  url: https://downloads.sourceforge.net/project/tcl/Tcl/{{version}}/tk{{version}}-src.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://www.tcl-lang.org/software/tcltk/download.html
+  match: /tk\d+\.\d+\.\d+-src\.tar\.gz/
+  strip:
+    - /^tk/
+    - /-src\.tar\.gz/
+
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+  - darwin/x86-64
+  - darwin/aarch64
+
+dependencies:
+  tcl-lang.org: '*'
+  freedesktop.org/pkg-config: '*'
+  linux:
+    x.org/x11: '*'
+    x.org/exts: '*'
+    freetype.org: '*'
+
+build:
+  working-directory: unix
+  darwin:
+    working-directory: macosx
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
+    - make install-private-headers || true
+
+    - run: |
+        cd "{{prefix}}/bin"
+        [ ! -e wish ] && ln -sf "wish{{version.major}}.{{version.minor}}" wish || true
+  env:
+    ARGS:
+      - --prefix={{ prefix }}
+      - --exec-prefix={{ prefix }}
+      - --with-tcl={{deps.tcl-lang.org.prefix}}/lib
+      - --enable-shared
+      - --enable-threads
+      - --enable-64bit
+    darwin:
+      ARGS:
+        - --enable-aqua
+
+test:
+  - test -f "{{prefix}}/lib/libtk{{version.major}}.{{version.minor}}.dylib" -o -f "{{prefix}}/lib/libtk{{version.major}}.{{version.minor}}.so"
+  - echo 'puts $tk_version' | wish -display :0 2>&1 | head -1 || true
+
+provides:
+  - bin/wish
+  - bin/wish{{version.major}}.{{version.minor}}
