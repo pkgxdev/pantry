@@ -121,11 +121,24 @@ build:
         # split-flag form (--cxxopt=-isystem followed by --cxxopt=PATH)
         # ends up consumed as two unrelated -isystem flags by bazel's
         # build action shuffling and the path doesn't bind.
+        #
+        # Critically, the protobuf/upb code generators are "[for tool]"
+        # actions that build under bazel's EXEC config, not the TARGET
+        # config. --cxxopt/--copt/--linkopt only apply to TARGET; we
+        # need the --host_* variants too, otherwise the host tools get
+        # built without libc++ on the include path and fail with
+        # "'string' file not found" before any target action runs.
         BAZEL_OPTS="$BAZEL_OPTS --cxxopt=-isystem{{deps.llvm.org.prefix}}/include/c++/v1"
+        BAZEL_OPTS="$BAZEL_OPTS --host_cxxopt=-isystem{{deps.llvm.org.prefix}}/include/c++/v1"
+        # Some bazel rules apply --copt to C++ compiles too; mirror.
+        BAZEL_OPTS="$BAZEL_OPTS --copt=-isystem{{deps.llvm.org.prefix}}/include/c++/v1"
+        BAZEL_OPTS="$BAZEL_OPTS --host_copt=-isystem{{deps.llvm.org.prefix}}/include/c++/v1"
         # And the matching rpath/linker hint so the produced binary
         # finds libc++ at runtime against the same bottle.
         BAZEL_OPTS="$BAZEL_OPTS --linkopt=-L{{deps.llvm.org.prefix}}/lib"
         BAZEL_OPTS="$BAZEL_OPTS --linkopt=-Wl,-rpath,{{deps.llvm.org.prefix}}/lib"
+        BAZEL_OPTS="$BAZEL_OPTS --host_linkopt=-L{{deps.llvm.org.prefix}}/lib"
+        BAZEL_OPTS="$BAZEL_OPTS --host_linkopt=-Wl,-rpath,{{deps.llvm.org.prefix}}/lib"
 
         # `envoy-static.stripped` is upstream's stripped release target.
         bazelisk build $BAZEL_OPTS //source/exe:envoy-static.stripped
