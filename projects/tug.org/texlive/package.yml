@@ -80,8 +80,14 @@ build:
     # prefix. Same pattern as R / Octave.
     - run: |
         cd "{{prefix}}"
-        grep -rIl '+brewing' bin texmf-dist texmf-var 2>/dev/null \
-          | xargs -r sed -i 's|+brewing||g'
+        # Engines-only build: texmf-dist / texmf-var aren't installed.
+        # Walk every dir that actually exists. Use `|| true` so an
+        # empty grep result doesn't abort the script under set -e.
+        for d in bin share/texmf-dist share/texmf-var lib; do
+          [ -d "$d" ] || continue
+          grep -rIl '+brewing' "$d" 2>/dev/null \
+            | xargs -r sed -i 's|+brewing||g' || true
+        done
 
   env:
     ARGS:
