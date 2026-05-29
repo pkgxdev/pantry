@@ -26,8 +26,24 @@ dependencies:
   gnu.org/mpfr: ">=2.4.0"
   gnu.org/mpc: ">=0.8.0"
   zlib.net: ^1.3
+  linux:
+    gnu.org/glibc: "*"            # libc headers (stdlib.h, stdio.h, ...) +
+                                  # crt*.o + libc.so.6 for from-source C/C++
+                                  # builds in pkgx-isolated environments
+    kernel.org/linux-headers: "*" # Linux syscall headers for libc consumers
   darwin/x86-64: # since 15.1.0
     libisl.sourceforge.io: ^0
+
+# Expose the bottle's libc headers + libraries via standard env vars
+# so end-user invocations (`pkgx gcc test.c`) find stdlib.h, link
+# against the bottled libc, and resolve crt*.o for C/C++ output —
+# without needing distro `glibc-devel` / `libc6-dev` packages.
+# See pkgxdev/pantry#8423.
+runtime:
+  env:
+    linux:
+      CPATH: ${{deps.gnu.org/glibc.prefix}}/include${CPATH:+:$CPATH}
+      LIBRARY_PATH: ${{deps.gnu.org/glibc.prefix}}/lib${LIBRARY_PATH:+:$LIBRARY_PATH}
 
 build:
   dependencies:
