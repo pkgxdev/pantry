@@ -1,0 +1,52 @@
+# Dex — federated OpenID Connect provider.
+#
+# OIDC/OAuth2 identity provider that drives authentication for many
+# Kubernetes-native systems (argocd, kubectl-oidc, etc.) by federating
+# to upstream IdPs (LDAP, GitHub, Google, SAML, etc.).
+#
+# Pure Go binary — `go install ./cmd/dex` produces bin/dex.
+
+distributable:
+  url: https://github.com/dexidp/dex/archive/refs/tags/v{{ version.raw }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: dexidp/dex
+
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+  - darwin/x86-64
+  - darwin/aarch64
+
+build:
+  dependencies:
+    go.dev: '*'
+    gnu.org/make: '*'
+    gnu.org/coreutils: '*'   # install(1)
+
+  script:
+    # Upstream's Makefile `bin/dex` rule does `go install` which
+    # writes to GOBIN. We build directly with `go build -o` so we
+    # control the output path.
+    - run: |
+        # LDFLAGS injects version + commit. Upstream's Makefile
+        # would compute these from git; here we use the version
+        # template and a stub commit for hermeticity.
+        LDFLAGS="-X main.version=v{{ version.raw }}"
+        go build -trimpath -ldflags "$LDFLAGS" -o bin/dex ./cmd/dex
+
+    - install -Dm755 bin/dex "{{prefix}}/bin/dex"
+
+test:
+  script:
+    - run: |
+        out=$(dex version 2>&1)
+        echo "dex version: $out"
+        case "$out" in
+          *"{{version}}"*) echo "version PASS" ;;
+          *) echo "FAIL: expected {{version}}, got: $out"; exit 1 ;;
+        esac
+
+provides:
+  - bin/dex
