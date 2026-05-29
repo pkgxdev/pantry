@@ -1,0 +1,74 @@
+# android-tools — standalone adb, fastboot, mkbootimg, et al.
+#
+# Upstream's adb/fastboot/mkbootimg are built as part of the full AOSP
+# tree (Soong/Blueprint). This repo by @nmeum extracts the relevant
+# AOSP source pieces and provides a standalone CMake-based build —
+# the same setup used by Debian, Fedora, Alpine and Arch to package
+# `android-tools-adb`.
+#
+# Provides adb (Android Debug Bridge), fastboot, mkbootimg/repack/unpack,
+# simg2img/img2simg/ext2simg, avbtool. Closes the lookup gap when
+# users `pkgx adb` (referenced by scrcpy in pkgxdev/pantry#7071).
+
+distributable:
+  # The release tarball bundles all the AOSP subdirectories that
+  # the CMake build needs — much easier than fetching them ourselves.
+  url: https://github.com/nmeum/android-tools/releases/download/{{ version.raw }}/android-tools-{{ version.raw }}.tar.xz
+  strip-components: 1
+
+versions:
+  github: nmeum/android-tools
+
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+  - darwin/x86-64
+  - darwin/aarch64
+
+dependencies:
+  libusb.info: '*'
+  pcre.org/v2: '*'
+  protobuf.dev: '*'
+  github.com/google/brotli: '*'
+  facebook.com/zstd: '*'
+  lz4.org: '*'
+
+build:
+  dependencies:
+    cmake.org: ^3
+    gnu.org/make: '*'
+    go.dev: '*'
+    perl.org: '*'
+    freedesktop.org/pkg-config: '*'
+    linux:
+      gnu.org/gcc: '>=10'
+
+  working-directory: build
+  script:
+    - cmake .. $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
+  env:
+    ARGS:
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DANDROID_TOOLS_USE_BUNDLED_FMT=ON  # libfmt vendored — keep it
+      - -DBUILD_TESTING=OFF
+
+provides:
+  - bin/adb            # Android Debug Bridge — the headline binary
+  - bin/fastboot       # bootloader interface
+  - bin/mkbootimg      # build boot.img from kernel + ramdisk
+  - bin/unpack_bootimg
+  - bin/repack_bootimg
+  - bin/simg2img       # sparse image → ext4 image
+  - bin/img2simg       # ext4 image → sparse image
+  - bin/ext2simg
+  - bin/avbtool        # Android Verified Boot signing
+  - bin/lpdump
+  - bin/lpmake
+  - bin/lpunpack
+
+test:
+  - adb --version 2>&1 | head -1 | grep -i "adb"
+  - fastboot --version 2>&1 | head -1 | grep -i "fastboot"
