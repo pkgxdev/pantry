@@ -1,0 +1,44 @@
+# OpenTelemetry Collector — vendor-agnostic telemetry pipeline (CNCF graduated).
+#
+# We build from open-telemetry/opentelemetry-collector-releases (not the
+# library repo of the same name): that's where the user-facing `otelcol`
+# distribution lives. The releases repo uses the OpenTelemetry Collector
+# Builder (OCB) to assemble + compile a binary from a pinned manifest
+# (distributions/otelcol/manifest.yaml), so we install OCB then run it.
+
+distributable:
+  url: https://github.com/open-telemetry/opentelemetry-collector-releases/archive/refs/tags/v{{ version.raw }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: open-telemetry/opentelemetry-collector-releases
+
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+  - darwin/x86-64
+  - darwin/aarch64
+
+build:
+  dependencies:
+    go.dev: '*'
+    gnu.org/coreutils: '*'
+
+  script:
+    - run: |
+        export CGO_ENABLED=0
+        export GOBIN="$PWD/.gobin"
+        mkdir -p "$GOBIN"
+        go install -trimpath -ldflags='-s -w' \
+          go.opentelemetry.io/collector/cmd/builder@v{{ version.raw }}
+        ( cd distributions/otelcol && "$GOBIN/builder" --config manifest.yaml )
+        install -Dm755 distributions/otelcol/_build/otelcol \
+          "{{prefix}}/bin/otelcol"
+
+  skip: fix-patchelf
+
+test:
+  - otelcol --version 2>&1 | grep -q {{ version.raw }}
+
+provides:
+  - bin/otelcol
