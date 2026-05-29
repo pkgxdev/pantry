@@ -83,9 +83,19 @@ build:
       - --enable-shared
       - --disable-static            # smaller bottle
 
+# Octave bakes RPATH at +brewing path; after brewkit renames, liboctmex
+# and friends aren't found. Set LD_LIBRARY_PATH to point at the final
+# octave lib dir for end users.
+runtime:
+  env:
+    LD_LIBRARY_PATH: ${{prefix}}/lib/octave/{{version.raw}}${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
+    DYLD_LIBRARY_PATH: ${{prefix}}/lib/octave/{{version.raw}}${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}
+
 test:
   script:
     - run: |
+        export LD_LIBRARY_PATH="{{prefix}}/lib/octave/{{version.raw}}:$LD_LIBRARY_PATH"
+        export DYLD_LIBRARY_PATH="{{prefix}}/lib/octave/{{version.raw}}:$DYLD_LIBRARY_PATH"
         out=$(octave-cli --version 2>&1 | head -1)
         echo "octave-cli --version: $out"
         case "$out" in
@@ -93,8 +103,8 @@ test:
           *) echo "FAIL: expected {{version}}, got: $out"; exit 1 ;;
         esac
     - run: |
-        # Quick interpreter smoke test — eval a simple expression
-        # via `--eval` and check the output.
+        export LD_LIBRARY_PATH="{{prefix}}/lib/octave/{{version.raw}}:$LD_LIBRARY_PATH"
+        export DYLD_LIBRARY_PATH="{{prefix}}/lib/octave/{{version.raw}}:$DYLD_LIBRARY_PATH"
         out=$(octave-cli --no-gui --quiet --eval 'printf("%d\n", 6*7)' 2>&1 | tail -1)
         echo "octave eval 6*7: $out"
         test "$out" = "42" || { echo "FAIL: expected 42, got: $out"; exit 1; }
