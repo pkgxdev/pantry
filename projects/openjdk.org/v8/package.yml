@@ -67,8 +67,13 @@ build:
           darwin-x86-64)  ARCH=x64_mac ;;
           darwin-aarch64) ARCH=aarch64_mac ;;
         esac
-        BOOT=jdk8u492-b09
-        URL="https://github.com/adoptium/temurin8-binaries/releases/download/${BOOT}/OpenJDK8U-jdk_${ARCH}_hotspot_${BOOT/-/}.tar.gz"
+        # Temurin tag is `jdk8u492-b09`; the tarball filename uses
+        # the stripped form `8u492b09` (no `jdk` prefix, no dash).
+        BOOT_TAG=jdk8u492-b09
+        BOOT_FILE=${BOOT_TAG#jdk}
+        BOOT_FILE=${BOOT_FILE/-/}
+        URL="https://github.com/adoptium/temurin8-binaries/releases/download/${BOOT_TAG}/OpenJDK8U-jdk_${ARCH}_hotspot_${BOOT_FILE}.tar.gz"
+        echo "fetching boot JDK from: $URL"
         wget -q "$URL" -O - | tar xz -C . --strip-components=1
       working-directory: boot-jdk
 
