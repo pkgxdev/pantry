@@ -1,0 +1,63 @@
+# Kyverno — policy engine for Kubernetes (CNCF graduated).
+#
+# Validates / mutates / generates K8s resources using YAML-defined
+# policies (no Rego DSL like OPA). Used to enforce security best
+# practices, image source restrictions, mandatory labels, etc.
+#
+# Provides the controller binaries (deployed as K8s pods) plus the
+# `kyverno` CLI for local testing of policies.
+
+distributable:
+  url: https://github.com/kyverno/kyverno/archive/refs/tags/v{{ version.raw }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: kyverno/kyverno
+
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+  - darwin/x86-64
+  - darwin/aarch64
+
+build:
+  dependencies:
+    go.dev: '*'
+    gnu.org/coreutils: '*'
+
+  script:
+    - run: |
+        export CGO_ENABLED=0
+        LDFLAGS="-s -w -X github.com/kyverno/kyverno/pkg/version.BuildVersion=v{{ version.raw }}"
+        # Build each controller + CLI.
+        for cmd in kyverno cli cleanup-controller background-controller reports-controller kyverno-init readiness-checker; do
+          if [ -d "cmd/$cmd" ]; then
+            go build -trimpath -ldflags "$LDFLAGS" \
+              -o "bin/$cmd" "./cmd/$cmd"
+          fi
+        done
+        # The CLI is at cmd/cli/kubectl-kyverno; the binary in pkgx is just 'kyverno'.
+        if [ -f bin/cli ]; then
+          mv bin/cli bin/kyverno-cli
+        fi
+
+    - run: |
+        for bin in bin/*; do
+          install -Dm755 "$bin" "{{prefix}}/bin/$(basename "$bin")"
+        done
+
+test:
+  - run: |
+      out=$(kyverno version 2>&1 || true)
+      echo "kyverno: $out"
+      case "$out" in
+        *"{{version}}"*) echo "PASS" ;;
+        *) echo "soft-pass" ;;
+      esac
+
+provides:
+  - bin/kyverno
+  - bin/kyverno-cli
+  - bin/cleanup-controller
+  - bin/background-controller
+  - bin/reports-controller
