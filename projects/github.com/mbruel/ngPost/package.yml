@@ -31,12 +31,13 @@ build:
   - sed -i 's|^CONFIG  *+= *use_hmi|#&|' src/ngPost.pro
 
   - run: 
-    working-directory: src
     - qmake ngPost.pro
     - make --jobs {{ hw.concurrency }}
     # CWD propagates between script items in brewkit — keep the
     # install in the same block so `ngPost` resolves correctly.
     - install -Dm755 ngPost "{{prefix}}/bin/ngPost"
+    working-directory: src
+
   - install -Dm644 ngPost.conf "{{prefix}}/share/ngPost/ngPost.conf.sample"
 
 
