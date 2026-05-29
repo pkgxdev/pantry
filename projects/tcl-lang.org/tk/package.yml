@@ -42,16 +42,15 @@ build:
         cd "{{prefix}}/bin"
         [ ! -e wish ] && ln -sf "wish{{version.major}}.{{version.minor}}" wish || true
   env:
-    # Tk needs tcl.h at compile time. CPATH from the tcl-lang.org dep
-    # doesn't cover it because tcl headers live in $prefix/include
-    # (which IS on CPATH) — but Tk's configure also needs to know the
-    # path explicitly for some macro tests. Belt + braces.
-    CPPFLAGS: -I{{deps.tcl-lang.org.prefix}}/include/tcl-tk
+    # tcl.h's install path varies by Tcl version: 8.6 puts it at
+    # $prefix/include/tcl-tk/tcl.h, 9.0 at $prefix/include/tcl.h.
+    # Cover both with multiple -I flags.
+    CPPFLAGS: -I{{deps.tcl-lang.org.prefix}}/include -I{{deps.tcl-lang.org.prefix}}/include/tcl-tk
     ARGS:
       - --prefix={{ prefix }}
       - --exec-prefix={{ prefix }}
       - --with-tcl={{deps.tcl-lang.org.prefix}}/lib
-      - --with-tclinclude={{deps.tcl-lang.org.prefix}}/include/tcl-tk
+      - --with-tclinclude={{deps.tcl-lang.org.prefix}}/include
       - --enable-shared
       - --enable-threads
       - --enable-64bit
