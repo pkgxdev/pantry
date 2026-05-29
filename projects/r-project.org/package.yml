@@ -51,6 +51,15 @@ build:
     - make -j {{ hw.concurrency }}
     - make install
 
+    # R bakes the configure-time prefix into bin/R, Renviron, ldpaths,
+    # Makeconf. brewkit builds in `{{prefix}}+brewing` then renames to
+    # `{{prefix}}` after install — strip the +brewing suffix from the
+    # baked-in paths so the bottle is relocation-safe.
+    - run: |
+        cd "{{prefix}}"
+        grep -rIl '+brewing' bin lib/R/etc 2>/dev/null \
+          | xargs -r sed -i 's|+brewing||g'
+
   env:
     ARGS:
       - --prefix={{ prefix }}
