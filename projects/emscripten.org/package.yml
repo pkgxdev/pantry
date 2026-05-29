@@ -53,17 +53,22 @@ build:
         JS_ENGINES = [NODE_JS]
         EOF
 
-        # Symlink the entry points to {{prefix}}/bin/.
+        # emscripten 5.0.x dropped the bare-name entry points in
+        # favor of .py-suffixed Python scripts (emcc.py, em++.py, ...).
+        # Wrap each as a small shell shim that invokes the .py via the
+        # bottle's pinned Python.
         mkdir -p "{{prefix}}/bin"
-        # `[ ... ] && cmd` fails the whole script when [] is false under
-        # set -e — use explicit `if` to keep the iteration going if a
-        # tool doesn't exist (different emscripten releases ship slightly
-        # different sets).
         for tool in emcc em++ emar emranlib emcmake emconfigure emmake emrun; do
-          if [ -f "{{prefix}}/$tool" ]; then
-            ln -sf "../$tool" "{{prefix}}/bin/$tool"
+          src="{{prefix}}/$tool.py"
+          dst="{{prefix}}/bin/$tool"
+          if [ -f "$src" ]; then
+            cat > "$dst" <<EOF
+#!/bin/sh
+exec "{{deps.python.org.prefix}}/bin/python3" "$src" "\$@"
+EOF
+            chmod 755 "$dst"
           else
-            echo "warn: $tool not found at {{prefix}}/$tool"
+            echo "warn: $src does not exist — skipping"
           fi
         done
         ls -la "{{prefix}}/bin/" | head -15
