@@ -65,10 +65,9 @@ build:
         for T in x86_64-w64-mingw32 aarch64-w64-mingw32; do
           echo "══════ building mingw-w64 for $T ══════"
 
-          export CC="clang --target=$T"
-          export CXX="clang++ --target=$T"
-
-          # 1) Headers — install-only.
+          # 1) Headers FIRST — no CC dependency, just installs .h files.
+          # CRT/winpthreads configure scripts then probe <windows.h> via
+          # CC so headers must exist before --sysroot points at them.
           (
             mkdir -p build-headers-$T
             cd build-headers-$T
@@ -78,6 +77,11 @@ build:
               --enable-secure-api
             make install
           )
+
+          # Now headers exist at {{prefix}}/$T/include — point clang there
+          # via --sysroot. Matches what llvm-mingw upstream does.
+          export CC="clang --target=$T --sysroot={{prefix}}/$T"
+          export CXX="clang++ --target=$T --sysroot={{prefix}}/$T"
 
           # 2) CRT — the actual C runtime.
           (
