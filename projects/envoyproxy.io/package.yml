@@ -51,6 +51,25 @@ build:
           bazel/repo.bzl
         grep -A1 'which("yq")' bazel/repo.bzl | head -5
 
+    # envoy's `dynamic_modules.bzl:envoy_dynamic_module_prefix_symbols`
+    # hardcodes `@llvm_toolchain_llvm//:objcopy` in the genrule that
+    # renames dynamic-module symbols. When BAZEL_LLVM_PATH is set,
+    # envoy doesn't register the @llvm_toolchain_llvm http_archive,
+    # so the genrule fails analysis:
+    #
+    #   no such package '@@llvm_toolchain_llvm//': not defined and
+    #   referenced by 'source/extensions/dynamic_modules/builtin_extensions:_hickory_dns_static_renamed'
+    #
+    # Patch the .bzl to use the llvm-objcopy from pkgx's llvm.org
+    # (full path so bazel's action sandbox can find it without PATH
+    # access).
+    - run: |
+        sed -i \
+          -e "s|\\$(location @llvm_toolchain_llvm//:objcopy)|{{deps.llvm.org.prefix}}/bin/llvm-objcopy|g" \
+          -e 's|tools = \["@llvm_toolchain_llvm//:objcopy"\],|tools = [],|g' \
+          source/extensions/dynamic_modules/dynamic_modules.bzl
+        grep -A 3 "llvm-objcopy" source/extensions/dynamic_modules/dynamic_modules.bzl | head -6
+
     # Use the release config: -c opt + stripped + minimal symbols.
     # `bazelisk` here is the canonical entry point — it reads
     # `.bazelversion` from the source tree and downloads the right
