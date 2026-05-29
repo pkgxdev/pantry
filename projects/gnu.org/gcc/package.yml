@@ -200,7 +200,19 @@ build:
           done
         fi
         if [ -n "$libc" ]; then
-          exec "$real" -isystem "$libc/include" -L"$libc/lib" "$@"
+          # Pin the pkgx ld-linux as the binary's ELF interpreter and
+          # rpath the libc dir, so the produced binary is consistent
+          # end-to-end (compile / link / load all against pkgx glibc).
+          # Without this, the binary would carry the host's interp path
+          # in PT_INTERP and the kernel would load host ld-linux at
+          # exec time, mixing libc versions.
+          ldso=$(ls "$libc"/lib/ld-linux*.so.* 2>/dev/null | head -n1)
+          exec "$real" \
+            -isystem "$libc/include" \
+            -L"$libc/lib" \
+            ${ldso:+-Wl,--dynamic-linker="$ldso"} \
+            -Wl,-rpath,"$libc/lib" \
+            "$@"
         else
           exec "$real" "$@"
         fi
