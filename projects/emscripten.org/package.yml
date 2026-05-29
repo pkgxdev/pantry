@@ -47,11 +47,13 @@ build:
         cat > "{{prefix}}/.emscripten" <<EOF
         LLVM_ROOT = "${{deps.llvm.org.prefix}}/bin"
         NODE_JS = "${{deps.nodejs.org.prefix}}/bin/node"
-        BINARYEN_ROOT = ""
         EMSCRIPTEN_ROOT = "${{prefix}}"
         COMPILER_ENGINE = NODE_JS
         JS_ENGINES = [NODE_JS]
         EOF
+        # Note: BINARYEN_ROOT intentionally not set. emscripten falls
+        # back to using wasm-opt from LLVM_ROOT/bin when not specified;
+        # pantry's llvm.org ships wasm-opt as part of the LLVM bundle.
 
         # emscripten 5.0.x dropped the bare-name entry points in
         # favor of .py-suffixed Python scripts. Wrap each as a small
