@@ -70,10 +70,19 @@ test:
   script:
     - run: 'test "$(tdnf --version)" = "tdnf: {{version}}"'
     - run: |
-        # Seed a Rocky BaseOS repo file — pkgx runners have no
-        # /etc/yum.repos.d (no system tdnf install). Pass our local
-        # dir via --setopt=reposdir so tdnf finds the .repo.
+        # Seed tdnf.conf + Rocky BaseOS repo file — pkgx runners have
+        # neither /etc/tdnf/tdnf.conf nor /etc/yum.repos.d (no system
+        # tdnf install). Without the conf, tdnf returns error 1602
+        # (CONF_FILE_LOAD). Pass both via --config + --setopt=reposdir.
         mkdir -p "$PWD/yum.repos.d"
+        cat > "$PWD/tdnf.conf" <<'CONF'
+        [main]
+        gpgcheck=0
+        installonly_limit=3
+        clean_requirements_on_remove=true
+        best=true
+        keepcache=false
+        CONF
         cat > "$PWD/yum.repos.d/rocky.repo" <<'REPO'
         [rocky-baseos]
         name=Rocky Linux $releasever BaseOS
@@ -87,6 +96,7 @@ test:
           aarch64) ARCH=aarch64 ;;
         esac
         tdnf \
+          --config="$PWD/tdnf.conf" \
           --setopt=reposdir="$PWD/yum.repos.d" \
           install \
           --installroot="$PWD/${ROOTFS}" \
