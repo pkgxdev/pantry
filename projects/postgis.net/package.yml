@@ -48,12 +48,23 @@ build:
     - make --jobs {{ hw.concurrency }} -C postgis
     - make --jobs {{ hw.concurrency }} -C raster
     - make --jobs {{ hw.concurrency }} -C topology
-    - make -C postgis install
-    - make -C raster install
-    - make -C topology install
-    - make -C extensions install
-    - make -C loader install
-    - make -C utils install
+    # PostGIS's `make install` calls pg_config to discover where the
+    # extension files go: pkglibdir / datadir / docdir all point inside
+    # the postgresql.org bottle, which is read-only at our build time.
+    # Override every install-time path to the postgis prefix, then add
+    # a runtime.env so PostgreSQL picks them up via its dynamic
+    # extension-search-path machinery (extension_control_path, PG 18+).
+    - run: |
+        export PG_PKGLIBDIR="{{prefix}}/lib"
+        export PG_DOCDIR="{{prefix}}/share/doc"
+        export PG_SHAREDIR="{{prefix}}/share/postgresql/extension"
+        OVERRIDES="pkglibdir=$PG_PKGLIBDIR \
+                   docdir=$PG_DOCDIR \
+                   datadir=$PG_SHAREDIR \
+                   PG_SHAREDIR=$PG_SHAREDIR"
+        for sub in postgis raster topology extensions loader utils; do
+          make -C $sub install $OVERRIDES
+        done
   env:
     XSLTPROC: /bin/false   # belt + braces — disable doc gen path
     ARGS:
@@ -64,6 +75,14 @@ build:
       - --with-gdalconfig={{deps.gdal.org.prefix}}/bin/gdal-config
       - --without-protobuf  # protobuf-c needed separately; skip for slim
       - --disable-nls       # save build time
+
+runtime:
+  env:
+    # PG 18 supports per-session extension_control_path; for older
+    # PG, users symlink the .control + .sql files into
+    # $(pg_config --sharedir)/extension/ themselves.
+    EXTENSION_CONTROL_PATH: '{{prefix}}/share/postgresql/extension:$EXTENSION_CONTROL_PATH'
+    DYNAMIC_LIBRARY_PATH: '{{prefix}}/lib:$DYNAMIC_LIBRARY_PATH'
 
 provides:
   - bin/pgsql2shp
