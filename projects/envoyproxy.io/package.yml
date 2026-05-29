@@ -89,15 +89,37 @@ build:
         export BAZEL_LLVM_PATH="{{deps.llvm.org.prefix}}"
         echo "BAZEL_LLVM_PATH=$BAZEL_LLVM_PATH"
 
+        # The bazel-rules-cc llvm toolchain uses libstdc++ by default
+        # on Linux, but the pkgx llvm bottle ships only libc++ (no
+        # libstdc++ — that comes from gcc). Without an override, clang
+        # fails with "'string' file not found" on the first C++ source.
+        #
+        # Nix's nixpkgs envoy build sidesteps this by using gcc with
+        # its hermetic cc-wrapper, but envoy dropped gcc support in
+        # 1.21+. So we force libc++ explicitly via envoy's --config:
+        BAZEL_OPTS="--config=libc++"
+
         # Memory-constrain bazel to fit on standard CI runners.
         # `--local_resources` units: cpu=count, ram=MB.
-        BAZEL_OPTS="-c opt"
+        BAZEL_OPTS="$BAZEL_OPTS -c opt"
         BAZEL_OPTS="$BAZEL_OPTS --jobs=HOST_CPUS*0.5"
         BAZEL_OPTS="$BAZEL_OPTS --local_ram_resources=HOST_RAM*0.7"
         # Tarball install has no .git, so envoy's workspace_status.sh
         # fails at `git rev-parse`. Stub workspace status with `true`
         # — we don't need stamping for a from-source release build.
         BAZEL_OPTS="$BAZEL_OPTS --workspace_status_command=true"
+
+        # libc++ headers live at {{deps.llvm.org.prefix}}/include/c++/v1.
+        # Clang's relative auto-detection from BAZEL_LLVM_PATH/bin/clang
+        # usually finds them, but bazel's cc_wrapper.sh adds -nostdinc++
+        # by default with --config=libc++; we re-add the include path so
+        # <string>, <vector>, etc. resolve.
+        BAZEL_OPTS="$BAZEL_OPTS --cxxopt=-isystem"
+        BAZEL_OPTS="$BAZEL_OPTS --cxxopt={{deps.llvm.org.prefix}}/include/c++/v1"
+        # And the matching rpath/linker hint so the produced binary
+        # finds libc++ at runtime against the same bottle.
+        BAZEL_OPTS="$BAZEL_OPTS --linkopt=-L{{deps.llvm.org.prefix}}/lib"
+        BAZEL_OPTS="$BAZEL_OPTS --linkopt=-Wl,-rpath,{{deps.llvm.org.prefix}}/lib"
 
         # `envoy-static.stripped` is upstream's stripped release target.
         bazelisk build $BAZEL_OPTS //source/exe:envoy-static.stripped
