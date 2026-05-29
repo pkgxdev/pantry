@@ -1,0 +1,49 @@
+# external-secrets — sync secrets from external stores (CNCF graduated).
+#
+# Pulls secret values from Vault, AWS Secrets Manager, GCP Secret
+# Manager, Azure Key Vault, etc. and syncs them as native K8s Secrets.
+# CNCF graduated — the standard way to keep K8s secrets out of git.
+
+distributable:
+  url: https://github.com/external-secrets/external-secrets/archive/refs/tags/v{{ version.raw }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: external-secrets/external-secrets
+
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+  - darwin/x86-64
+  - darwin/aarch64
+
+build:
+  dependencies:
+    go.dev: '*'
+    gnu.org/coreutils: '*'
+
+  script:
+    - run: |
+        export CGO_ENABLED=0
+        LDFLAGS="-s -w -X github.com/external-secrets/external-secrets/pkg/version.Version=v{{ version.raw }}"
+        for cmd in controller esoctl; do
+          if [ -d "cmd/$cmd" ]; then
+            go build -trimpath -ldflags "$LDFLAGS" \
+              -o "bin/$cmd" "./cmd/$cmd"
+          fi
+        done
+        # Rename `controller` → `external-secrets` and `esoctl` keeps name
+        [ -f bin/controller ] && mv bin/controller bin/external-secrets
+
+    - run: |
+        for bin in bin/*; do
+          install -Dm755 "$bin" "{{prefix}}/bin/$(basename "$bin")"
+        done
+
+test:
+  - test -x "{{prefix}}/bin/external-secrets"
+  - test -x "{{prefix}}/bin/esoctl"
+
+provides:
+  - bin/external-secrets
+  - bin/esoctl
