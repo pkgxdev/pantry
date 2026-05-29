@@ -14,9 +14,12 @@
 # bundles ~600MB of C/C++ source for ~50 engines + tools.
 
 distributable:
-  # version format is YYYYMMDD (TeXLive's release date). The directory
-  # is named by the year, the file by the full date.
-  url: https://ftp.math.utah.edu/pub/tex/historic/systems/texlive/{{ version.major }}/texlive-{{ version.raw }}-source.tar.xz
+  # TeXLive releases annually; tarball filename is YYYYMMDD but the
+  # archive directory is just YYYY (e.g. 2026/). pkgx templating
+  # exposes {{ version.major }} which for an 8-digit version returns
+  # the whole `20260301` rather than the year — no year-only field
+  # exists. Hardcode the year and bump on next annual release.
+  url: https://ftp.math.utah.edu/pub/tex/historic/systems/texlive/2026/texlive-{{ version.raw }}-source.tar.xz
   strip-components: 1
 
 versions:
