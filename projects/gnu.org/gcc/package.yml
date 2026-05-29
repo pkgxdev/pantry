@@ -208,10 +208,18 @@ build:
         mkdir -p {{prefix}}/libexec/gcc-wrap
         cat > {{prefix}}/libexec/gcc-wrap.sh <<'WRAPPER'
         #!/bin/sh
-        # pkgx libc-wrapper around the real compiler. Resolves the sibling
-        # gnu.org/glibc bottle relative to its own install path and adds
-        # -isystem/-L only when the caller hasn't already set up CPATH
-        # (i.e. only for naked end-user invocations).
+        # pkgx libc-wrapper modeled on Nix's cc-wrapper. Activates only
+        # when a sibling pkgx glibc bottle is present and CPATH is unset
+        # (i.e. naked end-user invocations like `pkgx +gnu.org/gcc
+        # +gnu.org/glibc gcc test.c`). Otherwise no-ops.
+        #
+        # When active:
+        #   -nostdinc          drop host /usr/include from search path
+        #   -isystem $gcc/...  re-add gcc's own builtin headers
+        #   -isystem $glibc/   add pkgx glibc headers (replaces host)
+        #   -L $glibc/lib      link against pkgx libc + crt*.o
+        #   --dynamic-linker   bake pkgx ld-linux into PT_INTERP
+        #   -rpath $glibc/lib  resolve dyn libs without LD_LIBRARY_PATH
         self_name=$(basename "$0")
         # Strip any Debian multi-arch triplet prefix so the triplet-named
         # symlinks from #13083 (x86_64-linux-gnu-gcc -> gcc -> this wrapper)
@@ -223,29 +231,45 @@ build:
           *)    target="$base" ;;
         esac
         bindir=$(cd "$(dirname "$0")" && pwd)
-        real="$bindir/../libexec/gcc-wrap/$target"
+        gcc_root="$bindir/.."
+        real="$gcc_root/libexec/gcc-wrap/$target"
         if [ -z "$CPATH" ]; then
           for d in "$bindir/../../../glibc/v"*; do
             [ -d "$d/include" ] && libc="$d" && break
           done
         fi
-        if [ -n "$libc" ]; then
-          # Pin the pkgx ld-linux as the binary's ELF interpreter and
-          # rpath the libc dir, so the produced binary is consistent
-          # end-to-end (compile / link / load all against pkgx glibc).
-          # Without this, the binary would carry the host's interp path
-          # in PT_INTERP and the kernel would load host ld-linux at
-          # exec time, mixing libc versions.
-          ldso=$(ls "$libc"/lib/ld-linux*.so.* 2>/dev/null | head -n1)
-          exec "$real" \
-            -isystem "$libc/include" \
-            -L"$libc/lib" \
-            ${ldso:+-Wl,--dynamic-linker="$ldso"} \
-            -Wl,-rpath,"$libc/lib" \
-            "$@"
-        else
+        if [ -z "$libc" ]; then
           exec "$real" "$@"
         fi
+        # Find gcc's own builtin headers (triplet + version glob)
+        for inc in "$gcc_root"/lib/gcc/*/*/include; do
+          [ -d "$inc" ] && gcc_inc="$inc" && gcc_inc_fixed="${inc}-fixed" && break
+        done
+        # For C++ tools, also re-add libstdc++ headers via -isystem
+        case "$target" in
+          g++|c++)
+            cxx_flag=-nostdinc++
+            for cxx_inc in "$gcc_root"/include/c++/*; do
+              [ -d "$cxx_inc" ] && gcc_cxx_inc="$cxx_inc" && break
+            done
+            for cxx_arch_inc in "$gcc_cxx_inc"/*-linux-gnu; do
+              [ -d "$cxx_arch_inc" ] && gcc_cxx_arch_inc="$cxx_arch_inc" && break
+            done
+            ;;
+          *) cxx_flag= ;;
+        esac
+        ldso=$(ls "$libc"/lib/ld-linux*.so.* 2>/dev/null | head -n1)
+        exec "$real" \
+          -nostdinc $cxx_flag \
+          ${gcc_inc:+-isystem "$gcc_inc"} \
+          ${gcc_inc_fixed:+-isystem "$gcc_inc_fixed"} \
+          ${gcc_cxx_inc:+-isystem "$gcc_cxx_inc"} \
+          ${gcc_cxx_arch_inc:+-isystem "$gcc_cxx_arch_inc"} \
+          -isystem "$libc/include" \
+          -L"$libc/lib" \
+          ${ldso:+-Wl,--dynamic-linker="$ldso"} \
+          -Wl,-rpath,"$libc/lib" \
+          "$@"
         WRAPPER
         chmod +x {{prefix}}/libexec/gcc-wrap.sh
         cd {{prefix}}/bin
