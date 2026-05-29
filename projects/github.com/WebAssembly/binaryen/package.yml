@@ -38,6 +38,13 @@ build:
       - -DCMAKE_BUILD_TYPE=Release
       - -DBUILD_TESTS=OFF
       - -DBUILD_LLVM_DWARF=OFF
+      # binaryen 119+ uses std::set::contains / std::map::contains
+      # (added in C++20). Default CMake target is C++17, so the
+      # build fails at src/ir/effects.h with
+      #   error: no member named 'contains' in 'std::set<wasm::Name>'
+      # Force C++20 explicitly.
+      - -DCMAKE_CXX_STANDARD=20
+      - -DCMAKE_CXX_STANDARD_REQUIRED=ON
 
 provides:
   - bin/wasm-opt
