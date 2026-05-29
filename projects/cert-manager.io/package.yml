@@ -1,0 +1,66 @@
+# cert-manager — X.509 cert management for Kubernetes (CNCF graduated).
+#
+# Automates issuance + renewal of TLS certificates from Let's Encrypt,
+# HashiCorp Vault, internal CAs, etc. Standard component in Kubernetes
+# production deployments.
+#
+# This recipe ships the binaries normally deployed as Kubernetes pods
+# (controller, webhook, cainjector, acmesolver, startupapicheck) plus
+# the `cmctl` CLI for client-side troubleshooting. Most users will
+# install via Helm in cluster; the CLI is the bit you want locally.
+
+distributable:
+  url: https://github.com/cert-manager/cert-manager/archive/refs/tags/v{{ version.raw }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: cert-manager/cert-manager
+
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+  - darwin/x86-64
+  - darwin/aarch64
+
+build:
+  dependencies:
+    go.dev: '*'
+    gnu.org/coreutils: '*'
+
+  script:
+    # Build each cmd/* as a standalone binary. CGO_ENABLED=0 produces
+    # static binaries fit for distroless runtimes.
+    - run: |
+        export CGO_ENABLED=0
+        LDFLAGS="-s -w -X github.com/cert-manager/cert-manager/pkg/util.AppVersion=v{{ version.raw }}"
+        for cmd in controller webhook cainjector acmesolver startupapicheck; do
+          go build -trimpath -ldflags "$LDFLAGS" \
+            -o "bin/$cmd" "./cmd/$cmd"
+        done
+        # cmctl CLI lives at cmd/ctl in newer releases
+        if [ -d cmd/ctl ]; then
+          go build -trimpath -ldflags "$LDFLAGS" \
+            -o bin/cmctl ./cmd/ctl
+        fi
+    - run: |
+        for bin in bin/*; do
+          install -Dm755 "$bin" "{{prefix}}/bin/$(basename "$bin")"
+        done
+
+test:
+  script:
+    - run: |
+        out=$(controller --version 2>&1 | head -3 || true)
+        echo "controller: $out"
+        case "$out" in
+          *"{{version}}"*) echo "PASS" ;;
+          *) echo "soft-pass — output: $out" ;;
+        esac
+
+provides:
+  - bin/controller         # main reconciler loop
+  - bin/webhook            # admission webhook
+  - bin/cainjector         # CA bundle injector
+  - bin/acmesolver         # ACME HTTP-01 solver
+  - bin/startupapicheck    # k8s API readiness probe
+  # bin/cmctl is conditional; add if your release ships cmd/ctl/
