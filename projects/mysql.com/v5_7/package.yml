@@ -17,12 +17,15 @@ distributable:
 # Pin to the 5.7.x stream. mysql-server tags use "mysql-5.7.X" format.
 versions:
   github: mysql/mysql-server/tags
-  # `github:` mode silently ignores `match:` — only `ignore:` and
-  # `strip:` are honored. Use negative-lookahead in ignore to keep
-  # only mysql-5.7.X tags.
-  ignore:
-    - /^(?!mysql-5\.7\.)/
-  strip: /^mysql-/
+  # `github:` mode silently ignores `match:`. Negative lookahead in
+  # `ignore:` also doesn't work (RE2-like regex, no lookahead).
+  # Use `transform:` instead — return the stripped 5.7.X version for
+  # matching tags, undefined for everything else.
+  transform: |
+    v => {
+      const m = v.match(/^mysql-(5\.7\.\d+)$/);
+      return m ? m[1] : undefined;
+    }
 
 platforms:
   - linux/x86-64
