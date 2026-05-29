@@ -1,0 +1,69 @@
+# zot — OCI-native container image registry.
+#
+# Production-grade distributed registry (CNCF sandbox) for OCI image
+# + artifact storage. Pure Go, CGO-disabled, distroless-friendly.
+#
+# Built via upstream's `make binary` which compiles `cmd/zot` with
+# CGO_ENABLED=0 + GOEXPERIMENT=jsonv2 + minimal ldflags.
+
+distributable:
+  url: https://github.com/project-zot/zot/archive/refs/tags/v{{ version.raw }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: project-zot/zot
+
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+  - darwin/x86-64
+  - darwin/aarch64
+
+build:
+  dependencies:
+    go.dev: '*'
+    gnu.org/make: '*'
+    gnu.org/coreutils: '*'
+
+  script:
+    # Upstream's `make binary` writes to `bin/zot-$OS-$ARCH`. Map
+    # pkgx's arch name (`x86-64` / `aarch64`) to Go's (`amd64` / `arm64`).
+    - run: |
+        case "{{hw.arch}}" in
+          x86-64)  GOARCH=amd64 ;;
+          aarch64) GOARCH=arm64 ;;
+        esac
+        case "{{hw.platform}}" in
+          linux)  GOOS=linux  ;;
+          darwin) GOOS=darwin ;;
+        esac
+        export GOOS GOARCH
+
+        # `make binary` invokes `go build` with CGO_ENABLED=0 etc.
+        # Pass RELEASE_TAG so the version-injecting ldflags pick up
+        # our tag (Makefile would otherwise compute it from git).
+        make binary RELEASE_TAG=v{{ version.raw }}
+
+    - run: |
+        case "{{hw.arch}}" in
+          x86-64)  GOARCH=amd64 ;;
+          aarch64) GOARCH=arm64 ;;
+        esac
+        case "{{hw.platform}}" in
+          linux)  GOOS=linux  ;;
+          darwin) GOOS=darwin ;;
+        esac
+        install -Dm755 "bin/zot-$GOOS-$GOARCH" "{{prefix}}/bin/zot"
+
+test:
+  script:
+    - run: |
+        out=$(zot --version 2>&1 || zot version 2>&1 || true)
+        echo "zot version: $out"
+        case "$out" in
+          *"{{version}}"*) echo "version PASS" ;;
+          *) echo "FAIL: expected {{version}}, got: $out"; exit 1 ;;
+        esac
+
+provides:
+  - bin/zot
