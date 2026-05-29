@@ -31,7 +31,13 @@ dependencies:
     # finds stdlib.h + crt*.o + libc.so.6 from the pkgx-integrated bottle
     # without needing host glibc-devel / libc6-dev. See #8423.
     # gcc's spec file embeds these paths via --with-sysroot below.
-    gnu.org/glibc: "*"
+    #
+    # Pin <2.38: glibc 2.38 introduced C23 symbol redirects
+    # (__isoc23_strtoul, __isoc23_*scanf, …) that the runner's older
+    # glibc lacks, so native gcc's own fixincl.c link fails with
+    # `undefined reference to __isoc23_strtoul`. Cross-builds were
+    # unaffected because they link against the sysroot's libc directly.
+    gnu.org/glibc: "<2.38"
     kernel.org/linux-headers: "*"
   darwin/x86-64: # since 15.1.0
     libisl.sourceforge.io: ^0
