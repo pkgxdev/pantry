@@ -67,7 +67,14 @@ build:
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
       - -DCMAKE_BUILD_TYPE=Release
       - -DBUILD_TESTS=OFF
-      - -DBUILD_LLVM_DWARF=OFF
+      # Don't disable DWARF — binaryen's CMakeLists only adds the
+      # third_party/llvm-project/include to the search path when
+      # BUILD_LLVM_DWARF=ON, but `suffix_tree.h` includes
+      # `llvm/Support/Allocator.h` unconditionally. With DWARF OFF
+      # the build hits "Allocator.h: No such file" on every TU that
+      # transitively pulls suffix_tree.h. Net binary cost: ~2 MB
+      # extra in wasm-opt; worth it for a clean build.
+      # - -DBUILD_LLVM_DWARF=OFF
 
 provides:
   - bin/wasm-opt
