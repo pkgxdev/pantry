@@ -30,15 +30,19 @@ build:
 
   script:
     - run: |
+        # Disable HMI in the .pro: qmake CONFIG-= from command-line is
+        # processed BEFORE the .pro adds CONFIG+=use_hmi, so the override
+        # is reverted. Comment out the line in-place instead.
+        sed -i 's|^CONFIG  *+= *use_hmi|#&|' src/ngPost.pro
+
         cd src
-        # CONFIG-=use_hmi → CLI-only build. The .pro file's `use_hmi`
-        # branch adds Qt Gui + Widgets which would drag in fontconfig,
-        # X11, xcb, etc. on linux. Drop it for a slim server build.
-        qmake CONFIG-=use_hmi ngPost.pro
+        qmake ngPost.pro
         make --jobs {{ hw.concurrency }}
 
-    - install -Dm755 src/ngPost "{{prefix}}/bin/ngPost"
-    - install -Dm644 ngPost.conf "{{prefix}}/share/ngPost/ngPost.conf.sample"
+        # CWD propagates between script items in brewkit — keep the
+        # install in the same block so `ngPost` resolves correctly.
+        install -Dm755 ngPost "{{prefix}}/bin/ngPost"
+        install -Dm644 ../ngPost.conf "{{prefix}}/share/ngPost/ngPost.conf.sample"
 
 test:
   script:
