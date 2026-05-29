@@ -1,0 +1,55 @@
+# PyQt5 — Python bindings for Qt 5.
+#
+# Companion to pantry's qt.io (5.15.10) and riverbankcomputing.com/sip.
+# Installed as a python-venv with `pip install PyQt5` against the
+# pantry Qt5 + SIP build.
+#
+# Closes part of pkgxdev/pantry#99 (Top 300 holdout #591).
+
+distributable: ~
+
+versions:
+  url: https://pypi.org/simple/pyqt5/
+  match: /PyQt5-\d+\.\d+\.\d+\.tar\.gz/
+  strip:
+    - /^PyQt5-/
+    - /\.tar\.gz/
+
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+  - darwin/x86-64
+  - darwin/aarch64
+
+dependencies:
+  python.org: ~3.11
+  qt.io: ^5
+  riverbankcomputing.com/sip: '*'
+
+runtime:
+  env:
+    PYTHONPATH: '{{prefix}}/venv/lib/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH'
+
+build:
+  dependencies:
+    riverbankcomputing.com/pyqt-builder: '*'
+    freedesktop.org/pkg-config: '*'
+    linux:
+      llvm.org: <17
+
+  script:
+    # Install PyQt5 into a venv at {{prefix}}/venv. python-venv.sh
+    # is brewkit's helper that creates the venv, pip-installs the
+    # named package, and links a shim binary at {{prefix}}/bin.
+    - python-venv.sh "{{prefix}}/venv/bin/python" PyQt5=={{version}}
+    # Expose the python binary as a marker so provides: has something.
+    - run: |
+        mkdir -p {{prefix}}/bin
+        ln -sf ../venv/bin/python "{{prefix}}/bin/pyqt5-python"
+
+test:
+  script:
+    - pyqt5-python -c "from PyQt5 import QtCore; print(QtCore.QT_VERSION_STR)"
+
+provides:
+  - bin/pyqt5-python
