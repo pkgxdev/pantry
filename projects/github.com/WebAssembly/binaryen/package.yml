@@ -29,23 +29,25 @@ build:
 
   working-directory: build
   script:
-    - cmake .. $ARGS
-    - make --jobs {{ hw.concurrency }}
-    - make install
+    # binaryen 129 uses std::set::contains / std::map::contains (C++20).
+    # Two earlier iters tried CMAKE_CXX_STANDARD=20 then CMAKE_CXX_FLAGS=
+    # -std=c++20 — neither stuck because binaryen's CMakeLists pins per-
+    # target features with target_compile_features(cxx_std_17). Append
+    # -std=c++20 to brewkit's CXXFLAGS BEFORE cmake; CMake then copies
+    # it into CMAKE_CXX_FLAGS at first configure, and the per-target
+    # feature gets resolved against the OS env's -std (which clang
+    # picks up last-wins).
+    - run: |
+        export CXXFLAGS="${CXXFLAGS:-} -std=c++20"
+        cmake .. $ARGS
+        make --jobs {{ hw.concurrency }}
+        make install
   env:
     ARGS:
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
       - -DCMAKE_BUILD_TYPE=Release
       - -DBUILD_TESTS=OFF
       - -DBUILD_LLVM_DWARF=OFF
-      # binaryen 119+ uses std::set::contains / std::map::contains
-      # (added in C++20). The previous iter set CMAKE_CXX_STANDARD=20
-      # which didn't take effect — binaryen's CMakeLists.txt sets the
-      # standard per-target via target_compile_features(... cxx_std_17)
-      # which takes precedence over global CMAKE_CXX_STANDARD. Inject
-      # -std=c++20 directly via CXXFLAGS instead; clang's last-wins
-      # -std= resolution puts our 20 ahead of the per-target 17.
-      - -DCMAKE_CXX_FLAGS=-std=c++20
 
 provides:
   - bin/wasm-opt
