@@ -46,10 +46,20 @@ build:
     OPENSSL_LIB_DIR: '{{deps.openssl.org.prefix}}/lib'
     OPENSSL_INCLUDE_DIR: '{{deps.openssl.org.prefix}}/include'
     OPENSSL_STATIC: '1'
+    # Disable pkg-config-based discovery in openssl-sys; the OPENSSL_*
+    # env vars above are authoritative. Without this, openssl-sys's
+    # pkg-config fallback finds the runner's OpenSSL 3.0 (Ubuntu 22.04)
+    # whose libssl.so doesn't export SSL_get_peer_certificate.
+    OPENSSL_NO_PKG_CONFIG: '1'
     # Tell gRPC's CMake to use the system's openssl (now pinned above)
     # instead of building its own BoringSSL — which would also miss the
     # symbol because BoringSSL renamed it.
     GRPC_SSL_PROVIDER: package
+    # Some gRPC CMake paths also search via pkg-config and ignore
+    # OPENSSL_ROOT_DIR; prepend pkgx's pkgconfig dir so any pkg-config
+    # lookup finds 1.1.1w first.
+    PKG_CONFIG_PATH: '{{deps.openssl.org.prefix}}/lib/pkgconfig:$PKG_CONFIG_PATH'
+    OPENSSL_ROOT_DIR: '{{deps.openssl.org.prefix}}'
     linux:
       CC: clang
       CXX: clang++
