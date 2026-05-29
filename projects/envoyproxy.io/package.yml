@@ -23,6 +23,7 @@ platforms:
 build:
   dependencies:
     github.com/bazelbuild/bazelisk: '*'   # bazel wrapper / version manager
+    github.com/mikefarah/yq: '*'          # envoy's @yq external repo replacement
     gnu.org/coreutils: '*'                # install(1)
     cmake.org: '*'                        # some bazel rules use cmake
     python.org: '~3.11'                   # bazel build rules use python
@@ -35,6 +36,20 @@ build:
     curl.se: '*'
 
   script:
+    # Envoy's `bazel/repo.bzl:_envoy_repo_impl` calls `@yq` to parse
+    # `.github/config.yml`. It declares @yq via http_archive on the
+    # mikefarah/yq release page — but that release ships a single
+    # binary `yq_linux_amd64`, not a tarball, so bazel ends up with
+    # `external/yq/yq_linux_amd64` while repo.bzl expects `external/yq/yq`.
+    # Result: "execvp(.../external/yq/yq): No such file or directory".
+    #
+    # Patch repo.bzl to use the yq from PATH (pkgx-installed via the
+    # build dep above) instead of the http_archive.
+    - run: |
+        sed -i 's|repository_ctx.path(repository_ctx.attr.yq)|repository_ctx.which("yq")|' \
+          bazel/repo.bzl
+        grep -A1 'which("yq")' bazel/repo.bzl | head -5
+
     # Use the release config: -c opt + stripped + minimal symbols.
     # `bazelisk` here is the canonical entry point — it reads
     # `.bazelversion` from the source tree and downloads the right
