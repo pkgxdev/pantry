@@ -113,9 +113,15 @@ build:
         # Clang's relative auto-detection from BAZEL_LLVM_PATH/bin/clang
         # usually finds them, but bazel's cc_wrapper.sh adds -nostdinc++
         # by default with --config=libc++; we re-add the include path so
-        # <string>, <vector>, etc. resolve.
-        BAZEL_OPTS="$BAZEL_OPTS --cxxopt=-isystem"
-        BAZEL_OPTS="$BAZEL_OPTS --cxxopt={{deps.llvm.org.prefix}}/include/c++/v1"
+        # <string>, <vector>, <algorithm>, etc. resolve.
+        #
+        # bazel's --cxxopt=X passes a SINGLE token to clang; clang's
+        # -isystem expects its path as a separate argv element OR as
+        # -isystem=PATH joined-equals. Use the joined form here — the
+        # split-flag form (--cxxopt=-isystem followed by --cxxopt=PATH)
+        # ends up consumed as two unrelated -isystem flags by bazel's
+        # build action shuffling and the path doesn't bind.
+        BAZEL_OPTS="$BAZEL_OPTS --cxxopt=-isystem{{deps.llvm.org.prefix}}/include/c++/v1"
         # And the matching rpath/linker hint so the produced binary
         # finds libc++ at runtime against the same bottle.
         BAZEL_OPTS="$BAZEL_OPTS --linkopt=-L{{deps.llvm.org.prefix}}/lib"
