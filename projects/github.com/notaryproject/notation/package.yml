@@ -1,0 +1,31 @@
+distributable:
+  url: https://github.com/notaryproject/notation/archive/refs/tags/v{{ version.raw }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: notaryproject/notation/releases
+
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+  - darwin/x86-64
+  - darwin/aarch64
+
+build:
+  dependencies:
+    go.dev: '*'
+
+  script:
+    - run: |
+        export CGO_ENABLED=0
+        MODULE=github.com/notaryproject/notation
+        LDFLAGS="-s -w -X ${MODULE}/internal/version.Version=v{{ version.raw }} -X ${MODULE}/internal/version.BuildMetadata="
+        go build -trimpath -ldflags "$LDFLAGS" -o "{{prefix}}/bin/notation" ./cmd/notation
+
+  skip: fix-patchelf
+
+test:
+  - notation version 2>&1 | grep -q {{ version.raw }}
+
+provides:
+  - bin/notation
