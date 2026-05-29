@@ -147,11 +147,15 @@ build:
 test:
   # Lib-only package — no binaries to invoke. Verify the expected
   # runtime files landed in their per-target subdirs.
+  #
+  # winpthreads ships its static lib under different names depending
+  # on the host libtool: linux installs `libpthread.a`, darwin's
+  # libtool produces `libwinpthread.lib` (PE-style). Accept either.
   script:
     - test -f "{{prefix}}/x86_64-w64-mingw32/include/windows.h"
     - test -f "{{prefix}}/x86_64-w64-mingw32/include/stdio.h"
     - test -f "{{prefix}}/x86_64-w64-mingw32/lib/libmingw32.a"
     - test -f "{{prefix}}/x86_64-w64-mingw32/lib/libmsvcrt.a"
-    - test -f "{{prefix}}/x86_64-w64-mingw32/lib/libpthread.a"
+    - test -f "{{prefix}}/x86_64-w64-mingw32/lib/libpthread.a" -o -f "{{prefix}}/x86_64-w64-mingw32/lib/libwinpthread.lib"
     - test -f "{{prefix}}/aarch64-w64-mingw32/include/windows.h"
     - test -f "{{prefix}}/aarch64-w64-mingw32/lib/libmingw32.a"
