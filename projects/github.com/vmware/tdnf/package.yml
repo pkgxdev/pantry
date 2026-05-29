@@ -70,11 +70,25 @@ test:
   script:
     - run: 'test "$(tdnf --version)" = "tdnf: {{version}}"'
     - run: |
+        # Seed a Rocky BaseOS repo file — pkgx runners have no
+        # /etc/yum.repos.d (no system tdnf install). Pass our local
+        # dir via --setopt=reposdir so tdnf finds the .repo.
+        mkdir -p "$PWD/yum.repos.d"
+        cat > "$PWD/yum.repos.d/rocky.repo" <<'REPO'
+        [rocky-baseos]
+        name=Rocky Linux $releasever BaseOS
+        baseurl=https://download.rockylinux.org/pub/rocky/$releasever/BaseOS/$basearch/os/
+        gpgcheck=0
+        enabled=1
+        REPO
+
         case "{{hw.arch}}" in
           x86-64)  ARCH=x86_64  ;;
           aarch64) ARCH=aarch64 ;;
         esac
-        tdnf install \
+        tdnf \
+          --setopt=reposdir="$PWD/yum.repos.d" \
+          install \
           --installroot="$PWD/${ROOTFS}" \
           --releasever="${RELEASE}" \
           --forcearch="$ARCH" \
