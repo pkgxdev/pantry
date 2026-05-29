@@ -210,14 +210,16 @@ build:
     linux:
       ARGS:
         - --disable-multilib
-        # Point gcc at the bottled glibc so its spec file embeds the
-        # search paths — end users don't need host glibc-devel and
-        # the build of gcc itself links against the same libc whose
-        # headers it includes (no __isoc23_strtoul-style mismatches).
+        # Install-time sysroot only: the built gcc embeds pkgx glibc
+        # paths so end-user `pkgx gcc test.c` finds stdlib.h + crt*.o.
+        # --with-build-sysroot is intentionally NOT set: configure
+        # tests need to run compiled programs at build time, which
+        # requires the host's dynamic linker (sysroot's ld-linux is
+        # at /opt/.../glibc/v.../lib not /lib so an embedded /lib/
+        # interp path won't resolve).
         - --with-sysroot={{deps.gnu.org/glibc.prefix}}
-        - --with-build-sysroot={{deps.gnu.org/glibc.prefix}}
         - --with-native-system-header-dir=/include
-        - --with-glibc-version=2.43
+        - --with-glibc-version=2.34
     linux/x86-64:
       LDFLAGS:
         - -pie
