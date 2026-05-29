@@ -18,13 +18,13 @@ versions:
     - /\.tar\.bz2/
 
 # Valgrind requires Linux/x86-64, Linux/aarch64, or
-# Darwin/x86-64 (Apple Silicon support landed in 3.21 but is still
-# considered experimental — keep darwin/aarch64 off the list to
-# avoid silent breakage).
+# Linux only. Darwin support has been fragile since macOS 11 — Apple's
+# hardened runtime / codesign requirements make valgrind's ptrace-style
+# instrumentation unreliable, and the darwin runner failed here even
+# after a clean build. Skip darwin altogether.
 platforms:
   - linux/x86-64
   - linux/aarch64
-  - darwin/x86-64
 
 # valgrind bakes VALGRIND_LIB into the binary at configure time using
 # the +brewing prefix; after brewkit renames the install dir, the path
