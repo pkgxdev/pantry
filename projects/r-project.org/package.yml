@@ -38,6 +38,15 @@ dependencies:
   curl.se: '*'
   gnu.org/gettext: '*'
 
+# Rscript is a compiled C binary with R_HOME baked in at configure time.
+# brewkit's +brewing-strip can't patch binary string tables safely, so
+# Rscript ends up pointing at the now-renamed +brewing path. Setting
+# R_HOME via runtime.env makes pkgx export it before invoking R/Rscript,
+# which overrides the compile-time value.
+runtime:
+  env:
+    R_HOME: ${{prefix}}/lib/R
+
 build:
   dependencies:
     gnu.org/gcc: '*'             # provides gfortran for R's numerical core
