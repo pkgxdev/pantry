@@ -1,0 +1,36 @@
+distributable:
+  url: https://github.com/hughsie/libgusb/releases/download/{{version}}/libgusb-{{version}}.tar.xz
+  strip-components: 1
+
+display-name: libgusb
+
+versions:
+  github: hughsie/libgusb
+
+dependencies:
+  gnome.org/glib: '>=2.44'
+  gnome.org/json-glib: '>=1.1.1'
+  libusb.info: '>=1.0.9'
+
+build:
+  dependencies:
+    gnome.org/gi-docgen: '>=2021.1'
+    gnome.org/gobject-introspection: '*'
+    gnome.org/vala: '*'
+    mesonbuild.com: '>=0.56'
+    ninja-build.org: '>=1.8.2'
+  script: |
+    meson setup build $ARGS
+    meson compile -C build --jobs {{ hw.concurrency }}
+    meson install -C build
+  env:
+    ARGS:
+      - --buildtype=release
+      - --prefix={{prefix}}
+      - --libdir=lib
+      - -Dtests=false
+
+provides:
+  - bin/gusbcmd
+
+test: gusbcmd show

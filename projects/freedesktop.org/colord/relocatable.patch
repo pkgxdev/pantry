@@ -1,0 +1,118 @@
+diff --git a/contrib/session-helper/cd-main.c b/contrib/session-helper/cd-main.c
+index 025b127..7d8ff73 100644
+--- a/contrib/session-helper/cd-main.c
++++ b/contrib/session-helper/cd-main.c
+@@ -66,7 +66,7 @@ typedef struct {
+ 	CdProfileQuality	 quality;
+ 	GCancellable		*cancellable;
+ 	gchar			*title;
+-	gchar			*basename;
++	gchar			*cd_main_private_basename;
+ 	gchar			*working_path;
+ } CdMainPrivate;
+ 
+@@ -800,6 +800,26 @@ cd_main_finished_quit_cb (gpointer user_data)
+ 	return G_SOURCE_REMOVE;
+ }
+ 
++#include <limits.h>
++#include <unistd.h>
++#include <libgen.h>
++#include <stdio.h>
++#include <string.h>
++
++char *get_prefix(char *suffix) {
++  char path[PATH_MAX], prefix[PATH_MAX];
++  int rv = readlink("/proc/self/exe", path, sizeof(path));
++  if (rv != -1) {
++    sprintf(prefix, "%s/%s/", dirname(dirname(path)), suffix);
++    return strdup(prefix);
++  } else {
++    return NULL;
++  }
++}
++
++#undef DATADIR
++#define DATADIR get_prefix("share")
++
+ static gboolean
+ cd_main_load_samples (CdMainPrivate *priv, GError **error)
+ {
+@@ -848,7 +868,7 @@ cd_main_write_colprof_files (CdMainPrivate *priv, GError **error)
+ 	if (!ret)
+ 		return FALSE;
+ 	data = g_strdup_printf ("%s\n%s", data_ti3, data_cal);
+-	filename_ti3 = g_strdup_printf ("%s.ti3", priv->basename);
++	filename_ti3 = g_strdup_printf ("%s.ti3", priv->cd_main_private_basename);
+ 	path_ti3 = g_build_filename (priv->working_path,
+ 				     filename_ti3,
+ 				     NULL);
+@@ -909,7 +929,7 @@ cd_main_import_profile (CdMainPrivate *priv, GError **error)
+ 	g_autofree gchar *path = NULL;
+ 	g_autoptr(GFile) file = NULL;
+ 
+-	filename = g_strdup_printf ("%s.icc", priv->basename);
++	filename = g_strdup_printf ("%s.icc", priv->cd_main_private_basename);
+ 	path = g_build_filename (priv->working_path,
+ 				 filename,
+ 				 NULL);
+@@ -959,7 +979,7 @@ cd_main_set_profile_metadata (CdMainPrivate *priv, GError **error)
+ 	g_autoptr(GFile) file = NULL;
+ 
+ 	/* get profile */
+-	profile_fn = g_strdup_printf ("%s.icc", priv->basename);
++	profile_fn = g_strdup_printf ("%s.icc", priv->cd_main_private_basename);
+ 	profile_path = g_build_filename (priv->working_path,
+ 					 profile_fn,
+ 					 NULL);
+@@ -1052,7 +1072,7 @@ cd_main_generate_profile (CdMainPrivate *priv, GError **error)
+ 	g_ptr_array_add (array, g_strdup_printf ("-C%s", CD_PROFILE_DEFAULT_COPYRIGHT_STRING));
+ 	g_ptr_array_add (array, g_strdup (cd_main_get_colprof_quality_arg (priv->quality)));
+ 	g_ptr_array_add (array, g_strdup ("-aG"));
+-	g_ptr_array_add (array, g_strdup (priv->basename));
++	g_ptr_array_add (array, g_strdup (priv->cd_main_private_basename));
+ 	g_ptr_array_add (array, NULL);
+ 
+ 	/* run the command */
+@@ -1493,7 +1513,7 @@ cd_main_set_basename (CdMainPrivate *priv)
+ 
+ 	/* make suitable filename */
+ 	g_strdelimit (str->str, "/\"*?", '_');
+-	priv->basename = g_string_free (str, FALSE);
++	priv->cd_main_private_basename = g_string_free (str, FALSE);
+ }
+ 
+ static gboolean
+@@ -1838,6 +1858,12 @@ cd_main_percentage_changed_cb (CdState *state,
+ 				       g_variant_new_uint32 (value));
+ }
+ 
++char *concat(char *string1, char *string2) {
++  char concat_string[strlen(string1) + strlen(string2)];
++  sprintf(concat_string, "%s%s", string1, string2);
++  return strdup(concat_string);
++}
++
+ int
+ main (int argc, char *argv[])
+ {
+@@ -1887,8 +1913,8 @@ main (int argc, char *argv[])
+ 	g_option_context_free (context);
+ 
+ 	/* load introspection from file */
+-	priv->introspection = cd_main_load_introspection (DATADIR "/dbus-1/interfaces/"
+-							  CD_SESSION_DBUS_INTERFACE ".xml",
++	priv->introspection = cd_main_load_introspection (concat(DATADIR, "/dbus-1/interfaces/"
++							  CD_SESSION_DBUS_INTERFACE ".xml"),
+ 							  &error);
+ 	if (priv->introspection == NULL) {
+ 		g_warning ("CdMain: failed to load introspection: %s",
+@@ -1955,7 +1981,7 @@ out:
+ 	if (priv->state != NULL)
+ 		g_object_unref (priv->state);
+ 	g_free (priv->working_path);
+-	g_free (priv->basename);
++	g_free (priv->cd_main_private_basename);
+ 	g_free (priv->title);
+ 	g_free (priv);
+ 	return retval;
