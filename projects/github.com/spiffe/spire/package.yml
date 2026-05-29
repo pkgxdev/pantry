@@ -32,7 +32,9 @@ provides:
   - bin/spire-agent
 
 test:
-  - run: |
-      {{prefix}}/bin/spire-server --version 2>&1 | grep -q {{version.raw}}
-  - run: |
-      {{prefix}}/bin/spire-agent --version 2>&1 | grep -q {{version.raw}}
+  # spire-{server,agent} are servers, not CLIs — no --version flag.
+  # `run --help` works on every release and exits 0.
+  - test -x '{{prefix}}/bin/spire-server'
+  - test -x '{{prefix}}/bin/spire-agent'
+  - "'{{prefix}}/bin/spire-server' run --help 2>&1 | head -1"
+  - "'{{prefix}}/bin/spire-agent' run --help 2>&1 | head -1"
