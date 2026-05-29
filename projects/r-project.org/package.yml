@@ -18,10 +18,20 @@ versions:
     - /\.tar\.gz/
 
 platforms:
+  # darwin is currently broken in two distinct ways:
+  #   * x86-64: GNU gcc dep on darwin fails the early conftest with
+  #     "C compiler cannot create executables" (configure exits 77
+  #     before even probing BLAS).
+  #   * aarch64: R auto-detects -framework Accelerate (vecLib), but
+  #     vecLib's NEON intrinsics use Apple-clang types incompatible
+  #     with GNU gcc — vecLibg95c.o fails with
+  #     "incompatible types when returning type 'uint64x2_t' but
+  #     'vUInt32' was expected".
+  # Restrict to linux until we can either switch darwin to clang+
+  # gfortran-from-clang OR keep gcc but explicitly disable Accelerate
+  # via --without-blas + manual openblas wiring.
   - linux/x86-64
   - linux/aarch64
-  - darwin/x86-64
-  - darwin/aarch64
 
 dependencies:
   gnu.org/gcc: '*'             # gfortran's libgfortran.so.5 is a RUNTIME dep
