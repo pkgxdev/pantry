@@ -64,6 +64,13 @@ build:
           | xargs -r sed -i 's|+brewing||g'
 
   env:
+    # Point Octave's configure at openblas explicitly — without these,
+    # the LAPACK auto-detection picks an incomplete library and link
+    # fails with "undefined reference to `ztgsen_', `dtgsen_'" etc.
+    BLAS_LIBS: "-lopenblas"
+    LAPACK_LIBS: "-lopenblas"
+    LDFLAGS: -L{{deps.openblas.net.prefix}}/lib
+    CPPFLAGS: -I{{deps.openblas.net.prefix}}/include
     ARGS:
       - --prefix={{ prefix }}
       - --disable-docs              # avoid TeX/Texinfo doc build dep
@@ -72,7 +79,6 @@ build:
       - --without-x                 # no X11
       - --without-opengl            # no OpenGL (qt-less)
       - --without-fltk              # no FLTK GUI
-      - --without-magick            # disable ImageMagick (use GraphicsMagick via --with-magick=GraphicsMagick separately)
       - --with-magick=GraphicsMagick
       - --enable-shared
       - --disable-static            # smaller bottle
