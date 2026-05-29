@@ -38,13 +38,16 @@ dependencies:
   curl.se: '*'
   gnu.org/gettext: '*'
 
-# Rscript is a compiled C binary with R_HOME baked in at configure time.
-# brewkit's +brewing-strip can't patch binary string tables safely, so
-# Rscript ends up pointing at the now-renamed +brewing path. Setting
-# R_HOME via runtime.env makes pkgx export it before invoking R/Rscript,
-# which overrides the compile-time value.
+# Rscript is a compiled C binary (src/unix/Rscript.c) with R_HOME_DIR
+# baked in via #define at configure time. brewkit's +brewing-strip
+# operates on text files only (grep -I excludes binaries), so the
+# baked path in Rscript remained +brewing post-install.
+#
+# Rscript honors `R_HOME_DIR` env var (NOT `R_HOME` — that's a separate
+# user-facing variable). Set both for safety since R itself uses R_HOME.
 runtime:
   env:
+    R_HOME_DIR: ${{prefix}}/lib/R
     R_HOME: ${{prefix}}/lib/R
 
 build:
@@ -96,11 +99,11 @@ test:
   # `Rscript -e 'cat(R.version.string)'` is a stronger end-to-end
   # check that the interpreter actually loads and can execute.
   #
-  # Explicit R_HOME export: brewkit's test step doesn't apply the
-  # recipe's runtime.env (that only kicks in when the bottle is
-  # invoked via pkgx). Without R_HOME, Rscript exec's a non-existent
-  # +brewing path. Set it directly here too.
+  # Rscript honors R_HOME_DIR (not R_HOME). brewkit's test step
+  # doesn't apply the recipe's runtime.env (that only kicks in when
+  # the bottle is invoked via pkgx). Set both directly here.
   env:
+    R_HOME_DIR: ${{prefix}}/lib/R
     R_HOME: ${{prefix}}/lib/R
   script:
     - run: |
