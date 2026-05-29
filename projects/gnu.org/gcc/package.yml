@@ -26,6 +26,13 @@ dependencies:
   gnu.org/mpfr: ">=2.4.0"
   gnu.org/mpc: ">=0.8.0"
   zlib.net: ^1.3
+  linux:
+    # Bottle the libc the compiler targets so end-user `pkgx gcc test.c`
+    # finds stdlib.h + crt*.o + libc.so.6 from the pkgx-integrated bottle
+    # without needing host glibc-devel / libc6-dev. See #8423.
+    # gcc's spec file embeds these paths via --with-sysroot below.
+    gnu.org/glibc: "*"
+    kernel.org/linux-headers: "*"
   darwin/x86-64: # since 15.1.0
     libisl.sourceforge.io: ^0
 
@@ -197,6 +204,14 @@ build:
     linux:
       ARGS:
         - --disable-multilib
+        # Point gcc at the bottled glibc so its spec file embeds the
+        # search paths — end users don't need host glibc-devel and
+        # the build of gcc itself links against the same libc whose
+        # headers it includes (no __isoc23_strtoul-style mismatches).
+        - --with-sysroot={{deps.gnu.org/glibc.prefix}}
+        - --with-build-sysroot={{deps.gnu.org/glibc.prefix}}
+        - --with-native-system-header-dir=/include
+        - --with-glibc-version=2.43
     linux/x86-64:
       LDFLAGS:
         - -pie
