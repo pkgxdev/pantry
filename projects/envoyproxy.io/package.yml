@@ -67,6 +67,10 @@ build:
         BAZEL_OPTS="-c opt"
         BAZEL_OPTS="$BAZEL_OPTS --jobs=HOST_CPUS*0.5"
         BAZEL_OPTS="$BAZEL_OPTS --local_ram_resources=HOST_RAM*0.7"
+        # Tarball install has no .git, so envoy's workspace_status.sh
+        # fails at `git rev-parse`. Stub workspace status with `true`
+        # — we don't need stamping for a from-source release build.
+        BAZEL_OPTS="$BAZEL_OPTS --workspace_status_command=true"
 
         # `envoy-static.stripped` is upstream's stripped release target.
         bazelisk build $BAZEL_OPTS //source/exe:envoy-static.stripped
