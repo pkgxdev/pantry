@@ -24,6 +24,7 @@ build:
   dependencies:
     github.com/bazelbuild/bazelisk: '*'   # bazel wrapper / version manager
     github.com/mikefarah/yq: '*'          # envoy's @yq external repo replacement
+    llvm.org: '*'                         # local clang for BAZEL_LLVM_PATH
     gnu.org/coreutils: '*'                # install(1)
     cmake.org: '*'                        # some bazel rules use cmake
     python.org: '~3.11'                   # bazel build rules use python
@@ -61,6 +62,13 @@ build:
         export USER=$(id -un)
         export TEST_TMPDIR=$PWD/.bazel-cache
         mkdir -p $TEST_TMPDIR
+
+        # Envoy's repo.bzl checks BAZEL_LLVM_PATH and uses a local
+        # LLVM install when set. Without this, it falls back to the
+        # @llvm_toolchain http_archive which fails in our sandbox
+        # (Exit 127 when invoking external/llvm_toolchain/bin/clang).
+        export BAZEL_LLVM_PATH="{{deps.llvm.org.prefix}}"
+        echo "BAZEL_LLVM_PATH=$BAZEL_LLVM_PATH"
 
         # Memory-constrain bazel to fit on standard CI runners.
         # `--local_resources` units: cpu=count, ram=MB.
