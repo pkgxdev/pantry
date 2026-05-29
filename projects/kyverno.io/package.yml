@@ -29,16 +29,18 @@ build:
     - run: |
         export CGO_ENABLED=0
         LDFLAGS="-s -w -X github.com/kyverno/kyverno/pkg/version.BuildVersion=v{{ version.raw }}"
-        # Build each controller + CLI.
-        for cmd in kyverno cli cleanup-controller background-controller reports-controller kyverno-init readiness-checker; do
+        mkdir -p bin
+        # Controller-style binaries (each cmd/* with main.go).
+        for cmd in kyverno cleanup-controller background-controller reports-controller kyverno-init readiness-checker; do
           if [ -d "cmd/$cmd" ]; then
             go build -trimpath -ldflags "$LDFLAGS" \
               -o "bin/$cmd" "./cmd/$cmd"
           fi
         done
-        # The CLI is at cmd/cli/kubectl-kyverno; the binary in pkgx is just 'kyverno'.
-        if [ -f bin/cli ]; then
-          mv bin/cli bin/kyverno-cli
+        # CLI lives at cmd/cli/kubectl-kyverno/
+        if [ -d cmd/cli/kubectl-kyverno ]; then
+          go build -trimpath -ldflags "$LDFLAGS" \
+            -o bin/kubectl-kyverno ./cmd/cli/kubectl-kyverno
         fi
 
     - run: |
@@ -57,7 +59,7 @@ test:
 
 provides:
   - bin/kyverno
-  - bin/kyverno-cli
+  - bin/kubectl-kyverno    # kubectl plugin (formerly the `kyverno` CLI)
   - bin/cleanup-controller
   - bin/background-controller
   - bin/reports-controller
