@@ -49,13 +49,14 @@ build:
 
         # Memory-constrain bazel to fit on standard CI runners.
         # `--local_resources` units: cpu=count, ram=MB.
-        BAZEL_OPTS="--config=release-stripped"
+        BAZEL_OPTS="-c opt"
         BAZEL_OPTS="$BAZEL_OPTS --jobs=HOST_CPUS*0.5"
         BAZEL_OPTS="$BAZEL_OPTS --local_ram_resources=HOST_RAM*0.7"
 
-        bazelisk build $BAZEL_OPTS //source/exe:envoy-static
+        # `envoy-static.stripped` is upstream's stripped release target.
+        bazelisk build $BAZEL_OPTS //source/exe:envoy-static.stripped
 
-    - install -Dm755 bazel-bin/source/exe/envoy-static "{{prefix}}/bin/envoy"
+    - install -Dm755 bazel-bin/source/exe/envoy-static.stripped "{{prefix}}/bin/envoy"
 
     # Bazel leaves a multi-GB output_base under .bazel-cache that we
     # don't want in the bottle.
