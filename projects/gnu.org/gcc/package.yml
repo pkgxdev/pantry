@@ -26,16 +26,6 @@ dependencies:
   gnu.org/mpfr: ">=2.4.0"
   gnu.org/mpc: ">=0.8.0"
   zlib.net: ^1.3
-  linux:
-    # Bottle the libc the compiler can target so end-user invocations
-    # find stdlib.h + crt*.o + libc.so.6 without distro glibc-devel.
-    # See #8423. <2.38 avoids C23 symbol redirects that the host's
-    # older glibc lacks. The thin wrapper in build.script injects
-    # -isystem/-L at user-invocation time (NOT at gcc's own build),
-    # so the bootstrap loop is unaffected. The wrapper no-ops when
-    # CPATH is already set (brewkit build context).
-    gnu.org/glibc: "<2.38"
-    kernel.org/linux-headers: "*"
   darwin/x86-64: # since 15.1.0
     libisl.sourceforge.io: ^0
 
@@ -202,10 +192,18 @@ build:
 
     # Linux libc-wrapper: install a thin shim at bin/<compiler> that
     # injects -isystem $glibc/include + -L$glibc/lib so end-user
-    # `pkgx gcc test.c` finds stdlib.h + crt*.o + libc.so.6 from the
-    # pkgx-integrated glibc bottle — without needing distro glibc-devel.
-    # The wrapper is INERT when CPATH is already populated (brewkit build
-    # context), so the gcc bootstrap loop is unaffected. See #8423.
+    # `pkgx +gnu.org/gcc +gnu.org/glibc gcc test.c` finds stdlib.h +
+    # crt*.o + libc.so.6 from the pkgx-integrated glibc bottle —
+    # without needing distro glibc-devel. See #8423.
+    #
+    # The wrapper is OPPORTUNISTIC: it looks for a sibling pkgx glibc
+    # bottle and injects only if found AND CPATH is unset. If neither
+    # condition holds, gcc falls back to the host libc (current
+    # behaviour). We intentionally do NOT declare gnu.org/glibc as a
+    # runtime dep here — brewkit would then expose it during gcc's own
+    # build via CPATH/LIBRARY_PATH, poisoning the bootstrap (test
+    # programs end up linking pkgx libc but running on host's ld-linux).
+    # Users opt in explicitly with `pkgx +gnu.org/glibc`.
     - run: |
         mkdir -p {{prefix}}/libexec/gcc-wrap
         cat > {{prefix}}/libexec/gcc-wrap.sh <<'WRAPPER'
