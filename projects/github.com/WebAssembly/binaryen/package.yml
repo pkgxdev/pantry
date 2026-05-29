@@ -26,22 +26,42 @@ build:
     cmake.org: ^3
     gnu.org/make: '*'
     python.org: '*'
+    linux:
+      gnu.org/gcc: '*'    # for its modern libstdc++ headers — Nix-style
 
   working-directory: build
   script:
-    # binaryen 129 uses std::set::contains / std::map::contains (C++20).
-    # Two earlier iters tried CMAKE_CXX_STANDARD=20 then CMAKE_CXX_FLAGS=
-    # -std=c++20 — neither stuck because binaryen's CMakeLists pins per-
-    # target features with target_compile_features(cxx_std_17). Append
-    # -std=c++20 to brewkit's CXXFLAGS BEFORE cmake; CMake then copies
-    # it into CMAKE_CXX_FLAGS at first configure, and the per-target
-    # feature gets resolved against the OS env's -std (which clang
-    # picks up last-wins).
+    # binaryen 129's IR code uses std::set::contains / std::map::contains
+    # (added in C++20). Three earlier iters tried CMAKE_CXX_STANDARD=20,
+    # then CMAKE_CXX_FLAGS=-std=c++20, then CXXFLAGS=...-std=c++20 — none
+    # stuck. The real issue (nixpkgs's binaryen recipe ships an EMPTY
+    # cmakeFlags and works fine): clang ends up picking up the host's
+    # /usr/include/c++/12/ libstdc++ headers (Ubuntu 22.04, gcc 12),
+    # whose `<set>` / `<map>` don't expose `contains` even at -std=c++20
+    # because the host's libstdc++ predates the back-port.
+    #
+    # Fix the way Nix's cc-wrapper does it: prepend pkgx-gcc's libstdc++
+    # include dir via -isystem so clang resolves <set>/<map> against
+    # gcc 16's libstdc++ (which DOES expose contains via the
+    # __cpp_lib_set_contains feature-test macro).
     - run: |
-        export CXXFLAGS="${CXXFLAGS:-} -std=c++20"
+        GCC_PFX="{{deps.gnu.org/gcc.prefix}}"
+        # gcc's libstdc++ headers live at $prefix/include/c++/<version>
+        # (e.g. /opt/gnu.org/gcc/v16.1.0/include/c++/16.1.0/). Glob to
+        # find the actual version directory.
+        for d in "$GCC_PFX"/include/c++/*; do
+          [ -d "$d" ] && CXX_INC="$d" && break
+        done
+        export CXXFLAGS="${CXXFLAGS:-} -isystem $CXX_INC"
         cmake .. $ARGS
         make --jobs {{ hw.concurrency }}
         make install
+      if: linux
+    - run: |
+        cmake .. $ARGS
+        make --jobs {{ hw.concurrency }}
+        make install
+      if: darwin
   env:
     ARGS:
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
