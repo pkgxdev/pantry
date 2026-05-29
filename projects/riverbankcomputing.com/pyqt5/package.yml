@@ -40,11 +40,34 @@ build:
       llvm.org: <17
 
   script:
-    # python-venv.sh creates a venv at {{prefix}}/venv and pip-installs
-    # the SRCROOT (the extracted PyQt5 source) into it. PyQt5 has
-    # setup.py / pyproject.toml at its tarball root, so this works as
-    # a pip-installable source.
-    - python-venv.sh "{{prefix}}/venv/bin/python"
+    # python-venv-alt: brewkit's stock python-venv.sh was OOM-killed
+    # (exit 137) at PyQt5's pip-install — GitHub runners have ~7 GB
+    # RAM and the parallel Qt5 binding compile peaks at 4–6 GB *per*
+    # ld process. This inline equivalent does what python-venv.sh
+    # does (create venv + pip-install SRCROOT) but with three
+    # memory-discipline knobs that make the 50+ Qt module bindings
+    # build under the runner's RAM ceiling:
+    #
+    #   MAKEFLAGS=-j1                   — one make process at a time
+    #   CMAKE_BUILD_PARALLEL_LEVEL=1    — same for the cmake path
+    #   CXX/CFLAGS=-g0                  — drop debug info, ~30% peak
+    #                                      memory cut at link time
+    #
+    # If this pattern proves useful, lift it into brewkit as
+    # python-venv-alt.sh (or as a parallelism flag on python-venv.sh).
+    - run: |
+        PYVER={{deps.python.org.version.marketing}}
+        "{{deps.python.org.prefix}}/bin/python$PYVER" -m venv --copies "{{prefix}}/venv"
+        PYTHON="{{prefix}}/venv/bin/python"
+        "$PYTHON" -m pip install --upgrade pip wheel setuptools --quiet
+
+        export MAKEFLAGS="-j1"
+        export CMAKE_BUILD_PARALLEL_LEVEL=1
+        export CXXFLAGS="${CXXFLAGS} -g0"
+        export CFLAGS="${CFLAGS} -g0"
+
+        "$PYTHON" -m pip install "$SRCROOT" --no-build-isolation --verbose
+
     # Expose the python binary as a marker so provides: has something.
     - run: |
         mkdir -p {{prefix}}/bin
