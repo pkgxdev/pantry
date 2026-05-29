@@ -56,6 +56,13 @@ build:
     - make --jobs {{ hw.concurrency }}
     - make install
   env:
+    # The vendored AOSP libbase / libziparchive headers reference
+    # uint8_t / uint32_t / etc. without including <cstdint>. Pre-C++17
+    # libstdc++ headers brought it in transitively; modern GCC/libc++
+    # no longer do, so compilation dies with "template argument 1 is
+    # invalid" on `std::vector<uint8_t>`. Force-include <cstdint>
+    # before every translation unit.
+    CXXFLAGS: -include cstdint
     ARGS:
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
       - -DCMAKE_BUILD_TYPE=Release
