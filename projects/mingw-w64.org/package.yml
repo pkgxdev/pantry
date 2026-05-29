@@ -105,6 +105,10 @@ build:
           )
 
           # 3) winpthreads — pthread emulation on top of the CRT.
+          # version.rc includes <winver.h> which lives in mingw-w64
+          # headers; windres needs `-I` to find them. The configure's
+          # CC --sysroot covers C compiles but windres uses its own
+          # include path — pass via RCFLAGS.
           (
             mkdir -p build-winpthreads-$T
             cd build-winpthreads-$T
@@ -112,7 +116,8 @@ build:
               --prefix="{{prefix}}/$T" \
               --host="$T" \
               --enable-static \
-              --enable-shared
+              --enable-shared \
+              RCFLAGS="-I{{prefix}}/$T/include"
             make --jobs {{ hw.concurrency }}
             make install
           )
