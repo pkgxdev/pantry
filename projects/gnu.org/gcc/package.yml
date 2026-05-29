@@ -1,4 +1,3 @@
-distributable:
   url: https://ftp.gnu.org/gnu/gcc/gcc-{{version.raw}}/gcc-{{ version.raw }}.tar.xz
   strip-components: 1
 
@@ -74,6 +73,23 @@ build:
         ln -sf ../../../binutils/v\*/bin/ar ar
         ln -sf ../../../binutils/v\*/bin/nm nm
         ln -sf ../../../binutils/v\*/bin/ranlib ranlib
+      working-directory: ${{prefix}}/bin
+
+    # Many Linux build systems (autoconf, distutils/setuptools, pip
+    # build backends) probe for the Debian-style multi-arch triplet
+    # binary names ($arch-linux-gnu-gcc, etc.) before falling back to
+    # plain `gcc`. Without these, pip-install of C-extension Python
+    # wheels fails on Ubuntu/Debian rootfs even when gcc IS on PATH.
+    # See pkgxdev/pantry#8423.
+    - run: |
+        case "{{hw.arch}}" in
+          x86-64)  TRIPLET=x86_64-linux-gnu ;;
+          aarch64) TRIPLET=aarch64-linux-gnu ;;
+        esac
+        for tool in gcc g++ cpp c++ ar nm ranlib; do
+          [ -e "$tool" ] && ln -sf "$tool" "$TRIPLET-$tool"
+        done
+      if: linux
       working-directory: ${{prefix}}/bin
 
     # .la archives aren't relocatable
