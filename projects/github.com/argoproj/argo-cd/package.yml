@@ -1,0 +1,61 @@
+# Argo CD — GitOps continuous-delivery for Kubernetes.
+#
+# Just the `argocd` CLI built from source via the Go toolchain. The
+# Argo CD *server* runs in-cluster as container images; users
+# consume it via `kubectl apply` of upstream manifests, not via pkgx.
+
+distributable:
+  url: https://github.com/argoproj/argo-cd/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: argoproj/argo-cd
+
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+  - darwin/x86-64
+  - darwin/aarch64
+
+build:
+  dependencies:
+    go.dev: '*'
+    gnu.org/coreutils: '*'   # install(1)
+  script:
+    # Build the argocd CLI from source. Upstream's Makefile target
+    # `cli-local` does this but also builds a bunch of in-tree dev
+    # tooling (argocd-server, argocd-repo-server, …) we don't want.
+    # Drop straight to `go build` for just `./cmd` → bin/argocd.
+    #
+    # LDFLAGS embed version/build-info into the binary so
+    # `argocd version --client` reports the right version.
+    - run: |
+        export CGO_ENABLED=0
+        LDFLAGS="-X github.com/argoproj/argo-cd/v3/common.version=v{{version}}"
+        LDFLAGS="$LDFLAGS -X github.com/argoproj/argo-cd/v3/common.buildDate=1970-01-01T00:00:00Z"
+        LDFLAGS="$LDFLAGS -X github.com/argoproj/argo-cd/v3/common.gitCommit=v{{version}}"
+        LDFLAGS="$LDFLAGS -X github.com/argoproj/argo-cd/v3/common.gitTag=v{{version}}"
+        LDFLAGS="$LDFLAGS -X github.com/argoproj/argo-cd/v3/common.gitTreeState=clean"
+
+        go build \
+          -ldflags "$LDFLAGS" \
+          -o argocd \
+          ./cmd
+
+    - install -Dm755 argocd "{{prefix}}/bin/argocd"
+
+test:
+  # `argocd version --client --short` reports "argocd: vX.Y.Z+commit"
+  # for the CLI side. `--client` avoids needing a real Argo CD
+  # server to connect to.
+  script:
+    - run: |
+        out=$(argocd version --client --short 2>&1 | head -1)
+        echo "argocd version --client --short → $out"
+        case "$out" in
+          "argocd: v{{version}}"*) echo PASS ;;
+          *) echo "FAIL: expected v{{version}}, got $out"; exit 1 ;;
+        esac
+
+provides:
+  - bin/argocd
