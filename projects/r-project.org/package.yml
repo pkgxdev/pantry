@@ -95,6 +95,13 @@ test:
   # the first line. We just check the version number matches.
   # `Rscript -e 'cat(R.version.string)'` is a stronger end-to-end
   # check that the interpreter actually loads and can execute.
+  #
+  # Explicit R_HOME export: brewkit's test step doesn't apply the
+  # recipe's runtime.env (that only kicks in when the bottle is
+  # invoked via pkgx). Without R_HOME, Rscript exec's a non-existent
+  # +brewing path. Set it directly here too.
+  env:
+    R_HOME: ${{prefix}}/lib/R
   script:
     - run: |
         out=$(R --version 2>&1 | head -1)
@@ -106,8 +113,6 @@ test:
     - run: |
         out=$(Rscript -e 'cat(R.version$major, R.version$minor, sep=".")')
         echo "Rscript: $out"
-        # Marketing version e.g. "4.5.3" — R.version$minor is "5.3"
-        # so concat is "4.5.3".
         test "$out" = "{{version}}" || { echo "FAIL: $out != {{version}}"; exit 1; }
 
 provides:
