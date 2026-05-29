@@ -78,6 +78,13 @@ build:
     LAPACK_LIBS: "-lopenblas"
     LDFLAGS: -L{{deps.openblas.net.prefix}}/lib
     CPPFLAGS: -I{{deps.openblas.net.prefix}}/include
+    darwin:
+      # mkoctfile is post-linked by brewkit's install_name fixer
+      # (ruby-macho) — without -headerpad_max_install_names the binary
+      # has no room for relocated load commands and we hit
+      # MachO::HeaderPadError. Apply globally on darwin so every Octave
+      # binary has the headroom.
+      LDFLAGS: -L{{deps.openblas.net.prefix}}/lib -Wl,-headerpad_max_install_names
     ARGS:
       - --prefix={{ prefix }}
       - --disable-docs              # avoid TeX/Texinfo doc build dep
