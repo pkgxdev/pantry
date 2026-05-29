@@ -62,13 +62,14 @@ build:
     linux:
       gnu.org/gcc: '*'
 
+  # TeXLive's configure refuses in-source builds — use a build/ subdir.
+  working-directory: build
   script:
     # TeXLive's configure has many sub-projects (each engine has its
     # own). The top-level configure passes through to subdirs.
     # --with-system-* makes texlive use pantry's libs instead of its
-    # vendored copies — keeps the bottle slim and lets pkgx manage
-    # the deps centrally.
-    - ./configure $ARGS
+    # vendored copies.
+    - ../configure $ARGS
     - make --jobs {{ hw.concurrency }}
     - make install
 
