@@ -94,13 +94,15 @@ build:
       JDK_DIR: build/*/images/j2sdk-image/*
 
     ARGS:
+      # JDK 8 configure has fewer flags than 11+. Notably:
+      #   --disable-warnings-as-errors  → unrecognized
+      #   --with-jvm-variants=server    → unrecognized (default is server)
+      #   --with-native-debug-symbols   → unrecognized
+      # Pass only what JDK 8 understands.
       - --prefix={{ prefix }}
       - --with-boot-jdk=$SRCROOT/boot-jdk
-      - --disable-warnings-as-errors
       - --with-debug-level=release
       - --with-target-bits=64
-      - --with-jvm-variants=server
-      - --with-native-debug-symbols=none
       - --with-freetype=system
       - --with-zlib=system
       - --enable-unlimited-crypto
