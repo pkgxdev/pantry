@@ -121,6 +121,15 @@ build:
           # headers; windres needs `-I` to find them. The configure's
           # CC --sysroot covers C compiles but windres uses its own
           # include path — pass via RCFLAGS.
+          #
+          # Build STATIC ONLY. The shared (DLL) link goes through
+          # libtool's PE/COFF "global_symbol_pipe" which configure
+          # constructs from probing nm output; with llvm-nm the probe
+          # ends up with an empty sed slot and emits a broken
+          # `llvm-nm ... |  | sed ...` pipeline (double pipe = shell
+          # syntax error). The static lib doesn't need that pipe.
+          # We can revisit shared once libtool's PE detection is fixed
+          # upstream.
           (
             mkdir -p build-winpthreads-$T
             cd build-winpthreads-$T
@@ -128,7 +137,7 @@ build:
               --prefix="{{prefix}}/$T" \
               --host="$T" \
               --enable-static \
-              --enable-shared \
+              --disable-shared \
               RCFLAGS="-I{{prefix}}/$T/include"
             make --jobs {{ hw.concurrency }}
             make install
