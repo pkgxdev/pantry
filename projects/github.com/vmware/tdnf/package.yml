@@ -47,16 +47,39 @@ provides:
   - bin/tdnf
 
 test:
+  # Representative test:
+  #   1. tdnf --version returns the bottle's version
+  #   2. tdnf can resolve + download + extract a real RPM from a real
+  #      repo, into a user-writable rootfs. `filesystem` is the
+  #      smallest sensible package (just FHS skeleton dirs); avoids
+  #      the multi-minute install of a full rocky base set and keeps
+  #      the test focused on "does tdnf work end-to-end".
+  #
+  # Fixes vs the previous test iteration:
+  #   - dropped `sudo` — installing into a user-writable rootfs
+  #     doesn't need root, and the wrapper was triggering brewkit's
+  #     auto-fetch + `PKGX_PANTRY_DIR is set, refusing to update`
+  #   - dropped `pkgx tdnf` wrapping — tdnf is already on PATH from
+  #     `provides: bin/tdnf`; the wrapper'd `pkgx tdnf` is what
+  #     bumped into the auto-fetch loop
+  #   - --forcearch needs RPM's `_` (underscore) form per RPM
+  #     convention, not pkgx's `-` form (`{{hw.arch}}` = "x86-64")
   env:
     RELEASE: '10'
     ROOTFS: rocky-${RELEASE}-rootfs
   script:
     - run: 'test "$(tdnf --version)" = "tdnf: {{version}}"'
     - run: |
-        sudo pkgx tdnf install \
+        case "{{hw.arch}}" in
+          x86-64)  ARCH=x86_64  ;;
+          aarch64) ARCH=aarch64 ;;
+        esac
+        tdnf install \
           --installroot="$PWD/${ROOTFS}" \
-          --releasever=${RELEASE} \
-          --forcearch={{ hw.arch }} \
-          -y bash coreutils passwd iproute iputils procps-ng util-linux \
-          openssh-server openssh-clients less vim-minimal tar gzip \
-          which dnf yum
+          --releasever="${RELEASE}" \
+          --forcearch="$ARCH" \
+          --refresh \
+          -y filesystem
+        # Sanity-check: the package dropped its FHS dirs into rootfs.
+        test -d "$PWD/${ROOTFS}/etc"
+        test -d "$PWD/${ROOTFS}/usr/bin"
