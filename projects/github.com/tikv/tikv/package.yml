@@ -1,0 +1,56 @@
+# NOTE TO MAINTAINERS: TiKV is a heavy build.
+# - Pinned nightly Rust toolchain (rust-toolchain.toml) -> we use rustup
+# - Bundles RocksDB (C++) and Titan via cargo build scripts -> needs cmake, clang, protoc
+# - Full release build typically takes 30-60 min on CI and peaks around 6 GB RAM.
+#   Do not be surprised by long bottle times; this is expected.
+distributable:
+  url: https://github.com/tikv/tikv/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: tikv/tikv/releases
+  strip: /^v/
+
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+
+provides:
+  - bin/tikv-server
+  - bin/tikv-ctl
+
+build:
+  dependencies:
+    rust-lang.org/rustup: '*'
+    gnu.org/make: '*'
+    cmake.org: ^3
+    protobuf.dev: '*'
+    freedesktop.org/pkg-config: ^0.29
+    gnu.org/m4: '*'
+    gnu.org/autoconf: '*'
+    gnu.org/automake: '*'
+    gnu.org/libtool: '*'
+    llvm.org: '*'
+    linux:
+      gnu.org/gcc: '*'
+  env:
+    PATH: $HOME/.cargo/bin:$PATH
+    TIKV_FRAME_POINTER: '0'
+    ENABLE_FIPS: '0'
+    linux:
+      CC: clang
+      CXX: clang++
+  script:
+    - run:
+        - ln -sf {{deps.rust-lang.org/rustup.prefix}}/bin/rustup rustup
+        - rustup default "$(grep '^channel' $SRCROOT/rust-toolchain.toml | sed 's/channel = "//;s/"//')"
+        - ln -sf $HOME/.rustup/toolchains/*/bin/* .
+      working-directory: $HOME/.cargo/bin
+    - make release
+    - mkdir -p "{{prefix}}/bin"
+    - cp target/release/tikv-server target/release/tikv-ctl "{{prefix}}/bin/"
+
+test:
+  script:
+    - "{{prefix}}/bin/tikv-server --version"
+    - "{{prefix}}/bin/tikv-ctl --version"
