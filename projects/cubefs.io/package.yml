@@ -47,6 +47,12 @@ build:
         # build.sh hardcodes --threads default at 1; pass our concurrency.
         # Each named target compiles its vendored C deps under build/lib
         # (skipped on subsequent calls via librocksdb.a presence guard).
+        #
+        # CubeFS vendors snappy 1.1.7 which declares
+        # `cmake_minimum_required(VERSION 2.6)` — CMake 4.x removed
+        # compat below 3.5, so set CMAKE_POLICY_VERSION_MINIMUM to
+        # let the policy-min override apply.
+        export CMAKE_POLICY_VERSION_MINIMUM=3.5
         for TARGET in server client cli authtool fsck; do
           make $TARGET threads={{ hw.concurrency }}
         done
