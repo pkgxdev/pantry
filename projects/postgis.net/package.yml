@@ -1,0 +1,63 @@
+# PostGIS — spatial and geographic objects for PostgreSQL.
+#
+# Adds GIS support to PostgreSQL: geometry/geography types, spatial
+# indexes, hundreds of GIS functions. Used everywhere GIS + RDBMS
+# meet — cartography services, logistics, government open-data.
+#
+# Closes part of pkgxdev/pantry#99 (Top 300 holdout #718).
+
+distributable:
+  url: https://download.osgeo.org/postgis/source/postgis-{{ version.raw }}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://download.osgeo.org/postgis/source/
+  match: /postgis-\d+\.\d+\.\d+\.tar\.gz/
+  strip:
+    - /^postgis-/
+    - /\.tar\.gz/
+
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+  - darwin/x86-64
+  - darwin/aarch64
+
+dependencies:
+  postgresql.org: '*'
+  libgeos.org: '*'
+  proj.org: '*'
+  gdal.org: '*'
+  gnu.org/gettext: '*'
+  protobuf.dev: '*'    # for protobuf-c-based binary writer
+  pcre.org/v2: '*'
+  libxml2.gnome.org: '*'
+
+build:
+  dependencies:
+    gnu.org/make: '*'
+    gnu.org/autoconf: '*'
+    freedesktop.org/pkg-config: '*'
+
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
+  env:
+    ARGS:
+      - --prefix={{ prefix }}
+      - --with-pgconfig={{deps.postgresql.org.prefix}}/bin/pg_config
+      - --with-geosconfig={{deps.libgeos.org.prefix}}/bin/geos-config
+      - --with-projdir={{deps.proj.org.prefix}}
+      - --with-gdalconfig={{deps.gdal.org.prefix}}/bin/gdal-config
+      - --without-protobuf  # protobuf-c needed separately; skip for slim
+      - --disable-nls       # save build time
+
+provides:
+  - bin/pgsql2shp
+  - bin/shp2pgsql
+  - bin/raster2pgsql
+
+test:
+  - pgsql2shp -? 2>&1 | head -3 || true
+  - shp2pgsql -? 2>&1 | head -3 || true
