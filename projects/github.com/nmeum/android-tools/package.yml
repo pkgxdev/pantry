@@ -62,7 +62,13 @@ build:
     # no longer do, so compilation dies with "template argument 1 is
     # invalid" on `std::vector<uint8_t>`. Force-include <cstdint>
     # before every translation unit.
-    CXXFLAGS: -include cstdint
+    #
+    # AOSP's libbase/posix_strerror_r.cpp assumes the POSIX-XSI
+    # strerror_r (returns int). glibc's default _GNU_SOURCE feature
+    # set selects the GNU variant (returns char*), and the code dies
+    # with "invalid conversion from 'char*' to 'int'". Undefine
+    # _GNU_SOURCE + set _POSIX_C_SOURCE=200809L to switch back.
+    CXXFLAGS: -include cstdint -U_GNU_SOURCE -D_POSIX_C_SOURCE=200809L
     ARGS:
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
       - -DCMAKE_BUILD_TYPE=Release
