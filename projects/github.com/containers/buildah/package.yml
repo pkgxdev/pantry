@@ -1,0 +1,79 @@
+# Buildah — OCI-image builder.
+#
+# Daemonless tool for building OCI/Docker container images. Same
+# family as podman (already in pantry); buildah focuses on the image
+# *building* side, podman on the image-running side.
+#
+# Linux-only: buildah uses Linux-specific syscalls (mount namespaces,
+# unshare, user namespaces, fs overlay) that have no macOS equivalent.
+
+distributable:
+  url: https://github.com/containers/buildah/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: containers/buildah/releases/tags
+
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+
+dependencies:
+  gnupg.org/gpgme: '*'
+  github.com/seccomp/libseccomp: '*'
+
+build:
+  dependencies:
+    go.dev: '*'
+    gnu.org/make: '*'
+    pkgconf.org: '*'         # build deps' pkg-config files
+    gnu.org/coreutils: '*'   # install(1)
+    gnu.org/sed: '*'
+  script:
+    # Buildah's Makefile auto-detects optional storage backends
+    # (btrfs, lvm/devmapper, ostree, libsubid) and adds build tags
+    # accordingly. We don't ship those in pantry, so we explicitly
+    # narrow the build to the minimum SECURITY + STORAGE set:
+    #
+    #   - seccomp (always — required for kernel-level container security)
+    #   - exclude_graphdriver_btrfs (no btrfs)
+    #   - exclude_graphdriver_devicemapper (no lvm)
+    #   - no ostree, no libsubid
+    #
+    # This still produces a functional buildah for the overlayfs +
+    # vfs storage backends, which is what most consumers want.
+    #
+    # Skip the hack/*.sh scripts that probe the host — they'd report
+    # "not installed" anyway and we want predictable output.
+    - run: |
+        export BUILDTAGS="seccomp exclude_graphdriver_btrfs exclude_graphdriver_devicemapper containers_image_openpgp"
+        make --jobs {{ hw.concurrency }} \
+          GO_BUILD=go\ build \
+          buildah
+
+    - install -Dm755 bin/buildah "{{prefix}}/bin/buildah"
+
+    # Buildah ships shell-completions + man pages — install them too.
+    - run: |
+        mkdir -p "{{prefix}}/share/man/man1" "{{prefix}}/share/bash-completion/completions"
+        if [ -d docs ] && ls docs/buildah*.1 >/dev/null 2>&1; then
+          cp docs/buildah*.1 "{{prefix}}/share/man/man1/" || true
+        fi
+        # Generate bash completion using the binary itself
+        "{{prefix}}/bin/buildah" completion bash > "{{prefix}}/share/bash-completion/completions/buildah" 2>/dev/null || true
+
+test:
+  # `buildah --version` returns "buildah version X.Y.Z (...)" — pin
+  # against the marketing version since the trailing parens contain
+  # the git commit which we don't want to match against.
+  script:
+    - run: |
+        out=$(buildah --version 2>&1 | head -1)
+        echo "buildah --version: $out"
+        case "$out" in
+          "buildah version {{version}}"*) echo PASS ;;
+          *) echo "FAIL: expected v{{version}}, got $out"; exit 1 ;;
+        esac
+
+provides:
+  - bin/buildah
