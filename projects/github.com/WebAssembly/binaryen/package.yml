@@ -39,12 +39,13 @@ build:
       - -DBUILD_TESTS=OFF
       - -DBUILD_LLVM_DWARF=OFF
       # binaryen 119+ uses std::set::contains / std::map::contains
-      # (added in C++20). Default CMake target is C++17, so the
-      # build fails at src/ir/effects.h with
-      #   error: no member named 'contains' in 'std::set<wasm::Name>'
-      # Force C++20 explicitly.
-      - -DCMAKE_CXX_STANDARD=20
-      - -DCMAKE_CXX_STANDARD_REQUIRED=ON
+      # (added in C++20). The previous iter set CMAKE_CXX_STANDARD=20
+      # which didn't take effect — binaryen's CMakeLists.txt sets the
+      # standard per-target via target_compile_features(... cxx_std_17)
+      # which takes precedence over global CMAKE_CXX_STANDARD. Inject
+      # -std=c++20 directly via CXXFLAGS instead; clang's last-wins
+      # -std= resolution puts our 20 ahead of the per-target 17.
+      - -DCMAKE_CXX_FLAGS=-std=c++20
 
 provides:
   - bin/wasm-opt
