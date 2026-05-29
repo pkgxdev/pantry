@@ -77,7 +77,15 @@ build:
         BOOT_FILE=${BOOT_FILE/-/}
         URL="https://github.com/adoptium/temurin8-binaries/releases/download/${BOOT_TAG}/OpenJDK8U-jdk_${ARCH}_hotspot_${BOOT_FILE}.tar.gz"
         echo "fetching boot JDK from: $URL"
-        wget -q "$URL" -O - | tar xz -C . --strip-components=1
+        # darwin tarballs nest the JDK under Contents/Home/; strip 4
+        # components to land bin/java at the same depth as linux
+        # (which is flat under jdk8u…). This way the literal path
+        # `$SRCROOT/boot-jdk` works as --with-boot-jdk on both OSes.
+        case "{{hw.platform}}" in
+          darwin) STRIP=4 ;;
+          *)      STRIP=1 ;;
+        esac
+        wget -q "$URL" -O - | tar xz -C . --strip-components=$STRIP
       working-directory: boot-jdk
 
     - run: |
@@ -103,12 +111,9 @@ build:
       #   --with-native-debug-symbols   → unrecognized
       # Pass only what JDK 8 understands.
       - --prefix={{ prefix }}
-      # On darwin the Temurin tarball wraps the JDK in
-      # Contents/Home/, so the actual bin/java lives at
-      # $SRCROOT/boot-jdk/Contents/Home/bin/java, not
-      # $SRCROOT/boot-jdk/bin/java. We set $BOOT_JDK_DIR per-platform
-      # above; use it here so configure finds bin/java on both OSes.
-      - --with-boot-jdk=$BOOT_JDK_DIR
+      # The boot-jdk fetch step strips Contents/Home/ on darwin so
+      # bin/java lives at $SRCROOT/boot-jdk/bin/java on every OS.
+      - --with-boot-jdk=$SRCROOT/boot-jdk
       - --with-debug-level=release
       - --with-target-bits=64
       - --with-freetype=system
