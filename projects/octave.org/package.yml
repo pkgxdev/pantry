@@ -1,0 +1,100 @@
+# GNU Octave — high-level language for numerical computations.
+#
+# Open-source MATLAB-compatible interpreter for scientific/engineering
+# workflows. Built CLI-only — no Qt GUI, no Java, no X11 — to keep
+# the bottle slim and the dep tree headless-friendly. Users who need
+# a GUI should use the system octave-qt build or VSCode + extension.
+#
+# Same approach as the R recipe (r-project.org): minimal CLI focused
+# on terminal / batch / Jupyter-kernel use cases.
+
+distributable:
+  url: https://ftp.gnu.org/gnu/octave/octave-{{ version.raw }}.tar.xz
+  strip-components: 1
+
+versions:
+  url: https://ftp.gnu.org/gnu/octave/
+  match: /octave-\d+\.\d+\.\d+\.tar\.xz/
+  strip:
+    - /octave-/
+    - /\.tar\.xz/
+
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+  - darwin/x86-64
+  - darwin/aarch64
+
+dependencies:
+  # Required runtime libs (numerical core + I/O).
+  gnu.org/gcc: '*'             # libgfortran.so.5 — runtime FORTRAN ABI
+  openblas.net: '*'            # BLAS + LAPACK (bundled set)
+  fftw.org: '*'                # FFT
+  pcre.org/v2: '*'              # regex (>=3.8 needs PCRE2)
+  gnu.org/readline: '*'        # line editing
+  hdfgroup.org/HDF5: '*'       # .mat v7.3 I/O
+  qhull.org: '*'               # convhull/delaunay/voronoi
+  graphicsmagick.org: '*'      # imread/imwrite for non-fits formats
+  gnuplot.info: '*'            # plot backend (octave shells out to gnuplot)
+  zlib.net: '*'
+  sourceware.org/bzip2: '*'
+
+build:
+  dependencies:
+    gnu.org/gcc: '*'             # gfortran for Octave's numerical core
+    gnu.org/make: '*'
+    gnu.org/coreutils: '*'
+    perl.org: '*'                # build scripts
+    gnu.org/findutils: '*'
+    gnu.org/sed: '*'
+    gnu.org/grep: '*'
+    freedesktop.org/pkg-config: '*'
+
+  script:
+    - ./configure $ARGS
+    - make -j {{ hw.concurrency }}
+    - make install
+
+    # Octave bakes the configure-time prefix (`{{prefix}}+brewing`)
+    # into wrapper scripts + config files. Same pattern as R — strip
+    # +brewing post-install so the bottle is relocation-safe.
+    - run: |
+        cd "{{prefix}}"
+        grep -rIl '+brewing' bin lib/octave share/octave 2>/dev/null \
+          | xargs -r sed -i 's|+brewing||g'
+
+  env:
+    ARGS:
+      - --prefix={{ prefix }}
+      - --disable-docs              # avoid TeX/Texinfo doc build dep
+      - --disable-java
+      - --without-qt                # CLI-only — skip Qt GUI
+      - --without-x                 # no X11
+      - --without-opengl            # no OpenGL (qt-less)
+      - --without-fltk              # no FLTK GUI
+      - --without-magick            # disable ImageMagick (use GraphicsMagick via --with-magick=GraphicsMagick separately)
+      - --with-magick=GraphicsMagick
+      - --enable-shared
+      - --disable-static            # smaller bottle
+
+test:
+  script:
+    - run: |
+        out=$(octave-cli --version 2>&1 | head -1)
+        echo "octave-cli --version: $out"
+        case "$out" in
+          *"{{version}}"*) echo "version PASS" ;;
+          *) echo "FAIL: expected {{version}}, got: $out"; exit 1 ;;
+        esac
+    - run: |
+        # Quick interpreter smoke test — eval a simple expression
+        # via `--eval` and check the output.
+        out=$(octave-cli --no-gui --quiet --eval 'printf("%d\n", 6*7)' 2>&1 | tail -1)
+        echo "octave eval 6*7: $out"
+        test "$out" = "42" || { echo "FAIL: expected 42, got: $out"; exit 1; }
+
+provides:
+  - bin/octave
+  - bin/octave-cli
+  - bin/mkoctfile
+  - bin/octave-config
