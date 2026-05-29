@@ -1,0 +1,64 @@
+distributable:
+  url: https://github.com/vitessio/vitess/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+display-name: vitess
+
+versions:
+  github: vitessio/vitess
+
+platforms:
+  - darwin
+  - linux
+
+build:
+  dependencies:
+    go.dev: '*'
+    gnu.org/make: '*'
+    git-scm.org: '*'
+  # we drive the build via `make build` so vitess's own ldflags / version
+  # embedding (tools/build_version_flags.sh) stay consistent with upstream
+  script:
+    # build.env installs git hooks via `git config core.hooksPath`,
+    # which requires a real git repo even though we're building from a tarball
+    - git init -q
+    - git config user.email pkgx@pkgx.sh
+    - git config user.name pkgx
+    - git commit -q --allow-empty -m bootstrap
+    - make --jobs {{hw.concurrency}} build
+    - mkdir -p {{prefix}}/bin
+    - find bin -maxdepth 1 -type f -exec cp {} {{prefix}}/bin/ \;
+  skip: fix-patchelf
+  env:
+    NOVTADMINBUILD: '1'
+    NOBANNER: '1'
+    BUILD_GIT_REV: '{{version.tag}}'
+    BUILD_GIT_BRANCH: main
+
+provides:
+  - bin/mysqlctl
+  - bin/mysqlctld
+  - bin/topo2topo
+  - bin/vtaclcheck
+  - bin/vtbackup
+  - bin/vtbench
+  - bin/vtclient
+  - bin/vtcombo
+  - bin/vtctl
+  - bin/vtctlclient
+  - bin/vtctld
+  - bin/vtctldclient
+  - bin/vtexplain
+  - bin/vtgate
+  - bin/vtorc
+  - bin/vttablet
+  - bin/vttestserver
+  - bin/vttlstest
+  - bin/zk
+  - bin/zkctl
+  - bin/zkctld
+
+test:
+  - {{prefix}}/bin/vtgate --version
+  - {{prefix}}/bin/vtctldclient --version
+  - {{prefix}}/bin/vtgate --version | grep {{version}}
