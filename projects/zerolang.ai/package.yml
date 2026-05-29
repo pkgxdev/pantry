@@ -52,7 +52,7 @@ test:
         }
       }
   - run: cp $FIXTURE main.0
-    if: ">=0.1.4"
+    if: ">=0.1.4<0.2.0"
     fixture: |
       fn answer i32
         ret + 40 2
@@ -60,6 +60,18 @@ test:
       pub fn main Void world World !
         if == answer() 42
           check world.out.write "math works\n"
+  - run: cp $FIXTURE main.0
+    if: ">=0.2.0"
+    fixture: |
+      fn answer() -> i32 {
+          return 40 + 2
+      }
+
+      pub fn main(world: World) -> Void raises {
+          if answer() == 42 {
+              check world.out.write("math works\n")
+          }
+      }
   - zero check main.0
   - zero run main.0 | tee out
   - test "$(cat out)" = "math works"
