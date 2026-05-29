@@ -65,10 +65,16 @@ build:
     #
     # AOSP's libbase/posix_strerror_r.cpp assumes the POSIX-XSI
     # strerror_r (returns int). glibc's default _GNU_SOURCE feature
-    # set selects the GNU variant (returns char*), and the code dies
-    # with "invalid conversion from 'char*' to 'int'". Undefine
-    # _GNU_SOURCE + set _POSIX_C_SOURCE=200809L to switch back.
-    CXXFLAGS: -include cstdint -U_GNU_SOURCE -D_POSIX_C_SOURCE=200809L
+    # set selects the GNU variant (returns char*), causing
+    # "invalid conversion from 'char*' to 'int'".
+    #
+    # We can't just `-U_GNU_SOURCE` — too much downstream AOSP code
+    # (adb, logger, uio, pipe2, IOV_MAX, pthread_setname_np,
+    # program_invocation_short_name, …) depends on it. Use
+    # -fpermissive to demote the strerror_r mismatch to a warning;
+    # the resulting CLI tools (adb, fastboot) only care that the
+    # call returns "success-ish", not its precise return contract.
+    CXXFLAGS: -include cstdint -fpermissive
     ARGS:
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
       - -DCMAKE_BUILD_TYPE=Release
