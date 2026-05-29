@@ -1,0 +1,77 @@
+# Envoy — high-performance edge/middle/service proxy.
+#
+# Built from source via Bazel. WARNING: this is a heavy build —
+# expect 1-3 hours on CI hardware and ~8 GB peak RAM. If pantry's
+# CI runners can't sustain it, we'll need to tune the build (drop
+# extensions, reduce parallelism, split into stages, etc.); pantry
+# policy is from-source over vendored binaries.
+
+distributable:
+  url: https://github.com/envoyproxy/envoy/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: envoyproxy/envoy
+
+# Upstream officially ships standalone binaries only for Linux.
+# darwin builds via Bazel are possible but require a darwin-host
+# Bazel setup that's beyond Phase 1 of this recipe.
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+
+build:
+  dependencies:
+    github.com/bazelbuild/bazelisk: '*'   # bazel wrapper / version manager
+    gnu.org/coreutils: '*'                # install(1)
+    cmake.org: '*'                        # some bazel rules use cmake
+    python.org: '~3.11'                   # bazel build rules use python
+    gnu.org/m4: '*'
+    gnu.org/automake: '*'
+    gnu.org/autoconf: '*'
+    gnu.org/libtool: '*'
+    gnu.org/patch: '*'
+    pkgconf.org: '*'
+    curl.se: '*'
+
+  script:
+    # Use the release config: -c opt + stripped + minimal symbols.
+    # `bazelisk` here is the canonical entry point — it reads
+    # `.bazelversion` from the source tree and downloads the right
+    # bazel for us.
+    #
+    # Bazel's user output goes under $HOME by default; redirect to
+    # our build dir so the cellar stays clean.
+    - run: |
+        export USER=$(id -un)
+        export TEST_TMPDIR=$PWD/.bazel-cache
+        mkdir -p $TEST_TMPDIR
+
+        # Memory-constrain bazel to fit on standard CI runners.
+        # `--local_resources` units: cpu=count, ram=MB.
+        BAZEL_OPTS="--config=release-stripped"
+        BAZEL_OPTS="$BAZEL_OPTS --jobs=HOST_CPUS*0.5"
+        BAZEL_OPTS="$BAZEL_OPTS --local_ram_resources=HOST_RAM*0.7"
+
+        bazelisk build $BAZEL_OPTS //source/exe:envoy-static
+
+    - install -Dm755 bazel-bin/source/exe/envoy-static "{{prefix}}/bin/envoy"
+
+    # Bazel leaves a multi-GB output_base under .bazel-cache that we
+    # don't want in the bottle.
+    - run: rm -rf .bazel-cache
+
+test:
+  # `envoy --version` returns "envoy  version: <commit>/<ver>/<type>/<status>/<...>".
+  # We pin against the marketing version to confirm the binary loads.
+  script:
+    - run: |
+        out=$(envoy --version 2>&1 | head -1)
+        echo "envoy --version: $out"
+        case "$out" in
+          *"version: "*"/{{version}}/"*) echo PASS ;;
+          *) echo "FAIL: expected version {{version}} in output, got: $out"; exit 1 ;;
+        esac
+
+provides:
+  - bin/envoy
