@@ -31,10 +31,12 @@ platforms:
 build:
   dependencies:
     go.dev: ^1.18           # go.mod floor
-    gnu.org/gcc: ^13        # CGO toolchain for RocksDB et al.
-                            # Pin <14 because RocksDB 6.3.6 (vendored)
-                            # uses pre-C++20 idioms that gcc 14+'s
-                            # libstdc++ rejects under the default std mode.
+    gnu.org/gcc: ^11        # CGO toolchain for RocksDB et al.
+                            # Pin to gcc 11 — RocksDB 6.3.6's
+                            # FileSampledStats (std::atomic member) +
+                            # synthesized FileMetaData copy ctor combo
+                            # is rejected by gcc 12+ libstdc++ under
+                            # the stricter C++17 rules.
     cmake.org: '*'          # vendored snappy uses cmake
     gnu.org/make: '*'
     gnu.org/coreutils: '*'  # install(1)
@@ -56,6 +58,12 @@ build:
         # compat below 3.5, so set CMAKE_POLICY_VERSION_MINIMUM to
         # let the policy-min override apply.
         export CMAKE_POLICY_VERSION_MINIMUM=3.5
+
+        # Bonus shielding for old RocksDB 6.3.6: relax the C++ standard
+        # so the FileMetaData implicit-copy-ctor path is accepted even
+        # if a newer libstdc++ is picked up via system headers.
+        export CXXFLAGS="${CXXFLAGS} -std=gnu++14"
+
         for TARGET in server client cli authtool fsck; do
           make $TARGET threads={{ hw.concurrency }}
         done
