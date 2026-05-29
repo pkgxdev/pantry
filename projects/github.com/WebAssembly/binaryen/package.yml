@@ -1,0 +1,55 @@
+# binaryen — WebAssembly compiler infrastructure and toolchain.
+#
+# Provides wasm-opt (the WebAssembly optimizer), wasm-as / wasm-dis,
+# wasm-merge, wasm2js. Required by emscripten at link time to produce
+# optimized .wasm output.
+#
+# Companion to emscripten.org — adding this here unblocks the
+# emscripten pantry recipe (#13065) which needs wasm-opt on PATH.
+
+distributable:
+  url: https://github.com/WebAssembly/binaryen/archive/refs/tags/version_{{ version.raw }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: WebAssembly/binaryen
+  strip: /^version_/
+
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+  - darwin/x86-64
+  - darwin/aarch64
+
+build:
+  dependencies:
+    cmake.org: ^3
+    gnu.org/make: '*'
+    python.org: '*'
+
+  working-directory: build
+  script:
+    - cmake .. $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
+  env:
+    ARGS:
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DBUILD_TESTS=OFF
+
+provides:
+  - bin/wasm-opt
+  - bin/wasm-as
+  - bin/wasm-dis
+  - bin/wasm-merge
+  - bin/wasm2js
+  - bin/wasm-emscripten-finalize
+  - bin/wasm-ctor-eval
+  - bin/wasm-metadce
+  - bin/wasm-reduce
+  - bin/wasm-shell
+  - bin/wasm-split
+
+test:
+  - wasm-opt --version | grep -i "wasm-opt"
