@@ -54,13 +54,15 @@ build:
     - make --jobs {{ hw.concurrency }}
     - make install
 
-    # gcc symlinks expected by some build systems
+    # gcc symlinks expected by some build systems. This recipe lives
+    # one level deeper than the main gnu.org/gcc (v8 subdir), so the
+    # relative path to binutils needs `../../../../` (4 levels).
     - run: |
         cd "{{prefix}}/bin"
         ln -sf gcc cc
-        ln -sf ../../../binutils/v*/bin/ar ar
-        ln -sf ../../../binutils/v*/bin/nm nm
-        ln -sf ../../../binutils/v*/bin/ranlib ranlib
+        ln -sf ../../../../binutils/v*/bin/ar ar
+        ln -sf ../../../../binutils/v*/bin/nm nm
+        ln -sf ../../../../binutils/v*/bin/ranlib ranlib
 
   env:
     ARGS:
