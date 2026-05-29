@@ -24,10 +24,13 @@ versions:
   strip: /^v/
 
 platforms:
+  # darwin currently fails: CMake picks the system Python 3.9.6 over
+  # pantry's python.org and dies looking for Python3 Development.Module
+  # headers (system Python ships none in a discoverable place).
+  # Restrict to linux until we can teach CMake to prefer pantry's
+  # python3 + its headers on macOS.
   - linux/x86-64
   - linux/aarch64
-  - darwin/x86-64
-  - darwin/aarch64
 
 dependencies:
   python.org: '~3.11'
