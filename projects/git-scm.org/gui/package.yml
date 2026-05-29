@@ -1,0 +1,61 @@
+# git-gui + gitk — Tcl/Tk GUIs for git.
+#
+# Companion to git-scm.org which builds the main git binaries with
+# `NO_TCLTK=1`. This recipe re-uses the same git source but builds
+# only the git-gui/ and gitk-git/ subdirs against Tk.
+#
+# Provides bin/git-gui (commit/history GUI) and bin/gitk (history
+# visualizer). Both invoked via `git gui` and `gitk` once on PATH.
+#
+# Closes part of pkgxdev/pantry#99 (Top 300 holdout #371).
+
+distributable:
+  url: https://mirrors.edge.kernel.org/pub/software/scm/git/git-{{version}}.tar.xz
+  strip-components: 1
+
+versions:
+  github: git/git/tags
+
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+  - darwin/x86-64
+  - darwin/aarch64
+
+dependencies:
+  git-scm.org: '*'
+  tcl-lang.org: '*'
+  tcl-lang.org/tk: '*'
+
+build:
+  dependencies:
+    gnu.org/make: '*'
+    gnu.org/coreutils: '*'
+    gnu.org/gettext: '*'
+
+  script:
+    # Build just the git-gui and gitk subdirs — the main `git` binary
+    # comes from git-scm.org which is a runtime dep.
+    - run: |
+        cd git-gui
+        make --jobs {{ hw.concurrency }} TCLTK_PATH={{deps.tcl-lang.org/tk.prefix}}/bin/wish
+        make install gg_install_dir={{prefix}}/libexec/git-core prefix={{prefix}}
+    - run: |
+        cd gitk-git
+        make --jobs {{ hw.concurrency }}
+        make install gitexecdir={{prefix}}/libexec/git-core prefix={{prefix}}
+
+    - run: |
+        # symlink top-level wrappers so `git-gui` and `gitk` are on PATH
+        mkdir -p {{prefix}}/bin
+        cd {{prefix}}/bin
+        ln -sf ../libexec/git-core/git-gui git-gui || true
+        ln -sf ../libexec/git-core/gitk gitk || true
+
+test:
+  - test -f "{{prefix}}/libexec/git-core/git-gui"
+  - test -f "{{prefix}}/libexec/git-core/gitk"
+
+provides:
+  - bin/git-gui
+  - bin/gitk
