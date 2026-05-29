@@ -39,6 +39,13 @@ dependencies:
   zlib.net: '*'
   sourceware.org/bzip2: '*'
 
+# Octave hardcodes its install path in libs and startup .m loader.
+# Set OCTAVE_HOME so end users get correct startup state after brewkit
+# renames the +brewing dir.
+runtime:
+  env:
+    OCTAVE_HOME: ${{prefix}}
+
 build:
   dependencies:
     gnu.org/gcc: '*'             # gfortran for Octave's numerical core
@@ -98,8 +105,13 @@ test:
           *) echo "FAIL: expected {{version}}, got: $out"; exit 1 ;;
         esac
     - run: |
+        # Octave's startup loads .m files from its share/octave/$VER/
+        # tree. Without OCTAVE_HOME, the configure-time +brewing path
+        # is used (no longer exists), producing 'execution_exception&
+        # while preparing to exit' from the startup .m loader.
         export LD_LIBRARY_PATH="{{prefix}}/lib/octave/{{version.raw}}:$LD_LIBRARY_PATH"
         export DYLD_LIBRARY_PATH="{{prefix}}/lib/octave/{{version.raw}}:$DYLD_LIBRARY_PATH"
+        export OCTAVE_HOME="{{prefix}}"
         out=$(octave-cli --no-gui --quiet --eval 'printf("%d\n", 6*7)' 2>&1 | tail -1)
         echo "octave eval 6*7: $out"
         test "$out" = "42" || { echo "FAIL: expected 42, got: $out"; exit 1; }
