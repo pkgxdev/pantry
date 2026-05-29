@@ -42,31 +42,52 @@ build:
   script:
     # python-venv-alt: brewkit's stock python-venv.sh was OOM-killed
     # (exit 137) at PyQt5's pip-install — GitHub runners have ~7 GB
-    # RAM and the parallel Qt5 binding compile peaks at 4–6 GB *per*
-    # ld process. This inline equivalent does what python-venv.sh
-    # does (create venv + pip-install SRCROOT) but with three
-    # memory-discipline knobs that make the 50+ Qt module bindings
-    # build under the runner's RAM ceiling:
+    # RAM and pyqt-builder builds the ~30 Qt bindings in parallel,
+    # each peaking at 4–6 GB per ld process. MAKEFLAGS=-j1 alone
+    # doesn't help: pyqt-builder spawns multiple `make` processes,
+    # one per binding, and the inner-make's -j1 only serialises within
+    # each binding. The outer parallelism is what kills the runner.
     #
-    #   MAKEFLAGS=-j1                   — one make process at a time
-    #   CMAKE_BUILD_PARALLEL_LEVEL=1    — same for the cmake path
-    #   CXX/CFLAGS=-g0                  — drop debug info, ~30% peak
-    #                                      memory cut at link time
+    # Two knobs that together fit the build in 7 GB:
     #
-    # If this pattern proves useful, lift it into brewkit as
-    # python-venv-alt.sh (or as a parallelism flag on python-venv.sh).
+    #   --config-settings=--jobs=1
+    #     Tells pyqt-builder itself to build ONE binding at a time.
+    #     This is the load-bearing flag.
+    #
+    #   --config-settings=--disable=Qt<heavy>
+    #     Drops the highest-RAM bindings (QtMultimedia, QtPdf,
+    #     QtQuick, Qt3D*, QtWebKit, QtBluetooth, QtPositioning,
+    #     QtSensors, QtXmlPatterns, QtWebChannel, QtNfc). The
+    #     remaining bindings cover the 95 % use case (Core/Gui/
+    #     Widgets/Network/Sql/Svg/DBus/Test).
+    #
+    # If this pattern proves useful, lift the knobs into brewkit as
+    # python-venv-alt.sh (or as a --jobs flag on python-venv.sh).
     - run: |
         PYVER={{deps.python.org.version.marketing}}
         "{{deps.python.org.prefix}}/bin/python$PYVER" -m venv --copies "{{prefix}}/venv"
         PYTHON="{{prefix}}/venv/bin/python"
         "$PYTHON" -m pip install --upgrade pip wheel setuptools --quiet
 
-        export MAKEFLAGS="-j1"
-        export CMAKE_BUILD_PARALLEL_LEVEL=1
         export CXXFLAGS="${CXXFLAGS} -g0"
         export CFLAGS="${CFLAGS} -g0"
 
-        "$PYTHON" -m pip install "$SRCROOT" --no-build-isolation --verbose
+        DISABLE_FLAGS=""
+        for mod in QtMultimedia QtMultimediaWidgets QtPdf QtPdfWidgets \
+                   QtQml QtQuick QtQuickWidgets QtQuick3D \
+                   Qt3DCore Qt3DRender Qt3DInput Qt3DLogic Qt3DAnimation Qt3DExtras \
+                   QtWebKit QtWebKitWidgets QtWebChannel QtWebSockets \
+                   QtBluetooth QtPositioning QtSensors QtNfc \
+                   QtXmlPatterns QtSerialPort QtRemoteObjects QtTextToSpeech \
+                   QtX11Extras QtMacExtras QtWinExtras; do
+          DISABLE_FLAGS="$DISABLE_FLAGS --config-settings=--disable=$mod"
+        done
+
+        "$PYTHON" -m pip install "$SRCROOT" \
+          --no-build-isolation \
+          --config-settings=--jobs=1 \
+          $DISABLE_FLAGS \
+          --verbose
 
     # Expose the python binary as a marker so provides: has something.
     - run: |
