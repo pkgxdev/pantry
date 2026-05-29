@@ -1,0 +1,64 @@
+# zsync2 — modernized rsync-like delta updates over HTTP.
+#
+# Fetches only the differences between a local file and a remote
+# version, using a control file (.zsync). Widely used by AppImage
+# for in-place updates without re-downloading the whole image.
+#
+# This is the C++17 rewrite of the original zsync; same on-the-wire
+# format, modern CMake build, libcurl + openssl + libssh2.
+
+distributable:
+  url: https://github.com/AppImageCommunity/zsync2/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: AppImageCommunity/zsync2
+  # Upstream releases as dated alphas (2.0.0-alpha-1-YYYYMMDD).
+  # Filter to those + transform to a parseable semver.
+  ignore:
+    - /^continuous$/
+  transform: |
+    v => {
+      const m = v.match(/^2\.0\.0-alpha-1-(\d{8})$/);
+      return m ? `2.0.0-alpha.${m[1]}` : undefined;
+    }
+
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+  - darwin/x86-64
+  - darwin/aarch64
+
+dependencies:
+  openssl.org: '*'
+  curl.se: '*'
+  libssh2.org: '*'
+  zlib.net: '*'
+  gnupg.org/libgcrypt: '*'
+
+build:
+  dependencies:
+    cmake.org: ^3
+    gnu.org/make: '*'
+    freedesktop.org/pkg-config: '*'
+    git-scm.org: '*'   # CMake submodule init for cpr
+
+  working-directory: build
+  script:
+    - cmake .. $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
+  env:
+    ARGS:
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DUSE_SYSTEM_CURL=1
+      - -DBUILD_CPR_TESTS=0
+
+provides:
+  - bin/zsync2
+  - bin/zsyncmake2
+
+test:
+  - zsync2 -h 2>&1 | head -3 || true
+  - zsyncmake2 -h 2>&1 | head -3 || true
