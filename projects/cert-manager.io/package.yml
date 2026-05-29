@@ -28,39 +28,29 @@ build:
     gnu.org/coreutils: '*'
 
   script:
-    # Build each cmd/* as a standalone binary. CGO_ENABLED=0 produces
-    # static binaries fit for distroless runtimes.
+    # cert-manager uses a multi-module layout — each cmd/* has its own
+    # go.mod. So we cd into each cmd dir + go build there.
     - run: |
         export CGO_ENABLED=0
         LDFLAGS="-s -w -X github.com/cert-manager/cert-manager/pkg/util.AppVersion=v{{ version.raw }}"
+        mkdir -p out
         for cmd in controller webhook cainjector acmesolver startupapicheck; do
-          go build -trimpath -ldflags "$LDFLAGS" \
-            -o "bin/$cmd" "./cmd/$cmd"
+          if [ -d "cmd/$cmd" ]; then
+            (cd "cmd/$cmd" && go build -trimpath -ldflags "$LDFLAGS" -o "../../out/cert-manager-$cmd" .)
+          fi
         done
-        # cmctl CLI lives at cmd/ctl in newer releases
-        if [ -d cmd/ctl ]; then
-          go build -trimpath -ldflags "$LDFLAGS" \
-            -o bin/cmctl ./cmd/ctl
-        fi
+
     - run: |
-        for bin in bin/*; do
+        for bin in out/*; do
           install -Dm755 "$bin" "{{prefix}}/bin/$(basename "$bin")"
         done
 
 test:
-  script:
-    - run: |
-        out=$(controller --version 2>&1 | head -3 || true)
-        echo "controller: $out"
-        case "$out" in
-          *"{{version}}"*) echo "PASS" ;;
-          *) echo "soft-pass — output: $out" ;;
-        esac
+  - test -x "{{prefix}}/bin/cert-manager-controller"
 
 provides:
-  - bin/controller         # main reconciler loop
-  - bin/webhook            # admission webhook
-  - bin/cainjector         # CA bundle injector
-  - bin/acmesolver         # ACME HTTP-01 solver
-  - bin/startupapicheck    # k8s API readiness probe
-  # bin/cmctl is conditional; add if your release ships cmd/ctl/
+  - bin/cert-manager-controller   # main reconciler loop
+  - bin/cert-manager-webhook      # admission webhook
+  - bin/cert-manager-cainjector   # CA bundle injector
+  - bin/cert-manager-acmesolver   # ACME HTTP-01 solver
+  - bin/cert-manager-startupapicheck
