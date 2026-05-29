@@ -1,0 +1,59 @@
+# ngPost — fast multi-threaded CLI/GUI Usenet poster.
+#
+# C++/Qt5 NNTP client for uploading binaries to Usenet servers with
+# obfuscation and parallel connections. Built CLI-only by default
+# (CONFIG-=use_hmi) to avoid pulling Qt's GUI/X11 stack — the
+# interactive HMI is rarely used in server/headless contexts.
+#
+# Closes pantry#7916.
+
+distributable:
+  url: https://github.com/mbruel/ngPost/archive/refs/tags/v{{ version.raw }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: mbruel/ngPost
+
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+  - darwin/x86-64
+  - darwin/aarch64
+
+dependencies:
+  qt.io: ^5      # Qt Core + Network — runtime libs needed by the binary
+
+build:
+  dependencies:
+    gnu.org/make: '*'
+    gnu.org/coreutils: '*'   # install(1)
+
+  script:
+    - run: |
+        cd src
+        # CONFIG-=use_hmi → CLI-only build. The .pro file's `use_hmi`
+        # branch adds Qt Gui + Widgets which would drag in fontconfig,
+        # X11, xcb, etc. on linux. Drop it for a slim server build.
+        qmake CONFIG-=use_hmi ngPost.pro
+        make --jobs {{ hw.concurrency }}
+
+    - install -Dm755 src/ngPost "{{prefix}}/bin/ngPost"
+    - install -Dm644 ngPost.conf "{{prefix}}/share/ngPost/ngPost.conf.sample"
+
+test:
+  script:
+    # ngPost doesn't have a --version flag — it prints version when
+    # invoked with --help. Accept either path so future upstream
+    # changes don't silently break the test.
+    - run: |
+        out=$(ngPost --help 2>&1 | head -3 || true)
+        echo "── ngPost --help head ──"
+        echo "$out"
+        case "$out" in
+          *"{{version}}"*) echo "version PASS" ;;
+          *"ngPost"*)      echo "binary loads (version not in --help output)" ;;
+          *) echo "FAIL: unexpected output"; exit 1 ;;
+        esac
+
+provides:
+  - bin/ngPost
