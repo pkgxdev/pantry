@@ -41,6 +41,9 @@ build:
   dependencies:
     perl.org: "*"
   script:
+    # R's configure script looks for `which` to find dependencies. On some platforms (notably arch-based Linux distros) `which` is missing, so replace it with `command -v` which is more universally available.
+    - run: sed -i 's|which <- "@WHICH@"|which <- "command -v"|' system.unix.R
+      working-directory: src/library/base/R/unix
     - ./configure $ARGS
     - make -j {{ hw.concurrency }}
     - make install
