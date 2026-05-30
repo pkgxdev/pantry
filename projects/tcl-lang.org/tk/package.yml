@@ -67,16 +67,16 @@ build:
         - --enable-aqua
 
 test:
-  # Tk 9.0 installs libtk under several names depending on platform —
-  # libtk9.0.so on Linux, libtk9.0.dylib on macOS, sometimes with a
-  # `.0` suffix or as libtcl9tk9.0.so on newer Tk builds. Glob match
-  # rather than enumerate.
+  # Tk 9.0 installs the shared library as `libtcl9tk9.0.so` on Linux
+  # (Tcl-version-prefixed since Tk 9.x — *not* `libtk9.0.so` like
+  # Tk 8.6 did). Accept any `lib*tk*` shape to keep working across
+  # the rename, with a directory listing on failure.
   - run: |
       set -e
       shopt -s nullglob
-      libs=("{{prefix}}/lib/"libtk*.{so,dylib}*)
+      libs=("{{prefix}}/lib/"lib*tk*.{so,dylib}*)
       if [ ${#libs[@]} -eq 0 ]; then
-        echo "FAIL: no libtk* found in {{prefix}}/lib/"
+        echo "FAIL: no lib*tk* found in {{prefix}}/lib/"
         ls -la "{{prefix}}/lib/" || true
         exit 1
       fi
