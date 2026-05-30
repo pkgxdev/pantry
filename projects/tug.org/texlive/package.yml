@@ -137,20 +137,32 @@ test:
     - luatex --version 2>&1 | head -1
 
 provides:
-  # Major engines (from texk/ subtree). Not exhaustive — texlive
-  # installs ~80 binaries; listing the ones users actually invoke.
+  # Engines (from texk/web2c/).
   - bin/tex
   - bin/pdftex
   - bin/xetex
   - bin/luatex
   - bin/luahbtex
+  - bin/mf             # Metafont — vector-font compiler
+  # Format wrappers (latex / pdflatex / xelatex / lualatex) are NOT
+  # shipped by this engines-only recipe — texlive's `make install`
+  # alone doesn't materialize them; they're created by `fmtutil-sys`
+  # which needs texmf-dist (installed separately via `tlmgr install
+  # collection-latexrecommended`). Users hitting `command not found:
+  # pdflatex` should run `tlmgr install scheme-small` after install.
+  # DVI/PDF/PS converters.
   - bin/dvips
   - bin/dvipdfmx
+  - bin/dvipdfm        # legacy wrapper around dvipdfmx
+  # Auxiliary tools.
   - bin/bibtex
   - bin/makeindex
   - bin/mktexlsr
-  - bin/tlmgr # TeX Live Manager (Perl)
-  - bin/kpsewhich
-  # `biber` (Perl tool with extra modules) + `dvipdfm` (legacy, replaced
-  # by dvipdfmx) + `kpathsea` (library, not a binary) intentionally
-  # omitted — install biber via `tlmgr install biber` if needed.
+  - bin/mktexpk        # generate PK fonts on demand
+  - bin/tlmgr          # TeX Live Manager (Perl)
+  - bin/kpsewhich      # kpathsea query tool
+  - bin/texdoc         # find documentation for a package
+  - bin/epstopdf       # EPS → PDF converter
+  # `biber` (Perl tool with ~30 CPAN modules) + `kpathsea` (library, not
+  # a binary) intentionally omitted — install biber via
+  # `tlmgr install biber` if needed.
