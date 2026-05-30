@@ -30,13 +30,19 @@ build:
     gnu.org/automake: '*'
     gnu.org/libtool: '*'
     llvm.org: '*'
-    # pkgx ships OpenSSL 3.4+ built WITH deprecated symbols (no
-    # `no-deprecated` in projects/openssl.org/package.yml), so the
-    # legacy names TiKV's bundled gRPC + RocksDB use
-    # (SSL_get_peer_certificate, EVP_CIPHER_nid) stay exported. That
-    # makes our recipe match what arch's PKGBUILD does (no OpenSSL
-    # override at all — they accept system 3.x with deprecated symbols).
-    openssl.org: '*'
+    # Force OpenSSL 3.x.  pkgx ships bottles for both the 1.1 and 3.x
+    # branches; `openssl.org: '*'` resolves to 1.1.1w in CI (most of
+    # the pantry pins openssl to ^1.1 for compat, see the comment in
+    # projects/openssl.org/package.yml about curl/wget).  But TiKV's
+    # bundled C++ (grpcio-sys, librocksdb-sys, libtitan-sys) was
+    # written against the OpenSSL 3 API surface; with 1.1.1w libs on
+    # the link line ld can't resolve `SSL_get_peer_certificate` and
+    # `EVP_CIPHER_nid` from the rocksdb/grpc object files because the
+    # 1.1.1w libcrypto/libssl SONAMEs differ from what the bundled
+    # cargo build scripts emit `cargo:rustc-link-lib` for. pkgx's 3.x
+    # bottles are built WITH deprecated symbols (no `no-deprecated`
+    # in the openssl recipe) so the legacy names stay exported.
+    openssl.org: ^3
     linux:
       gnu.org/gcc: '*'
   env:
