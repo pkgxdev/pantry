@@ -49,8 +49,9 @@ build:
 
     # Buildah ships shell-completions — install them too.
     - mkdir -p "{{prefix}}/share/man/man1" "{{prefix}}/share/bash-completion/completions"
-    - # Generate bash completion using the binary itself
-    - '${{prefix}}/bin/buildah completion bash > "{{prefix}}/share/bash-completion/completions/buildah" || true'
+    # Generate bash completion using the binary itself
+    - run: ./buildah completion bash > "../share/bash-completion/completions/buildah"
+      working-directory: ${{prefix}}/bin
 
 test:
   # `buildah --version` returns "buildah version X.Y.Z (...)" — pin
