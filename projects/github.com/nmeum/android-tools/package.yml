@@ -51,6 +51,9 @@ dependencies:
   github.com/google/brotli: '*'
   facebook.com/zstd: '*'
   lz4.org: '*'
+  python.org: ^3.9         # runtime — mkbootimg/unpack_bootimg/etc.
+                           # are wrapper scripts that exec python3
+                           # against share/android-tools/*.py
 
 build:
   dependencies:
@@ -85,6 +88,43 @@ build:
     - cmake .. $ARGS
     - make --jobs {{ hw.concurrency }}
     - make install
+
+    # Upstream's CMakeLists installs `bin/mkbootimg`,
+    # `bin/unpack_bootimg`, `bin/repack_bootimg`, `bin/mkdtboimg`,
+    # `bin/avbtool` as symlinks (via a `*_symlink` CMake target)
+    # pointing at the corresponding `share/android-tools/<name>/<name>.py`.
+    # The symlink target uses the absolute `+brewing` build prefix,
+    # so after brewkit relocates the install to its final path,
+    # the symlinks dangle and brewkit's audit reports the binaries
+    # as missing. Replace each symlink with a small shell wrapper
+    # that resolves $0 → script at runtime (so it works post-relocation).
+    - run: |
+        BIN="{{prefix}}/bin"
+        for tool in mkbootimg unpack_bootimg repack_bootimg mkdtboimg avbtool; do
+          [ -e "$BIN/$tool" ] || continue
+          # Real .py lives at:
+          #   $prefix/share/android-tools/$tool/$tool.py     (typical)
+          # or
+          #   $prefix/share/android-tools/$tool.py           (occasional)
+          # so probe both shapes from the wrapper.
+          rm -f "$BIN/$tool"
+          cat > "$BIN/$tool" <<'WRAPEOF'
+        #!/bin/sh
+        bindir=$(CDPATH= cd -- "${0%/*}" && pwd)
+        prefix=$(CDPATH= cd -- "$bindir/.." && pwd)
+        name=$(basename "$0")
+        for candidate in \
+          "$prefix/share/android-tools/$name/$name.py" \
+          "$prefix/share/android-tools/$name.py"; do
+          if [ -f "$candidate" ]; then
+            exec python3 "$candidate" "$@"
+          fi
+        done
+        echo "$0: companion python script not found under $prefix/share/android-tools/" >&2
+        exit 127
+        WRAPEOF
+          chmod 755 "$BIN/$tool"
+        done
   env:
     # The vendored AOSP libbase / libziparchive headers reference
     # uint8_t / uint32_t / etc. without including <cstdint>. Pre-C++17
