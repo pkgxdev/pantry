@@ -4,6 +4,15 @@ distributable:
     # 8.4.0 doesn't provide a boost option
   - url: https://cdn.mysql.com/Downloads/MySQL-{{version.marketing}}/mysql-{{version}}.tar.gz
     strip-components: 1
+  # Fallback for versions Oracle has retired from the CDN.
+  # 9.6.1 is the recurring trigger of #12679 — the tag still exists
+  # on github.com/mysql/mysql-server but Oracle dropped both CDN
+  # tarball variants. GitHub's source archive is missing the
+  # bundled boost subdir, but the build already sets
+  # `-DDOWNLOAD_BOOST=1` so cmake fetches it on configure when it
+  # isn't pre-extracted next to the source tree.
+  - url: https://github.com/mysql/mysql-server/archive/refs/tags/mysql-{{version}}.tar.gz
+    strip-components: 1
 
 versions:
   github: mysql/mysql-server/tags
