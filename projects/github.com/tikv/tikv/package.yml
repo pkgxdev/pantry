@@ -63,6 +63,13 @@ build:
     # don't, so the final tikv-server link is missing the libs and
     # fails with "undefined reference". Force them via RUSTFLAGS.
     RUSTFLAGS: '-C link-arg=-L{{deps.openssl.org.prefix}}/lib -C link-arg=-lssl -C link-arg=-lcrypto'
+    # Build the bundled C++ libs (RocksDB + Titan + jemalloc) in
+    # portable mode so they don't hardcode FORCE_SSE42=ON. SSE4.2 is
+    # x86-only — on aarch64 the titan CMakeLists.txt bails with
+    # "FORCE_SSE42=ON but unable to compile with SSE4.2 enabled".
+    # Setting these matches what TiKV's own CI does for ARM builds.
+    ROCKSDB_SYS_PORTABLE: '1'
+    PORTABLE: '1'
     linux:
       CC: clang
       CXX: clang++
