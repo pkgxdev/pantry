@@ -52,12 +52,16 @@ build:
         cpanm -l "$SRCROOT/perl-xml-parser" XML::Parser --notest --verbose
     # Upstream ships configure.ac only — autogen.sh runs autopoint +
     # autoreconf with `intltoolize --automake --copy` as AUTOPOINT.
+    # Bypass brewkit's perl wrapper (which drops PERL5LIB via
+    # `pkgx +perl.org -- perl`) by pointing PERL/INTLTOOL_PERL at
+    # the real perl binary directly.
     - ./autogen.sh
-    - ./configure $ARGS
+    - ./configure PERL=$REAL_PERL INTLTOOL_PERL=$REAL_PERL $ARGS
     - make --jobs {{ hw.concurrency }}
     - make install
 
   env:
+    REAL_PERL: '{{deps.perl.org.prefix}}/bin/perl'
     # Put our freshly-built XML::Parser first; deliberately do NOT
     # include intltool's lib/perl5 (stale ABI — see comment above).
     PERL5LIB: $SRCROOT/perl-xml-parser/lib/perl5
