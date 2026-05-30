@@ -1,0 +1,44 @@
+# X.Org font-util — small helper for X11 font packages.
+#
+# Provides:
+#   - mkfontdir, mkfontscale (CLI tools that build fonts.dir /
+#     fonts.scale index files)
+#   - bdftruncate, ucs2any (BDF font format converters)
+#   - fontutil.pc (pkg-config exporting `fontrootdir` etc., consumed
+#     by `xserver`'s meson.build to compute the default FontPath)
+#
+# Same role as arch's `xorg-font-util` package, debian's `xfonts-utils`,
+# nixpkgs `xorg.fontutil`. Tiny — autotools-based, ~200 lines of C.
+
+distributable:
+  url: https://www.x.org/releases/individual/font/font-util-{{version}}.tar.xz
+  strip-components: 1
+
+versions:
+  url: https://www.x.org/releases/individual/font/
+  match: /font-util-\d+\.\d+\.\d+\.tar\.xz/
+  strip:
+    - /^font-util-/
+    - /\.tar\.xz$/
+
+display-name: X.Org font-util
+
+build:
+  dependencies:
+    gnu.org/make: '*'
+    freedesktop.org/pkg-config: '*'
+    x.org/util-macros: '*'
+  script:
+    - ./configure --prefix={{prefix}}
+    - make --jobs {{ hw.concurrency }}
+    - make install
+
+provides:
+  - bin/bdftruncate
+  - bin/mkfontdir
+  - bin/mkfontscale     # mkfontdir is a thin shim around mkfontscale on modern x.org
+  - bin/ucs2any
+
+test:
+  - mkfontscale -v 2>&1 | head -1
+  - test -f "{{prefix}}/share/pkgconfig/fontutil.pc"
