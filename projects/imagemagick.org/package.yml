@@ -130,11 +130,20 @@ test:
   # at extconf.rb time even though ImageMagick's MagickCore.pc was
   # detected fine. Add `+gnu.org/gcc` to the pkgx invocation so the
   # rmagick extension link finds g++. See pkgxdev/pantry#4030.
-  # rmagick's gem-install C++ extension uses Ruby's frozen CFLAGS,
-  # which are baked from the clang toolchain that built ruby (pkgx
-  # builds ruby with clang on linux). Those flags include
-  # `-fdeclspec`, `-Wextra-tokens`, `-Wdivision-by-zero`,
-  # `-Wshorten-64-to-32` — all clang-only. Using gcc here would fail
-  # with "unrecognized command-line option". Use `+llvm.org` (clang)
-  # to match what mkmf.rb's CFLAGS expect.
-  - run: pkgx +ruby@3.2.2 +llvm.org gem install --no-document rmagick
+  # rmagick's gem-install C++ extension goes through Ruby's mkmf.rb:
+  # 1. mkmf calls `find_executable("g++")` as a gate — needs a
+  #    binary literally named `g++` on PATH (`clang++` alone is
+  #    not enough; mkmf doesn't probe alternatives).
+  # 2. After the gate, the actual compile uses Ruby's frozen
+  #    `RbConfig::CONFIG['CXX']` which is the clang++ from the
+  #    toolchain that built ruby. Those frozen CFLAGS include
+  #    clang-only options (`-fdeclspec`, `-Wextra-tokens`,
+  #    `-Wdivision-by-zero`, `-Wshorten-64-to-32`).
+  #
+  # Provide both `+gnu.org/gcc` (to satisfy the `g++` PATH gate) and
+  # `+llvm.org` (so Ruby's stored clang++ resolves), then explicitly
+  # set `CXX=clang++` so mkmf uses clang for the actual compile and
+  # the frozen clang flags are accepted.
+  - run: |
+      export CXX=clang++ CC=clang
+      pkgx +ruby@3.2.2 +gnu.org/gcc +llvm.org gem install --no-document rmagick
