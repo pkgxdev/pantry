@@ -30,19 +30,15 @@ build:
     gnu.org/automake: '*'
     gnu.org/libtool: '*'
     llvm.org: '*'
-    # Force OpenSSL 3.x.  pkgx ships bottles for both the 1.1 and 3.x
-    # branches; `openssl.org: '*'` resolves to 1.1.1w in CI (most of
-    # the pantry pins openssl to ^1.1 for compat, see the comment in
-    # projects/openssl.org/package.yml about curl/wget).  But TiKV's
-    # bundled C++ (grpcio-sys, librocksdb-sys, libtitan-sys) was
-    # written against the OpenSSL 3 API surface; with 1.1.1w libs on
-    # the link line ld can't resolve `SSL_get_peer_certificate` and
-    # `EVP_CIPHER_nid` from the rocksdb/grpc object files because the
-    # 1.1.1w libcrypto/libssl SONAMEs differ from what the bundled
-    # cargo build scripts emit `cargo:rustc-link-lib` for. pkgx's 3.x
-    # bottles are built WITH deprecated symbols (no `no-deprecated`
-    # in the openssl recipe) so the legacy names stay exported.
-    openssl.org: ^3
+    # OpenSSL: leave version unconstrained so the resolver can pick
+    # whatever the rest of the build-deps demand.  Tried `^3` to force
+    # the 3.x branch (which has deprecated symbols available) but a
+    # transitive dep in this graph already requires `^1.1`, and the
+    # resolver fails with `cannot intersect: ^1.1 && ^3`.  Stuck with
+    # 1.1.1w.  The actual link errors against 1.1.1w
+    # (`undefined SSL_get_peer_certificate`, `undefined EVP_CIPHER_nid`)
+    # need to be fixed via RUSTFLAGS belt-and-braces below.
+    openssl.org: '*'
     linux:
       gnu.org/gcc: '*'
   env:
@@ -58,6 +54,15 @@ build:
     OPENSSL_INCLUDE_DIR: '{{deps.openssl.org.prefix}}/include'
     OPENSSL_ROOT_DIR: '{{deps.openssl.org.prefix}}'
     PKG_CONFIG_PATH: '{{deps.openssl.org.prefix}}/lib/pkgconfig:$PKG_CONFIG_PATH'
+    # The bundled CMake sub-builds inside librocksdb-sys / grpcio-sys
+    # / libtitan-sys link C++ object files that reference openssl
+    # symbols (SSL_get_peer_certificate, EVP_CIPHER_nid). Those .o
+    # files end up archived into their .rlibs, but cargo's final
+    # link step only adds `-lssl -lcrypto` if a build script emits
+    # `cargo:rustc-link-lib=ssl,crypto`. The bundled sub-builds
+    # don't, so the final tikv-server link is missing the libs and
+    # fails with "undefined reference". Force them via RUSTFLAGS.
+    RUSTFLAGS: '-C link-arg=-L{{deps.openssl.org.prefix}}/lib -C link-arg=-lssl -C link-arg=-lcrypto'
     linux:
       CC: clang
       CXX: clang++
