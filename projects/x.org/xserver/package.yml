@@ -115,6 +115,13 @@ build:
       - -Ddevel-docs=false
       - -Dxkb_dir={{prefix}}/share/X11/xkb
       - -Dxkb_output_dir={{prefix}}/var/lib/xkb
+      # meson.build:143 — when `default_font_path` is empty, meson
+      # tries to resolve it from x.org/font-util's pkg-config
+      # `fontrootdir`. Pantry doesn't ship font-util yet, so set the
+      # path explicitly to skip the lookup. The directories don't
+      # need to exist at build time — Xorg just appends them to
+      # FontPath at runtime; admins set actual font dirs in xorg.conf.
+      - -Ddefault_font_path={{prefix}}/share/X11/fonts/misc,{{prefix}}/share/X11/fonts/TTF,{{prefix}}/share/X11/fonts/OTF,{{prefix}}/share/X11/fonts/Type1,{{prefix}}/share/X11/fonts/100dpi,{{prefix}}/share/X11/fonts/75dpi
       - -Dint10=stub
       - -Ddri1=false                  # legacy DRI1, no consumers
       - -Ddri2=true
