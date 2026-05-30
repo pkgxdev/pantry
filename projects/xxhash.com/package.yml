@@ -1,0 +1,41 @@
+# xxHash — extremely fast non-cryptographic hash algorithm (XXH32/64/128/3).
+#
+# Tiny C library + xxhsum CLI. Used by many consumers in pantry that
+# currently disable xxhash support due to its absence (rsync's
+# `--disable-xxhash` FIXME, texlive's dvisvgm disabled flag, etc.).
+# Unblocks those once landed.
+
+distributable:
+  url: https://github.com/Cyan4973/xxHash/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: Cyan4973/xxHash
+
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+  - darwin/x86-64
+  - darwin/aarch64
+
+build:
+  dependencies:
+    gnu.org/make: '*'
+    linux:
+      gnu.org/gcc: '*'
+  script:
+    - make --jobs {{ hw.concurrency }} lib xxhsum xxhsum_and_links
+    - make PREFIX="{{prefix}}" install
+
+provides:
+  - bin/xxhsum
+  - bin/xxh32sum
+  - bin/xxh64sum
+  - bin/xxh128sum
+
+test:
+  # XXH32 of the empty string is 0x02CC5D05.
+  - test "$(echo -n '' | xxhsum -H32 | awk '{print $1}')" = "02cc5d05"
+  # Sanity-check the link variants.
+  - xxh64sum --version 2>&1 | head -1
+  - xxh128sum --version 2>&1 | head -1
