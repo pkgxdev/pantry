@@ -3,6 +3,23 @@
 # - Bundles RocksDB (C++) and Titan via cargo build scripts -> needs cmake, clang, protoc
 # - Full release build typically takes 30-60 min on CI and peaks around 6 GB RAM.
 #   Do not be surprised by long bottle times; this is expected.
+#
+# GCC PIN (critical):
+#   TiKV's bundled C++ (RocksDB / Titan / gRPC) does not build correctly
+#   with gcc 13+ — see https://github.com/tikv/tikv/issues/16593 .
+#   Arch's AUR PKGBUILD pins `gcc12<12.4.0` and exports CC=gcc-12 / CXX=g++-12:
+#     https://aur.archlinux.org/cgit/aur.git/plain/PKGBUILD?h=tikv
+#   We mirror that with `gnu.org/gcc: ^12.3 <12.4` (resolves to 12.3.0)
+#   and an explicit CC/CXX. This is what finally fixed the
+#   "undefined reference to EVP_CIPHER_nid / SSL_get_peer_certificate"
+#   final-link failures we hit across 5 prior iterations with gcc 16
+#   on pantry builders — gcc 13+ visibility/LTO/as-needed semantics
+#   differ enough that the bundled C++ object files in librocksdb_sys.rlib
+#   / libgrpcio_sys.rlib couldn't resolve openssl symbols.
+#
+# CMAKE_POLICY_VERSION_MINIMUM=3.5:
+#   https://github.com/tikv/tikv/issues/18867 — cmake 4.x rejects the
+#   bundled sub-builds' minimum-required policy without this.
 distributable:
   url: https://github.com/tikv/tikv/archive/refs/tags/v{{version.raw}}.tar.gz
   strip-components: 1
@@ -44,12 +61,18 @@ build:
     # the 3.x branch (which has deprecated symbols available) but a
     # transitive dep in this graph already requires `^1.1`, and the
     # resolver fails with `cannot intersect: ^1.1 && ^3`.  Stuck with
-    # 1.1.1w.  The actual link errors against 1.1.1w
-    # (`undefined SSL_get_peer_certificate`, `undefined EVP_CIPHER_nid`)
-    # need to be fixed via RUSTFLAGS belt-and-braces below.
+    # 1.1.1w.  The "undefined reference to SSL_get_peer_certificate /
+    # EVP_CIPHER_nid" errors that appeared with 1.1.1w were not an
+    # openssl-version problem at all — they were a gcc-version problem
+    # (see GCC PIN note at top of file).  With the gcc pin in place
+    # those symbols resolve normally.
     openssl.org: '*'
     linux:
-      gnu.org/gcc: '*'
+      # See top-of-file note: TiKV's bundled C++ (RocksDB/Titan/gRPC)
+      # breaks with gcc 13+ (tikv#16593). Arch pins gcc12<12.4.0 —
+      # we mirror that. Pantry ships 12.3.0 and 12.4.0 as Linux
+      # bottles; `^12.3 <12.4` resolves to 12.3.0.
+      gnu.org/gcc: ^12.3 <12.4
   env:
     PATH: $HOME/.cargo/bin:$PATH
     TIKV_FRAME_POINTER: '0'
@@ -63,23 +86,21 @@ build:
     OPENSSL_INCLUDE_DIR: '{{deps.openssl.org.prefix}}/include'
     OPENSSL_ROOT_DIR: '{{deps.openssl.org.prefix}}'
     PKG_CONFIG_PATH: '{{deps.openssl.org.prefix}}/lib/pkgconfig:$PKG_CONFIG_PATH'
-    # The bundled CMake sub-builds inside librocksdb-sys / grpcio-sys
-    # / libtitan-sys link C++ object files that reference openssl
-    # symbols (SSL_get_peer_certificate, EVP_CIPHER_nid). Those .o
-    # files end up archived into their .rlibs, but cargo's final
-    # link step only adds `-lssl -lcrypto` if a build script emits
-    # `cargo:rustc-link-lib=ssl,crypto`. The bundled sub-builds
-    # don't, so the final tikv-server link is missing the libs and
-    # fails with "undefined reference". Force them via RUSTFLAGS.
-    # Belt-and-braces: openssl 1.1.1w's libssl/libcrypto contain the
-    # needed symbols (verified via nm), but pkgx/brewkit injects
-    # `-Wl,--as-needed` early in the link line which somehow drops
-    # the libs from the final link despite the bundled rocksdb/grpc
-    # objects (in librocksdb_sys.rlib, libgrpcio_sys.rlib) needing
-    # them. Wrap `-lssl -lcrypto` in `--no-as-needed` to force
-    # unconditional inclusion; restore `--as-needed` after so the
-    # rest of the link policy is unchanged.
-    RUSTFLAGS: '-C link-arg=-L{{deps.openssl.org.prefix}}/lib -C link-arg=-Wl,--no-as-needed -C link-arg=-lssl -C link-arg=-lcrypto -C link-arg=-Wl,--as-needed'
+    # cmake 4.x rejects the bundled sub-builds' min-policy without this.
+    # See https://github.com/tikv/tikv/issues/18867 .
+    CMAKE_POLICY_VERSION_MINIMUM: '3.5'
+    # HISTORICAL (kept for future maintainers): we previously tried to
+    # work around "undefined reference to EVP_CIPHER_nid /
+    # SSL_get_peer_certificate" at the final cargo link step by
+    # forcing `-Wl,--no-as-needed -lssl -lcrypto` via RUSTFLAGS, with
+    # OPENSSL_* env pinning, and via `openssl.org: ^3`. None of that
+    # worked — see commits ef0426ef, 2ba7b88b, 8c575d46.  The actual
+    # root cause was that pantry's `gnu.org/gcc: '*'` was resolving
+    # to gcc 16 on the builder, and gcc 13+ visibility/LTO semantics
+    # cause those exact symbols to be dropped (tikv#16593).  Arch's
+    # AUR PKGBUILD pinning `gcc12<12.4.0` is what works.  The gcc
+    # pin (see build.dependencies.linux) plus the explicit CC/CXX
+    # below is the actual fix; no RUSTFLAGS hack needed.
     # Build the bundled C++ libs (RocksDB + Titan + jemalloc) in
     # portable mode so they don't hardcode FORCE_SSE42=ON. SSE4.2 is
     # x86-only — on aarch64 the titan CMakeLists.txt bails with
@@ -88,8 +109,10 @@ build:
     ROCKSDB_SYS_PORTABLE: '1'
     PORTABLE: '1'
     linux:
-      CC: clang
-      CXX: clang++
+      # Mirror Arch's PKGBUILD: export CC=gcc-12 / CXX=g++-12.
+      # Pantry's gcc bottle ships `gcc` and `g++` symlinks in $prefix/bin.
+      CC: '{{deps.gnu.org/gcc.prefix}}/bin/gcc'
+      CXX: '{{deps.gnu.org/gcc.prefix}}/bin/g++'
   script:
     - run:
         - ln -sf {{deps.rust-lang.org/rustup.prefix}}/bin/rustup rustup
