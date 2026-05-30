@@ -35,12 +35,14 @@ dependencies:
   libusb.info: '*'
   pcre.org/v2: '*'
   google.com/googletest: '*'    # provides gtest_prod.h required by libziparchive
-  # Use latest protobuf. The vendored AOSP libjsonpb has API drift
-  # with protobuf 27+/28+ but pinning to ^25 hit an ABI mismatch:
-  # pantry's protobuf 25.x bottle was built against abseil 20250127
-  # while the current abseil resolves to 20260107, so every
-  # `absl::lts_20250127::*` symbol is unresolved at link time.
-  # Patch the source instead — see the `sed` calls below.
+  # protobuf 35.0.0 and 25.x bottles were both built against
+  # abseil 20250127 (visible in unresolved symbol prefixes
+  # `absl::lts_20250127::*`).  Pantry's abseil now resolves to
+  # 20260107 by default — ABI-incompatible LTS bump.  Pin abseil to
+  # match what the protobuf bottle expects, so the final link
+  # resolves.  Drop once pantry rebuilds protobuf against the
+  # current abseil.
+  abseil.io: ^20250127
   protobuf.dev: '*'
   github.com/google/brotli: '*'
   facebook.com/zstd: '*'
