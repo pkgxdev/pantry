@@ -1,20 +1,17 @@
 distributable:
-  # Primary: upstream tcl-lang.org direct download. Always works for
-  # every published version.
-  - url: https://www.tcl-lang.org/software/tcltk/{{version.marketing}}/tcl{{version}}-src.tar.gz
-    strip-components: 1
-  # Fallback: SourceForge mirror network. Historically unreliable —
-  # SF's mirror picker 404s for newer point releases (e.g. 9.0.4 not
-  # served via prdownloads even though the SF file listing shows it),
-  # which kept #12187 firing repeatedly. Keep as backup only.
-  - url: https://prdownloads.sourceforge.net/tcl/tcl{{ version }}-src.tar.gz
-    strip-components: 1
+  url: https://prdownloads.sourceforge.net/tcl/tcl{{ version }}-src.tar.gz
+  strip-components: 1
 
 versions:
-  # Scrape upstream's official download index so we only attempt
-  # versions that are actually published on tcl-lang.org. SF's file
-  # tree contains 9.0.4 directory but the tarball isn't mirrored,
-  # which was the trigger for pkgxdev/pantry#12187.
+  # Scrape upstream's official download index instead of SF's file
+  # listing. SF lists `files/Tcl/9.0.4/` (an empty / unpublished
+  # version directory) which the old versions scraper picked up as
+  # a valid version, then every build tried to download tcl9.0.4-src
+  # from prdownloads → 404 → #12187 fired every time on retry.
+  #
+  # tcl-lang.org's download.html only lists versions that have an
+  # actual published tarball (currently 8.4.20, 8.5.19, 8.6.18,
+  # 9.0.3), so this is a tighter source of truth.
   url: https://www.tcl-lang.org/software/tcltk/download.html
   match: /tcl\d+\.\d+\.\d+-src\.tar\.gz/
   strip:
