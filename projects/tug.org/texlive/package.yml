@@ -19,48 +19,57 @@ distributable:
   # exposes {{ version.major }} which for an 8-digit version returns
   # the whole `20260301` rather than the year — no year-only field
   # exists. Hardcode the year and bump on next annual release.
-  url: https://ftp.math.utah.edu/pub/tex/historic/systems/texlive/2026/texlive-{{ version.raw }}-source.tar.xz
-  strip-components: 1
+  - url: https://ftp.math.utah.edu/pub/tex/historic/systems/texlive/2027/texlive-{{ version.raw }}-source.tar.xz
+    strip-components: 1
+  - url: https://ftp.math.utah.edu/pub/tex/historic/systems/texlive/2026/texlive-{{ version.raw }}-source.tar.xz
+    strip-components: 1
+  - url: https://ftp.math.utah.edu/pub/tex/historic/systems/texlive/2025/texlive-{{ version.raw }}-source.tar.xz
+    strip-components: 1
+  - url: https://ftp.math.utah.edu/pub/tex/historic/systems/texlive/2024/texlive-{{ version.raw }}-source.tar.xz
+    strip-components: 1
 
 versions:
-  url: https://ftp.math.utah.edu/pub/tex/historic/systems/texlive/2026/
-  match: /texlive-\d{8}-source\.tar\.xz/
-  strip:
-    - /texlive-/
-    - /-source\.tar\.xz/
-
-platforms:
-  - linux/x86-64
-  - linux/aarch64
-  - darwin/x86-64
-  - darwin/aarch64
+  - url: https://ftp.math.utah.edu/pub/tex/historic/systems/texlive/2027/
+    match: /texlive-\d{8}-source\.tar\.xz/
+    strip:
+      - /texlive-/
+      - /-source\.tar\.xz/
+  - url: https://ftp.math.utah.edu/pub/tex/historic/systems/texlive/2026/
+    match: /texlive-\d{8}-source\.tar\.xz/
+    strip:
+      - /texlive-/
+      - /-source\.tar\.xz/
+  - url: https://ftp.math.utah.edu/pub/tex/historic/systems/texlive/2025/
+    match: /texlive-\d{8}-source\.tar\.xz/
+    strip:
+      - /texlive-/
+      - /-source\.tar\.xz/
+  - url: https://ftp.math.utah.edu/pub/tex/historic/systems/texlive/2024/
+    match: /texlive-\d{8}-source\.tar\.xz/
+    strip:
+      - /texlive-/
+      - /-source\.tar\.xz/
 
 dependencies:
   # Engine runtime dependencies.
-  freetype.org: '*'
-  libpng.org: '*'
-  cairographics.org: '*'
-  pixman.org: '*'
-  poppler.freedesktop.org: '*'
-  harfbuzz.org: '*'
-  gnu.org/gmp: '*'
-  gnu.org/mpfr: '*'
-  freedesktop.org/fontconfig: '*'
-  zlib.net: '*'
-  perl.org: '*'                # required at runtime (tlmgr is Perl)
+  freetype.org: "*"
+  libpng.org: "*"
+  cairographics.org: "*"
+  pixman.org: "*"
+  poppler.freedesktop.org: "*"
+  harfbuzz.org: "*"
+  gnu.org/gmp: "*"
+  gnu.org/mpfr: "*"
+  freedesktop.org/fontconfig: "*"
+  zlib.net: "*"
+  perl.org: "*" # required at runtime (tlmgr is Perl)
 
 build:
   dependencies:
-    gnu.org/make: '*'
-    gnu.org/coreutils: '*'
-    gnu.org/sed: '*'
-    gnu.org/findutils: '*'
-    gnu.org/grep: '*'
-    gnu.org/m4: '*'
-    perl.org: '*'                # build scripts need Perl
-    freedesktop.org/pkg-config: '*'
+    gnu.org/m4: "*"
+    perl.org: "*" # build scripts need Perl
     linux:
-      gnu.org/gcc: '*'
+      gnu.org/gcc: "*"
 
   # TeXLive source ships a `build` script at the root (file, not dir),
   # so `working-directory: build` (which mkdirs build/) collides. Use
@@ -78,22 +87,21 @@ build:
     # Strip +brewing from baked-in paths post-install — TeXLive's
     # web2c/texmf.cnf and tlmgr scripts hardcode the configure-time
     # prefix. Same pattern as R / Octave.
-    - run: |
-        cd "{{prefix}}"
+    - run:
         # Engines-only build: texmf-dist / texmf-var aren't installed.
         # Walk every dir that actually exists. Use `|| true` so an
         # empty grep result doesn't abort the script under set -e.
-        for d in bin share/texmf-dist share/texmf-var lib; do
-          [ -d "$d" ] || continue
-          grep -rIl '+brewing' "$d" 2>/dev/null \
-            | xargs -r sed -i 's|+brewing||g' || true
-        done
+        - for d in bin share/texmf-dist share/texmf-var lib; do
+        - test -d "$d" || continue
+        - grep -rIl '+brewing' "$d" 2>/dev/null | xargs -r sed -i 's|+brewing||g' || true
+        - done
+      working-directory: "{{prefix}}"
 
   env:
     ARGS:
       - --prefix={{ prefix }}
       - --datarootdir={{ prefix }}/share
-      - --disable-native-texlive-build  # use a tlpkg-free layout
+      - --disable-native-texlive-build # use a tlpkg-free layout
       - --enable-shared
       - --disable-static
       # Use pantry's system libs instead of TeXLive's vendored copies.
@@ -108,21 +116,22 @@ build:
       - --with-system-mpfr
       - --with-system-fontconfig
       # Skip components that need extra deps (can add back if needed).
-      - --disable-xindy            # needs CLISP
-      - --disable-dvisvgm          # needs xxhash + freetype-aware build
-      - --without-x                # xdvik needs Xaw widgets not in pantry
-      - --disable-xdvik            # belt+braces — same Xaw dependency
+      - --disable-xindy # needs CLISP
+      - --disable-dvisvgm # needs xxhash + freetype-aware build
+      - --without-x # xdvik needs Xaw widgets not in pantry
+      - --disable-xdvik # belt+braces — same Xaw dependency
 
 test:
   # Quick smoke tests on the major engines.
   script:
-    - run: |
-        out=$(tex --version 2>&1 | head -1)
-        echo "tex: $out"
-        case "$out" in
-          *"TeX"*) echo "tex PASS" ;;
-          *) echo "FAIL: $out"; exit 1 ;;
-        esac
+    - out=$(tex --version 2>&1 | head -1)
+    - 'echo "tex: $out"'
+
+    - case "$out" in
+    - '*"TeX"*) echo "tex PASS" ;;'
+    - '*) echo "FAIL: $out"; exit 1 ;;'
+    - esac
+
     - pdftex --version 2>&1 | head -1
     - xetex --version 2>&1 | head -1
     - luatex --version 2>&1 | head -1
@@ -140,7 +149,7 @@ provides:
   - bin/bibtex
   - bin/makeindex
   - bin/mktexlsr
-  - bin/tlmgr              # TeX Live Manager (Perl)
+  - bin/tlmgr # TeX Live Manager (Perl)
   - bin/kpsewhich
   # `biber` (Perl tool with extra modules) + `dvipdfm` (legacy, replaced
   # by dvipdfmx) + `kpathsea` (library, not a binary) intentionally
