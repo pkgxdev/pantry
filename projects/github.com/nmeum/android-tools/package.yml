@@ -42,7 +42,11 @@ dependencies:
   # match what the protobuf bottle expects, so the final link
   # resolves.  Drop once pantry rebuilds protobuf against the
   # current abseil.
-  abseil.io: ^20250127
+  # Try exact patch version. `^20250127` resolves to .2.0 — but the
+  # protobuf bottle may have been built against an earlier abseil
+  # 20250127 patch where template instantiations of
+  # `LogMessage::operator<<` differ. Pin to .0.0 to test.
+  abseil.io: =20250127.0.0
   protobuf.dev: '*'
   github.com/google/brotli: '*'
   facebook.com/zstd: '*'
