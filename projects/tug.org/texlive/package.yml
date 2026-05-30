@@ -144,14 +144,12 @@ provides:
   - bin/luatex
   - bin/luahbtex
   - bin/mf             # Metafont — vector-font compiler
-  # Format wrappers — symlinks to the engines above with a preloaded
-  # format file. These are what users actually invoke (`pdflatex foo.tex`
-  # not `pdftex --fmt=pdflatex foo.tex`). Created by `make install`'s
-  # symlink step in texk/web2c.
-  - bin/latex
-  - bin/pdflatex
-  - bin/xelatex
-  - bin/lualatex
+  # Format wrappers (latex / pdflatex / xelatex / lualatex) are NOT
+  # shipped by this engines-only recipe — texlive's `make install`
+  # alone doesn't materialize them; they're created by `fmtutil-sys`
+  # which needs texmf-dist (installed separately via `tlmgr install
+  # collection-latexrecommended`). Users hitting `command not found:
+  # pdflatex` should run `tlmgr install scheme-small` after install.
   # DVI/PDF/PS converters.
   - bin/dvips
   - bin/dvipdfmx
