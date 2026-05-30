@@ -30,9 +30,12 @@ build:
     gnu.org/automake: '*'
     gnu.org/libtool: '*'
     gnu.org/gettext: '*'
-    freedesktop.org/intltool: '*'
     freedesktop.org/pkg-config: '*'
     perl.org: '*'
+    # intltool removed — its configure step requires Perl's XML::Parser
+    # module which pantry's perl recipe doesn't bundle. Compensated
+    # by `--disable-nls` to skip the i18n machinery autotrace uses
+    # intltool for.
 
   script:
     # Upstream ships configure.ac only — autoreconf to generate configure.
@@ -46,6 +49,12 @@ build:
       - --prefix={{prefix}}
       - --without-pstoedit            # no pantry pstoedit recipe yet
       - --with-magick=auto             # detect IM 7 via pkg-config
+      # autotrace's configure.ac demands intltool, which in turn
+      # demands Perl's XML::Parser. pantry's perl.org doesn't ship
+      # XML::Parser as a built-in. autotrace's i18n surface is
+      # just translated strings — disabling nls drops the intltool
+      # gate entirely. Re-enable once we have an XML::Parser recipe.
+      - --disable-nls
 
 provides:
   - bin/autotrace
