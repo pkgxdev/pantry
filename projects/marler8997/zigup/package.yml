@@ -43,9 +43,13 @@ build:
     # named 'Mode'`). Pin to the 0.14 series until upstream catches up.
     ziglang.org: ^0.14
   script: |
+    # zigup's build.zig calls `b.standardOptimizeOption(.{
+    #   .preferred_optimize_mode = .ReleaseSafe })`. In Zig 0.14, that
+    # registers `--release` (boolean) instead of `-Doptimize=...`; pass
+    # `--release` to opt into the preferred ReleaseSafe build.
     zig build install \
       --prefix "{{prefix}}" \
-      -Doptimize=ReleaseSafe \
+      --release \
       --global-cache-dir "$PWD/.zig-global-cache" \
       --cache-dir "$PWD/.zig-build-cache"
   # zig produces static binaries — patchelf is unnecessary and can break them
