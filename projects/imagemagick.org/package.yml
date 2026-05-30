@@ -146,4 +146,9 @@ test:
   # the frozen clang flags are accepted.
   - run: |
       export CXX=clang++ CC=clang
-      pkgx +ruby@3.2.2 +gnu.org/gcc +llvm.org gem install --no-document rmagick
+      pkgx +ruby@3.2.2 +gnu.org/gcc +llvm.org gem install --no-document rmagick && exit 0
+      echo "==== mkmf.log ===="
+      find /usr/local/lib/ruby/gems -name mkmf.log -path '*rmagick*' -exec sh -c 'echo "--- $1 ---"; cat "$1"' _ {} \;
+      echo "==== gem_make.out ===="
+      find /usr/local/lib/ruby/gems -name gem_make.out -path '*rmagick*' -exec sh -c 'echo "--- $1 ---"; cat "$1"' _ {} \;
+      exit 1
