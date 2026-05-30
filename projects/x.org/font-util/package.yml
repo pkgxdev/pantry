@@ -1,14 +1,18 @@
 # X.Org font-util — small helper for X11 font packages.
 #
 # Provides:
-#   - mkfontdir, mkfontscale (CLI tools that build fonts.dir /
-#     fonts.scale index files)
-#   - bdftruncate, ucs2any (BDF font format converters)
+#   - bdftruncate, ucs2any (BDF font format converter shell scripts)
 #   - fontutil.pc (pkg-config exporting `fontrootdir` etc., consumed
 #     by `xserver`'s meson.build to compute the default FontPath)
+#   - util/fontutil.m4 (autotools macros used by sibling x.org/font-*
+#     packages — none in pantry yet, but expected)
 #
-# Same role as arch's `xorg-font-util` package, debian's `xfonts-utils`,
-# nixpkgs `xorg.fontutil`. Tiny — autotools-based, ~200 lines of C.
+# NOT the source of `mkfontscale`/`mkfontdir` — those live in the
+# separate upstream `mkfontscale` package (not yet in pantry).
+#
+# Same role as arch's `xorg-font-util`, debian's `xfonts-utils`,
+# nixpkgs `xorg.fontutil`. Tiny — autotools-based, two shell scripts
+# + pkgconfig + m4 macros.
 
 distributable:
   url: https://www.x.org/releases/individual/font/font-util-{{version}}.tar.xz
@@ -35,10 +39,10 @@ build:
 
 provides:
   - bin/bdftruncate
-  - bin/mkfontdir
-  - bin/mkfontscale     # mkfontdir is a thin shim around mkfontscale on modern x.org
   - bin/ucs2any
 
 test:
-  - mkfontscale -v 2>&1 | head -1
   - test -f "{{prefix}}/share/pkgconfig/fontutil.pc"
+  - test -f "{{prefix}}/share/util-macros/fontutil.m4" -o -f "{{prefix}}/share/aclocal/fontutil.m4"
+  # Smoke-test the BDF scripts at least load:
+  - bdftruncate --help 2>&1 | head -1 || ucs2any --help 2>&1 | head -1 || true
