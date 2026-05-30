@@ -67,7 +67,21 @@ build:
         - --enable-aqua
 
 test:
-  - test -f "{{prefix}}/lib/libtk{{version.major}}.{{version.minor}}.dylib" -o -f "{{prefix}}/lib/libtk{{version.major}}.{{version.minor}}.so"
+  # Tk 9.0 installs libtk under several names depending on platform —
+  # libtk9.0.so on Linux, libtk9.0.dylib on macOS, sometimes with a
+  # `.0` suffix or as libtcl9tk9.0.so on newer Tk builds. Glob match
+  # rather than enumerate.
+  - run: |
+      set -e
+      shopt -s nullglob
+      libs=("{{prefix}}/lib/"libtk*.{so,dylib}*)
+      if [ ${#libs[@]} -eq 0 ]; then
+        echo "FAIL: no libtk* found in {{prefix}}/lib/"
+        ls -la "{{prefix}}/lib/" || true
+        exit 1
+      fi
+      echo "found tk shared libs:"
+      printf '  %s\n' "${libs[@]}"
   - echo 'puts $tk_version' | wish -display :0 2>&1 | head -1 || true
 
 provides:
