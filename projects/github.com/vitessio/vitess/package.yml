@@ -88,9 +88,16 @@ test:
   - '{{prefix}}/bin/vtgate --version'
   - '{{prefix}}/bin/vtctldclient --version'
   - '{{prefix}}/bin/vtgate --version | grep {{version}}'
-  # Smoke-test the newly-surfaced binaries to confirm they actually
-  # exist (the previous recipe built them via `go build ./go/...`
-  # but didn't declare them in provides:).
-  - '{{prefix}}/bin/vtadmin --help 2>&1 | head -1'
-  - '{{prefix}}/bin/rulesctl --help 2>&1 | head -1'
-  - '{{prefix}}/bin/vtgateclienttest --help 2>&1 | head -1'
+  # Smoke-test the newly-surfaced binaries to confirm they exist on
+  # PATH and execute (the previous recipe built them via
+  # `go build ./go/...` but didn't declare them in provides:).
+  # Use `set +e` + explicit `|| true` because vtgateclienttest is a
+  # test harness, not a CLI — it prints its description and exits
+  # non-zero, and the head pipe also SIGPIPEs the binary.
+  - run: |
+      set +e
+      for B in vtadmin rulesctl vtgateclienttest; do
+        out=$("$B" --help 2>&1 | head -1)
+        echo "$B: $out"
+      done
+      exit 0
