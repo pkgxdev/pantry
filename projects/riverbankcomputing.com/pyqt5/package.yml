@@ -89,12 +89,17 @@ build:
             echo "::group::pyqt5 binding $binding"
             mkdir -p "$STAGING/$binding"
 
+            # pip 23+ requires --config-settings values in the form
+            # KEY=VAL. sipbuild's `--confirm-license` is a boolean
+            # flag with no value, so pass an explicit `=true` to
+            # satisfy pip's parser; sipbuild interprets the truthy
+            # value as "license accepted".
             if "$PYTHON" -m pip install "$SRCROOT" \
                 --no-build-isolation \
                 --no-deps \
                 --force-reinstall \
                 --target="$STAGING/$binding" \
-                --config-settings=--confirm-license \
+                --config-settings=--confirm-license=true \
                 --config-settings=--enable="$binding" \
                 --config-settings=--jobs=1 \
                 --verbose
