@@ -12,7 +12,14 @@ rewrite_r() {
       print "script_dir=`dirname \"$0\"`"
       print "case \"${script_dir}\" in"
       print "  */lib/R/bin) R_HOME_DIR=`cd \"${script_dir}/..\" && pwd -P` ;;"
-      print "  *) R_HOME_DIR=`cd \"${script_dir}/../lib/R\" && pwd -P` ;;"
+      print "  *)"
+      print "    prefix_dir=`cd \"${script_dir}/..\" && pwd -P`"
+      print "    if test -x \"${prefix_dir}/lib64/R/bin/exec/R\"; then"
+      print "      R_HOME_DIR=\"${prefix_dir}/lib64/R\""
+      print "    else"
+      print "      R_HOME_DIR=\"${prefix_dir}/lib/R\""
+      print "    fi"
+      print "    ;;"
       print "esac"
       print ""
       skip = 1
@@ -59,7 +66,12 @@ case "${script_dir}" in
     rscript="${script_dir}/Rscript.bin"
     ;;
   *)
-    RHOME=`cd "${script_dir}/../lib/R" && pwd -P`
+    prefix_dir=`cd "${script_dir}/.." && pwd -P`
+    if test -x "${prefix_dir}/lib64/R/bin/exec/R"; then
+      RHOME="${prefix_dir}/lib64/R"
+    else
+      RHOME="${prefix_dir}/lib/R"
+    fi
     rscript="${RHOME}/bin/Rscript.bin"
     ;;
 esac
