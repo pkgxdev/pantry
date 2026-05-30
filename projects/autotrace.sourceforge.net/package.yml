@@ -90,5 +90,13 @@ provides:
   - bin/autotrace
 
 test:
-  - autotrace --version 2>&1 | grep -i "{{version}}"
-  - autotrace --help 2>&1 | head -3
+  # autotrace --version hangs ~30s in CI: it calls MagickCoreGenesis()
+  # at startup, which dlopens ImageMagick coder modules and spins on a
+  # missing per-user cache dir under both the darwin builder and linux
+  # sandbox. --help parses argv before MagickCore init runs, so it
+  # returns immediately and still exercises dynamic-linker resolution
+  # of every shared lib the binary needs. timeout(1) guards regressions.
+  - run: |
+      out=$(timeout 5 autotrace --help 2>&1 || true)
+      echo "$out"
+      echo "$out" | grep -iq autotrace
