@@ -1,0 +1,137 @@
+# NOTE TO MAINTAINERS: TiKV is a heavy build.
+# - Pinned nightly Rust toolchain (rust-toolchain.toml) -> we use rustup
+# - Bundles RocksDB (C++) and Titan via cargo build scripts -> needs cmake, clang, protoc
+# - Full release build typically takes 30-60 min on CI and peaks around 6 GB RAM.
+#   Do not be surprised by long bottle times; this is expected.
+#
+# GCC PIN (critical):
+#   TiKV's bundled C++ (RocksDB / Titan / gRPC) does not build correctly
+#   with gcc 13+ — see https://github.com/tikv/tikv/issues/16593 .
+#   Arch's AUR PKGBUILD pins `gcc12<12.4.0` and exports CC=gcc-12 / CXX=g++-12:
+#     https://aur.archlinux.org/cgit/aur.git/plain/PKGBUILD?h=tikv
+#   We mirror that with an exact pin `gnu.org/gcc: =12.3.0`
+#   and an explicit CC/CXX. This is what finally fixed the
+#   "undefined reference to EVP_CIPHER_nid / SSL_get_peer_certificate"
+#   final-link failures we hit across 5 prior iterations with gcc 16
+#   on pantry builders — gcc 13+ visibility/LTO/as-needed semantics
+#   differ enough that the bundled C++ object files in librocksdb_sys.rlib
+#   / libgrpcio_sys.rlib couldn't resolve openssl symbols.
+#
+# CMAKE_POLICY_VERSION_MINIMUM=3.5:
+#   https://github.com/tikv/tikv/issues/18867 — cmake 4.x rejects the
+#   bundled sub-builds' minimum-required policy without this.
+distributable:
+  url: https://github.com/tikv/tikv/archive/refs/tags/v{{version.raw}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: tikv/tikv
+
+platforms:
+  # Linux/x86-64 only.  TiKV bundles a pinned, old `rust-rocksdb`
+  # whose build.rs hardcodes `-DFORCE_SSE42=ON` when building the
+  # vendored titan/rocksdb C++.  Setting PORTABLE / ROCKSDB_SYS_PORTABLE
+  # doesn't override it — the flag lives in rust-rocksdb's source,
+  # not its CMake input.  On aarch64 titan's
+  #   `cmake/rocksdb_flags.cmake:137: FORCE_SSE42=ON but unable
+  #    to compile with SSE4.2 enabled`
+  # detonates configure.  Arch ships the same arch=('x86_64') limit
+  # for the same reason.  Re-enable aarch64 once TiKV bumps to a
+  # rust-rocksdb that detects target arch.
+  - linux/x86-64
+
+provides:
+  - bin/tikv-server
+  - bin/tikv-ctl
+
+build:
+  dependencies:
+    rust-lang.org/rustup: '*'
+    gnu.org/make: '*'
+    cmake.org: ^3
+    protobuf.dev: '*'
+    freedesktop.org/pkg-config: ^0.29
+    gnu.org/m4: '*'
+    gnu.org/autoconf: '*'
+    gnu.org/automake: '*'
+    gnu.org/libtool: '*'
+    llvm.org: '*'
+    # OpenSSL: leave version unconstrained so the resolver can pick
+    # whatever the rest of the build-deps demand.  Tried `^3` to force
+    # the 3.x branch (which has deprecated symbols available) but a
+    # transitive dep in this graph already requires `^1.1`, and the
+    # resolver fails with `cannot intersect: ^1.1 && ^3`.  Stuck with
+    # 1.1.1w.  The "undefined reference to SSL_get_peer_certificate /
+    # EVP_CIPHER_nid" errors that appeared with 1.1.1w were not an
+    # openssl-version problem at all — they were a gcc-version problem
+    # (see GCC PIN note at top of file).  With the gcc pin in place
+    # those symbols resolve normally.
+    openssl.org: '*'
+    linux:
+      # See top-of-file note: TiKV's bundled C++ (RocksDB/Titan/gRPC)
+      # breaks with gcc 13+ (tikv#16593). Arch pins `gcc12<12.4.0`;
+      # we mirror that with an exact pin (libpkgx rejects compound
+      # `^12.3 <12.4` as undefined — observed in CI run 26691688633).
+      gnu.org/gcc: =12.3.0
+  env:
+    PATH: $HOME/.cargo/bin:$PATH
+    TIKV_FRAME_POINTER: '0'
+    ENABLE_FIPS: '0'
+    # Belt-and-braces hints for the three bundled CMake builds inside
+    # grpcio-sys / librocksdb-sys / libtitan-sys: openssl-sys reads
+    # OPENSSL_DIR; gRPC CMake reads OPENSSL_ROOT_DIR; both reach the
+    # same pkgx prefix.
+    OPENSSL_DIR: '{{deps.openssl.org.prefix}}'
+    OPENSSL_LIB_DIR: '{{deps.openssl.org.prefix}}/lib'
+    OPENSSL_INCLUDE_DIR: '{{deps.openssl.org.prefix}}/include'
+    OPENSSL_ROOT_DIR: '{{deps.openssl.org.prefix}}'
+    PKG_CONFIG_PATH: '{{deps.openssl.org.prefix}}/lib/pkgconfig:$PKG_CONFIG_PATH'
+    # cmake 4.x rejects the bundled sub-builds' min-policy without this.
+    # See https://github.com/tikv/tikv/issues/18867 .
+    CMAKE_POLICY_VERSION_MINIMUM: '3.5'
+    # ITER HISTORY at the final cargo link step:
+    #
+    #   ef0426ef — pin openssl.org ^3 — resolver rejected (transitive ^1.1)
+    #   2ba7b88b — RUSTFLAGS -Wl,--no-as-needed -lssl -lcrypto         FAIL
+    #   8c575d46 — wrap in --no-as-needed / --as-needed                FAIL
+    #   8c76a667 — pin gcc =12.3.0, drop RUSTFLAGS (mirror arch)       FAIL — built 35→64min, hit same link error
+    #   THIS ITER — re-instate RUSTFLAGS + OPENSSL_STATIC=1 on top of gcc 12.3
+    #
+    # The bundled C++ in librocksdb-sys (encryption.cc) and grpcio-sys
+    # (ssl_transport_security.cc) reference SSL_get_peer_certificate and
+    # EVP_CIPHER_nid; openssl-sys's build.rs doesn't emit a link
+    # directive for them on the link line, so cargo's final cc invocation
+    # omits -lssl/-lcrypto. OPENSSL_STATIC=1 tells openssl-sys to emit
+    # `-l static=ssl -l static=crypto`, which forces ld to include
+    # libssl.a/libcrypto.a wholesale — the bundled .o objects then
+    # resolve their references regardless of link-order. RUSTFLAGS is
+    # kept as belt-and-braces in case static libs aren't shipped in
+    # pkgx's openssl bottle.
+    OPENSSL_STATIC: '1'
+    RUSTFLAGS: '-C link-arg=-L{{deps.openssl.org.prefix}}/lib -C link-arg=-Wl,--no-as-needed -C link-arg=-lssl -C link-arg=-lcrypto -C link-arg=-Wl,--as-needed'
+    # Build the bundled C++ libs (RocksDB + Titan + jemalloc) in
+    # portable mode so they don't hardcode FORCE_SSE42=ON. SSE4.2 is
+    # x86-only — on aarch64 the titan CMakeLists.txt bails with
+    # "FORCE_SSE42=ON but unable to compile with SSE4.2 enabled".
+    # Setting these matches what TiKV's own CI does for ARM builds.
+    ROCKSDB_SYS_PORTABLE: '1'
+    PORTABLE: '1'
+    linux:
+      # Mirror Arch's PKGBUILD: export CC=gcc-12 / CXX=g++-12.
+      # Pantry's gcc bottle ships `gcc` and `g++` symlinks in $prefix/bin.
+      CC: '{{deps.gnu.org/gcc.prefix}}/bin/gcc'
+      CXX: '{{deps.gnu.org/gcc.prefix}}/bin/g++'
+  script:
+    - run:
+        - ln -sf {{deps.rust-lang.org/rustup.prefix}}/bin/rustup rustup
+        - rustup default "$(grep '^channel' $SRCROOT/rust-toolchain.toml | sed 's/channel = "//;s/"//')"
+        - ln -sf $HOME/.rustup/toolchains/*/bin/* .
+      working-directory: $HOME/.cargo/bin
+    - make release
+    - mkdir -p "{{prefix}}/bin"
+    - cp target/release/tikv-server target/release/tikv-ctl "{{prefix}}/bin/"
+
+test:
+  script:
+    - "{{prefix}}/bin/tikv-server --version"
+    - "{{prefix}}/bin/tikv-ctl --version"
