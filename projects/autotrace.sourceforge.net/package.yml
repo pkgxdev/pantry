@@ -43,18 +43,17 @@ build:
     # and configure — bypassing intltool's stale perl5 lib entirely.
 
   script:
-    # Build XML::Parser against the live perl. Unset PERL5LIB first
-    # so cpanm's own perl doesn't pick up intltool's stale XS .so
-    # files (Clone.c built for v5.40 vs current v5.42 ABI mismatch).
-    - run: |
-        unset PERL5LIB
-        mkdir -p "$SRCROOT/perl-xml-parser"
-        cpanm -l "$SRCROOT/perl-xml-parser" XML::Parser --notest --verbose
+    # Build XML::Parser against the live perl. `env -u PERL5LIB`
+    # strips intltool's stale CPAN tree from cpanm's @INC just for
+    # this command (its Clone.c is compiled for v5.40 vs current
+    # v5.42 ABI). Using `unset` would leak into later steps because
+    # all script steps share one shell.
+    - mkdir -p "$SRCROOT/perl-xml-parser"
+    - env -u PERL5LIB cpanm -l "$SRCROOT/perl-xml-parser" XML::Parser --notest --verbose
     # Upstream ships configure.ac only — autogen.sh runs autopoint +
     # autoreconf with `intltoolize --automake --copy` as AUTOPOINT.
-    # Bypass brewkit's perl wrapper (which drops PERL5LIB via
-    # `pkgx +perl.org -- perl`) by pointing PERL/INTLTOOL_PERL at
-    # the real perl binary directly.
+    # Pass PERL/INTLTOOL_PERL=real-perl to bypass brewkit's perl
+    # wrapper (`pkgx +perl.org -- perl`), which drops PERL5LIB.
     - ./autogen.sh
     - ./configure PERL=$REAL_PERL INTLTOOL_PERL=$REAL_PERL $ARGS
     - make --jobs {{ hw.concurrency }}
