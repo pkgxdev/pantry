@@ -40,6 +40,12 @@ build:
   working-directory: unix
   darwin:
     working-directory: macosx
+  # brewkit's fix-macho pass dies with "failed to fix machos" on
+  # wish9.0 — the binary's LC_LOAD_DYLIB references libtcl9tk9.0.dylib
+  # by absolute path and install_name_tool's heuristics don't relink
+  # it. Use the same manual install_name_tool + skip:fix-macho dance
+  # that the sibling tcl.tk/tcl recipe uses.
+  skip: fix-macho
   script:
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }}
@@ -49,6 +55,18 @@ build:
     - run: |
         cd "{{prefix}}/bin"
         [ ! -e wish ] && ln -sf "wish{{version.major}}.{{version.minor}}" wish || true
+    - run: |
+        # Relink wish's libtk reference to @loader_path so the bottle
+        # is relocatable (`fix-macho` would have done this but it
+        # bails on this binary; do it manually).
+        TKLIB=$(basename {{prefix}}/lib/libtcl*tk{{version.major}}.{{version.minor}}.dylib 2>/dev/null | head -1)
+        if [ -n "$TKLIB" ] && [ -f "{{prefix}}/bin/wish{{version.major}}.{{version.minor}}" ]; then
+          install_name_tool \
+            -change "{{prefix}}/lib/$TKLIB" "@loader_path/../lib/$TKLIB" \
+            "{{prefix}}/bin/wish{{version.major}}.{{version.minor}}" \
+            || echo "warn: install_name_tool failed; relocation may break"
+        fi
+      if: darwin
   env:
     # tcl.h's install path varies by Tcl version: 8.6 puts it at
     # $prefix/include/tcl-tk/tcl.h, 9.0 at $prefix/include/tcl.h.
