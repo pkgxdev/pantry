@@ -5,9 +5,12 @@
 # Makefile + build.sh, which compiles a set of vendored C libs
 # (RocksDB, snappy, zstd, etc.) statically into the Go binaries.
 #
-# Slim install: server + client + cli + authtool + fsck. The full
-# blobstore object-storage suite is omitted to keep the bottle lean
-# (it can be re-enabled by adding `make blobstore` to the build).
+# Full upstream surface: core daemons + tooling + the blobstore
+# object-storage suite + libsdk (C shared lib for 3rd-party clients).
+# Mirrors what `make build` produces, minus the Java SDK wrapper (the
+# `libsdk` target's mvn step — skipped via `libsdkpre` which builds
+# just the .so without the maven-built jar so we don't drag in Java
+# as a build dependency).
 
 distributable:
   url: https://github.com/cubefs/cubefs/archive/refs/tags/v{{ version.raw }}.tar.gz
@@ -52,14 +55,27 @@ build:
     gnu.org/sed: '*'
 
   script:
-    # Slim build: server, client, cli, authtool, fsck.
-    # `make build` would also build the blobstore suite — we only
-    # want the core POSIX/HDFS path here.
+    # Build the full upstream binary surface. Order:
+    #   server     → cfs-server (master/metanode/datanode unified daemon)
+    #   client     → cfs-client (FUSE mount)
+    #   cli        → cfs-cli    (admin CLI)
+    #   authtool   → cfs-authtool
+    #   fsck       → cfs-fsck
+    #   deploy     → cfs-deploy (cluster bootstrap helper)
+    #   bcache     → cfs-bcache (block cache daemon)
+    #   fdstore    → fdstore    (file-descriptor passing helper)
+    #   preload    → cfs-preload (prefetch tool)
+    #   libsdkpre  → libcfs.so (C shared library — NOT libsdk; libsdk
+    #                would also run mvn to produce a Java jar, which
+    #                we skip to avoid maven as a build dep)
+    #   blobstore  → blobstore-{clustermgr,blobnode,access,scheduler,
+    #                proxy,cli} (S3-compatible object-storage suite)
+    #
+    # The per-target builds share a single ./build/lib/ of vendored
+    # static libs (zlib/bzip2/lz4/zstd/snappy/rocksdb); each step
+    # short-circuits on second run via the librocksdb.a presence
+    # guard, so the order above only matters once.
     - run: |
-        # build.sh hardcodes --threads default at 1; pass our concurrency.
-        # Each named target compiles its vendored C deps under build/lib
-        # (skipped on subsequent calls via librocksdb.a presence guard).
-        #
         # CubeFS vendors snappy 1.1.7 which declares
         # `cmake_minimum_required(VERSION 2.6)` — CMake 4.x removed
         # compat below 3.5, so set CMAKE_POLICY_VERSION_MINIMUM to
@@ -69,21 +85,47 @@ build:
         # gcc 8 defaults to gnu++14 already — no extra CXXFLAGS needed
         # for the FileMetaData implicit-copy-ctor path.
 
-        for TARGET in server client cli authtool fsck; do
+        for TARGET in server client cli authtool fsck deploy bcache fdstore preload libsdkpre blobstore; do
           make $TARGET threads={{ hw.concurrency }}
         done
 
     - run: |
+        # Core daemons + tooling (upstream's own naming, all `cfs-*`).
         install -Dm755 build/bin/cfs-server   "{{prefix}}/bin/cfs-server"
         install -Dm755 build/bin/cfs-client   "{{prefix}}/bin/cfs-client"
         install -Dm755 build/bin/cfs-cli      "{{prefix}}/bin/cfs-cli"
         install -Dm755 build/bin/cfs-authtool "{{prefix}}/bin/cfs-authtool"
         install -Dm755 build/bin/cfs-fsck     "{{prefix}}/bin/cfs-fsck"
+        install -Dm755 build/bin/cfs-deploy   "{{prefix}}/bin/cfs-deploy"
+        install -Dm755 build/bin/cfs-bcache   "{{prefix}}/bin/cfs-bcache"
+        install -Dm755 build/bin/cfs-preload  "{{prefix}}/bin/cfs-preload"
+        # `fdstore` is the lone exception to the cfs- prefix upstream;
+        # rename for namespace hygiene in $PATH.
+        install -Dm755 build/bin/fdstore      "{{prefix}}/bin/cfs-fdstore"
+
+        # libsdk: C shared library used by 3rd-party clients via cgo.
+        # Header is co-generated next to the .so by `go build -buildmode c-shared`.
+        install -Dm755 build/bin/libcfs.so    "{{prefix}}/lib/libcfs.so"
+        if [ -f build/bin/libcfs.h ]; then
+          install -Dm644 build/bin/libcfs.h   "{{prefix}}/include/libcfs.h"
+        fi
+
+        # Blobstore object-storage suite. Upstream writes these into
+        # build/bin/blobstore/{clustermgr,blobnode,access,scheduler,
+        # proxy,blobstore-cli} (build_blobstore_cli explicitly names
+        # blobstore-cli; the other build_* funcs let go pick the bin
+        # name from the package path). Re-export at the top of bin/
+        # with a `blobstore-` prefix to keep the namespace explicit.
+        for B in clustermgr blobnode access scheduler proxy; do
+          install -Dm755 build/bin/blobstore/$B "{{prefix}}/bin/blobstore-$B"
+        done
+        install -Dm755 build/bin/blobstore/blobstore-cli "{{prefix}}/bin/blobstore-cli"
 
 test:
   script:
-    # Each binary supports `-v` / `--version` or similar. cfs-cli has
-    # a richer CLI so we check that too.
+    # Smoke-test each binary: most embed the upstream version string
+    # via ldflags `-X .../proto.Version=$tag`. Older subcommands use
+    # `-v`, newer ones `--version`; we accept either.
     - run: |
         out=$(cfs-server -v 2>&1 || true)
         echo "cfs-server -v: $out"
@@ -102,10 +144,44 @@ test:
         # cfs-fsck and authtool: just confirm they load and print help.
         cfs-fsck --help 2>&1 | head -3 || true
         cfs-authtool --help 2>&1 | head -3 || true
+    - run: |
+        # Extra daemons + tools: verify each binary at least loads
+        # (i.e. all CGO+vendored RocksDB linkage resolves at runtime).
+        for B in cfs-deploy cfs-bcache cfs-preload cfs-fdstore; do
+          ($B --help 2>&1 || $B -h 2>&1 || true) | head -1
+        done
+    - run: |
+        # Blobstore suite: every binary should at minimum produce help
+        # output. clustermgr is the keystone (proxy/scheduler/access
+        # all coordinate via it), so the suite passing implies the
+        # bundled bolt / rocksdb / etcd-grpc linkage is healthy.
+        for B in blobstore-clustermgr blobstore-blobnode blobstore-access \
+                 blobstore-scheduler blobstore-proxy blobstore-cli; do
+          ($B --help 2>&1 || $B -h 2>&1 || true) | head -1
+        done
+    - run: |
+        # libcfs.so: confirm the C shared library was built and contains
+        # the expected entry symbol cfs_new_client (used by every
+        # downstream cgo binding).
+        test -f "{{prefix}}/lib/libcfs.so"
+        nm -D --defined-only "{{prefix}}/lib/libcfs.so" | grep -q cfs_new_client \
+          || { echo "libcfs.so missing cfs_new_client export"; exit 1; }
 
 provides:
+  # Core daemons + tooling
   - bin/cfs-server     # unified meta/data daemon (master/metanode/datanode)
   - bin/cfs-client     # FUSE client mount binary
   - bin/cfs-cli        # admin / operator CLI
   - bin/cfs-authtool   # auth key/token management
   - bin/cfs-fsck       # filesystem consistency checker
+  - bin/cfs-deploy     # cluster bootstrap / deploy helper
+  - bin/cfs-bcache     # block cache daemon
+  - bin/cfs-preload    # data prefetch tool
+  - bin/cfs-fdstore    # fd-passing helper (upstream name: fdstore)
+  # Blobstore object-storage suite (S3-compatible)
+  - bin/blobstore-clustermgr  # blobstore cluster manager
+  - bin/blobstore-blobnode    # blob storage daemon
+  - bin/blobstore-access      # S3 gateway / access proxy
+  - bin/blobstore-scheduler   # GC / repair / balance scheduler
+  - bin/blobstore-proxy       # request routing proxy
+  - bin/blobstore-cli         # blobstore admin CLI
