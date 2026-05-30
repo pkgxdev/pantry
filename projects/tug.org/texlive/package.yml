@@ -1,0 +1,156 @@
+# TeX Live — comprehensive TeX/LaTeX distribution.
+#
+# Built from source via the `texlive-YYYYMMDD-source.tar.xz` release
+# bundle, which contains the *engines* (pdftex, xetex, luatex, dvips,
+# bibtex, makeindex, tlmgr, etc.). The macro packages (LaTeX, AMS,
+# beautifully-formatted whatever) are NOT bundled here — install them
+# via `tlmgr install <pkg>` after the bottle is set up.
+#
+# From-source over vendored — this builds the engines fresh against
+# pantry's freetype/cairo/poppler/harfbuzz instead of pulling the
+# precompiled binaries from the TeXLive installer.
+#
+# Build is heavy (~15-30 min on a fast runner) — texlive-source
+# bundles ~600MB of C/C++ source for ~50 engines + tools.
+
+distributable:
+  # TeXLive releases annually; tarball filename is YYYYMMDD but the
+  # archive directory is just YYYY (e.g. 2026/). pkgx templating
+  # exposes {{ version.major }} which for an 8-digit version returns
+  # the whole `20260301` rather than the year — no year-only field
+  # exists. Hardcode the year and bump on next annual release.
+  - url: https://ftp.math.utah.edu/pub/tex/historic/systems/texlive/2027/texlive-{{ version.raw }}-source.tar.xz
+    strip-components: 1
+  - url: https://ftp.math.utah.edu/pub/tex/historic/systems/texlive/2026/texlive-{{ version.raw }}-source.tar.xz
+    strip-components: 1
+  - url: https://ftp.math.utah.edu/pub/tex/historic/systems/texlive/2025/texlive-{{ version.raw }}-source.tar.xz
+    strip-components: 1
+  - url: https://ftp.math.utah.edu/pub/tex/historic/systems/texlive/2024/texlive-{{ version.raw }}-source.tar.xz
+    strip-components: 1
+
+versions:
+  - url: https://ftp.math.utah.edu/pub/tex/historic/systems/texlive/2027/
+    match: /texlive-\d{8}-source\.tar\.xz/
+    strip:
+      - /texlive-/
+      - /-source\.tar\.xz/
+  - url: https://ftp.math.utah.edu/pub/tex/historic/systems/texlive/2026/
+    match: /texlive-\d{8}-source\.tar\.xz/
+    strip:
+      - /texlive-/
+      - /-source\.tar\.xz/
+  - url: https://ftp.math.utah.edu/pub/tex/historic/systems/texlive/2025/
+    match: /texlive-\d{8}-source\.tar\.xz/
+    strip:
+      - /texlive-/
+      - /-source\.tar\.xz/
+  - url: https://ftp.math.utah.edu/pub/tex/historic/systems/texlive/2024/
+    match: /texlive-\d{8}-source\.tar\.xz/
+    strip:
+      - /texlive-/
+      - /-source\.tar\.xz/
+
+dependencies:
+  # Engine runtime dependencies.
+  freetype.org: "*"
+  libpng.org: "*"
+  cairographics.org: "*"
+  pixman.org: "*"
+  poppler.freedesktop.org: "*"
+  harfbuzz.org: "*"
+  gnu.org/gmp: "*"
+  gnu.org/mpfr: "*"
+  freedesktop.org/fontconfig: "*"
+  zlib.net: "*"
+  perl.org: "*" # required at runtime (tlmgr is Perl)
+
+build:
+  dependencies:
+    gnu.org/m4: "*"
+    perl.org: "*" # build scripts need Perl
+    linux:
+      gnu.org/gcc: "*"
+
+  # TeXLive source ships a `build` script at the root (file, not dir),
+  # so `working-directory: build` (which mkdirs build/) collides. Use
+  # a different name for the out-of-source build dir.
+  working-directory: pkgx-build
+  script:
+    # TeXLive's configure has many sub-projects (each engine has its
+    # own). The top-level configure passes through to subdirs.
+    # --with-system-* makes texlive use pantry's libs instead of its
+    # vendored copies.
+    - ../configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
+
+    # Strip +brewing from baked-in paths post-install — TeXLive's
+    # web2c/texmf.cnf and tlmgr scripts hardcode the configure-time
+    # prefix. Same pattern as R / Octave.
+    - run:
+        # Engines-only build: texmf-dist / texmf-var aren't installed.
+        # Walk every dir that actually exists. Use `|| true` so an
+        # empty grep result doesn't abort the script under set -e.
+        - for d in bin share/texmf-dist share/texmf-var lib; do
+        - test -d "$d" || continue
+        - grep -rIl '+brewing' "$d" 2>/dev/null | xargs -r sed -i 's|+brewing||g' || true
+        - done
+      working-directory: "{{prefix}}"
+
+  env:
+    ARGS:
+      - --prefix={{ prefix }}
+      - --datarootdir={{ prefix }}/share
+      - --disable-native-texlive-build # use a tlpkg-free layout
+      - --enable-shared
+      - --disable-static
+      # Use pantry's system libs instead of TeXLive's vendored copies.
+      - --with-system-zlib
+      - --with-system-libpng
+      - --with-system-freetype2
+      - --with-system-cairo
+      - --with-system-pixman
+      - --with-system-harfbuzz
+      - --with-system-poppler
+      - --with-system-gmp
+      - --with-system-mpfr
+      - --with-system-fontconfig
+      # Skip components that need extra deps (can add back if needed).
+      - --disable-xindy # needs CLISP
+      - --disable-dvisvgm # needs xxhash + freetype-aware build
+      - --without-x # xdvik needs Xaw widgets not in pantry
+      - --disable-xdvik # belt+braces — same Xaw dependency
+
+test:
+  # Quick smoke tests on the major engines.
+  script:
+    - out=$(tex --version 2>&1 | head -1)
+    - 'echo "tex: $out"'
+
+    - case "$out" in
+    - '*"TeX"*) echo "tex PASS" ;;'
+    - '*) echo "FAIL: $out"; exit 1 ;;'
+    - esac
+
+    - pdftex --version 2>&1 | head -1
+    - xetex --version 2>&1 | head -1
+    - luatex --version 2>&1 | head -1
+
+provides:
+  # Major engines (from texk/ subtree). Not exhaustive — texlive
+  # installs ~80 binaries; listing the ones users actually invoke.
+  - bin/tex
+  - bin/pdftex
+  - bin/xetex
+  - bin/luatex
+  - bin/luahbtex
+  - bin/dvips
+  - bin/dvipdfmx
+  - bin/bibtex
+  - bin/makeindex
+  - bin/mktexlsr
+  - bin/tlmgr # TeX Live Manager (Perl)
+  - bin/kpsewhich
+  # `biber` (Perl tool with extra modules) + `dvipdfm` (legacy, replaced
+  # by dvipdfmx) + `kpathsea` (library, not a binary) intentionally
+  # omitted — install biber via `tlmgr install biber` if needed.
