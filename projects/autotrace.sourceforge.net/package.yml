@@ -1,0 +1,55 @@
+# AutoTrace — convert bitmap raster images to vector graphics.
+#
+# CLI tool + libautotrace library. Same role as homebrew's
+# `autotrace` formula; closes pkgxdev/pantry#9454.
+#
+# Mandatory deps per upstream configure.ac:
+# - glib >= 2.44 (gmodule, gthread, gobject sub-libs)
+# - libpng (for PNG output)
+# - ImageMagick 7 (libMagickWand-7 for input formats)
+#
+# Optional features dropped to keep the bottle simple:
+# - pstoedit (no pantry recipe; would gain .ps / .eps output)
+# - graphicsmagick (alternate to ImageMagick — pick one)
+
+distributable:
+  url: https://github.com/autotrace/autotrace/archive/refs/tags/{{version.raw}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: autotrace/autotrace
+
+dependencies:
+  gnome.org/glib: '>=2.44'
+  libpng.org: '*'
+  imagemagick.org: '*'
+
+build:
+  dependencies:
+    gnu.org/autoconf: '*'
+    gnu.org/automake: '*'
+    gnu.org/libtool: '*'
+    gnu.org/gettext: '*'
+    freedesktop.org/intltool: '*'
+    freedesktop.org/pkg-config: '*'
+    perl.org: '*'
+
+  script:
+    # Upstream ships configure.ac only — autoreconf to generate configure.
+    - ./autogen.sh
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
+
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --without-pstoedit            # no pantry pstoedit recipe yet
+      - --with-magick=auto             # detect IM 7 via pkg-config
+
+provides:
+  - bin/autotrace
+
+test:
+  - autotrace --version 2>&1 | grep -i "{{version}}"
+  - autotrace --help 2>&1 | head -3
