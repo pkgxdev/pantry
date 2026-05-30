@@ -13,34 +13,43 @@
 # driver scripts (`x86_64-w64-mingw32-clang`, etc.).
 
 distributable:
-  url: https://github.com/mingw-w64/mingw-w64/archive/refs/tags/v{{ version.raw }}.tar.gz
+  url: https://github.com/mingw-w64/mingw-w64/archive/refs/tags/{{ version.tag }}.tar.gz
   strip-components: 1
 
 versions:
   # Upstream only ships tags, not GitHub releases — force tags mode.
   github: mingw-w64/mingw-w64/tags
-  strip:
-    - /^v/
-
-# Cross-compiler runtime — runs on any host that has clang+lld, so
-# the host platform set matches our viable cross-compile hosts.
-platforms:
-  - linux/x86-64
-  - linux/aarch64
-  - darwin/x86-64
-  - darwin/aarch64
 
 build:
   dependencies:
-    llvm.org: '*'              # clang (--target=*-w64-mingw32) + lld-link
-    gnu.org/make: '*'
-    gnu.org/coreutils: '*'
-    gnu.org/m4: '*'
-    gnu.org/autoconf: '*'
-    gnu.org/automake: '*'
-    gnu.org/libtool: '*'
-    gnu.org/sed: '*'
-    gnu.org/findutils: '*'
+    llvm.org: "*" # clang (--target=*-w64-mingw32) + lld-link
+    gnu.org/m4: "*"
+    gnu.org/autoconf: "*"
+    gnu.org/automake: "*"
+    gnu.org/libtool: "*"
+  env:
+    # libtool's nm-detection probe (`checking command to parse nm
+    # output from <CC> object... failed`) needs an nm that
+    # understands PE/COFF — the host's GNU nm refuses Windows
+    # objects, which collapses winpthreads' libtool link step.
+    # llvm-nm handles every object format LLVM does (incl. PE).
+    # Same logic for the rest: every binutil libtool probes has
+    # a PE/COFF-aware llvm-* counterpart, so wire them all.
+    AR: "llvm-ar"
+    RANLIB: "llvm-ranlib"
+    NM: "llvm-nm"
+    STRIP: "llvm-strip"
+    DLLTOOL: "llvm-dlltool"
+    OBJDUMP: "llvm-objdump"
+    OBJCOPY: "llvm-objcopy"
+    # winpthreads compiles .rc resource files via libtool;
+    # libtool needs RC set to recognise the rc-compile path.
+    # Without it, libtool errors with "unrecognised option: '-i'".
+    RC: "llvm-windres"
+    WINDRES: "llvm-windres"
+    TARGETS:
+      - x86_64-w64-mingw32
+      - aarch64-w64-mingw32
 
   script:
     # mingw-w64 is built per-target-arch (x86_64-w64-mingw32,
@@ -56,93 +65,65 @@ build:
     # Toolchain envvars: clang as CC, llvm-ar as AR, llvm-ranlib as
     # RANLIB. The configure scripts probe for $CC and friends, so
     # exporting them once at the top of the loop is enough.
+    - for T in $TARGETS; do
+    - echo "══════ building mingw-w64 for $T ══════"
 
-    - run: |
-        export AR="llvm-ar"
-        export RANLIB="llvm-ranlib"
-        export NM="llvm-nm"
-        export STRIP="llvm-strip"
-        export DLLTOOL="llvm-dlltool"
-        export OBJDUMP="llvm-objdump"
-        export OBJCOPY="llvm-objcopy"
-        # libtool's nm-detection probe (`checking command to parse nm
-        # output from <CC> object... failed`) needs an nm that
-        # understands PE/COFF — the host's GNU nm refuses Windows
-        # objects, which collapses winpthreads' libtool link step.
-        # llvm-nm handles every object format LLVM does (incl. PE).
-        # Same logic for the rest: every binutil libtool probes has
-        # a PE/COFF-aware llvm-* counterpart, so wire them all.
+    # 1) Headers FIRST — no CC dependency, just installs .h files.
+    # CRT/winpthreads configure scripts then probe <windows.h> via
+    # CC so headers must exist before --sysroot points at them.
+    - run:
+        - ../mingw-w64-headers/configure
+          --prefix="{{prefix}}/$T"
+          --host="$T"
+          --enable-secure-api
+          - make install
+      working-directory: build-headers-$T
 
-        # winpthreads compiles .rc resource files via libtool;
-        # libtool needs RC set to recognise the rc-compile path.
-        # Without it, libtool errors with "unrecognised option: '-i'".
-        export RC="llvm-windres"
-        export WINDRES="llvm-windres"
+    # Now headers exist at {{prefix}}/$T/include — point clang there
+    # via --sysroot. Matches what llvm-mingw upstream does.
+    - export CC="clang --target=$T --sysroot={{prefix}}/$T"
+    - export CXX="clang++ --target=$T --sysroot={{prefix}}/$T"
 
-        for T in x86_64-w64-mingw32 aarch64-w64-mingw32; do
-          echo "══════ building mingw-w64 for $T ══════"
+    # 2) CRT — the actual C runtime.
+    - run:
+        - |
+          case "$T" in
+            x86_64-*)  ENABLE_FLAGS="--disable-lib32 --enable-lib64" ;;
+            aarch64-*) ENABLE_FLAGS="--enable-libarm64 --disable-lib32 --disable-lib64" ;;
+          esac
+        - ../mingw-w64-crt/configure
+          --prefix="{{prefix}}/$T"
+          --host="$T"
+          $ENABLE_FLAGS
+        - make --jobs {{ hw.concurrency }}
+        - make install
+      working-directory: build-crt-$T
 
-          # 1) Headers FIRST — no CC dependency, just installs .h files.
-          # CRT/winpthreads configure scripts then probe <windows.h> via
-          # CC so headers must exist before --sysroot points at them.
-          (
-            mkdir -p build-headers-$T
-            cd build-headers-$T
-            ../mingw-w64-headers/configure \
-              --prefix="{{prefix}}/$T" \
-              --host="$T" \
-              --enable-secure-api
-            make install
-          )
-
-          # Now headers exist at {{prefix}}/$T/include — point clang there
-          # via --sysroot. Matches what llvm-mingw upstream does.
-          export CC="clang --target=$T --sysroot={{prefix}}/$T"
-          export CXX="clang++ --target=$T --sysroot={{prefix}}/$T"
-
-          # 2) CRT — the actual C runtime.
-          (
-            mkdir -p build-crt-$T
-            cd build-crt-$T
-            case "$T" in
-              x86_64-*)  ENABLE_FLAGS="--disable-lib32 --enable-lib64" ;;
-              aarch64-*) ENABLE_FLAGS="--enable-libarm64 --disable-lib32 --disable-lib64" ;;
-            esac
-            ../mingw-w64-crt/configure \
-              --prefix="{{prefix}}/$T" \
-              --host="$T" \
-              $ENABLE_FLAGS
-            make --jobs {{ hw.concurrency }}
-            make install
-          )
-
-          # 3) winpthreads — pthread emulation on top of the CRT.
-          # version.rc includes <winver.h> which lives in mingw-w64
-          # headers; windres needs `-I` to find them. The configure's
-          # CC --sysroot covers C compiles but windres uses its own
-          # include path — pass via RCFLAGS.
-          #
-          # Build STATIC ONLY. The shared (DLL) link goes through
-          # libtool's PE/COFF "global_symbol_pipe" which configure
-          # constructs from probing nm output; with llvm-nm the probe
-          # ends up with an empty sed slot and emits a broken
-          # `llvm-nm ... |  | sed ...` pipeline (double pipe = shell
-          # syntax error). The static lib doesn't need that pipe.
-          # We can revisit shared once libtool's PE detection is fixed
-          # upstream.
-          (
-            mkdir -p build-winpthreads-$T
-            cd build-winpthreads-$T
-            ../mingw-w64-libraries/winpthreads/configure \
-              --prefix="{{prefix}}/$T" \
-              --host="$T" \
-              --enable-static \
-              --disable-shared \
-              RCFLAGS="-I{{prefix}}/$T/include"
-            make --jobs {{ hw.concurrency }}
-            make install
-          )
-        done
+    # 3) winpthreads — pthread emulation on top of the CRT.
+    # version.rc includes <winver.h> which lives in mingw-w64
+    # headers; windres needs `-I` to find them. The configure's
+    # CC --sysroot covers C compiles but windres uses its own
+    # include path — pass via RCFLAGS.
+    #
+    # Build STATIC ONLY. The shared (DLL) link goes through
+    # libtool's PE/COFF "global_symbol_pipe" which configure
+    # constructs from probing nm output; with llvm-nm the probe
+    # ends up with an empty sed slot and emits a broken
+    # `llvm-nm ... |  | sed ...` pipeline (double pipe = shell
+    # syntax error). The static lib doesn't need that pipe.
+    # We can revisit shared once libtool's PE detection is fixed
+    # upstream.
+    - run:
+        - ../mingw-w64-libraries/winpthreads/configure
+          --prefix="{{prefix}}/$T"
+          --host="$T"
+          --enable-static
+          --disable-shared
+          RCFLAGS="-I{{prefix}}/$T/include"
+        - make --jobs {{ hw.concurrency }}
+        - make install
+      working-directory: build-winpthreads-$T
+    - done # for T in $TARGETS
 
 test:
   # Lib-only package — no binaries to invoke. Verify the expected
@@ -151,11 +132,10 @@ test:
   # winpthreads ships its static lib under different names depending
   # on the host libtool: linux installs `libpthread.a`, darwin's
   # libtool produces `libwinpthread.lib` (PE-style). Accept either.
-  script:
-    - test -f "{{prefix}}/x86_64-w64-mingw32/include/windows.h"
-    - test -f "{{prefix}}/x86_64-w64-mingw32/include/stdio.h"
-    - test -f "{{prefix}}/x86_64-w64-mingw32/lib/libmingw32.a"
-    - test -f "{{prefix}}/x86_64-w64-mingw32/lib/libmsvcrt.a"
-    - test -f "{{prefix}}/x86_64-w64-mingw32/lib/libpthread.a" -o -f "{{prefix}}/x86_64-w64-mingw32/lib/libwinpthread.lib"
-    - test -f "{{prefix}}/aarch64-w64-mingw32/include/windows.h"
-    - test -f "{{prefix}}/aarch64-w64-mingw32/lib/libmingw32.a"
+  - test -f "{{prefix}}/x86_64-w64-mingw32/include/windows.h"
+  - test -f "{{prefix}}/x86_64-w64-mingw32/include/stdio.h"
+  - test -f "{{prefix}}/x86_64-w64-mingw32/lib/libmingw32.a"
+  - test -f "{{prefix}}/x86_64-w64-mingw32/lib/libmsvcrt.a"
+  - test -f "{{prefix}}/x86_64-w64-mingw32/lib/libpthread.a" -o -f "{{prefix}}/x86_64-w64-mingw32/lib/libwinpthread.lib"
+  - test -f "{{prefix}}/aarch64-w64-mingw32/include/windows.h"
+  - test -f "{{prefix}}/aarch64-w64-mingw32/lib/libmingw32.a"
