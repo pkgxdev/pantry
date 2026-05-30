@@ -35,19 +35,13 @@ dependencies:
   libusb.info: '*'
   pcre.org/v2: '*'
   google.com/googletest: '*'    # provides gtest_prod.h required by libziparchive
-  # Pin to protobuf ^25: vendored AOSP code (libjsonpb/parse/jsonpb.cpp)
-  # uses APIs that changed across protobuf versions —
-  #   * protobuf 28+ removed `google::protobuf::util::JsonOptions`
-  #     (renamed to `JsonPrintOptions`)
-  #   * protobuf 27+ changed `Descriptor::full_name()` to return
-  #     `absl::string_view` instead of `const std::string&`, which
-  #     breaks `std::string + full_name()` concatenations
-  # Arch carries a single-line patch for the string concat case but
-  # not the JsonOptions rename; pinning to ^25 avoids both at once,
-  # and pantry still ships 25.x bottles. Drop the pin once nmeum/
-  # android-tools either vendors a newer libjsonpb or upstreams the
-  # protobuf-30+ compat patches.
-  protobuf.dev: ^25
+  # Use latest protobuf. The vendored AOSP libjsonpb has API drift
+  # with protobuf 27+/28+ but pinning to ^25 hit an ABI mismatch:
+  # pantry's protobuf 25.x bottle was built against abseil 20250127
+  # while the current abseil resolves to 20260107, so every
+  # `absl::lts_20250127::*` symbol is unresolved at link time.
+  # Patch the source instead — see the `sed` calls below.
+  protobuf.dev: '*'
   github.com/google/brotli: '*'
   facebook.com/zstd: '*'
   lz4.org: '*'
@@ -64,6 +58,24 @@ build:
 
   working-directory: build
   script:
+    # Patch vendored libjsonpb for protobuf 27+/28+ API drift before
+    # cmake configures (it's compiled by the in-tree CMakeLists in
+    # vendor/extras/libjsonpb/, so an in-place sed is enough).
+    #   - protobuf 27+: Descriptor::full_name() now returns
+    #     absl::string_view, breaking `std::string + full_name()`.
+    #     Wrap in std::string(...) to force conversion.
+    #   - protobuf 28+: removed google::protobuf::util::JsonOptions;
+    #     it was renamed to JsonPrintOptions years ago.
+    - run: |
+        JSONPB="../vendor/extras/libjsonpb/parse/jsonpb.cpp"
+        if [ -f "$JSONPB" ]; then
+          sed -i.bak \
+            -e 's|+ message\.GetDescriptor()->full_name()|+ std::string(message.GetDescriptor()->full_name())|' \
+            -e 's|util::JsonOptions|util::JsonPrintOptions|g' \
+            "$JSONPB"
+          rm -f "$JSONPB.bak"
+          echo "patched $JSONPB for protobuf 27+ compat"
+        fi
     - cmake .. $ARGS
     - make --jobs {{ hw.concurrency }}
     - make install
