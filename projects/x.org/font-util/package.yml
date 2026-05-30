@@ -42,7 +42,10 @@ provides:
   - bin/ucs2any
 
 test:
-  - test -f "{{prefix}}/share/pkgconfig/fontutil.pc"
+  # Accept either $libdir/pkgconfig (autotools default) or
+  # $datarootdir/pkgconfig (some distros relocate); font-util's own
+  # `make install` writes to lib/pkgconfig on most builds.
+  - test -f "{{prefix}}/lib/pkgconfig/fontutil.pc" -o -f "{{prefix}}/share/pkgconfig/fontutil.pc"
   - test -f "{{prefix}}/share/util-macros/fontutil.m4" -o -f "{{prefix}}/share/aclocal/fontutil.m4"
   # Smoke-test the BDF scripts at least load:
   - bdftruncate --help 2>&1 | head -1 || ucs2any --help 2>&1 | head -1 || true
