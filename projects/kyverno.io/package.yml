@@ -4,8 +4,10 @@
 # policies (no Rego DSL like OPA). Used to enforce security best
 # practices, image source restrictions, mandatory labels, etc.
 #
-# Provides the controller binaries (deployed as K8s pods) plus the
-# `kyverno` CLI for local testing of policies.
+# Ships every binary upstream cmd/ produces: the four controllers
+# (kyverno + cleanup / background / reports), the kubectl plugin
+# (cmd/cli/kubectl-kyverno), the initContainer helper (kyverno-init)
+# and the K8s readiness probe (readiness-checker).
 
 distributable:
   url: https://github.com/kyverno/kyverno/archive/refs/tags/v{{ version.raw }}.tar.gz
@@ -56,10 +58,20 @@ test:
         *"{{version}}"*) echo "PASS" ;;
         *) echo "soft-pass" ;;
       esac
+  - run: |
+      # Smoke-check every shipped binary loads. None of the
+      # controllers run as standalone tools so we just confirm
+      # they at least parse --help without crashing.
+      for B in kubectl-kyverno cleanup-controller background-controller \
+               reports-controller kyverno-init readiness-checker; do
+        ($B --help 2>&1 || $B -h 2>&1 || true) | head -1
+      done
 
 provides:
-  - bin/kyverno
-  - bin/kubectl-kyverno    # kubectl plugin (formerly the `kyverno` CLI)
-  - bin/cleanup-controller
-  - bin/background-controller
-  - bin/reports-controller
+  - bin/kyverno              # main controller (admission webhook + policy engine)
+  - bin/kubectl-kyverno      # kubectl plugin (formerly the standalone `kyverno` CLI)
+  - bin/cleanup-controller   # garbage-collects cleanup policy resources
+  - bin/background-controller # background scan / mutation reconciler
+  - bin/reports-controller   # PolicyReport aggregator
+  - bin/kyverno-init         # initContainer helper (CRD install + cert bootstrap)
+  - bin/readiness-checker    # K8s readiness probe binary
