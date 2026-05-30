@@ -1,0 +1,70 @@
+distributable:
+  url: https://github.com/cockroachdb/cockroach/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+display-name: CockroachDB
+
+versions:
+  github: cockroachdb/cockroach
+  ignore:
+    - /-alpha/
+    - /-beta/
+    - /-rc/
+
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+  - darwin/x86-64
+  - darwin/aarch64
+
+provides:
+  - bin/cockroach
+
+build:
+  dependencies:
+    go.dev: ^1.25
+    cmake.org: ^3
+    gnu.org/make: '*'
+    gnu.org/autoconf: '*'
+    gnu.org/bison: '*'
+    gnu.org/patch: '*'
+    freedesktop.org/pkg-config: '*'
+    github.com/bazelbuild/bazelisk: '*'
+    git-scm.org: '*'
+    linux:
+      gnu.org/gcc: '*'
+      invisible-island.net/ncurses: '*'
+  env:
+    # cockroach embeds version info from git; without a .git dir the build
+    # falls back to "unknown". Inject a stable version through the linker.
+    STABLE_BUILD_TAG: v{{version}}
+    USE_BAZEL_VERSION: '7.6.0'
+    # avoid bazel writing in $HOME during a sandboxed pantry build
+    HOME: '{{prefix}}/.build-home'
+  script:
+    # the github source tarball has no .git directory; cockroach's bazel
+    # rules rely on workspace_status.sh probing git, so stub it
+    - mkdir -p "$HOME"
+    - |
+      cat > build/bazelutil/stamp.sh <<EOF
+      #!/usr/bin/env bash
+      echo STABLE_BUILD_GIT_BUILD_TYPE release
+      echo STABLE_BUILD_TAG v{{version}}
+      echo STABLE_BUILD_REV $(printf 'v%s' '{{version}}')
+      echo STABLE_BUILD_TYPE release
+      echo STABLE_BUILD_TARGET_TRIPLE $(go env GOOS)-$(go env GOARCH)
+      EOF
+    - chmod +x build/bazelutil/stamp.sh
+    # cockroach-short is the pure-binary target (no embedded JS web UI),
+    # which keeps the build tractable without docker / nodejs in CI
+    - bazel build //pkg/cmd/cockroach-short:cockroach-short
+        --config=ci
+        --jobs={{ hw.concurrency }}
+        --workspace_status_command=$(pwd)/build/bazelutil/stamp.sh
+    - install -D -m755 bazel-bin/pkg/cmd/cockroach-short/cockroach-short_/cockroach-short
+        "{{prefix}}/bin/cockroach"
+    # do not leave the bazel cache behind
+    - bazel clean --expunge || true
+
+test:
+  - cockroach version | grep -i "{{version}}"
