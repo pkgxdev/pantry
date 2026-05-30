@@ -53,6 +53,12 @@ build:
           [ -d "$d" ] && CXX_INC="$d" && break
         done
         export CXXFLAGS="${CXXFLAGS:-} -isystem $CXX_INC"
+        # Static-link libstdc++ + libgcc into libbinaryen.so so the
+        # resulting binaries don't depend on the host's libstdc++.so.6
+        # at runtime. Without this, wasm-opt fails to start on Ubuntu
+        # 22.04 with `version 'GLIBCXX_3.4.31' not found` (pkgx gcc 16's
+        # libstdc++ is ABI-newer than what the runner ships).
+        export LDFLAGS="${LDFLAGS:-} -static-libstdc++ -static-libgcc"
         cmake .. $ARGS
         make --jobs {{ hw.concurrency }}
         make install
