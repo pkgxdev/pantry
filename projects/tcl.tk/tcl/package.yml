@@ -3,11 +3,20 @@ distributable:
   strip-components: 1
 
 versions:
-  url: https://sourceforge.net/projects/tcl/files/Tcl/
-  match: /files\/Tcl\/\d+\.\d+\.\d+\//
+  # Scrape upstream's official download index instead of SF's file
+  # listing. SF lists `files/Tcl/9.0.4/` (an empty / unpublished
+  # version directory) which the old versions scraper picked up as
+  # a valid version, then every build tried to download tcl9.0.4-src
+  # from prdownloads → 404 → #12187 fired every time on retry.
+  #
+  # tcl-lang.org's download.html only lists versions that have an
+  # actual published tarball (currently 8.4.20, 8.5.19, 8.6.18,
+  # 9.0.3), so this is a tighter source of truth.
+  url: https://www.tcl-lang.org/software/tcltk/download.html
+  match: /tcl\d+\.\d+\.\d+-src\.tar\.gz/
   strip:
-    - /files\/Tcl\//
-    - /\//
+    - /^tcl/
+    - /-src\.tar\.gz/
 
 build:
   working-directory: unix
