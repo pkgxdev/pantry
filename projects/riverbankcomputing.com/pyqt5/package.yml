@@ -80,6 +80,23 @@ build:
         # Trap to clean up staging on exit (any code path).
         trap 'rm -rf "$STAGING"' EXIT
 
+        # Pre-accept the GPL license in pyproject.toml so sipbuild
+        # doesn't prompt. pip's --config-settings can't pass through
+        # the `--confirm-license` flag: pip insists on KEY=VAL form,
+        # but sipbuild's argparse declares the flag as store_true and
+        # rejects any value with
+        #   "argument --confirm-license: ignored explicit argument 'true'"
+        # The pyproject.toml route doesn't go through that argparse,
+        # so set it there once before pip runs.
+        if ! grep -q "confirm-license" "$SRCROOT/pyproject.toml"; then
+          # Insert after the [tool.sip.project] header (it exists in
+          # PyQt5's pyproject.toml).
+          sed -i.bak '/^\[tool\.sip\.project\]$/a\
+confirm-license = true' "$SRCROOT/pyproject.toml"
+          rm -f "$SRCROOT/pyproject.toml.bak"
+          echo "patched pyproject.toml with confirm-license = true"
+        fi
+
         # Bindings to ship, in build order (lightest first).
         BINDINGS="QtCore QtDBus QtNetwork QtSql QtSvg QtTest QtXml QtPrintSupport QtGui QtWidgets"
 
@@ -89,17 +106,15 @@ build:
             echo "::group::pyqt5 binding $binding"
             mkdir -p "$STAGING/$binding"
 
-            # pip 23+ requires --config-settings values in the form
-            # KEY=VAL. sipbuild's `--confirm-license` is a boolean
-            # flag with no value, so pass an explicit `=true` to
-            # satisfy pip's parser; sipbuild interprets the truthy
-            # value as "license accepted".
+            # Note: --confirm-license is pre-applied via the
+            # pyproject.toml patch above (sed) — it can't be passed
+            # through pip's --config-settings because pip wants KEY=VAL
+            # and sipbuild's argparse rejects any value on store_true.
             if "$PYTHON" -m pip install "$SRCROOT" \
                 --no-build-isolation \
                 --no-deps \
                 --force-reinstall \
                 --target="$STAGING/$binding" \
-                --config-settings=--confirm-license=true \
                 --config-settings=--enable="$binding" \
                 --config-settings=--jobs=1 \
                 --verbose
