@@ -9,7 +9,7 @@
 #   with gcc 13+ — see https://github.com/tikv/tikv/issues/16593 .
 #   Arch's AUR PKGBUILD pins `gcc12<12.4.0` and exports CC=gcc-12 / CXX=g++-12:
 #     https://aur.archlinux.org/cgit/aur.git/plain/PKGBUILD?h=tikv
-#   We mirror that with `gnu.org/gcc: ^12.3 <12.4` (resolves to 12.3.0)
+#   We mirror that with an exact pin `gnu.org/gcc: =12.3.0`
 #   and an explicit CC/CXX. This is what finally fixed the
 #   "undefined reference to EVP_CIPHER_nid / SSL_get_peer_certificate"
 #   final-link failures we hit across 5 prior iterations with gcc 16
@@ -69,10 +69,10 @@ build:
     openssl.org: '*'
     linux:
       # See top-of-file note: TiKV's bundled C++ (RocksDB/Titan/gRPC)
-      # breaks with gcc 13+ (tikv#16593). Arch pins gcc12<12.4.0 —
-      # we mirror that. Pantry ships 12.3.0 and 12.4.0 as Linux
-      # bottles; `^12.3 <12.4` resolves to 12.3.0.
-      gnu.org/gcc: ^12.3 <12.4
+      # breaks with gcc 13+ (tikv#16593). Arch pins `gcc12<12.4.0`;
+      # we mirror that with an exact pin (libpkgx rejects compound
+      # `^12.3 <12.4` as undefined — observed in CI run 26691688633).
+      gnu.org/gcc: =12.3.0
   env:
     PATH: $HOME/.cargo/bin:$PATH
     TIKV_FRAME_POINTER: '0'
