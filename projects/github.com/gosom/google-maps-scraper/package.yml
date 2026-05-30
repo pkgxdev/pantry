@@ -12,9 +12,18 @@ build:
   dependencies:
     go.dev: ^1.21.1
     linux/aarch64:
-      # linux/aarch64 wants gold
+      # The previous `~2.44` pin (added in 46162f1c, Nov 2025) kept
+      # ld.gold available, but pantry's gcc bumped to 16.x in early
+      # 2026 and gcc 16 on aarch64 emits `.aeabi_subsection` /
+      # `.aeabi_attribute` directives (BTI/PAC ABI markers) that
+      # binutils 2.44's aarch64 `as` doesn't recognise — every
+      # `runtime/cgo` translation unit fails with
+      #   Error: unknown pseudo-op: `.aeabi_subsection'
+      # See #13101. binutils 2.45 added support; bump the floor.
+      # ld.gold is removed in 2.45 but pure-Go cgo bins on aarch64
+      # don't actually require it (BFD ld works fine for -buildmode=pie).
       gnu.org/gcc: '*'
-      gnu.org/binutils: ~2.44 # ld.gold is deprecated after 2.44
+      gnu.org/binutils: '>=2.45'
   script:
     - go build $GO_ARGS -ldflags="$GO_LDFLAGS" .
   env:
