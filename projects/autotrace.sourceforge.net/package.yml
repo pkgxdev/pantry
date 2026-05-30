@@ -48,6 +48,11 @@ build:
     - make install
 
   env:
+    # autotrace's configure does its own `perl -e 'use XML::Parser'`
+    # probe; intltool's runtime.env only kicks in when its binaries
+    # run, so we must point perl at intltool's bundled CPAN tree
+    # explicitly here.
+    PERL5LIB: ${{deps.freedesktop.org/intltool.prefix}}/lib/perl5:{{deps.freedesktop.org/intltool.prefix}}/libexec/lib/perl5:$PERL5LIB
     ARGS:
       - --prefix={{prefix}}
       - --without-pstoedit            # no pantry pstoedit recipe yet
