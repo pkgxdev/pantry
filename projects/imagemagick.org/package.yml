@@ -67,30 +67,6 @@ build:
 
     - run: sed -i -e 's|^prefix=.*|prefix=${MAGICK_HOME}|g' Magick++-config MagickCore-config MagickWand-config
       working-directory: ${{prefix}}/bin
-
-    # ImageMagick 7 installs pkgconfig files with the full
-    # quantum-depth-tagged name (eg. `MagickCore-7.Q16HDRI.pc`) but
-    # downstream consumers — most importantly rmagick's extconf.rb,
-    # which is the rmagick gem CI test below — call
-    # `pkg-config --cflags MagickCore` (unqualified) and bail out
-    # when the unqualified .pc is missing.
-    #
-    # arch's `imagemagick` PKGBUILD creates these compat symlinks too;
-    # nixpkgs' magick.nix runs `ln -s` post-install. Mirror that here
-    # so `pkgx +ruby +imagemagick.org -- gem install rmagick` resolves
-    # the headers without the consumer needing to know the IM7 naming.
-    # See pkgxdev/pantry#4030.
-    - run: |
-        cd "{{prefix}}/lib/pkgconfig"
-        for stem in MagickCore Magick++ MagickWand; do
-          # match the actual *-7.Q*HDRI.pc filename, since the quantum
-          # depth + HDRI flag can vary between builds
-          src=$(ls ${stem}-*.pc 2>/dev/null | head -1) || true
-          if [ -n "$src" ] && [ ! -e "${stem}.pc" ]; then
-            ln -sf "$src" "${stem}.pc"
-            echo "linked ${stem}.pc → $src"
-          fi
-        done
   env:
     # https://github.com/ImageMagick/ImageMagick/issues/1549
     LDFLAGS:
@@ -142,8 +118,16 @@ test:
   - pkgx curl "https://upload.wikimedia.org/wikipedia/commons/6/6a/PNG_Test.png" -o a.png
   - magick identify a.png | grep "a.png PNG"
 
-  # verify that we can build the rmagick gem
-  # Previously restricted to darwin because rmagick's extconf.rb
-  # couldn't find MagickCore.pc on linux — fixed by the unqualified
-  # pkgconfig symlinks above. Now try on linux too.
-  - run: pkgx +ruby@3.2.2 gem install rmagick
+  # Verify that the rmagick gem builds against our ImageMagick.
+  # Previously gated to `if: darwin` with the comment "the rmagick
+  # gem build process is broken on Linux" — actual root cause was
+  # that the rmagick gem compiles a C++ native extension and needs
+  # a g++ on PATH at install time. The darwin sandbox has clang++
+  # via the system toolchain; the linux sandbox only has the build
+  # toolchain's clang (no g++), so the previous invocation
+  # `pkgx +ruby@3.2.2 gem install rmagick` produced
+  #   ERROR: No C++ compiler found in ${ENV['PATH']}
+  # at extconf.rb time even though ImageMagick's MagickCore.pc was
+  # detected fine. Add `+gnu.org/gcc` to the pkgx invocation so the
+  # rmagick extension link finds g++. See pkgxdev/pantry#4030.
+  - run: pkgx +ruby@3.2.2 +gnu.org/gcc gem install rmagick
