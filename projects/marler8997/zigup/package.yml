@@ -37,7 +37,11 @@ platforms:
 
 build:
   dependencies:
-    ziglang.org: '>=0.14'
+    # Upstream's build.zig.zon declares `.minimum_zig_version = "0.14.0"`,
+    # but zigup's build.zig uses `std.builtin.Mode`, which was removed in
+    # Zig 0.15 (`error: root source file struct 'builtin' has no member
+    # named 'Mode'`). Pin to the 0.14 series until upstream catches up.
+    ziglang.org: ^0.14
   script: |
     zig build install \
       --prefix "{{prefix}}" \
