@@ -35,7 +35,19 @@ dependencies:
   libusb.info: '*'
   pcre.org/v2: '*'
   google.com/googletest: '*'    # provides gtest_prod.h required by libziparchive
-  protobuf.dev: '*'
+  # Pin to protobuf ^25: vendored AOSP code (libjsonpb/parse/jsonpb.cpp)
+  # uses APIs that changed across protobuf versions —
+  #   * protobuf 28+ removed `google::protobuf::util::JsonOptions`
+  #     (renamed to `JsonPrintOptions`)
+  #   * protobuf 27+ changed `Descriptor::full_name()` to return
+  #     `absl::string_view` instead of `const std::string&`, which
+  #     breaks `std::string + full_name()` concatenations
+  # Arch carries a single-line patch for the string concat case but
+  # not the JsonOptions rename; pinning to ^25 avoids both at once,
+  # and pantry still ships 25.x bottles. Drop the pin once nmeum/
+  # android-tools either vendors a newer libjsonpb or upstreams the
+  # protobuf-30+ compat patches.
+  protobuf.dev: ^25
   github.com/google/brotli: '*'
   facebook.com/zstd: '*'
   lz4.org: '*'
