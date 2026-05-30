@@ -17,59 +17,38 @@ versions:
     - /R-/
     - /\.tar\.gz/
 
-platforms:
-  # darwin is currently broken in two distinct ways:
-  #   * x86-64: GNU gcc dep on darwin fails the early conftest with
-  #     "C compiler cannot create executables" (configure exits 77
-  #     before even probing BLAS).
-  #   * aarch64: R auto-detects -framework Accelerate (vecLib), but
-  #     vecLib's NEON intrinsics use Apple-clang types incompatible
-  #     with GNU gcc — vecLibg95c.o fails with
-  #     "incompatible types when returning type 'uint64x2_t' but
-  #     'vUInt32' was expected".
-  # Restrict to linux until we can either switch darwin to clang+
-  # gfortran-from-clang OR keep gcc but explicitly disable Accelerate
-  # via --without-blas + manual openblas wiring.
-  - linux/x86-64
-  - linux/aarch64
-
 dependencies:
-  gnu.org/gcc: '*'             # gfortran's libgfortran.so.5 is a RUNTIME dep
-                               # (R links against gfortran's numerical core)
-  gnu.org/readline: '*'
-  pcre.org/v2: '*'
-  libpng.org: '*'
-  libjpeg-turbo.org: '*'
-  simplesystems.org/libtiff: '*'
-  cairographics.org: '*'
-  sourceware.org/bzip2: '*'
-  tukaani.org/xz: '*'
-  zlib.net: '*'
-  curl.se: '*'
-  gnu.org/gettext: '*'
+  gnu.org/gcc:
+    14 # gfortran's libgfortran.so.5 is a RUNTIME dep
+    # (R links against gfortran's numerical core)
+  gnu.org/readline: "*"
+  pcre.org/v2: "*"
+  libpng.org: "*"
+  libjpeg-turbo.org: "*"
+  simplesystems.org/libtiff: "*"
+  cairographics.org: "*"
+  sourceware.org/bzip2: "*"
+  tukaani.org/xz: "*"
+  zlib.net: "*"
+  curl.se: "*"
+  gnu.org/gettext: "*"
 
-# Rscript is a compiled C binary (src/unix/Rscript.c) with R_HOME_DIR
+# Rscript is a compiled C binary (src/unix/Rscript.c) with R_HOME
 # baked in via #define at configure time. brewkit's +brewing-strip
 # operates on text files only (grep -I excludes binaries), so the
 # baked path in Rscript remained +brewing post-install.
 #
-# Rscript honors `R_HOME_DIR` env var (NOT `R_HOME` — that's a separate
-# user-facing variable). Set both for safety since R itself uses R_HOME.
+# Rscript honors `RHOME`; R itself uses `R_HOME_DIR` internally and
+# exposes `R_HOME`, so set all three.
 runtime:
   env:
+    RHOME: ${{prefix}}/lib/R
     R_HOME_DIR: ${{prefix}}/lib/R
     R_HOME: ${{prefix}}/lib/R
 
 build:
   dependencies:
-    gnu.org/gcc: '*'             # provides gfortran for R's numerical core
-    gnu.org/make: '*'
-    perl.org: '*'
-    gnu.org/coreutils: '*'
-    gnu.org/findutils: '*'
-    gnu.org/sed: '*'
-    gnu.org/grep: '*'
-
+    perl.org: "*"
   script:
     - ./configure $ARGS
     - make -j {{ hw.concurrency }}
@@ -79,67 +58,61 @@ build:
     # Makeconf. brewkit builds in `{{prefix}}+brewing` then renames to
     # `{{prefix}}` after install — strip the +brewing suffix from the
     # baked-in paths so the bottle is relocation-safe.
-    - run: |
-        cd "{{prefix}}"
-        grep -rIl '+brewing' bin lib/R/etc 2>/dev/null \
-          | xargs -r sed -i 's|+brewing||g'
+    - run: grep -rIl '+brewing' bin lib/R/bin lib/R/etc 2>/dev/null | xargs -r sed -i 's|+brewing||g'
+      working-directory: "{{prefix}}"
+    - run: test ! -d lib/R/share/java || find lib/R/share/java -name '*.class' -exec rm {} \;
+      working-directory: "{{prefix}}"
 
   env:
+    darwin:
+      LDFLAGS: ${LDFLAGS:+$LDFLAGS }-Wl,-headerpad_max_install_names
     ARGS:
       - --prefix={{ prefix }}
-      - --enable-R-shlib            # build libR.so for embedding
+      - --enable-R-shlib # build libR.so for embedding
       - --with-readline=yes
       - --with-cairo=yes
       - --with-libpng=yes
       - --with-jpeglib=yes
       - --with-libtiff=yes
       - --with-pcre2=yes
-      - --with-blas                 # bundled BLAS (no external dep)
-      - --with-lapack               # bundled LAPACK
-      - --without-x                 # no X11 in CI / headless use case
-      - --without-tcltk             # no Tcl/Tk
+      # no --with-blas/--with-lapack: use R's bundled BLAS/LAPACK
+      - --without-aqua # no macOS Quartz/Aqua GUI device
+      - --without-x # no X11 in CI / headless use case
+      - --without-tcltk # no Tcl/Tk
       - --enable-memory-profiling
-      - --disable-java              # no Java integration
-      - --disable-nls               # internationalisation (saves build time;
-                                    # re-enable if you need non-English msgs)
+      - --disable-java # no Java integration
+      - --disable-nls # internationalisation (saves build time;
+        # re-enable if you need non-English msgs)
 
 test:
   # `R --version` prints "R version X.Y.Z (YYYY-MM-DD) -- …" on
   # the first line. We just check the version number matches.
   #
-  # Rscript is a compiled C binary with R_HOME_DIR baked in at configure
+  # Rscript is a compiled C binary with R_HOME baked in at configure
   # time. brewkit's text-only +brewing strip can't fix it, and brewkit's
   # test step doesn't apply runtime.env. End users get a working Rscript
-  # because pkgx exports R_HOME_DIR from runtime.env, but here in the
+  # because pkgx exports RHOME from runtime.env, but here in the
   # build sandbox we work around it by exporting it explicitly.
+  env:
+    RHOME: "{{prefix}}/lib/R"
+    R_HOME_DIR: "{{prefix}}/lib/R"
+    R_HOME: "{{prefix}}/lib/R"
   script:
-    - run: |
-        export R_HOME_DIR="{{prefix}}/lib/R"
-        export R_HOME="{{prefix}}/lib/R"
-        out=$(R --version 2>&1 | head -1)
-        echo "R --version: $out"
-        case "$out" in
-          "R version {{version}} "*) echo "version PASS" ;;
-          *) echo "FAIL: expected R version {{version}}, got $out"; exit 1 ;;
-        esac
-    - run: |
-        export R_HOME_DIR="{{prefix}}/lib/R"
-        export R_HOME="{{prefix}}/lib/R"
-        # `|| true` because Rscript exits 255 if the baked-in R_HOME_DIR
-        # doesn't survive the +brewing rename. set -e + $(failing-cmd)
-        # would terminate before reaching the soft-skip case.
-        out=$(Rscript -e 'cat(R.version$major, R.version$minor, sep=".")' 2>&1 || true)
-        echo "Rscript: $out"
-        # accept either the proper version or just confirm Rscript at
-        # least produced *some* output (the binary's R_HOME_DIR baked
-        # path can defeat env override on some builds — we don't gate
-        # bottle release on it since end users get the runtime.env path).
-        case "$out" in
-          "{{version}}") echo "Rscript version PASS" ;;
-          *"{{version}}"*) echo "Rscript version PASS" ;;
-          *) echo "Rscript soft-skip: $out" ;;
-        esac
+    - out=$(R --version 2>&1 | head -1)
+    - 'echo "R --version: $out"'
+    - |
+      case "$out" in
+        "R version {{version}} "*) echo "version PASS" ;;
+        *) echo "FAIL: expected R version {{version}}, got $out"; exit 1 ;;
+      esac
+    - out=$(Rscript -e 'cat(R.version$major, R.version$minor, sep=".")' 2>&1)
+    - 'echo "Rscript: $out"'
+    - |
+      case "$out" in
+        "{{version}}") echo "Rscript version PASS" ;;
+        *) echo "FAIL: expected Rscript {{version}}, got $out"; exit 1 ;;
+      esac
 
 provides:
-  - bin/R         # the interpreter
-  - bin/Rscript   # one-shot script runner
+  - bin/R # the interpreter
+  - bin/Rscript # one-shot script runner
