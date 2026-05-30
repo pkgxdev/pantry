@@ -32,7 +32,7 @@ dependencies:
 build:
   dependencies:
     linux:
-      gnu.org/gcc: "*"
+      gnu.org/gcc: 14
     gnu.org/make: "*"
     perl.org: "^5.6.1"
     gnu.org/patch: "*"
@@ -67,7 +67,7 @@ build:
         # Remove old frame registration symbols from darwin-unwind.ver (GCC 15+ doesn't provide these)
         - patch -p1 < props/remove-old-frame-symbols-darwin.patch
         - fi
-      if: ">=15.2"
+      if: "^14.2 || >=15.2"
       working-directory: ..
 
     # The spaces mess things up in the env key
@@ -136,6 +136,20 @@ build:
         fi
       if: linux
 
+    # fixincludes can emit a malformed stdio.h against newer macOS SDKs,
+    # leaving FILE, fpos_t, and size_t undefined for downstream builds.
+    - run:
+        - for hdr in lib/gcc/*/*/include-fixed/stdio.h; do
+        - if ! grep -q 'extern FILE \*__stdinp' "$hdr" || grep -q '#include <_stdio.h>' "$hdr"; then continue; fi
+        - sed -i -f $PROP "$hdr"
+        - done
+      prop: |
+        /#define .*STDIO/a\
+        #include <stddef.h>\
+        #include <_stdio.h>
+      if: darwin
+      working-directory: ${{prefix}}
+
     # Since we depend on ourselves, this symlink might already exist
     - run: test -f gc++ || ln -sf c++ gc++
       working-directory: ${{prefix}}/bin
@@ -152,10 +166,14 @@ build:
 
     # fixup the signatures on libgcc_s on darwin x86-64
     - run:
+        - if test -f libgcc_s.1.1.dylib; then
         - codesign --remove-signature libgcc_s.1.1.dylib || true
         - codesign -s - --force libgcc_s.1.1.dylib
+        - fi
+        - if test -f libgcc_s.1.dylib; then
         - codesign --remove-signature libgcc_s.1.dylib || true
         - codesign -s - --force libgcc_s.1.dylib
+        - fi
       if: darwin/x86-64
       working-directory: ${{prefix}}/lib
 
@@ -260,11 +278,11 @@ test:
       - fi
     if: darwin
   - run:
-      - if test "{{hw.platform}}" = "darwin" && ! test -f /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/_bounds.h || ! test -f ; then
+      - if test "{{hw.platform}}" = "darwin" && ! test -f /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/_bounds.h ; then
       - echo "Missing SDK; skipping remaining tests"
       - exit 0
       - fi
-    if: ">=15.2"
+    if: "^14.2 || >=15.2"
   - gcc -o test1 test.c -lgmp
   - ./test1
   - g++ -o test2 test.cc
