@@ -29,6 +29,14 @@ dependencies:
     freetype.org: '*'
 
 build:
+  # Tk 9.0+ embeds a zipfs of its own resources into libtk*.zip at
+  # build time. configure probes for `zip(1)` on PATH; if absent it
+  # prints "Building minizip" but the resulting Makefile has no
+  # rule for the `minizip` target and `make` dies with
+  #   "No rule to make target 'minizip', needed by 'libtk9.0.3.zip'"
+  # Providing zip(1) lets configure pick the simple path.
+  dependencies:
+    info-zip.org/zip: '*'
   working-directory: unix
   darwin:
     working-directory: macosx
