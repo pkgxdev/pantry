@@ -89,18 +89,26 @@ build:
     # cmake 4.x rejects the bundled sub-builds' min-policy without this.
     # See https://github.com/tikv/tikv/issues/18867 .
     CMAKE_POLICY_VERSION_MINIMUM: '3.5'
-    # HISTORICAL (kept for future maintainers): we previously tried to
-    # work around "undefined reference to EVP_CIPHER_nid /
-    # SSL_get_peer_certificate" at the final cargo link step by
-    # forcing `-Wl,--no-as-needed -lssl -lcrypto` via RUSTFLAGS, with
-    # OPENSSL_* env pinning, and via `openssl.org: ^3`. None of that
-    # worked — see commits ef0426ef, 2ba7b88b, 8c575d46.  The actual
-    # root cause was that pantry's `gnu.org/gcc: '*'` was resolving
-    # to gcc 16 on the builder, and gcc 13+ visibility/LTO semantics
-    # cause those exact symbols to be dropped (tikv#16593).  Arch's
-    # AUR PKGBUILD pinning `gcc12<12.4.0` is what works.  The gcc
-    # pin (see build.dependencies.linux) plus the explicit CC/CXX
-    # below is the actual fix; no RUSTFLAGS hack needed.
+    # ITER HISTORY at the final cargo link step:
+    #
+    #   ef0426ef — pin openssl.org ^3 — resolver rejected (transitive ^1.1)
+    #   2ba7b88b — RUSTFLAGS -Wl,--no-as-needed -lssl -lcrypto         FAIL
+    #   8c575d46 — wrap in --no-as-needed / --as-needed                FAIL
+    #   8c76a667 — pin gcc =12.3.0, drop RUSTFLAGS (mirror arch)       FAIL — built 35→64min, hit same link error
+    #   THIS ITER — re-instate RUSTFLAGS + OPENSSL_STATIC=1 on top of gcc 12.3
+    #
+    # The bundled C++ in librocksdb-sys (encryption.cc) and grpcio-sys
+    # (ssl_transport_security.cc) reference SSL_get_peer_certificate and
+    # EVP_CIPHER_nid; openssl-sys's build.rs doesn't emit a link
+    # directive for them on the link line, so cargo's final cc invocation
+    # omits -lssl/-lcrypto. OPENSSL_STATIC=1 tells openssl-sys to emit
+    # `-l static=ssl -l static=crypto`, which forces ld to include
+    # libssl.a/libcrypto.a wholesale — the bundled .o objects then
+    # resolve their references regardless of link-order. RUSTFLAGS is
+    # kept as belt-and-braces in case static libs aren't shipped in
+    # pkgx's openssl bottle.
+    OPENSSL_STATIC: '1'
+    RUSTFLAGS: '-C link-arg=-L{{deps.openssl.org.prefix}}/lib -C link-arg=-Wl,--no-as-needed -C link-arg=-lssl -C link-arg=-lcrypto -C link-arg=-Wl,--as-needed'
     # Build the bundled C++ libs (RocksDB + Titan + jemalloc) in
     # portable mode so they don't hardcode FORCE_SSE42=ON. SSE4.2 is
     # x86-only — on aarch64 the titan CMakeLists.txt bails with
