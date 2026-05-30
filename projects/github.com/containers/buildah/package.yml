@@ -16,6 +16,7 @@ versions:
 
 platforms:
   - linux
+
 dependencies:
   gnupg.org/gpgme: '*'
   github.com/seccomp/libseccomp: '*'
@@ -46,9 +47,8 @@ build:
 
     - install -Dm755 bin/buildah "{{prefix}}/bin/buildah"
 
-    # Buildah ships shell-completions + man pages — install them too.
+    # Buildah ships shell-completions — install them too.
     - mkdir -p "{{prefix}}/share/man/man1" "{{prefix}}/share/bash-completion/completions"
-    - cp docs/buildah*.1 "{{prefix}}/share/man/man1/" || true
     - # Generate bash completion using the binary itself
     - '${{prefix}}/bin/buildah completion bash > "{{prefix}}/share/bash-completion/completions/buildah" || true'
 
