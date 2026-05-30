@@ -1,0 +1,122 @@
+# R — language + environment for statistical computing.
+#
+# Standalone CLI / Rscript build. No X11, no Tcl/Tk, no Java — for
+# data-science / stats workflows from the terminal. Users who need
+# GUI R should use the system R or RStudio packaged separately.
+
+distributable:
+  url: https://cloud.r-project.org/src/base/R-{{ version.major }}/R-{{ version.raw }}.tar.gz
+  strip-components: 1
+
+# R's release directory layout is by major-version (R-4/, R-3/, …),
+# and the file inside is R-{major}.{minor}.{patch}.tar.gz.
+versions:
+  url: https://cloud.r-project.org/src/base/R-4/
+  match: /R-\d+\.\d+\.\d+\.tar\.gz/
+  strip:
+    - /R-/
+    - /\.tar\.gz/
+
+platforms:
+  - linux
+  - darwin/aarch64 # x86-64's configure isn't hapyy with gcc.
+
+dependencies:
+  gnu.org/gcc:
+    14 # gfortran's libgfortran.so.5 is a RUNTIME dep
+    # (R links against gfortran's numerical core)
+  gnu.org/readline: "*"
+  pcre.org/v2: "*"
+  libpng.org: "*"
+  libjpeg-turbo.org: "*"
+  simplesystems.org/libtiff: "*"
+  cairographics.org: "*"
+  sourceware.org/bzip2: "*"
+  tukaani.org/xz: "*"
+  zlib.net: "*"
+  curl.se: "*"
+  gnu.org/gettext: "*"
+
+# Rscript is a compiled C binary (src/unix/Rscript.c) with R_HOME
+# baked in via #define at configure time. brewkit's +brewing-strip
+# operates on text files only (grep -I excludes binaries), so the
+# baked path in Rscript remained +brewing post-install.
+#
+# Rscript honors `RHOME`; R itself uses `R_HOME_DIR` internally and
+# exposes `R_HOME`, so set all three.
+runtime:
+  env:
+    RHOME: ${{prefix}}/lib/R
+    R_HOME_DIR: ${{prefix}}/lib/R
+    R_HOME: ${{prefix}}/lib/R
+
+build:
+  dependencies:
+    perl.org: "*"
+  script:
+    - ./configure $ARGS
+    - make -j {{ hw.concurrency }}
+    - make install
+
+    # R bakes the configure-time prefix into bin/R, Renviron, ldpaths,
+    # Makeconf. brewkit builds in `{{prefix}}+brewing` then renames to
+    # `{{prefix}}` after install — strip the +brewing suffix from the
+    # baked-in paths so the bottle is relocation-safe.
+    - run: grep -rIl '+brewing' bin lib/R/bin lib/R/etc 2>/dev/null | xargs -r sed -i 's|+brewing||g'
+      working-directory: "{{prefix}}"
+    - run: test ! -d lib/R/share/java || find lib/R/share/java -name '*.class' -exec rm {} \;
+      working-directory: "{{prefix}}"
+
+  env:
+    darwin:
+      LDFLAGS: ${LDFLAGS:+$LDFLAGS }-Wl,-headerpad_max_install_names
+    ARGS:
+      - --prefix={{ prefix }}
+      - --enable-R-shlib # build libR.so for embedding
+      - --with-readline=yes
+      - --with-cairo=yes
+      - --with-libpng=yes
+      - --with-jpeglib=yes
+      - --with-libtiff=yes
+      - --with-pcre2=yes
+      # no --with-blas/--with-lapack: use R's bundled BLAS/LAPACK
+      - --without-aqua # no macOS Quartz/Aqua GUI device
+      - --without-x # no X11 in CI / headless use case
+      - --without-tcltk # no Tcl/Tk
+      - --enable-memory-profiling
+      - --disable-java # no Java integration
+      - --disable-nls # internationalisation (saves build time;
+        # re-enable if you need non-English msgs)
+
+test:
+  # `R --version` prints "R version X.Y.Z (YYYY-MM-DD) -- …" on
+  # the first line. We just check the version number matches.
+  #
+  # Rscript is a compiled C binary with R_HOME baked in at configure
+  # time. brewkit's text-only +brewing strip can't fix it, and brewkit's
+  # test step doesn't apply runtime.env. End users get a working Rscript
+  # because pkgx exports RHOME from runtime.env, but here in the
+  # build sandbox we work around it by exporting it explicitly.
+  env:
+    RHOME: "{{prefix}}/lib/R"
+    R_HOME_DIR: "{{prefix}}/lib/R"
+    R_HOME: "{{prefix}}/lib/R"
+  script:
+    - out=$(R --version 2>&1 | head -1)
+    - 'echo "R --version: $out"'
+    - |
+      case "$out" in
+        "R version {{version}} "*) echo "version PASS" ;;
+        *) echo "FAIL: expected R version {{version}}, got $out"; exit 1 ;;
+      esac
+    - out=$(Rscript -e 'cat(R.version$major, R.version$minor, sep=".")' 2>&1)
+    - 'echo "Rscript: $out"'
+    - |
+      case "$out" in
+        "{{version}}") echo "Rscript version PASS" ;;
+        *) echo "FAIL: expected Rscript {{version}}, got $out"; exit 1 ;;
+      esac
+
+provides:
+  - bin/R # the interpreter
+  - bin/Rscript # one-shot script runner
