@@ -37,17 +37,6 @@ dependencies:
   curl.se: "*"
   gnu.org/gettext: "*"
 
-# Rscript is a compiled C binary (src/unix/Rscript.c) with R_HOME
-# baked in via #define at configure time. brewkit's +brewing-strip
-# operates on text files only (grep -I excludes binaries), so the
-# baked path in Rscript remained +brewing post-install.
-#
-# Rscript honors `RHOME`; setting `R_HOME` makes R warn and ignore it.
-runtime:
-  env:
-    RHOME: ${{prefix}}/lib/R
-    R_HOME_DIR: ${{prefix}}/lib/R
-
 build:
   dependencies:
     perl.org: "*"
@@ -62,6 +51,9 @@ build:
     # baked-in paths so the bottle is relocation-safe.
     - run: grep -rIl '+brewing' bin lib/R/bin lib/R/etc 2>/dev/null | xargs -r sed -i 's|+brewing||g'
       working-directory: "{{prefix}}"
+    # R and Rscript also bake absolute homes into launchers/binaries.
+    # Make the public launchers derive R_HOME/RHOME from $0 instead.
+    - sh props/rewrite-r-launchers.sh "{{prefix}}"
     - run: test ! -d lib/R/share/java || find lib/R/share/java -name '*.class' -exec rm {} \;
       working-directory: "{{prefix}}"
 
@@ -89,15 +81,6 @@ build:
 test:
   # `R --version` prints "R version X.Y.Z (YYYY-MM-DD) -- …" on
   # the first line. We just check the version number matches.
-  #
-  # Rscript is a compiled C binary with R_HOME baked in at configure
-  # time. brewkit's text-only +brewing strip can't fix it, and brewkit's
-  # test step doesn't apply runtime.env. End users get a working Rscript
-  # because pkgx exports RHOME from runtime.env, but here in the
-  # build sandbox we work around it by exporting it explicitly.
-  env:
-    RHOME: "{{prefix}}/lib/R"
-    R_HOME_DIR: "{{prefix}}/lib/R"
   script:
     - out=$(R --version 2>&1)
     - out=$(printf '%s\n' "$out" | sed -n '1p')
