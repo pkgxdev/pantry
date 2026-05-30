@@ -11,8 +11,17 @@ versions:
   github: tikv/tikv
 
 platforms:
+  # Linux/x86-64 only.  TiKV bundles a pinned, old `rust-rocksdb`
+  # whose build.rs hardcodes `-DFORCE_SSE42=ON` when building the
+  # vendored titan/rocksdb C++.  Setting PORTABLE / ROCKSDB_SYS_PORTABLE
+  # doesn't override it — the flag lives in rust-rocksdb's source,
+  # not its CMake input.  On aarch64 titan's
+  #   `cmake/rocksdb_flags.cmake:137: FORCE_SSE42=ON but unable
+  #    to compile with SSE4.2 enabled`
+  # detonates configure.  Arch ships the same arch=('x86_64') limit
+  # for the same reason.  Re-enable aarch64 once TiKV bumps to a
+  # rust-rocksdb that detects target arch.
   - linux/x86-64
-  - linux/aarch64
 
 provides:
   - bin/tikv-server
