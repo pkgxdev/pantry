@@ -42,13 +42,11 @@ dependencies:
 # operates on text files only (grep -I excludes binaries), so the
 # baked path in Rscript remained +brewing post-install.
 #
-# Rscript honors `RHOME`; R itself uses `R_HOME_DIR` internally and
-# exposes `R_HOME`, so set all three.
+# Rscript honors `RHOME`; setting `R_HOME` makes R warn and ignore it.
 runtime:
   env:
     RHOME: ${{prefix}}/lib/R
     R_HOME_DIR: ${{prefix}}/lib/R
-    R_HOME: ${{prefix}}/lib/R
 
 build:
   dependencies:
@@ -100,9 +98,9 @@ test:
   env:
     RHOME: "{{prefix}}/lib/R"
     R_HOME_DIR: "{{prefix}}/lib/R"
-    R_HOME: "{{prefix}}/lib/R"
   script:
-    - out=$(R --version 2>&1 | head -1)
+    - out=$(R --version 2>&1)
+    - out=$(printf '%s\n' "$out" | sed -n '1p')
     - 'echo "R --version: $out"'
     - |
       case "$out" in
