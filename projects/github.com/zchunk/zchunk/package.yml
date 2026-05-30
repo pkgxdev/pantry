@@ -1,0 +1,48 @@
+distributable:
+  url: https://github.com/zchunk/zchunk/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: zchunk/zchunk/tags
+
+# Reference C implementation of the zchunk container format used by Fedora's
+# DNF/librepo for delta-downloaded repository metadata.
+
+dependencies:
+  openssl.org: ^1.1
+  facebook.com/zstd: ^1
+  curl.se: ^8
+
+build:
+  dependencies:
+    mesonbuild.com: "*"
+    ninja-build.org: "*"
+    freedesktop.org/pkg-config: "*"
+    darwin:
+      github.com/argp-standalone/argp-standalone: "*"
+  script:
+    - meson setup build $ARGS
+    - meson compile -C build --jobs {{ hw.concurrency }}
+    - meson install -C build
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --buildtype=release
+      - -Ddocs=false
+      - -Dtests=false
+
+provides:
+  - bin/zck
+  - bin/unzck
+  - bin/zck_delta_size
+  - bin/zck_gen_zdict
+  - bin/zck_read_header
+  - bin/zckdl
+
+test:
+  - echo "hello zchunk roundtrip" > greeting.txt
+  - zck greeting.txt
+  - test -f greeting.txt.zck
+  - rm greeting.txt
+  - unzck greeting.txt.zck
+  - test "$(cat greeting.txt)" = "hello zchunk roundtrip"

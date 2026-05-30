@@ -1,0 +1,29 @@
+distributable:
+  url: https://github.com/argp-standalone/argp-standalone/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: argp-standalone/argp-standalone/tags
+
+# Standalone GNU argp argument parser, for systems whose libc does not provide
+# argp.h (macOS, FreeBSD, musl). On glibc Linux it is not needed but the build
+# is harmless.
+
+build:
+  dependencies:
+    mesonbuild.com: "*"
+    ninja-build.org: "*"
+    freedesktop.org/pkg-config: "*"
+  script:
+    - meson setup build $ARGS
+    - meson compile -C build --jobs {{ hw.concurrency }}
+    - meson install -C build
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --buildtype=release
+      - --default-library=static
+
+test:
+  - cc test.c -I{{prefix}}/include -L{{prefix}}/lib -largp -o test
+  - ./test --version | grep -F 1.0
