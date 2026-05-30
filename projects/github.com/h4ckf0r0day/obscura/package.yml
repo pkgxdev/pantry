@@ -25,10 +25,10 @@ test:
   # Switch to a hermetic check: feed obscura a `file://` URL pointing
   # at a fixture we generate in the test step. Still exercises the
   # URL-fetch + `--eval` JS execution paths, no network required.
-  - run: |
-      cat > test.html <<'HTML'
-      <!doctype html><html><head><title>pkgx-test</title></head>
-      <body><h1 id="msg">hello from obscura</h1></body></html>
-      HTML
-      out=$(obscura fetch "file://$(pwd)/test.html" --eval 'document.title')
-      echo "$out" | grep -q pkgx-test
+  - run: out=$(obscura fetch "file://$FIXTURE" --eval 'document.title')
+    fixture:
+      extname: html
+      content: |
+        <!doctype html><html><head><title>pkgx-test</title></head>
+        <body><h1 id="msg">hello from obscura</h1></body></html>
+  - echo "$out" | grep -q pkgx-test
