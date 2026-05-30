@@ -50,21 +50,19 @@ build:
     # all script steps share one shell.
     - mkdir -p "$SRCROOT/perl-xml-parser"
     - env -u PERL5LIB cpanm -l "$SRCROOT/perl-xml-parser" XML::Parser --notest --verbose
-    # Some shipped .la files under /opt still reference the
-    # +brewing build dirs of their dependencies (e.g. IM's
-    # libMagickCore-7.la → /opt/littlecms.com/.../+brewing/...la).
-    # libtool follows those during our link step and aborts because
-    # the +brewing paths don't exist post-install. Strip the
-    # +brewing suffix from every transitively-reachable .la file
-    # so libtool finds the real ones.
-    # TODO upstream this fix into each affected pantry recipe
-    # (imagemagick.org and friends should sed their own .la at
-    # install time, the way x.org/xdmcp already does).
+    # ImageMagick's libMagickCore-7.la (and friends) carry stale
+    # \`dependency_libs=\` paths — both \`+brewing\` build dirs and
+    # pinned versions of deps that have since been bumped (e.g.
+    # /opt/littlecms.com/v2.18.0/... while pantry now ships v2.19.1).
+    # libtool follows them during the link step and aborts. Rename
+    # the offending .la files so libtool falls back to the plain
+    # \`-L .../lib -llcms2 ...\` flags coming from pkg-config.
+    # TODO upstream: imagemagick.org and friends should sed/replace
+    # their own .la files at install time (the way x.org/xdmcp does
+    # for +brewing) so future consumers don't hit this.
     - run: |
-        for la in $(find /opt -name '*.la' 2>/dev/null); do
-          if [ -w "$la" ] && grep -q '+brewing' "$la" 2>/dev/null; then
-            sed -i.bak 's/+brewing//g' "$la"
-          fi
+        for la in {{deps.imagemagick.org.prefix}}/lib/libMagick*.la; do
+          [ -f "$la" ] && [ -w "$la" ] && mv "$la" "$la.disabled" || true
         done
     # Upstream ships configure.ac only — autogen.sh runs autopoint +
     # autoreconf with `intltoolize --automake --copy` as AUTOPOINT.
