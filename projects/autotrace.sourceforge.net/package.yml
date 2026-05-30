@@ -34,20 +34,22 @@ build:
     freedesktop.org/intltool: '*'
     perl.org: '*'
     cpanmin.us: '*'
-    # `freedesktop.org/intltool` brings `intltoolize` (called from
-    # ./autogen.sh) but autotrace's `configure` does its own
-    # `perl -e 'require XML::Parser'` probe and picks up brewkit's
-    # perl wrapper, which doesn't inherit intltool's runtime PERL5LIB.
-    # Install XML::Parser into a scratch dir up-front and point
-    # PERL5LIB at it for the configure run — same pattern intltool
-    # itself uses internally.
+    # intltool brings `intltoolize` (called from ./autogen.sh).
+    # XML::Parser comes from intltool's bundled CPAN tree, but that
+    # tree's XS .so files were compiled against an older perl ABI
+    # and can't load into the current perl.org (5.42.x). So we
+    # install XML::Parser fresh into a scratch dir against the
+    # current perl, and point PERL5LIB at it for both autogen.sh
+    # and configure — bypassing intltool's stale perl5 lib entirely.
 
   script:
-    - mkdir -p perl-xml-parser
-    - cpanm -l "$SRCROOT/perl-xml-parser" XML::Parser --force --notest --verbose
-    # Diagnostic: show that perl can actually find XML::Parser with
-    # our PERL5LIB. If this prints "ok" we know the env is right.
-    - perl -e 'use XML::Parser; print "ok\n"' || (echo "PERL5LIB=$PERL5LIB"; ls -la "$SRCROOT/perl-xml-parser/lib/perl5/" 2>&1 || true; exit 1)
+    # Build XML::Parser against the live perl. Unset PERL5LIB first
+    # so cpanm's own perl doesn't pick up intltool's stale XS .so
+    # files (Clone.c built for v5.40 vs current v5.42 ABI mismatch).
+    - run: |
+        unset PERL5LIB
+        mkdir -p "$SRCROOT/perl-xml-parser"
+        cpanm -l "$SRCROOT/perl-xml-parser" XML::Parser --notest --verbose
     # Upstream ships configure.ac only — autogen.sh runs autopoint +
     # autoreconf with `intltoolize --automake --copy` as AUTOPOINT.
     - ./autogen.sh
@@ -56,7 +58,9 @@ build:
     - make install
 
   env:
-    PERL5LIB: $SRCROOT/perl-xml-parser/lib/perl5:$PERL5LIB
+    # Put our freshly-built XML::Parser first; deliberately do NOT
+    # include intltool's lib/perl5 (stale ABI — see comment above).
+    PERL5LIB: $SRCROOT/perl-xml-parser/lib/perl5
     ARGS:
       - --prefix={{prefix}}
       - --without-pstoedit            # no pantry pstoedit recipe yet
