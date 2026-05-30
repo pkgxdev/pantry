@@ -105,6 +105,19 @@ build:
     # the resulting CLI tools (adb, fastboot) only care that the
     # call returns "success-ish", not its precise return contract.
     CXXFLAGS: -include cstdint -fpermissive
+    # libprotobuf.so in pantry is built with `--allow-shlib-undefined`
+    # itself (see projects/protobuf.dev/package.yml — the FIXME about
+    # abseil drift) — its dynamic symbols still reference whichever
+    # abseil it was originally built against, regardless of which
+    # abseil pkg-config currently advertises. Consumer links that pull
+    # libprotobuf.so transitively will see those refs surface as
+    # "undefined reference to absl::lts_X::log_internal::LogMessage::
+    # operator<<<…>" template instantiations. Same workaround applies:
+    # tell ld to allow undefined refs in linked shared libs (the
+    # dynamic loader resolves them at runtime against whatever abseil
+    # is on the runtime closure — fragile but matches what protobuf
+    # itself does).
+    LDFLAGS: $LDFLAGS -Wl,--allow-shlib-undefined
     ARGS:
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
       - -DCMAKE_BUILD_TYPE=Release
