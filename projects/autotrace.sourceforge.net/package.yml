@@ -50,6 +50,22 @@ build:
     # all script steps share one shell.
     - mkdir -p "$SRCROOT/perl-xml-parser"
     - env -u PERL5LIB cpanm -l "$SRCROOT/perl-xml-parser" XML::Parser --notest --verbose
+    # Some shipped .la files under /opt still reference the
+    # +brewing build dirs of their dependencies (e.g. IM's
+    # libMagickCore-7.la → /opt/littlecms.com/.../+brewing/...la).
+    # libtool follows those during our link step and aborts because
+    # the +brewing paths don't exist post-install. Strip the
+    # +brewing suffix from every transitively-reachable .la file
+    # so libtool finds the real ones.
+    # TODO upstream this fix into each affected pantry recipe
+    # (imagemagick.org and friends should sed their own .la at
+    # install time, the way x.org/xdmcp already does).
+    - run: |
+        for la in $(find /opt -name '*.la' 2>/dev/null); do
+          if [ -w "$la" ] && grep -q '+brewing' "$la" 2>/dev/null; then
+            sed -i.bak 's/+brewing//g' "$la"
+          fi
+        done
     # Upstream ships configure.ac only — autogen.sh runs autopoint +
     # autoreconf with `intltoolize --automake --copy` as AUTOPOINT.
     # Pass PERL/INTLTOOL_PERL=real-perl to bypass brewkit's perl
