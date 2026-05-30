@@ -16,6 +16,10 @@ versions:
 
 build:
   script:
+    # Upstream ships config.guess/config.sub from 2009; that copy doesn't know
+    # about aarch64 and configure aborts with "cannot guess build type" on ARM.
+    # Drop in the current FSF copies (same fix Debian's dh-autoreconf applies).
+    - cp props/config.guess props/config.sub autotools/
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
   env:
