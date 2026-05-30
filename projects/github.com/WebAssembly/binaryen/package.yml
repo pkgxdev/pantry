@@ -90,5 +90,8 @@ provides:
   - bin/wasm-split
 
 test:
-  # wasm-opt prints `--version` to stderr in newer releases; merge 2>&1.
-  - wasm-opt --version 2>&1 | grep -i "version_{{version.raw}}"
+  # wasm-opt's --version output format has shifted across versions
+  # (older: "wasm-opt version_129"; newer: "wasm-opt 129.0"). Just
+  # verify the binary runs and prints something matching our raw
+  # numeric version, on either stream.
+  - wasm-opt --version 2>&1 | grep -i "{{version.raw}}"
