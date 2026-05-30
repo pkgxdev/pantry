@@ -164,6 +164,96 @@ build:
       if: darwin/x86-64
       working-directory: ${{prefix}}/lib
 
+    # Linux libc-wrapper: install a thin shim at bin/<compiler> that
+    # injects -isystem $glibc/include + -L$glibc/lib so end-user
+    # `pkgx +gnu.org/gcc +gnu.org/glibc gcc test.c` finds stdlib.h +
+    # crt*.o + libc.so.6 from the pkgx-integrated glibc bottle —
+    # without needing distro glibc-devel. See #8423.
+    #
+    # The wrapper is OPPORTUNISTIC: it looks for a sibling pkgx glibc
+    # bottle and injects only if found AND CPATH is unset. If neither
+    # condition holds, gcc falls back to the host libc (current
+    # behaviour). We intentionally do NOT declare gnu.org/glibc as a
+    # runtime dep here — brewkit would then expose it during gcc's own
+    # build via CPATH/LIBRARY_PATH, poisoning the bootstrap (test
+    # programs end up linking pkgx libc but running on host's ld-linux).
+    # Users opt in explicitly with `pkgx +gnu.org/glibc`.
+    - run: |
+        mkdir -p {{prefix}}/libexec/gcc-wrap
+        cat > {{prefix}}/libexec/gcc-wrap.sh <<'WRAPPER'
+        #!/bin/sh
+        # pkgx libc-wrapper modeled on Nix's cc-wrapper. Activates only
+        # when a sibling pkgx glibc bottle is present and CPATH is unset
+        # (i.e. naked end-user invocations like `pkgx +gnu.org/gcc
+        # +gnu.org/glibc gcc test.c`). Otherwise no-ops.
+        #
+        # When active:
+        #   -nostdinc          drop host /usr/include from search path
+        #   -isystem $gcc/...  re-add gcc's own builtin headers
+        #   -isystem $glibc/   add pkgx glibc headers (replaces host)
+        #   -L $glibc/lib      link against pkgx libc + crt*.o
+        #   --dynamic-linker   bake pkgx ld-linux into PT_INTERP
+        #   -rpath $glibc/lib  resolve dyn libs without LD_LIBRARY_PATH
+        self_name=$(basename "$0")
+        case "$self_name" in
+          cc)   target=gcc ;;
+          gc++) target=c++ ;;
+          *)    target="$self_name" ;;
+        esac
+        bindir=$(cd "$(dirname "$0")" && pwd)
+        gcc_root="$bindir/.."
+        # IMPORTANT: keep the real binary in bin/ (as .${target}-real) so
+        # gcc's internal lookup for cc1 / cc1plus / collect2 (all relative
+        # to its own dir at lib/gcc/<triplet>/<ver>/) still resolves.
+        # Moving it under libexec/ broke that lookup (#13094 v1).
+        real="$bindir/.${target}-real"
+        if [ -z "$CPATH" ]; then
+          for d in "$bindir/../../../glibc/v"*; do
+            [ -d "$d/include" ] && libc="$d" && break
+          done
+        fi
+        if [ -z "$libc" ]; then
+          exec "$real" "$@"
+        fi
+        # Find gcc's own builtin headers (triplet + version glob)
+        for inc in "$gcc_root"/lib/gcc/*/*/include; do
+          [ -d "$inc" ] && gcc_inc="$inc" && gcc_inc_fixed="${inc}-fixed" && break
+        done
+        # For C++ tools, also re-add libstdc++ headers via -isystem
+        case "$target" in
+          g++|c++)
+            cxx_flag=-nostdinc++
+            for cxx_inc in "$gcc_root"/include/c++/*; do
+              [ -d "$cxx_inc" ] && gcc_cxx_inc="$cxx_inc" && break
+            done
+            for cxx_arch_inc in "$gcc_cxx_inc"/*-linux-gnu; do
+              [ -d "$cxx_arch_inc" ] && gcc_cxx_arch_inc="$cxx_arch_inc" && break
+            done
+            ;;
+          *) cxx_flag= ;;
+        esac
+        ldso=$(ls "$libc"/lib/ld-linux*.so.* 2>/dev/null | head -n1)
+        exec "$real" \
+          -nostdinc $cxx_flag \
+          ${gcc_inc:+-isystem "$gcc_inc"} \
+          ${gcc_inc_fixed:+-isystem "$gcc_inc_fixed"} \
+          ${gcc_cxx_inc:+-isystem "$gcc_cxx_inc"} \
+          ${gcc_cxx_arch_inc:+-isystem "$gcc_cxx_arch_inc"} \
+          -isystem "$libc/include" \
+          -L"$libc/lib" \
+          ${ldso:+-Wl,--dynamic-linker="$ldso"} \
+          -Wl,-rpath,"$libc/lib" \
+          "$@"
+        WRAPPER
+        chmod +x {{prefix}}/libexec/gcc-wrap.sh
+        cd {{prefix}}/bin
+        for tool in gcc g++ cpp c++ gfortran; do
+          [ -f "$tool" ] && [ ! -L "$tool" ] || continue
+          mv "$tool" ".${tool}-real"
+          ln -sf ../libexec/gcc-wrap.sh "$tool"
+        done
+      if: linux
+
   env:
     # Branch from the Darwin maintainer of GCC, with a few generic fixes and
     # Apple Silicon support, located at https://github.com/iains/gcc-12-branch
