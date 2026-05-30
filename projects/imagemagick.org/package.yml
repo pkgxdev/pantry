@@ -130,4 +130,15 @@ test:
   # at extconf.rb time even though ImageMagick's MagickCore.pc was
   # detected fine. Add `+gnu.org/gcc` to the pkgx invocation so the
   # rmagick extension link finds g++. See pkgxdev/pantry#4030.
-  - run: pkgx +ruby@3.2.2 +gnu.org/gcc gem install rmagick
+  - run: |
+      # Linux iter: `--no-document` silences gem install banner.
+      # Capture mkmf.log on failure so the real cause surfaces in CI
+      # output (rmagick's extconf hides it behind a stale generic
+      # "Could not create Makefile due to some reason" message).
+      pkgx +ruby@3.2.2 +gnu.org/gcc gem install --no-document rmagick && exit 0
+      echo "==== mkmf.log ===="
+      find /usr/local/lib/ruby/gems -name mkmf.log -path '*rmagick*' -exec sh -c 'echo "--- $1 ---"; cat "$1"' _ {} \;
+      find ~/.gem -name mkmf.log -path '*rmagick*' -exec sh -c 'echo "--- $1 ---"; cat "$1"' _ {} \; 2>/dev/null || true
+      echo "==== gem_make.out ===="
+      find /usr/local/lib/ruby/gems -name gem_make.out -path '*rmagick*' -exec sh -c 'echo "--- $1 ---"; cat "$1"' _ {} \;
+      exit 1
