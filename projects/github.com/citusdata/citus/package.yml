@@ -48,6 +48,13 @@ build:
     # at install time so extension files land in pantry's bottle, not
     # in the Postgres dependency's tree.
     - ./configure $ARGS
+    # The PostgreSQL bottle was built with macOS SDK 15.2, so
+    # `pg_config --cflags` injects `-isysroot .../MacOSX15.2.sdk`.
+    # Pantry's darwin runners ship a newer SDK only, so that path no
+    # longer exists and the compile dies looking for stdio.h / math.h.
+    # Strip the stale isysroot from Makefile.global; SDKROOT (set
+    # below) then drives the toolchain to the current SDK.
+    - test ! -f Makefile.global || sed -i.bak -E 's|-isysroot[[:space:]]+/Applications/Xcode[^[:space:]]*||g' Makefile.global
     - make --jobs {{ hw.concurrency }}
     - make install-all prefix={{prefix}}
   env:
