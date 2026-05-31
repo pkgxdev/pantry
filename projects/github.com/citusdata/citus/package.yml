@@ -60,12 +60,15 @@ build:
     - |
       PG_CONFIG="{{deps.postgresql.org.prefix}}/bin/pg_config"
       CPPFLAGS_PG=$("$PG_CONFIG" --cppflags)
+      LDFLAGS_PG=$("$PG_CONFIG" --ldflags)
       if [ "$(uname)" = "Darwin" ]; then
         SDK=$(xcrun --sdk macosx --show-sdk-path)
-        CPPFLAGS_PG=$(printf '%s' "$CPPFLAGS_PG" | sed -E "s|/Applications/Xcode[^[:space:]]*/SDKs/MacOSX[0-9.]+\.sdk|$SDK|g")
+        REWRITE="s|/Applications/Xcode[^[:space:]]*/SDKs/MacOSX[0-9.]+\\.sdk|$SDK|g"
+        CPPFLAGS_PG=$(printf '%s' "$CPPFLAGS_PG" | sed -E "$REWRITE")
+        LDFLAGS_PG=$(printf '%s' "$LDFLAGS_PG" | sed -E "$REWRITE")
       fi
-      make --jobs {{ hw.concurrency }} CPPFLAGS="$CPPFLAGS_PG"
-      make install-all prefix={{prefix}} CPPFLAGS="$CPPFLAGS_PG"
+      make --jobs {{ hw.concurrency }} CPPFLAGS="$CPPFLAGS_PG" LDFLAGS="$LDFLAGS_PG"
+      make install-all prefix={{prefix}} CPPFLAGS="$CPPFLAGS_PG" LDFLAGS="$LDFLAGS_PG"
   env:
     CC: clang
     ARGS:
