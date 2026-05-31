@@ -1,0 +1,59 @@
+# PyQt5 — Meta-package: pulls all PyQt5 sub-bindings together.
+#
+# Equivalent to homebrew's `pyqt@5` formula or apt's `python3-pyqt5`.
+# Per-binding sub-recipes (QtCore / QtGui / QtWidgets / etc.) live in
+# sibling directories so each binding gets its own CI job and its own
+# 6 h timeout — the monolithic recipe was being OOM-killed and then
+# GHA-cancelled at 1h33min.  See PR pkgxdev/pantry#13064.
+#
+# Top 300 holdout #591.
+
+distributable:
+  url: https://pypi.io/packages/source/P/PyQt5/PyQt5-{{ version.raw }}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://pypi.org/simple/pyqt5/
+  match: /PyQt5-\d+\.\d+\.\d+\.tar\.gz/
+  strip:
+    - /^PyQt5-/
+    - /\.tar\.gz/
+
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+  - darwin/x86-64
+  - darwin/aarch64
+
+dependencies:
+  riverbankcomputing.com/pyqt5/QtCore: '*'
+  riverbankcomputing.com/pyqt5/QtDBus: '*'
+  riverbankcomputing.com/pyqt5/QtNetwork: '*'
+  riverbankcomputing.com/pyqt5/QtSql: '*'
+  riverbankcomputing.com/pyqt5/QtTest: '*'
+  riverbankcomputing.com/pyqt5/QtXml: '*'
+  riverbankcomputing.com/pyqt5/QtGui: '*'
+  riverbankcomputing.com/pyqt5/QtSvg: '*'
+  riverbankcomputing.com/pyqt5/QtPrintSupport: '*'
+  riverbankcomputing.com/pyqt5/QtWidgets: '*'
+
+# Meta package: no build artifacts of its own — every sub-binding
+# carries its own .so into its own prefix and Python's pkgutil
+# extends `PyQt5/__path__` to merge them at import time.  We still
+# need a `build.script` because pkgx requires one; emit a marker file
+# so the package is non-empty and brewkit's bottling sees something.
+build:
+  script:
+    - run: |
+        mkdir -p "{{prefix}}/share/pyqt5"
+        echo "PyQt5 {{version}} (meta-package — see sub-bindings)" > "{{prefix}}/share/pyqt5/README"
+
+test:
+  dependencies:
+    python.org: ~3.11
+  script:
+    # Importing QtCore exercises the namespace-package overlay across
+    # at least one sub-binding prefix.  Each sub-binding has its own
+    # test pass; this test only checks that the meta successfully
+    # pulled them all into scope.
+    - python{{deps.python.org.version.marketing}} -c "from PyQt5 import QtCore; print(QtCore.QT_VERSION_STR)"
