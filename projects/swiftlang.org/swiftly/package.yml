@@ -1,0 +1,49 @@
+# swiftly — Swift toolchain version manager (analog of rustup, zigup).
+#
+# Apple-official tool from the Swift project. Written in Swift itself,
+# built from source via Swift Package Manager against pantry's
+# swift.org compiler. Complements (does not replace) pantry's existing
+# github.com/kylef/swiftenv (an older third-party shell-based manager).
+#
+# Upstream uses two parallel tag schemes: numeric 1.x.y for the
+# current swiftly binary, and `swiftly-install-N.M.P` for an older
+# installer-script lineage. We ignore the install-script tags.
+
+distributable:
+  url: https://github.com/swiftlang/swiftly/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: swiftlang/swiftly
+  ignore:
+    - /swiftly-install-/
+
+# Swift toolchain on Linux requires Ubuntu 22.04-class CI which pantry
+# doesn't currently provide (see pantry's projects/swift.org/package.yml
+# — linux platforms intentionally commented out). swiftly only ships
+# darwin while that constraint holds; revisit if pantry adds Ubuntu CI.
+platforms:
+  - darwin/x86-64
+  - darwin/aarch64
+
+build:
+  dependencies:
+    # Package.swift declares swift-tools-version:6.2; require it.
+    swift.org: '>=6.2'
+  script:
+    # Swift Package Manager fetches the swift-* dependencies declared
+    # in Package.swift (swift-argument-parser, async-http-client,
+    # swift-nio, etc.) over the network — pkgx build sandbox allows
+    # this. Use the build dir as a writable cache so it's hermetic.
+    - swift build
+        --configuration release
+        --build-path "$PWD/.swift-build"
+    - install -D -m755 .swift-build/release/swiftly "{{prefix}}/bin/swiftly"
+
+provides:
+  - bin/swiftly
+
+test:
+  # swiftly --version prints e.g. "1.1.1" on a single line.
+  - swiftly --version 2>&1 | grep -q "{{version}}"
+  - swiftly --help 2>&1 | head -3
