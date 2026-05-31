@@ -36,25 +36,46 @@ build:
   script:
     # Build just the git-gui and gitk subdirs — the main `git` binary
     # comes from git-scm.org which is a runtime dep.
+    #
+    # git-gui's Makefile installs into $(gitexecdir) (the wrapper) and
+    # $(sharedir)/git-gui/lib (Tcl sources). gitk-git installs the
+    # `gitk` wrapper into $(bindir) directly.
+    #
+    # TCLTK_PATH (path to wish) is baked into the generated wrapper
+    # scripts at `make` time — must be set for both subdirs.
     - run: |
         cd git-gui
-        make --jobs {{ hw.concurrency }} TCLTK_PATH={{deps.tcl-lang.org/tk.prefix}}/bin/wish
-        make install gg_install_dir={{prefix}}/libexec/git-core prefix={{prefix}}
+        make --jobs {{ hw.concurrency }} \
+          TCLTK_PATH={{deps.tcl-lang.org/tk.prefix}}/bin/wish
+        make install \
+          gitexecdir={{prefix}}/libexec/git-core \
+          sharedir={{prefix}}/share \
+          prefix={{prefix}} \
+          TCLTK_PATH={{deps.tcl-lang.org/tk.prefix}}/bin/wish
+
     - run: |
         cd gitk-git
-        make --jobs {{ hw.concurrency }}
-        make install gitexecdir={{prefix}}/libexec/git-core prefix={{prefix}}
+        make --jobs {{ hw.concurrency }} \
+          TCLTK_PATH={{deps.tcl-lang.org/tk.prefix}}/bin/wish \
+          TCL_PATH={{deps.tcl-lang.org.prefix}}/bin/tclsh
+        make install \
+          bindir={{prefix}}/bin \
+          sharedir={{prefix}}/share \
+          prefix={{prefix}} \
+          TCLTK_PATH={{deps.tcl-lang.org/tk.prefix}}/bin/wish \
+          TCL_PATH={{deps.tcl-lang.org.prefix}}/bin/tclsh
 
     - run: |
-        # symlink top-level wrappers so `git-gui` and `gitk` are on PATH
+        # git-gui installs as libexec/git-core/git-gui (so `git gui`
+        # dispatches to it); add a bin/ symlink so it's directly on
+        # PATH as well — matches debian's layout.
         mkdir -p {{prefix}}/bin
-        cd {{prefix}}/bin
-        ln -sf ../libexec/git-core/git-gui git-gui || true
-        ln -sf ../libexec/git-core/gitk gitk || true
+        ln -sf ../libexec/git-core/git-gui {{prefix}}/bin/git-gui
 
 test:
-  - test -f "{{prefix}}/libexec/git-core/git-gui"
-  - test -f "{{prefix}}/libexec/git-core/gitk"
+  - test -x "{{prefix}}/libexec/git-core/git-gui"
+  - test -x "{{prefix}}/bin/git-gui"
+  - test -x "{{prefix}}/bin/gitk"
 
 provides:
   - bin/git-gui
