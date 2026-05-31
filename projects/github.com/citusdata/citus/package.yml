@@ -93,7 +93,8 @@ build:
 
 test:
   script:
-    # Shared object lands in lib/postgresql when prefix lacks
-    # "postgres"/"pgsql" tokens (PGXS convention).
-    - test -f "{{prefix}}/lib/postgresql/citus.so" || test -f "{{prefix}}/lib/citus.so"
-    - test -f "{{prefix}}/share/postgresql/extension/citus.control" || test -f "{{prefix}}/share/extension/citus.control"
+    # PGXS installs the loadable module as citus.so on linux,
+    # citus.dylib on darwin, both under lib/postgresql when the
+    # prefix lacks "postgres"/"pgsql" tokens (PGXS convention).
+    - ls "{{prefix}}/lib/postgresql/citus.so" "{{prefix}}/lib/postgresql/citus.dylib" 2>/dev/null | grep -q .
+    - test -f "{{prefix}}/share/postgresql/extension/citus.control"
