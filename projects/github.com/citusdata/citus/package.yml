@@ -44,20 +44,34 @@ build:
       # that gcc rejects. Use the same clang to stay compatible.
       llvm.org: '*'
   script:
-    # PGXS uses pg_config to determine install dirs. Override `prefix`
-    # at install time so extension files land in pantry's bottle, not
-    # in the Postgres dependency's tree.
+    # On darwin, `pg_config --cflags` returns a stale -isysroot pointing
+    # at the macOS SDK PG was bottled against (e.g. MacOSX15.2.sdk), but
+    # the darwin runners only have the current Xcode SDK installed.
+    # Build a wrapper pg_config that rewrites the bad path to the current
+    # SDK, and point Citus's configure at it via PG_CONFIG. The wrapper
+    # is a no-op pass-through on linux.
+    - |
+      SDK_REWRITE=""
+      if [ "$(uname)" = "Darwin" ]; then
+        SDK=$(xcrun --sdk macosx --show-sdk-path)
+        SDK_REWRITE="| sed -E 's|/Applications/Xcode[^[:space:]]*/SDKs/MacOSX[0-9.]+\\.sdk|$SDK|g'"
+      fi
+      mkdir -p "$PWD/pgconfig-shim"
+      cat > "$PWD/pgconfig-shim/pg_config" <<EOF
+      #!/bin/sh
+      "{{deps.postgresql.org.prefix}}/bin/pg_config" "\$@" $SDK_REWRITE
+      EOF
+      chmod +x "$PWD/pgconfig-shim/pg_config"
+    # PGXS uses pg_config to determine install dirs. Override `prefix` at
+    # install time so extension files land in pantry's bottle, not in the
+    # Postgres dependency's tree.
     - ./configure $ARGS
-    # PGXS appends PG_CFLAGS *after* PG's own CFLAGS, so the fresh
-    # -isysroot wins over the stale one baked into pg_config on darwin
-    # (clang resolves multiple -isysroot left-to-right; last wins).
-    # Variable is empty (and harmless) on linux.
-    - make --jobs {{ hw.concurrency }} PG_CFLAGS="$PG_CFLAGS_EXTRA"
-    - make install-all prefix={{prefix}} PG_CFLAGS="$PG_CFLAGS_EXTRA"
+    - make --jobs {{ hw.concurrency }}
+    - make install-all prefix={{prefix}}
   env:
     CC: clang
     ARGS:
-      - PG_CONFIG={{deps.postgresql.org.prefix}}/bin/pg_config
+      - PG_CONFIG=$PWD/pgconfig-shim/pg_config
       - --prefix={{prefix}}
       - --with-libcurl
       - --with-lz4
@@ -65,15 +79,8 @@ build:
     darwin:
       # Brewkit's hermetic CPATH masks the Xcode SDK, so Xcode clang's
       # #include_next chain can't reach <stdio.h>, <inttypes.h>, etc.
-      # Point the toolchain at the active SDK explicitly. The PG bottle
-      # was also built with macOS SDK 15.2 and bakes that path into
-      # `pg_config --cflags` as `-isysroot .../MacOSX15.2.sdk`, but the
-      # darwin runners only carry a newer SDK now. Append a fresh
-      # -isysroot via PG_CFLAGS so clang sees both and uses the last
-      # one (clang's documented behaviour) — pointing at the SDK that
-      # actually exists.
+      # Point the toolchain at the active SDK explicitly.
       SDKROOT: $(xcrun --sdk macosx --show-sdk-path)
-      PG_CFLAGS_EXTRA: -isysroot $(xcrun --sdk macosx --show-sdk-path)
 
 # Citus ships no executables — it's a Postgres extension loaded inside
 # the server process. Bottle contents:
