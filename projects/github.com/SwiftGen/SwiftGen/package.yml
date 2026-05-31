@@ -1,25 +1,45 @@
+# SwiftGen — Swift code generator for project resources (assets, fonts,
+# Localizable.strings, storyboards, JSON, plists, etc.). Major analog of
+# pantry's github.com/mac-cain13/R.swift; ~9k-star, Apple-blessed project.
+#
+# Source build via Swift Package Manager (no vendoring). The executable
+# target has a `resources` declaration that produces a sibling
+# `SwiftGen_SwiftGenCLI.bundle` directory holding the Stencil templates.
+# Both artifacts must be installed together — SwiftPM's `Bundle.module`
+# loader looks for the bundle next to the binary at runtime. This matches
+# Homebrew's rake `cli:install` task (cp binary + cp -R bundle).
+
 distributable:
-  # FIXME: vendoring
-  #url: https://github.com/SwiftGen/SwiftGen/archive/refs/tags/{{version}}.tar.gz
-  #strip-components: 1
-  url: https://github.com/SwiftGen/SwiftGen/releases/download/{{version}}/swiftgen-{{version}}.zip
+  url: https://github.com/SwiftGen/SwiftGen/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
 
 versions:
-  github: SwiftGen/SwiftGen/releases/tags
+  github: SwiftGen/SwiftGen
 
+# Swift toolchain is darwin-only in pantry (see projects/swift.org).
 platforms:
   - darwin
 
 provides:
   - bin/swiftgen
 
-warnings:
-  - vendored
-
 build:
-  working-directory: ${{prefix}}/bin
-  script: cp -a "$SRCROOT"/bin/swiftgen "$SRCROOT"/bin/SwiftGen_SwiftGenCLI.bundle .
+  dependencies:
+    # Package.swift declares swift-tools-version:5.5; any pantry swift works.
+    swift.org: '*'
+  script:
+    - swift build
+        --configuration release
+        --disable-sandbox
+    # Install the executable and its sibling resource bundle (Stencil
+    # templates) into bin/. The binary resolves Bundle.module by looking
+    # next to itself, so the .bundle must live alongside swiftgen.
+    - install -D -m755 .build/release/swiftgen "{{prefix}}/bin/swiftgen"
+    - cp -R .build/release/SwiftGen_SwiftGenCLI.bundle "{{prefix}}/bin/"
 
 test:
-  script: |
-    [[ "$(swiftgen --version)" = "SwiftGen v{{version}}"* ]]
+  script:
+    # `swiftgen --version` prints e.g. "SwiftGen v6.6.3 (Stencil v0.15.1, ...)"
+    - swiftgen --version | grep -F "SwiftGen v{{version}}"
+    # Smoke-test the template-bundle wiring by listing bundled templates.
+    - swiftgen template list | grep -F "swift5"
