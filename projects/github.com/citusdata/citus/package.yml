@@ -48,11 +48,12 @@ build:
     # at install time so extension files land in pantry's bottle, not
     # in the Postgres dependency's tree.
     - ./configure $ARGS
-    # PG_CPPFLAGS is appended by PGXS after PG's own CPPFLAGS, so the
-    # fresh -isysroot wins over the stale one baked into pg_config on
-    # darwin. Empty (and harmless) on linux.
-    - make --jobs {{ hw.concurrency }} PG_CPPFLAGS="$PG_CPPFLAGS_EXTRA"
-    - make install-all prefix={{prefix}} PG_CPPFLAGS="$PG_CPPFLAGS_EXTRA"
+    # PGXS appends PG_CFLAGS *after* PG's own CFLAGS, so the fresh
+    # -isysroot wins over the stale one baked into pg_config on darwin
+    # (clang resolves multiple -isysroot left-to-right; last wins).
+    # Variable is empty (and harmless) on linux.
+    - make --jobs {{ hw.concurrency }} PG_CFLAGS="$PG_CFLAGS_EXTRA"
+    - make install-all prefix={{prefix}} PG_CFLAGS="$PG_CFLAGS_EXTRA"
   env:
     CC: clang
     ARGS:
@@ -68,11 +69,11 @@ build:
       # was also built with macOS SDK 15.2 and bakes that path into
       # `pg_config --cflags` as `-isysroot .../MacOSX15.2.sdk`, but the
       # darwin runners only carry a newer SDK now. Append a fresh
-      # -isysroot via PG_CPPFLAGS so clang sees both and uses the last
+      # -isysroot via PG_CFLAGS so clang sees both and uses the last
       # one (clang's documented behaviour) — pointing at the SDK that
       # actually exists.
       SDKROOT: $(xcrun --sdk macosx --show-sdk-path)
-      PG_CPPFLAGS_EXTRA: -isysroot $(xcrun --sdk macosx --show-sdk-path)
+      PG_CFLAGS_EXTRA: -isysroot $(xcrun --sdk macosx --show-sdk-path)
 
 # Citus ships no executables — it's a Postgres extension loaded inside
 # the server process. Bottle contents:
