@@ -90,10 +90,13 @@ build:
         # so set it there once before pip runs.
         if ! grep -q "confirm-license" "$SRCROOT/pyproject.toml"; then
           # Insert after the [tool.sip.project] header (it exists in
-          # PyQt5's pyproject.toml).
-          sed -i.bak '/^\[tool\.sip\.project\]$/a\
-confirm-license = true' "$SRCROOT/pyproject.toml"
-          rm -f "$SRCROOT/pyproject.toml.bak"
+          # PyQt5's pyproject.toml). Use awk rather than sed `a\`:
+          # the latter requires a literal newline in the script,
+          # which breaks YAML's `run: |` block-scalar indentation
+          # rules (the appended content has to start at column 0,
+          # but that's less indentation than the block baseline).
+          awk '/^\[tool\.sip\.project\]$/ { print; print "confirm-license = true"; next } { print }' "$SRCROOT/pyproject.toml" > "$SRCROOT/pyproject.toml.tmp"
+          mv "$SRCROOT/pyproject.toml.tmp" "$SRCROOT/pyproject.toml"
           echo "patched pyproject.toml with confirm-license = true"
         fi
 
