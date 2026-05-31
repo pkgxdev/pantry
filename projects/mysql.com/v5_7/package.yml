@@ -40,15 +40,26 @@ dependencies:
   zlib.net: ^1
   curl.se: '*'
   thrysoee.dk/editline: '*'
+  linux:
+    # Runtime libstdc++. gcc 8 produced older GLIBCXX_3.4.25-ish
+    # symver references which libstdcxx ^14 (forward-compatible) can
+    # resolve. Same lockstep rationale as the main mysql recipe
+    # (PR #13104) — pantry doesn't auto-propagate stdenv.cc.cc.lib
+    # the way nixpkgs does, so the runtime libstdc++ must be
+    # explicit.
+    gnu.org/gcc/libstdcxx: ^14
 
 build:
   dependencies:
     cmake.org: ^3
     gnu.org/bison: '*'
-    gnu.org/gcc/v8: '*'   # MySQL 5.7's vendored InnoDB uses unnamed
-                          # scoped enums + other pre-C++17 idioms that
-                          # gcc 12+ rejects. Use the dedicated gcc 8
-                          # recipe (companion PR).
+    linux:
+      # MySQL 5.7's vendored InnoDB uses unnamed scoped enums + other
+      # pre-C++17 idioms that gcc 12+ rejects. Use the dedicated gcc 8
+      # recipe (companion PR #13070). Linux only — homebrew's
+      # mysql@5.7 builds fine on darwin with the system clang (which
+      # is what pantry uses on darwin too), no gcc pin needed.
+      gnu.org/gcc/v8: '*'
   working-directory: build
   script:
     # 5.7's bundled boost has the old `cmake_minimum_required` which
@@ -72,7 +83,9 @@ build:
       - -DWITHOUT_ROCKSDB=1
       - -DWITHOUT_MROONGA=1
       - -DWITHOUT_SPIDER=1
-      - -DCMAKE_CXX_STANDARD=17
+      # Don't force CXX_STANDARD=17 — the whole point of pinning gcc 8
+      # is that 5.7's vendored sources are pre-C++17. Let the gcc 8
+      # default (gnu++14) apply, matching homebrew's mysql@5.7 build.
 
 provides:
   - bin/mysql
