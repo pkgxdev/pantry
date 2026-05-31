@@ -1,10 +1,12 @@
-# PyQt5 — Python bindings for Qt 5.
+# PyQt5 — Meta-package: pulls all PyQt5 sub-bindings together.
 #
-# Companion to pantry's qt.io (5.15.10) and riverbankcomputing.com/sip.
-# Installed as a python-venv with `pip install PyQt5` against the
-# pantry Qt5 + SIP build.
+# Equivalent to homebrew's `pyqt@5` formula or apt's `python3-pyqt5`.
+# Per-binding sub-recipes (QtCore / QtGui / QtWidgets / etc.) live in
+# sibling directories so each binding gets its own CI job and its own
+# 6 h timeout — the monolithic recipe was being OOM-killed and then
+# GHA-cancelled at 1h33min.  See PR pkgxdev/pantry#13064.
 #
-# Closes part of pkgxdev/pantry#99 (Top 300 holdout #591).
+# Top 300 holdout #591.
 
 distributable:
   url: https://pypi.io/packages/source/P/PyQt5/PyQt5-{{ version.raw }}.tar.gz
@@ -24,161 +26,34 @@ platforms:
   - darwin/aarch64
 
 dependencies:
-  python.org: ~3.11
-  qt.io: ^5
-  riverbankcomputing.com/sip: '*'
+  riverbankcomputing.com/pyqt5/QtCore: '={{version}}'
+  riverbankcomputing.com/pyqt5/QtDBus: '={{version}}'
+  riverbankcomputing.com/pyqt5/QtNetwork: '={{version}}'
+  riverbankcomputing.com/pyqt5/QtSql: '={{version}}'
+  riverbankcomputing.com/pyqt5/QtTest: '={{version}}'
+  riverbankcomputing.com/pyqt5/QtXml: '={{version}}'
+  riverbankcomputing.com/pyqt5/QtGui: '={{version}}'
+  riverbankcomputing.com/pyqt5/QtSvg: '={{version}}'
+  riverbankcomputing.com/pyqt5/QtPrintSupport: '={{version}}'
+  riverbankcomputing.com/pyqt5/QtWidgets: '={{version}}'
 
-runtime:
-  env:
-    PYTHONPATH: '{{prefix}}/venv/lib/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH'
-
+# Meta package: no build artifacts of its own — every sub-binding
+# carries its own .so into its own prefix and Python's pkgutil
+# extends `PyQt5/__path__` to merge them at import time.  We still
+# need a `build.script` because pkgx requires one; emit a marker file
+# so the package is non-empty and brewkit's bottling sees something.
 build:
-  dependencies:
-    riverbankcomputing.com/pyqt-builder: '*'
-    freedesktop.org/pkg-config: '*'
-    linux:
-      llvm.org: <17
-
   script:
-    # Per-binding split build (one Qt binding per pip-install pass).
-    #
-    # Why: PyQt5's monolithic `pip install .` was OOM-killed (exit 137)
-    # on the 7 GB GH-runner. Even `--config-settings=--jobs=1` wasn't
-    # enough — a SINGLE binding's final `ld` (especially QtWidgets at
-    # ~4-6 GB peak) blows past 7 GB. The only viable shape is to build
-    # each binding in its own subprocess so its working set is freed
-    # between bindings.
-    #
-    # sipbuild config_settings honoured here:
-    #   --enable=NAME       (sip)  -- only build this binding
-    #   --jobs=1            (pyqt-builder) -- inner make -j1
-    #   --confirm-license   (PyQt5 project.py) -- accept GPL
-    #
-    # Note: pyqt-builder's `--no-make` flag is restricted to the
-    # `build` tool (tools=['build']); pip's PEP 517 path calls the
-    # `wheel` tool, so --no-make can't be set via --config-settings.
-    # The split-pip approach achieves the same memory isolation by
-    # freeing each binding's intermediate state between subprocesses.
-    #
-    # Bindings are ordered lightest-first so a memory failure surfaces
-    # early. QtWidgets is last — if it OOMs, the eight before it are
-    # still importable (partial install rather than nothing).
     - run: |
-        PYVER={{deps.python.org.version.marketing}}
-        "{{deps.python.org.prefix}}/bin/python$PYVER" -m venv --copies "{{prefix}}/venv"
-        PYTHON="{{prefix}}/venv/bin/python"
-        SITE_PACKAGES="{{prefix}}/venv/lib/python$PYVER/site-packages"
-        "$PYTHON" -m pip install --upgrade pip wheel setuptools --quiet
-
-        # Memory discipline: drop debug info (-g0 saves ~30 % link
-        # RAM) and pin make to -j1 belt-and-braces.
-        export CXXFLAGS="${CXXFLAGS} -g0"
-        export CFLAGS="${CFLAGS} -g0"
-        export MAKEFLAGS="-j1"
-
-        STAGING="$(mktemp -d)"
-        # Trap to clean up staging on exit (any code path).
-        trap 'rm -rf "$STAGING"' EXIT
-
-        # Pre-accept the GPL license in pyproject.toml so sipbuild
-        # doesn't prompt. pip's --config-settings can't pass through
-        # the `--confirm-license` flag: pip insists on KEY=VAL form,
-        # but sipbuild's argparse declares the flag as store_true and
-        # rejects any value with
-        #   "argument --confirm-license: ignored explicit argument 'true'"
-        # The pyproject.toml route doesn't go through that argparse,
-        # so set it there once before pip runs.
-        if ! grep -q "confirm-license" "$SRCROOT/pyproject.toml"; then
-          # Insert after the [tool.sip.project] header (it exists in
-          # PyQt5's pyproject.toml). Use awk rather than sed `a\`:
-          # the latter requires a literal newline in the script,
-          # which breaks YAML's `run: |` block-scalar indentation
-          # rules (the appended content has to start at column 0,
-          # but that's less indentation than the block baseline).
-          awk '/^\[tool\.sip\.project\]$/ { print; print "confirm-license = true"; next } { print }' "$SRCROOT/pyproject.toml" > "$SRCROOT/pyproject.toml.tmp"
-          mv "$SRCROOT/pyproject.toml.tmp" "$SRCROOT/pyproject.toml"
-          echo "patched pyproject.toml with confirm-license = true"
-        fi
-
-        # Bindings to ship, in build order (lightest first).
-        BINDINGS="QtCore QtDBus QtNetwork QtSql QtSvg QtTest QtXml QtPrintSupport QtGui QtWidgets"
-
-        BUILT=""
-        FAILED=""
-        for binding in $BINDINGS; do
-            echo "::group::pyqt5 binding $binding"
-            mkdir -p "$STAGING/$binding"
-
-            # Note: --confirm-license is pre-applied via the
-            # pyproject.toml patch above (sed) — it can't be passed
-            # through pip's --config-settings because pip wants KEY=VAL
-            # and sipbuild's argparse rejects any value on store_true.
-            if "$PYTHON" -m pip install "$SRCROOT" \
-                --no-build-isolation \
-                --no-deps \
-                --force-reinstall \
-                --target="$STAGING/$binding" \
-                --config-settings=--enable="$binding" \
-                --config-settings=--jobs=1 \
-                --verbose
-            then
-                # Merge produced files into the venv's PyQt5 dir.
-                # `cp -R src/. dst/` performs a deep merge; wrapper
-                # modules from the first binding stay, the per-binding
-                # .so accumulates.
-                if [ -d "$STAGING/$binding/PyQt5" ]; then
-                    mkdir -p "$SITE_PACKAGES/PyQt5"
-                    cp -R "$STAGING/$binding/PyQt5/." "$SITE_PACKAGES/PyQt5/"
-                fi
-                # Copy any top-level dist-info from this pass once.
-                for di in "$STAGING/$binding"/PyQt5-*.dist-info; do
-                    if [ -d "$di" ] && [ ! -d "$SITE_PACKAGES/$(basename "$di")" ]; then
-                        cp -R "$di" "$SITE_PACKAGES/"
-                    fi
-                done
-                BUILT="$BUILT $binding"
-                echo "pyqt5: $binding built OK"
-            else
-                FAILED="$FAILED $binding"
-                echo "pyqt5: WARNING — $binding failed to build (likely OOM); continuing"
-            fi
-
-            # Free the per-binding staging dir to reclaim disk.
-            rm -rf "$STAGING/$binding"
-            echo "::endgroup::"
-        done
-
-        echo "pyqt5: built:$BUILT"
-        if [ -n "$FAILED" ]; then
-            echo "pyqt5: FAILED:$FAILED"
-        fi
-
-        # Smoke-test: at minimum QtCore must be importable.
-        "$PYTHON" -c "from PyQt5 import QtCore; print('PyQt5 QtCore', QtCore.QT_VERSION_STR)"
-
-    # Expose the python binary as a marker so provides: has something.
-    - run: |
-        mkdir -p {{prefix}}/bin
-        ln -sf ../venv/bin/python "{{prefix}}/bin/pyqt5-python"
+        mkdir -p "{{prefix}}/share/pyqt5"
+        echo "PyQt5 {{version}} (meta-package — see sub-bindings)" > "{{prefix}}/share/pyqt5/README"
 
 test:
+  dependencies:
+    python.org: ~3.11
   script:
-    - pyqt5-python -c "from PyQt5 import QtCore; print(QtCore.QT_VERSION_STR)"
-    # QtGui and QtWidgets may be absent if their link OOM'd on a
-    # 7 GB runner. Test them best-effort.
-    - |
-      pyqt5-python - <<'PY'
-      try:
-          from PyQt5 import QtGui  # noqa: F401
-          print("QtGui OK")
-      except ImportError as e:
-          print("QtGui MISSING:", e)
-      try:
-          from PyQt5 import QtWidgets  # noqa: F401
-          print("QtWidgets OK")
-      except ImportError as e:
-          print("QtWidgets MISSING:", e)
-      PY
-
-provides:
-  - bin/pyqt5-python
+    # Importing QtCore exercises the namespace-package overlay across
+    # at least one sub-binding prefix.  Each sub-binding has its own
+    # test pass; this test only checks that the meta successfully
+    # pulled them all into scope.
+    - python{{deps.python.org.version.marketing}} -c "from PyQt5 import QtCore; print(QtCore.QT_VERSION_STR)"

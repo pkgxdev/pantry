@@ -1,0 +1,80 @@
+# PyQt5.QtDBus — D-Bus binding for PyQt5.
+#
+# Part of the PyQt5 sub-binding split.  See parent meta package at
+# riverbankcomputing.com/pyqt5 for topology.  PyQt5 is a namespace
+# package (`pkgutil.extend_path`), so each sibling's `.so` lives
+# in its own prefix and Python merges them at import time via
+# the stacked PYTHONPATH.
+
+distributable:
+  url: https://pypi.io/packages/source/P/PyQt5/PyQt5-{{ version.raw }}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://pypi.org/simple/pyqt5/
+  match: /PyQt5-\d+\.\d+\.\d+\.tar\.gz/
+  strip:
+    - /^PyQt5-/
+    - /\.tar\.gz/
+
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+  - darwin/x86-64
+  - darwin/aarch64
+
+dependencies:
+  python.org: ~3.11
+  qt.io: ^5
+  riverbankcomputing.com/sip: '*'
+  riverbankcomputing.com/pyqt5/QtCore: '={{version}}'
+
+runtime:
+  env:
+    PYTHONPATH: '{{prefix}}/share/python/site-packages:$PYTHONPATH'
+
+build:
+  dependencies:
+    riverbankcomputing.com/pyqt-builder: '*'
+    freedesktop.org/pkg-config: '*'
+    linux:
+      llvm.org: <17
+
+  script:
+    - run: |
+        export CXXFLAGS="${CXXFLAGS} -g0"
+        export CFLAGS="${CFLAGS} -g0"
+        export MAKEFLAGS="-j1"
+
+        # Pre-accept the GPL license in pyproject.toml so sipbuild
+        # does not prompt.  awk (not sed) because sed's `a\` form
+        # needs a literal newline that breaks YAML's run-block
+        # indentation.
+        if ! grep -q "confirm-license" "$SRCROOT/pyproject.toml"; then
+          awk '/^\[tool\.sip\.project\]$/ { print; print "confirm-license = true"; next } { print }' "$SRCROOT/pyproject.toml" > "$SRCROOT/pyproject.toml.tmp"
+          mv "$SRCROOT/pyproject.toml.tmp" "$SRCROOT/pyproject.toml"
+        fi
+
+        PYVER={{deps.python.org.version.marketing}}
+        SITE_PACKAGES="{{prefix}}/share/python/site-packages"
+        mkdir -p "$SITE_PACKAGES"
+
+        # Use upstream python directly — no per-binding venv, each
+        # sub-package overlays via PYTHONPATH.
+        PYTHON="{{deps.python.org.prefix}}/bin/python$PYVER"
+
+        # Single binding, single pip pass.  --no-build-isolation so
+        # our CFLAGS reach the compiler.  --no-deps so pip does not
+        # try to fetch PyQt5-sip from PyPI (pantry's sip is in scope
+        # via runtime PYTHONPATH).
+        "$PYTHON" -m pip install --no-build-isolation --no-deps --force-reinstall \
+            --target="$SITE_PACKAGES" \
+            --config-settings=--enable=QtDBus \
+            --config-settings=--jobs=1 \
+            "$SRCROOT"
+
+test:
+  dependencies:
+    python.org: ~3.11
+  script:
+    - python{{deps.python.org.version.marketing}} -c "from PyQt5 import QtDBus"
