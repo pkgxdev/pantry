@@ -42,9 +42,13 @@ build:
       gnu.org/gcc: '*'
   script:
     # Upstream ships configure.ac only; run autoreconf to generate
-    # configure. The recipe also vendors gtest as a git submodule
-    # which isn't in the archive tarball, but the build only links
-    # gtest for unit tests (disabled by default in the install path).
+    # configure. Submodules (`gflags`, `gtest`) are NOT in the
+    # GitHub archive tarball — autoreconf's `aclocal` scans
+    # `gflags/m4` and bails with "no such file" without them.
+    # Create the empty directories so autoreconf proceeds; the
+    # actual gflags/gtest content is only needed for the test
+    # suite which we don't run.
+    - mkdir -p gflags/m4 gtest
     - autoreconf -fi
     - ./configure --prefix={{prefix}}
     - make --jobs {{ hw.concurrency }}
