@@ -1,0 +1,39 @@
+distributable:
+  url: https://github.com/goharbor/harbor-cli/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: goharbor/harbor-cli
+
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+  - darwin/x86-64
+  - darwin/aarch64
+
+provides:
+  - bin/harbor
+
+build:
+  dependencies:
+    go.dev: '*'
+  script: |
+    go mod download
+    mkdir -p "{{ prefix }}"/bin
+    go build -v -trimpath -ldflags="$LDFLAGS" -o "{{ prefix }}"/bin/harbor ./cmd/harbor
+  env:
+    GOPROXY: https://proxy.golang.org,direct
+    GOSUMDB: sum.golang.org
+    GO111MODULE: on
+    CGO_ENABLED: 0
+    LDFLAGS:
+      - -s
+      - -w
+      - -X github.com/goharbor/harbor-cli/cmd/harbor/internal/version.Version=v{{version}}
+    linux:
+      LDFLAGS:
+        - -buildmode=pie
+
+test:
+  script:
+    - harbor version | grep -F "v{{version}}"
