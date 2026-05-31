@@ -50,10 +50,22 @@ build:
     # Resolve & build. `--replace-scm-with-registry` honours the
     # registry-pinned Package.resolved (every pin is `kind: registry`,
     # served by registry.tuist.dev anonymously).
+    #
+    # IMPORTANT: swift build's `--product` flag is SINGULAR — repeating
+    # it with two values silently keeps only the LAST one. Previous
+    # iteration (commit 4c2dd83f) used `--product tuist --product
+    # ProjectDescription` and only ProjectDescription got built;
+    # tuist itself was skipped, causing `install: cannot stat
+    # .swift-build/release/tuist`. Two separate invocations is the
+    # idiomatic SwiftPM pattern.
     - run: |
         swift build \
-          --product tuist \
           --product ProjectDescription \
+          --configuration release \
+          --replace-scm-with-registry \
+          --build-path "$PWD/.swift-build"
+        swift build \
+          --product tuist \
           --configuration release \
           --replace-scm-with-registry \
           --build-path "$PWD/.swift-build"
