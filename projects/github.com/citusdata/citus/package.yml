@@ -38,27 +38,31 @@ build:
     gnu.org/make: '*'
     freedesktop.org/pkg-config: '*'
     linux:
-      gnu.org/gcc: '*'
+      # PostgreSQL bottle was built with clang, and Citus extensions
+      # inherit CFLAGS via `pg_config --cflags` — those carry
+      # clang-specific warnings (e.g. -Werror=unguarded-availability-new)
+      # that gcc rejects. Use the same clang to stay compatible.
+      llvm.org: '*'
   script:
     # PGXS uses pg_config to determine install dirs. Override `prefix`
     # at install time so extension files land in pantry's bottle, not
     # in the Postgres dependency's tree.
-    #
-    # Citus's configure inherits CC from `pg_config --cc`, which on the
-    # pantry postgresql.org bottle reports `clang`. The pantry linux
-    # toolchain ships gcc, not clang, so we pin CC=cc (gcc on linux,
-    # clang on darwin) to keep the build hermetic.
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }}
     - make install-all prefix={{prefix}}
   env:
+    CC: clang
     ARGS:
-      - CC=cc
       - PG_CONFIG={{deps.postgresql.org.prefix}}/bin/pg_config
       - --prefix={{prefix}}
       - --with-libcurl
       - --with-lz4
       - --with-zstd
+    darwin:
+      # Brewkit's hermetic CPATH masks the Xcode SDK, so Xcode clang's
+      # #include_next chain can't reach <stdio.h>, <inttypes.h>, etc.
+      # Point the toolchain at the active SDK explicitly.
+      SDKROOT: $(xcrun --sdk macosx --show-sdk-path)
 
 # Citus ships no executables — it's a Postgres extension loaded inside
 # the server process. Bottle contents:
