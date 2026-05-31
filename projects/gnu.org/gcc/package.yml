@@ -72,7 +72,7 @@ build:
         # Remove old frame registration symbols from darwin-unwind.ver (GCC 15+ doesn't provide these)
         - patch -p1 < props/remove-old-frame-symbols-darwin.patch
         - fi
-      if: ">=15.2"
+      if: "^14.2 || >=15.2"
       working-directory: ..
 
     # The spaces mess things up in the env key
@@ -140,6 +140,22 @@ build:
           done
         fi
       if: linux
+
+    # fixincludes can emit a malformed stdio.h against newer macOS SDKs,
+    # leaving FILE, fpos_t, and size_t undefined for downstream builds.
+    - run: |
+        for hdr in lib/gcc/*/*/include-fixed/stdio.h; do
+          test -f "$hdr" || continue
+          if grep -q 'extern FILE \*__stdinp' "$hdr" && ! grep -q '#include <_stdio.h>' "$hdr"; then
+            sed -i -f $PROP "$hdr"
+          fi
+        done
+      prop: |
+        /#define .*STDIO/a\
+        #include <stddef.h>\
+        #include <_stdio.h>
+      if: darwin
+      working-directory: ${{prefix}}
 
     # Since we depend on ourselves, this symlink might already exist
     - run: test -f gc++ || ln -sf c++ gc++
