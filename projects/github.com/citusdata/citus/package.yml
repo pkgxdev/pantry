@@ -1,0 +1,70 @@
+# Citus — horizontally-scalable PostgreSQL extension.
+#
+# Citus extends Postgres into a distributed SQL database by sharding
+# tables across worker nodes. It's a drop-in extension: same Postgres,
+# same SQL, just transparently parallelised across a cluster. Common
+# alternative to CockroachDB / Yugabyte for users who want to stay on
+# vanilla Postgres semantics.
+#
+# Build: PGXS-based extension. Installs no CLI tools — the artefacts
+# are a shared library (citus.so) plus extension control/SQL files,
+# loaded inside Postgres via `CREATE EXTENSION citus` after adding it
+# to shared_preload_libraries.
+#
+# PostgreSQL compatibility (Citus 14.x): PG 16, 17, 18.
+
+distributable:
+  url: https://github.com/citusdata/citus/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: citusdata/citus
+
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+  - darwin/x86-64
+  - darwin/aarch64
+
+dependencies:
+  postgresql.org: '>=16<19'
+  curl.se: '*'           # anonymous statistics collection
+  lz4.org: '*'           # column compression
+  facebook.com/zstd: '*' # column compression
+  openssl.org: '*'       # transitively via libpq / PG
+
+build:
+  dependencies:
+    gnu.org/make: '*'
+    freedesktop.org/pkg-config: '*'
+    linux:
+      gnu.org/gcc: '*'
+  script:
+    # PGXS uses pg_config to determine install dirs. Override `prefix`
+    # at install time so extension files land in pantry's bottle, not
+    # in the Postgres dependency's tree.
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install-all prefix={{prefix}}
+  env:
+    ARGS:
+      - PG_CONFIG={{deps.postgresql.org.prefix}}/bin/pg_config
+      - --prefix={{prefix}}
+      - --with-libcurl
+      - --with-lz4
+      - --with-zstd
+
+# Citus ships no executables — it's a Postgres extension loaded inside
+# the server process. Bottle contents:
+#   {{prefix}}/lib/postgresql/citus.so
+#   {{prefix}}/share/postgresql/extension/citus.control
+#   {{prefix}}/share/postgresql/extension/citus--*.sql
+# `provides:` validates bin/sbin paths, so omit the key entirely
+# (cf. zlib.net, which is also library-only).
+
+test:
+  script:
+    # Shared object lands in lib/postgresql when prefix lacks
+    # "postgres"/"pgsql" tokens (PGXS convention).
+    - test -f "{{prefix}}/lib/postgresql/citus.so" || test -f "{{prefix}}/lib/citus.so"
+    - test -f "{{prefix}}/share/postgresql/extension/citus.control" || test -f "{{prefix}}/share/extension/citus.control"
