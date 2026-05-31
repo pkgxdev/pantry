@@ -14,12 +14,16 @@ distributable:
   strip-components: 1
 
 versions:
-  github: google/open-vcdiff
+  # Upstream publishes git tags but ZERO GitHub Releases. Default
+  # `github: <repo>` mode queries /releases and returns empty
+  # (hence `not-found: version` on first CI runs). Force /tags.
+  github: google/open-vcdiff/tags
   # Tag scheme changed: older releases used `open-vcdiff-X.Y` (dashes),
-  # recent ones use `openvcdiff-X.Y.Z` (no dash). Single combined regex
-  # handles both; previous list-form was rejected by libpkgx in github
-  # mode (`not-found: version` on first CI run).
+  # recent ones use `openvcdiff-X.Y.Z` (no dash). Single combined regex.
   strip: /^open-?vcdiff-/
+  # First tag `open-vcdiff-0.8` is 2-part — invalid strict semver.
+  ignore:
+    - /^open-vcdiff-0\.8$/
 
 platforms:
   - linux/x86-64
