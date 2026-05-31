@@ -1,0 +1,32 @@
+distributable:
+  url: https://github.com/open-policy-agent/gatekeeper/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: open-policy-agent/gatekeeper
+
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+  - darwin/x86-64
+  - darwin/aarch64
+
+build:
+  dependencies:
+    go.dev: '*'
+  script:
+    - go build -trimpath -ldflags="$GO_LDFLAGS" -o "{{prefix}}/bin/gator" ./cmd/gator
+  env:
+    GO_LDFLAGS:
+      - -s
+      - -w
+      - -X github.com/open-policy-agent/gatekeeper/v3/pkg/version.Version=v{{version}}
+
+provides:
+  - bin/gator
+
+test:
+  dependencies:
+    gnu.org/grep: '*'
+  script:
+    - gator --version 2>&1 | grep -q "{{version}}"
