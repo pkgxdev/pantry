@@ -43,11 +43,17 @@ build:
     # PGXS uses pg_config to determine install dirs. Override `prefix`
     # at install time so extension files land in pantry's bottle, not
     # in the Postgres dependency's tree.
+    #
+    # Citus's configure inherits CC from `pg_config --cc`, which on the
+    # pantry postgresql.org bottle reports `clang`. The pantry linux
+    # toolchain ships gcc, not clang, so we pin CC=cc (gcc on linux,
+    # clang on darwin) to keep the build hermetic.
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }}
     - make install-all prefix={{prefix}}
   env:
     ARGS:
+      - CC=cc
       - PG_CONFIG={{deps.postgresql.org.prefix}}/bin/pg_config
       - --prefix={{prefix}}
       - --with-libcurl
