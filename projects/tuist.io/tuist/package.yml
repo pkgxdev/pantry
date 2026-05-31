@@ -41,8 +41,11 @@ build:
   script:
     # Bake the recipe version into Constants.swift (upstream does the
     # same sed in its release workflow; the tarball string is stale).
-    - sed -i.bak -E 's/(@TaskLocal public static var version: String! = ")[^"]+(")/\1{{version}}\2/' cli/Sources/TuistConstants/Constants.swift
-    - rm cli/Sources/TuistConstants/Constants.swift.bak
+    # Wrapped in `run: |` because the sed pattern contains `: ` which
+    # YAML otherwise mis-parses as a mapping key/value separator.
+    - run: |
+        sed -i.bak -E 's/(@TaskLocal public static var version: String! = ")[^"]+(")/\1{{version}}\2/' cli/Sources/TuistConstants/Constants.swift
+        rm cli/Sources/TuistConstants/Constants.swift.bak
 
     # Resolve & build. `--replace-scm-with-registry` honours the
     # registry-pinned Package.resolved (every pin is `kind: registry`,
