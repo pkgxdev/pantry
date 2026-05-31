@@ -31,4 +31,10 @@ test:
   # (`-buildmode=pie` affects how Go's debug.ReadBuildInfo
   # interleaves with ldflag values on linux). `--help` always
   # exercises argv parsing and confirms the binary loads cleanly.
-  - gator --help 2>&1 | grep -iq gator
+  # Capture into a variable: piping `gator --help` directly into
+  # `grep -q` triggers SIGPIPE (exit 141) because grep short-circuits
+  # on first match and gator's stdout closes mid-flush — pipefail
+  # then propagates the SIGPIPE.
+  - run: |
+      out=$(gator --help 2>&1 || true)
+      echo "$out" | grep -iq gator
