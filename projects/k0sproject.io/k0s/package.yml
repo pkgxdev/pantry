@@ -4,6 +4,13 @@ distributable:
 
 versions:
   github: k0sproject/k0s
+  # Upstream tags use SemVer build-metadata: `v1.35.4+k0s.0`. libpkgx's
+  # version parser rejects build-metadata (`not-found: version` in
+  # CI run 26721224126). Strip the `+k0s.N` suffix so the version
+  # parses as plain `1.35.4`; the URL still uses {{version.tag}}
+  # which retains the original raw tag.
+  strip:
+    - /\+k0s\.\d+$/
   ignore:
     - /-(rc|alpha|beta)/
 
