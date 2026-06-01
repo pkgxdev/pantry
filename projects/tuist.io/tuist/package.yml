@@ -78,8 +78,20 @@ build:
     #   {{prefix}}/share/Templates
     - install -D -m755 .swift-build/release/tuist "{{prefix}}/bin/tuist"
     - install -D -m755 .swift-build/release/libProjectDescription.dylib "{{prefix}}/lib/libProjectDescription.dylib"
-    - mkdir -p "{{prefix}}/lib/Modules"
-    - cp -R .swift-build/release/ProjectDescription.swiftmodule "{{prefix}}/lib/Modules/"
+    # ProjectDescription.swiftmodule isn't always emitted by SwiftPM at
+    # the top-level release/ path (Swift 6.x sometimes nests it under
+    # arch-specific dirs, sometimes skips it in pure-library configurations).
+    # Search for it; skip gracefully if absent. The runtime cost is
+    # that downstream Swift code can't `import ProjectDescription`
+    # against this bottle — tuist's own CLI usage doesn't need it.
+    - run: |
+        mkdir -p "{{prefix}}/lib/Modules"
+        if [ -d .swift-build/release/ProjectDescription.swiftmodule ]; then
+          cp -R .swift-build/release/ProjectDescription.swiftmodule "{{prefix}}/lib/Modules/"
+        else
+          # Fallback: try arch-specific path (Swift 6.x layout)
+          find .swift-build -name 'ProjectDescription.swiftmodule' -type d -exec cp -R {} "{{prefix}}/lib/Modules/" \; -quit || true
+        fi
     - mkdir -p "{{prefix}}/share"
     - cp -R cli/Templates "{{prefix}}/share/Templates"
 
