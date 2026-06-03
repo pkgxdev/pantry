@@ -90,6 +90,7 @@ test:
     google.com/googletest: "*"
     cmake.org: "*"
     gnu.org/gawk: "*"
+    gnu.org/sed: "*"
     npmjs.com: "*"
     curl.se: "*"
     linux:
@@ -131,6 +132,13 @@ test:
         )
         target_link_libraries(echo mvfst::mvfst mvfst::mvfst_server_server mvfst::mvfst_fizz_client_handshake ${GFLAGS_LIBRARIES} fizz::fizz_test_support GTest::gmock)
         target_include_directories(echo PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+    # reorg in 2026.6.1
+    - run: sed -i -f $FIXTURE CMakeLists.txt
+      fixture: |
+        /TestPacketBuilders.cpp/a\
+          quic/common/test/TestTransportUtils.cpp
+      if: ">=2026.6.1"
 
     - cmake .
     - cmake --build .
