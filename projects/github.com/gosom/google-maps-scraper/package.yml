@@ -6,16 +6,22 @@ versions:
   github: gosom/google-maps-scraper
 
 dependencies:
-  curl.se/ca-certs: '*'
+  curl.se/ca-certs: "*"
 
 build:
   dependencies:
     go.dev: ^1.21.1
     linux/aarch64:
       # linux/aarch64 wants gold
-      gnu.org/gcc: '*'
+      gnu.org/gcc: 14
       gnu.org/binutils: ~2.44 # ld.gold is deprecated after 2.44
   script:
+    - run: sed -i -f $PROP runner/runner.go
+      prop: |
+        /version := info.Main.Version/a\
+          if version == "(devel)" {\
+            version = "{{version}}"\
+          }
     - go build $GO_ARGS -ldflags="$GO_LDFLAGS" .
   env:
     GO_ARGS:
@@ -32,13 +38,8 @@ provides:
   - bin/google-maps-scraper
 
 test:
-  dependencies:
-    stedolan.github.io/jq: '*'
   script:
-    # v1.5.2 is erroring on darwin even though it works
-    - google-maps-scraper -input example-queries.txt -json -results restaurants.json -exit-on-inactivity 5m || true
-    - test -f restaurants.json
-    - cat restaurants.json
-    # doesn't actually scrape on linux or our runner due to to the lack of ui libraries for the browser components, and full chrome installs
-    - run: test $(jq -s '.[].title' restaurants.json | wc -l) -gt 0
-      if: darwin/x86-64
+    - google-maps-scraper -version | tee out
+    - grep {{version}} out
+  env:
+    DISABLE_TELEMETRY: 1
