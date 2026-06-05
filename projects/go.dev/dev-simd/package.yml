@@ -47,11 +47,12 @@ build:
     # Map this version -> the dev.simd commit it pins, and fetch that exact
     # source. GitHub mirrors go.googlesource.com/go; the archive needs the full
     # 40-char SHA.
-    - run: curl -Lf "https://github.com/golang/go/archive/${SHA}.tar.gz" | tar xz --strip-components=1
+    - run:
+        - curl -Lf "https://github.com/golang/go/archive/${SHA}.tar.gz" | tar xz --strip-components=1
         # No .git in the archive and dev.simd has no VERSION file, so cmd/dist
         # can't derive a version; synthesize one (functional toolchain; the
         # pinned commit above is the real identity of the snapshot).
-    - run: test -f VERSION || echo "$GOVER" > VERSION
+        - test -f VERSION || echo "$GOVER" > VERSION
       working-directory: $SRCROOT
 
     - ./make.bash
