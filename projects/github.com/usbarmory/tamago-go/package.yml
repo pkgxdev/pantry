@@ -1,0 +1,52 @@
+display-name: TamaGo (bare-metal Go toolchain)
+
+# usbarmory/tamago-go — a minimally-patched Go distribution that adds GOOS=tamago
+# (bare metal, no OS) on top of upstream Go. Used with the github.com/usbarmory/tamago
+# framework to build cgo-free Go that runs on bare metal (amd64/arm/arm64/riscv64,
+# incl. UEFI and KVM microVMs). Tracks upstream Go releases (tag tamago-goX.Y.Z).
+distributable:
+  url: https://github.com/usbarmory/tamago-go/archive/refs/tags/tamago-go{{version.raw}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: usbarmory/tamago-go/tags
+  strip: /^tamago-go/
+
+# No `provides:`/`interprets:` on purpose: it ships bin/go like go.dev, so it must
+# not claim the bare `go`/`gofmt` commands. Use it explicitly:
+#   pkgx +github.com/usbarmory/tamago-go -- env GOOS=tamago GOOSPKG=github.com/usbarmory/tamago go build ...
+
+dependencies:
+  openssl.org: 1  # ca-certificates
+
+build:
+  dependencies:
+    gnu.org/m4: 1
+    go.dev: '*'   # bootstrap toolchain
+  working-directory: src
+  skip: fix-patchelf
+  script:
+    - ./make.bash
+    - rm -f *.{bash,bat,rc} Make.dist
+    - run: find . -mindepth 1 -delete
+      working-directory: ${{ prefix }}
+    - run:
+        - cp -a api bin doc lib misc pkg src test "{{prefix}}"
+        - if test -f go.env; then cp go.env "{{prefix}}"; fi
+        - if test -f VERSION; then cp VERSION "{{prefix}}"; fi
+      working-directory: $SRCROOT
+  env:
+    GOCACHE: "$SRCROOT/.gocache"
+    GOROOT_FINAL: ${{ prefix }}
+    GOROOT_BOOTSTRAP: ${{ deps.go.dev.prefix }}
+
+test:
+  # the toolchain is a normal Go for the host (and adds GOOS=tamago)
+  - test "$({{prefix}}/bin/go version | grep -c tamago)" -ge 0
+  - run: test "Hello World" = "$({{prefix}}/bin/go run $FIXTURE)"
+    fixture: 
+      extname: go
+      content: |
+        package main
+        import "fmt"
+        func main() { fmt.Println("Hello World") }
