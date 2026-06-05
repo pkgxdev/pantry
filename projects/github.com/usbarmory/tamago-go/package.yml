@@ -30,10 +30,10 @@ build:
     - rm -f *.{bash,bat,rc} Make.dist
     - run: find . -mindepth 1 -delete
       working-directory: ${{ prefix }}
-    - run: |
-        cp -a api bin doc lib misc pkg src test "{{prefix}}"
-        if test -f go.env; then cp go.env "{{prefix}}"; fi
-        if test -f VERSION; then cp VERSION "{{prefix}}"; fi
+    - run:
+        - cp -a api bin doc lib misc pkg src test "{{prefix}}"
+        - if test -f go.env; then cp go.env "{{prefix}}"; fi
+        - if test -f VERSION; then cp VERSION "{{prefix}}"; fi
       working-directory: $SRCROOT
   env:
     GOCACHE: "$SRCROOT/.gocache"
@@ -41,12 +41,12 @@ build:
     GOROOT_BOOTSTRAP: ${{ deps.go.dev.prefix }}
 
 test:
-  script: |
-    # the toolchain is a normal Go for the host (and adds GOOS=tamago)
-    test "$({{prefix}}/bin/go version | grep -c tamago)" -ge 0
-    mv $FIXTURE $FIXTURE.go
-    test "Hello World" = "$({{prefix}}/bin/go run $FIXTURE.go)"
-  fixture: |
-    package main
-    import "fmt"
-    func main() { fmt.Println("Hello World") }
+  # the toolchain is a normal Go for the host (and adds GOOS=tamago)
+  - test "$({{prefix}}/bin/go version | grep -c tamago)" -ge 0
+  - run: test "Hello World" = "$({{prefix}}/bin/go run $FIXTURE)"
+    fixture: 
+      extname: go
+      content: |
+      package main
+      import "fmt"
+      func main() { fmt.Println("Hello World") }
