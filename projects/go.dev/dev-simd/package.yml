@@ -38,9 +38,6 @@ build:
   working-directory: src
   # will only segfault if updated with patchelf
   skip: fix-patchelf
-  env:
-    v2026.6.1.17.4.35: 0e5948dc597c831b0c235cc0b3d34fa7587ddd47
-    go2026.6.1.17.4.35: go1.27
   script:
     # Map this version -> the dev.simd commit it pins, and fetch that exact
     # source. GitHub mirrors go.googlesource.com/go; the archive needs the full
@@ -49,7 +46,7 @@ build:
         # No .git in the archive and dev.simd has no VERSION file, so cmd/dist
         # can't derive a version; synthesize one (functional toolchain; the
         # pinned commit above is the real identity of the snapshot).
-    - test -f VERSION || echo "$go{{version}}" > VERSION
+    - run: test -f VERSION || echo "$go{{version}}" > VERSION
       working-directory: $SRCROOT
 
     - ./make.bash
@@ -64,6 +61,8 @@ build:
         - if test -f VERSION; then cp VERSION "{{prefix}}"; fi
       working-directory: $SRCROOT
   env:
+    v2026.6.1.17.4.35: 0e5948dc597c831b0c235cc0b3d34fa7587ddd47
+    go2026.6.1.17.4.35: go1.27
     # `make.bash` complains about unset GOCACHE and HOME otherwise
     GOCACHE: "$SRCROOT/.gocache"
     GOROOT_FINAL: ${{ prefix }}
