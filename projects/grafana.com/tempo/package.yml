@@ -5,7 +5,7 @@
 # when running Grafana stack.
 
 distributable:
-  url: https://github.com/grafana/tempo/archive/refs/tags/v{{ version.raw }}.tar.gz
+  url: https://github.com/grafana/tempo/archive/refs/tags/{{ version.tag }}.tar.gz
   strip-components: 1
 
 versions:
@@ -15,34 +15,25 @@ versions:
     - /-rc/
     - /-beta/
 
-platforms:
-  - linux/x86-64
-  - linux/aarch64
-  - darwin/x86-64
-  - darwin/aarch64
-
 build:
   dependencies:
-    go.dev: '*'
-    gnu.org/coreutils: '*'
-
+    go.dev: "*"
+  env:
+    CGO_ENABLED: 0
+    GO_LDFLAGS:
+      - -s
+      - -w
+      - -X main.Version={{ version }}
   script:
-    - run: |
-        export CGO_ENABLED=0
-        LDFLAGS="-s -w -X github.com/grafana/tempo/pkg/util.Version=v{{ version.raw }}"
-        for cmd in tempo tempo-cli tempo-query tempo-vulture; do
-          if [ -d "cmd/$cmd" ]; then
-            go build -trimpath -ldflags "$LDFLAGS" -o "bin/$cmd" "./cmd/$cmd"
-          fi
-        done
-
-    - run: |
-        for bin in bin/*; do
-          install -Dm755 "$bin" "{{prefix}}/bin/$(basename "$bin")"
-        done
+    - mkdir -p {{prefix}}/bin
+    - for cmd in tempo tempo-cli tempo-query tempo-vulture; do
+    - if test ! -d "cmd/$cmd"; then continue; fi
+    - go build -trimpath -ldflags "$GO_LDFLAGS" -o "{{prefix}}/bin/$cmd" "./cmd/$cmd"
+    - done
 
 test:
-  - tempo --version 2>&1 | head -3
+  - tempo --version 2>&1 | tee out
+  - grep {{version}} out
 
 provides:
   - bin/tempo
