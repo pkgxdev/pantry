@@ -5,32 +5,28 @@
 # when single Prometheus runs out of room.
 
 distributable:
-  url: https://github.com/thanos-io/thanos/archive/refs/tags/v{{ version.raw }}.tar.gz
+  url: https://github.com/thanos-io/thanos/archive/refs/tags/{{ version.tag }}.tar.gz
   strip-components: 1
 
 versions:
   github: thanos-io/thanos
 
-platforms:
-  - linux/x86-64
-  - linux/aarch64
-  - darwin/x86-64
-  - darwin/aarch64
-
 build:
   dependencies:
-    go.dev: '*'
-    gnu.org/coreutils: '*'
-
+    go.dev: "*"
+  env:
+    CGO_ENABLED: 0
+    GO_LDFLAGS:
+      - -s
+      - -w
+      - -X github.com/prometheus/common/version.Version={{ version.tag }}
   script:
-    - run: |
-        export CGO_ENABLED=0
-        LDFLAGS="-s -w -X github.com/prometheus/common/version.Version=v{{ version.raw }}"
-        go build -trimpath -ldflags "$LDFLAGS" -o bin/thanos ./cmd/thanos
-    - install -Dm755 bin/thanos "{{prefix}}/bin/thanos"
+    - mkdir -p {{prefix}}/bin
+    - go build -trimpath -ldflags "$GO_LDFLAGS" -o {{prefix}}/bin/thanos ./cmd/thanos
 
 test:
-  - thanos --version 2>&1 | head -3
+  - thanos --version 2>&1 | tee out
+  - grep {{version.tag}} out
 
 provides:
   - bin/thanos
