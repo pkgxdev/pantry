@@ -34,8 +34,9 @@ test:
   - NODE_VERSION=pkgx nvm-exec || echo $? | grep 127
 
   - mkdir -p "$NVM_DIR/versions/node/v99.0.0/bin"
-  - run: install -Dm755 $FIXTURE "$NVM_DIR/versions/node/v99.0.0/bin/node"
+  - run: install -m755 $FIXTURE "$NVM_DIR/versions/node/v99.0.0/bin/node"
     fixture: |
       #!/bin/sh
       echo "v99.0.0"
-  - NODE_VERSION=v99.0.0 nvm-exec node -v | grep v99.0.0
+  - NODE_VERSION=v99.0.0 nvm-exec node -v | tee out
+  - grep v99.0.0 out
