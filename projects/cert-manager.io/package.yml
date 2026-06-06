@@ -30,12 +30,13 @@ build:
     # go.mod. So we cd into each cmd dir + go build there.
     - mkdir -p {{prefix}}/bin
     - for cmd in controller webhook cainjector acmesolver startupapicheck; do
-    -   if [ ! -d "cmd/$cmd" ]; then continue; fi
-    -   go build -trimpath -ldflags "$GO_LDFLAGS" -o "{{prefix}}/bin/cert-manager-$cmd" ./cmd/$cmd
+    - if [ ! -d "cmd/$cmd" ]; then continue; fi
+    - run: go build -trimpath -ldflags "$GO_LDFLAGS" -o "{{prefix}}/bin/cert-manager-$cmd" .
+      working-directory: cmd/$cmd
     - done
 
 test:
-  - cert-manager-controller --version
+  - cert-manager-controller --help
 
 provides:
   - bin/cert-manager-controller   # main reconciler loop
