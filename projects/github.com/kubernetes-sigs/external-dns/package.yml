@@ -5,35 +5,29 @@
 # universally deployed alongside cert-manager in modern clusters.
 
 distributable:
-  url: https://github.com/kubernetes-sigs/external-dns/archive/refs/tags/v{{ version.raw }}.tar.gz
+  url: https://github.com/kubernetes-sigs/external-dns/archive/refs/tags/{{ version.tag }}.tar.gz
   strip-components: 1
 
 versions:
   github: kubernetes-sigs/external-dns
 
-platforms:
-  - linux/x86-64
-  - linux/aarch64
-  - darwin/x86-64
-  - darwin/aarch64
-
 build:
-  skip: fix-patchelf       # Go static binary, no .dynamic section
-
+  skip: fix-patchelf # Go static binary, no .dynamic section
   dependencies:
-    go.dev: '*'
-    gnu.org/coreutils: '*'
-
+    go.dev: "*"
+  env:
+    CGO_ENABLED: 0
+    GO_LDFLAGS:
+      - -s
+      - -w
+      - -X sigs.k8s.io/external-dns/pkg/apis/externaldns.Version={{ version.tag }}
   script:
-    - run: |
-        export CGO_ENABLED=0
-        LDFLAGS="-s -w -X sigs.k8s.io/external-dns/pkg/apis/externaldns.Version=v{{ version.raw }}"
-        go build -trimpath -ldflags "$LDFLAGS" -o bin/external-dns .
-
-    - install -Dm755 bin/external-dns "{{prefix}}/bin/external-dns"
+    - mkdir -p {{prefix}}/bin
+    - go build -trimpath -ldflags "$GO_LDFLAGS" -o {{prefix}}/bin/external-dns .
 
 test:
-  - external-dns --version 2>&1 | grep "{{version}}" || external-dns --help 2>&1 | head -3
+  - external-dns --version 2>&1 | tee out
+  - grep "{{version}}" out
 
 provides:
   - bin/external-dns
