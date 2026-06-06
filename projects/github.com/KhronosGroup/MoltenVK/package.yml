@@ -19,8 +19,8 @@ platforms:
 
 build:
   dependencies:
-    cmake.org: '*'
-    python.org: '*'      # external dep fetch scripts use python
+    cmake.org: "*"
+    python.org: "*" # external dep fetch scripts use python
   script:
     # MoltenVK fetches its own external deps (SPIRV-Cross, glslang,
     # cereal) via fetchDependencies. This is part of the upstream
@@ -33,5 +33,14 @@ build:
     - cp -R Package/Release/MoltenVK/include/* "{{prefix}}/include/"
 
 test:
-  - test -f "{{prefix}}/lib/libMoltenVK.dylib"
-  - test -f "{{prefix}}/include/MoltenVK/mvk_vulkan.h"
+  - run: cc $FIXTURE -o test -lMoltenVK
+    fixture:
+      extname: c
+      content: |
+        #include <stdio.h>
+        #include <MoltenVK/mvk_vulkan.h>
+
+        int main() {
+          printf("Hello, world!");
+        }
+  - test "$(./test)" = "Hello, world!"
