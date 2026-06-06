@@ -11,7 +11,7 @@
 # Closes part of pkgxdev/pantry#99 (Top 300 holdout #645).
 
 distributable:
-  url: https://www.vtk.org/files/release/{{ version.major }}.{{ version.minor }}/VTK-{{ version.raw }}.tar.gz
+  url: https://www.vtk.org/files/release/{{ version.marketing }}/VTK-{{ version.raw }}.tar.gz
   strip-components: 1
 
 versions:
@@ -29,24 +29,20 @@ platforms:
   # headers (system Python ships none in a discoverable place).
   # Restrict to linux until we can teach CMake to prefer pantry's
   # python3 + its headers on macOS.
-  - linux/x86-64
-  - linux/aarch64
+  - linux
 
 dependencies:
-  python.org: '~3.11'
-  zlib.net: '*'
-  libpng.org: '*'
-  libjpeg-turbo.org: '*'
-  simplesystems.org/libtiff: '*'
-  freetype.org: '*'
-  libgeos.org: '*'
+  python.org: "~3.11"
+  zlib.net: "*"
+  libpng.org: "*"
+  libjpeg-turbo.org: "*"
+  simplesystems.org/libtiff: "*"
+  freetype.org: "*"
+  libgeos.org: "*"
 
 build:
   dependencies:
     cmake.org: ^3
-    gnu.org/make: '*'
-    freedesktop.org/pkg-config: '*'
-
   working-directory: build
   script:
     - cmake .. $ARGS
@@ -81,4 +77,13 @@ provides:
   - bin/vtkpython
 
 test:
-  - test -f "{{prefix}}/lib/libvtkCommonCore-{{version.marketing}}.dylib" -o -f "{{prefix}}/lib/libvtkCommonCore-{{version.marketing}}.so"
+  - run: cc $FIXTURE -o test -lvtkCommonCore-{{version.marketing}}
+    fixture:
+      extname: c
+      content: |
+        #include <stdio.h>
+
+        int main() {
+          printf("Hello, world!");
+        }
+  - test "$(./test)" = "Hello, world!"
