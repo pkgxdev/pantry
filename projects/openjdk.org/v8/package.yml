@@ -1,0 +1,141 @@
+# OpenJDK 8 — legacy LTS.
+#
+# JDK 8 is still pinned by a large body of enterprise Java software
+# that hasn't migrated past Java 8 idioms (Hadoop ecosystem, older
+# Spark setups, Android SDK build toolchain).
+#
+# Self-bootstrap: builds JDK 8 from source using Temurin 8 as boot
+# JDK (JDK 8 can be built with any JDK 7 or JDK 8).
+#
+# The main openjdk.org recipe explicitly says `# TODO: add jdk8` —
+# this is the separate v8 recipe needed because JDK 8's configure
+# flags + repo layout differ enough from 11+ that mixing them would
+# clutter the main recipe.
+#
+# Closes part of pkgxdev/pantry#99 (Top 300 holdout #742).
+
+distributable:
+  url: https://github.com/openjdk/jdk8u/archive/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: openjdk/jdk8u/tags
+  # tags are like jdk8u502-b02. Parse: jdk8u{NNN}-b{MM} → 8.0.{NNN}.{MM}
+  transform: |
+    v => {
+      const m = v.match(/^jdk8u(\d+)-b(\d+)$/);
+      return m ? `8.0.${m[1]}.${m[2]}` : undefined;
+    }
+
+platforms:
+  # darwin Temurin tarball layout (Contents/Home/) defeats our
+  # --strip-components=4 path-flattening: configure still rejects
+  # the result as "not a valid Boot JDK". Needs darwin-specific
+  # extraction logic we haven't worked out yet; restrict to linux.
+  - linux
+
+dependencies:
+  freetype.org: '*'
+  freedesktop.org/fontconfig: '*'
+  linux:
+    alsa-project.org/alsa-lib: '*'
+    openprinting.github.io/cups: '*'    # JDK 8 configure requires cups headers
+    x.org/x11: '*'
+    x.org/exts: '*'
+    x.org/xrender: '*'
+    x.org/xt: '*'
+    x.org/xtst: '*'
+
+runtime:
+  env:
+    JAVA_HOME: '{{prefix}}'
+
+build:
+  dependencies:
+    gnu.org/autoconf: '*'
+    info-zip.org/unzip: '*'
+    info-zip.org/zip: '*'    # JDK 8 configure: "Could not find required tool for ZIP"
+    gnu.org/wget: '*'
+    darwinsys.com/file: '*'  # JDK 8 configure probes for `file(1)`
+    linux:
+      gnu.org/gcc: ^7   # JDK 8 requires GCC <= 8 or thereabouts
+  script:
+    # Fetch Temurin 8 as boot JDK. JDK 8 self-bootstraps from any 7+.
+    - run:
+        # Temurin tag is `jdk8u492-b09`; the tarball filename uses
+        # the stripped form `8u492b09` (no `jdk` prefix, no dash).
+        - BOOT_TAG=jdk8u492-b09
+        - BOOT_FILE=${BOOT_TAG#jdk}
+        - BOOT_FILE=${BOOT_FILE/-/}
+        - URL="https://github.com/adoptium/temurin8-binaries/releases/download/${BOOT_TAG}/OpenJDK8U-jdk_${ARCH}_${PLATFORM}_hotspot_${BOOT_FILE}.tar.gz"
+        - 'echo "fetching boot JDK from: $URL"'
+        # darwin tarballs nest the JDK under Contents/Home/; strip 4
+        # components to land bin/java at the same depth as linux
+        # (which is flat under jdk8u…). This way the literal path
+        # `$SRCROOT/boot-jdk` works as --with-boot-jdk on both OSes.
+        - wget -q "$URL" -O - | tar xz -C . --strip-components=$STRIP_COMPONENTS
+      working-directory: boot-jdk
+
+    - bash configure $ARGS
+    - make images $MAKE_ARGS
+
+    - mkdir -p {{prefix}}
+    - mv $JDK_DIR {{prefix}}/
+  env:
+    MAKE_ARGS: 'JOBS={{ hw.concurrency }}'
+    darwin:
+      BOOT_JDK_DIR: $SRCROOT/boot-jdk/Contents/Home
+      JDK_DIR: build/*/images/j2sdk-bundle/jdk1.8.0_*.jdk/Contents/Home/*
+      PLATFORM: mac
+      STRIP_COMPONENTS: 4
+    linux:
+      BOOT_JDK_DIR: $SRCROOT/boot-jdk
+      JDK_DIR: build/*/images/j2sdk-image/*
+      PLATFORM: linux
+      STRIP_COMPONENTS: 1
+    x86-64:
+      ARCH: x64
+    aarch64:
+      ARCH: aarch64
+    ARGS:
+      # JDK 8 configure has fewer flags than 11+. Notably:
+      #   --disable-warnings-as-errors  → unrecognized
+      #   --with-jvm-variants=server    → unrecognized (default is server)
+      #   --with-native-debug-symbols   → unrecognized
+      # Pass only what JDK 8 understands.
+      - --prefix={{ prefix }}
+      # The boot-jdk fetch step strips Contents/Home/ on darwin so
+      # bin/java lives at $SRCROOT/boot-jdk/bin/java on every OS.
+      - --with-boot-jdk=$SRCROOT/boot-jdk
+      - --with-debug-level=release
+      - --with-target-bits=64
+      - --with-freetype=system
+      - --with-zlib=system
+      - --enable-unlimited-crypto
+
+provides:
+  - bin/java
+  - bin/javac
+  - bin/javadoc
+  - bin/javah        # JDK 8 only — removed in 11
+  - bin/javap
+  - bin/jar
+  - bin/jarsigner
+  - bin/jdb
+  - bin/jdeps
+  - bin/jhat         # JDK 8 only
+  - bin/jjs          # JDK 8 only (Nashorn — removed in 15)
+  - bin/jmap
+  - bin/jstack
+  - bin/jstat
+  - bin/jstatd
+  - bin/keytool
+  - bin/policytool   # JDK 8 only
+  - bin/rmic         # JDK 8 only
+  - bin/rmid
+  - bin/rmiregistry
+  - bin/serialver
+
+test:
+  - java -version 2>&1 | tee out
+  - grep -F "1.8.0" out
