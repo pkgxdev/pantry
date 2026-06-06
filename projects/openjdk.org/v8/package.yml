@@ -32,8 +32,7 @@ platforms:
   # --strip-components=4 path-flattening: configure still rejects
   # the result as "not a valid Boot JDK". Needs darwin-specific
   # extraction logic we haven't worked out yet; restrict to linux.
-  - linux/x86-64
-  - linux/aarch64
+  - linux
 
 dependencies:
   freetype.org: '*'
@@ -53,59 +52,51 @@ runtime:
 
 build:
   dependencies:
-    gnu.org/make: '*'
     gnu.org/autoconf: '*'
     info-zip.org/unzip: '*'
     info-zip.org/zip: '*'    # JDK 8 configure: "Could not find required tool for ZIP"
     gnu.org/wget: '*'
     darwinsys.com/file: '*'  # JDK 8 configure probes for `file(1)`
-    freedesktop.org/pkg-config: '*'
     linux:
       gnu.org/gcc: ^7   # JDK 8 requires GCC <= 8 or thereabouts
-
   script:
     # Fetch Temurin 8 as boot JDK. JDK 8 self-bootstraps from any 7+.
-    - run: |
-        case "{{hw.platform}}-{{hw.arch}}" in
-          linux-x86-64)   ARCH=x64_linux ;;
-          linux-aarch64)  ARCH=aarch64_linux ;;
-          darwin-x86-64)  ARCH=x64_mac ;;
-          darwin-aarch64) ARCH=aarch64_mac ;;
-        esac
+    - run:
         # Temurin tag is `jdk8u492-b09`; the tarball filename uses
         # the stripped form `8u492b09` (no `jdk` prefix, no dash).
-        BOOT_TAG=jdk8u492-b09
-        BOOT_FILE=${BOOT_TAG#jdk}
-        BOOT_FILE=${BOOT_FILE/-/}
-        URL="https://github.com/adoptium/temurin8-binaries/releases/download/${BOOT_TAG}/OpenJDK8U-jdk_${ARCH}_hotspot_${BOOT_FILE}.tar.gz"
-        echo "fetching boot JDK from: $URL"
+        - BOOT_TAG=jdk8u492-b09
+        - BOOT_FILE=${BOOT_TAG#jdk}
+        - BOOT_FILE=${BOOT_FILE/-/}
+        - URL="https://github.com/adoptium/temurin8-binaries/releases/download/${BOOT_TAG}/OpenJDK8U-jdk_${ARCH}_${PLATFORM}_hotspot_${BOOT_FILE}.tar.gz"
+        - 'echo "fetching boot JDK from: $URL"'
         # darwin tarballs nest the JDK under Contents/Home/; strip 4
         # components to land bin/java at the same depth as linux
         # (which is flat under jdk8u…). This way the literal path
         # `$SRCROOT/boot-jdk` works as --with-boot-jdk on both OSes.
-        case "{{hw.platform}}" in
-          darwin) STRIP=4 ;;
-          *)      STRIP=1 ;;
-        esac
-        wget -q "$URL" -O - | tar xz -C . --strip-components=$STRIP
+        - wget -q "$URL" -O - | tar xz -C . --strip-components=$STRIP
       working-directory: boot-jdk
 
-    - run: |
-        bash configure $ARGS
-        make images $MAKE_ARGS
+    - bash configure $ARGS
+    - make images $MAKE_ARGS
 
     - mkdir -p {{prefix}}
     - mv $JDK_DIR {{prefix}}/
-
   env:
     MAKE_ARGS: 'JOBS={{ hw.concurrency }}'
     darwin:
       BOOT_JDK_DIR: $SRCROOT/boot-jdk/Contents/Home
       JDK_DIR: build/*/images/j2sdk-bundle/jdk1.8.0_*.jdk/Contents/Home/*
+      PLATFORM: mac
+      STRIP: 4
     linux:
       BOOT_JDK_DIR: $SRCROOT/boot-jdk
       JDK_DIR: build/*/images/j2sdk-image/*
-
+      PLATFORM: linux
+      STRIP: 1
+    x86-64:
+      ARCH: x64
+    aarch64:
+      ARCH: aarch64
     ARGS:
       # JDK 8 configure has fewer flags than 11+. Notably:
       #   --disable-warnings-as-errors  → unrecognized
@@ -146,4 +137,5 @@ provides:
   - bin/serialver
 
 test:
-  - java -version 2>&1 | grep "1\\.8\\.0"
+  - java -version 2>&1 | tee out
+  - grep -F "1.8.0" out
