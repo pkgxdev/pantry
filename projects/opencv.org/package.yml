@@ -10,18 +10,11 @@
 # Closes part of pkgxdev/pantry#99 (Top 300 holdout #743).
 
 distributable:
-  url: https://github.com/opencv/opencv/archive/refs/tags/{{ version.raw }}.tar.gz
+  url: https://github.com/opencv/opencv/archive/refs/tags/{{ version.tag }}.tar.gz
   strip-components: 1
 
 versions:
   github: opencv/opencv
-  match: /^\d+\.\d+\.\d+$/   # exclude alpha/beta tags
-
-platforms:
-  - linux/x86-64
-  - linux/aarch64
-  - darwin/x86-64
-  - darwin/aarch64
 
 dependencies:
   python.org: '~3.11'
@@ -36,9 +29,6 @@ dependencies:
 build:
   dependencies:
     cmake.org: ^3
-    gnu.org/make: '*'
-    freedesktop.org/pkg-config: '*'
-
   working-directory: build
   script:
     - cmake .. $ARGS
@@ -68,9 +58,14 @@ build:
       - -DWITH_WEBP=ON
       - -DWITH_OPENEXR=ON
 
-provides:
-  # Library-only — Python bindings landed at {{prefix}}/lib/python.../site-packages/cv2.so
-  []
-
 test:
-  - test -f "{{prefix}}/lib/libopencv_core.dylib" -o -f "{{prefix}}/lib/libopencv_core.so"
+  - run: cc $FIXTURE -o test -lopencv_core
+    fixture:
+      extname: c
+      content: |
+        #include <stdio.h>
+
+        int main() {
+          printf("Hello, world!");
+        }
+  - test "$(./test)" = "Hello, world!"
