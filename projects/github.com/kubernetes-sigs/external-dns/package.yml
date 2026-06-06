@@ -1,0 +1,33 @@
+# external-dns — DNS record sync from K8s resources.
+#
+# Configures Route 53 / Cloudflare / CoreDNS / etc. based on Ingress
+# and Service annotations. K8s SIG project — graduated incubator,
+# universally deployed alongside cert-manager in modern clusters.
+
+distributable:
+  url: https://github.com/kubernetes-sigs/external-dns/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: kubernetes-sigs/external-dns
+
+build:
+  skip: fix-patchelf # Go static binary, no .dynamic section
+  dependencies:
+    go.dev: "*"
+  env:
+    CGO_ENABLED: 0
+    GO_LDFLAGS:
+      - -s
+      - -w
+      - -X sigs.k8s.io/external-dns/pkg/apis/externaldns.Version={{ version.tag }}
+  script:
+    - mkdir -p {{prefix}}/bin
+    - go build -trimpath -ldflags "$GO_LDFLAGS" -o {{prefix}}/bin/external-dns .
+
+test:
+  - external-dns --version 2>&1 | tee out
+  - grep "{{version}}" out
+
+provides:
+  - bin/external-dns
