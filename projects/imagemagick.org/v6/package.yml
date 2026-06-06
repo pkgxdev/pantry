@@ -24,12 +24,6 @@ versions:
   # transform `-` to `.` so semver parses cleanly.
   transform: v => v.replace('-', '.')
 
-platforms:
-  - linux/x86-64
-  - linux/aarch64
-  - darwin/x86-64
-  - darwin/aarch64
-
 dependencies:
   libpng.org: '*'
   ijg.org: '*'
@@ -58,20 +52,15 @@ runtime:
 build:
   script:
     - sed -i -e 's|${PACKAGE_NAME}-${PACKAGE_BASE_VERSION}|${PACKAGE_NAME}|g' configure
-    - find . -type f -name '*-config.in' -exec sed -i'' -e 's|@PKG_CONFIG@|pkg-config|g' {} +
+    - find . -type f -name '*-config.in' -exec sed -i -e 's|@PKG_CONFIG@|pkg-config|g' {} +
 
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
 
-    - run: sed -i'' -e 's|^prefix=.*|prefix=${MAGICK_HOME}|g' Magick++-config MagickCore-config MagickWand-config
+    - run: sed -i -e 's|^prefix=.*|prefix=${MAGICK_HOME}|g' Magick++-config MagickCore-config MagickWand-config
       working-directory: ${{prefix}}/bin
 
   env:
-    LDFLAGS:
-      - -L{{deps.gnu.org/libtool.prefix}}/lib
-      - -L{{deps.liblqr.wikidot.com.prefix}}/lib
-      - -L{{deps.sourceware.org/bzip2.prefix}}/lib
-      - -L{{deps.ijg.org.prefix}}/lib
     ARGS:
       - --prefix={{ prefix }}
       - --libdir={{prefix}}/lib
