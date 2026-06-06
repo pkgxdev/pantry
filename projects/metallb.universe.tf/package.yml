@@ -5,7 +5,7 @@
 # for on-prem and home-lab K8s.
 
 distributable:
-  url: https://github.com/metallb/metallb/archive/refs/tags/v{{ version.raw }}.tar.gz
+  url: https://github.com/metallb/metallb/archive/refs/tags/{{ version.tag }}.tar.gz
   strip-components: 1
 
 versions:
@@ -17,33 +17,27 @@ versions:
     - /-rc\d+$/
 
 platforms:
-  - linux/x86-64
-  - linux/aarch64
+  - linux
 
 build:
   dependencies:
-    go.dev: '*'
-    gnu.org/coreutils: '*'
-
+    go.dev: "*"
+  env:
+    CGO_ENABLED: 0
+    GO_LDFLAGS:
+      - -s
+      - -w
+      - -X go.universe.tf/metallb/internal/version.gitVersion={{ version.tag }}
   script:
-    - run: |
-        export CGO_ENABLED=0
-        LDFLAGS="-s -w -X go.universe.tf/metallb/internal/version.gitVersion=v{{ version.raw }}"
-        for cmd in controller speaker; do
-          if [ -d "$cmd" ]; then
-            go build -trimpath -ldflags "$LDFLAGS" \
-              -o "bin/metallb-$cmd" "./$cmd"
-          fi
-        done
-
-    - run: |
-        for bin in bin/*; do
-          install -Dm755 "$bin" "{{prefix}}/bin/$(basename "$bin")"
-        done
+    - mkdir -p {{prefix}}/bin
+    - for cmd in controller speaker; do
+    - if test ! -d "$cmd"; then continue; fi
+    - go build -trimpath -ldflags "$GO_LDFLAGS" -o "{{prefix}}/bin/metallb-$cmd" "./$cmd"
+    - done
 
 test:
-  - test -x "{{prefix}}/bin/metallb-controller"
-  - test -x "{{prefix}}/bin/metallb-speaker"
+  - metallb-controller --help
+  - metallb-speaker --help
 
 provides:
   - bin/metallb-controller
