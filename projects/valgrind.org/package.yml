@@ -23,8 +23,7 @@ versions:
 # instrumentation unreliable, and the darwin runner failed here even
 # after a clean build. Skip darwin altogether.
 platforms:
-  - linux/x86-64
-  - linux/aarch64
+  - linux
 
 # valgrind bakes VALGRIND_LIB into the binary at configure time using
 # the +brewing prefix; after brewkit renames the install dir, the path
@@ -35,8 +34,6 @@ runtime:
 
 build:
   dependencies:
-    gnu.org/make: '*'
-    gnu.org/coreutils: '*'
     gnu.org/autoconf: '*'
     gnu.org/automake: '*'
     perl.org: '*'
@@ -63,4 +60,5 @@ provides:
   - bin/ms_print
 
 test:
-  - valgrind --version | grep "valgrind-{{version.raw}}"
+  - valgrind --version | tee out
+  - grep "valgrind-{{version.raw}}" out
