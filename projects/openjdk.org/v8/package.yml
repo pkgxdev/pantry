@@ -76,6 +76,12 @@ build:
         - wget -q "$URL" -O - | tar xz -C . --strip-components=$STRIP
       working-directory: boot-jdk
 
+    # JDK 8's static archive rule leaks linker suffix flags into `ar`.
+    # Modern GNU ar rejects flags like `-g`, so keep this rule to objects only.
+    - run: sed -i -f $PROP NativeCompilation.gmk
+      prop: s/ \$$(\$1_LDFLAGS_SUFFIX) \$$(\$1_EXTRA_LDFLAGS_SUFFIX)$//
+      working-directory: make/common
+
     - bash configure $ARGS
     - make images $MAKE_ARGS
 
