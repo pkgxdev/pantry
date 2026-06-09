@@ -64,6 +64,23 @@ build:
         /ChecksumDetail.h/a\
         #include <stdexcept>
 
+    - run:
+        # missing includes exposed by newer dependency/compiler combinations
+        - if ! grep -q '#include <cstring>' folly/lang/Exception.h; then
+        - sed -i -f $PROP folly/lang/Exception.h
+        - fi
+        # fmt/core.h -> fmt/format.h on newer compilers
+        - for f in $(grep -R -l 'fmt::format' folly); do
+        - if grep -q '#include <fmt/format\.h>' "$f"; then continue; fi
+        - |
+          sed -i -e '/#include <fmt\/core\.h>/a\
+          #include <fmt/format.h>' "$f"
+        - done
+      if: ">=2026.6.8"
+      prop: |
+        /#include <exception>/a\
+        #include <cstring>
+
     # folly/system/os/linux.cpp: missing openat2.h on darwin, incomplete struct open_how on older linux
     - sed -i '/linux\.cpp/d' folly/system/os/CMakeLists.txt
     - cmake $ARGS -DBUILD_SHARED_LIBS=ON -S . -B shared
