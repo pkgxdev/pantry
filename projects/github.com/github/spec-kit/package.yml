@@ -6,7 +6,7 @@ versions:
   github: github/spec-kit
 
 dependencies:
-  pkgx.sh: '>=1'
+  pkgx.sh: ">=1"
 
 build:
   dependencies:
@@ -17,7 +17,10 @@ build:
     - bkpyvenv seal {{prefix}} specify
 
 test:
-  - specify init test-project --ai copilot --script sh --ignore-agent-tools
+  - run: specify init test-project --ai copilot --script sh --ignore-agent-tools
+    if: <0.10
+  - run: specify init test-project --integration copilot --script sh --ignore-agent-tools
+    if: ">=0.10"
   - test -f test-project/.specify/memory/constitution.md
 
 provides:
