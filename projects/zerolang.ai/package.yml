@@ -72,6 +72,13 @@ test:
               check world.out.write("math works\n")
           }
       }
-  - zero check main.0
-  - zero run main.0 | tee out
+  - run:
+      - zero check main.0
+      - zero run main.0 | tee out
+    if: <0.3
+  - run:
+      - zero import main.0 --out main.graph
+      - zero check main.graph
+      - zero run main.graph | tee out
+    if: ">=0.3"
   - test "$(cat out)" = "math works"
