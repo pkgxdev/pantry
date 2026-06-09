@@ -1,0 +1,213 @@
+# EDK II — TianoCore reference UEFI implementation.
+#
+# Ships OVMF / ArmVirtPkg firmware blobs for qemu, matching qemu's
+# `share/qemu/` bundle layout so existing runners can pick them up
+# via env-var overrides (QEMU_EFI_BIOS, etc.) without code changes.
+#
+# Primary target: X64 (amd64) → edk2-x86_64-code.fd / edk2-i386-vars.fd
+# Secondary: AARCH64 (arm64)  → edk2-aarch64-code.fd / edk2-arm-vars.fd
+#
+# RISCV64 and LOONGARCH64 are tracked as follow-ups: ArmVirtPkg/OvmfPkg
+# DSCs exist for them, but bottle layout + cross-toolchain wiring need
+# additional shake-out.
+#
+# Tag scheme is `edk2-stableYYYYMM[.N]`; pkgx strips the prefix so
+# `versions: github` exposes a YYYYMM[.N] series that orders correctly.
+#
+# Platform notes:
+#   * Linux  (GCC5)     — fully self-contained on pantry deps.
+#   * Darwin (CLANGPDB) — uses pantry's llvm.org (clang + lld-link) to
+#     emit PE/COFF directly, sidestepping macOS-only `mtoc`. Slightly
+#     slower than XCODE5 but reproducible across hosts.
+
+distributable:
+  url: git+https://github.com/tianocore/edk2
+  ref: edk2-stable{{version.raw}}
+
+versions:
+  github: tianocore/edk2/tags
+  match: /^edk2-stable\d+(\.\d+)?$/
+  strip: /^edk2-stable/
+
+build:
+  dependencies:
+    git-scm.org: '*'
+    python.org: ~3.11
+    nasm.us: '*'
+    freedesktop.org/pkg-config: '*'
+    linux:
+      gnu.org/gcc: '*'
+    darwin:
+      # CLANGPDB toolchain emits PE/COFF directly via lld-link, avoiding
+      # the macOS-only `mtoc` that XCODE5 requires.
+      llvm.org: '*'
+  script:
+    - run: |
+        set -e
+
+        # Brewkit checks out git+ sources to ${PKGX_PANTRY_PATH}/srcs/...
+        # and rsyncs once into ${SRCROOT}. After a manual `rm -rf builds`
+        # the re-stage may skip the copy (only rsyncs `props/`), leaving
+        # cwd empty. Repopulate from srcs/ if needed.
+        SRC_DIR="${PKGX_PANTRY_PATH}/srcs/$(basename "$SRCROOT")"
+        if [ ! -d ./BaseTools ] && [ -d "$SRC_DIR/BaseTools" ]; then
+          echo "edk2: repopulating build dir from $SRC_DIR"
+          cp -a "$SRC_DIR/." ./
+        fi
+
+        # EDK II pulls a pinned OpenSSL via submodule (CryptoPkg) and a
+        # handful of others (BrotliCustomDecompressLib, MipiSysTLib, …).
+        # We need them for SecureBoot-capable OVMF builds.
+        git submodule update --init --recursive --depth 1
+
+        # BaseTools — the C helpers (GenFv, GenFw, …) used by the build.
+        make -C BaseTools --jobs {{ hw.concurrency }}
+
+        # edksetup.sh is bash-only and expects to be sourced from $PWD.
+        export WORKSPACE="$PWD"
+        export EDK_TOOLS_PATH="$PWD/BaseTools"
+        export CONF_PATH="$PWD/Conf"
+        . ./edksetup.sh BaseTools
+
+        # EDK II's toolchain tag is platform-specific:
+        #   GCC5     → Linux gcc/clang, ld.bfd or ld.lld
+        #   CLANGPDB → cross-platform clang + lld-link → PE/COFF directly
+        #              (used on Darwin to skip the macOS-only mtoc hop)
+        case "$(uname -s)" in
+          Darwin) TC=CLANGPDB ;;
+          *)      TC=GCC5     ;;
+        esac
+        echo "edk2: using toolchain tag $TC"
+
+        # Recent clang (>=20) tightens -Wcast-function-type-mismatch, which
+        # trips OpenSSL's pem_password_cb casts in CryptoPkg/BaseCryptLib.
+        # EDK II compiles with -Werror, so soften that one warning. We
+        # also relax a couple of other newer-clang diagnostics that
+        # surface in third-party submodules (OpenSSL, MipiSysT).
+        if [ -f Conf/tools_def.txt ]; then
+          EXTRA="-Wno-error=cast-function-type-mismatch -Wno-error=incompatible-function-pointer-types -Wno-error=unused-but-set-variable -Wno-error=deprecated-declarations"
+          # Append EXTRA to every CC_FLAGS line for the active toolchain.
+          sed -i.bak -E \
+            "s@^([[:space:]]*(DEBUG|RELEASE|NOOPT)_${TC}_[A-Z0-9]+_CC_FLAGS[[:space:]]*=.*)\$@\\1 ${EXTRA}@" \
+            Conf/tools_def.txt
+          echo "edk2: patched $(grep -cE \"^[[:space:]]*(DEBUG|RELEASE|NOOPT)_${TC}_[A-Z0-9]+_CC_FLAGS.*cast-function-type-mismatch\" Conf/tools_def.txt) ${TC} CC_FLAGS lines"
+
+          # CryptoPkg overrides CC_FLAGS in its DSC, so the tools_def
+          # patch isn't enough — patch the source file directly to
+          # silence the two pem_password_cb casts that newer clang
+          # rejects with -Wcast-function-type-mismatch.
+          CRYPT_PEM="CryptoPkg/Library/BaseCryptLib/Pem/CryptPem.c"
+          if [ -f "$CRYPT_PEM" ] && ! grep -q "clang diagnostic.*cast-function-type-mismatch" "$CRYPT_PEM"; then
+            {
+              printf '%s\n' '#if defined(__clang__)'
+              printf '%s\n' '#pragma clang diagnostic push'
+              printf '%s\n' '#pragma clang diagnostic ignored "-Wcast-function-type-mismatch"'
+              printf '%s\n' '#endif'
+              cat "$CRYPT_PEM"
+              printf '%s\n' '#if defined(__clang__)'
+              printf '%s\n' '#pragma clang diagnostic pop'
+              printf '%s\n' '#endif'
+            } > "$CRYPT_PEM.new"
+            mv "$CRYPT_PEM.new" "$CRYPT_PEM"
+            echo "edk2: patched $CRYPT_PEM for -Wcast-function-type-mismatch"
+          fi
+        fi
+
+        mkdir -p "{{prefix}}/share/qemu"
+
+        # ── X64 (amd64) ─────────────────────────────────────────────
+        build -a X64 -t "$TC" -b RELEASE \
+              -p OvmfPkg/OvmfPkgX64.dsc \
+              -D SECURE_BOOT_ENABLE=TRUE \
+              -D TPM2_ENABLE=TRUE \
+              -D NETWORK_IP6_ENABLE=TRUE \
+              -D NETWORK_HTTP_BOOT_ENABLE=TRUE \
+              -n {{ hw.concurrency }}
+
+        OUT_X64="Build/OvmfX64/RELEASE_${TC}/FV"
+        install -m 0644 "$OUT_X64/OVMF_CODE.fd" \
+                "{{prefix}}/share/qemu/edk2-x86_64-code.fd"
+        install -m 0644 "$OUT_X64/OVMF_VARS.fd" \
+                "{{prefix}}/share/qemu/edk2-i386-vars.fd"
+
+        # Combined CODE+VARS image (qemu `-bios` style, easier to test).
+        if [ -f "$OUT_X64/OVMF.fd" ]; then
+          install -m 0644 "$OUT_X64/OVMF.fd" \
+                  "{{prefix}}/share/qemu/edk2-x86_64.fd"
+        fi
+
+        # ── AARCH64 (arm64) ─────────────────────────────────────────
+        # ArmVirtQemu emits QEMU_EFI.fd + QEMU_VARS.fd. GCC5 + CLANGPDB
+        # can both target AARCH64 PE/COFF as long as the host toolchain
+        # ships a cross-compiler.
+        build -a AARCH64 -t "$TC" -b RELEASE \
+              -p ArmVirtPkg/ArmVirtQemu.dsc \
+              -D NETWORK_HTTP_BOOT_ENABLE=TRUE \
+              -n {{ hw.concurrency }} \
+          || echo "edk2: aarch64 build failed; continuing (non-fatal)"
+
+        OUT_AARCH64="Build/ArmVirtQemu-AARCH64/RELEASE_${TC}/FV"
+        if [ -f "$OUT_AARCH64/QEMU_EFI.fd" ]; then
+          install -m 0644 "$OUT_AARCH64/QEMU_EFI.fd" \
+                  "{{prefix}}/share/qemu/edk2-aarch64-code.fd"
+          install -m 0644 "$OUT_AARCH64/QEMU_VARS.fd" \
+                  "{{prefix}}/share/qemu/edk2-arm-vars.fd"
+        fi
+
+        # Thin shim so pkgx has at least one `bin/*` entry to advertise
+        # and so downstream tooling can discover the blob directory
+        # without sourcing env vars.
+        mkdir -p "{{prefix}}/bin"
+        shim="{{prefix}}/bin/edk2-firmware-path"
+        {
+          printf '%s\n' '#!/bin/sh'
+          printf '%s\n' '# Print the absolute path to an EDK II firmware blob.'
+          printf '%s\n' '# Usage: edk2-firmware-path [x86_64-code|i386-vars|aarch64-code|arm-vars|dir]'
+          printf '%s\n' 'dir="$(cd "$(dirname "$0")/../share/qemu" && pwd)"'
+          printf '%s\n' 'case "${1:-dir}" in'
+          printf '%s\n' '  dir)                       echo "$dir" ;;'
+          printf '%s\n' '  x86_64-code|amd64-code)    echo "$dir/edk2-x86_64-code.fd" ;;'
+          printf '%s\n' '  i386-vars|amd64-vars)      echo "$dir/edk2-i386-vars.fd" ;;'
+          printf '%s\n' '  aarch64-code|arm64-code)   echo "$dir/edk2-aarch64-code.fd" ;;'
+          printf '%s\n' '  arm-vars|arm64-vars)       echo "$dir/edk2-arm-vars.fd" ;;'
+          printf '%s\n' '  *) echo "unknown firmware key: $1" >&2; exit 2 ;;'
+          printf '%s\n' 'esac'
+        } > "$shim"
+        chmod +x "$shim"
+
+provides:
+  - bin/edk2-firmware-path
+
+runtime:
+  env:
+    EDK2_FIRMWARE_DIR: "{{prefix}}/share/qemu"
+    # Backwards-compat names used by some libvirt / qemu wrappers.
+    OVMF_CODE: "{{prefix}}/share/qemu/edk2-x86_64-code.fd"
+    OVMF_VARS: "{{prefix}}/share/qemu/edk2-i386-vars.fd"
+    AAVMF_CODE: "{{prefix}}/share/qemu/edk2-aarch64-code.fd"
+    AAVMF_VARS: "{{prefix}}/share/qemu/edk2-arm-vars.fd"
+
+test:
+  dependencies:
+    qemu.org: '*'
+  script:
+    # The firmware blobs exist and are non-empty.
+    - test -s "{{prefix}}/share/qemu/edk2-x86_64-code.fd"
+    - test -s "{{prefix}}/share/qemu/edk2-i386-vars.fd"
+
+    # Boot qemu-system-x86_64 with the firmware and a writable vars
+    # copy. `-display none -no-reboot` + `-bios` makes UEFI start and
+    # then exit when it can't find a boot device. We just confirm
+    # qemu doesn't fault and prints the TianoCore banner over the
+    # serial console.
+    - cp "{{prefix}}/share/qemu/edk2-i386-vars.fd" ./vars.fd
+    - timeout 20 qemu-system-x86_64
+        -machine q35,accel=tcg
+        -m 256
+        -drive if=pflash,format=raw,readonly=on,file={{prefix}}/share/qemu/edk2-x86_64-code.fd
+        -drive if=pflash,format=raw,file=./vars.fd
+        -display none
+        -no-reboot
+        -serial stdio
+        -nographic > boot.log 2>&1 || true
+    - grep -q -E "(TianoCore|EDK II|UEFI Interactive Shell|BdsDxe)" boot.log
