@@ -31,7 +31,7 @@ build:
     github.com/skystrife/cpptoml: "*"
     # these need version locking, but we don't support that yet
     # facebook.com/fbthrift: '{{version}}'
-    # facebook.com/mvfst: '{{version}}'
+    # facebook.com/mvfst: '{{version}}h
     facebook.com/fbthrift: "*"
     facebook.com/mvfst: "*"
     google.com/googletest: "*"
@@ -55,6 +55,17 @@ build:
           sed -i 's/watchman_client = { version = ".*", path/watchman_client = { path/' Cargo.toml
         fi
       working-directory: watchman/cli
+
+    - run:
+        # fmt/core.h -> fmt/format.h on newer compilers
+        - for f in $(grep -R -l 'fmt::format' watchman); do
+        - if grep -q '#include <fmt/format\.h>' "$f"; then continue; fi
+        - |
+          sed -i -e '/#include <fmt\/core\.h>/a\
+          #include <fmt/format.h>' "$f"
+        - done
+      if: ">=2026.6.8"
+
     - cmake -S . -B build $CMAKE_ARGS -DCMAKE_C_FLAGS="$CFLAGS" -DCMAKE_CXX_FLAGS="$CXXFLAGS"
     - cmake --build build
     - cmake --install build
