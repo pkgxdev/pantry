@@ -29,6 +29,14 @@ build:
     # fix timeouts
     - run: sed -i 's/add_subdirectory(test)/#add_subdirectory(test)/' {os,utils}/CMakeLists.txt
       working-directory: eden/common
+    # GCC 14's C++20 string_view does not construct directly from std::string
+    - run: sed -i -f $PROP String.h
+      working-directory: eden/common/utils
+      if: ">=2026.6.8"
+      prop: |
+        /#include <fmt\/core\.h>/a\
+        #include <string>
+        s/std::string_view{s}/std::string_view{s.data(), s.size()}/
 
     - cmake -S . -B _build $ARGS
     - cmake --build _build
