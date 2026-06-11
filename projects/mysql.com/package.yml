@@ -22,8 +22,19 @@ dependencies:
   developers.yubico.com/libfido2: ^1
   linux:
     # llvm cannot find #include <bit>
-    # use our libstdc++ instead
-    gnu.org/gcc/libstdcxx: 14
+    # use our libstdc++ instead.
+    #
+    # IMPORTANT: keep this in sync with the build-time `gnu.org/gcc`
+    # version below — if build uses gcc 16 but runtime ships libstdcxx
+    # 14, mysqld ends up referencing GLIBCXX_3.4.35 symbols (gcc 16
+    # only) that the runtime libstdc++.so.6 (gcc 14) doesn't expose,
+    # and `mysqld --no-defaults --help` at install-test time fails
+    # with `version 'GLIBCXX_3.4.35' not found (required by mysqld)`.
+    # nixpkgs solves this structurally via cc-wrapper auto-propagating
+    # stdenv.cc.cc.lib into RUNPATH; arch via lockstep rebuild of
+    # gcc-libs with every gcc bump. We don't have either, so the two
+    # version constraints must literally match.
+    gnu.org/gcc/libstdcxx: ^14
 
 build:
   dependencies:
@@ -31,8 +42,10 @@ build:
     gnu.org/bison: ">=3.0.4"
     linux:
       # llvm cannot find #include <bit>
-      # use our libstdc++ instead
-      gnu.org/gcc: "*"
+      # use our libstdc++ instead.
+      # Pin to the same major as runtime libstdcxx above so the
+      # binary's GLIBCXX_3.4.x symver references resolve at runtime.
+      gnu.org/gcc: ^14
   working-directory: build
   script:
     # https://www.mail-archive.com/ports@freebsd.org/msg00418.html
