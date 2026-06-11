@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/librsync/librsync/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/librsync/librsync/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 # Library that implements the rsync remote-delta algorithm (signature / delta /
@@ -7,8 +7,6 @@ distributable:
 
 versions:
   github: librsync/librsync/tags
-  strip:
-    - /^v/
 
 dependencies:
   rpm.org/popt: ^1
@@ -33,15 +31,14 @@ provides:
   - bin/rdiff
 
 test:
-  env:
-    RDIFF: "{{prefix}}/bin/rdiff"
   script:
-    - $RDIFF -V | grep -F {{version}}
+    - rdiff -V | tee out
+    - grep -F {{version}} out
     # round-trip: signature -> delta -> patch
     - head -c 65536 /dev/urandom > basis.bin
     - cp basis.bin new.bin
     - printf 'edit' >> new.bin
-    - $RDIFF signature basis.bin basis.sig
-    - $RDIFF delta basis.sig new.bin new.delta
-    - $RDIFF patch basis.bin new.delta out.bin
+    - rdiff signature basis.bin basis.sig
+    - rdiff delta basis.sig new.bin new.delta
+    - rdiff patch basis.bin new.delta out.bin
     - cmp new.bin out.bin
