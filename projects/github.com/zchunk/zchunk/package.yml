@@ -1,0 +1,66 @@
+distributable:
+  url: https://github.com/zchunk/zchunk/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: zchunk/zchunk/tags
+
+# Reference C implementation of the zchunk container format used by Fedora's
+# DNF/librepo for delta-downloaded repository metadata.
+
+dependencies:
+  openssl.org: ^1.1
+  facebook.com/zstd: ^1
+  curl.se: ^8
+
+build:
+  dependencies:
+    mesonbuild.com: "*"
+    ninja-build.org: "*"
+  script:
+    # macOS' libc has no <argp.h>, so zchunk's meson build falls back to
+    # the `argp-standalone` subproject shipped in upstream's tarball. The
+    # upstream wrap file is `wrap-git`, which needs git+network at build
+    # time; rewrite it as `wrap-file` so meson can fetch a verified
+    # tarball via curl (already available in our build env) and build the
+    # sources from source as a meson subproject. Linux glibc provides
+    # argp.h directly and never touches the subproject.
+    - run: cp $PROP subprojects/argp-standalone.wrap
+      prop: |
+        [wrap-file]
+        directory = argp-standalone-1.5.0
+        source_url = https://github.com/argp-standalone/argp-standalone/archive/refs/tags/1.5.0.tar.gz
+        source_filename = argp-standalone-1.5.0.tar.gz
+        source_hash = c29eae929dfebd575c38174f2c8c315766092cec99a8f987569d0cad3c6d64f6
+
+        [provide]
+        dependency_names = argp-standalone
+      if: darwin
+    - meson setup build $ARGS
+    - meson compile -C build --jobs {{ hw.concurrency }}
+    - meson install -C build
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --buildtype=release
+      - -Ddocs=false
+      - -Dtests=false
+      - --wrap-mode=default
+      - --force-fallback-for=argp-standalone
+
+provides:
+  - bin/zck
+  - bin/unzck
+  - bin/zck_delta_size
+  - bin/zck_gen_zdict
+  - bin/zck_read_header
+  - bin/zckdl
+
+test:
+  - run: cp $FIXTURE greeting.txt
+    fixture: hello zchunk roundtrip
+  - zck greeting.txt
+  - test -f greeting.txt.zck
+  - rm greeting.txt
+  - unzck greeting.txt.zck
+  - test "$(cat greeting.txt)" = "hello zchunk roundtrip"
