@@ -11,29 +11,22 @@
 # release page. Closes pkgxdev/pantry#6711.
 
 distributable:
-  url: https://github.com/v2rayA/v2rayA/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/v2rayA/v2rayA/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
   github: v2rayA/v2rayA
-
-# v2rayA's protocol surface is for *outbound* proxying through V2Ray /
-# Xray / SS / Trojan etc. Runs everywhere V2Ray runs; upstream
-# provides linux + darwin + windows binaries. We package linux +
-# darwin from source.
-platforms:
-  - linux/x86-64
-  - linux/aarch64
-  - darwin/x86-64
-  - darwin/aarch64
 
 build:
   dependencies:
     go.dev: '>=1.24'           # per go.mod (1.24.7)
     nodejs.org: '>=14'         # arch PKGBUILD floor
     classic.yarnpkg.com: '*'   # web bundle builder
-    gnu.org/coreutils: '*'     # install(1)
-
+  env:
+    OUTPUT_DIR: "$SRCROOT/service/server/router/web"
+    GO111MODULE: on
+    CGO_ENABLED: 0       # static binary, simpler bottle
+    
   script:
     # Step 1: build the web frontend, deposit output where the Go
     # service expects to `go:embed` it from. The `--ignore-engines`
@@ -41,20 +34,18 @@ build:
     # constraint in gui/package.json — pantry's nodejs.org is recent
     # enough; the gui/package.json's engines field is pinned for
     # arch CI reasons.
-    - run: |
-        yarn --check-files --ignore-engines
-        OUTPUT_DIR="$SRCROOT/service/server/router/web" yarn --ignore-engines build
+    - run:
+        - yarn --check-files --ignore-engines
+        - yarn --ignore-engines build
       working-directory: gui
 
     # Step 2: build the Go service. The `-X .../conf.Version=...`
     # ldflag injects the upstream version string so `v2raya --version`
     # reports the right number.
-    - run: |
-        export GO111MODULE=on
-        export CGO_ENABLED=0       # static binary, simpler bottle
-        go build \
-          -ldflags "-X github.com/v2rayA/v2rayA/conf.Version=v{{version}} -s -w" \
-          -trimpath \
+    - run:
+        go build
+          -ldflags "-X github.com/v2rayA/v2rayA/conf.Version=v{{version}} -s -w"
+          -trimpath
           -o "{{prefix}}/bin/v2raya"
       working-directory: service
 
@@ -68,7 +59,6 @@ provides:
 test:
   # `--version` is a startup-quick check that exercises the embedded
   # asset bundle (it lists feature flags including web availability).
-  - run: |
-      out=$(v2raya --version 2>&1 || true)
-      echo "$out"
-      echo "$out" | grep -q "{{version}}"
+  - out=$(v2raya --version 2>&1 || true)
+  - echo "$out"
+  - echo "$out" | grep "{{version}}"
