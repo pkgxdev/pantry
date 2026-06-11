@@ -1,0 +1,27 @@
+distributable:
+  url: https://github.com/containerd/nerdctl/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+display-name: nerdctl
+
+versions:
+  github: containerd/nerdctl/releases
+
+platforms:
+  - linux
+
+build:
+  dependencies:
+    go.dev: "*"
+  script: go build -ldflags="-s -w -X github.com/containerd/nerdctl/v2/pkg/version.Version={{version.tag}}" -o {{prefix}}/bin/nerdctl ./cmd/nerdctl
+  skip: fix-patchelf
+
+provides:
+  - bin/nerdctl
+
+test:
+  # `nerdctl --version` and `--help` both initialize a containerd
+  # client and exit non-zero if no socket is reachable. `nerdctl -v`
+  # short-flag prints version then exits cleanly.
+  - ( nerdctl --version 2>&1 || true ) | tee out
+  - grep {{version}} out
