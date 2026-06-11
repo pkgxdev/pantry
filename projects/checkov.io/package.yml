@@ -16,6 +16,9 @@ build:
     stedolan.github.io/jq: "*"
     # rust-lang.org: '*' # since 3.2.258, needs different versions for different packages.
   script:
+    # missed version bump
+    - sed -i "s/version = '.*'/version = '{{version}}'/" checkov/version.py
+    - sed -i "s/^checkov==.*$/checkov=={{version}}/" kubernetes/requirements.txt
     - bkpyvenv stage {{prefix}} {{version}}
     - run:
         - pkgx +rust~1.70 +cargo\<0.83 {{prefix}}/venv/bin/pip install "rustworkx$(jq -r .default.rustworkx.version Pipfile.lock | sed 's/==/~=/')"
@@ -32,7 +35,8 @@ provides:
   - bin/checkov
 
 test:
-  - checkov --version | grep {{version}}
+  - checkov --version | tee out
+  - grep {{version}} out
   - checkov -f test.tf > output.log
   - run: |
       cat output.log | grep 'Passed checks: 14, Failed checks: 0, Skipped checks: 0'
