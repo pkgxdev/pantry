@@ -7,15 +7,10 @@ display-name: vitess
 versions:
   github: vitessio/vitess
 
-platforms:
-  - darwin
-  - linux
-
 build:
   dependencies:
-    go.dev: '*'
-    gnu.org/make: '*'
-    git-scm.org: '*'
+    go.dev: "*"
+    git-scm.org: "*"
   # we drive the build via `make build` so vitess's own ldflags / version
   # embedding (tools/build_version_flags.sh) stay consistent with upstream.
   #
@@ -47,57 +42,53 @@ build:
   env:
     # Gates the React frontend build only — Go-side vtadmin binary
     # still gets compiled by `go build ./go/...`. See header comment.
-    NOVTADMINBUILD: '1'
-    NOBANNER: '1'
-    BUILD_GIT_REV: '{{version.tag}}'
+    NOVTADMINBUILD: "1"
+    NOBANNER: "1"
+    BUILD_GIT_REV: "{{version.tag}}"
     BUILD_GIT_BRANCH: main
 
 provides:
   # Core query / admin daemons
-  - bin/vtgate            # SQL proxy layer
-  - bin/vttablet          # per-shard MySQL agent
-  - bin/vtctl             # legacy admin CLI
-  - bin/vtctld            # legacy admin daemon
-  - bin/vtctlclient       # legacy admin client
-  - bin/vtctldclient      # current admin client (grpc)
-  - bin/vtcombo           # standalone all-in-one for testing
-  - bin/vtorc             # MySQL orchestrator (HA / failover)
-  - bin/vtadmin           # admin API server (REST + gRPC)
+  - bin/vtgate # SQL proxy layer
+  - bin/vttablet # per-shard MySQL agent
+  - bin/vtctl # legacy admin CLI
+  - bin/vtctld # legacy admin daemon
+  - bin/vtctlclient # legacy admin client
+  - bin/vtctldclient # current admin client (grpc)
+  - bin/vtcombo # standalone all-in-one for testing
+  - bin/vtorc # MySQL orchestrator (HA / failover)
+  - bin/vtadmin # admin API server (REST + gRPC)
   # Backup, debugging, testing
-  - bin/vtbackup          # backup taker
-  - bin/vtbench           # benchmark client
-  - bin/vttestserver      # in-process test cluster
-  - bin/vtexplain         # query-plan explainer
-  - bin/vtgateclienttest  # gateway client test harness
+  - bin/vtbackup # backup taker
+  - bin/vtbench # benchmark client
+  - bin/vttestserver # in-process test cluster
+  - bin/vtexplain # query-plan explainer
+  - bin/vtgateclienttest # gateway client test harness
   # Auth / ACL / TLS
-  - bin/vtaclcheck        # ACL validator
-  - bin/vttlstest         # TLS configuration test
-  - bin/rulesctl          # query-rule editor
+  - bin/vtaclcheck # ACL validator
+  - bin/vttlstest # TLS configuration test
+  - bin/rulesctl # query-rule editor
   # MySQL bootstrap helpers
-  - bin/mysqlctl          # mysqld lifecycle helper
-  - bin/mysqlctld         # daemonized mysqlctl
+  - bin/mysqlctl # mysqld lifecycle helper
+  - bin/mysqlctld # daemonized mysqlctl
   # Topology service
-  - bin/topo2topo         # cross-topology migrator
-  - bin/vtclient          # generic VTGate client
+  - bin/topo2topo # cross-topology migrator
+  - bin/vtclient # generic VTGate client
   # ZooKeeper helpers (used by zk2topo backend)
-  - bin/zk                # zk CLI
-  - bin/zkctl             # zk server lifecycle
-  - bin/zkctld            # zk daemonized
+  - bin/zk # zk CLI
+  - bin/zkctl # zk server lifecycle
+  - bin/zkctld # zk daemonized
 
 test:
-  - '{{prefix}}/bin/vtgate --version'
-  - '{{prefix}}/bin/vtctldclient --version'
-  - '{{prefix}}/bin/vtgate --version | grep {{version}}'
+  - vtgate --version | tee out
+  - grep {{version}} out
+  - vtctldclient --version | tee out
+  - grep {{version}} out
+  - vtgate --version | tee out
+  - grep {{version}} out
   # Smoke-test the newly-surfaced binaries to confirm they exist on
   # PATH and execute (the previous recipe built them via
   # `go build ./go/...` but didn't declare them in provides:).
-  # Use `set +e` + explicit `|| true` because vtgateclienttest is a
-  # test harness, not a CLI — it prints its description and exits
-  # non-zero, and the head pipe also SIGPIPEs the binary.
-  - run: |
-      set +e
-      for B in vtadmin rulesctl vtgateclienttest; do
-        out=$("$B" --help 2>&1 | head -1)
-        echo "$B: $out"
-      done
-      exit 0
+  - vtadmin --help
+  - rulesctl --help
+  - vtgateclienttest --help
