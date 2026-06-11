@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/zchunk/zchunk/archive/refs/tags/{{version}}.tar.gz
+  url: https://github.com/zchunk/zchunk/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
@@ -17,7 +17,6 @@ build:
   dependencies:
     mesonbuild.com: "*"
     ninja-build.org: "*"
-    freedesktop.org/pkg-config: "*"
   script:
     # macOS' libc has no <argp.h>, so zchunk's meson build falls back to
     # the `argp-standalone` subproject shipped in upstream's tarball. The
@@ -26,8 +25,8 @@ build:
     # tarball via curl (already available in our build env) and build the
     # sources from source as a meson subproject. Linux glibc provides
     # argp.h directly and never touches the subproject.
-    - run: |
-        cat > subprojects/argp-standalone.wrap <<'WRAP'
+    - run: cp $PROP subprojects/argp-standalone.wrap
+      prop: |
         [wrap-file]
         directory = argp-standalone-1.5.0
         source_url = https://github.com/argp-standalone/argp-standalone/archive/refs/tags/1.5.0.tar.gz
@@ -36,7 +35,6 @@ build:
 
         [provide]
         dependency_names = argp-standalone
-        WRAP
       if: darwin
     - meson setup build $ARGS
     - meson compile -C build --jobs {{ hw.concurrency }}
@@ -59,7 +57,8 @@ provides:
   - bin/zckdl
 
 test:
-  - echo "hello zchunk roundtrip" > greeting.txt
+  - run: cp $FIXTURE greeting.txt
+    fixture: hello zchunk roundtrip
   - zck greeting.txt
   - test -f greeting.txt.zck
   - rm greeting.txt
