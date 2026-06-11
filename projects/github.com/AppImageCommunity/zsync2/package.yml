@@ -23,44 +23,28 @@ versions:
       return m ? `2.0.0.${m[1]}` : undefined;
     }
 
-platforms:
-  - linux/x86-64
-  - linux/aarch64
-  # darwin builds via two source patches applied below — see darwin/
-  # script step. Limitation: compressed (.gz) seeds are unsupported on
-  # darwin (fopencookie is glibc-only; we return NULL, which falls back
-  # to fetching all blocks from the server).
-  - darwin/x86-64
-  - darwin/aarch64
-
 dependencies:
-  openssl.org: '*'
-  curl.se: '*'
-  libssh2.org: '*'
-  zlib.net: '*'
-  gnupg.org/libgcrypt: '*'
-  gnupg.org/libgpg-error: '*' # transitive pkg-config dep of libgcrypt
+  openssl.org: "*"
+  curl.se: "*"
+  libssh2.org: "*"
+  zlib.net: "*"
+  gnupg.org/libgcrypt: "*"
+  gnupg.org/libgpg-error: "*" # transitive pkg-config dep of libgcrypt
 
 build:
   dependencies:
     cmake.org: ^3
-    gnu.org/make: '*'
-    freedesktop.org/pkg-config: '*'
-    git-scm.org: '*'   # CMake submodule init for cpr
-
+    git-scm.org: "*" # CMake submodule init for cpr
   working-directory: build
   script:
     # darwin patches: st_mtim is glibc-only (darwin uses st_mtimespec);
     # openGzFile() #errors on non-Linux because fopencookie is glibc-only.
     # Returning NULL on darwin lets zsync fall back to fetching all
     # blocks when the seed is .gz (uncompressed seeds work normally).
-    - run: |
-        sed -i.bak \
-          -e 's|return fstat\.st_mtim\.tv_sec;|return fstat.st_mtimespec.tv_sec;|' \
-          ../src/zsutil.cpp
-        sed -i.bak \
-          -e 's|#error TODO: implement openGzFile() for this platform!|return NULL;|' \
-          ../src/zsclient.cpp
+    - run:
+        - sed -i -e 's|return fstat\.st_mtim\.tv_sec;|return fstat.st_mtimespec.tv_sec;|' zsutil.cpp
+        - "sed -i -e 's|#error TODO: implement openGzFile() for this platform!|return NULL;|' zsclient.cpp"
+      working-directory: ../src
       if: darwin
     - cmake .. $ARGS
     - make --jobs {{ hw.concurrency }}
@@ -81,5 +65,5 @@ provides:
   - bin/zsyncmake2
 
 test:
-  - zsync2 -h 2>&1 | head -3 || true
-  - zsyncmake2 -h 2>&1 | head -3 || true
+  - zsync2 -h
+  - zsyncmake2 -h
