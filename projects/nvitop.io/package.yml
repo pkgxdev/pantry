@@ -10,7 +10,7 @@
 # is the expected behaviour; we don't try to gate on driver presence.
 
 distributable:
-  url: https://github.com/XuehaiPan/nvitop/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/XuehaiPan/nvitop/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
@@ -20,12 +20,9 @@ dependencies:
   python.org: '>=3.8'
 
 build:
-  dependencies:
-    python.org: '>=3.8'
-  script:
-    - bkpyvenv stage {{prefix}} {{version}}
-    - ${{prefix}}/venv/bin/pip install .
-    - bkpyvenv seal {{prefix}} nvitop
+  - bkpyvenv stage {{prefix}} {{version}}
+  - ${{prefix}}/venv/bin/pip install .
+  - bkpyvenv seal {{prefix}} nvitop
 
 provides:
   - bin/nvitop
@@ -35,5 +32,5 @@ test:
   # short-circuits before touching libnvidia-ml. `--help` is the
   # same way. The CI sandbox has no GPU, so the interactive UI can't
   # actually be tested here.
-  - nvitop --version 2>&1 | head -1
-  - nvitop --version 2>&1 | grep -i "{{version}}"
+  - nvitop --version
+  - nvitop --version 2>&1 | grep "{{version}}"
