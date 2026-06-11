@@ -164,6 +164,19 @@ build:
       if: darwin/x86-64
       working-directory: ${{prefix}}/lib
 
+    # Many Linux build systems (autoconf, distutils/setuptools, pip
+    # build backends) probe for the Debian-style multi-arch triplet
+    # binary names ($arch-linux-gnu-gcc, etc.) before falling back to
+    # plain `gcc`. Without these, pip-install of C-extension Python
+    # wheels fails on Ubuntu/Debian rootfs even when gcc IS on PATH.
+    # See pkgxdev/pantry#8423.
+    - run:
+        - for tool in gcc g++ cpp c++ ar nm ranlib; do
+        - if test -e "$tool"; then ln -sf "$tool" "$TRIPLET-$tool"; fi
+        - done
+      if: linux
+      working-directory: ${{prefix}}/bin
+
   env:
     # Branch from the Darwin maintainer of GCC, with a few generic fixes and
     # Apple Silicon support, located at https://github.com/iains/gcc-12-branch
@@ -227,6 +240,11 @@ build:
         - -Wa,-mmacos-version-min=10.5
       CXXFLAGS_FOR_TARGET:
         - -Wa,-mmacos-version-min=10.5
+    # triplets for linux
+    x86-64:
+      TRIPLET: x86_64-linux-gnu
+    aarch64:
+      TRIPLET: aarch64-linux-gnu
 
 test:
   - gcc --version | grep -q "pkgx GCC {{version}}"
