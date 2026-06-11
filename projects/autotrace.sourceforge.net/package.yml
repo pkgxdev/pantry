@@ -13,7 +13,7 @@
 # - graphicsmagick (alternate to ImageMagick — pick one)
 
 distributable:
-  url: https://github.com/autotrace/autotrace/archive/refs/tags/{{version.raw}}.tar.gz
+  url: https://github.com/autotrace/autotrace/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
@@ -30,7 +30,6 @@ build:
     gnu.org/automake: '*'
     gnu.org/libtool: '*'
     gnu.org/gettext: '*'
-    freedesktop.org/pkg-config: '*'
     freedesktop.org/intltool: '*'
     perl.org: '*'
     cpanmin.us: '*'
@@ -50,20 +49,10 @@ build:
     # all script steps share one shell.
     - mkdir -p "$SRCROOT/perl-xml-parser"
     - env -u PERL5LIB cpanm -l "$SRCROOT/perl-xml-parser" XML::Parser --notest --verbose
-    # ImageMagick's libMagickCore-7.la (and friends) carry stale
-    # \`dependency_libs=\` paths — both \`+brewing\` build dirs and
-    # pinned versions of deps that have since been bumped (e.g.
-    # /opt/littlecms.com/v2.18.0/... while pantry now ships v2.19.1).
-    # libtool follows them during the link step and aborts. Rename
-    # the offending .la files so libtool falls back to the plain
-    # \`-L .../lib -llcms2 ...\` flags coming from pkg-config.
-    # TODO upstream: imagemagick.org and friends should sed/replace
-    # their own .la files at install time (the way x.org/xdmcp does
-    # for +brewing) so future consumers don't hit this.
-    - run: |
-        for la in {{deps.imagemagick.org.prefix}}/lib/libMagick*.la; do
-          [ -f "$la" ] && [ -w "$la" ] && mv "$la" "$la.disabled" || true
-        done
+    # Some older ImageMagicks still contain libtool archives with hardcoded absolute
+    # paths.
+    - run: find . -name \*.la -exec rm {} \;
+      working-directory: ${{deps.imagemagick.org.prefix}}/lib
     # Upstream ships configure.ac only — autogen.sh runs autopoint +
     # autoreconf with `intltoolize --automake --copy` as AUTOPOINT.
     # Pass PERL/INTLTOOL_PERL=real-perl to bypass brewkit's perl
@@ -96,7 +85,6 @@ test:
   # sandbox. --help parses argv before MagickCore init runs, so it
   # returns immediately and still exercises dynamic-linker resolution
   # of every shared lib the binary needs. timeout(1) guards regressions.
-  - run: |
-      out=$(timeout 5 autotrace --help 2>&1 || true)
-      echo "$out"
-      echo "$out" | grep -iq autotrace
+  - out=$(timeout 5 autotrace --help 2>&1 || true)
+  - echo "$out"
+  - echo "$out" | grep -i autotrace
