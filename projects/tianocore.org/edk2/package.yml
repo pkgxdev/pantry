@@ -35,6 +35,11 @@ build:
     python.org: ~3.11
     nasm.us: '*'
     freedesktop.org/pkg-config: '*'
+    # iasl (ACPI compiler) — EDK II compiles `.asl` ACPI tables to `.aml`
+    # for several modules (RamDiskDxe's NFIT, etc.). It is not in qemu's
+    # toolchain, so without this the X64 build dies with
+    # `iasl: command not found` (exit 127) on every platform.
+    acpica.org: '*'
     linux:
       gnu.org/gcc: '*'
     darwin:
@@ -61,7 +66,16 @@ build:
         git submodule update --init --recursive --depth 1
 
         # BaseTools — the C helpers (GenFv, GenFw, …) used by the build.
-        make -C BaseTools --jobs {{ hw.concurrency }}
+        #
+        # Built SERIALLY on purpose. The VfrCompile sub-makefile has a
+        # missing dependency between the `dlg`-generated VfrLexer.cpp and
+        # its own compile step; under `make -j` the compiler races the
+        # generator and reads a half-written file, failing with
+        # `VfrLexer.cpp: error: expected expression`. With many cores
+        # (CI runners) the race is near-deterministic, which is why every
+        # platform's build was red. Serial BaseTools is quick (~1-2 min)
+        # and the EDK II `build` below is still fully parallel via `-n`.
+        make -C BaseTools
 
         # edksetup.sh is bash-only and expects to be sourced from $PWD.
         export WORKSPACE="$PWD"
@@ -190,16 +204,22 @@ runtime:
 test:
   dependencies:
     qemu.org: '*'
+    # `timeout` is GNU coreutils — present on Linux runners but NOT on
+    # macOS, where the test would otherwise die with `timeout: command
+    # not found`.
+    gnu.org/coreutils: '*'
   script:
     # The firmware blobs exist and are non-empty.
     - test -s "{{prefix}}/share/qemu/edk2-x86_64-code.fd"
     - test -s "{{prefix}}/share/qemu/edk2-i386-vars.fd"
 
     # Boot qemu-system-x86_64 with the firmware and a writable vars
-    # copy. `-display none -no-reboot` + `-bios` makes UEFI start and
-    # then exit when it can't find a boot device. We just confirm
-    # qemu doesn't fault and prints the TianoCore banner over the
-    # serial console.
+    # copy. `-display none` keeps it headless while `-serial stdio`
+    # routes the firmware's console to our pipe. (Do NOT add
+    # `-nographic`: it also grabs stdio for the monitor and qemu aborts
+    # with "cannot use stdio by multiple character devices".) UEFI
+    # starts, finds no boot device, and waits at the Boot Manager — we
+    # just confirm it reached BdsDxe without faulting.
     - cp "{{prefix}}/share/qemu/edk2-i386-vars.fd" ./vars.fd
     - timeout 20 qemu-system-x86_64
         -machine q35,accel=tcg
@@ -208,6 +228,5 @@ test:
         -drive if=pflash,format=raw,file=./vars.fd
         -display none
         -no-reboot
-        -serial stdio
-        -nographic > boot.log 2>&1 || true
+        -serial stdio > boot.log 2>&1 || true
     - grep -q -E "(TianoCore|EDK II|UEFI Interactive Shell|BdsDxe)" boot.log
