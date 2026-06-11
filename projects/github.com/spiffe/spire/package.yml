@@ -5,26 +5,20 @@ distributable:
 versions:
   github: spiffe/spire
 
-platforms:
-  - linux/x86-64
-  - linux/aarch64
-  - darwin/x86-64
-  - darwin/aarch64
-
 build:
   dependencies:
-    go.dev: '*'
+    go.dev: "*"
   script:
-    - run: |
-        for cmd in spire-server spire-agent; do
-          (cd cmd/$cmd && go build -trimpath -ldflags "$GO_LDFLAGS" -o {{prefix}}/bin/$cmd .)
-        done
+    - run: go build -trimpath -ldflags "$GO_LDFLAGS" -o {{prefix}}/bin/spire-server .
+      working-directory: cmd/spire-server
+    - run: go build -trimpath -ldflags "$GO_LDFLAGS" -o {{prefix}}/bin/spire-agent .
+      working-directory: cmd/spire-agent
   env:
     CGO_ENABLED: 0
     GO_LDFLAGS:
       - -s
       - -w
-      - -X github.com/spiffe/spire/pkg/common/version.gittag={{version.raw}}
+      - -X github.com/spiffe/spire/pkg/common/version.gittag={{version}}
   skip: fix-patchelf
 
 provides:
@@ -32,9 +26,5 @@ provides:
   - bin/spire-agent
 
 test:
-  # spire-{server,agent} are servers; their CLI doesn't expose a clean
-  # version or help that exits 0 without SIGPIPE through `head`.
-  # We've already validated the build via ldflags (no panic) and the
-  # binaries are linked. Just confirm they're executable.
-  - test -x '{{prefix}}/bin/spire-server'
-  - test -x '{{prefix}}/bin/spire-agent'
+  - test "$(spire-server --version 2>&1)" = "{{version}}"
+  - test "$(spire-agent --version 2>&1)" = "{{version}}"
