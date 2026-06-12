@@ -20,32 +20,30 @@ versions:
   # Pin to the 8.x line — drop everything else.
   ignore:
     - /^[0-79]\./
-    - /^9\./
     - /^[1-9][0-9]/
 
 # Linux only. Darwin's old SDK situation makes gcc 8 hard to bring
 # up — users on darwin needing legacy C++ are better off with clang
 # from llvm.org which has its own legacy mode.
 platforms:
-  - linux/x86-64
-  - linux/aarch64
+  - linux
 
 dependencies:
-  gnu.org/binutils: '*'
+  gnu.org/binutils: "*"
   gnu.org/gmp: ~6
   gnu.org/mpfr: ~4
   gnu.org/mpc: ~1
   zlib.net: ^1.3
+  pkgx.sh: ">=1"
 
 build:
   dependencies:
     linux:
-      gnu.org/gcc: '*'   # bootstrap with current gcc
-    gnu.org/make: '*'
-    perl.org: '*'
-    gnu.org/patch: '*'
-    curl.se: '*'
-    github.com/westes/flex: '*'
+      gnu.org/gcc: "*" # bootstrap with current gcc
+    perl.org: "*"
+    gnu.org/patch: "*"
+    curl.se: "*"
+    github.com/westes/flex: "*"
 
   working-directory: build
   script:
@@ -57,12 +55,16 @@ build:
     # gcc symlinks expected by some build systems. This recipe lives
     # one level deeper than the main gnu.org/gcc (v8 subdir), so the
     # relative path to binutils needs `../../../../` (4 levels).
-    - run: |
-        cd "{{prefix}}/bin"
-        ln -sf gcc cc
-        ln -sf ../../../../binutils/v\*/bin/ar ar
-        ln -sf ../../../../binutils/v\*/bin/nm nm
-        ln -sf ../../../../binutils/v\*/bin/ranlib ranlib
+    - run:
+        - ln -sf gcc cc
+        - install -m755 $PROP ar
+        - install -m755 $PROP nm
+        - install -m755 $PROP ranlib
+      prop: |
+        #!/bin/sh
+        TOOL=$(basename "$0")
+        exec pkgx +gnu.org/binutils "$TOOL" "$@"
+      working-directory: "{{prefix}}/bin"
 
   env:
     ARGS:
@@ -80,20 +82,24 @@ build:
       CXXFLAGS: -fPIC
 
 test:
-  - gcc --version | grep -q "pkgx GCC {{version}}"
-  - gcc -dumpversion | grep -q "^8\."
+  - gcc --version | tee out
+  - grep "pkgx GCC {{version}}" out
+  - gcc -dumpversion | tee out
+  - grep "^8\." out
 
-provides:
-  - bin/ar
-  - bin/cc
-  - bin/c++
-  - bin/cpp
-  - bin/g++
-  - bin/gcc
-  - bin/gcc-ar
-  - bin/gcc-nm
-  - bin/gcc-ranlib
-  - bin/gcov
-  - bin/gfortran
-  - bin/nm
-  - bin/ranlib
+# it's not wise to publish these, since this is a legacy compiler.
+# if people want it, they'll invoke it explicitly.
+# provides:
+#   - bin/ar
+#   - bin/cc
+#   - bin/c++
+#   - bin/cpp
+#   - bin/g++
+#   - bin/gcc
+#   - bin/gcc-ar
+#   - bin/gcc-nm
+#   - bin/gcc-ranlib
+#   - bin/gcov
+#   - bin/gfortran
+#   - bin/nm
+#   - bin/ranlib
