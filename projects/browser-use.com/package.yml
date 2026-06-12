@@ -13,11 +13,13 @@ runtime:
     PYTHONPATH: ${{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH
 
 build:
-  rust-lang.org: '*' # for rpds
+  rust-lang.org: "*" # for rpds
   script:
+    # newer versions require openssl.org^3 for rust builds
+    - pkgx +openssl.org^3
     - python -m pip install --prefix={{prefix}} . playwright $ADDITIONAL_PACKAGES
     # needs headerpad
-    - run: 'python -m pip install --no-deps --force-reinstall --no-cache-dir -v --no-binary :all: --prefix={{prefix}} jiter rpds-py'
+    - run: "python -m pip install --no-deps --force-reinstall --no-cache-dir -v --no-binary :all: --prefix={{prefix}} jiter rpds-py"
       if: darwin
   skip: fix-machos # breaks binaries on aarch64
   env:
@@ -27,5 +29,8 @@ build:
       ADDITIONAL_PACKAGES: torch>=1.11.0,<2.3.0
     darwin:
       LDFLAGS: $LDFLAGS -Wl,-headerpad_max_install_names
+    # for the rust builds
+    OPENSSL_STATIC: "1"
+    OPENSSL_DIR: "{{pkgx.prefix}}/openssl.org/v3"
 
 test: python -c 'import browser_use; print(browser_use)'
