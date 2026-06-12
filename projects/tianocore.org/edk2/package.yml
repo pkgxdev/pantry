@@ -51,6 +51,15 @@ build:
       # CLANGPDB toolchain emits PE/COFF directly via lld-link, avoiding
       # the macOS-only `mtoc` that XCODE5 requires.
       llvm.org: '*'
+  env:
+    darwin:
+      # EDK II's CLANGPDB toolchain calls clang/lld-link as
+      # `DEF(CLANG_BIN)<tool>`. Pin CLANG_BIN to our llvm.org bottle's bin
+      # (trailing slash required) so it uses absolute paths. Without it the
+      # bare `lld-link` hits brewkit's PATH shim, which execs a
+      # non-existent /usr/bin/lld-link → `lld-link: No such file`. Using
+      # the dep prefix (not `which clang`) avoids resolving to that shim.
+      CLANG_BIN: "{{deps.llvm.org.prefix}}/bin/"
   script:
     - run: |
         set -e
@@ -89,14 +98,17 @@ build:
         . ./edksetup.sh BaseTools
 
         # EDK II's toolchain tag is platform-specific:
-        #   GCC5     → Linux gcc/clang, ld.bfd or ld.lld
+        #   GCC      → Linux gcc/clang, ld.bfd or ld.lld. (Modern EDK II
+        #              dropped the old GCC5/GCC49/... family tags in favour
+        #              of a single GCC; edk2-stable202605's tools_def only
+        #              ships *_GCC_*, so GCC5 errors `[GCC5] not defined`.)
         #   CLANGPDB → cross-platform clang + lld-link → PE/COFF directly
         #              (used on Darwin to skip the macOS-only mtoc hop)
         case "$(uname -s)" in
           Darwin) TC=CLANGPDB ;;
-          *)      TC=GCC5     ;;
+          *)      TC=GCC      ;;
         esac
-        echo "edk2: using toolchain tag $TC"
+        echo "edk2: using toolchain tag $TC (CLANG_BIN=${CLANG_BIN:-unset})"
 
         # Recent clang (>=20) tightens -Wcast-function-type-mismatch, which
         # trips OpenSSL's pem_password_cb casts in CryptoPkg/BaseCryptLib.
