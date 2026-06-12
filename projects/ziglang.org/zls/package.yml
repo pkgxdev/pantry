@@ -17,33 +17,29 @@ distributable:
 versions:
   github: zigtools/zls
   ignore:
-    - /^0\.16/  # requires unreleased zig 0.16
-
-platforms:
-  - darwin
-  - linux/x86-64
-  - linux/aarch64
+    - /^0\.16/ # requires unreleased zig 0.16
 
 build:
   dependencies:
-    ziglang.org: '~0.15.1'  # zls 0.15.x minimum_zig_version
+    ziglang.org: "~0.15.1" # zls 0.15.x minimum_zig_version
   # zig produces statically-linked binaries; skip the patchelf step
   # (same rationale as the ziglang.org parent recipe).
   skip: fix-patchelf
-  script:
-    # Keep zig's caches inside the build tree so the build is hermetic
-    # and we don't touch $HOME. zig's package manager will fetch
-    # zls's declared dependencies (known-folders, diffz, lsp-kit)
-    # over the network during `zig build`.
-    - run: |
-        zig build install \
-          --prefix "{{prefix}}" \
-          -Doptimize=ReleaseSafe \
-          --global-cache-dir "$PWD/.zig-global-cache" \
-          --cache-dir "$PWD/.zig-build-cache"
+  # Keep zig's caches inside the build tree so the build is hermetic
+  # and we don't touch $HOME. zig's package manager will fetch
+  # zls's declared dependencies (known-folders, diffz, lsp-kit)
+  # over the network during `zig build`.
+  script: zig build install $BUILD_OPTS
+  env:
+    BUILD_OPTS:
+      - --prefix "{{prefix}}"
+      - -Doptimize=ReleaseSafe
+      - --global-cache-dir "$PWD/.zig-global-cache"
+      - --cache-dir "$PWD/.zig-build-cache"
 
 provides:
   - bin/zls
 
 test:
-  - zls --version | grep -F '{{version}}'
+  - zls --version | tee out
+  - grep -F '{{version}}' out
