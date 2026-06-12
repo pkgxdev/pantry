@@ -99,10 +99,17 @@ test:
       # live `--refresh` (curl → repomd), parses it (libsolv), opens an
       # rpmdb in the user-writable installroot (rpm), and resolves a
       # real package — all into testdir-local install/cache roots.
+      # tdnf only sets CURLOPT_CAINFO when a repo has `sslcacert`
+      # (client/repoutils.c); otherwise libcurl falls back to its
+      # compiled-in default bundle — present in the rooted Rocky
+      # container but absent on the bare Ubuntu runner, where the
+      # refresh dies with `Problem with the SSL CA cert`. Point the
+      # repo at the ca-certs bundle pkgx exposes via $SSL_CERT_FILE.
     - tdnf
       --config="$PWD/tdnf.conf"
       --setopt=reposdir="$PWD/yum.repos.d"
       --setopt=cachedir="$PWD/cache"
+      --setopt=rocky-baseos.sslcacert="$SSL_CERT_FILE"
       --installroot="$PWD/${ROOTFS}"
       --releasever="${RELEASE}"
       --forcearch="$ARCH"
