@@ -36,13 +36,10 @@ provides:
   - bin/zsyncmake
 
 test:
-  env:
-    ZSYNCMAKE: "{{prefix}}/bin/zsyncmake"
-    ZSYNC: "{{prefix}}/bin/zsync"
-  script:
-    - $ZSYNCMAKE -V 2>&1 | grep -F {{version}}
-    # generate metadata for a local file, then transfer it via file:// URL
-    - head -c 65536 /dev/urandom > basis.bin
-    - cp basis.bin original.bin
-    - $ZSYNCMAKE -u file://$(pwd)/original.bin -o original.zsync original.bin
-    - test -f original.zsync
+  - zsyncmake -V 2>&1 | tee out
+  - grep -F {{version}} out
+  # generate metadata for a local file, then transfer it via file:// URL
+  - head -c 65536 /dev/urandom > basis.bin
+  - cp basis.bin original.bin
+  - zsyncmake -u file://$(pwd)/original.bin -o original.zsync original.bin
+  - test -f original.zsync
