@@ -1,0 +1,59 @@
+# zigup — Download and manage Zig compilers
+#
+# zigup is a small CLI to install, switch between, and manage multiple
+# versions of the Zig compiler (separate from pkgx's own ziglang.org bottle).
+# It writes compilers to its own install-dir (see `zigup get-install-dir`),
+# so users who want to juggle Zig versions outside of pkgx environments can
+# use it as their dedicated version manager.
+#
+# This recipe builds zigup from source using pantry's `ziglang.org` (the
+# Zig compiler) — no vendored binaries. zigup's `build.zig.zon` declares
+# `.minimum_zig_version = "0.14.0"` and ships no `.dependencies`, so the
+# build is self-contained (no Zig-package-manager fetching needed).
+#
+# Note: zigup's upstream README contains a soft-deprecation notice — its
+# author has switched to `anyzig` and recommends it. zigup remains
+# supported by upstream, and many users still rely on it.
+#
+# Upstream tags this project as `vYYYY_MM_DD` (e.g. `v2025_05_24`).
+# libpkgx's version parser converts underscores to dots when no dots are
+# present, so `v2025_05_24` is parsed as `2025.5.24`; we use
+# `{{ version.tag }}` in the distributable URL to get the literal upstream
+# tag back.
+
+distributable:
+  url: https://github.com/marler8997/zigup/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: marler8997/zigup
+
+build:
+  dependencies:
+    # Upstream's build.zig.zon declares `.minimum_zig_version = "0.14.0"`,
+    # but zigup's build.zig uses `std.builtin.Mode`, which was removed in
+    # Zig 0.15 (`error: root source file struct 'builtin' has no member
+    # named 'Mode'`). Pin to the 0.14 series until upstream catches up.
+    ziglang.org: ^0.14
+  script: zig build install $BUILD_OPTS
+  # zig produces static binaries — patchelf is unnecessary and can break them
+  skip: fix-patchelf
+  env:
+    BUILD_OPTS:
+      - --prefix "{{prefix}}"
+      # zigup's build.zig calls `b.standardOptimizeOption(.{
+      #   .preferred_optimize_mode = .ReleaseSafe })`. In Zig 0.14, that
+      # registers `--release` (boolean) instead of `-Doptimize=...`; pass
+      # `--release` to opt into the preferred ReleaseSafe build.
+      - --release
+      - --global-cache-dir "$PWD/.zig-global-cache"
+      - --cache-dir "$PWD/.zig-build-cache"
+
+provides:
+  - bin/zigup
+
+test:
+  # `zigup --help` writes usage to stderr and exits 0; redirect to stdout
+  # so grep can assert the binary actually printed its help text
+  - zigup --help 2>&1 | tee out
+  - grep -i 'usage' out
