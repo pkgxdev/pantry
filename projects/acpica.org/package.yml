@@ -10,7 +10,7 @@
 
 distributable:
   url: git+https://github.com/acpica/acpica
-  ref: '{{version.raw}}'
+  ref: "{{version.tag}}"
 
 versions:
   github: acpica/acpica/tags
@@ -18,30 +18,18 @@ versions:
 
 build:
   dependencies:
-    github.com/westes/flex: '*'
-    gnu.org/bison: '*'
-    gnu.org/make: '*'
+    github.com/westes/flex: "*"
+    gnu.org/bison: "*"
     linux:
-      gnu.org/gcc: '*'
+      gnu.org/gcc: "*"
+  env:
+    darwin:
+      EXTRA_MAKEFLAGS:
+        - CC=clang
+        - OPT_LDFLAGS="-Wl,-no_fixup_chains"
   script:
-    - run: |
-        set -e
-        case "$(uname -s)" in
-          Darwin)
-            # ACPICA keeps function pointers in `__DATA,__const` tables
-            # that aren't 8-byte aligned. The arm64 mach-o linker's
-            # chained-fixups format requires that alignment and aborts
-            # with "pointer not aligned in '_AcpiExDumpNode'". Disabling
-            # chained fixups sidesteps it (lld emits the same advice).
-            make iasl CC=clang OPT_LDFLAGS="-Wl,-no_fixup_chains"
-            ;;
-          *)
-            # CC defaults to gcc (from gnu.org/gcc above).
-            make iasl
-            ;;
-        esac
-        mkdir -p "{{prefix}}/bin"
-        install -m 0755 generate/unix/bin/iasl "{{prefix}}/bin/iasl"
+    - make iasl $EXTRA_MAKEFLAGS
+    - install -Dm0755 generate/unix/bin/iasl "{{prefix}}/bin/iasl"
 
 provides:
   - bin/iasl
@@ -49,9 +37,9 @@ provides:
 test:
   - iasl -v
   # Compile a trivial SSDT and confirm an .aml falls out.
-  - |
-    cat > t.asl <<'ASL'
-    DefinitionBlock ("", "SSDT", 2, "TEST", "T", 0x1) { Name (X, 0x42) }
-    ASL
-    iasl t.asl
-    test -s t.aml
+  - run: cp $FIXTURE t.asl
+    fixture:
+      extname: asl
+      content: DefinitionBlock ("", "SSDT", 2, "TEST", "T", 0x1) { Name (X, 0x42) }
+  - iasl t.asl
+  - test -s t.aml
