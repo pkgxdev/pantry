@@ -185,7 +185,11 @@ build:
               -p ArmVirtPkg/ArmVirtQemu.dsc \
               -D NETWORK_HTTP_BOOT_ENABLE=TRUE \
               -n {{ hw.concurrency }}; then
-          OUT_AARCH64="Build/ArmVirtQemu-AARCH64/RELEASE_${TC}/FV"
+          # ArmVirtQemu.dsc names its output dir `ArmVirtQemu-AArch64`
+          # (mixed case, from the DSC, not the -a flag). Hardcoding
+          # `AARCH64` worked on darwin's case-insensitive FS but `install`
+          # couldn't find it on case-sensitive Linux — glob it instead.
+          OUT_AARCH64=$(ls -d Build/ArmVirtQemu-*/RELEASE_${TC}/FV 2>/dev/null | head -1)
           install -m 0644 "$OUT_AARCH64/QEMU_EFI.fd"  "{{prefix}}/share/qemu/edk2-aarch64-code.fd"
           install -m 0644 "$OUT_AARCH64/QEMU_VARS.fd" "{{prefix}}/share/qemu/edk2-arm-vars.fd"
         else
