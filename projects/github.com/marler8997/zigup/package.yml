@@ -27,13 +27,6 @@ distributable:
 
 versions:
   github: marler8997/zigup
-  strip: /^v/
-
-platforms:
-  - darwin/aarch64
-  - darwin/x86-64
-  - linux/aarch64
-  - linux/x86-64
 
 build:
   dependencies:
@@ -42,18 +35,19 @@ build:
     # Zig 0.15 (`error: root source file struct 'builtin' has no member
     # named 'Mode'`). Pin to the 0.14 series until upstream catches up.
     ziglang.org: ^0.14
-  script: |
-    # zigup's build.zig calls `b.standardOptimizeOption(.{
-    #   .preferred_optimize_mode = .ReleaseSafe })`. In Zig 0.14, that
-    # registers `--release` (boolean) instead of `-Doptimize=...`; pass
-    # `--release` to opt into the preferred ReleaseSafe build.
-    zig build install \
-      --prefix "{{prefix}}" \
-      --release \
-      --global-cache-dir "$PWD/.zig-global-cache" \
-      --cache-dir "$PWD/.zig-build-cache"
+  script: zig build install $BUILD_OPTS
   # zig produces static binaries — patchelf is unnecessary and can break them
   skip: fix-patchelf
+  env:
+    BUILD_OPTS:
+      - --prefix "{{prefix}}"
+      # zigup's build.zig calls `b.standardOptimizeOption(.{
+      #   .preferred_optimize_mode = .ReleaseSafe })`. In Zig 0.14, that
+      # registers `--release` (boolean) instead of `-Doptimize=...`; pass
+      # `--release` to opt into the preferred ReleaseSafe build.
+      - --release
+      - --global-cache-dir "$PWD/.zig-global-cache"
+      - --cache-dir "$PWD/.zig-build-cache"
 
 provides:
   - bin/zigup
@@ -61,4 +55,5 @@ provides:
 test:
   # `zigup --help` writes usage to stderr and exits 0; redirect to stdout
   # so grep can assert the binary actually printed its help text
-  - zigup --help 2>&1 | grep -qi 'usage'
+  - zigup --help 2>&1 | tee out
+  - grep -i 'usage' out
