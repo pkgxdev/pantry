@@ -151,43 +151,56 @@ build:
 
         mkdir -p "{{prefix}}/share/qemu"
 
-        # ── X64 (amd64) ─────────────────────────────────────────────
-        build -a X64 -t "$TC" -b RELEASE \
+        # Build both QEMU firmware targets. The host-native arch always
+        # builds; the foreign arch needs a cross-compiler. clang (darwin
+        # CLANGPDB) cross-compiles freely, so darwin bottles carry both
+        # blobs. GCC on Linux only targets its own arch — the X64 OvmfPkg
+        # build feeds x86-only flags (-m64, -mno-red-zone, -mno-sse, …) to
+        # gcc, which a native aarch64 gcc rejects (and vice-versa). So each
+        # target is best-effort; we require the host-native blob at the end.
+        HOST_ARCH="$(uname -m)"
+
+        # ── X64 (amd64) → edk2-x86_64-code.fd / edk2-i386-vars.fd ──
+        if build -a X64 -t "$TC" -b RELEASE \
               -p OvmfPkg/OvmfPkgX64.dsc \
               -D SECURE_BOOT_ENABLE=TRUE \
               -D TPM2_ENABLE=TRUE \
               -D NETWORK_IP6_ENABLE=TRUE \
               -D NETWORK_HTTP_BOOT_ENABLE=TRUE \
-              -n {{ hw.concurrency }}
-
-        OUT_X64="Build/OvmfX64/RELEASE_${TC}/FV"
-        install -m 0644 "$OUT_X64/OVMF_CODE.fd" \
-                "{{prefix}}/share/qemu/edk2-x86_64-code.fd"
-        install -m 0644 "$OUT_X64/OVMF_VARS.fd" \
-                "{{prefix}}/share/qemu/edk2-i386-vars.fd"
-
-        # Combined CODE+VARS image (qemu `-bios` style, easier to test).
-        if [ -f "$OUT_X64/OVMF.fd" ]; then
-          install -m 0644 "$OUT_X64/OVMF.fd" \
-                  "{{prefix}}/share/qemu/edk2-x86_64.fd"
+              -n {{ hw.concurrency }}; then
+          OUT_X64="Build/OvmfX64/RELEASE_${TC}/FV"
+          install -m 0644 "$OUT_X64/OVMF_CODE.fd" "{{prefix}}/share/qemu/edk2-x86_64-code.fd"
+          install -m 0644 "$OUT_X64/OVMF_VARS.fd" "{{prefix}}/share/qemu/edk2-i386-vars.fd"
+          # Combined CODE+VARS image (qemu `-bios` style).
+          if [ -f "$OUT_X64/OVMF.fd" ]; then
+            install -m 0644 "$OUT_X64/OVMF.fd" "{{prefix}}/share/qemu/edk2-x86_64.fd"
+          fi
+        else
+          echo "edk2: X64 build failed — expected when cross-compiling from a non-x86_64 host with GCC; continuing"
         fi
 
-        # ── AARCH64 (arm64) ─────────────────────────────────────────
-        # ArmVirtQemu emits QEMU_EFI.fd + QEMU_VARS.fd. GCC5 + CLANGPDB
-        # can both target AARCH64 PE/COFF as long as the host toolchain
-        # ships a cross-compiler.
-        build -a AARCH64 -t "$TC" -b RELEASE \
+        # ── AARCH64 (arm64) → edk2-aarch64-code.fd / edk2-arm-vars.fd ──
+        # ArmVirtQemu emits QEMU_EFI.fd + QEMU_VARS.fd.
+        if build -a AARCH64 -t "$TC" -b RELEASE \
               -p ArmVirtPkg/ArmVirtQemu.dsc \
               -D NETWORK_HTTP_BOOT_ENABLE=TRUE \
-              -n {{ hw.concurrency }} \
-          || echo "edk2: aarch64 build failed; continuing (non-fatal)"
+              -n {{ hw.concurrency }}; then
+          OUT_AARCH64="Build/ArmVirtQemu-AARCH64/RELEASE_${TC}/FV"
+          install -m 0644 "$OUT_AARCH64/QEMU_EFI.fd"  "{{prefix}}/share/qemu/edk2-aarch64-code.fd"
+          install -m 0644 "$OUT_AARCH64/QEMU_VARS.fd" "{{prefix}}/share/qemu/edk2-arm-vars.fd"
+        else
+          echo "edk2: AARCH64 build failed — expected when cross-compiling from a non-arm64 host with GCC; continuing"
+        fi
 
-        OUT_AARCH64="Build/ArmVirtQemu-AARCH64/RELEASE_${TC}/FV"
-        if [ -f "$OUT_AARCH64/QEMU_EFI.fd" ]; then
-          install -m 0644 "$OUT_AARCH64/QEMU_EFI.fd" \
-                  "{{prefix}}/share/qemu/edk2-aarch64-code.fd"
-          install -m 0644 "$OUT_AARCH64/QEMU_VARS.fd" \
-                  "{{prefix}}/share/qemu/edk2-arm-vars.fd"
+        # A bottle with no firmware for its own host arch is a hard fail.
+        case "$HOST_ARCH" in
+          x86_64)        NATIVE_FW="{{prefix}}/share/qemu/edk2-x86_64-code.fd"  ;;
+          arm64|aarch64) NATIVE_FW="{{prefix}}/share/qemu/edk2-aarch64-code.fd" ;;
+          *)             NATIVE_FW="" ;;
+        esac
+        if [ -n "$NATIVE_FW" ] && [ ! -s "$NATIVE_FW" ]; then
+          echo "edk2: FATAL — host-native firmware $NATIVE_FW was not produced" >&2
+          exit 1
         fi
 
         # Thin shim so pkgx has at least one `bin/*` entry to advertise
@@ -231,24 +244,46 @@ test:
     # not found`.
     gnu.org/coreutils: '*'
   script:
-    # The firmware blobs exist and are non-empty.
-    - test -s "{{prefix}}/share/qemu/edk2-x86_64-code.fd"
-    - test -s "{{prefix}}/share/qemu/edk2-i386-vars.fd"
+    # Boot whichever firmware blobs this bottle shipped, each under its
+    # matching qemu, and confirm UEFI reaches the Boot Manager (BdsDxe)
+    # with no boot device. Which blobs exist is host-dependent: darwin
+    # carries both (clang cross-compiles), Linux only its native arch.
+    # We require at least one to boot.
+    #
+    # `-display none -serial stdio` is headless with the firmware console
+    # on our pipe. Do NOT add `-nographic`: it also grabs stdio for the
+    # monitor and qemu aborts ("cannot use stdio by multiple character
+    # devices").
+    - |
+      Q="{{prefix}}/share/qemu"
+      tested=0
+      booted() { grep -q -E "(TianoCore|EDK II|UEFI Interactive Shell|BdsDxe)" "$1"; }
 
-    # Boot qemu-system-x86_64 with the firmware and a writable vars
-    # copy. `-display none` keeps it headless while `-serial stdio`
-    # routes the firmware's console to our pipe. (Do NOT add
-    # `-nographic`: it also grabs stdio for the monitor and qemu aborts
-    # with "cannot use stdio by multiple character devices".) UEFI
-    # starts, finds no boot device, and waits at the Boot Manager — we
-    # just confirm it reached BdsDxe without faulting.
-    - cp "{{prefix}}/share/qemu/edk2-i386-vars.fd" ./vars.fd
-    - timeout 20 qemu-system-x86_64
-        -machine q35,accel=tcg
-        -m 256
-        -drive if=pflash,format=raw,readonly=on,file={{prefix}}/share/qemu/edk2-x86_64-code.fd
-        -drive if=pflash,format=raw,file=./vars.fd
-        -display none
-        -no-reboot
-        -serial stdio > boot.log 2>&1 || true
-    - grep -q -E "(TianoCore|EDK II|UEFI Interactive Shell|BdsDxe)" boot.log
+      # x86_64 firmware (x86_64 hosts + all darwin)
+      if [ -s "$Q/edk2-x86_64-code.fd" ]; then
+        cp "$Q/edk2-i386-vars.fd" vars-x64.fd
+        timeout 90 qemu-system-x86_64 \
+          -machine q35,accel=tcg -m 256 \
+          -drive if=pflash,format=raw,readonly=on,file="$Q/edk2-x86_64-code.fd" \
+          -drive if=pflash,format=raw,file=vars-x64.fd \
+          -display none -no-reboot -serial stdio > boot-x64.log 2>&1 || true
+        if booted boot-x64.log; then echo "x86_64 firmware reached BdsDxe"; tested=1
+        else echo "x86_64 boot FAILED"; cat boot-x64.log; exit 1; fi
+      fi
+
+      # aarch64 firmware (arm64 hosts + all darwin). ArmVirt pflash images
+      # must be 64MiB, so pad the copies.
+      if [ -s "$Q/edk2-aarch64-code.fd" ]; then
+        cp "$Q/edk2-aarch64-code.fd" code-a64.fd
+        cp "$Q/edk2-arm-vars.fd"     vars-a64.fd
+        truncate -s 64m code-a64.fd vars-a64.fd
+        timeout 90 qemu-system-aarch64 \
+          -machine virt -cpu cortex-a57 -m 256 \
+          -drive if=pflash,format=raw,readonly=on,file=code-a64.fd \
+          -drive if=pflash,format=raw,file=vars-a64.fd \
+          -display none -no-reboot -serial stdio > boot-a64.log 2>&1 || true
+        if booted boot-a64.log; then echo "aarch64 firmware reached BdsDxe"; tested=1
+        else echo "aarch64 boot FAILED"; cat boot-a64.log; exit 1; fi
+      fi
+
+      [ "$tested" = 1 ] || { echo "no firmware blob was present to test"; exit 1; }
