@@ -42,6 +42,11 @@ build:
     acpica.org: '*'
     linux:
       gnu.org/gcc: '*'
+      # BaseTools' GenFv #includes <uuid/uuid.h> and links -luuid; on
+      # Linux that comes from util-linux's libuuid (on darwin it's in the
+      # SDK). Without it the BaseTools build fails:
+      # `GenFvInternalLib.c: fatal error: uuid/uuid.h: No such file`.
+      github.com/util-linux/util-linux: '*'
     darwin:
       # CLANGPDB toolchain emits PE/COFF directly via lld-link, avoiding
       # the macOS-only `mtoc` that XCODE5 requires.
@@ -104,7 +109,12 @@ build:
           sed -i.bak -E \
             "s@^([[:space:]]*(DEBUG|RELEASE|NOOPT)_${TC}_[A-Z0-9]+_CC_FLAGS[[:space:]]*=.*)\$@\\1 ${EXTRA}@" \
             Conf/tools_def.txt
-          echo "edk2: patched $(grep -cE \"^[[:space:]]*(DEBUG|RELEASE|NOOPT)_${TC}_[A-Z0-9]+_CC_FLAGS.*cast-function-type-mismatch\" Conf/tools_def.txt) ${TC} CC_FLAGS lines"
+          # Count patched lines in two steps — a `$(grep …"(…)"…)` nested
+          # inside an `echo "…"` tripped a parse error (`unexpected token
+          # (`) on the darwin runner's shell. `grep -c` returns 1 when it
+          # matches nothing, so guard with `|| true` under `set -e`.
+          patched=$(grep -cE "^[[:space:]]*(DEBUG|RELEASE|NOOPT)_${TC}_[A-Z0-9]+_CC_FLAGS.*cast-function-type-mismatch" Conf/tools_def.txt || true)
+          echo "edk2: patched ${patched} ${TC} CC_FLAGS lines"
 
           # CryptoPkg overrides CC_FLAGS in its DSC, so the tools_def
           # patch isn't enough — patch the source file directly to
