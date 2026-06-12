@@ -62,21 +62,26 @@ build:
     - URL="https://github.com/mstorsjo/llvm-mingw/releases/download/{{version.raw}}/llvm-mingw-{{version.raw}}-ucrt-${PLATFORM}.tar.xz"
     - echo "fetching $URL"
     - curl -Lfo llvm-mingw.tar.xz "$URL"
-    - tar Jxf llvm-mingw.tar.xz --strip-components=1 -C .
 
-    # Copy the prebuilt toolchain into {{prefix}}. Upstream's drivers
-    # (x86_64-w64-mingw32-clang etc.) are wrappers that call into
-    # ../lib/clang/.../bin via relative paths — already relocatable.
-    # brewkit doesn't pre-create {{prefix}}, so mkdir it first;
-    # otherwise `cp -a bin {{prefix}}/` fails with "cannot create
-    # directory" on the first cp.
-    - mkdir -p "{{prefix}}"
-    - cp -a bin "{{prefix}}/"
-    - cp -a lib "{{prefix}}/"
-    - |
-      for d in share include; do
-        [ -d "$d" ] && cp -a "$d" "{{prefix}}/"
-      done
+    # Copy the WHOLE prebuilt toolchain into {{prefix}}. Upstream's
+    # drivers (x86_64-w64-mingw32-clang etc.) are wrappers that call
+    # into ../lib/clang/.../bin via relative paths — already
+    # relocatable. Extract into a staging dir (keeps the downloaded
+    # tarball out of the copy) and copy everything.
+    #
+    # Copying the full tree matters: besides bin/lib/include/share,
+    # llvm-mingw ships per-target sysroots — generic-w64-mingw32/include
+    # holds the mingw headers (stdio.h & friends) and each
+    # <triple>-w64-mingw32/lib holds the import libs. Cherry-picking only
+    # bin+lib+share+include dropped those, so the cross compiler couldn't
+    # find its own headers ("'stdio.h' file not found"). This was masked
+    # on the Linux CI sandbox (its old glibc can't even load the clang,
+    # so the compile test skipped) and only bit on darwin, which runs it.
+    #
+    # brewkit doesn't pre-create {{prefix}}, so mkdir it first.
+    - rm -rf staging && mkdir -p staging "{{prefix}}"
+    - tar Jxf llvm-mingw.tar.xz --strip-components=1 -C staging
+    - cp -a staging/. "{{prefix}}/"
 
 test:
   # winehq.org/wine is a soft dep — if present, we actually run the
