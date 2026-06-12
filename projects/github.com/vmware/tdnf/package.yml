@@ -61,53 +61,52 @@ test:
   #     `pkgx tdnf` (trips brewkit's auto-fetch / refuse-to-update).
   #   - --forcearch needs RPM's `_` form (`{{hw.arch}}` is "x86-64").
   env:
-    RELEASE: '10'
+    RELEASE: "10"
     ROOTFS: rocky-${RELEASE}-rootfs
+    x86-64:
+      ARCH: x86_64
+    aarch64:
+      ARCH: aarch64
   script:
     - run: 'test "$(tdnf --version)" = "tdnf: {{version}}"'
-    - run: |
-        # Seed tdnf.conf + Rocky BaseOS repo file — pkgx runners have
-        # neither /etc/tdnf/tdnf.conf nor /etc/yum.repos.d (no system
-        # tdnf install). Without the conf, tdnf returns error 1602
-        # (CONF_FILE_LOAD). Pass both via --config + --setopt=reposdir.
-        mkdir -p "$PWD/yum.repos.d"
-        cat > "$PWD/tdnf.conf" <<'CONF'
+      # Seed tdnf.conf + Rocky BaseOS repo file — pkgx runners have
+      # neither /etc/tdnf/tdnf.conf nor /etc/yum.repos.d (no system
+      # tdnf install). Without the conf, tdnf returns error 1602
+      # (CONF_FILE_LOAD). Pass both via --config + --setopt=reposdir.
+    - run: cp $FIXTURE tdnf.conf
+      fixture: |
         [main]
         gpgcheck=0
         installonly_limit=3
         clean_requirements_on_remove=true
         best=true
         keepcache=false
-        CONF
-        cat > "$PWD/yum.repos.d/rocky.repo" <<'REPO'
+    - run: cp $FIXTURE rocky.repo
+      working-directory: yum.repos.d
+      fixture: |
         [rocky-baseos]
         name=Rocky Linux $releasever BaseOS
         baseurl=https://download.rockylinux.org/pub/rocky/$releasever/BaseOS/$basearch/os/
         gpgcheck=0
         enabled=1
-        REPO
 
-        case "{{hw.arch}}" in
-          x86-64)  ARCH=x86_64  ;;
-          aarch64) ARCH=aarch64 ;;
-        esac
-        # `install` carries tdnf's ReqRoot flag (tools/cli/main.c) and
-        # bails with `Error(1601): you have to be root` off any non-root
-        # runner — which is exactly the asymmetry that left x86_64 (root
-        # container) green but aarch64 (unprivileged runner) red. So
-        # exercise the same end-to-end stack with a read-only command,
-        # which tdnf does NOT gate on root: `list available` still does a
-        # live `--refresh` (curl → repomd), parses it (libsolv), opens an
-        # rpmdb in the user-writable installroot (rpm), and resolves a
-        # real package — all into testdir-local install/cache roots.
-        tdnf \
-          --config="$PWD/tdnf.conf" \
-          --setopt=reposdir="$PWD/yum.repos.d" \
-          --setopt=cachedir="$PWD/cache" \
-          --installroot="$PWD/${ROOTFS}" \
-          --releasever="${RELEASE}" \
-          --forcearch="$ARCH" \
-          --refresh \
-          list available filesystem | tee "$PWD/list.out"
-        # tdnf resolved the package out of the live repo metadata.
-        grep -q '^filesystem' "$PWD/list.out"
+      # `install` carries tdnf's ReqRoot flag (tools/cli/main.c) and
+      # bails with `Error(1601): you have to be root` off any non-root
+      # runner — which is exactly the asymmetry that left x86_64 (root
+      # container) green but aarch64 (unprivileged runner) red. So
+      # exercise the same end-to-end stack with a read-only command,
+      # which tdnf does NOT gate on root: `list available` still does a
+      # live `--refresh` (curl → repomd), parses it (libsolv), opens an
+      # rpmdb in the user-writable installroot (rpm), and resolves a
+      # real package — all into testdir-local install/cache roots.
+    - tdnf
+      --config="$PWD/tdnf.conf"
+      --setopt=reposdir="$PWD/yum.repos.d"
+      --setopt=cachedir="$PWD/cache"
+      --installroot="$PWD/${ROOTFS}"
+      --releasever="${RELEASE}"
+      --forcearch="$ARCH"
+      --refresh
+      list available filesystem | tee list.out
+      # tdnf resolved the package out of the live repo metadata.
+    - grep '^filesystem' list.out
