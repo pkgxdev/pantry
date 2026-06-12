@@ -55,6 +55,28 @@ build:
         /AsyncProcessor\.h/a\
         #include <fmt/ranges.h>
       working-directory: thrift/lib/cpp2/server
+    - run:
+        # missing includes exposed by newer dependency/compiler combinations
+        - for f in thrift/lib/cpp2/frozen/FixedSizeStringHash.h thrift/lib/cpp2/protocol/JSONProtocolCommon-inl.h; do
+        - if grep -q '#include <cstring>' "$f"; then continue; fi
+        - sed -i -f $PROP "$f"
+        - done
+        - if ! grep -q '#include <cstring>' thrift/compiler/generate/t_concat_generator.cc; then
+        - |
+          sed -i -e '/#include <cinttypes>/a\
+          #include <cstring>' thrift/compiler/generate/t_concat_generator.cc
+        - fi
+        # fmt/core.h -> fmt/format.h on newer compilers
+        - for f in $(grep -R -l 'fmt::format' thrift); do
+        - if grep -q '#include <fmt/format\.h>' "$f"; then continue; fi
+        - |
+          sed -i -e '/#include <fmt\/core\.h>/a\
+          #include <fmt/format.h>' "$f"
+        - done
+      if: ">=2026.6.8"
+      prop: |
+        /#pragma once/a\
+        #include <cstring>
 
     # llvm's `as` likes to be first, wrongly
     - run: export PATH={{deps.gnu.org/binutils.prefix}}/bin:$PATH

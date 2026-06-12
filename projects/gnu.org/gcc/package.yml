@@ -63,12 +63,7 @@ build:
         # Apply CFI directive fix for x86-64 Darwin (LLVM assembler compatibility)
         - patch -p1 < props/disable-cfi-x86-64-darwin.patch
         # Disable MS ABI stubs on Darwin - not needed and causes CFI/LLVM assembler issues
-        # context differs between 15.2 and 16.x (extra_parts dropped libd10-uwfef.a in 16)
-        - if test {{version.major}} -ge 16; then
-        - patch -p1 < props/disable-msabi-darwin-v16.patch
-        - else
-        - patch -p1 < props/disable-msabi-darwin.patch
-        - fi
+        - sed -i 's/ i386\/t-msabi//g' libgcc/config.host
         # Remove old frame registration symbols from darwin-unwind.ver (GCC 15+ doesn't provide these)
         - patch -p1 < props/remove-old-frame-symbols-darwin.patch
         - fi
@@ -164,6 +159,19 @@ build:
       if: darwin/x86-64
       working-directory: ${{prefix}}/lib
 
+    # Many Linux build systems (autoconf, distutils/setuptools, pip
+    # build backends) probe for the Debian-style multi-arch triplet
+    # binary names ($arch-linux-gnu-gcc, etc.) before falling back to
+    # plain `gcc`. Without these, pip-install of C-extension Python
+    # wheels fails on Ubuntu/Debian rootfs even when gcc IS on PATH.
+    # See pkgxdev/pantry#8423.
+    - run:
+        - for tool in gcc g++ cpp c++ ar nm ranlib; do
+        - if test -e "$tool"; then ln -sf "$tool" "$TRIPLET-$tool"; fi
+        - done
+      if: linux
+      working-directory: ${{prefix}}/bin
+
   env:
     # Branch from the Darwin maintainer of GCC, with a few generic fixes and
     # Apple Silicon support, located at https://github.com/iains/gcc-12-branch
@@ -185,6 +193,7 @@ build:
     BRANCH143: https://github.com/iains/gcc-14-branch/archive/refs/heads/gcc-14-3-darwin-pre-0.tar.gz
     BRANCH151: https://github.com/iains/gcc-15-branch/archive/refs/heads/gcc-15-1-darwin-rc1.tar.gz
     BRANCH152: https://github.com/iains/gcc-15-branch/archive/refs/heads/gcc-15-2-darwin-pre-0.tar.gz
+    BRANCH153: https://github.com/iains/gcc-darwin-arm64/archive/refs/heads/master-wip-apple-si-on-r15-9392-g711c10383f494b.tar.gz
     BRANCH161: https://github.com/iains/gcc-darwin-arm64/archive/refs/heads/master-wip-apple-si-on-r16-8803-g376d03b7b44da2.tar.gz
     ARGS:
       - --prefix={{ prefix }}
@@ -225,8 +234,19 @@ build:
         - -Wa,-mmacos-version-min=10.5
       CFLAGS_FOR_TARGET:
         - -Wa,-mmacos-version-min=10.5
+        # 15.3+ libgcc2.c v* overflow funcs emit `.cfi_advance_loc` symdiffs
+        # across abort() noreturn edges that LLVM's integrated `as` rejects
+        # with "invalid CFI advance_loc expression". Emit unwind via .eh_frame
+        # instead of inline .cfi_* asm directives.
+        - -fno-dwarf2-cfi-asm
       CXXFLAGS_FOR_TARGET:
         - -Wa,-mmacos-version-min=10.5
+        - -fno-dwarf2-cfi-asm
+    # triplets for linux
+    x86-64:
+      TRIPLET: x86_64-linux-gnu
+    aarch64:
+      TRIPLET: aarch64-linux-gnu
 
 test:
   - gcc --version | grep -q "pkgx GCC {{version}}"

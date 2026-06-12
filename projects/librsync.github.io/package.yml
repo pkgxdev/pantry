@@ -1,0 +1,44 @@
+distributable:
+  url: https://github.com/librsync/librsync/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+# Library that implements the rsync remote-delta algorithm (signature / delta /
+# patch). Ships the `rdiff` CLI used as the reference for librsync interop.
+
+versions:
+  github: librsync/librsync/tags
+
+dependencies:
+  rpm.org/popt: ^1
+
+build:
+  dependencies:
+    cmake.org: ^3
+    ninja-build.org: ^1
+  script:
+    - cmake -S . -B build $ARGS
+    - cmake --build build --parallel {{ hw.concurrency }}
+    - cmake --install build
+  env:
+    ARGS:
+      - -GNinja
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DBUILD_RDIFF=ON
+      - -DENABLE_TESTS=OFF
+
+provides:
+  - bin/rdiff
+
+test:
+  script:
+    - rdiff -V | tee out
+    - grep -F {{version}} out
+    # round-trip: signature -> delta -> patch
+    - head -c 65536 /dev/urandom > basis.bin
+    - cp basis.bin new.bin
+    - printf 'edit' >> new.bin
+    - rdiff signature basis.bin basis.sig
+    - rdiff delta basis.sig new.bin new.delta
+    - rdiff patch basis.bin new.delta out.bin
+    - cmp new.bin out.bin
