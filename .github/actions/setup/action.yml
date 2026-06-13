@@ -11,6 +11,16 @@ inputs:
   APPLE_IDENTITY:
     description: Apple identity to use for signing
     required: false
+  skip-codesign-import:
+    description: >
+      When 'true', skip importing the Apple Developer ID into the keychain.
+      Useful for recipes whose binaries require adhoc signing (eg. those
+      carrying com.apple.security.virtualization / .hypervisor entitlements,
+      which need either adhoc or a matching provisioning profile to be
+      accepted by macOS at runtime). Defense-in-depth on top of brewkit's
+      fix-machos.rb policy. See pkgxdev/pantry#7853.
+    required: false
+    default: 'false'
 
 runs:
   using: composite
@@ -38,11 +48,11 @@ runs:
     # delete it if it does.
     - name: Delete keychain
       shell: sh
-      if: runner.os == 'macOS' && inputs.p12-password && inputs.p12-file-base64
+      if: runner.os == 'macOS' && inputs.p12-password && inputs.p12-file-base64 && inputs.skip-codesign-import != 'true'
       run: security delete-keychain signing_temp.keychain || true
 
     - uses: apple-actions/import-codesign-certs@v6
-      if: runner.os == 'macOS' && inputs.p12-password && inputs.p12-file-base64
+      if: runner.os == 'macOS' && inputs.p12-password && inputs.p12-file-base64 && inputs.skip-codesign-import != 'true'
       with:
         p12-file-base64: ${{ inputs.p12-file-base64 }}
         p12-password: ${{ inputs.p12-password }}

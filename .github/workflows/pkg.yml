@@ -16,6 +16,13 @@ on:
       invalidate-cloudfront:
         type: boolean
         default: true
+      skip-codesign-import:
+        description: >
+          Skip importing the Apple Developer ID into the keychain.
+          For recipes whose binaries need adhoc signing (virtualization /
+          hypervisor entitlements). See pkgxdev/pantry#7853.
+        type: boolean
+        default: false
 
 jobs:
   plan:
@@ -54,4 +61,5 @@ jobs:
       tinyname: ${{ matrix.platform.tinyname }}
       complain: ${{ inputs.complain }}
       invalidate-cloudfront: ${{ inputs.invalidate-cloudfront }}
+      skip-codesign-import: ${{ inputs.skip-codesign-import }}
     secrets: inherit
