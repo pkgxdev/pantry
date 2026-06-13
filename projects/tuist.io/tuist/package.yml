@@ -95,6 +95,14 @@ provides:
   - bin/tuist
 
 test:
+  # dyld[15201]: Library not loaded: /usr/lib/swift/libswiftSynchronization.dylib
+  #   Referenced from: <2DBD100C-C440-309E-A712-6806C65F4FEC> /Users/runner/.pkgx/tuist.io/tuist/v4.200.1/bin/tuist (built for macOS 15.0 which is newer than running OS)
+  #   Reason: tried: '/usr/lib/swift/libswiftSynchronization.dylib' (no such file), '/System/Volumes/Preboot/Cryptexes/OS/usr/lib/swift/libswiftSynchronization.dylib' (no such file), '/usr/lib/swift/libswiftSynchronization.dylib' (no such file, not in dyld cache), '/Users/runner/.pkgx/tuist.io/tuist/v4.200.1/lib/libswiftSynchronization.dylib' (no such file)
+  - run: |
+      if test "$(sw_vers -productVersion | cut -d . -f 1)" -lt 15; then
+        exit 0
+      fi
+    if: darwin
   # `tuist version` prints just the version string (see
   # TuistVersionCommand/VersionService.swift — it passthrough's
   # Constants.version with a trailing newline).
