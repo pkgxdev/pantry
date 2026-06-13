@@ -14,35 +14,27 @@
 # PostgreSQL compatibility (Citus 14.x): PG 16, 17, 18.
 
 distributable:
-  url: https://github.com/citusdata/citus/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/citusdata/citus/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
   github: citusdata/citus
 
-platforms:
-  - linux/x86-64
-  - linux/aarch64
-  - darwin/x86-64
-  - darwin/aarch64
-
 dependencies:
-  postgresql.org: '>=16<19'
-  curl.se: '*'           # anonymous statistics collection
-  lz4.org: '*'           # column compression
-  facebook.com/zstd: '*' # column compression
-  openssl.org: '*'       # transitively via libpq / PG
+  postgresql.org: ">=16<19"
+  curl.se: "*" # anonymous statistics collection
+  lz4.org: "*" # column compression
+  facebook.com/zstd: "*" # column compression
+  openssl.org: "*" # transitively via libpq / PG
 
 build:
   dependencies:
-    gnu.org/make: '*'
-    freedesktop.org/pkg-config: '*'
     linux:
       # PostgreSQL bottle was built with clang, and Citus extensions
       # inherit CFLAGS via `pg_config --cflags` — those carry
       # clang-specific warnings (e.g. -Werror=unguarded-availability-new)
       # that gcc rejects. Use the same clang to stay compatible.
-      llvm.org: '*'
+      llvm.org: "*"
   script:
     # PGXS uses pg_config to determine install dirs. Override `prefix` at
     # install time so extension files land in pantry's bottle, not in the
@@ -57,31 +49,25 @@ build:
     # (PGXS's `override CPPFLAGS := -I. -I$(srcdir) $(CPPFLAGS)` then
     # prepends its own bits, preserving our SDK fix). Linux gets the
     # unmodified value, so the rewrite is a no-op there.
-    - |
-      PG_CONFIG="{{deps.postgresql.org.prefix}}/bin/pg_config"
-      CPPFLAGS_PG=$("$PG_CONFIG" --cppflags)
-      LDFLAGS_PG=$("$PG_CONFIG" --ldflags)
-      if [ "$(uname)" = "Darwin" ]; then
-        SDK=$(xcrun --sdk macosx --show-sdk-path)
-        REWRITE="s|/Applications/Xcode[^[:space:]]*/SDKs/MacOSX[0-9.]+\\.sdk|$SDK|g"
-        CPPFLAGS_PG=$(printf '%s' "$CPPFLAGS_PG" | sed -E "$REWRITE")
-        LDFLAGS_PG=$(printf '%s' "$LDFLAGS_PG" | sed -E "$REWRITE")
-      fi
-      make --jobs {{ hw.concurrency }} CPPFLAGS="$CPPFLAGS_PG" LDFLAGS="$LDFLAGS_PG"
-      make install-all prefix={{prefix}} CPPFLAGS="$CPPFLAGS_PG" LDFLAGS="$LDFLAGS_PG"
+    - make --jobs {{ hw.concurrency }} CPPFLAGS="$CPPFLAGS_PG" LDFLAGS="$LDFLAGS_PG"
+    - make install-all prefix={{prefix}} CPPFLAGS="$CPPFLAGS_PG" LDFLAGS="$LDFLAGS_PG"
   env:
     CC: clang
     ARGS:
-      - PG_CONFIG={{deps.postgresql.org.prefix}}/bin/pg_config
       - --prefix={{prefix}}
       - --with-libcurl
       - --with-lz4
       - --with-zstd
+    linux:
+      CPPFLAGS_PG: $(pg_config --cppflags)
+      LDFLAGS_PG: $(pg_config --ldflags)
     darwin:
       # Brewkit's hermetic CPATH masks the Xcode SDK, so Xcode clang's
       # #include_next chain can't reach <stdio.h>, <inttypes.h>, etc.
       # Point the toolchain at the active SDK explicitly.
       SDKROOT: $(xcrun --sdk macosx --show-sdk-path)
+      CPPFLAGS_PG: $(pg_config --cppflags | sed -E "s#/Applications/Xcode[^[:space:]]*/SDKs/MacOSX[0-9.]+\\.sdk#$(xcrun --sdk macosx --show-sdk-path)#g")
+      LDFLAGS_PG: $(pg_config --ldflags | sed -E "s#/Applications/Xcode[^[:space:]]*/SDKs/MacOSX[0-9.]+\\.sdk#$(xcrun --sdk macosx --show-sdk-path)#g")
 
 # Citus ships no executables — it's a Postgres extension loaded inside
 # the server process. Bottle contents:
@@ -92,9 +78,14 @@ build:
 # (cf. zlib.net, which is also library-only).
 
 test:
+  env:
+    linux:
+      LIB: citus.so
+    darwin:
+      LIB: citus.dylib
   script:
     # PGXS installs the loadable module as citus.so on linux,
     # citus.dylib on darwin, both under lib/postgresql when the
     # prefix lacks "postgres"/"pgsql" tokens (PGXS convention).
-    - test -f "{{prefix}}/lib/postgresql/citus.so" -o -f "{{prefix}}/lib/postgresql/citus.dylib"
+    - test -f "{{prefix}}/lib/postgresql/$LIB"
     - test -f "{{prefix}}/share/postgresql/extension/citus.control"
