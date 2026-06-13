@@ -1,0 +1,806 @@
+diff --git a/Makefile b/Makefile
+index 41f36cb..e191670 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1249,7 +1249,7 @@ TuxPaint.dmg:
+ tuxpaint:	obj/tuxpaint.o obj/i18n.o obj/im.o obj/cursor.o obj/pixels.o \
+ 		obj/rgblinear.o obj/playsound.o obj/fonts.o obj/parse.o obj/fill.o \
+ 		obj/progressbar.o obj/dirwalk.o obj/get_fname.o obj/onscreen_keyboard.o \
+-		obj/gifenc.o obj/sounds.o \
++		obj/gifenc.o obj/sounds.o obj/relocatable.o \
+ 		$(ARCH_LIBS)
+ 	@echo
+ 	@echo "...Linking Tux Paint..."
+@@ -1459,6 +1459,12 @@ obj/onscreen_keyboard.o:	src/onscreen_keyboard.c src/onscreen_keyboard.h src/dir
+ 	@echo "...Compiling on screen keyboard support..."
+ 	@$(CC) $(CFLAGS) $(DEBUG_FLAGS) $(SDL_CFLAGS) $(DEFS) $(ARCH_DEFS) \
+ 		-c src/onscreen_keyboard.c -o obj/onscreen_keyboard.o
++		
++obj/relocatable.o:	src/relocatable.c src/relocatable.h
++	@echo
++	@echo "...Compiling relocatability support..."
++	@$(CC) $(CFLAGS) $(DEBUG_FLAGS) $(SDL_CFLAGS) $(DEFS) $(ARCH_DEFS) \
++		-c src/relocatable.c -o obj/relocatable.o
+ 
+ src/tp_magic_api.h:	src/tp_magic_api.h.in
+ 	@echo
+diff --git a/src/fill_tools.h b/src/fill_tools.h
+index 8057607..394d26d 100644
+--- a/src/fill_tools.h
++++ b/src/fill_tools.h
+@@ -67,14 +67,18 @@ const char *const fill_tips[NUM_FILLS] = {
+   gettext_noop("Click to erase an area, filling it with the background color or image."),
+ };
+ 
+-const char *const fill_img_fnames[NUM_FILLS] = {
+-  DATA_PREFIX "images/fills/solid.png",
+-  DATA_PREFIX "images/fills/brush.png",
+-  DATA_PREFIX "images/fills/gradient_linear.png",
+-  DATA_PREFIX "images/fills/gradient_radial.png",
+-  DATA_PREFIX "images/fills/gradient_shaped.png",
+-  DATA_PREFIX "images/fills/eraser.png",
+-};
++char *fill_img_fnames[NUM_FILLS];
++
++#include "relocatable.h"
++
++void init_fill_img_fnames() {
++  fill_img_fnames[0] = concat(DATA_PREFIX, "images/fills/solid.png");
++  fill_img_fnames[1] = concat(DATA_PREFIX, "images/fills/brush.png");
++  fill_img_fnames[2] = concat(DATA_PREFIX, "images/fills/gradient_linear.png");
++  fill_img_fnames[3] = concat(DATA_PREFIX, "images/fills/gradient_radial.png");
++  fill_img_fnames[4] = concat(DATA_PREFIX, "images/fills/gradient_shaped.png");
++  fill_img_fnames[5] = concat(DATA_PREFIX, "images/fills/eraser.png");
++}
+ 
+ const char *const fill_names[NUM_FILLS] = {
+   gettext_noop("Solid"),
+diff --git b/src/relocatable.c b/src/relocatable.c
+new file mode 100644
+index 0000000..12c6875
+--- /dev/null
++++ b/src/relocatable.c
+@@ -0,0 +1,18 @@
++#include "relocatable.h"
++
++char *get_prefix(char *suffix) {
++  char path[PATH_MAX], prefix[PATH_MAX];
++  int rv = readlink("/proc/self/exe", path, sizeof(path));
++  if (rv != -1) {
++    sprintf(prefix, "%s/%s/", dirname(dirname(path)), suffix);
++    return strdup(prefix);
++  } else {
++    return NULL;
++  }
++}
++
++char *concat(char *string1, char *string2) {
++  char concat_string[strlen(string1) + strlen(string2)];
++  sprintf(concat_string, "%s%s", string1, string2);
++  return strdup(concat_string);
++}
+diff --git b/src/relocatable.h b/src/relocatable.h
+new file mode 100644
+index 0000000..710d674
+--- /dev/null
++++ b/src/relocatable.h
+@@ -0,0 +1,15 @@
++#pragma once
++#include <limits.h>
++#include <unistd.h>
++#include <libgen.h>
++#include <stdio.h>
++#include <string.h>
++
++extern char *get_prefix(char *suffix);
++
++#undef DATA_PREFIX
++#define DATA_PREFIX get_prefix("share/tuxpaint")
++#undef MAGIC_PREFIX
++#define MAGIC_PREFIX get_prefix("lib/tuxpaint/plugins")
++
++extern char *concat(char *string1, char *string2);
+diff --git a/src/shapes.h b/src/shapes.h
+index e13f2f0..a75a5b3 100644
+--- a/src/shapes.h
++++ b/src/shapes.h
+@@ -374,34 +374,38 @@ const char *const shape_tips[NUM_SHAPES] = {
+ 
+ /* Shape icon filenames: */
+ 
+-const char *const shape_img_fnames[NUM_SHAPES] = {
+-  DATA_PREFIX "images/shapes/square.png",
+-  DATA_PREFIX "images/shapes/square_f.png",
+-  DATA_PREFIX "images/shapes/rectangle.png",
+-  DATA_PREFIX "images/shapes/rectangle_f.png",
+-  DATA_PREFIX "images/shapes/circle.png",
+-  DATA_PREFIX "images/shapes/circle_f.png",
+-  DATA_PREFIX "images/shapes/oval.png",
+-  DATA_PREFIX "images/shapes/oval_f.png",
+-  DATA_PREFIX "images/shapes/triangle.png",
+-  DATA_PREFIX "images/shapes/triangle_f.png",
+-  DATA_PREFIX "images/shapes/pentagon.png",
+-  DATA_PREFIX "images/shapes/pentagon_f.png",
+-  DATA_PREFIX "images/shapes/hexagon.png",
+-  DATA_PREFIX "images/shapes/hexagon_f.png",
+-  DATA_PREFIX "images/shapes/heptagon.png",
+-  DATA_PREFIX "images/shapes/heptagon_f.png",
+-  DATA_PREFIX "images/shapes/octagon.png",
+-  DATA_PREFIX "images/shapes/octagon_f.png",
+-  DATA_PREFIX "images/shapes/diamond.png",
+-  DATA_PREFIX "images/shapes/diamond_f.png",
+-  DATA_PREFIX "images/shapes/star3p.png",
+-  DATA_PREFIX "images/shapes/star3p_f.png",
+-  DATA_PREFIX "images/shapes/star4p.png",
+-  DATA_PREFIX "images/shapes/star4p_f.png",
+-  DATA_PREFIX "images/shapes/star5p.png",
+-  DATA_PREFIX "images/shapes/star5p_f.png",
+-};
++char *shape_img_fnames[NUM_SHAPES];
++
++#include "relocatable.h"
++
++void init_shape_img_fnames() {
++  shape_img_fnames[0] = concat(DATA_PREFIX, "images/shapes/square.png");
++  shape_img_fnames[1] = concat(DATA_PREFIX, "images/shapes/square_f.png");
++  shape_img_fnames[2] = concat(DATA_PREFIX, "images/shapes/rectangle.png");
++  shape_img_fnames[3] = concat(DATA_PREFIX, "images/shapes/rectangle_f.png");
++  shape_img_fnames[4] = concat(DATA_PREFIX, "images/shapes/circle.png");
++  shape_img_fnames[5] = concat(DATA_PREFIX, "images/shapes/circle_f.png");
++  shape_img_fnames[6] = concat(DATA_PREFIX, "images/shapes/oval.png");
++  shape_img_fnames[7] = concat(DATA_PREFIX, "images/shapes/oval_f.png");
++  shape_img_fnames[8] = concat(DATA_PREFIX, "images/shapes/triangle.png");
++  shape_img_fnames[9] = concat(DATA_PREFIX, "images/shapes/triangle_f.png");
++  shape_img_fnames[10] = concat(DATA_PREFIX, "images/shapes/pentagon.png");
++  shape_img_fnames[11] = concat(DATA_PREFIX, "images/shapes/pentagon_f.png");
++  shape_img_fnames[12] = concat(DATA_PREFIX, "images/shapes/hexagon.png");
++  shape_img_fnames[13] = concat(DATA_PREFIX, "images/shapes/hexagon_f.png");
++  shape_img_fnames[14] = concat(DATA_PREFIX, "images/shapes/heptagon.png");
++  shape_img_fnames[15] = concat(DATA_PREFIX, "images/shapes/heptagon_f.png");
++  shape_img_fnames[16] = concat(DATA_PREFIX, "images/shapes/octagon.png");
++  shape_img_fnames[17] = concat(DATA_PREFIX, "images/shapes/octagon_f.png");
++  shape_img_fnames[18] = concat(DATA_PREFIX, "images/shapes/diamond.png");
++  shape_img_fnames[19] = concat(DATA_PREFIX, "images/shapes/diamond_f.png");
++  shape_img_fnames[20] = concat(DATA_PREFIX, "images/shapes/star3p.png");
++  shape_img_fnames[21] = concat(DATA_PREFIX, "images/shapes/star3p_f.png");
++  shape_img_fnames[22] = concat(DATA_PREFIX, "images/shapes/star4p.png");
++  shape_img_fnames[23] = concat(DATA_PREFIX, "images/shapes/star4p_f.png");
++  shape_img_fnames[24] = concat(DATA_PREFIX, "images/shapes/star5p.png");
++  shape_img_fnames[25] = concat(DATA_PREFIX, "images/shapes/star5p_f.png");
++}
+ 
+ 
+ /* Shape controls */
+@@ -413,10 +417,12 @@ enum
+   NUM_SHAPEMODES
+ };
+ 
+-const char *const shapemode_img_fnames[NUM_SHAPEMODES] = {
+-  DATA_PREFIX "images/ui/shapes_center.png",
+-  DATA_PREFIX "images/ui/shapes_corner.png"
+-};
++char *shapemode_img_fnames[NUM_SHAPEMODES];
++
++void init_shapemode_img_fnames() {
++  shapemode_img_fnames[0] = concat(DATA_PREFIX, "images/ui/shapes_center.png");
++  shapemode_img_fnames[1] = concat(DATA_PREFIX, "images/ui/shapes_corner.png");
++}
+ 
+ /* String shown when Shapes tool is selected;
+    one version for normal ("complex shapes"),
+diff --git a/src/sounds.c b/src/sounds.c
+index d7c0714..969afcc 100644
+--- a/src/sounds.c
++++ b/src/sounds.c
+@@ -31,36 +31,40 @@
+ 
+ /* Sound file filenames: */
+ 
+-const char *sound_fnames[NUM_SOUNDS] = {
+-  DATA_PREFIX "sounds/harp.wav",
+-  DATA_PREFIX "sounds/click.wav",
+-  DATA_PREFIX "sounds/bleep.wav",
+-  DATA_PREFIX "sounds/bubble.wav",
+-  DATA_PREFIX "sounds/stamp.wav",
+-  DATA_PREFIX "sounds/line_start.wav",
+-  DATA_PREFIX "sounds/line_end.wav",
+-  DATA_PREFIX "sounds/scroll.wav",
+-  DATA_PREFIX "sounds/paint1.wav",
+-  DATA_PREFIX "sounds/paint2.wav",
+-  DATA_PREFIX "sounds/paint3.wav",
+-  DATA_PREFIX "sounds/paint4.wav",
+-  DATA_PREFIX "sounds/eraser1.wav",
+-  DATA_PREFIX "sounds/eraser2.wav",
+-  DATA_PREFIX "sounds/save.wav",
+-  DATA_PREFIX "sounds/prompt.wav",
+-  DATA_PREFIX "sounds/flip.wav",
+-  DATA_PREFIX "sounds/mirror.wav",
+-  DATA_PREFIX "sounds/keyclick.wav",
+-  DATA_PREFIX "sounds/typewriterbell.wav",
+-  DATA_PREFIX "sounds/return.wav",
+-  DATA_PREFIX "sounds/shrink.wav",
+-  DATA_PREFIX "sounds/grow.wav",
+-  DATA_PREFIX "sounds/italic_on.wav",
+-  DATA_PREFIX "sounds/italic_off.wav",
+-  DATA_PREFIX "sounds/areyousure.wav",
+-  DATA_PREFIX "sounds/youcannot.wav",
+-  DATA_PREFIX "sounds/tuxok.wav",
+-  DATA_PREFIX "sounds/thick.wav",
+-  DATA_PREFIX "sounds/thin.wav",
+-  DATA_PREFIX "sounds/fill.wav"
++char *sound_fnames[NUM_SOUNDS];
++
++#include "relocatable.h"
++
++void init_sound_fnames() {
++  sound_fnames[0] = concat(DATA_PREFIX, "sounds/harp.wav");
++  sound_fnames[1] = concat(DATA_PREFIX, "sounds/click.wav");
++  sound_fnames[2] = concat(DATA_PREFIX, "sounds/bleep.wav");
++  sound_fnames[3] = concat(DATA_PREFIX, "sounds/bubble.wav");
++  sound_fnames[4] = concat(DATA_PREFIX, "sounds/stamp.wav");
++  sound_fnames[5] = concat(DATA_PREFIX, "sounds/line_start.wav");
++  sound_fnames[6] = concat(DATA_PREFIX, "sounds/line_end.wav");
++  sound_fnames[7] = concat(DATA_PREFIX, "sounds/scroll.wav");
++  sound_fnames[8] = concat(DATA_PREFIX, "sounds/paint1.wav");
++  sound_fnames[9] = concat(DATA_PREFIX, "sounds/paint2.wav");
++  sound_fnames[10] = concat(DATA_PREFIX, "sounds/paint3.wav");
++  sound_fnames[11] = concat(DATA_PREFIX, "sounds/paint4.wav");
++  sound_fnames[12] = concat(DATA_PREFIX, "sounds/eraser1.wav");
++  sound_fnames[13] = concat(DATA_PREFIX, "sounds/eraser2.wav");
++  sound_fnames[14] = concat(DATA_PREFIX, "sounds/save.wav");
++  sound_fnames[15] = concat(DATA_PREFIX, "sounds/prompt.wav");
++  sound_fnames[16] = concat(DATA_PREFIX, "sounds/flip.wav");
++  sound_fnames[17] = concat(DATA_PREFIX, "sounds/mirror.wav");
++  sound_fnames[18] = concat(DATA_PREFIX, "sounds/keyclick.wav");
++  sound_fnames[19] = concat(DATA_PREFIX, "sounds/typewriterbell.wav");
++  sound_fnames[20] = concat(DATA_PREFIX, "sounds/return.wav");
++  sound_fnames[21] = concat(DATA_PREFIX, "sounds/shrink.wav");
++  sound_fnames[22] = concat(DATA_PREFIX, "sounds/grow.wav");
++  sound_fnames[23] = concat(DATA_PREFIX, "sounds/italic_on.wav");
++  sound_fnames[24] = concat(DATA_PREFIX, "sounds/italic_off.wav");
++  sound_fnames[25] = concat(DATA_PREFIX, "sounds/areyousure.wav");
++  sound_fnames[26] = concat(DATA_PREFIX, "sounds/youcannot.wav");
++  sound_fnames[27] = concat(DATA_PREFIX, "sounds/tuxok.wav");
++  sound_fnames[28] = concat(DATA_PREFIX, "sounds/thick.wav");
++  sound_fnames[29] = concat(DATA_PREFIX, "sounds/thin.wav");
++  sound_fnames[30] = concat(DATA_PREFIX, "sounds/fill.wav");
+ };
+diff --git a/src/sounds.h b/src/sounds.h
+index 1e6b7f5..bd162ba 100644
+--- a/src/sounds.h
++++ b/src/sounds.h
+@@ -73,6 +73,7 @@ enum
+ 
+ 
+ /* Sound file filenames (declared in "sounds.c"): */
+-extern const char *sound_fnames[NUM_SOUNDS];
++extern char *sound_fnames[NUM_SOUNDS];
++void init_sound_fnames();
+ 
+ #endif
+diff --git a/src/tip_tux.h b/src/tip_tux.h
+index 5c52667..e9ee63f 100644
+--- a/src/tip_tux.h
++++ b/src/tip_tux.h
+@@ -47,13 +47,17 @@ enum
+ 
+ /* Tux filenames: */
+ 
+-const char *const tux_img_fnames[NUM_TIP_TUX] = {
+-  DATA_PREFIX "images/tux/default.png",
+-  DATA_PREFIX "images/tux/kiss.png",
+-  DATA_PREFIX "images/tux/bored.png",
+-  DATA_PREFIX "images/tux/great.png",
+-  DATA_PREFIX "images/tux/oops.png",
+-  DATA_PREFIX "images/tux/wait.png"
++char *tux_img_fnames[NUM_TIP_TUX];
++
++#include "relocatable.h"
++
++void init_tux_img_fnames() {
++  tux_img_fnames[0] = concat(DATA_PREFIX, "images/tux/default.png");
++  tux_img_fnames[1] = concat(DATA_PREFIX, "images/tux/kiss.png");
++  tux_img_fnames[2] = concat(DATA_PREFIX, "images/tux/bored.png");
++  tux_img_fnames[3] = concat(DATA_PREFIX, "images/tux/great.png");
++  tux_img_fnames[4] = concat(DATA_PREFIX, "images/tux/oops.png");
++  tux_img_fnames[5] = concat(DATA_PREFIX, "images/tux/wait.png");
+ };
+ 
+ #endif /* TIP_TUX_H */
+diff --git a/src/tools.h b/src/tools.h
+index c956caf..d6aa97f 100644
+--- a/src/tools.h
++++ b/src/tools.h
+@@ -207,25 +207,28 @@ const char *const tool_tips[NUM_TOOLS] = {
+ 
+ /* Tool icon filenames: */
+ 
+-const char *const tool_img_fnames[NUM_TOOLS] = {
+-  DATA_PREFIX "images/tools/brush.png",
+-  DATA_PREFIX "images/tools/stamp.png",
+-  DATA_PREFIX "images/tools/lines.png",
+-  DATA_PREFIX "images/tools/shapes.png",
+-  DATA_PREFIX "images/tools/text.png",
+-  DATA_PREFIX "images/tools/label.png",
+-  DATA_PREFIX "images/tools/fill.png",
+-  DATA_PREFIX "images/tools/magic.png",
+-  DATA_PREFIX "images/tools/undo.png",
+-  DATA_PREFIX "images/tools/redo.png",
+-  DATA_PREFIX "images/tools/eraser.png",
+-  DATA_PREFIX "images/tools/new.png",
+-  DATA_PREFIX "images/tools/open.png",
+-  DATA_PREFIX "images/tools/save.png",
+-  DATA_PREFIX "images/tools/print.png",
+-  DATA_PREFIX "images/tools/quit.png"
+-};
+-
++char *tool_img_fnames[NUM_TOOLS];
++
++#include "relocatable.h"
++
++void init_tool_img_fnames() {
++  tool_img_fnames[0] = concat(DATA_PREFIX, "images/tools/brush.png");
++  tool_img_fnames[1] = concat(DATA_PREFIX, "images/tools/stamp.png");
++  tool_img_fnames[2] = concat(DATA_PREFIX, "images/tools/lines.png");
++  tool_img_fnames[3] = concat(DATA_PREFIX, "images/tools/shapes.png");
++  tool_img_fnames[4] = concat(DATA_PREFIX, "images/tools/text.png");
++  tool_img_fnames[5] = concat(DATA_PREFIX, "images/tools/label.png");
++  tool_img_fnames[6] = concat(DATA_PREFIX, "images/tools/fill.png");
++  tool_img_fnames[7] = concat(DATA_PREFIX, "images/tools/magic.png");
++  tool_img_fnames[8] = concat(DATA_PREFIX, "images/tools/undo.png");
++  tool_img_fnames[9] = concat(DATA_PREFIX, "images/tools/redo.png");
++  tool_img_fnames[10] = concat(DATA_PREFIX, "images/tools/eraser.png");
++  tool_img_fnames[11] = concat(DATA_PREFIX, "images/tools/new.png");
++  tool_img_fnames[12] = concat(DATA_PREFIX, "images/tools/open.png");
++  tool_img_fnames[13] = concat(DATA_PREFIX, "images/tools/save.png");
++  tool_img_fnames[14] = concat(DATA_PREFIX, "images/tools/print.png");
++  tool_img_fnames[15] = concat(DATA_PREFIX, "images/tools/quit.png");
++}
+ 
+ /* Tux icons to use: */
+ 
+diff --git a/src/tuxpaint.c b/src/tuxpaint.c
+index 1740fdc..1d98f09 100644
+--- a/src/tuxpaint.c
++++ b/src/tuxpaint.c
+@@ -8067,6 +8067,7 @@ static void rec_undo_buffer(void)
+   }
+ }
+ 
++#include "relocatable.h"
+ 
+ /**
+  * Show program version, build date, and (optionally) details,
+@@ -9495,7 +9496,7 @@ static void load_stamps(SDL_Surface *screen)
+ 
+   load_stamp_dir(screen, homedirdir);
+ #ifndef __ANDROID__
+-  load_stamp_dir(screen, DATA_PREFIX "stamps");
++  load_stamp_dir(screen, concat(DATA_PREFIX, "stamps"));
+ #else
+   load_stamp_dir(screen, "stamps/animals");
+   load_stamp_dir(screen, "stamps/cartoon/tux");
+@@ -9530,7 +9531,7 @@ static void load_stamps(SDL_Surface *screen)
+ 
+   if (num_stamps[0] == 0)
+   {
+-    fprintf(stderr, "\nWarning: No stamps found in " DATA_PREFIX "stamps/\n" "or %s\n\n", homedirdir);
++    fprintf(stderr, concat("\nWarning: No stamps found in ", concat(DATA_PREFIX, "stamps/\n" "or %s\n\n")), homedirdir);
+   }
+ 
+   num_stamp_groups = stamp_group + 1;
+@@ -10012,9 +10013,9 @@ static void seticon(void)
+   /* Load icon into a surface: */
+ 
+ #ifndef WIN32
+-  icon = IMG_Load(DATA_PREFIX "images/icon.png");
++  icon = IMG_Load(concat(DATA_PREFIX, "images/icon.png"));
+ #else
+-  icon = IMG_Load(DATA_PREFIX "images/icon32x32.png");
++  icon = IMG_Load(concat(DATA_PREFIX, "images/icon32x32.png"));
+ #endif
+ 
+   if (icon == NULL)
+@@ -10022,7 +10023,7 @@ static void seticon(void)
+     fprintf(stderr,
+             "\nWarning: I could not load the icon image: %s\n"
+             "The Simple DirectMedia error that occurred was:\n"
+-            "%s\n\n", DATA_PREFIX "images/icon.png", SDL_GetError());
++            "%s\n\n", concat(DATA_PREFIX, "images/icon.png"), SDL_GetError());
+     return;
+   }
+ 
+@@ -14405,7 +14406,7 @@ static void load_starter(char *img_id)
+   /* Determine path to starter files: */
+ 
+   if (starter_personal == 0)
+-    dirname = strdup(DATA_PREFIX "starters");
++    dirname = strdup(concat(DATA_PREFIX, "starters"));
+   else
+     dirname = get_fname("starters", DIR_DATA);
+ 
+@@ -14595,7 +14596,7 @@ static void load_template(char *img_id)
+   /* Determine path to starter files: */
+ 
+   if (template_personal == 0)
+-    dirname = strdup(DATA_PREFIX "templates");
++    dirname = strdup(concat(DATA_PREFIX, "templates"));
+   else
+     dirname = get_fname("templates", DIR_DATA);
+ 
+@@ -14958,6 +14959,7 @@ static int do_prompt_image_flash_snd(const char *const text,
+ #ifdef DEBUG
+   if (snd >= 0)
+   {
++    init_sound_fnames();
+     printf("Prompt and play sound #%d: %s\n", snd, sound_fnames[snd]);
+     fflush(stdout);
+   }
+@@ -22688,7 +22690,7 @@ static int do_new_dialog(void)
+       /* Check for system-wide coloring-book style
+          'starter' images: */
+ 
+-      dirname[places_to_look] = strdup(DATA_PREFIX "starters");
++      dirname[places_to_look] = strdup(concat(DATA_PREFIX, "starters"));
+     }
+     else if (places_to_look == PLACE_PERSONAL_TEMPLATES_DIR)
+     {
+@@ -22700,7 +22702,7 @@ static int do_new_dialog(void)
+     {
+       /* Finally, check for system-wide 'template' images: */
+ 
+-      dirname[places_to_look] = strdup(DATA_PREFIX "templates");
++      dirname[places_to_look] = strdup(concat(DATA_PREFIX, "templates"));
+     }
+ 
+ 
+@@ -29868,6 +29870,7 @@ static void setup(void)
+   }
+ 
+   i = NUM_SOUNDS;
++  init_sound_fnames();
+   while (use_sound && i--)
+   {
+     sounds[i] = Mix_LoadWAV(sound_fnames[i]);
+@@ -30219,9 +30222,9 @@ static void setup(void)
+ 
+   /* quickly: title image, version, progress bar, and watch cursor */
+ 
+-  img_title = loadimage(DATA_PREFIX "images/title.png");
+-  img_title_credits = loadimage(DATA_PREFIX "images/title-credits.png");
+-  img_progress = loadimage(DATA_PREFIX "images/ui/progress.png");
++  img_title = loadimage(concat(DATA_PREFIX, "images/title.png"));
++  img_title_credits = loadimage(concat(DATA_PREFIX, "images/title-credits.png"));
++  img_progress = loadimage(concat(DATA_PREFIX, "images/ui/progress.png"));
+ 
+   if (screen->w - img_title->w >= 410 && screen->h - img_progress->h - img_title_credits->h - 40)       /* FIXME: Font */
+     big_title = 1;
+@@ -30230,9 +30233,9 @@ static void setup(void)
+ 
+ 
+   if (big_title)
+-    img_title_tuxpaint = loadimage(DATA_PREFIX "images/title-tuxpaint-2x.png");
++    img_title_tuxpaint = loadimage(concat(DATA_PREFIX, "images/title-tuxpaint-2x.png"));
+   else
+-    img_title_tuxpaint = loadimage(DATA_PREFIX "images/title-tuxpaint.png");
++    img_title_tuxpaint = loadimage(concat(DATA_PREFIX, "images/title-tuxpaint.png"));
+ 
+   SDL_FillRect(screen, NULL, SDL_MapRGB(screen->format, 255, 255, 255));
+ 
+@@ -30326,15 +30329,15 @@ static void setup(void)
+ #endif
+ 
+ 
+-  medium_font = TuxPaint_Font_OpenFont(tp_ui_font, DATA_PREFIX "fonts/default_font.ttf",        /* FIXME: Does this matter any more? -bjk 2023.05.29 */
++  medium_font = TuxPaint_Font_OpenFont(tp_ui_font, concat(DATA_PREFIX, "fonts/default_font.ttf"),        /* FIXME: Does this matter any more? -bjk 2023.05.29 */
+                                        (18 - (only_uppercase * 3)) * button_scale);
+ 
+   if (medium_font == NULL)
+   {
+     fprintf(stderr,
+-            "\nError: Can't load font file: "
+-            DATA_PREFIX "fonts/default_font.ttf\n"
+-            "The Simple DirectMedia Layer error that occurred was:\n" "%s\n\n", SDL_GetError());
++            concat("\nError: Can't load font file: ",
++            concat(DATA_PREFIX, "fonts/default_font.ttf\n"
++            "The Simple DirectMedia Layer error that occurred was:\n" "%s\n\n")), SDL_GetError());
+ 
+     cleanup();
+     exit(1);
+@@ -30489,32 +30492,33 @@ static void setup(void)
+ 
+   /* Load other images: */
+ 
++  init_tool_img_fnames();
+   for (i = 0; i < NUM_TOOLS; i++)
+     img_tools[i] = loadimagerb(tool_img_fnames[i]);
+ 
+-  img_title_on = loadimagerb(DATA_PREFIX "images/ui/title.png");
+-  img_title_large_on = loadimagerb(DATA_PREFIX "images/ui/title_large.png");
+-  img_title_off = loadimagerb(DATA_PREFIX "images/ui/no_title.png");
+-  img_title_large_off = loadimagerb(DATA_PREFIX "images/ui/no_title_large.png");
++  img_title_on = loadimagerb(concat(DATA_PREFIX, "images/ui/title.png"));
++  img_title_large_on = loadimagerb(concat(DATA_PREFIX, "images/ui/title_large.png"));
++  img_title_off = loadimagerb(concat(DATA_PREFIX, "images/ui/no_title.png"));
++  img_title_large_off = loadimagerb(concat(DATA_PREFIX, "images/ui/no_title_large.png"));
+ 
+-  img_btn_up = loadimagerb(DATA_PREFIX "images/ui/btn_up.png");
+-  img_btn_down = loadimagerb(DATA_PREFIX "images/ui/btn_down.png");
+-  img_btn_off = loadimagerb(DATA_PREFIX "images/ui/btn_off.png");
+-  img_btn_hold = loadimagerb(DATA_PREFIX "images/ui/btn_hold.png");
++  img_btn_up = loadimagerb(concat(DATA_PREFIX, "images/ui/btn_up.png"));
++  img_btn_down = loadimagerb(concat(DATA_PREFIX, "images/ui/btn_down.png"));
++  img_btn_off = loadimagerb(concat(DATA_PREFIX, "images/ui/btn_off.png"));
++  img_btn_hold = loadimagerb(concat(DATA_PREFIX, "images/ui/btn_hold.png"));
+ 
+-  img_btnsm_up = loadimagerb(DATA_PREFIX "images/ui/btnsm_up.png");
+-  img_btnsm_off = loadimagerb(DATA_PREFIX "images/ui/btnsm_off.png");
+-  img_btnsm_down = loadimagerb(DATA_PREFIX "images/ui/btnsm_down.png");
+-  img_btnsm_hold = loadimagerb(DATA_PREFIX "images/ui/btnsm_hold.png");
++  img_btnsm_up = loadimagerb(concat(DATA_PREFIX, "images/ui/btnsm_up.png"));
++  img_btnsm_off = loadimagerb(concat(DATA_PREFIX, "images/ui/btnsm_off.png"));
++  img_btnsm_down = loadimagerb(concat(DATA_PREFIX, "images/ui/btnsm_down.png"));
++  img_btnsm_hold = loadimagerb(concat(DATA_PREFIX, "images/ui/btnsm_hold.png"));
+ 
+-  img_btn_nav = loadimagerb(DATA_PREFIX "images/ui/btn_nav.png");
+-  img_btnsm_nav = loadimagerb(DATA_PREFIX "images/ui/btnsm_nav.png");
++  img_btn_nav = loadimagerb(concat(DATA_PREFIX, "images/ui/btn_nav.png"));
++  img_btnsm_nav = loadimagerb(concat(DATA_PREFIX, "images/ui/btnsm_nav.png"));
+ 
+-  img_brush_anim = loadimagerb(DATA_PREFIX "images/ui/brush_anim.png");
+-  img_brush_dir = loadimagerb(DATA_PREFIX "images/ui/brush_dir.png");
++  img_brush_anim = loadimagerb(concat(DATA_PREFIX, "images/ui/brush_anim.png"));
++  img_brush_dir = loadimagerb(concat(DATA_PREFIX, "images/ui/brush_dir.png"));
+ 
+-  img_sfx = loadimagerb(DATA_PREFIX "images/tools/sfx.png");
+-  img_speak = loadimagerb(DATA_PREFIX "images/tools/speak.png");
++  img_sfx = loadimagerb(concat(DATA_PREFIX, "images/tools/sfx.png"));
++  img_speak = loadimagerb(concat(DATA_PREFIX, "images/tools/speak.png"));
+ 
+   img_black = SDL_CreateRGBSurface(SDL_SWSURFACE,
+                                    img_btn_off->w, img_btn_off->h,
+@@ -30536,61 +30540,61 @@ static void setup(void)
+ 
+   show_progress_bar(screen);
+ 
+-  img_yes = loadimagerb(DATA_PREFIX "images/ui/yes.png");
+-  img_no = loadimagerb(DATA_PREFIX "images/ui/no.png");
++  img_yes = loadimagerb(concat(DATA_PREFIX, "images/ui/yes.png"));
++  img_no = loadimagerb(concat(DATA_PREFIX, "images/ui/no.png"));
+ 
+-  img_prev = loadimagerb(DATA_PREFIX "images/ui/prev.png");
+-  img_next = loadimagerb(DATA_PREFIX "images/ui/next.png");
++  img_prev = loadimagerb(concat(DATA_PREFIX, "images/ui/prev.png"));
++  img_next = loadimagerb(concat(DATA_PREFIX, "images/ui/next.png"));
+ 
+-  img_mirror = loadimagerb(DATA_PREFIX "images/ui/mirror.png");
+-  img_flip = loadimagerb(DATA_PREFIX "images/ui/flip.png");
+-  img_rotate = loadimagerb(DATA_PREFIX "images/ui/rotate.png");
++  img_mirror = loadimagerb(concat(DATA_PREFIX, "images/ui/mirror.png"));
++  img_flip = loadimagerb(concat(DATA_PREFIX, "images/ui/flip.png"));
++  img_rotate = loadimagerb(concat(DATA_PREFIX, "images/ui/rotate.png"));
+ 
+-  img_open = loadimagerb(DATA_PREFIX "images/ui/open.png");
+-  img_erase = loadimagerb(DATA_PREFIX "images/ui/erase.png");
+-  img_pict_export = loadimagerb(DATA_PREFIX "images/ui/pict_export.png");
+-  img_back = loadimagerb(DATA_PREFIX "images/ui/back.png");
+-  img_trash = loadimagerb(DATA_PREFIX "images/ui/trash.png");
++  img_open = loadimagerb(concat(DATA_PREFIX, "images/ui/open.png"));
++  img_erase = loadimagerb(concat(DATA_PREFIX, "images/ui/erase.png"));
++  img_pict_export = loadimagerb(concat(DATA_PREFIX, "images/ui/pict_export.png"));
++  img_back = loadimagerb(concat(DATA_PREFIX, "images/ui/back.png"));
++  img_trash = loadimagerb(concat(DATA_PREFIX, "images/ui/trash.png"));
+ 
+-  img_slideshow = loadimagerb(DATA_PREFIX "images/ui/slideshow.png");
+-  img_template = loadimagerb(DATA_PREFIX "images/ui/template.png");
+-  img_play = loadimagerb(DATA_PREFIX "images/ui/play.png");
+-  img_gif_export = loadimagerb(DATA_PREFIX "images/ui/gif_export.png");
+-  img_select_digits = loadimagerb(DATA_PREFIX "images/ui/select_digits.png");
++  img_slideshow = loadimagerb(concat(DATA_PREFIX, "images/ui/slideshow.png"));
++  img_template = loadimagerb(concat(DATA_PREFIX, "images/ui/template.png"));
++  img_play = loadimagerb(concat(DATA_PREFIX, "images/ui/play.png"));
++  img_gif_export = loadimagerb(concat(DATA_PREFIX, "images/ui/gif_export.png"));
++  img_select_digits = loadimagerb(concat(DATA_PREFIX, "images/ui/select_digits.png"));
+ 
+-  img_popup_arrow = loadimagerb(DATA_PREFIX "images/ui/popup_arrow.png");
++  img_popup_arrow = loadimagerb(concat(DATA_PREFIX, "images/ui/popup_arrow.png"));
+ 
+-  img_dead40x40 = loadimagerb(DATA_PREFIX "images/ui/dead40x40.png");
++  img_dead40x40 = loadimagerb(concat(DATA_PREFIX, "images/ui/dead40x40.png"));
+ 
+-  img_printer = loadimagerb(DATA_PREFIX "images/ui/printer.png");
+-  img_printer_wait = loadimagerb(DATA_PREFIX "images/ui/printer_wait.png");
++  img_printer = loadimagerb(concat(DATA_PREFIX, "images/ui/printer.png"));
++  img_printer_wait = loadimagerb(concat(DATA_PREFIX, "images/ui/printer_wait.png"));
+ 
+-  img_save_over = loadimagerb(DATA_PREFIX "images/ui/save_over.png");
++  img_save_over = loadimagerb(concat(DATA_PREFIX, "images/ui/save_over.png"));
+ 
+-  img_grow = loadimagerb(DATA_PREFIX "images/ui/grow.png");
+-  img_shrink = loadimagerb(DATA_PREFIX "images/ui/shrink.png");
++  img_grow = loadimagerb(concat(DATA_PREFIX, "images/ui/grow.png"));
++  img_shrink = loadimagerb(concat(DATA_PREFIX, "images/ui/shrink.png"));
+ 
+-  img_magic_paint = loadimagerb(DATA_PREFIX "images/ui/magic_paint.png");
+-  img_magic_fullscreen = loadimagerb(DATA_PREFIX "images/ui/magic_fullscreen.png");
++  img_magic_paint = loadimagerb(concat(DATA_PREFIX, "images/ui/magic_paint.png"));
++  img_magic_fullscreen = loadimagerb(concat(DATA_PREFIX, "images/ui/magic_fullscreen.png"));
+ 
+-  img_shapes_center = loadimagerb(DATA_PREFIX "images/ui/shapes_center.png");
+-  img_shapes_corner = loadimagerb(DATA_PREFIX "images/ui/shapes_corner.png");
++  img_shapes_center = loadimagerb(concat(DATA_PREFIX, "images/ui/shapes_center.png"));
++  img_shapes_corner = loadimagerb(concat(DATA_PREFIX, "images/ui/shapes_corner.png"));
+ 
+-  img_bold = loadimagerb(DATA_PREFIX "images/ui/bold.png");
+-  img_italic = loadimagerb(DATA_PREFIX "images/ui/italic.png");
++  img_bold = loadimagerb(concat(DATA_PREFIX, "images/ui/bold.png"));
++  img_italic = loadimagerb(concat(DATA_PREFIX, "images/ui/italic.png"));
+ 
+-  img_label_select = loadimagerb(DATA_PREFIX "images/tools/label_select.png");
+-  img_label_apply = loadimagerb(DATA_PREFIX "images/tools/label_apply.png");
++  img_label_select = loadimagerb(concat(DATA_PREFIX, "images/tools/label_select.png"));
++  img_label_apply = loadimagerb(concat(DATA_PREFIX, "images/tools/label_apply.png"));
+ 
+   show_progress_bar(screen);
+ 
+-  tmp_imgcurup = loadimage(DATA_PREFIX "images/ui/cursor_up_large.png");
+-  tmp_imgcurdown = loadimage(DATA_PREFIX "images/ui/cursor_down_large.png");
++  tmp_imgcurup = loadimage(concat(DATA_PREFIX, "images/ui/cursor_up_large.png"));
++  tmp_imgcurdown = loadimage(concat(DATA_PREFIX, "images/ui/cursor_down_large.png"));
+   img_cursor_up = thumbnail(tmp_imgcurup, THUMB_W, THUMB_H, 0);
+   img_cursor_down = thumbnail(tmp_imgcurdown, THUMB_W, THUMB_H, 0);
+ 
+-  tmp_imgcurup = loadimage(DATA_PREFIX "images/ui/cursor_starter_up.png");
+-  tmp_imgcurdown = loadimage(DATA_PREFIX "images/ui/cursor_starter_down.png");
++  tmp_imgcurup = loadimage(concat(DATA_PREFIX, "images/ui/cursor_starter_up.png"));
++  tmp_imgcurdown = loadimage(concat(DATA_PREFIX, "images/ui/cursor_starter_down.png"));
+   img_cursor_starter_up = thumbnail(tmp_imgcurup, THUMB_W, THUMB_H, 0);
+   img_cursor_starter_down = thumbnail(tmp_imgcurdown, THUMB_W, THUMB_H, 0);
+   SDL_FreeSurface(tmp_imgcurup);
+@@ -30598,24 +30602,24 @@ static void setup(void)
+ 
+   show_progress_bar(screen);
+ 
+-  img_scroll_up = loadimagerb(DATA_PREFIX "images/ui/scroll_up.png");
+-  img_scroll_down = loadimagerb(DATA_PREFIX "images/ui/scroll_down.png");
++  img_scroll_up = loadimagerb(concat(DATA_PREFIX, "images/ui/scroll_up.png"));
++  img_scroll_down = loadimagerb(concat(DATA_PREFIX, "images/ui/scroll_down.png"));
+ 
+-  img_scroll_up_off = loadimagerb(DATA_PREFIX "images/ui/scroll_up_off.png");
+-  img_scroll_down_off = loadimagerb(DATA_PREFIX "images/ui/scroll_down_off.png");
+-  img_color_sel = loadimagerb(DATA_PREFIX "images/ui/csel.png");
+-  img_color_mix = loadimagerb(DATA_PREFIX "images/ui/cmix.png");
+-  img_color_picker_icon = loadimagerb(DATA_PREFIX "images/ui/color_picker_icon.png");
+-  img_color_grab = loadimagerb(DATA_PREFIX "images/ui/color_grab.png");
++  img_scroll_up_off = loadimagerb(concat(DATA_PREFIX, "images/ui/scroll_up_off.png"));
++  img_scroll_down_off = loadimagerb(concat(DATA_PREFIX, "images/ui/scroll_down_off.png"));
++  img_color_sel = loadimagerb(concat(DATA_PREFIX, "images/ui/csel.png"));
++  img_color_mix = loadimagerb(concat(DATA_PREFIX, "images/ui/cmix.png"));
++  img_color_picker_icon = loadimagerb(concat(DATA_PREFIX, "images/ui/color_picker_icon.png"));
++  img_color_grab = loadimagerb(concat(DATA_PREFIX, "images/ui/color_grab.png"));
+ 
+   if (onscreen_keyboard)
+   {
+-    img_oskdel = loadimagerb(DATA_PREFIX "images/ui/osk_delete.png");
+-    img_osktab = loadimagerb(DATA_PREFIX "images/ui/osk_tab.png");
+-    img_oskenter = loadimagerb(DATA_PREFIX "images/ui/osk_enter.png");
+-    img_oskcapslock = loadimagerb(DATA_PREFIX "images/ui/osk_capslock.png");
+-    img_oskshift = loadimagerb(DATA_PREFIX "images/ui/osk_shift.png");
+-    img_oskpaste = loadimagerb(DATA_PREFIX "images/ui/osk_shift.png");  // FIXME
++    img_oskdel = loadimagerb(concat(DATA_PREFIX, "images/ui/osk_delete.png"));
++    img_osktab = loadimagerb(concat(DATA_PREFIX, "images/ui/osk_tab.png"));
++    img_oskenter = loadimagerb(concat(DATA_PREFIX, "images/ui/osk_enter.png"));
++    img_oskcapslock = loadimagerb(concat(DATA_PREFIX, "images/ui/osk_capslock.png"));
++    img_oskshift = loadimagerb(concat(DATA_PREFIX, "images/ui/osk_shift.png"));
++    img_oskpaste = loadimagerb(concat(DATA_PREFIX, "images/ui/osk_shift.png"));  // FIXME
+ 
+     if (onscreen_keyboard_layout)
+     {
+@@ -30645,7 +30649,7 @@ static void setup(void)
+ 
+ 
+   /* Load brushes: */
+-  load_brush_dir(screen, DATA_PREFIX "brushes");
++  load_brush_dir(screen, concat(DATA_PREFIX, "brushes"));
+   homedirdir = get_fname("brushes", DIR_DATA);
+   load_brush_dir(screen, homedirdir);
+ #ifdef WIN32
+@@ -30656,7 +30660,7 @@ static void setup(void)
+ 
+   if (num_brushes == 0)
+   {
+-    fprintf(stderr, "\nError: No brushes found in " DATA_PREFIX "brushes/\n" "or %s\n\n", homedirdir);
++    fprintf(stderr, concat("\nError: No brushes found in ", concat(DATA_PREFIX, "brushes/\n" "or %s\n\n")), homedirdir);
+     cleanup();
+     exit(1);
+   }
+@@ -30666,22 +30670,22 @@ static void setup(void)
+ 
+   /* Load system fonts: */
+ 
+-  large_font = TuxPaint_Font_OpenFont(tp_ui_font, DATA_PREFIX "fonts/default_font.ttf", /* FIXME: Does this matter any more? -bjk 2023.05.29 */
++  large_font = TuxPaint_Font_OpenFont(tp_ui_font, concat(DATA_PREFIX, "fonts/default_font.ttf"), /* FIXME: Does this matter any more? -bjk 2023.05.29 */
+                                       (30 - (only_uppercase * 3)) * button_scale);
+ 
+   if (large_font == NULL)
+   {
+     fprintf(stderr,
+-            "\nError: Can't load font file: "
+-            DATA_PREFIX "fonts/default_font.ttf\n"
+-            "The Simple DirectMedia Layer error that occurred was:\n" "%s\n\n", SDL_GetError());
++            concat("\nError: Can't load font file: ",
++            concat(DATA_PREFIX, "fonts/default_font.ttf\n"
++            "The Simple DirectMedia Layer error that occurred was:\n" "%s\n\n")), SDL_GetError());
+ 
+     cleanup();
+     exit(1);
+   }
+ 
+ 
+-  small_font = TuxPaint_Font_OpenFont(tp_ui_font, DATA_PREFIX "fonts/default_font.ttf", /* FIXME: Does this matter any more? -bjk 2023.05.29 */
++  small_font = TuxPaint_Font_OpenFont(tp_ui_font, concat(DATA_PREFIX, "fonts/default_font.ttf"), /* FIXME: Does this matter any more? -bjk 2023.05.29 */
+ #ifdef __APPLE__
+                                       (12 - (only_uppercase * 2)) * button_scale
+ #else
+@@ -30692,9 +30696,9 @@ static void setup(void)
+   if (small_font == NULL)
+   {
+     fprintf(stderr,
+-            "\nError: Can't load font file: "
+-            DATA_PREFIX "fonts/default_font.ttf\n"
+-            "The Simple DirectMedia Layer error that occurred was:\n" "%s\n\n", SDL_GetError());
++            concat("\nError: Can't load font file: ",
++            concat(DATA_PREFIX, "fonts/default_font.ttf\n"
++            "The Simple DirectMedia Layer error that occurred was:\n" "%s\n\n")), SDL_GetError());
+ 
+     cleanup();
+     exit(1);
+@@ -30724,6 +30728,7 @@ static void setup(void)
+   show_progress_bar(screen);
+ 
+   /* Load shape icons: */
++  init_shape_img_fnames();
+   for (i = 0; i < NUM_SHAPES; i++)
+   {
+     SDL_Surface *aux_surf = loadimage(shape_img_fnames[i]);
+@@ -30737,6 +30742,7 @@ static void setup(void)
+   show_progress_bar(screen);
+ 
+   /* Load fill sub-tool icons: */
++  init_fill_img_fnames();
+   for (i = 0; i < NUM_FILLS; i++)
+   {
+     SDL_Surface *aux_surf = loadimage(fill_img_fnames[i]);
+@@ -30750,18 +30756,19 @@ static void setup(void)
+   show_progress_bar(screen);
+ 
+   /* Load tip tux images: */
++  init_tux_img_fnames();
+   for (i = 0; i < NUM_TIP_TUX; i++)
+     img_tux[i] = loadimagerb(tux_img_fnames[i]);
+ 
+   show_progress_bar(screen);
+ 
+-  img_mouse = loadimagerb(DATA_PREFIX "images/ui/mouse.png");
+-  img_mouse_click = loadimagerb(DATA_PREFIX "images/ui/mouse_click.png");
++  img_mouse = loadimagerb(concat(DATA_PREFIX, "images/ui/mouse.png"));
++  img_mouse_click = loadimagerb(concat(DATA_PREFIX, "images/ui/mouse_click.png"));
+ 
+   show_progress_bar(screen);
+ 
+-  img_color_picker = loadimagerb(DATA_PREFIX "images/ui/color_picker.png");
+-  img_color_picker_val = loadimagerb(DATA_PREFIX "images/ui/color_picker_val.png");
++  img_color_picker = loadimagerb(concat(DATA_PREFIX, "images/ui/color_picker.png"));
++  img_color_picker_val = loadimagerb(concat(DATA_PREFIX, "images/ui/color_picker_val.png"));
+ 
+   /* Create toolbox and selector labels: */
+ 
+@@ -30791,7 +30798,7 @@ static void setup(void)
+   /* Generate color selection buttons: */
+ 
+   /* Create appropriately-shaped buttons: */
+-  img1 = loadimage(DATA_PREFIX "images/ui/paintwell.png");
++  img1 = loadimage(concat(DATA_PREFIX, "images/ui/paintwell.png"));
+   img_paintwell = thumbnail(img1, color_button_w, color_button_h, 0);
+   tmp_btn_up = thumbnail(img_btn_up, color_button_w, color_button_h, 0);
+   tmp_btn_down = thumbnail(img_btn_down, color_button_w, color_button_h, 0);

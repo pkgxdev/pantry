@@ -1,0 +1,17 @@
+display-name: caddy-acmedns
+
+versions:
+  github: caddy-dns/acmedns/tags
+
+build:
+  dependencies:
+    github.com/caddyserver/xcaddy: '*'
+  script:
+    - xcaddy build
+             --with github.com/lucaslorentz/caddy-docker-proxy/v2 
+             --with github.com/caddy-dns/acmedns@{{version.tag}}
+             --output {{prefix}}/bin/caddy-acmedns
+provides:
+  - bin/caddy-acmedns
+
+test: test "$(caddy-acmedns build-info|grep 'caddy-dns/acmedns'|cut -f3)" = {{version.tag}}

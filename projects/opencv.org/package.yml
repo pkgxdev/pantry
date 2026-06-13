@@ -1,0 +1,71 @@
+# OpenCV — Open Computer Vision library.
+#
+# C++ library + Python bindings for image processing, video I/O,
+# feature detection, ML, etc. The default in computer-vision research
+# and a common runtime dep in cv-adjacent ML stacks.
+#
+# Slim build: no GUI (HighGUI off), no examples, no Java, no MATLAB,
+# no contrib modules. Python bindings enabled.
+#
+# Closes part of pkgxdev/pantry#99 (Top 300 holdout #743).
+
+distributable:
+  url: https://github.com/opencv/opencv/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: opencv/opencv
+
+dependencies:
+  python.org: '~3.11'
+  zlib.net: '*'
+  libpng.org: '*'
+  libjpeg-turbo.org: '*'
+  simplesystems.org/libtiff: '*'
+  google.com/webp: '*'
+  openexr.com: '*'
+  ffmpeg.org: '*'
+
+build:
+  dependencies:
+    cmake.org: ^3
+  working-directory: build
+  script:
+    - cmake .. $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
+  env:
+    ARGS:
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DBUILD_SHARED_LIBS=ON
+      - -DBUILD_TESTS=OFF
+      - -DBUILD_PERF_TESTS=OFF
+      - -DBUILD_EXAMPLES=OFF
+      - -DBUILD_DOCS=OFF
+      - -DBUILD_opencv_apps=OFF       # binary CLI utilities
+      - -DBUILD_opencv_java=OFF
+      - -DBUILD_opencv_python2=OFF
+      - -DBUILD_opencv_python3=ON
+      - -DWITH_QT=OFF
+      - -DWITH_GTK=OFF
+      - -DWITH_VTK=OFF
+      - -DWITH_MATLAB=OFF
+      - -DWITH_OPENCL=OFF              # skip OpenCL bringup
+      - -DWITH_CUDA=OFF                # CPU-only build
+      - -DWITH_IPP=OFF                 # vendored, not pantry
+      - -DWITH_FFMPEG=ON
+      - -DWITH_WEBP=ON
+      - -DWITH_OPENEXR=ON
+
+test:
+  - run: cc $FIXTURE -o test -lopencv_core
+    fixture:
+      extname: c
+      content: |
+        #include <stdio.h>
+
+        int main() {
+          printf("Hello, world!");
+        }
+  - test "$(./test)" = "Hello, world!"

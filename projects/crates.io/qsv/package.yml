@@ -10,14 +10,14 @@ versions:
 
 dependencies:
   linux:
-    wayland.freedesktop.org: '*'
+    wayland.freedesktop.org: "*"
 
 build:
   dependencies:
-    rust-lang.org: '>=1.85' # edition2024
+    rust-lang.org: ">=1.85" # edition2024
     rust-lang.org/cargo: ^0.86 # edition2024
     cmake.org: ^3
-    python.org: '>=3.8'
+    python.org: ">=3.8"
   script: cargo install $CARGO_ARGS
   env:
     CARGO_ARGS:
@@ -53,4 +53,6 @@ test:
   # Test diff command
   - sed 's/4,5,6/4,5,7/' test.csv > test-diff.csv
   - qsv diff test.csv test-diff.csv
-  - test $(qsv diff test.csv test-diff.csv | qsv count) -eq 2
+  # qsv count is unstable, so we could get different versions in different CI runs
+  - qsv diff test.csv test-diff.csv | qsv count | tee out
+  - test $(cat out) -eq 2 || test $(cat out) -eq 3

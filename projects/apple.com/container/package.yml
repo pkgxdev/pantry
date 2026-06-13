@@ -1,0 +1,33 @@
+distributable:
+  url: https://github.com/apple/container/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: apple/container
+
+platforms:
+  - darwin/aarch64
+
+build:
+  dependencies:
+    # xcode^26
+  script:
+    - make $MAKE_ARGS
+    - mkdir -p {{prefix}}
+    - make install $MAKE_ARGS
+  env:
+    MAKE_ARGS:
+      - DEST_DIR={{prefix}}
+      - SUDO=
+      - BUILD_CONFIGURATION=release
+      - RELEASE_VERSION={{version.tag}}
+
+provides:
+  - bin/container
+  - bin/container-apiserver
+
+test:
+  - container --version | tee out
+  - grep {{version}} out
+  - (container system status || true) | tee out
+  - grep "apiserver is not running" out

@@ -1,0 +1,34 @@
+distributable:
+  url: https://github.com/PlakarKorp/plakar/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+display-name: plakar
+
+versions:
+  github: PlakarKorp/plakar
+
+build:
+  dependencies:
+    go.dev: ^1.23
+  env:
+    CGO_ENABLED: 0
+    GO_LDFLAGS:
+      - -s
+      - -w
+    linux:
+      GO_LDFLAGS:
+        - -buildmode=pie
+  script:
+    - go build -v -ldflags="${GO_LDFLAGS}" -o "{{ prefix }}"/bin/plakar
+
+provides:
+  - bin/plakar
+
+test:
+  #
+  # bypass first run message
+  #
+  - run: plakar config
+    if: <1.0.3
+  - plakar version 2>&1 | tee out
+  - grep "{{version.tag}}" out

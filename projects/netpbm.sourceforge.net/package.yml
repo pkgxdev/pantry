@@ -10,50 +10,49 @@ versions:
     - /\//
 
 dependencies:
-  github.com/jasper-software/jasper: '*'
-  libjpeg-turbo.org: '*'
-  libpng.org: '*'
-  simplesystems.org/libtiff: '*'
-  gnome.org/libxml2: '*'
-  zlib.net: '*'
+  github.com/jasper-software/jasper: "*"
+  libjpeg-turbo.org: "*"
+  libpng.org: "*"
+  simplesystems.org/libtiff: "*"
+  gnome.org/libxml2: "*"
+  zlib.net: "*"
 
 runtime:
   env:
-    RGBDEF: '{{prefix}}/misc/rgb.txt'
+    RGBDEF: "{{prefix}}/misc/rgb.txt"
 
 build:
   dependencies:
-    gnu.org/make: '*'
-    github.com/westes/flex: '*'
+    gnu.org/make: "*"
+    github.com/westes/flex: "*"
     linux:
-      perl.org: '*'
+      perl.org: "*"
   script:
-    - run: |
-        sed -e 's|TIFFLIB = NONE|TIFFLIB = -ltiff|g' \
-            -e 's|JPEGLIB = NONE|JPEGLIB = -ljpeg|g' \
-            -e 's|PNGLIB = NONE|PNGLIB = -lpng|g' \
-            -e 's|ZLIB = NONE|ZLIB = -lz|g' \
-            -e 's|JASPERLIB = NONE|JASPERLIB = -ljasper|g' \
-            config.mk.in >config.mk
-    - run: |
-        sed -i \
-            -e 's|CFLAGS_SHLIB = |CFLAGS_SHLIB = -fno-common|g' \
-            -e 's|NETPBMLIBTYPE = unixshared|NETPBMLIBTYPE = dylib|g' \
-            -e 's|NETPBMLIBSUFFIX = so|NETPBMLIBSUFFIX = dylib|g' \
-            -e 's|LDSHLIB = -shared -Wl,-soname,$(SONAME)|LDSHLIB = --shared -o $(SONAME)|g' \
-            config.mk
+    - run: sed -f $PROP config.mk.in >config.mk
+      prop: |
+        s|TIFFLIB = NONE|TIFFLIB = -ltiff|g
+        s|JPEGLIB = NONE|JPEGLIB = -ljpeg|g
+        s|PNGLIB = NONE|PNGLIB = -lpng|g
+        s|ZLIB = NONE|ZLIB = -lz|g
+        s|JASPERLIB = NONE|JASPERLIB = -ljasper|g
+    - run: sed -i -f $PROP config.mk
+      prop: |
+        s|CFLAGS_SHLIB = |CFLAGS_SHLIB = -fno-common|g
+        s|NETPBMLIBTYPE = unixshared|NETPBMLIBTYPE = dylib|g
+        s|NETPBMLIBSUFFIX = so|NETPBMLIBSUFFIX = dylib|g
+        s|LDSHLIB = -shared -Wl,-soname,$(SONAME)|LDSHLIB = --shared $(LDFLAGS) -o $(SONAME)|g
       if: darwin
     - run: sed -i 's|CFLAGS_SHLIB = |CFLAGS_SHLIB = -fPIC|g' config.mk
       if: linux
 
     - make --jobs {{hw.concurrency}}
     - make --jobs {{hw.concurrency}} package pkgdir=$SRCROOT/stage
-    - run: |
-        mkdir -p {{prefix}}
-        mv bin include lib misc {{prefix}}/
+    - run:
+        - mkdir -p {{prefix}}
+        - mv bin include lib misc {{prefix}}/
 
-        mkdir -p {{prefix}}/lib/pkgconfig
-        cp $PROP {{prefix}}/lib/pkgconfig/netpbm.pc
+        - mkdir -p {{prefix}}/lib/pkgconfig
+        - cp $PROP {{prefix}}/lib/pkgconfig/netpbm.pc
       working-directory: stage
       prop: |
         prefix=${pcfiledir}/../..
@@ -67,9 +66,9 @@ build:
         Libs: -L${libdir} -lmylibrary
         Cflags: -I${includedir}
   env:
-    CFLAGS: '-Wno-implicit-function-declaration $CFLAGS'
+    CFLAGS: "-Wno-implicit-function-declaration $CFLAGS"
     darwin:
-      LDFLAGS: '$LDFLAGS -Wl,-headerpad_max_install_names'
+      LDFLAGS: "$LDFLAGS -Wl,-headerpad_max_install_names"
 
 provides:
   - bin/411toppm
@@ -390,7 +389,7 @@ provides:
 
 test:
   dependencies:
-    freedesktop.org/pkg-config: '*'
+    freedesktop.org/pkg-config: "*"
   script:
     - pngtopam test.png -alphapam > test.pam
     - pamdice test.pam -outstem ./test

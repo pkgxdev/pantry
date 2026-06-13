@@ -4,12 +4,9 @@ distributable:
 
 versions:
   github: pulumi/pulumi
-  strip: /v/
 
 provides:
   - bin/pulumi
-  - bin/pulumi-analyzer-policy
-  - bin/pulumi-analyzer-policy-python
   - bin/pulumi-language-dotnet
   - bin/pulumi-language-go
   - bin/pulumi-language-java
@@ -22,13 +19,13 @@ provides:
   - bin/pulumi-watch
 
 dependencies:
-  curl.se/ca-certs: '*'
+  curl.se/ca-certs: "*"
 
 build:
   dependencies:
     go.dev: ^1.20
-    classic.yarnpkg.com: '*'
-    nodejs.org: '*'
+    classic.yarnpkg.com: "*"
+    nodejs.org: "*"
   script:
     - run: go mod download
       working-directory: sdk
@@ -61,7 +58,7 @@ build:
     # TODO: Doesn't work for zsh. Should it be left up to user?
     # {{prefix}}/bin/pulumi gen-completion $SHELL
   env:
-    GOPATH: '$PWD/build'
+    GOPATH: "$PWD/build"
     GO_LDFLAGS:
       - -X github.com/pulumi/pulumi/pkg/v3/version.Version={{version}}
     linux:
@@ -73,9 +70,9 @@ test:
     - run:
         - pulumi new aws-typescript --generate-only --force -y
         - test -e Pulumi.yaml
-      if: <3.159.0
+      if: <3.159.0 || >=3.194.0
     - run: (pulumi new aws-typescript --generate-only --force -y 2>&1 || true) | grep 'invalid access token'
-      if: '>=3.159.0'
+      if: ">=3.159.0<3.194.0"
   env:
     PULUMI_ACCESS_TOKEN: local://
-    PULUMI_TEMPLATE_PATH: '$PWD/templates'
+    PULUMI_TEMPLATE_PATH: "$PWD/templates"

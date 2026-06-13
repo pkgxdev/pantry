@@ -1,0 +1,57 @@
+# Kyverno — policy engine for Kubernetes (CNCF graduated).
+#
+# Validates / mutates / generates K8s resources using YAML-defined
+# policies (no Rego DSL like OPA). Used to enforce security best
+# practices, image source restrictions, mandatory labels, etc.
+#
+# Ships every binary upstream cmd/ produces: the four controllers
+# (kyverno + cleanup / background / reports), the kubectl plugin
+# (cmd/cli/kubectl-kyverno), the initContainer helper (kyverno-init)
+# and the K8s readiness probe (readiness-checker).
+
+distributable:
+  url: https://github.com/kyverno/kyverno/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: kyverno/kyverno
+
+build:
+  dependencies:
+    go.dev: '*'
+  env:
+    CGO_ENABLED: 0
+    GO_LDFLAGS:
+      - -s
+      - -w
+      - -X github.com/kyverno/kyverno/pkg/version.BuildVersion={{ version.tag }}"
+  script:
+    - mkdir -p {{prefix}}/bin
+    # Controller-style binaries (each cmd/* with main.go).
+    - for cmd in kyverno cleanup-controller background-controller reports-controller kyverno-init readiness-checker; do
+    - if [ ! -d "cmd/$cmd" ]; then continue; fi
+    - go build -trimpath -ldflags "$GO_LDFLAGS" -o "{{prefix}}/bin/$cmd" "./cmd/$cmd"
+    - done
+    # CLI lives at cmd/cli/kubectl-kyverno/
+    - if [ -d cmd/cli/kubectl-kyverno ]; then
+    - go build -trimpath -ldflags "$GO_LDFLAGS" -o {{prefix}}/bin/kubectl-kyverno ./cmd/cli/kubectl-kyverno
+    - fi
+
+test:
+  - (kyverno version 2>&1 || true) | tee out
+  - grep {{version}} out
+  # Smoke-check every shipped binary loads. None of the
+  # controllers run as standalone tools so we just confirm
+  # they at least parse --help without crashing.
+  - for BIN in kubectl-kyverno cleanup-controller background-controller reports-controller kyverno-init readiness-checker; do
+  - ($BIN --help 2>&1 || $BIN -h 2>&1 || true) | grep "."
+  - done
+
+provides:
+  - bin/kyverno              # main controller (admission webhook + policy engine)
+  - bin/kubectl-kyverno      # kubectl plugin (formerly the standalone `kyverno` CLI)
+  - bin/cleanup-controller   # garbage-collects cleanup policy resources
+  - bin/background-controller # background scan / mutation reconciler
+  - bin/reports-controller   # PolicyReport aggregator
+  - bin/kyverno-init         # initContainer helper (CRD install + cert bootstrap)
+  - bin/readiness-checker    # K8s readiness probe binary

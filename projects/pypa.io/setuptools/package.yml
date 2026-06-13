@@ -13,7 +13,10 @@ runtime:
     PYTHONPATH: ${{prefix}}/lib/python3.12/site-packages:$PYTHONPATH
 
 build:
-  python -m pip install --prefix={{prefix}} .
+  # 75.3.4 shipped with incorrect version info
+  - sed -i 's/^version = ".*"$/version = "{{version}}"/' pyproject.toml
+  - python -m pip install --prefix={{prefix}} .
 
 test:
-  python -c 'import setuptools; print(setuptools.__version__)' | grep {{version}}
+  - python -c 'import setuptools; print(setuptools.__version__)' | tee out
+  - grep {{version}} out

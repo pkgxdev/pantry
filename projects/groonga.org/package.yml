@@ -1,39 +1,43 @@
 distributable:
   url: https://github.com/groonga/groonga/releases/download/v{{version}}/groonga-{{version}}.tar.gz
   strip-components: 1
+
 versions:
   github: groonga/groonga
+
 dependencies:
   darwin:
-    taku910.github.io/mecab: '*'
-    taku910.github.io/mecab-ipadic: '*'
+    taku910.github.io/mecab: "*"
+    taku910.github.io/mecab-ipadic: "*"
   linux/x86-64:
-    taku910.github.io/mecab: '*'
-    taku910.github.io/mecab-ipadic: '*'
-  msgpack.org: '*'
-  openssl.org: '*'
-  pcre.org/v2: '*'
-  github.com/besser82/libxcrypt: '*'
+    taku910.github.io/mecab: "*"
+    taku910.github.io/mecab-ipadic: "*"
+  msgpack.org: "*"
+  openssl.org: "*"
+  pcre.org/v2: "*"
+  github.com/besser82/libxcrypt: "*"
   linux:
-    gnome.org/glib: '*'
+    gnome.org/glib: "*"
+
 build:
   dependencies:
-    freedesktop.org/pkg-config: '*'
     linux:
-      curl.se: '*'
+      curl.se: "*"
   script:
-    - run: |
-        ../configure $CONFIGURE_ARGS
-        make --jobs {{hw.concurrency}} install
+    - run:
+        - ../configure $CONFIGURE_ARGS
+        - make --jobs {{hw.concurrency}} install
       working-directory: builddir
     - curl -L "$LINK" | tar zxf -
-    - run: |
-        export PATH={{prefix}}/bin:$PATH
-        export PKG_CONFIG_PATH={{prefix}}/lib/pkgconfig:$PKG_CONFIG_PATH
-        ./configure --prefix={{prefix}}
-        make --jobs {{hw.concurrency}}
-        make --jobs {{hw.concurrency}} install
+    - run:
+        - export PATH={{prefix}}/bin:$PATH
+        - export PKG_CONFIG_PATH={{prefix}}/lib/pkgconfig:$PKG_CONFIG_PATH
+        - ./configure --prefix={{prefix}}
+        - make --jobs {{hw.concurrency}}
+        - make --jobs {{hw.concurrency}} install
       working-directory: groonga-normalizer-mysql-1.2.1
+    - run: if test -d groonga; then mv groonga/* .; rmdir groonga; fi
+      working-directory: ${{prefix}}/include/groonga
   env:
     CONFIGURE_ARGS:
       - --disable-debug
@@ -53,9 +57,9 @@ build:
     linux/x86-64:
       CONFIGURE_ARGS:
         - --with-mecab
+
 provides:
   - bin/groonga
   - bin/groonga-suggest-create-dataset
-test:
-  script:
-    - groonga --version | grep {{version}}
+
+test: groonga --version | grep {{version}}

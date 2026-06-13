@@ -1,19 +1,25 @@
 distributable:
-  url: https://github.com/openai/openai-python/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/openai/openai-python/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
-  github: openai/openai-python/releases
-  strip: /^v/
+  github: openai/openai-python
+
+runtime:
+  env:
+    PYTHONPATH: ${{prefix}}/venv/lib/python3/site-packages:$PYTHONPATH
 
 dependencies:
-  python.org: '>=3<3.12'
+  python.org: ">=3<3.12"
 
 build:
-  python-venv.sh {{prefix}}/bin/openai
-
-provides:
-  - bin/openai
+  - python-venv.sh {{prefix}}/bin/openai
+  - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
+    working-directory: ${{prefix}}/venv/lib
 
 test:
-  openai --help
+  env:
+    PYTHONPATH: ${{prefix}}/venv/lib/python3/site-packages:$PYTHONPATH
+  script:
+    - python -c "import openai; print(openai.__version__)" | tee out
+    - test "$(cat out)" = {{version}}

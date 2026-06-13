@@ -1,0 +1,90 @@
+# AutoTrace — convert bitmap raster images to vector graphics.
+#
+# CLI tool + libautotrace library. Same role as homebrew's
+# `autotrace` formula; closes pkgxdev/pantry#9454.
+#
+# Mandatory deps per upstream configure.ac:
+# - glib >= 2.44 (gmodule, gthread, gobject sub-libs)
+# - libpng (for PNG output)
+# - ImageMagick 7 (libMagickWand-7 for input formats)
+#
+# Optional features dropped to keep the bottle simple:
+# - pstoedit (no pantry recipe; would gain .ps / .eps output)
+# - graphicsmagick (alternate to ImageMagick — pick one)
+
+distributable:
+  url: https://github.com/autotrace/autotrace/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: autotrace/autotrace
+
+dependencies:
+  gnome.org/glib: '>=2.44'
+  libpng.org: '*'
+  imagemagick.org: '*'
+
+build:
+  dependencies:
+    gnu.org/autoconf: '*'
+    gnu.org/automake: '*'
+    gnu.org/libtool: '*'
+    gnu.org/gettext: '*'
+    freedesktop.org/intltool: '*'
+    perl.org: '*'
+    cpanmin.us: '*'
+    # intltool brings `intltoolize` (called from ./autogen.sh).
+    # XML::Parser comes from intltool's bundled CPAN tree, but that
+    # tree's XS .so files were compiled against an older perl ABI
+    # and can't load into the current perl.org (5.42.x). So we
+    # install XML::Parser fresh into a scratch dir against the
+    # current perl, and point PERL5LIB at it for both autogen.sh
+    # and configure — bypassing intltool's stale perl5 lib entirely.
+
+  script:
+    # Build XML::Parser against the live perl. `env -u PERL5LIB`
+    # strips intltool's stale CPAN tree from cpanm's @INC just for
+    # this command (its Clone.c is compiled for v5.40 vs current
+    # v5.42 ABI). Using `unset` would leak into later steps because
+    # all script steps share one shell.
+    - mkdir -p "$SRCROOT/perl-xml-parser"
+    - env -u PERL5LIB cpanm -l "$SRCROOT/perl-xml-parser" XML::Parser --notest --verbose
+    # Some older ImageMagicks still contain libtool archives with hardcoded absolute
+    # paths.
+    - run: find . -name \*.la -exec rm {} \;
+      working-directory: ${{deps.imagemagick.org.prefix}}/lib
+    # Upstream ships configure.ac only — autogen.sh runs autopoint +
+    # autoreconf with `intltoolize --automake --copy` as AUTOPOINT.
+    # Pass PERL/INTLTOOL_PERL=real-perl to bypass brewkit's perl
+    # wrapper (`pkgx +perl.org -- perl`), which drops PERL5LIB.
+    - ./autogen.sh
+    - ./configure PERL=$REAL_PERL INTLTOOL_PERL=$REAL_PERL $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
+
+  env:
+    REAL_PERL: '{{deps.perl.org.prefix}}/bin/perl'
+    # Put our freshly-built XML::Parser first; deliberately do NOT
+    # include intltool's lib/perl5 (stale ABI — see comment above).
+    PERL5LIB: $SRCROOT/perl-xml-parser/lib/perl5
+    ARGS:
+      - --prefix={{prefix}}
+      - --without-pstoedit            # no pantry pstoedit recipe yet
+      - --with-magick=ImageMagick      # pantry ships IM7; configure
+                                       # auto-detects IM>=7 via pkg-config
+                                       # and defines HAVE_IMAGEMAGICK7 so
+                                       # input-magick.c uses MagickCore.h
+
+provides:
+  - bin/autotrace
+
+test:
+  # autotrace --version hangs ~30s in CI: it calls MagickCoreGenesis()
+  # at startup, which dlopens ImageMagick coder modules and spins on a
+  # missing per-user cache dir under both the darwin builder and linux
+  # sandbox. --help parses argv before MagickCore init runs, so it
+  # returns immediately and still exercises dynamic-linker resolution
+  # of every shared lib the binary needs. timeout(1) guards regressions.
+  - out=$(timeout 5 autotrace --help 2>&1 || true)
+  - echo "$out"
+  - echo "$out" | grep -i autotrace

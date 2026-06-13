@@ -1,0 +1,204 @@
+distributable:
+  url: https://ftp.gnu.org/gnu/gcc/gcc-{{version.raw}}/gcc-{{ version.raw }}.tar.xz
+  strip-components: 1
+
+versions:
+  github: gcc-mirror/gcc/tags
+  strip: /^releases\/gcc-/
+
+dependencies:
+  gnu.org/binutils: "*" # linker needs `as`
+  gnu.org/gmp: ">=4.2"
+  gnu.org/mpfr: ">=2.4.0"
+  gnu.org/mpc: ">=0.8.0"
+  zlib.net: ^1.3
+  darwin/x86-64: # since 15.1.0
+    libisl.sourceforge.io: ^0
+
+build:
+  dependencies:
+    linux:
+      gnu.org/gcc: "*"
+    gnu.org/make: "*"
+    perl.org: "^5.6.1"
+    gnu.org/patch: "*"
+    curl.se: "*"
+    github.com/westes/flex: "*"
+  working-directory: build
+  script:
+    # Applying ians patches on x86-64 too, since he sometimes gets fixes in faster, like:
+    # https://github.com/orgs/Homebrew/discussions/5216
+    # If we have a patch, apply it
+    - run:
+        - if test -n "$PATCH{{version.major}}{{version.minor}}"; then
+        - curl "$PATCH{{version.major}}{{version.minor}}" | patch -p1
+        - fi
+      if: darwin
+      working-directory: ..
+
+    # if there's no diff yet, unpack iains' source over ours
+    - run:
+        - if test -n "$BRANCH{{version.major}}{{version.minor}}"; then
+        - curl -L "$BRANCH{{version.major}}{{version.minor}}" | tar xz --strip-components=1
+        - fi
+      if: darwin/aarch64
+      working-directory: ..
+
+    - run:
+        - if test "{{hw.platform}}/{{hw.arch}}" = "darwin/x86-64"; then
+        # Apply CFI directive fix for x86-64 Darwin (LLVM assembler compatibility)
+        - patch -p1 < props/disable-cfi-x86-64-darwin.patch
+        # Disable MS ABI stubs on Darwin - not needed and causes CFI/LLVM assembler issues
+        - sed -i 's/ i386\/t-msabi//g' libgcc/config.host
+        # Remove old frame registration symbols from darwin-unwind.ver (GCC 15+ doesn't provide these)
+        - patch -p1 < props/remove-old-frame-symbols-darwin.patch
+        - fi
+      if: ">=15.2"
+      working-directory: ..
+
+    # On Linux, we need to statically link libstdc++ and libgcc
+    - run: export ARGS=($ARGS --with-boot-ldflags="-static-libstdc++ -static-libgcc $LDFLAGS")
+      if: linux
+    - run: export ARGS=($ARGS)
+      if: darwin
+
+    # needed to get the LDFLAGS to libgfortran on darwin
+    # for -headerpad_max_install_names
+    - run: export LDFLAGS_FOR_TARGET="$LDFLAGS"
+      if: darwin
+
+    - ../configure "${ARGS[@]}"
+    - make all-target-libgomp --jobs {{ hw.concurrency }}
+    - make install-target-libgomp
+
+    # Create pkg-config file for libgomp (GCC doesn't provide one by default)
+    - run: sed -e 's|@TARGET@|{{hw.target}}|g' -e 's|@VERSION@|{{version.raw}}|g' "$PROP" | tee gomp.pc
+      working-directory: "{{prefix}}/lib/pkgconfig"
+      prop: |
+        prefix=${pcfiledir}/../..
+        libdir=${prefix}/lib
+        includedir=${prefix}/lib/gcc/@TARGET@/@VERSION@/include
+
+        Name: libgomp
+        Description: GNU Offloading and Multi Processing Runtime Library
+        Version: @VERSION@
+        Requires:
+        Libs: -L${libdir} -lgomp
+        Cflags: -I${includedir}
+
+    # Create library symlinks in lib/ pointing to lib64/
+    - run:
+        - mv lib64/* lib/
+        - rmdir lib64
+        - ln -sf lib lib64
+      working-directory: "{{prefix}}"
+      if: linux
+
+  env:
+    # Branch from the Darwin maintainer of GCC, with a few generic fixes and
+    # Apple Silicon support, located at https://github.com/iains/gcc-12-branch
+    PATCH122: https://raw.githubusercontent.com/Homebrew/formula-patches/1d184289/gcc/gcc-12.2.0-arm.diff
+    # https://github.com/iains/gcc-darwin-arm64
+    PATCH131: https://raw.githubusercontent.com/Homebrew/formula-patches/master/gcc/gcc-13.1.0.diff
+    BRANCH105: https://github.com/iains/gcc-10-branch/archive/refs/heads/gcc-10-5Dr0-pre-0.tar.gz
+    BRANCH114: https://github.com/iains/gcc-11-branch/archive/refs/tags/gcc-11.4-darwin-r0.tar.gz
+    BRANCH115: https://github.com/iains/gcc-11-branch/archive/refs/tags/gcc-11.5-darwin-r0.tar.gz
+    BRANCH123: https://github.com/iains/gcc-12-branch/archive/refs/tags/gcc-12.3-darwin-r0.tar.gz
+    BRANCH124: https://github.com/iains/gcc-12-branch/archive/refs/heads/gcc-12-4-darwin.tar.gz
+    # no branch for 12.5
+    BRANCH125: https://github.com/iains/gcc-12-branch/archive/refs/heads/gcc-12-4-darwin.tar.gz
+    BRANCH132: https://github.com/iains/gcc-13-branch/archive/refs/heads/gcc-13-2-darwin.tar.gz
+    BRANCH133: https://github.com/iains/gcc-13-branch/archive/refs/heads/gcc-13-3-darwin-pre-0.tar.gz
+    BRANCH134: https://github.com/iains/gcc-13-branch/archive/refs/heads/gcc-13-4-darwin-p0.tar.gz
+    BRANCH141: https://github.com/iains/gcc-14-branch/archive/refs/heads/gcc-14-1-darwin-pre-0.tar.gz
+    BRANCH142: https://github.com/iains/gcc-14-branch/archive/refs/heads/gcc-14-2-darwin-pre-0.tar.gz
+    BRANCH143: https://github.com/iains/gcc-14-branch/archive/refs/heads/gcc-14-3-darwin-pre-0.tar.gz
+    BRANCH151: https://github.com/iains/gcc-15-branch/archive/refs/heads/gcc-15-1-darwin-rc1.tar.gz
+    BRANCH152: https://github.com/iains/gcc-15-branch/archive/refs/heads/gcc-15-2-darwin-pre-0.tar.gz
+    BRANCH153: https://github.com/iains/gcc-darwin-arm64/archive/refs/heads/master-wip-apple-si-on-r15-9392-g711c10383f494b.tar.gz
+    BRANCH161: https://github.com/iains/gcc-darwin-arm64/archive/refs/heads/master-wip-apple-si-on-r16-8803-g376d03b7b44da2.tar.gz
+    ARGS:
+      - --prefix={{ prefix }}
+      - --libdir={{ prefix }}/lib
+      - --enable-languages=c,c++
+      - --with-bugurl="https://github.com/pkgxdev/pantry/issues"
+      - --disable-bootstrap
+      - --disable-nls
+      - --with-system-zlib
+    linux:
+      ARGS:
+        - --disable-multilib
+        - --enable-default-pie
+        - --enable-pie-tools
+        - --enable-host-pie
+    linux/x86-64:
+      LIBDIR: lib64
+      LDFLAGS:
+        - -pie
+      CFLAGS:
+        - -fPIC
+        - -fPIE
+      CXXFLAGS:
+        - -fPIC
+        - -fPIE
+    linux/aarch64:
+      LIBDIR: lib64
+    darwin:
+      LDFLAGS: $LDFLAGS -Wl,-headerpad_max_install_names
+      ARGS:
+        # Reliance on CLT hard path is yuck.
+        - --with-sysroot=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
+    darwin/aarch64:
+      ARGS:
+        # https://en.wikipedia.org/wiki/Darwin_(operating_system)#Darwin_16%E2%80%9319;_OS_X_rebranded_into_macOS
+        - --build=aarch64-apple-darwin20.0.0
+    darwin/x86-64:
+      ARGS:
+        - --build=x86_64-apple-darwin20.0.0
+      # llvm-as generates __compact_unwind sections, even when told not to. this causes build errors
+      # for ^10 on darwin+x86-64
+      # https://stackoverflow.com/questions/52211390/trouble-building-gcc-on-mac-cant-find-system-headers
+      BOOT_CFLAGS:
+        - -Wa,-mmacos-version-min=10.5
+      CFLAGS_FOR_TARGET:
+        - -Wa,-mmacos-version-min=10.5
+        # 15.3+ libgcc2.c v* overflow funcs emit `.cfi_advance_loc` symdiffs
+        # across abort() noreturn edges that LLVM's integrated `as` rejects
+        # with "invalid CFI advance_loc expression". Emit unwind via .eh_frame
+        # instead of inline .cfi_* asm directives.
+        - -fno-dwarf2-cfi-asm
+      CXXFLAGS_FOR_TARGET:
+        - -Wa,-mmacos-version-min=10.5
+        - -fno-dwarf2-cfi-asm
+
+test:
+  dependencies:
+    freedesktop.org/pkg-config: "*"
+    gnu.org/gcc: "*"
+  env:
+    CFLAGS:
+      - -I{{prefix}}/lib/gcc/{{hw.target}}/{{version.raw}}/include
+      - -fopenmp
+  script:
+    - pkg-config --exists gomp
+    - pkg-config --modversion gomp
+    # macos14 has some header issues with newer gcc versions, so skip the test there for now
+    - run: |
+        if test "$(sw_vers -productVersion | cut -d . -f 1)" -lt 15; then
+          exit 0
+        fi
+      if: darwin
+    - run: gcc $CFLAGS "$FIXTURE" -o test -lgomp $LDFLAGS
+      fixture:
+        extname: c
+        content: |
+          #include <omp.h>
+          #include <stdio.h>
+          int main() {
+            #pragma omp parallel
+            {
+              printf("Hello from thread %d\n", omp_get_thread_num());
+            }
+            return 0;
+          }
+    - ./test

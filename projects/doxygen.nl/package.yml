@@ -1,7 +1,6 @@
-
 distributable:
-   url: https://github.com/doxygen/doxygen/archive/refs/tags/Release_{{version.major}}_{{version.minor}}_{{version.patch}}.tar.gz
-   strip-components: 1
+  url: https://github.com/doxygen/doxygen/archive/refs/tags/Release_{{version.major}}_{{version.minor}}_{{version.patch}}.tar.gz
+  strip-components: 1
 
 versions:
   github: doxygen/doxygen/releases
@@ -13,11 +12,13 @@ build:
     cmake.org: ^3
     github.com/westes/flex: 2
     python.org: '>=3<3.12'
+    linux:
+      llvm.org: 20 # 21 has linking issues
   working-directory: build
-  script: |
-    cmake $ARGS -G "Unix Makefiles" ..
-    make --jobs {{ hw.concurrency }}
-    make install
+  script:
+    - cmake $ARGS -G "Unix Makefiles" ..
+    - make --jobs {{ hw.concurrency }}
+    - make install
   env:
     ARGS:
       - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
@@ -27,6 +28,5 @@ provides:
   - bin/doxygen
 
 test:
-  script: |
-    doxygen -g
-    doxygen Doxyfile
+  - doxygen -g
+  - doxygen Doxyfile

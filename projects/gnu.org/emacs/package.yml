@@ -8,6 +8,7 @@ versions:
   ignore: /\d+.\d+.9[0-9]/ # ignore pre-releases
 
 dependencies:
+  tree-sitter.github.io: ">=0.20.2<0.26"
   gnome.org/libxml2: ^2.10.3
   invisible-island.net/ncurses: ^6.3.0
   libjpeg-turbo.org: ^2.1.5.1
@@ -16,6 +17,8 @@ dependencies:
   gnu.org/libidn2: ^2.3
   gnutls.org: ^3.6
   zlib.net: ^1.2
+  linux:
+    gnu.org/gcc/libgccjit: "*"
 
 runtime:
   env:
@@ -25,32 +28,40 @@ runtime:
     EMACSPATH: ${{prefix}}/libexec/emacs/{{version.marketing}}
 
 build:
-  dependencies:
-    freedesktop.org/pkg-config: ^0.29.2
   script:
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
 
     # we specify this with the env-var
-    - cd {{prefix}}/share/emacs
-    - mv {{version.marketing}}/lisp .
-    - mv site-lisp/* lisp
-    - rmdir site-lisp
+    - run:
+        - mv {{version.marketing}}/lisp .
+        - mv site-lisp/* lisp
+        - rmdir site-lisp
 
-    # doing it step by step to prove we didn’t leave anything here
-    - rm {{version.marketing}}/site-lisp/subdirs.el
-    - rmdir {{version.marketing}}/site-lisp
+        # doing it step by step to prove we didn’t leave anything here
+        - rm {{version.marketing}}/site-lisp/subdirs.el
+        - rmdir {{version.marketing}}/site-lisp
 
-    - mv {{version.marketing}}/etc .
-    - rmdir {{version.marketing}}
+        - mv {{version.marketing}}/etc .
+        - rmdir {{version.marketing}}
+      working-directory: ${{prefix}}/share/emacs
 
     # we need a stable EMACSPATH to advertise
-    - run: |
-        DIR=$(ls)
-        mv $DIR/* .
-        rmdir $DIR
-        ln -s . $DIR
+    - run:
+        - DIR=$(ls)
+        - mv $DIR/* .
+        - rmdir $DIR
+        - ln -s . $DIR
       working-directory: ${{prefix}}/libexec/emacs/{{version.marketing}}
+
+    # Emacs consults same-directory pdump files before compiled-in PATH_EXEC.
+    # This keeps startup relocatable after brewkit moves +brewing to final.
+    - run:
+        - PDMP=$(find ../libexec/emacs/{{version.marketing}} -name 'emacs-*.pdmp' -type f -print -quit)
+        - test -n "$PDMP"
+        - ln -s "$PDMP" emacs.pdmp
+        - ln -s "$PDMP" emacs-{{version.marketing}}.pdmp
+      working-directory: ${{prefix}}/bin
 
   env:
     ARGS:
@@ -66,23 +77,30 @@ build:
       - --without-imagemagick
       - --without-selinux
       - --with-x-toolkit=no
+      - --with-tree-sitter
+    linux:
+      ARGS:
+        - --with-native-compilation
 provides:
   - bin/emacs
 
 test:
-  script:
-    - emacs --version | grep "GNU Emacs {{version.marketing}}"
+  - emacs --version | grep "GNU Emacs {{version.marketing}}"
 
-    - four=$(emacs --batch --eval="(print (+ 2 2))")
-    - test $four = 4
+  - emacs --batch --eval="(print (+ 2 2))" | tee four
+  - test $(cat four) = 4
 
-    - emacs -batch -l $FIXTURE
+  - run: emacs -batch -l $FIXTURE
+    fixture: |
+      (require 'simple)
+      (defun my-print-message ()
+        "Print a message to the *Messages* buffer"
+        (message "This is a message from my script"))
+      (my-print-message)
 
-    # test EMACSPATH
-    - emacs --batch --eval '(progn (package-initialize) (print (with-output-to-string (package-list-packages))) (kill-emacs))'
-  fixture: |
-    (require 'simple)
-    (defun my-print-message ()
-      "Print a message to the *Messages* buffer"
-      (message "This is a message from my script"))
-    (my-print-message)
+  - emacs --batch --eval '(unless (treesit-available-p) (kill-emacs 1))'
+  - run: emacs --batch --eval '(unless (native-comp-available-p) (kill-emacs 1))'
+    if: linux
+
+  # test EMACSPATH
+  - emacs --batch --eval '(progn (package-initialize) (print (with-output-to-string (package-list-packages))) (kill-emacs))'

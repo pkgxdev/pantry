@@ -1,6 +1,8 @@
 distributable:
-  url: https://downloads.sourceforge.net/project/giflib/giflib-{{version}}.tar.gz
-  strip-components: 1
+  - url: https://prdownloads.sourceforge.net/giflib/giflib-{{ version }}.tar.gz
+    strip-components: 1
+  - url: https://downloads.sourceforge.net/project/giflib/giflib-{{version}}.tar.gz
+    strip-components: 1
 
 versions:
   url: https://sourceforge.net/projects/giflib/files
@@ -11,8 +13,8 @@ versions:
 
 build:
   dependencies:
-    gnu.org/patch: '*'
-    imagemagick.org: '*' # needs `convert`
+    gnu.org/patch: "*"
+    imagemagick.org: "*" # needs `convert`
   script:
     # the appears to be applied in 5.2.2
     - run: |
@@ -22,13 +24,25 @@ build:
         fi
       if: <5.2.2
 
-    - make --jobs {{ hw.concurrency }} all
+    # 6.1.2: libutil.dylib needs libgif for GifErrorString
+    - run:
+        - if test {{ hw.platform }} = "darwin"; then
+        - sed -i 's/$(UOBJECTS) -o $(LIBUTILSO)/$(UOBJECTS) libgif.dylib -o $(LIBUTILSO)/' Makefile
+        - elif test {{ hw.platform }} = "linux"; then
+        - sed -i 's/\($(CC).*$(UOBJECTS)\)/\1 -lgif -L./' Makefile
+        - fi
+      if: ^6.1.2
+
+    - make all
     - make install PREFIX="{{ prefix }}"
+  env:
+    darwin:
+      # giflib Makefile uses $(CFLAGS) not $(LDFLAGS) for dylib linking
+      CFLAGS: $CFLAGS -Wl,-headerpad_max_install_names
 
 test: giftext fixture.gif
 
 provides:
-  - bin/gif2rgb
   - bin/gifbuild
   - bin/gifclrmp
   - bin/giffix

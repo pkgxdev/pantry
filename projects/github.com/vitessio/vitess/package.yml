@@ -1,0 +1,94 @@
+distributable:
+  url: https://github.com/vitessio/vitess/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+display-name: vitess
+
+versions:
+  github: vitessio/vitess
+
+build:
+  dependencies:
+    go.dev: "*"
+    git-scm.org: "*"
+  # we drive the build via `make build` so vitess's own ldflags / version
+  # embedding (tools/build_version_flags.sh) stay consistent with upstream.
+  #
+  # Surface shipped: every Go binary under go/cmd/* — all 24 of them.
+  # That's everything `go build ./go/...` produces (the Makefile's
+  # build target), including vtadmin (Go API server), rulesctl, and
+  # vtgateclienttest, which earlier versions of this recipe omitted
+  # from `provides:` despite them being copied to bin/.
+  #
+  # The vtadmin React WEB UI is a separate concern — it's gated by
+  # the Makefile's `NOVTADMINBUILD` and requires node.js + npm to
+  # build a static frontend bundle. We keep `NOVTADMINBUILD=1` here
+  # to avoid pulling node.js into the build closure for this recipe.
+  # A user wanting the web UI can either (a) build it themselves via
+  # `./web/vtadmin/build.sh` against the upstream source, or (b) we
+  # can split it into a `vitess.io/vtadmin-web` sub-recipe (TODO if
+  # there's user demand — track this if anyone files an issue).
+  script:
+    # build.env installs git hooks via `git config core.hooksPath`,
+    # which requires a real git repo even though we're building from a tarball
+    - git init -q
+    - git config user.email pkgx@pkgx.sh
+    - git config user.name pkgx
+    - git commit -q --allow-empty -m bootstrap
+    - make --jobs {{hw.concurrency}} build
+    - mkdir -p {{prefix}}/bin
+    - find bin -maxdepth 1 -type f -exec cp {} {{prefix}}/bin/ \;
+  skip: fix-patchelf
+  env:
+    # Gates the React frontend build only — Go-side vtadmin binary
+    # still gets compiled by `go build ./go/...`. See header comment.
+    NOVTADMINBUILD: "1"
+    NOBANNER: "1"
+    BUILD_GIT_REV: "{{version.tag}}"
+    BUILD_GIT_BRANCH: main
+
+provides:
+  # Core query / admin daemons
+  - bin/vtgate # SQL proxy layer
+  - bin/vttablet # per-shard MySQL agent
+  - bin/vtctl # legacy admin CLI
+  - bin/vtctld # legacy admin daemon
+  - bin/vtctlclient # legacy admin client
+  - bin/vtctldclient # current admin client (grpc)
+  - bin/vtcombo # standalone all-in-one for testing
+  - bin/vtorc # MySQL orchestrator (HA / failover)
+  - bin/vtadmin # admin API server (REST + gRPC)
+  # Backup, debugging, testing
+  - bin/vtbackup # backup taker
+  - bin/vtbench # benchmark client
+  - bin/vttestserver # in-process test cluster
+  - bin/vtexplain # query-plan explainer
+  - bin/vtgateclienttest # gateway client test harness
+  # Auth / ACL / TLS
+  - bin/vtaclcheck # ACL validator
+  - bin/vttlstest # TLS configuration test
+  - bin/rulesctl # query-rule editor
+  # MySQL bootstrap helpers
+  - bin/mysqlctl # mysqld lifecycle helper
+  - bin/mysqlctld # daemonized mysqlctl
+  # Topology service
+  - bin/topo2topo # cross-topology migrator
+  - bin/vtclient # generic VTGate client
+  # ZooKeeper helpers (used by zk2topo backend)
+  - bin/zk # zk CLI
+  - bin/zkctl # zk server lifecycle
+  - bin/zkctld # zk daemonized
+
+test:
+  - vtgate --version | tee out
+  - grep {{version}} out
+  - vtctldclient --version | tee out
+  - grep {{version}} out
+  - vtgate --version | tee out
+  - grep {{version}} out
+  # Smoke-test the newly-surfaced binaries to confirm they exist on
+  # PATH and execute (the previous recipe built them via
+  # `go build ./go/...` but didn't declare them in provides:).
+  - vtadmin --help
+  - rulesctl --help
+  - vtgateclienttest --help

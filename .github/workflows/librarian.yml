@@ -25,10 +25,14 @@ jobs:
             ;;
           esac
       - name: Close issue
-        uses: actions-cool/issues-helper@v3
         if: steps.close-reason.outputs.reason != ''
-        with:
-          actions: close-issue
-          token: ${{ github.token }}
-          issue-number: ${{ github.event.issue.number }}
-          close-reason: ${{ steps.close-reason.outputs.reason }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          CLOSE_REASON: ${{ steps.close-reason.outputs.reason }}
+        run: |
+          gh api \
+            --method PATCH \
+            "repos/${GITHUB_REPOSITORY}/issues/${ISSUE_NUMBER}" \
+            -f state=closed \
+            -f state_reason="${CLOSE_REASON}"

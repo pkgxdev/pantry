@@ -1,0 +1,183 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat <<'USAGE'
+xcodegen-init: initialize an XcodeGen project spec from markdown front matter.
+
+Usage:
+  xcodegen-init <manifest.md> [--write-only] [--output <project.yml>]
+  xcodegen-init --help
+
+Options:
+  --write-only        Write the project spec and exit without running XcodeGen.
+  --output <path>     Project spec output path (default: ./project.yml).
+
+Manifest format:
+  YAML front matter between the first two lines containing only `---`.
+USAGE
+}
+
+manifest=""
+write_only=0
+output="./project.yml"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --help|-h)
+      usage
+      exit 0
+      ;;
+    --write-only)
+      write_only=1
+      shift
+      ;;
+    --output)
+      if [[ $# -lt 2 ]]; then
+        echo "error: --output requires a path" >&2
+        exit 2
+      fi
+      output="$2"
+      shift 2
+      ;;
+    -*)
+      echo "error: unknown flag: $1" >&2
+      usage >&2
+      exit 2
+      ;;
+    *)
+      if [[ -n "$manifest" ]]; then
+        echo "error: only one manifest path is supported" >&2
+        exit 2
+      fi
+      manifest="$1"
+      shift
+      ;;
+  esac
+done
+
+if [[ -z "$manifest" ]]; then
+  echo "error: missing manifest path" >&2
+  usage >&2
+  exit 2
+fi
+
+if [[ ! -f "$manifest" ]]; then
+  echo "error: manifest not found: $manifest" >&2
+  exit 2
+fi
+
+if ! command -v yq >/dev/null 2>&1; then
+  echo "error: yq is required but not found in PATH" >&2
+  exit 2
+fi
+if ! command -v jq >/dev/null 2>&1; then
+  echo "error: jq is required but not found in PATH" >&2
+  exit 2
+fi
+
+frontmatter="$(
+  awk '
+    BEGIN { sep=0 }
+    /^---[[:space:]]*$/ { sep+=1; if (sep == 2) exit; next }
+    sep == 1 { print }
+  ' "$manifest"
+)"
+
+if [[ -z "${frontmatter//[[:space:]]/}" ]]; then
+  echo "error: no YAML front matter found in manifest" >&2
+  exit 2
+fi
+
+manifest_json="$(printf '%s\n' "$frontmatter" | yq -o=json '.')"
+
+jq_str() {
+  printf '%s' "$manifest_json" | jq -r "$1"
+}
+
+jq_json() {
+  printf '%s' "$manifest_json" | jq -c "$1"
+}
+
+project_name="$(jq_str '.project.name // empty')"
+target_name="$(jq_str '.target.name // empty')"
+target_type="$(jq_str '.target.type // empty')"
+target_platform="$(jq_str '.target.platform // empty')"
+deployment_target="$(jq_str '.target.deploymentTarget // empty')"
+sources_json="$(jq_json '.target.sources // []')"
+bundle_id_prefix="$(jq_str '.options.bundleIdPrefix // empty')"
+minimum_version="$(jq_str '.options.minimumXcodeGenVersion // empty')"
+settings_base_json="$(jq_json '.settings.base // {}')"
+
+if [[ -z "$project_name" ]]; then
+  echo "error: missing .project.name in manifest" >&2
+  exit 2
+fi
+if [[ -z "$target_name" ]]; then
+  echo "error: missing .target.name in manifest" >&2
+  exit 2
+fi
+if [[ -z "$target_type" ]]; then
+  echo "error: missing .target.type in manifest" >&2
+  exit 2
+fi
+if [[ -z "$target_platform" ]]; then
+  echo "error: missing .target.platform in manifest" >&2
+  exit 2
+fi
+
+project_json="$(
+  jq -n \
+    --arg project_name "$project_name" \
+    --arg target_name "$target_name" \
+    --arg target_type "$target_type" \
+    --arg target_platform "$target_platform" \
+    --arg deployment_target "$deployment_target" \
+    --arg bundle_id_prefix "$bundle_id_prefix" \
+    --arg minimum_version "$minimum_version" \
+    --argjson sources "$sources_json" \
+    --argjson settings_base "$settings_base_json" \
+    '
+    {
+      name: $project_name,
+      targets: {
+        ($target_name): {
+          type: $target_type,
+          platform: $target_platform,
+          sources: $sources
+        }
+      }
+    }
+    | if $deployment_target != "" then
+        .targets[$target_name].deploymentTarget = $deployment_target
+      else . end
+    | if $bundle_id_prefix != "" or $minimum_version != "" then
+        .options = {}
+      else . end
+    | if $bundle_id_prefix != "" then
+        .options.bundleIdPrefix = $bundle_id_prefix
+      else . end
+    | if $minimum_version != "" then
+        .options.minimumXcodeGenVersion = $minimum_version
+      else . end
+    | if $settings_base != {} then
+        .targets[$target_name].settings = { base: $settings_base }
+      else . end
+    '
+)"
+
+mkdir -p "$(dirname "$output")"
+printf '%s\n' "$project_json" | yq -P >"$output"
+
+echo "Wrote XcodeGen spec: $output"
+
+if [[ "$write_only" -eq 1 ]]; then
+  exit 0
+fi
+
+if ! command -v xcodegen >/dev/null 2>&1; then
+  echo "error: xcodegen binary not found in PATH" >&2
+  exit 2
+fi
+
+exec xcodegen generate --spec "$output"

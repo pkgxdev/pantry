@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/cocogitto/cocogitto/archive/refs/tags/{{ version }}.tar.gz
+  url: https://github.com/cocogitto/cocogitto/archive/refs/tags/{{ version.tag }}.tar.gz
   strip-components: 1
 
 provides:
@@ -7,19 +7,19 @@ provides:
 
 versions:
   github: cocogitto/cocogitto
-  strip: /v/
 
 dependencies:
   libgit2.org: ~1.7 # links to libgit2.so.1.7
 
 build:
   dependencies:
-    rust-lang.org: '>=1.65'
-    rust-lang.org/cargo: '*'
+    rust-lang.org: ">=1.65"
+    rust-lang.org/cargo: "*"
   script:
     # no --locked flag because it was failing on proc_macro_span_shrink
-    - cargo install --path . --root {{prefix}}
+    - run: cargo install --path . --root {{prefix}}
+      if: <7
+    - run: cargo install --path crates/cocogitto --root {{prefix}}
+      if: ">=7"
 
-test:
-  script:
-    - test "$(cog --version)" = "cog {{version}}"
+test: test "$(cog --version)" = "cog {{version}}"

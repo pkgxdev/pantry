@@ -9,6 +9,8 @@ build:
   dependencies:
     rust-lang.org/cargo: '*'
     rust-lang.org: ^1.78 # stdsimd changes
+    linux:
+      gnu.org/gcc: 14 # since 0.92
   script:
     - run: cargo install --path . --locked --root {{prefix}}
       if: <0.6.0
@@ -28,6 +30,9 @@ build:
         - cargo install --path iroh-dns-server --root {{prefix}}
         - ln -s iroh-relay '{{prefix}}/bin/iroh'
       if: '>=0.30'
+  env:
+    linux:
+      RUSTFLAGS: $RUSTFLAGS -C linker=gcc
 
 provides:
   - bin/iroh

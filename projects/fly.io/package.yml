@@ -1,10 +1,9 @@
 distributable:
-  url: https://github.com/superfly/flyctl/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/superfly/flyctl/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
-  github: superfly/flyctl/releases/tags
-  strip: /^v/
+  github: superfly/flyctl
 
 build:
   dependencies:
@@ -20,10 +19,10 @@ build:
       - -X github.com/superfly/flyctl/internal/buildinfo.buildDate=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
       - -X github.com/superfly/flyctl/internal/buildinfo.version={{ version }}
       - -X github.com/superfly/flyctl/internal/buildinfo.commit=tea
-  script: |
-    go build -v -ldflags="$LDFLAGS" -o "{{ prefix }}"/bin/flyctl .
-    cd "{{ prefix }}"/bin
-    ln -s flyctl fly
+  script:
+    - go build -v -ldflags="$LDFLAGS" -o "{{ prefix }}"/bin/flyctl .
+    - run: ln -s flyctl fly
+      working-directory: "{{ prefix }}/bin"
 
 provides:
   - bin/fly
@@ -33,4 +32,4 @@ test:
   #FIXME: flyctl is migratining _to_ calver from semver.
   # - fly version | grep {{version}}
   # - flyctl version | grep {{version}}
-  - echo $(flyctl status 2>&1 || true) | grep " No access token available"
+  - echo $(flyctl status 2>&1 || true) | grep -i " No access token available"

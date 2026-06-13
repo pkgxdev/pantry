@@ -1,0 +1,21 @@
+distributable:
+  url: https://github.com/PromptExecution/just-mcp/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: PromptExecution/just-mcp/tags
+
+description: Production-ready MCP server that exposes Justfile recipes over MCP.
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.89'
+  script:
+    # missed version bump
+    - sed -i '1,20s/^version = ".*"$/version = "{{version}}"/' Cargo.toml
+    - cargo install --path . --root {{prefix}}
+
+provides:
+  - bin/just-mcp
+
+test: test "$(just-mcp --version)" = "just-mcp {{version}}"

@@ -11,6 +11,8 @@ versions:
 
 build:
   script:
+    - run: sed -i 's/extern int getopt();/extern int getopt(int, char * const [], const char *);/' getopt.h
+      if: darwin
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
   env:

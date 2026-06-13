@@ -1,0 +1,52 @@
+# X.Org font-util — small helper for X11 font packages.
+#
+# Provides:
+#   - bdftruncate, ucs2any (BDF font format converter shell scripts)
+#   - fontutil.pc (pkg-config exporting `fontrootdir` etc., consumed
+#     by `xserver`'s meson.build to compute the default FontPath)
+#   - util/fontutil.m4 (autotools macros used by sibling x.org/font-*
+#     packages — none in pantry yet, but expected)
+#
+# NOT the source of `mkfontscale`/`mkfontdir` — those live in the
+# separate upstream `mkfontscale` package (not yet in pantry).
+#
+# Same role as arch's `xorg-font-util`, debian's `xfonts-utils`,
+# nixpkgs `xorg.fontutil`. Tiny — autotools-based, two shell scripts
+# + pkgconfig + m4 macros.
+
+distributable:
+  url: https://www.x.org/releases/individual/font/font-util-{{version}}.tar.xz
+  strip-components: 1
+
+versions:
+  url: https://www.x.org/releases/individual/font/
+  match: /font-util-\d+\.\d+\.\d+\.tar\.xz/
+  strip:
+    - /^font-util-/
+    - /\.tar\.xz$/
+
+display-name: X.Org font-util
+
+build:
+  dependencies:
+    x.org/util-macros: "*"
+  script:
+    - ./configure --prefix={{prefix}}
+    - make --jobs {{ hw.concurrency }}
+    - make install
+
+provides:
+  - bin/bdftruncate
+  - bin/ucs2any
+
+test:
+  dependencies:
+    freedesktop.org/pkg-config: "*"
+  script:
+    # Accept either $libdir/pkgconfig (autotools default) or
+    # $datarootdir/pkgconfig (some distros relocate); font-util's own
+    # `make install` writes to lib/pkgconfig on most builds.
+    - pkg-config --cflags --libs fontutil
+    # Smoke-test the BDF scripts at least load:
+    - test "$(bdftruncate --version)" = "font-util {{version}}"
+    - test "$(ucs2any --version)" = "font-util {{version}}"

@@ -6,10 +6,6 @@ versions:
 warnings:
   - vendored
 
-platforms:
-  - darwin
-  - linux/x86-64
-
 dependencies:
   linux:
     curl.se: 8
@@ -21,13 +17,16 @@ build:
     info-zip.org/unzip: '*'
   working-directory: '{{prefix}}/bin'
   script:
-    - run: curl -Lfo swiftlint.zip "https://github.com/realm/SwiftLint/releases/download/{{version}}/portable_swiftlint.zip"
-      if: darwin
-    - run: curl -Lfo swiftlint.zip "https://github.com/realm/SwiftLint/releases/download/{{version}}/swiftlint_linux.zip"
-      if: linux
-
+    - curl -Lfo swiftlint.zip "https://github.com/realm/SwiftLint/releases/download/{{version}}/$ZIP_NAME"
     - unzip -o swiftlint.zip
   skip: fix-machos
+  env:
+    darwin:
+      ZIP_NAME: portable_swiftlint.zip
+    linux/x86-64:
+      ZIP_NAME: swiftlint_linux_amd64.zip
+    linux/aarch64:
+      ZIP_NAME: swiftlint_linux_arm64.zip
 
 provides:
   - bin/swiftlint

@@ -1,0 +1,89 @@
+# VTK — Visualization Toolkit (Kitware).
+#
+# C++ library + Python bindings for 3D scientific visualization,
+# image processing, mesh handling. Used by ParaView, MeshLab,
+# Slicer, and most scientific viz pipelines.
+#
+# CLI-friendly build — disables Qt UI, MPI, Java, examples to keep
+# the bottle reasonable. Power users wanting Qt UI should rebuild
+# with -DVTK_GROUP_ENABLE_Qt=YES.
+#
+# Closes part of pkgxdev/pantry#99 (Top 300 holdout #645).
+
+distributable:
+  url: https://www.vtk.org/files/release/{{ version.marketing }}/VTK-{{ version.raw }}.tar.gz
+  strip-components: 1
+
+versions:
+  # VTK ships tags but no GitHub releases — force tags mode and
+  # exclude release candidates / pre-releases.
+  github: Kitware/VTK/tags
+  ignore:
+    - /\.rc\d+$/
+    - /-rc\d+$/
+  strip: /^v/
+
+platforms:
+  # darwin currently fails: CMake picks the system Python 3.9.6 over
+  # pantry's python.org and dies looking for Python3 Development.Module
+  # headers (system Python ships none in a discoverable place).
+  # Restrict to linux until we can teach CMake to prefer pantry's
+  # python3 + its headers on macOS.
+  - linux
+
+dependencies:
+  python.org: "~3.11"
+  zlib.net: "*"
+  libpng.org: "*"
+  libjpeg-turbo.org: "*"
+  simplesystems.org/libtiff: "*"
+  freetype.org: "*"
+  libgeos.org: "*"
+
+build:
+  dependencies:
+    cmake.org: ^3
+  working-directory: build
+  script:
+    - cmake .. $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
+  env:
+    ARGS:
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DBUILD_SHARED_LIBS=ON
+      - -DBUILD_TESTING=OFF
+      - -DBUILD_EXAMPLES=OFF
+      - -DVTK_USE_MPI=OFF
+      - -DVTK_WRAP_PYTHON=ON
+      - -DVTK_WRAP_JAVA=OFF
+      - -DVTK_GROUP_ENABLE_Qt=NO
+      - -DVTK_GROUP_ENABLE_Imaging=YES
+      - -DVTK_GROUP_ENABLE_Rendering=YES
+      - -DVTK_GROUP_ENABLE_StandAlone=YES
+      - -DVTK_GROUP_ENABLE_Views=DONT_WANT
+      - -DVTK_GROUP_ENABLE_Web=DONT_WANT
+      - -DVTK_USE_SYSTEM_ZLIB=ON
+      - -DVTK_USE_SYSTEM_PNG=ON
+      - -DVTK_USE_SYSTEM_JPEG=ON
+      - -DVTK_USE_SYSTEM_TIFF=ON
+      - -DVTK_USE_SYSTEM_FREETYPE=ON
+
+provides:
+  # VTK is mostly a library. vtkpython is the only CLI tool that ships
+  # without a version suffix; the rest (vtkProbeOpenGLVersion-9.6 etc.)
+  # are versioned and not useful to declare in provides.
+  - bin/vtkpython
+
+test:
+  - run: cc $FIXTURE -o test -lvtkCommonCore-{{version.marketing}}
+    fixture:
+      extname: c
+      content: |
+        #include <stdio.h>
+
+        int main() {
+          printf("Hello, world!");
+        }
+  - test "$(./test)" = "Hello, world!"

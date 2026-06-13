@@ -7,27 +7,22 @@ versions:
 
 dependencies:
   linux:
-    x.org/x11: '*'
-    mesa3d.org: '*'
+    x.org/x11: "*"
+    mesa3d.org: "*"
 
 build:
   dependencies:
-    mesonbuild.com: '*'
-    ninja-build.org: '*'
-    freedesktop.org/pkg-config: '*'
-    python.org: '>=3.1<3.12'
+    mesonbuild.com: "*"
+    ninja-build.org: "*"
+    freedesktop.org/pkg-config: "*"
+    python.org: ">=3.1<3.12"
     linux:
-      freeglut.sourceforge.io: '*'
+      freeglut.sourceforge.io: "*"
   working-directory: build
   script:
     - meson setup $ARGS ..
     - ninja
     - ninja install
-    - run: |
-        mv epoxy/* .
-        rmdir epoxy
-        ln -s . epoxy
-      working-directory: ${{prefix}}/include
     # this seems to mess up pkg-config detection on darwin.
     - run: |
         sed -i.bak "s|Requires.private: x11, |Requires.private: x11|g" epoxy.pc
@@ -43,7 +38,7 @@ build:
 
 test:
   dependencies:
-    freedesktop.org/pkg-config: '*'
+    freedesktop.org/pkg-config: "*"
   env:
     ARGS:
       - -lepoxy
