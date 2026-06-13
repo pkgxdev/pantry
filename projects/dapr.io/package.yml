@@ -1,0 +1,35 @@
+distributable:
+  url: https://github.com/dapr/cli/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: dapr/cli
+
+provides:
+  - bin/dapr
+
+build:
+  dependencies:
+    go.dev: "*"
+  script:
+    - go mod download
+    - go build -v -trimpath -ldflags="$GO_LDFLAGS" -o {{prefix}}/bin/dapr .
+  env:
+    CGO_ENABLED: 0
+    GO_LDFLAGS:
+      - -s
+      - -w
+      - -X main.version={{version}}
+      - -X main.apiVersion=1.0
+      - -X github.com/dapr/cli/pkg/standalone.gitcommit=pkgx
+      - -X github.com/dapr/cli/pkg/standalone.gitversion={{version.tag}}
+    linux:
+      # or segmentation fault
+      # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
+      GO_LDFLAGS:
+        - -buildmode=pie
+
+test:
+  - dapr help
+  - dapr version | tee out
+  - 'test "$(head -n1 out)" = "CLI version: {{version}} "'
