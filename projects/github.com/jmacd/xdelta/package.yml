@@ -15,29 +15,21 @@
 # interest only.
 
 distributable:
-  url: https://github.com/jmacd/xdelta/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/jmacd/xdelta/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
   # Upstream publishes git tags but ZERO GitHub Releases. Use /tags.
   github: jmacd/xdelta/tags
 
-platforms:
-  - linux/x86-64
-  - linux/aarch64
-  - darwin/x86-64
-  - darwin/aarch64
-
 build:
   working-directory: xdelta3
   dependencies:
-    gnu.org/autoconf: '*'
-    gnu.org/automake: '*'
-    gnu.org/libtool: '*'
-    gnu.org/make: '*'
-    freedesktop.org/pkg-config: '*'
+    gnu.org/autoconf: "*"
+    gnu.org/automake: "*"
+    gnu.org/libtool: "*"
     linux:
-      gnu.org/gcc: '*'
+      gnu.org/gcc: "*"
   script:
     - autoreconf -fi
     - ./configure --prefix={{prefix}}
@@ -49,9 +41,8 @@ provides:
 
 test:
   # Round-trip: source → delta → reconstructed-target; verify identity.
-  - run: |
-      printf 'the quick brown fox jumps over the lazy dog\n' > source.txt
-      printf 'the quick brown FOX jumps over the lazy DOG\n' > target.txt
-      xdelta3 -e -s source.txt target.txt delta.vcdiff
-      xdelta3 -d -s source.txt delta.vcdiff out.txt
-      diff -q target.txt out.txt
+  - printf 'the quick brown fox jumps over the lazy dog\n' > source.txt
+  - printf 'the quick brown FOX jumps over the lazy DOG\n' > target.txt
+  - xdelta3 -e -s source.txt target.txt delta.vcdiff
+  - xdelta3 -d -s source.txt delta.vcdiff out.txt
+  - diff target.txt out.txt
