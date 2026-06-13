@@ -5,24 +5,17 @@ distributable:
 versions:
   github: kubereboot/kured
 
-platforms:
-  - linux/x86-64
-  - linux/aarch64
-  - darwin/x86-64
-  - darwin/aarch64
-
 build:
   dependencies:
-    go.dev: '*'
-  script:
-    - go build $GO_ARGS -ldflags="$LD_FLAGS" ./cmd/kured
+    go.dev: "*"
+  script: go build $GO_ARGS -ldflags="$GO_LDFLAGS" ./cmd/kured
   env:
     CGO_ENABLED: 0
-    LD_FLAGS:
+    GO_LDFLAGS:
       - -s -w
       - -X main.version={{version}}
     linux:
-      LD_FLAGS:
+      GO_LDFLAGS:
         - -buildmode=pie
     GO_ARGS:
       - -trimpath
@@ -32,4 +25,5 @@ provides:
   - bin/kured
 
 test:
-  - kured --help 2>&1 | grep -i kured
+  - kured --help 2>&1 | tee out
+  - grep -i kured out
