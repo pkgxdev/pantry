@@ -1,0 +1,29 @@
+# Telegraf — InfluxData's plugin-driven server agent for collecting,
+# processing, aggregating and writing metrics and events. Builds the
+# full plugin set (a large build — the cloud-SDK input plugins are
+# memory-hungry to compile).
+
+distributable:
+  url: https://github.com/influxdata/telegraf/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: influxdata/telegraf
+
+build:
+  dependencies:
+    go.dev: "*"
+  env:
+    CGO_ENABLED: 0
+  script:
+    - mkdir -p "{{prefix}}/bin"
+    # internal.Version is ParseInt'd per dotted field, so pass the bare
+    # numeric version (no leading "v") or `telegraf --version` panics.
+    - go build -trimpath -ldflags "-s -w -X github.com/influxdata/telegraf/internal.Version={{version}}" -o "{{prefix}}/bin/telegraf" ./cmd/telegraf
+
+test:
+  - telegraf --version 2>&1 | tee out
+  - grep {{version}} out
+
+provides:
+  - bin/telegraf
