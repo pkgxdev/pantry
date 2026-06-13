@@ -40,6 +40,13 @@ on:
       invalidate-cloudfront:
         type: boolean
         default: true
+      skip-codesign-import:
+        description: >
+          Skip importing the Apple Developer ID into the keychain.
+          For recipes whose binaries need adhoc signing (virtualization /
+          hypervisor entitlements). See pkgxdev/pantry#7853.
+        type: boolean
+        default: false
     secrets:
       APPLE_CERTIFICATE_P12: { required: false }
       APPLE_CERTIFICATE_P12_PASSWORD: { required: false }
@@ -80,6 +87,7 @@ jobs:
           p12-file-base64: ${{ secrets.APPLE_CERTIFICATE_P12 }}
           p12-password: ${{ secrets.APPLE_CERTIFICATE_P12_PASSWORD }}
           APPLE_IDENTITY: ${{ secrets.APPLE_IDENTITY }}
+          skip-codesign-import: ${{ inputs.skip-codesign-import }}
 
       - uses: pkgxdev/setup@v5
         with:
