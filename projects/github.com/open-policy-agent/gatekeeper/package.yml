@@ -1,21 +1,15 @@
 distributable:
-  url: https://github.com/open-policy-agent/gatekeeper/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/open-policy-agent/gatekeeper/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
   github: open-policy-agent/gatekeeper
 
-platforms:
-  - linux/x86-64
-  - linux/aarch64
-  - darwin/x86-64
-  - darwin/aarch64
-
 build:
   dependencies:
-    go.dev: '*'
-  script:
-    - go build -trimpath -ldflags="$GO_LDFLAGS" -o "{{prefix}}/bin/gator" ./cmd/gator
+    go.dev: "*"
+  script: go build -trimpath -ldflags="$GO_LDFLAGS" -o "{{prefix}}/bin/gator" ./cmd/gator
+  skip: fix-patchelf
   env:
     GO_LDFLAGS:
       - -s
@@ -26,15 +20,5 @@ provides:
   - bin/gator
 
 test:
-  # `gator --version` was inconclusive on linux (darwin passed) —
-  # cobra-emitted version string format differs between platforms
-  # (`-buildmode=pie` affects how Go's debug.ReadBuildInfo
-  # interleaves with ldflag values on linux). `--help` always
-  # exercises argv parsing and confirms the binary loads cleanly.
-  # On linux gator --help produced empty output (probable crash
-  # before flush — possibly cobra+pie+pkgx sandbox interaction).
-  # Darwin runs fine. As a minimum viable smoke test, just verify
-  # the binary is installed + executable (matches what the audit
-  # already enforces). Maintainers/users can probe runtime
-  # behaviour separately.
-  - test -x "{{prefix}}/bin/gator"
+  - gator --version | tee out
+  - grep -F "v{{version}}" out
