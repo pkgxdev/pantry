@@ -58,7 +58,6 @@ build:
     freetype.org: '*'
     gnutls.org: '*'
     zlib.net: '*'
-    gnu.org/make: '*'
     gnu.org/gcc: '*'
     gnu.org/binutils: '*'
     # Modern Wine compiles its built-in DLLs as real PE binaries, so it
@@ -69,7 +68,7 @@ build:
     llvm.org/mingw-w64: '*'
 
   script:
-    - ./configure $ARGS
+    - ./configure $ARGS || (cat config.log && false)
     - make --jobs {{ hw.concurrency }}
     - make install
 
@@ -107,14 +106,8 @@ build:
 test:
   # `wine64 --version` returns "wine-X.Y" on stable, "wine-X.Y (Staging)"
   # on staging. We just check that it ran and printed a sane version.
-  script:
-    - run: |
-        out=$(wine64 --version 2>&1)
-        echo "wine64 --version: $out"
-        case "$out" in
-          "wine-{{version.marketing}}"*) echo PASS ;;
-          *) echo "FAIL: expected wine-{{version.marketing}}, got $out"; exit 1 ;;
-        esac
+  - wine64 --version 2>&1 | tee out
+  - grep "wine-{{version.marketing}}" out
 
 provides:
   - bin/wine
