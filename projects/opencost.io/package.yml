@@ -1,0 +1,30 @@
+distributable:
+  url: https://github.com/opencost/opencost/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: opencost/opencost
+
+provides:
+  - bin/opencost
+
+build:
+  dependencies:
+    go.dev: "*"
+  script:
+    - go mod download
+    - go build -trimpath -ldflags="$GO_LDFLAGS" -o '{{prefix}}/bin/opencost' ./cmd/costmodel
+  env:
+    CGO_ENABLED: 0
+    GO_LDFLAGS:
+      - -s
+      - -w
+      - -extldflags "-static"
+      - -X github.com/opencost/opencost/core/pkg/version.Version=v{{version}}
+      - -X github.com/opencost/opencost/core/pkg/version.GitCommit=pkgx
+    linux:
+      GO_LDFLAGS:
+        - -buildmode=pie
+
+test:
+  - opencost --help
