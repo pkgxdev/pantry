@@ -61,6 +61,12 @@ build:
     gnu.org/make: '*'
     gnu.org/gcc: '*'
     gnu.org/binutils: '*'
+    # Modern Wine compiles its built-in DLLs as real PE binaries, so it
+    # needs a PE cross-compiler at build time — configure aborts with
+    # "x86_64 PE cross-compiler not found" without one. llvm.org/mingw-w64
+    # provides x86_64-w64-mingw32-{gcc,clang}. No build-dep cycle: the
+    # mingw recipe uses Wine only in its *test* step, never its build.
+    llvm.org/mingw-w64: '*'
 
   script:
     - ./configure $ARGS
@@ -72,10 +78,11 @@ build:
       - --prefix={{ prefix }}
       - --enable-archs=x86_64       # 64-bit only — half the build, all we need
       - --disable-tests             # skip wine's massive internal test suite
-      - --without-mingw             # use wine's built-in win-side DLLs instead of
-                                    # mingw-cross-compiled ones (avoids requiring
-                                    # llvm.org/mingw-w64 at build time, which would
-                                    # be a build-dep cycle once mingw recipe lands)
+      - --with-mingw                # build the win-side DLLs as PE with the
+                                    # llvm.org/mingw-w64 cross-compiler (now a
+                                    # build dep). Required: modern Wine has no
+                                    # ELF-builtin fallback, so configure demands
+                                    # a PE cross-compiler regardless.
       - --without-x                 # no X11
       - --without-opengl
       - --without-osmesa
