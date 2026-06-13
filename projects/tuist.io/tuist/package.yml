@@ -31,21 +31,20 @@ versions:
   github: tuist/tuist
 
 platforms:
-  - darwin/x86-64
-  - darwin/aarch64
+  - darwin
 
 build:
   dependencies:
     # Package.swift declares swift-tools-version: 6.1.
-    swift.org: '>=6.1'
+    swift.org: ">=6.1"
   script:
     # Bake the recipe version into Constants.swift (upstream does the
     # same sed in its release workflow; the tarball string is stale).
     # Wrapped in `run: |` because the sed pattern contains `: ` which
     # YAML otherwise mis-parses as a mapping key/value separator.
-    - run: |
-        sed -i.bak -E 's/(@TaskLocal public static var version: String! = ")[^"]+(")/\1{{version}}\2/' cli/Sources/TuistConstants/Constants.swift
-        rm cli/Sources/TuistConstants/Constants.swift.bak
+    - run: sed -i -E -f $PROP Constants.swift
+      prop: 's/(@TaskLocal public static var version: String! = ")[^"]+(")/\1{{version}}\2/'
+      working-directory: cli/Sources/TuistConstants
 
     # Resolve & build. `--replace-scm-with-registry` honours the
     # registry-pinned Package.resolved (every pin is `kind: registry`,
@@ -58,17 +57,8 @@ build:
     # tuist itself was skipped, causing `install: cannot stat
     # .swift-build/release/tuist`. Two separate invocations is the
     # idiomatic SwiftPM pattern.
-    - run: |
-        swift build \
-          --product ProjectDescription \
-          --configuration release \
-          --replace-scm-with-registry \
-          --build-path "$PWD/.swift-build"
-        swift build \
-          --product tuist \
-          --configuration release \
-          --replace-scm-with-registry \
-          --build-path "$PWD/.swift-build"
+    - swift build --product ProjectDescription $BUILD_OPTS
+    - swift build --product tuist $BUILD_OPTS
 
     # Install in the Homebrew-shaped layout that tuist's ResourceLocator
     # and TemplatesDirectoryLocator both look for:
@@ -76,24 +66,30 @@ build:
     #   {{prefix}}/lib/libProjectDescription.dylib
     #   {{prefix}}/lib/Modules/ProjectDescription.swiftmodule  (commandLine include path)
     #   {{prefix}}/share/Templates
-    - install -D -m755 .swift-build/release/tuist "{{prefix}}/bin/tuist"
-    - install -D -m755 .swift-build/release/libProjectDescription.dylib "{{prefix}}/lib/libProjectDescription.dylib"
-    # ProjectDescription.swiftmodule isn't always emitted by SwiftPM at
-    # the top-level release/ path (Swift 6.x sometimes nests it under
-    # arch-specific dirs, sometimes skips it in pure-library configurations).
-    # Search for it; skip gracefully if absent. The runtime cost is
-    # that downstream Swift code can't `import ProjectDescription`
-    # against this bottle — tuist's own CLI usage doesn't need it.
-    - run: |
-        mkdir -p "{{prefix}}/lib/Modules"
-        if [ -d .swift-build/release/ProjectDescription.swiftmodule ]; then
-          cp -R .swift-build/release/ProjectDescription.swiftmodule "{{prefix}}/lib/Modules/"
-        else
+    - run:
+        - install -D -m755 tuist "{{prefix}}/bin/tuist"
+        - install -D -m755 libProjectDescription.dylib "{{prefix}}/lib/libProjectDescription.dylib"
+        # ProjectDescription.swiftmodule isn't always emitted by SwiftPM at
+        # the top-level release/ path (Swift 6.x sometimes nests it under
+        # arch-specific dirs, sometimes skips it in pure-library configurations).
+        # Search for it; skip gracefully if absent. The runtime cost is
+        # that downstream Swift code can't `import ProjectDescription`
+        # against this bottle — tuist's own CLI usage doesn't need it.
+        - mkdir -p "{{prefix}}/lib/Modules"
+        - if [ -d .swift-build/release/ProjectDescription.swiftmodule ]; then
+        - cp -R .swift-build/release/ProjectDescription.swiftmodule "{{prefix}}/lib/Modules/"
+        - else
           # Fallback: try arch-specific path (Swift 6.x layout)
-          find .swift-build -name 'ProjectDescription.swiftmodule' -type d -exec cp -R {} "{{prefix}}/lib/Modules/" \; -quit || true
-        fi
+        - find .. -name 'ProjectDescription.swiftmodule' -type d -exec cp -R {} "{{prefix}}/lib/Modules/" \;
+        - fi
+      working-directory: .swift-build/release
     - mkdir -p "{{prefix}}/share"
     - cp -R cli/Templates "{{prefix}}/share/Templates"
+  env:
+    BUILD_OPTS:
+      - --configuration release
+      - --replace-scm-with-registry
+      - --build-path "$PWD/.swift-build"
 
 provides:
   - bin/tuist
@@ -102,4 +98,5 @@ test:
   # `tuist version` prints just the version string (see
   # TuistVersionCommand/VersionService.swift — it passthrough's
   # Constants.version with a trailing newline).
-  - tuist version 2>&1 | grep -q "{{version}}"
+  - tuist version 2>&1 | tee out
+  - grep "{{version}}" out
