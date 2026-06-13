@@ -1,0 +1,29 @@
+distributable:
+  url: https://github.com/kubereboot/kured/archive/{{version.raw}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: kubereboot/kured
+
+build:
+  dependencies:
+    go.dev: "*"
+  script: go build $GO_ARGS -ldflags="$GO_LDFLAGS" ./cmd/kured
+  env:
+    CGO_ENABLED: 0
+    GO_LDFLAGS:
+      - -s -w
+      - -X main.version={{version}}
+    linux:
+      GO_LDFLAGS:
+        - -buildmode=pie
+    GO_ARGS:
+      - -trimpath
+      - -o={{prefix}}/bin/kured
+
+provides:
+  - bin/kured
+
+test:
+  - kured --help 2>&1 | tee out
+  - grep -i kured out
