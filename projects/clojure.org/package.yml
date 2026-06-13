@@ -1,0 +1,53 @@
+distributable:
+  url: https://github.com/clojure/clojure/archive/refs/tags/clojure-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: clojure/clojure/releases/tags
+  strip: /^clojure-/
+
+dependencies:
+  openjdk.org: ">=11"
+  maven.apache.org: "^3.8"
+
+build:
+  dependencies:
+    openjdk.org: ">=11"
+    maven.apache.org: "^3.8"
+
+  script: |
+    # Ensure we're using the correct Java version
+    export JAVA_HOME=$(pkgx which java | xargs dirname | xargs dirname)
+
+    # Build the Clojure JAR
+    mvn clean package -DskipTests -Dproject.build.sourceEncoding=UTF-8
+
+    # Create the clojure CLI script wrapper
+    mkdir -p $PKGX_INSTALL_DIR/bin
+
+    # Copy the built JAR
+    cp target/clojure-*.jar $PKGX_INSTALL_DIR/lib/clojure.jar
+
+    # Create the clj wrapper script
+    cat > $PKGX_INSTALL_DIR/bin/clj << 'EOF'
+    #!/bin/bash
+    # Clojure REPL wrapper
+    exec java -cp "{{PKGX_INSTALL_DIR}}/lib/clojure.jar" clojure.main "$@"
+    EOF
+    chmod +x $PKGX_INSTALL_DIR/bin/clj
+
+    # Create clojure alias
+    cat > $PKGX_INSTALL_DIR/bin/clojure << 'EOF'
+    #!/bin/bash
+    exec java -cp "{{PKGX_INSTALL_DIR}}/lib/clojure.jar" clojure.main "$@"
+    EOF
+    chmod +x $PKGX_INSTALL_DIR/bin/clojure
+
+provides:
+  - bin/clj
+  - bin/clojure
+
+test:
+  script: |
+    clj --version 2>&1 | grep -q "Clojure"
+    clojure -e "(println (+ 1 2))" | grep -q "3"
