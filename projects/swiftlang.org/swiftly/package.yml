@@ -23,21 +23,20 @@ versions:
 # — linux platforms intentionally commented out). swiftly only ships
 # darwin while that constraint holds; revisit if pantry adds Ubuntu CI.
 platforms:
-  - darwin/x86-64
-  - darwin/aarch64
+  - darwin
 
 build:
   dependencies:
     # Package.swift declares swift-tools-version:6.2; require it.
-    swift.org: '>=6.2'
+    swift.org: ">=6.2"
   script:
     # Swift Package Manager fetches the swift-* dependencies declared
     # in Package.swift (swift-argument-parser, async-http-client,
     # swift-nio, etc.) over the network — pkgx build sandbox allows
     # this. Use the build dir as a writable cache so it's hermetic.
     - swift build
-        --configuration release
-        --build-path "$PWD/.swift-build"
+      --configuration release
+      --build-path "$PWD/.swift-build"
     - install -D -m755 .swift-build/release/swiftly "{{prefix}}/bin/swiftly"
 
 provides:
@@ -50,4 +49,5 @@ test:
   # always safe: it parses argv via swift-argument-parser before any
   # state initialization, and confirms the dynamic-linker resolution
   # of every shared lib the binary needs.
-  - swiftly --help 2>&1 | grep -iq swiftly
+  - swiftly --help 2>&1 | tee out
+  - grep -i swiftly out
