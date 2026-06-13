@@ -1,0 +1,44 @@
+# VictoriaMetrics — fast, cost-effective, scalable monitoring &
+# time-series database. Drop-in Prometheus-compatible TSDB (remote-write
+# + PromQL/MetricsQL) plus the vm* tool suite (vmagent scraper, vmalert
+# rules, vmauth proxy, vmbackup/vmrestore, vmctl migrator).
+
+distributable:
+  url: https://github.com/VictoriaMetrics/VictoriaMetrics/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: VictoriaMetrics/VictoriaMetrics
+
+build:
+  dependencies:
+    go.dev: "*"
+  env:
+    CGO_ENABLED: 0
+  script:
+    # All binaries live under ./app/<name>. Pure-Go, CGO-free. Embed the
+    # release tag into each via lib/buildinfo.Version (mirrors upstream's
+    # Makefile GO_BUILDINFO `-X` so `--version` reports it).
+    - mkdir -p {{prefix}}/bin
+    - |
+      for app in victoria-metrics vmagent vmalert vmalert-tool vmauth vmbackup vmrestore vmctl; do
+        go build -trimpath \
+          -ldflags "-s -w -X github.com/VictoriaMetrics/VictoriaMetrics/lib/buildinfo.Version=$app-{{version.tag}}" \
+          -o "{{prefix}}/bin/$app" "./app/$app"
+      done
+
+test:
+  - victoria-metrics --version 2>&1 | tee out
+  - grep {{version}} out
+  - vmagent --version 2>&1 | grep {{version}}
+  - vmctl --version 2>&1 | grep {{version}}
+
+provides:
+  - bin/victoria-metrics
+  - bin/vmagent
+  - bin/vmalert
+  - bin/vmalert-tool
+  - bin/vmauth
+  - bin/vmbackup
+  - bin/vmrestore
+  - bin/vmctl
