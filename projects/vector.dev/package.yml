@@ -1,0 +1,36 @@
+# Vector — a high-performance observability data pipeline: collect,
+# transform and route logs, metrics and traces. We vendor upstream's
+# prebuilt Linux binaries (vectordotdev doesn't publish macOS builds,
+# and a from-source build is a very large Rust compile).
+
+distributable: ~
+
+versions:
+  github: vectordotdev/vector
+
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+
+warnings:
+  - vendored
+
+build:
+  dependencies:
+    curl.se: "*"
+    gnu.org/tar: "*"
+  env:
+    linux/x86-64:
+      TRIPLE: x86_64-unknown-linux-gnu
+    linux/aarch64:
+      TRIPLE: aarch64-unknown-linux-gnu
+    URL: https://github.com/vectordotdev/vector/releases/download/{{version.tag}}/vector-{{version}}
+  working-directory: ${{prefix}}
+  script: curl -Lf "$URL-${TRIPLE}.tar.gz" | tar xzf - --strip-components=2
+
+test:
+  - vector --version 2>&1 | tee out
+  - grep {{version}} out
+
+provides:
+  - bin/vector
