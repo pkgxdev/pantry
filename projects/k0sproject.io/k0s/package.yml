@@ -1,0 +1,45 @@
+distributable:
+  url: https://github.com/k0sproject/k0s/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: k0sproject/k0s
+  # Upstream tags use SemVer build-metadata: `v1.35.4+k0s.0`. libpkgx's
+  # version parser rejects build-metadata (`not-found: version` in
+  # CI run 26721224126). Strip the `+k0s.N` suffix so the version
+  # parses as plain `1.35.4`; the URL still uses {{version.tag}}
+  # which retains the original raw tag.
+  strip:
+    - /\+k0s\.\d+$/
+  ignore:
+    - /-(rc|alpha|beta)/
+
+# k0s is Linux-only: the Makefile defaults TARGET_OS to linux and the project
+# targets Linux nodes. macOS is not a supported build/run platform upstream.
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+
+build:
+  dependencies:
+    go.dev: '*'
+    gnu.org/make: '*'
+    gnu.org/coreutils: '*'
+    gnu.org/findutils: '*'
+  script:
+    # EMBEDDED_BINS_BUILDMODE=none avoids the Docker-based build of the embedded
+    # kubelet/etcd/containerd/runc/kine/konnectivity components (pantry CI has
+    # no Docker). The resulting k0s binary is the same CLI but without the bundled
+    # third-party binaries; operators provide them out of band (e.g. via airgap
+    # bundle or system packages).
+    # VERSION must be passed explicitly: the upstream Makefile uses
+    # `git describe --tags` to derive it, which fails inside a tarball checkout.
+    - make build EMBEDDED_BINS_BUILDMODE=none VERSION={{version.tag}}
+    - install -D -m755 k0s {{prefix}}/bin/k0s
+
+provides:
+  - bin/k0s
+
+test:
+  - k0s version 2>&1 | grep '{{version.tag}}'
+  - k0s --help 2>&1 | grep -i 'k0s'
