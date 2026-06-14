@@ -4,8 +4,6 @@ distributable:
 
 versions:
   github: pyenv/pyenv
-  strip:
-    - /^v/
 
 provides:
   - bin/pyenv
@@ -28,6 +26,8 @@ runtime:
     PYENV_ROOT: ${{prefix}}
 
 test:
-  - pyenv --version | grep {{version}}
-  - pyenv commands | grep '^install$'
+  - pyenv --version | tee out
+  - grep {{version}} out
+  - pyenv commands | tee out
+  - grep '^install$' out
   - pyenv root
