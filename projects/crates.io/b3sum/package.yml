@@ -1,0 +1,20 @@
+distributable:
+  url: https://github.com/BLAKE3-team/BLAKE3/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/b3sum
+
+versions:
+  github: BLAKE3-team/BLAKE3
+
+build:
+  dependencies:
+    rust-lang.org/cargo: '*'
+  script:
+    cargo install --locked --path b3sum --root {{prefix}}
+
+test:
+  - b3sum --version | tee out
+  - grep {{version}} out
+  - test "$(printf '' | b3sum --no-names)" = "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262"
