@@ -1,0 +1,27 @@
+distributable:
+  url: https://github.com/rhysd/actionlint/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: rhysd/actionlint/tags
+
+provides:
+  - bin/actionlint
+
+build:
+  dependencies:
+    go.dev: '*'
+  script: go build -trimpath -ldflags="$GO_LDFLAGS" -o {{prefix}}/bin/actionlint ./cmd/actionlint
+  env:
+    CGO_ENABLED: 0
+    GO_LDFLAGS:
+      - -s
+      - -w
+      - -X github.com/rhysd/actionlint.version={{version}}
+    linux:
+      GO_LDFLAGS:
+        - -buildmode=pie
+
+test:
+  - actionlint -version | tee out
+  - test "$(head -1 out)" = "{{version}}"
