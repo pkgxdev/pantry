@@ -1,0 +1,54 @@
+# ClickHouse — fast, open-source, column-oriented OLAP database. Vendors
+# upstream's official static Linux builds and macOS binaries (a
+# from-source build is a multi-hour C++ compile). One `clickhouse`
+# multi-tool binary: `clickhouse local|client|server|keeper`.
+
+distributable: ~
+
+versions:
+  github: ClickHouse/ClickHouse/tags
+  match: /^v\d+\.\d+\.\d+\.\d+-stable$/
+  strip:
+    - /^v/
+    - /-stable$/
+
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+  - darwin/x86-64
+  - darwin/aarch64
+
+warnings:
+  - vendored
+
+build:
+  dependencies:
+    curl.se: "*"
+    gnu.org/tar: "*"
+  env:
+    linux/x86-64:
+      ASSET: clickhouse-common-static-{{version}}-amd64.tgz
+    linux/aarch64:
+      ASSET: clickhouse-common-static-{{version}}-arm64.tgz
+    darwin/x86-64:
+      ASSET: clickhouse-macos
+    darwin/aarch64:
+      ASSET: clickhouse-macos-aarch64
+  script:
+    - mkdir -p "{{prefix}}/bin"
+    - |
+      URL="https://github.com/ClickHouse/ClickHouse/releases/download/{{version.tag}}/$ASSET"
+      # Linux ships a static tarball (binary under usr/bin); macOS ships
+      # the raw binary directly.
+      case "$ASSET" in
+        *.tgz) curl -Lf "$URL" | tar xzOf - "clickhouse-common-static-{{version}}/usr/bin/clickhouse" > "{{prefix}}/bin/clickhouse" ;;
+        *)     curl -Lf "$URL" -o "{{prefix}}/bin/clickhouse" ;;
+      esac
+      chmod +x "{{prefix}}/bin/clickhouse"
+
+test:
+  - clickhouse --version 2>&1 | tee out
+  - grep {{version}} out
+
+provides:
+  - bin/clickhouse
