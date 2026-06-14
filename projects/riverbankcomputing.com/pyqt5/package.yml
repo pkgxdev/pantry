@@ -8,21 +8,18 @@
 # binding 404'd resolving its sibling's not-yet-published bottle). The
 # official wheel sidesteps both, in one package.
 #
-# Why darwin-only: the macOS wheels are self-contained (Qt5 + the
-# platform plugin are bundled and rpath-wired), so QtWidgets imports
-# with no external deps. The manylinux wheel is NOT self-contained — its
-# QtGui/QtWidgets dlopen the host X11/xcb/mesa GUI stack (libxcb,
-# libX11, libGL, …), none of which pantry currently packages. QtCore
-# alone imports on linux (it only needs gnome.org/glib), but a PyQt5 that
-# can't load QtWidgets defeats the point, so linux is omitted rather than
-# shipped half-working.
+# Platform note: the macOS wheels are self-contained (Qt5 + the cocoa
+# platform plugin are bundled and rpath-wired). The manylinux wheel is
+# NOT self-contained — its QtGui/QtWidgets dlopen the host X11/xcb/mesa
+# GUI stack, so on linux we pull that stack in as runtime deps below
+# (x.org/*, mesa3d.org, xkbcommon.org, glib, fontconfig, freetype, dbus).
+# Confirmed `from PyQt5 import QtWidgets` imports on a minimal linux
+# sandbox with exactly those deps.
 #
-# Path to a from-source recipe (and to restoring linux): land the Qt5 GUI
-# runtime in pantry (libxcb + xcb-util-*, libX11, mesa/libGL, libxkbcommon,
-# fontconfig, freetype, dbus), then either depend on them at runtime for
-# the manylinux wheel, or compile riverbankcomputing.com/sip + the PyQt5
-# bindings against a pantry Qt5 (qtbase) with bounded compile parallelism
-# (the unbounded per-binding C++ compile is what OOM-killed CI before).
+# Path to a from-source recipe: compile riverbankcomputing.com/sip + the
+# PyQt5 bindings against a pantry Qt5 (qtbase) with bounded compile
+# parallelism (the unbounded per-binding C++ compile is what OOM-killed
+# CI before) — that would also restore linux/aarch64 (no upstream wheel).
 
 distributable:
   url: https://pypi.io/packages/source/P/PyQt5/PyQt5-{{ version.raw }}.tar.gz
@@ -36,12 +33,31 @@ versions:
     - /\.tar\.gz/
 
 platforms:
+  - linux/x86-64
   - darwin/x86-64
   - darwin/aarch64
 
 dependencies:
   pkgx.sh: ">=1"
   python.org: ~3.11
+  # The manylinux wheel's QtGui/QtWidgets dlopen the host GUI stack;
+  # the macOS wheels bundle it, so these are linux-only.
+  linux:
+    gnome.org/glib: '*'
+    freetype.org: '*'
+    freedesktop.org/fontconfig: '*'
+    freedesktop.org/dbus: '*'
+    xkbcommon.org: '*'
+    mesa3d.org: '*'
+    x.org/x11: '*'
+    x.org/xcb: '*'
+    x.org/xcb-util: '*'
+    x.org/xrender: '*'
+    x.org/xfixes: '*'
+    x.org/xrandr: '*'
+    x.org/xi: '*'
+    x.org/xau: '*'
+    x.org/xdmcp: '*'
 
 runtime:
   env:
