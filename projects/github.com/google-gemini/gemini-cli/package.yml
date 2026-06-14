@@ -1,0 +1,29 @@
+distributable:
+  url: https://registry.npmjs.org/@google/gemini-cli/-/gemini-cli-{{version}}.tgz
+  strip-components: 1
+
+display-name: gemini-cli
+
+versions:
+  npm: "@google/gemini-cli"
+
+dependencies:
+  nodejs.org: ^20
+
+build:
+  dependencies:
+    npmjs.com: "*"
+  script: npm i $ARGS .
+  env:
+    ARGS:
+      - --global
+      - --prefix={{prefix}}
+      - --install-links
+      - --unsafe-perm
+
+provides:
+  - bin/gemini
+
+test:
+  - gemini --version | tee out
+  - grep {{version}} out
