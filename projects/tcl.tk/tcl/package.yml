@@ -1,13 +1,16 @@
 distributable:
-  url: https://prdownloads.sourceforge.net/tcl/tcl{{ version }}-src.tar.gz
+  url: https://downloads.sourceforge.net/project/tcl/Tcl/{{ version }}/tcl{{ version }}-src.tar.gz
   strip-components: 1
 
 versions:
-  url: https://sourceforge.net/projects/tcl/files/Tcl/
-  match: /files\/Tcl\/\d+\.\d+\.\d+\//
+  # Scrape the official download page, which lists final releases only. The
+  # SourceForge dir listing also exposes rc-only dirs (e.g. 9.0.4/ holds just
+  # tcl9.0.4rc0-src.tar.gz), so it resolved to 9.0.4 whose -src tarball 404s.
+  url: https://www.tcl-lang.org/software/tcltk/download.html
+  match: /tcl\d+\.\d+\.\d+-src\.tar\.gz/
   strip:
-    - /files\/Tcl\//
-    - /\//
+    - /^tcl/
+    - /-src\.tar\.gz/
 
 build:
   working-directory: unix
