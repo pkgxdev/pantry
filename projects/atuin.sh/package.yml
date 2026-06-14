@@ -1,0 +1,25 @@
+distributable:
+  url: https://github.com/atuinsh/atuin/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: atuinsh/atuin
+  strip: /^v/
+
+build:
+  dependencies:
+    rust-lang.org: '*'
+    rust-lang.org/cargo: '*'
+  script:
+    - cargo install $CARGO_ARGS --path crates/atuin
+  env:
+    CARGO_ARGS:
+      - --locked
+      - --root="{{prefix}}"
+
+provides:
+  - bin/atuin
+
+test:
+  - atuin --version | grep {{version}}
+  - atuin -h
