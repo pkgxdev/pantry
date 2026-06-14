@@ -1,0 +1,70 @@
+# Telegraf (core) — a lean Telegraf built with only the common
+# system / network / HTTP input plugins and the usual outputs. ~66 MB vs
+# ~268 MB for the full plugin set, and it skips the compile-memory-hungry
+# cloud-SDK input plugins (AWS/Azure/Alibaba). For everything, install
+# `influxdata.com/telegraf`.
+
+distributable:
+  url: https://github.com/influxdata/telegraf/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: influxdata/telegraf
+
+build:
+  dependencies:
+    go.dev: "*"
+  env:
+    CGO_ENABLED: 0
+    # Telegraf's `custom` tag compiles ONLY the listed plugins (opt-in).
+    # Curated common set; adjust to taste. Parsers/serializers must be
+    # listed explicitly too, or the build has no format support.
+    TAGS: >
+      custom,
+      inputs.cpu,
+      inputs.mem,
+      inputs.disk,
+      inputs.diskio,
+      inputs.net,
+      inputs.system,
+      inputs.swap,
+      inputs.kernel,
+      inputs.processes,
+      inputs.procstat,
+      inputs.internal,
+      inputs.exec,
+      inputs.file,
+      inputs.tail,
+      inputs.http,
+      inputs.http_listener_v2,
+      inputs.prometheus,
+      inputs.net_response,
+      inputs.ping,
+      inputs.docker,
+      inputs.socket_listener,
+      inputs.syslog,
+      outputs.influxdb_v2,
+      outputs.prometheus_client,
+      outputs.file,
+      outputs.http,
+      outputs.socket_writer,
+      outputs.discard,
+      outputs.health,
+      outputs.exec,
+      parsers.influx,
+      parsers.json,
+      parsers.prometheus,
+      parsers.value,
+      serializers.influx,
+      serializers.json,
+      serializers.prometheus,
+      processors.enum,
+      processors.regex
+  script: go build -trimpath -tags "$(echo $TAGS | sed 's/, /,/g')" -ldflags "-s -w -X github.com/influxdata/telegraf/internal.Version={{version}}" -o "{{prefix}}/bin/telegraf" ./cmd/telegraf
+
+test:
+  - telegraf --version 2>&1 | tee out
+  - grep {{version}} out
+
+provides:
+  - bin/telegraf
