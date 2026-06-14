@@ -1,0 +1,61 @@
+distributable:
+  url: https://downloads.sourceforge.net/project/net-snmp/net-snmp/{{version}}/net-snmp-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  # GitHub tags are polluted with .preN/.rcN/4-component tags that the semver
+  # parser can't read; scrape the SourceForge release dirs for clean X.Y.Z.
+  url: https://sourceforge.net/projects/net-snmp/files/net-snmp/
+  match: _/projects/net-snmp/files/net-snmp/\d+\.\d+\.\d+/_
+  strip:
+    - _^/projects/net-snmp/files/net-snmp/_
+    - _/$_
+
+dependencies:
+  openssl.org: ^1.1
+
+build:
+  dependencies:
+    darwinsys.com/file: '*' # libtool needs the `file` program at configure time
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --with-defaults
+      - --with-openssl={{deps.openssl.org.prefix}}
+      - --with-default-snmp-version=3
+      - --disable-embedded-perl
+      - --without-perl-modules
+      - --disable-dependency-tracking
+    darwin:
+      # net-snmp hard-codes -Werror=declaration-after-statement, which its own
+      # pre-C99 darwin MIB code (swinst_darwin.c) violates. A general -Wno-error
+      # doesn't undo a specific -Werror=foo in clang, so target it precisely.
+      CFLAGS: $CFLAGS -Wno-implicit-function-declaration -Wno-error=declaration-after-statement
+      # the darwin host-resource MIB modules (hr_disk, swinst_darwin) call
+      # CoreFoundation / IOKit / DiskArbitration / LaunchServices; configure
+      # doesn't auto-link them in this sandbox, so do it explicitly.
+      LDFLAGS: $LDFLAGS -framework CoreFoundation -framework IOKit -framework DiskArbitration -framework CoreServices
+
+provides:
+  - bin/snmpget
+  - bin/snmpgetnext
+  - bin/snmpwalk
+  - bin/snmptranslate
+  - bin/snmpset
+  - bin/snmpd
+  - bin/snmptrap
+  - bin/net-snmp-config
+
+test:
+  # NB: the net-snmp 5.9.5 source mis-stamps its version as 5.9.4 (upstream
+  # AC_INIT was never bumped past 5.9.4), so the tools report "5.9.4" and we
+  # can't assert {{version}}. Verify instead that the built tools run and link.
+  script:
+    - snmptranslate -V 2>&1 | tee out
+    - grep -i "net-snmp version" out
+    - net-snmp-config --cflags | tee out
+    - grep -- -I out
