@@ -13,17 +13,11 @@ platforms:
 
 build:
   dependencies:
-    gnu.org/bison: '*'
-    github.com/westes/flex: '*'
+    gnu.org/bison: "*"
+    github.com/westes/flex: "*"
   script:
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
-
-    - |
-      cd "{{prefix}}/include"
-      mv libnl3/* .
-      rmdir libnl3
-      ln -s . linl3
   env:
     ARGS:
       - --prefix="{{prefix}}"
@@ -36,5 +30,5 @@ test:
 
     - nl-route-list | grep "$OUT2"
   env:
-    OUT: 'Unable to delete link: Operation not permitted'
+    OUT: "Unable to delete link: Operation not permitted"
     OUT2: inet 127.0.0.1

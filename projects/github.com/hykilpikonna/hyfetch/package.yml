@@ -6,15 +6,20 @@ versions:
   github: hykilpikonna/hyfetch
 
 dependencies:
-  pkgx.sh: ^1
+  pkgx.sh: '>=1'
 
 build:
   dependencies:
     python.org: ~3.12
+    rust-lang.org: ^1.75 # as of v2
   script:
-    - bkpyvenv stage {{prefix}} {{version}}
-    - ${{prefix}}/venv/bin/pip install .
-    - bkpyvenv seal {{prefix}} hyfetch
+    - run:
+        - bkpyvenv stage {{prefix}} {{version}}
+        - ${{prefix}}/venv/bin/pip install .
+        - bkpyvenv seal {{prefix}} hyfetch
+      if: <2
+    - run: cargo install --locked --path crates/hyfetch --root {{prefix}}
+      if: '>=2'
 
 provides:
   - bin/hyfetch

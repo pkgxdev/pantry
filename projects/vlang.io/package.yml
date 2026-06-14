@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/vlang/v/archive/refs/tags/{{ version.raw }}.tar.gz
+  url: https://github.com/vlang/v/archive/refs/tags/{{ version.tag }}.tar.gz
   strip-components: 1
 
 versions:
@@ -11,27 +11,29 @@ interprets:
 
 build:
   dependencies:
-    git-scm.org: '*'
+    git-scm.org: "*"
   script:
     # fixed in https://github.com/vlang/v/commit/ca484430e0380a3fc591b842aadda4fe18deaae5
-    - |
-      if test "{{version}}" = "0.3.2"; then
-        git apply props/int-types.diff
-      fi
+    - run: git apply props/int-types.diff
+      if: =0.3.2
 
     - make prod=1
-    - mkdir -p "{{prefix}}/"{libexec,bin}
 
+    - mkdir -p {{prefix}}/libexec
     - cp -R cmd thirdparty v v.mod vlib {{prefix}}/libexec/
 
-    - cd {{prefix}}/bin
-    - ln -s ../libexec/v v
+    - run: ln -s ../libexec/v v
+      working-directory: ${{prefix}}/bin
 
 test:
-  script: |
-    cp $FIXTURE hello-world.v
-    test "$(v run hello-world.v)" = "Hello, World!"
-  fixture: println('Hello, World!')
+  env:
+    darwin:
+      LDFLAGS: -Wl,-rpath,{{prefix}}/../..
+  script:
+    - run: test "$(v run $FIXTURE)" = "Hello, World!"
+      fixture:
+        extname: v
+        content: println('Hello, World!')
 
 provides:
   - bin/v

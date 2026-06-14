@@ -9,15 +9,11 @@ versions:
 
 build:
   dependencies:
-    cmake.org: '*'
+    cmake.org: "*"
   script:
     - cmake -S . -B build $ARGS
     - cmake --build build
     - cmake --install build
-
-    - mv {{ prefix}}/include/Imath/* {{prefix}}/include
-    - rmdir {{ prefix}}/include/Imath
-    - ln -s . {{ prefix }}/include/Imath
   env:
     # add any environment variables here
     ARGS:
@@ -26,7 +22,8 @@ build:
 
 test:
   dependencies:
-    gnu.org/gcc: '*' # libstdc++
+    linux:
+      gnu.org/gcc/libstdcxx: "*" # libstdc++
   script:
     # some gha mac runners have broken SDKs...
     - run: |
@@ -35,7 +32,7 @@ test:
           exit 0
         fi
       if: darwin
-    - run: g++ -std=c++11 -lImath $FIXTURE
+    - run: c++ -std=c++11 -lImath $FIXTURE
       fixture:
         extname: cc
         content: |

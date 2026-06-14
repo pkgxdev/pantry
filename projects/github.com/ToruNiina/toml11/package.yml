@@ -1,0 +1,41 @@
+display-name: toml11
+summary: TOML for Modern C++
+
+distributable:
+  url: https://github.com/ToruNiina/toml11/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: ToruNiina/toml11
+
+build:
+  dependencies:
+    cmake.org: ">=3.1"
+    linux:
+      gnu.org/gcc: "^14"
+  script:
+    - cmake -S . -B build
+      -DCMAKE_INSTALL_PREFIX={{prefix}}
+      -DCMAKE_BUILD_TYPE=Release
+      -Dtoml11_BUILD_TESTS=OFF
+    - cmake --build build
+    - cmake --install build
+
+test:
+  dependencies:
+     linux:
+        gnu.org/gcc: "^14"
+  script:
+  - run: c++ $FIXTURE -o test -std=c++14
+    fixture:
+      extname: cpp
+      content: |
+        #include <cstdio>
+        #include <toml.hpp>
+        #include <iostream>
+        int main() {
+          toml::value data(toml::table{{"test", toml::value("value")}});
+          std::cout << toml::find<std::string>(data, "test") << std::endl;
+          return 0;
+        }
+  - ./test

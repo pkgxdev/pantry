@@ -1,0 +1,39 @@
+distributable:
+  url: https://github.com/tconbeer/harlequin/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: tconbeer/harlequin
+
+dependencies:
+  pkgx.sh: ">=1"
+  unixodbc.org: "*"
+
+build:
+  dependencies:
+    python.org: ~3.11
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .[postgres,mysql,odbc,sqlite]
+    - bkpyvenv seal {{prefix}} harlequin
+    # Library not loaded: /opt/homebrew/opt/unixodbc/lib/libodbc.2.dylib
+    - run: install_name_tool -change ${HOMEBREW_PREFIX}/opt/unixodbc/lib/libodbc.2.dylib {{deps.unixodbc.org.prefix}}/lib/libodbc.2.dylib pyodbc.cpython-311-darwin.so
+      working-directory: "{{prefix}}/venv/lib/python{{deps.python.org.version.marketing}}/site-packages"
+      if: darwin
+  env:
+    x86-64:
+      HOMEBREW_PREFIX: /usr/local
+    aarch64:
+      HOMEBREW_PREFIX: /opt/homebrew
+
+test:
+  - harlequin --version | tee out
+  - grep "harlequin, version {{version}}" out
+  - grep postgres out
+  - grep mysql out
+  - grep duckdb out
+  - grep sqlite out
+  - grep odbc out
+
+provides:
+  - bin/harlequin

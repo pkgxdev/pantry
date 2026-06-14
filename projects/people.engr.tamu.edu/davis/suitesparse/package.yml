@@ -8,44 +8,35 @@ versions:
   github: DrTimothyAldenDavis/SuiteSparse
 
 dependencies:
-  glaros.dtc.umn.edu/metis: '*'
-  gnu.org/m4: '*'
-  netlib.org/lapack: '*'
-  gnu.org/gmp: '*'
-  openmp.llvm.org: '*'
-  gnu.org/mpfr: '*'
-  gnu.org/gcc: '*' # libfortran
+  glaros.dtc.umn.edu/metis: "*"
+  gnu.org/m4: "*"
+  netlib.org/lapack: "*"
+  gnu.org/gmp: "*"
+  openmp.llvm.org: "*"
+  gnu.org/mpfr: "*"
+  gnu.org/gcc: "*" # libfortran
 
 build:
   dependencies:
-    cmake.org: '*'
-    freedesktop.org/pkg-config: '*'
+    cmake.org: "*"
     linux:
-      gnu.org/make: '*'
+      gnu.org/make: "*"
   script:
     # version 7.2.1 shipped without bumping the version number
-    - run: |
-        sed -i.bak \
-            -e 's/^set ( SUITESPARSE_VERSION_MAJOR.*/set ( SUITESPARSE_VERSION_MAJOR {{version.major}} )/' \
-            -e 's/^set ( SUITESPARSE_VERSION_MINOR.*/set ( SUITESPARSE_VERSION_MINOR {{version.minor}} )/' \
-            -e 's/^set ( SUITESPARSE_VERSION_SUB.*/set ( SUITESPARSE_VERSION_SUB {{version.patch}} )/' \
-            CMakeLists.txt
-        rm CMakeLists.txt.bak
+    - run: sed -i
+        -e 's/^set ( SUITESPARSE_VERSION_MAJOR.*/set ( SUITESPARSE_VERSION_MAJOR {{version.major}} )/'
+        -e 's/^set ( SUITESPARSE_VERSION_MINOR.*/set ( SUITESPARSE_VERSION_MINOR {{version.minor}} )/'
+        -e 's/^set ( SUITESPARSE_VERSION_SUB.*/set ( SUITESPARSE_VERSION_SUB {{version.patch}} )/'
+        CMakeLists.txt
       working-directory: SuiteSparse_config
     - make library $ARGS CMAKE_OPTIONS="$CMAKE_ARGS"
     - make install $ARGS CMAKE_OPTIONS="$CMAKE_ARGS"
     - run: ln -s mongoose suitesparse_mongoose
-      working-directory: '{{prefix}}/bin'
-      if: '<7.4.0'
+      working-directory: "{{prefix}}/bin"
+      if: "<7.4.0"
     - run: ln -s suitesparse_mongoose mongoose
-      working-directory: '{{prefix}}/bin'
-      if: '>=7.4.0'
-    - run: |
-        mv suitesparse/* .
-        rmdir suitesparse
-        ln -s . suitesparse
-      working-directory: '{{prefix}}/include'
-      if: '>=7.4.0'
+      working-directory: "{{prefix}}/bin"
+      if: ">=7.4.0"
   env:
     ARGS:
       - INSTALL={{prefix}}
@@ -58,6 +49,7 @@ build:
       - -DCMAKE_VERBOSE_MAKEFILE=ON
       - -Wno-dev
       - -DBUILD_TESTING=OFF
+      - -DBLA_VENDOR=LAPACK # not being autodetected as of 7.12.0
     linux:
       CMAKE_ARGS:
         - -DLAPACK_LIBRARIES={{deps.netlib.org/lapack.prefix}}/lib/liblapack.so.{{deps.netlib.org/lapack.version.major}}
@@ -76,9 +68,9 @@ provides:
 
 test:
   dependencies:
-    freedesktop.org/pkg-config: '*'
+    freedesktop.org/pkg-config: "*"
     linux:
-      llvm.org: '*'
+      llvm.org: "*"
   script:
     - pkg-config --modversion SuiteSparse_config | grep {{version}}
     # gha mac runners have broken SDKs...

@@ -1,0 +1,117 @@
+# GNU Octave — high-level language for numerical computations.
+#
+# Open-source MATLAB-compatible interpreter for scientific/engineering
+# workflows. Built CLI-only — no Qt GUI, no Java, no X11 — to keep
+# the bottle slim and the dep tree headless-friendly. Users who need
+# a GUI should use the system octave-qt build or VSCode + extension.
+#
+# Same approach as the R recipe (r-project.org): minimal CLI focused
+# on terminal / batch / Jupyter-kernel use cases.
+
+distributable:
+  url: https://ftp.gnu.org/gnu/octave/octave-{{ version.raw }}.tar.xz
+  strip-components: 1
+
+versions:
+  url: https://ftp.gnu.org/gnu/octave/
+  match: /octave-\d+\.\d+\.\d+\.tar\.xz/
+  strip:
+    - /octave-/
+    - /\.tar\.xz/
+
+platforms:
+  - linux
+  - darwin/aarch64 # darwin/x86-64 has gcc issues
+
+dependencies:
+  # Required runtime libs (numerical core + I/O).
+  gnu.org/gcc: "*" # libgfortran.so.5 — runtime FORTRAN ABI
+  openblas.net: "*" # BLAS + LAPACK (bundled set)
+  fftw.org: "*" # FFT
+  pcre.org/v2: "*" # regex (>=3.8 needs PCRE2)
+  gnu.org/readline: "*" # line editing
+  hdfgroup.org/HDF5: "*" # .mat v7.3 I/O
+  qhull.org: "*" # convhull/delaunay/voronoi
+  graphicsmagick.org: "*" # imread/imwrite for non-fits formats
+  gnuplot.info: "*" # plot backend (octave shells out to gnuplot)
+  zlib.net: "*"
+  sourceware.org/bzip2: "*"
+
+# Octave hardcodes its install path in libs and startup .m loader.
+# Set OCTAVE_HOME so end users get correct startup state after brewkit
+# renames the +brewing dir.
+runtime:
+  env:
+    OCTAVE_HOME: ${{prefix}}
+
+build:
+  dependencies:
+    gnu.org/gcc: 14 # gfortran for Octave's numerical core
+    perl.org: "*" # build scripts
+  script:
+    - ./configure $ARGS || (cat config.log; exit 1)
+    - make -j {{ hw.concurrency }}
+    - make install
+
+    # Octave bakes the configure-time prefix (`{{prefix}}+brewing`)
+    # into wrapper scripts + config files. Same pattern as R — strip
+    # +brewing post-install so the bottle is relocation-safe.
+    - run: grep -rIl '+brewing' bin lib/octave share/octave 2>/dev/null | xargs -r sed -i 's|+brewing||g'
+      working-directory: "{{prefix}}"
+
+  env:
+    # Point Octave's configure at openblas explicitly — without these,
+    # the LAPACK auto-detection picks an incomplete library and link
+    # fails with "undefined reference to `ztgsen_', `dtgsen_'" etc.
+    BLAS_LIBS: "-lopenblas"
+    LAPACK_LIBS: "-lopenblas"
+    LDFLAGS: -L{{deps.openblas.net.prefix}}/lib
+    CPPFLAGS: -I{{deps.openblas.net.prefix}}/include
+    darwin:
+      # mkoctfile is post-linked by brewkit's install_name fixer
+      # (ruby-macho) — without -headerpad_max_install_names the binary
+      # has no room for relocated load commands and we hit
+      # MachO::HeaderPadError. Apply globally on darwin so every Octave
+      # binary has the headroom.
+      LDFLAGS: -L{{deps.openblas.net.prefix}}/lib -Wl,-headerpad_max_install_names
+    ARGS:
+      - --prefix={{ prefix }}
+      - --disable-docs # avoid TeX/Texinfo doc build dep
+      - --disable-java
+      - --without-qt # CLI-only — skip Qt GUI
+      - --without-x # no X11
+      - --without-opengl # no OpenGL (qt-less)
+      - --without-fltk # no FLTK GUI
+      - --with-magick=GraphicsMagick
+      - --enable-shared
+      - --disable-static # smaller bottle
+
+test:
+  env:
+    # Octave libs live in a non-standard subdir lib/octave/X.Y.Z/ —
+    # add it to LD_LIBRARY_PATH explicitly so the loader finds
+    # liboctmex/liboctinterp at test time.
+    LD_LIBRARY_PATH: "{{prefix}}/lib/octave/{{version.raw}}${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+    DYLD_LIBRARY_PATH: "{{prefix}}/lib/octave/{{version.raw}}${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"
+    # Octave's startup loads .m files from its share/octave/$VER/
+    # tree. Without OCTAVE_HOME, the configure-time +brewing path
+    # is used (no longer exists), producing 'execution_exception&
+    # while preparing to exit' from the startup .m loader.
+    OCTAVE_HOME: "{{prefix}}"
+  script:
+    - out=$(octave-cli --version 2>&1 | head -1)
+    - 'echo "octave-cli --version: $out"'
+    - |
+      case "$out" in
+        *"{{version}}"*) echo "version PASS" ;;
+        *) echo "FAIL: expected {{version}}, got: $out"; exit 1 ;;
+      esac
+    - out=$(octave-cli --no-gui --quiet --eval 'printf("%d\n", 6*7)' 2>&1 | tail -1)
+    - 'echo "octave eval 6*7: $out"'
+    - 'test "$out" = "42" || { echo "FAIL: expected 42, got: $out"; exit 1; }'
+
+provides:
+  - bin/octave
+  - bin/octave-cli
+  - bin/mkoctfile
+  - bin/octave-config

@@ -1,0 +1,30 @@
+distributable:
+  url: https://github.com/dnlmlr/cargo-clean-all/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/cargo-clean-all
+
+versions:
+  github: dnlmlr/cargo-clean-all
+
+build:
+  dependencies:
+    rust-lang.org: ">=1.89"
+    rust-lang.org/cargo: "*"
+  script: cargo install --locked --path . --root {{prefix}}
+
+test:
+  dependencies:
+    rust-lang.org: "*"
+    rust-lang.org/cargo: "*"
+  script:
+    - cargo-clean-all --help
+    - cargo new hello
+    - run:
+        - cargo run
+        - test -d target
+        - du -sch target
+        - cargo clean-all -y .
+        - test ! -d target
+      working-directory: hello

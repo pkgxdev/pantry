@@ -14,30 +14,29 @@ dependencies:
 build:
   working-directory: src/mz
   dependencies:
-    rust-lang.org: '>=1.56'
-    rust-lang.org/cargo: '*'
+    rust-lang.org: ">=1.56"
+    rust-lang.org/cargo: "*"
     cmake.org: ^3
-    perl.org: '*'
-    gnu.org/automake: '*'
-    gnu.org/autoconf: '*'
+    perl.org: "*"
+    gnu.org/automake: "*"
+    gnu.org/autoconf: "*"
     protobuf.dev: 26.1
     linux:
-      gnu.org/make: '*'
       git-scm.org: ^2
       llvm.org: <17
   script:
     # the protobuf-src crate isn't building atm
     - run: sed -i '/^default =/s/"protobuf-src", //' Cargo.toml
       working-directory: ../build-tools
-      if: '>=0.106'
+      if: ">=0.106"
     - cargo install --locked --path . --root {{prefix}}
   env:
-    PROTOC_INCLUDE: '{{ deps.protobuf.dev.prefix }}/include'
+    PROTOC_INCLUDE: "{{ deps.protobuf.dev.prefix }}/include"
     linux:
       LD: clang
       # See: https://docs.rs/openssl/latest/openssl/#manual
       OPENSSL_NO_VENDOR: true # Always find OpenSSL in the system, even if the vendored feature is enabled.
-      OPENSSL_DIR: '{{ deps.openssl.org.prefix }}' # Use pkgx's openssl installation directory
+      OPENSSL_DIR: "{{ deps.openssl.org.prefix }}" # Use pkgx's openssl installation directory
       # Otherwise we get: error: unknown --compress-debug-sections value: zlib-gabi
       RUSTFLAGS: -C link-arg=-Wl,--compress-debug-sections=none
 
@@ -47,9 +46,11 @@ test:
     - run: VERSION=0.1.3
       if: <0.69.1
     - run: VERSION=0.2.1
-      if: '>=0.69.1<0.71'
+      if: ">=0.69.1<0.71"
     - run: VERSION=0.2.2
-      if: '>=0.71<0.75'
+      if: ">=0.71<0.75"
     - run: VERSION=0.3.0
-      if: '>=0.75'
+      if: ">=0.75<26.27.0"
+    - run: VERSION=0.3.1
+      if: ">=26.27.0"
     - test "$(mz --version)" = "mz $VERSION"

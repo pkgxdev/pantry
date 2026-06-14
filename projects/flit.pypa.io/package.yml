@@ -6,31 +6,38 @@ versions:
   github: pypa/flit/tags
 
 dependencies:
-  python.org: '>=3<3.12'
+  pkgx.sh: ">=1"
 
-build: python-venv.sh {{prefix}}/bin/flit
+build:
+  dependencies:
+    python.org: ~3.11
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install ./flit_core
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} flit
 
 provides:
   - bin/flit
 
 test:
-  fixture: |
-    [build-system]
-    requires = ["flit_core"]
-    build-backend = "flit_core.buildapi"
+  script:
+    - flit --version | grep {{version}}
+    - run: mv $FIXTURE pyproject.toml
+      fixture: |
+        [build-system]
+        requires = ["flit_core"]
+        build-backend = "flit_core.buildapi"
 
-    [project]
-    name = "sample"
-    version = "0.1"
-    description = "Sample description"
-    authors = [{name = "Sample Author"}]
+        [project]
+        name = "sample"
+        version = "0.1"
+        description = "Sample description"
+        authors = [{name = "Sample Author"}]
 
-    [tool.flit.sdist]
-    include = ["pyproject.toml", "sample.py"]
-  script: |
-    flit --version | grep {{version}}
-    mv $FIXTURE pyproject.toml
-    touch sample.py
-    flit build
-    test -f dist/sample-0.1-py2.py3-none-any.whl
-    test -f dist/sample-0.1.tar.gz
+        [tool.flit.sdist]
+        include = ["pyproject.toml", "sample.py"]
+    - touch sample.py
+    - flit build
+    - test -f dist/sample-0.1-py2.py3-none-any.whl
+    - test -f dist/sample-0.1.tar.gz

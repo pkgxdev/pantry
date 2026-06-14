@@ -1,0 +1,33 @@
+distributable:
+  url: https://github.com/knative/client/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+display-name: kn
+
+versions:
+  github: knative/client/releases
+  strip: /^knative-v/
+
+build:
+  dependencies:
+    go.dev: '*'
+  env:
+    CGO_ENABLED: '0'
+    GO_LDFLAGS:
+      - -s
+      - -w
+      - -X knative.dev/client/pkg/commands/version.Version=v{{version}}
+    linux:
+      GO_LDFLAGS:
+        - -buildmode=pie
+  script:
+    - go build -ldflags="$GO_LDFLAGS" -o {{prefix}}/bin/kn ./cmd/kn
+  skip: fix-patchelf
+
+provides:
+  - bin/kn
+
+test:
+  - kn version | tee out.log
+  - grep "Version:" out.log
+  - grep "v{{version}}" out.log

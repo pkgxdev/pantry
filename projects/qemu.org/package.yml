@@ -27,7 +27,6 @@ provides:
   - bin/qemu-system-loongarch64
   - bin/qemu-system-m68k
   - bin/qemu-system-microblaze
-  - bin/qemu-system-microblazeel
   - bin/qemu-system-mips
   - bin/qemu-system-mips64
   - bin/qemu-system-mips64el
@@ -62,19 +61,19 @@ dependencies:
 
 build:
   dependencies:
-    gnu.org/bison: '*'
-    github.com/westes/flex: '*'
+    gnu.org/bison: "*"
+    github.com/westes/flex: "*"
     python.org: ~3.11
-    ninja-build.org: '*'
-    mesonbuild.com: '*'
+    ninja-build.org: "*"
+    mesonbuild.com: "*"
   script:
     # TODO: linux virtfs <8 requires attr and libcap-ng
     - run: ARGS="$ARGS --enable-virtfs"
-      if: '>=8'
+      if: ">=8"
 
     # https://gitlab.com/qemu-project/qemu/-/issues/1853
     - run: sed -i -e"s/-isystem', /-isystem' + /g" meson.build
-      if: '>=8.1.4'
+      if: ">=8.1.4"
 
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
@@ -103,8 +102,8 @@ build:
 
 test:
   dependencies:
-    curl.se: '*'
-    info-zip.org/unzip: '*'
+    curl.se: "*"
+    info-zip.org/unzip: "*"
   script:
     - qemu-system-aarch64 --version | grep "QEMU emulator version {{version}}"
     - qemu-system-alpha --version | grep "QEMU emulator version {{version}}"
@@ -113,7 +112,6 @@ test:
     - qemu-system-i386 --version | grep "QEMU emulator version {{version}}"
     - qemu-system-m68k --version | grep "QEMU emulator version {{version}}"
     - qemu-system-microblaze --version | grep "QEMU emulator version {{version}}"
-    - qemu-system-microblazeel --version | grep "QEMU emulator version {{version}}"
     - qemu-system-mips --version | grep "QEMU emulator version {{version}}"
     - qemu-system-mips64 --version | grep "QEMU emulator version {{version}}"
     - qemu-system-mips64el --version | grep "QEMU emulator version {{version}}"

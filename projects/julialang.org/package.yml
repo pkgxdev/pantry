@@ -5,7 +5,6 @@ warnings:
 
 versions:
   github: JuliaLang/julia/tags
-  strip: /v/
 
 interprets:
   extensions: jl
@@ -17,7 +16,7 @@ build:
     gnu.org/tar: '*'
   working-directory: tmp
   script:
-    - curl -L "https://julialang-s3.julialang.org/bin/$PLATFORM/$ARCH/{{version.major}}.{{version.minor}}/julia-{{version.raw}}-$TRIPLE.tar.gz" |
+    - curl -L "https://julialang-s3.julialang.org/bin/$PLATFORM/$ARCH/{{version.marketing}}/julia-{{version.raw}}-$TRIPLE.tar.gz" |
       tar zxvf - --strip-components=1
     - mkdir -p "{{prefix}}"
     - cp -av ./* {{prefix}}/
@@ -41,7 +40,10 @@ build:
       ARCH: 'aarch64'
       TRIPLE: 'macaarch64'
 
-test: test "$(julia fixture.jl)" = "Hello, World!"
+test:
+  - julia --version | tee out
+  - grep {{version}} out
+  - test "$(julia fixture.jl)" = "Hello, World!"
 
 provides:
   - bin/julia

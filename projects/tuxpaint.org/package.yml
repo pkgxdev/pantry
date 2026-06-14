@@ -1,0 +1,57 @@
+distributable:
+  url: https://downloads.sourceforge.net/project/tuxpaint/tuxpaint/{{version}}/tuxpaint-{{version}}.tar.gz
+  strip-components: 1
+
+display-name: tuxpaint
+
+versions:
+  url: https://tuxpaint.org/download/source/
+  match: /tuxpaint-\d+\.\d+\.\d+\.tar\.gz/
+  strip:
+    - /^tuxpaint-/
+    - /\.tar\.gz$/
+
+dependencies:
+  cairographics.org: '*'
+  ferzkopp.net/SDL2_gfx: '*'
+  github.com/markuskimius/SDL2_Pango: '*'
+  gnome.org/librsvg: '*'
+  gnome.org/libxml2: '*'
+  gnome.org/pango: '*'
+  gnu.org/fribidi: '*'
+  libpng.org: '*'
+  libsdl.org: 2
+  libsdl.org/SDL_image: 2
+  libsdl.org/SDL_mixer: 2
+  libsdl.org/SDL_ttf: 2
+  pngquant.org/lib: '*'
+  zlib.net: '*'
+  linux:
+    github.com/rrthomas/libpaper: '*'
+  
+build:
+  dependencies:
+    freedesktop.org/appstream: '*'
+    gnu.org/bash: '*'
+    gnu.org/gperf: '*'
+    imagemagick.org: '*'
+  script:
+    - run: patch -p1 < props/relocatable.patch
+      if: linux
+    - make --jobs {{ hw.concurrency }} $ARGS ARCH_CFLAGS="-I{{deps.ferzkopp.net/SDL2_gfx.prefix}}/include/SDL2 -I{{deps.libsdl.org/SDL_image.prefix}}/include/SDL2 -I{{deps.libsdl.org/SDL_mixer.prefix}}/include/SDL2 -I{{deps.libsdl.org/SDL_ttf.prefix}}/include/SDL2"
+    - make $ARGS install
+  env:
+    ARGS:
+      - PREFIX={{prefix}}
+      - COMPLETIONDIR={{prefix}}/etc
+      - GPERF={{deps.gnu.org/gperf.prefix}}/bin/gperf
+      - PACKAGE_ONLY=yes
+      # Makefile uses brace expansions, which work only in Bash
+      - SHELL={{deps.gnu.org/bash.prefix}}/bin/bash
+      
+provides:
+  - bin/tp-magic-config
+  - bin/tuxpaint
+  - bin/tuxpaint-import
+  
+test: tuxpaint --listfonts

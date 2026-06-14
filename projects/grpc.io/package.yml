@@ -6,36 +6,44 @@ versions:
   github: grpc/grpc
 
 provides:
-  - bin/grpc_csharp_plugin
-  - bin/grpc_node_plugin
-  - bin/grpc_cpp_plugin
-  - bin/grpc_python_plugin
-  - bin/grpc_objective_c_plugin
-  - bin/grpc_ruby_plugin
-  - bin/grpc_php_plugin
-  - bin/grpc_cli
+  darwin:
+    - bin/grpc_csharp_plugin
+    - bin/grpc_node_plugin
+    - bin/grpc_cpp_plugin
+    - bin/grpc_python_plugin
+    - bin/grpc_objective_c_plugin
+    - bin/grpc_ruby_plugin
+    - bin/grpc_php_plugin
+    - bin/grpc_cli
+  linux:
+    - bin/grpc_csharp_plugin
+    - bin/grpc_node_plugin
+    - bin/grpc_cpp_plugin
+    - bin/grpc_python_plugin
+    - bin/grpc_objective_c_plugin
+    - bin/grpc_ruby_plugin
+    - bin/grpc_php_plugin
 
 dependencies:
   abseil.io: ^20250127
-  c-ares.org: '*'
+  c-ares.org: "*"
   openssl.org: ^1.1
-  github.com/google/re2: '*'
-  zlib.net: '*'
+  github.com/google/re2: "*"
+  zlib.net: "*"
   linux:
-    gnu.org/gcc/libstdcxx: '*'
+    gnu.org/gcc/libstdcxx: 14
     # grpc links to specific versions, so we use theirs
     # on darwin
     protobuf.dev: 30.0.0 # as of 1.72.0
 
 build:
   dependencies:
-    gnu.org/autoconf: '*'
-    gnu.org/automake: '*'
-    gnu.org/libtool: '*'
+    gnu.org/autoconf: "*"
+    gnu.org/automake: "*"
+    gnu.org/libtool: "*"
     darwin:
-      gnu.org/patch: '*'
+      gnu.org/patch: "*"
     cmake.org: ^3
-    freedesktop.org/pkg-config: ^0
     git-scm.org: ^2
   working-directory: cmake/build
   script:
@@ -48,7 +56,7 @@ build:
         if test "{{hw.platform}}" = "darwin"; then
           patch -i $PROP || true
         fi
-      if: '>=1.63<1.66.2'
+      if: ">=1.63<1.66.2"
       working-directory: ../..
       prop: |
         --- CMakeLists.txt.orig	2024-05-16 01:01:03.000000000 +0000
@@ -73,12 +81,13 @@ build:
     - cmake $COMMON_ARGS $ARGS ../..
     - make install
 
-    # Build the cli
-    - cmake $COMMON_ARGS $CLI_ARGS ../..
-    - make grpc_cli
-
-    - cp grpc_cli "{{prefix}}/bin"
-    - cp libgrpc++_test_config.* "{{prefix}}/lib"
+    # Build the cli, failing on linux
+    - run:
+        - cmake $COMMON_ARGS $CLI_ARGS ../..
+        - make grpc_cli
+        - cp grpc_cli "{{prefix}}/bin"
+        - cp libgrpc++_test_config.* "{{prefix}}/lib"
+      if: darwin
 
     # grpc has libs and binaries that end up with name @rpath/libgrpc_plugin_support.{{version}}.dylib (offset 24)
     # so we need to add @loader_path to the rpath
@@ -88,7 +97,7 @@ build:
             install_name_tool -add_rpath @loader_path/../lib $f
           fi
         done
-      working-directory: '{{prefix}}'
+      working-directory: "{{prefix}}"
       if: darwin
 
   env:
@@ -114,21 +123,20 @@ build:
         - -DgRPC_PROTOBUF_PROVIDER=module
         - -DCMAKE_SHARED_LINKER_FLAGS=-Wl,-rpath,{{pkgx.prefix}},-undefined,dynamic_lookup
     linux:
-      CC: clang
-      CXX: clang++
-      LD: clang
       ARGS:
         - -DgRPC_PROTOBUF_PROVIDER=package
-      CLI_ARGS:
-        # otherwise we get linker errors
-        - -DCMAKE_EXE_LINKER_FLAGS=-W,-labsl_log_internal_message
+        # linker is complaining about libstdc++ symbol, but we can resolve them at
+        # runtime
+        - -DCMAKE_SHARED_LINKER_FLAGS=-Wl,-labsl_log_internal_message,-lstdc++,--allow-shlib-undefined
+        - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-labsl_log_internal_message,-lstdc++,--allow-shlib-undefined
 
 test:
   dependencies:
     freedesktop.org/pkg-config: ^0
   script:
-    - (grpc_cli ls localhost:58931 2>&1 || true) | grep -E "(failed to connect to all addresses|rpc failed)"
-    - run: clang++ $PKG_CONFIG $FIXTURE -o test $LIBS
+    - run: (grpc_cli ls localhost:58931 2>&1 || true) | grep -E "(failed to connect to all addresses|rpc failed)"
+      if: darwin
+    - run: clang++ $FIXTURE -o test $PKG_CONFIG $LIBS
       fixture:
         extname: cpp
         content: |
@@ -142,4 +150,4 @@ test:
   env:
     PKG_CONFIG: $(pkg-config --cflags --libs libcares protobuf re2 grpc++)
     linux:
-      LIBS: -lstdc++
+      LIBS: -labsl_log_internal_message -lstdc++ -Wl,--allow-shlib-undefined

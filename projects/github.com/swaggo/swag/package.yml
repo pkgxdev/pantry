@@ -1,0 +1,61 @@
+distributable:
+  url: https://github.com/swaggo/swag/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: swaggo/swag
+
+provides:
+  - bin/swag
+
+companions:
+  go.dev: '*'
+
+build:
+  dependencies:
+    go.dev: ~1.18
+  script:
+    - sed -i 's/1\.16\.4/{{version}}/' version.go
+    - go mod download
+    - go build -v -trimpath -ldflags="$GO_LDFLAGS" -o {{prefix}}/bin/swag ./cmd/swag
+  env:
+    GO_LDFLAGS:
+      - -w
+    darwin:
+      GO_LDFLAGS:
+        # dyld[16248]: missing LC_UUID load command in /Users/jacob/.pkgx/github.com/swaggo/swag/v1.16.6/bin/swag
+        # dyld[16248]: missing LC_UUID load command
+        - -linkmode=external
+    linux:
+      # or segmentation fault
+      # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
+      GO_LDFLAGS:
+        - -buildmode=pie
+
+test:
+  - swag --version
+  - test "$(swag --version)" = "swag version v{{version}}"
+  - run: cp $FIXTURE main.go
+    fixture: |
+      // Package main Simple API.
+      // @title Simple API
+      // @version 1.0.0
+      // @description This is a simple API server.
+
+      // @host localhost:8080
+      // @BasePath /api/v1
+
+      package main
+
+      import "github.com/gin-gonic/gin"
+
+      func main() {
+        r := gin.Default()
+        r.GET("/ping", func(c *gin.Context) {
+          c.JSON(200, gin.H{"message": "pong"})
+        })
+        r.Run()
+      }
+  - swag init
+  - test -f docs/docs.go
+  - test -f docs/swagger.json

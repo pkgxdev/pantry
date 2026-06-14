@@ -1,0 +1,64 @@
+# Valgrind — memory + threading debugger and profiler.
+#
+# Suite of debug/profile tools: memcheck (leak detector), helgrind
+# (race detector), cachegrind (cache profiler), callgrind (call
+# graph profiler), massif (heap profiler), and more.
+#
+# Closes pkgxdev/pantry#462.
+
+distributable:
+  url: https://sourceware.org/pub/valgrind/valgrind-{{ version.raw }}.tar.bz2
+  strip-components: 1
+
+versions:
+  url: https://sourceware.org/pub/valgrind/
+  match: /valgrind-\d+\.\d+\.\d+\.tar\.bz2/
+  strip:
+    - /^valgrind-/
+    - /\.tar\.bz2/
+
+# Valgrind requires Linux/x86-64, Linux/aarch64, or
+# Linux only. Darwin support has been fragile since macOS 11 — Apple's
+# hardened runtime / codesign requirements make valgrind's ptrace-style
+# instrumentation unreliable, and the darwin runner failed here even
+# after a clean build. Skip darwin altogether.
+platforms:
+  - linux
+
+# valgrind bakes VALGRIND_LIB into the binary at configure time using
+# the +brewing prefix; after brewkit renames the install dir, the path
+# no longer exists. Set runtime.env so pkgx exports the correct path.
+runtime:
+  env:
+    VALGRIND_LIB: ${{prefix}}/libexec/valgrind
+
+build:
+  dependencies:
+    gnu.org/autoconf: '*'
+    gnu.org/automake: '*'
+    perl.org: '*'
+
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
+  env:
+    ARGS:
+      - --prefix={{ prefix }}
+      - --enable-only64bit
+      - --disable-tls
+
+provides:
+  - bin/valgrind
+  - bin/valgrind-listener
+  - bin/vgdb
+  - bin/callgrind_annotate
+  - bin/callgrind_control
+  - bin/cg_annotate
+  - bin/cg_diff
+  - bin/cg_merge
+  - bin/ms_print
+
+test:
+  - valgrind --version | tee out
+  - grep "valgrind-{{version.raw}}" out

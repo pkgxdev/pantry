@@ -1,81 +1,89 @@
 distributable:
   url: https://github.com/XTLS/Xray-core/archive/v{{version}}.tar.gz
   strip-components: 1
+
 display-name: xray-core
+
 versions:
   github: XTLS/Xray-core
+
 runtime:
   env:
     XRAY_LOCATION_ASSET: ${XRAY_LOCATION_ASSET:-{{prefix}}/share/xray}
+
 build:
   dependencies:
     go.dev: ^1.21.4
-    curl.se: '*'
+    curl.se: "*"
   script:
-    - go build $GO_ARGS -ldflags="$LDFLAGS" ./main
-    - run: |
-        curl -L "$RES_GEOSITE" -o geosite.dat
-        curl -L "$RES_GEOIP" -o geoip.dat
+    - go build $GO_ARGS -ldflags="$GO_LDFLAGS" ./main
+    - run:
+        - curl -L "$RES_GEOSITE" -o geosite.dat
+        - curl -L "$RES_GEOIP" -o geoip.dat
       working-directory: ${{prefix}}/share/xray
     - run: curl -L "$RES_CONFIG" -o config.json
       working-directory: ${{prefix}}/etc/xray
   env:
-    LDFLAGS:
+    GO_LDFLAGS:
       - -s
       - -w
       - -buildid=
     GO_ARGS:
       - -trimpath
       - -o="{{prefix}}/bin/xray"
-    RES_GEOSITE: https://github.com/v2fly/domain-list-community/releases/download/20230825070717/dlc.dat
-    RES_CONFIG: https://raw.githubusercontent.com/v2fly/v2ray-core/v4.45.2/release/config/config.json
-    RES_GEOIP: https://github.com/v2fly/geoip/releases/download/202308310037/geoip.dat
+    RES_GEOSITE: https://github.com/v2fly/domain-list-community/releases/download/20250916122507/dlc.dat
+    RES_CONFIG: https://raw.githubusercontent.com/v2fly/v2ray-core/v5.40.0/release/config/config.json
+    RES_GEOIP: https://github.com/v2fly/geoip/releases/download/202510050144/geoip.dat
     linux:
-      LDFLAGS:
+      GO_LDFLAGS:
         - -buildmode=pie
+
 provides:
   - bin/xray
+
 test:
   dependencies:
     linux:
-      gitlab.com/procps-ng/procps: '*'
-  fixture: |
-    {
-      "log": {
-        "access": "./log"
-      },
-      "outbounds": [
-        {
-          "protocol": "freedom",
-          "tag": "direct"
-        }
-      ],
-      "routing": {
-        "rules": [
-          {
-            "ip": [
-              "geoip:private"
-            ],
-            "outboundTag": "direct",
-            "type": "field"
-          },
-          {
-            "domains": [
-              "geosite:private"
-            ],
-            "outboundTag": "direct",
-            "type": "field"
-          }
-        ]
-      }
-    }
+      gitlab.com/procps-ng/procps: "*"
   script:
     - $KILL xray || true
-    - cat $FIXTURE > $HOME/config.json
+    - run: cp $FIXTURE $HOME/config.json
+      fixture: |
+        {
+          "log": {
+            "access": "./log"
+          },
+          "outbounds": [
+            {
+              "protocol": "freedom",
+              "tag": "direct"
+            }
+          ],
+          "routing": {
+            "rules": [
+              {
+                "ip": [
+                  "geoip:private"
+                ],
+                "outboundTag": "direct",
+                "type": "field"
+              },
+              {
+                "domains": [
+                  "geosite:private"
+                ],
+                "outboundTag": "direct",
+                "type": "field"
+              }
+            ]
+          }
+        }
     - xray run --config {{prefix}}/etc/xray/config.json &
     - sleep 3
-    - xray -c $HOME/config.json -test | grep 'Configuration OK.'
-    - xray version | grep {{version}}
+    - xray -c $HOME/config.json -test | tee out
+    - grep 'Configuration OK.' out
+    - xray version | tee out
+    - grep {{version}} out
     - $KILL xray
   env:
     darwin:

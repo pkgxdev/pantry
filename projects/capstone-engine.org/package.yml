@@ -3,52 +3,56 @@ distributable:
   strip-components: 1
 
 versions:
-  github: capstone-engine/capstone/releases/tags
-  strip: /^v/
+  github: capstone-engine/capstone
 
 provides:
   - bin/cstool
 
 build:
-  script: |
-    ./make.sh
-    make install PREFIX={{ prefix }}
+  script:
+    - ./make.sh
+    - make install PREFIX={{ prefix }}
 
-    cd "{{prefix}}/include"
-    mv capstone/* .
-    rmdir capstone
-    ln -s . capstone
-
-    cd ../lib/pkgconfig
-    sed -i.bak -e 's_^includedir=.*$_includedir=${libdir}/../include_' capstone.pc
-    rm capstone.pc.bak
+    - run: sed -i -e 's_^includedir=.*$_includedir=${libdir}/../include_' capstone.pc
+      working-directory: "{{prefix}}/lib/pkgconfig"
+  env:
+    darwin:
+      LDFLAGS: $LDFLAGS -Wl,-headerpad_max_install_names
 
 test:
-  script: |
-    mv $FIXTURE test.c
-    gcc test.c -lcapstone -o test
-    test "$(./test)" = "0x1000:\tpop\t\trsp\n0x1001:\tjs\t\t0x1038\n0x1003:\txor\t\teax, 0x3834785c\n0x1008:\tpop\t\trsp\n0x1009:\tjs\t\t0x1043\n"
-  fixture: |
-    #include <stdio.h>
-    #include <inttypes.h>
-    #include <capstone/capstone.h>
-    #define CODE "\\x55\\x48\\x8b\\x05\\xb8\\x13\\x00\\x00"
-    int main()
-    {
-      csh handle;
-      cs_insn *insn;
-      size_t count;
-      if (cs_open(CS_ARCH_X86, CS_MODE_64, &handle) != CS_ERR_OK)
-        return -1;
-      count = cs_disasm(handle, CODE, sizeof(CODE)-1, 0x1000, 0, &insn);
-      if (count > 0) {
-        size_t j;
-        for (j = 0; j < count; j++) {
-          printf("0x%"PRIx64":\\t%s\\t\\t%s\\n", insn[j].address, insn[j].mnemonic,insn[j].op_str);
-        }
-        cs_free(insn, count);
-      } else
-        printf("ERROR: Failed to disassemble given code!\\n");
-      cs_close(&handle);
-      return 0;
-    }
+  dependencies:
+    gnu.org/diffutils: "*"
+  script:
+    - run: gcc $FIXTURE -lcapstone -o test
+      fixture:
+        extname: c
+        content: |
+          #include <stdio.h>
+          #include <inttypes.h>
+          #include <capstone/capstone.h>
+          #define CODE "\\x55\\x48\\x8b\\x05\\xb8\\x13\\x00\\x00"
+          int main()
+          {
+            csh handle;
+            cs_insn *insn;
+            size_t count;
+            if (cs_open(CS_ARCH_X86, CS_MODE_64, &handle) != CS_ERR_OK)
+              return -1;
+            count = cs_disasm(handle, CODE, sizeof(CODE)-1, 0x1000, 0, &insn);
+            if (count > 0) {
+              size_t j;
+              for (j = 0; j < count; j++) {
+                printf("0x%"PRIx64":\\t%s\\t\\t%s\\n", insn[j].address, insn[j].mnemonic,insn[j].op_str);
+              }
+              cs_free(insn, count);
+            } else
+              printf("ERROR: Failed to disassemble given code!\\n");
+            cs_close(&handle);
+            return 0;
+          }
+    - ./test | tee out
+    - echo "" >>out
+    - run: diff -uw out $FIXTURE
+      fixture: |
+        0x1000:	push		rbp
+        0x1001:	mov		rax, qword ptr [rip + 0x13b8]

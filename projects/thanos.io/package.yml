@@ -1,0 +1,32 @@
+# Thanos — highly available Prometheus with long-term storage (CNCF incubating).
+#
+# Adds global query view + unlimited retention to Prometheus by
+# proxying to object storage (S3/GCS/Azure). Standard scaling path
+# when single Prometheus runs out of room.
+
+distributable:
+  url: https://github.com/thanos-io/thanos/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: thanos-io/thanos
+
+build:
+  dependencies:
+    go.dev: "*"
+  env:
+    CGO_ENABLED: 0
+    GO_LDFLAGS:
+      - -s
+      - -w
+      - -X github.com/prometheus/common/version.Version={{ version.tag }}
+  script:
+    - mkdir -p {{prefix}}/bin
+    - go build -trimpath -ldflags "$GO_LDFLAGS" -o {{prefix}}/bin/thanos ./cmd/thanos
+
+test:
+  - thanos --version 2>&1 | tee out
+  - grep {{version.tag}} out
+
+provides:
+  - bin/thanos

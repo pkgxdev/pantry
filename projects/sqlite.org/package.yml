@@ -1,7 +1,14 @@
 distributable:
-  #TODO lol supporting this URL scheme will be fun
-  url: https://sqlite.org/2022/sqlite-autoconf-3390200.tar.gz
-  strip-components: 1
+  - url: https://sqlite.org/2022/sqlite-autoconf-{{version.major}}{{version.minor}}0{{version.patch}}00.tar.gz
+    strip-components: 1
+  - url: https://sqlite.org/2023/sqlite-autoconf-{{version.major}}{{version.minor}}0{{version.patch}}00.tar.gz
+    strip-components: 1
+  - url: https://sqlite.org/2024/sqlite-autoconf-{{version.major}}{{version.minor}}0{{version.patch}}00.tar.gz
+    strip-components: 1
+  - url: https://sqlite.org/2025/sqlite-autoconf-{{version.major}}{{version.minor}}0{{version.patch}}00.tar.gz
+    strip-components: 1
+  - url: https://sqlite.org/2026/sqlite-autoconf-{{version.major}}{{version.minor}}0{{version.patch}}00.tar.gz
+    strip-components: 1
 
 versions:
   github: sqlite/sqlite/tags
@@ -12,16 +19,32 @@ dependencies:
   gnu.org/readline: 8
 
 build:
-  script: |
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }} install
+  dependencies:
+    linux:
+      nixos.org/patchelf: "*"
+  script:
+    - ./configure $ARGS --with-readline-ldflags="-L{{deps.gnu.org/readline.prefix}}/lib -lreadline"
+    - make --jobs {{ hw.concurrency }} install
+    - run: |
+        if [ ! -f libsqlite3.$SUFFIX ]; then
+          ln -s libsqlite3.0.$SUFFIX libsqlite3.$SUFFIX
+        fi
+      working-directory: ${{prefix}}/lib
+    # missing SONAMEs are causing path linkages from ninja. go figure.
+    - run: patchelf --set-soname libsqlite3.so libsqlite3.so
+      working-directory: ${{prefix}}/lib
+      if: linux
   env:
+    linux:
+      SUFFIX: so
+    darwin:
+      SUFFIX: dylib
     ARGS:
       - --prefix={{ prefix }}
-      - --enable-dynamic-extensions
       - --enable-readline
       - --disable-editline
       - --enable-session
+      - --with-readline-cflags=-I{{deps.gnu.org/readline.prefix}}/include
     CPPFLAGS:
       # copied without explanation from brew
       - -DSQLITE_ENABLE_COLUMN_METADATA=1
@@ -33,7 +56,23 @@ build:
       - -DSQLITE_MAX_VARIABLE_NUMBER=250000
 
 test:
-  script: sqlite3 --version
+  dependencies:
+    linux:
+      gnu.org/binutils: "*"
+  script:
+    - sqlite3 --version
+    - sqlite3 --version | grep '{{version}}'
+    - run: sqlite3 <$FIXTURE | tee out.log
+      fixture: |
+        create table students (name text, age integer);
+        insert into students (name, age) values ('Bob', 14);
+        insert into students (name, age) values ('Sue', 12);
+        insert into students (name, age) values ('Tim', 13);
+        select name from students order by age asc;
+    - test "SueTimBob" = "$(cat out.log | tr -d '\n')"
+    - run: readelf -d libsqlite3.so | grep SONAME
+      working-directory: ${{prefix}}/lib
+      if: linux
 
 provides:
   - bin/sqlite3

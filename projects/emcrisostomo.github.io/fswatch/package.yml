@@ -1,0 +1,25 @@
+distributable:
+  url: https://github.com/emcrisostomo/fswatch/releases/download/{{version}}/fswatch-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: emcrisostomo/fswatch
+
+build:
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --disable-debug
+      - --disable-dependency-tracking
+    linux:
+      LDFLAGS: $LDFLAGS -Wl,-lstdc++fs,-lpthread
+
+provides:
+  - bin/fswatch
+
+test:
+  - fswatch --version | tee out
+  - grep 'fswatch {{version}}' out

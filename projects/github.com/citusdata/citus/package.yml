@@ -1,0 +1,91 @@
+# Citus — horizontally-scalable PostgreSQL extension.
+#
+# Citus extends Postgres into a distributed SQL database by sharding
+# tables across worker nodes. It's a drop-in extension: same Postgres,
+# same SQL, just transparently parallelised across a cluster. Common
+# alternative to CockroachDB / Yugabyte for users who want to stay on
+# vanilla Postgres semantics.
+#
+# Build: PGXS-based extension. Installs no CLI tools — the artefacts
+# are a shared library (citus.so) plus extension control/SQL files,
+# loaded inside Postgres via `CREATE EXTENSION citus` after adding it
+# to shared_preload_libraries.
+#
+# PostgreSQL compatibility (Citus 14.x): PG 16, 17, 18.
+
+distributable:
+  url: https://github.com/citusdata/citus/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: citusdata/citus
+
+dependencies:
+  postgresql.org: ">=16<19"
+  curl.se: "*" # anonymous statistics collection
+  lz4.org: "*" # column compression
+  facebook.com/zstd: "*" # column compression
+  openssl.org: "*" # transitively via libpq / PG
+
+build:
+  dependencies:
+    linux:
+      # PostgreSQL bottle was built with clang, and Citus extensions
+      # inherit CFLAGS via `pg_config --cflags` — those carry
+      # clang-specific warnings (e.g. -Werror=unguarded-availability-new)
+      # that gcc rejects. Use the same clang to stay compatible.
+      llvm.org: "*"
+  script:
+    # PGXS uses pg_config to determine install dirs. Override `prefix` at
+    # install time so extension files land in pantry's bottle, not in the
+    # Postgres dependency's tree.
+    - ./configure $ARGS
+    # On darwin, PG's installed Makefile.global hard-codes -isysroot
+    # /Applications/Xcode.app/.../SDKs/MacOSX15.2.sdk (the SDK PG was
+    # bottled with). That SDK isn't present on current runners, so
+    # stdio.h / inttypes.h disappear. Build a sanitised CPPFLAGS string
+    # by re-reading pg_config --cppflags and rewriting the path, then
+    # pass it on the make command line so it overrides PG's value
+    # (PGXS's `override CPPFLAGS := -I. -I$(srcdir) $(CPPFLAGS)` then
+    # prepends its own bits, preserving our SDK fix). Linux gets the
+    # unmodified value, so the rewrite is a no-op there.
+    - make --jobs {{ hw.concurrency }} CPPFLAGS="$CPPFLAGS_PG" LDFLAGS="$LDFLAGS_PG"
+    - make install-all prefix={{prefix}} CPPFLAGS="$CPPFLAGS_PG" LDFLAGS="$LDFLAGS_PG"
+  env:
+    CC: clang
+    ARGS:
+      - --prefix={{prefix}}
+      - --with-libcurl
+      - --with-lz4
+      - --with-zstd
+    linux:
+      CPPFLAGS_PG: $(pg_config --cppflags)
+      LDFLAGS_PG: $(pg_config --ldflags)
+    darwin:
+      # Brewkit's hermetic CPATH masks the Xcode SDK, so Xcode clang's
+      # #include_next chain can't reach <stdio.h>, <inttypes.h>, etc.
+      # Point the toolchain at the active SDK explicitly.
+      SDKROOT: $(xcrun --sdk macosx --show-sdk-path)
+      CPPFLAGS_PG: $(pg_config --cppflags | sed -E "s#/Applications/Xcode[^[:space:]]*/SDKs/MacOSX[0-9.]+\\.sdk#$(xcrun --sdk macosx --show-sdk-path)#g")
+      LDFLAGS_PG: $(pg_config --ldflags | sed -E "s#/Applications/Xcode[^[:space:]]*/SDKs/MacOSX[0-9.]+\\.sdk#$(xcrun --sdk macosx --show-sdk-path)#g")
+
+# Citus ships no executables — it's a Postgres extension loaded inside
+# the server process. Bottle contents:
+#   {{prefix}}/lib/postgresql/citus.so
+#   {{prefix}}/share/postgresql/extension/citus.control
+#   {{prefix}}/share/postgresql/extension/citus--*.sql
+# `provides:` validates bin/sbin paths, so omit the key entirely
+# (cf. zlib.net, which is also library-only).
+
+test:
+  env:
+    linux:
+      LIB: citus.so
+    darwin:
+      LIB: citus.dylib
+  script:
+    # PGXS installs the loadable module as citus.so on linux,
+    # citus.dylib on darwin, both under lib/postgresql when the
+    # prefix lacks "postgres"/"pgsql" tokens (PGXS convention).
+    - test -f "{{prefix}}/lib/postgresql/$LIB"
+    - test -f "{{prefix}}/share/postgresql/extension/citus.control"

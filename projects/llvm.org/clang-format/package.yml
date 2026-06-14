@@ -1,31 +1,30 @@
 distributable:
-  url: https://github.com/llvm/llvm-project/releases/download/llvmorg-{{version}}/llvm-{{version}}.src.tar.xz
+  url: https://github.com/llvm/llvm-project/releases/download/llvmorg-{{ version }}/llvm-project-{{ version }}.src.tar.xz
   strip-components: 1
+
 versions:
   github: llvm/llvm-project
   strip:
     - /^llvmorg-/
+
 dependencies:
-  gnome.org/libxml2: '*'
-  invisible-island.net/ncurses: '*'
-  python.org: '<3.12'
-  zlib.net: '*'
+  gnome.org/libxml2: "*"
+  invisible-island.net/ncurses: "*"
+  python.org: "<3.12"
+  zlib.net: "*"
+
 build:
   dependencies:
-    cmake.org: '*'
-    curl.se: '*'
+    cmake.org: "*"
+    curl.se: "*"
+    facebook.com/zstd: "*"
   script:
-    - mkdir -p ../srctmp {{prefix}}/bin {{prefix}}/share/clang
-    - cp -r ./* ../srctmp && mv ../srctmp ./src
-    - run: |
-        mkdir -p src/tools/clang && curl -L $RES_CLANG | tar -xJf - -C src/tools/clang --strip-components=1
-        mkdir -p cmake && curl -L $RES_CMAKE | tar -xJf - -C cmake --strip-components=1
-        mkdir -p third-party && curl -L $RES_THIRD_PARTY | tar -xJf - -C third-party --strip-components=1
-    - cmake $CMAKE_ARGS -S src -B build
+    - mkdir -p {{prefix}}/bin {{prefix}}/share/clang
+    - cmake $CMAKE_ARGS -S llvm -B build --fresh
     - cmake --build build --target clang-format
     - install -p build/bin/clang-format {{prefix}}/bin/
-    - install -p src/tools/clang/tools/clang-format/git-clang-format {{prefix}}/bin/
-    - install -p src/tools/clang/tools/clang-format/clang-format* {{prefix}}/share/clang/
+    - install -p clang/tools/clang-format/git-clang-format {{prefix}}/bin/
+    - install -p clang/tools/clang-format/clang-format* {{prefix}}/share/clang/
   env:
     RES_CLANG: https://github.com/llvm/llvm-project/releases/download/llvmorg-{{version}}/clang-{{version}}.src.tar.xz
     RES_CMAKE: https://github.com/llvm/llvm-project/releases/download/llvmorg-{{version}}/cmake-{{version}}.src.tar.xz
@@ -37,18 +36,21 @@ build:
       - -DCMAKE_FIND_FRAMEWORK=LAST
       - -DCMAKE_VERBOSE_MAKEFILE=ON
       - -Wno-dev
-      - -DLLVM_EXTERNAL_PROJECTS=clang
+      - -DLLVM_ENABLE_PROJECTS=clang
       - -DLLVM_INCLUDE_BENCHMARKS=OFF
+      - -DLLVM_INCLUDE_TESTS=OFF
+
 provides:
   - bin/clang-format
   - bin/git-clang-format
+
 test:
-  script:
-    - clang-format --version | grep {{version}}
-    - run: |
-        cat << EOF > test.c
-          int main(char *args) {
-            printf("hello");
-          } 
-        EOF
-    - clang-format -style=Google test.c
+  - clang-format --version 2>&1 | tee out
+  - grep {{version}} out
+  - run: clang-format -style=Google $FIXTURE
+    fixture:
+      extname: c
+      content: |
+        int main(char *args) {
+          printf("hello");
+        }

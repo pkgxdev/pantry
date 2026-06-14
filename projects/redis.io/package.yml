@@ -5,7 +5,6 @@ distributable:
 versions:
   github: redis/redis
 
-
 provides:
   - bin/redis-server
   - bin/redis-cli
@@ -15,8 +14,6 @@ dependencies:
   openssl.org: ^1
 
 build:
-  dependencies:
-    freedesktop.org/pkg-config: '>=0.29'
   script:
     make install
     # TODO: configure default redis.conf if necessary
@@ -27,12 +24,14 @@ build:
       CFLAGS: -fPIC
       CXXFLAGS: -fPIC
       LDFLAGS: -pie
+    darwin:
+      # wut? - ld: unknown option: -Wl,-rpath,/opt
+      LDFLAGS: -rpath {{pkgx.prefix}}
 
 test:
-  script: |
-    redis-server --daemonize yes
-    redis-cli --raw SET key123 value123
+  - redis-server --daemonize yes
+  - redis-cli --raw SET key123 value123
 
-    test "$(redis-cli --raw GET key123)" = "value123"
+  - test "$(redis-cli --raw GET key123)" = "value123"
 
-    redis-cli shutdown
+  - redis-cli shutdown

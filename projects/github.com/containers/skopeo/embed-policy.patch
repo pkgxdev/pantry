@@ -1,0 +1,53 @@
+diff --git a/Makefile b/Makefile
+index 4d106589..5a5411d7 100644
+--- a/Makefile
++++ b/Makefile
+@@ -160,7 +160,7 @@ clean:
+ install: install-binary install-docs install-completions
+ 	install -d -m 755 ${DESTDIR}${LOOKASIDEDIR}
+ 	install -d -m 755 ${DESTDIR}${CONTAINERSCONFDIR}
+-	install -m 644 default-policy.json ${DESTDIR}${CONTAINERSCONFDIR}/policy.json
++	install -m 644 cmd/skopeo/fixtures/default-policy.json ${DESTDIR}${CONTAINERSCONFDIR}/policy.json
+ 	install -d -m 755 ${DESTDIR}${REGISTRIESDDIR}
+ 	install -m 644 default.yaml ${DESTDIR}${REGISTRIESDDIR}/default.yaml
+ 
+diff --git a/default-policy.json b/cmd/skopeo/fixtures/default-policy.json
+similarity index 100%
+rename from default-policy.json
+rename to cmd/skopeo/fixtures/default-policy.json
+diff --git a/cmd/skopeo/main.go b/cmd/skopeo/main.go
+index 8b8de3c7..1052f6b3 100644
+--- a/cmd/skopeo/main.go
++++ b/cmd/skopeo/main.go
+@@ -2,7 +2,9 @@ package main
+ 
+ import (
+ 	"context"
++	_ "embed"
+ 	"fmt"
++	"os"
+ 	"strings"
+ 	"time"
+ 
+@@ -137,6 +139,9 @@ func main() {
+ 	}
+ }
+ 
++//go:embed fixtures/default-policy.json
++var defaultPolicyBytes []byte
++
+ // getPolicyContext returns a *signature.PolicyContext based on opts.
+ func (opts *globalOptions) getPolicyContext() (*signature.PolicyContext, error) {
+ 	var policy *signature.Policy // This could be cached across calls in opts.
+@@ -145,6 +150,11 @@ func (opts *globalOptions) getPolicyContext() (*signature.PolicyContext, error)
+ 		policy = &signature.Policy{Default: []signature.PolicyRequirement{signature.NewPRInsecureAcceptAnything()}}
+ 	} else if opts.policyPath == "" {
+ 		policy, err = signature.DefaultPolicy(nil)
++		// Check if the error is due to the default policy file not being found
++		// so we don't supress other errors like bad JSON in the policy file.
++		if err != nil && (strings.Contains(err.Error(), "no policy.json file found") || os.IsNotExist(err)) {
++			policy, err = signature.NewPolicyFromBytes(defaultPolicyBytes)
++		}
+ 	} else {
+ 		policy, err = signature.NewPolicyFromFile(opts.policyPath)
+ 	}

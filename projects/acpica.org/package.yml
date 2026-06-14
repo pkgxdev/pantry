@@ -1,0 +1,45 @@
+# ACPICA — Intel's ACPI Component Architecture.
+#
+# We package it for one tool in particular: `iasl`, the ASL+ optimizing
+# compiler/disassembler. EDK II (tianocore.org/edk2) shells out to it to
+# turn `.asl` ACPI tables into `.aml` during firmware builds, so it is a
+# build-time dependency there rather than a user-facing package.
+#
+# Upstream tags switched from `R20YY_MM_DD` to a clean `YYYYMMDD` scheme
+# around mid-2025; we only match the latter.
+
+distributable:
+  url: git+https://github.com/acpica/acpica
+  ref: "{{version.tag}}"
+
+versions:
+  github: acpica/acpica/tags
+  match: /^\d{8}$/
+
+build:
+  dependencies:
+    github.com/westes/flex: "*"
+    gnu.org/bison: "*"
+    linux:
+      gnu.org/gcc: "*"
+  env:
+    darwin:
+      EXTRA_MAKEFLAGS:
+        - CC=clang
+        - OPT_LDFLAGS="-Wl,-no_fixup_chains"
+  script:
+    - make iasl $EXTRA_MAKEFLAGS
+    - install -Dm0755 generate/unix/bin/iasl "{{prefix}}/bin/iasl"
+
+provides:
+  - bin/iasl
+
+test:
+  - iasl -v
+  # Compile a trivial SSDT and confirm an .aml falls out.
+  - run: cp $FIXTURE t.asl
+    fixture:
+      extname: asl
+      content: DefinitionBlock ("", "SSDT", 2, "TEST", "T", 0x1) { Name (X, 0x42) }
+  - iasl t.asl
+  - test -s t.aml

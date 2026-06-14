@@ -11,16 +11,19 @@ versions:
 
 build:
   script:
+    # https://github.com/netwide-assembler/nasm/commit/dc247c9f9913e336200ecf8bb72152fdabdb3585#r167178007
+    - run: sed -i 's/l32toh(/le32toh(/g' bytesex.h
+      working-directory: include
     - ./configure --prefix="{{prefix}}"
-    - run: |
-        make --jobs {{hw.concurrency}} rdf
-        make install install_rdf
+    - run:
+        - make --jobs {{hw.concurrency}} rdf
+        - make install install_rdf
       if: <2.16
     # rdoff tools removed as unfixable
     # https://github.com/netwide-assembler/nasm/commit/93548c2de2a3c218b3d0ab4061b26d9781cb6b37
-    - run: |
-        make --jobs {{hw.concurrency}}
-        make install
+    - run:
+        - make --jobs {{hw.concurrency}}
+        - make install
       if: '>=2.16'
 
 test: nasm --version

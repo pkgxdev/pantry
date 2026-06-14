@@ -6,9 +6,8 @@ versions:
   github: pyca/cryptography/tags
 
 dependencies:
-  python.org: '>=3.11'
+  python.org: ">=3.11"
   github.com/python-cffi/cffi: ^1.16
-  openssl.org: '>=1.1'
 
 runtime:
   env:
@@ -16,9 +15,13 @@ runtime:
 
 build:
   dependencies:
-    python.org/typing_extensions: '*'
-    rust-lang.org: '>=1.65'
+    python.org/typing_extensions: "*"
+    rust-lang.org: ">=1.65"
+    pkgx.sh: ">=1"
   script:
+    # v47 needs openssl 3.0; can't make it a dep because it conflicts with
+    # python.org's openssl ^1.1, so fetch via pkgx and point OPENSSL_DIR at it
+    - pkgx +openssl.org^3
     - python -m pip install --prefix={{prefix}} .
     - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
       working-directory: ${{prefix}}/lib
@@ -26,6 +29,9 @@ build:
   # and there seems to be no good way to set the headerpad_max_install_names flag in the rust build,
   # that I could find. It's all supposed to be statically linked, in any case.
   skip: fix-machos
+  env:
+    OPENSSL_STATIC: "1"
+    OPENSSL_DIR: "{{pkgx.prefix}}/openssl.org/v3"
 
 test:
   - run: python $FIXTURE

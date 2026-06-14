@@ -1,0 +1,105 @@
+# GCC 8 — legacy version for old-vendored-C++ projects.
+#
+# Many projects vendoring older C++ libraries (RocksDB 6.3.x, old
+# MySQL 5.7, old InnoDB, pre-C++17 codebases generally) hit the
+# stricter copy-ctor / atomic / pair-construction rules introduced
+# in gcc 12+ libstdc++. They compile cleanly with gcc 8 which was
+# the last major to default to C++14 / gnu++14 ABI.
+#
+# Companion to gnu.org/gcc (latest) for cubefs.io, mysql.com/v5_7,
+# and other from-source recipes that can't easily be patched to
+# modern C++.
+
+distributable:
+  url: https://ftp.gnu.org/gnu/gcc/gcc-{{ version.raw }}/gcc-{{ version.raw }}.tar.xz
+  strip-components: 1
+
+versions:
+  github: gcc-mirror/gcc/tags
+  strip: /^releases\/gcc-/
+  # Pin to the 8.x line — drop everything else.
+  ignore:
+    - /^[0-79]\./
+    - /^[1-9][0-9]/
+
+# Linux only. Darwin's old SDK situation makes gcc 8 hard to bring
+# up — users on darwin needing legacy C++ are better off with clang
+# from llvm.org which has its own legacy mode.
+platforms:
+  - linux
+
+dependencies:
+  gnu.org/binutils: "*"
+  gnu.org/gmp: ~6
+  gnu.org/mpfr: ~4
+  gnu.org/mpc: ~1
+  zlib.net: ^1.3
+  pkgx.sh: ">=1"
+
+build:
+  dependencies:
+    linux:
+      gnu.org/gcc: "*" # bootstrap with current gcc
+    perl.org: "*"
+    gnu.org/patch: "*"
+    curl.se: "*"
+    github.com/westes/flex: "*"
+
+  working-directory: build
+  script:
+    - ARGS=($ARGS --with-pkgversion="pkgx GCC {{version}}")
+    - ../configure "${ARGS[@]}"
+    - make --jobs {{ hw.concurrency }}
+    - make install
+
+    # gcc symlinks expected by some build systems. This recipe lives
+    # one level deeper than the main gnu.org/gcc (v8 subdir), so the
+    # relative path to binutils needs `../../../../` (4 levels).
+    - run:
+        - ln -sf gcc cc
+        - install -m755 $PROP ar
+        - install -m755 $PROP nm
+        - install -m755 $PROP ranlib
+      prop: |
+        #!/bin/sh
+        TOOL=$(basename "$0")
+        exec pkgx +gnu.org/binutils "$TOOL" "$@"
+      working-directory: "{{prefix}}/bin"
+
+  env:
+    ARGS:
+      - --prefix={{ prefix }}
+      - --libdir={{ prefix }}/lib
+      - --enable-languages=c,c++,fortran
+      - --disable-bootstrap
+      - --disable-nls
+      - --disable-multilib
+      - --with-system-zlib
+      - --with-bugurl=https://github.com/pkgxdev/pantry/issues
+    linux/x86-64:
+      LDFLAGS: -fPIC
+      CFLAGS: -fPIC
+      CXXFLAGS: -fPIC
+
+test:
+  - gcc --version | tee out
+  - grep "pkgx GCC {{version}}" out
+  - gcc -dumpversion | tee out
+  - grep "^8\." out
+
+# it's not wise to publish these, since this is a legacy compiler.
+# if people want it, they'll invoke it explicitly.
+# provides:
+#   - bin/ar
+#   - bin/cc
+#   - bin/c++
+#   - bin/cpp
+#   - bin/g++
+#   - bin/gcc
+#   - bin/gcc-ar
+#   - bin/gcc-nm
+#   - bin/gcc-ranlib
+#   - bin/gcov
+#   - bin/gfortran
+#   - bin/nm
+#   - bin/ranlib

@@ -1,21 +1,30 @@
 distributable:
-  url: https://github.com/rabbitmq/rabbitmq-server/releases/download/v{{version}}/rabbitmq-server-generic-unix-{{version}}.tar.xz
+  url: https://github.com/rabbitmq/rabbitmq-server/releases/download/{{version.tag}}/rabbitmq-server-generic-unix-{{version}}.tar.xz
   strip-components: 1
+
 versions:
   github: rabbitmq/rabbitmq-server
+
 warnings:
   - vendored
+
 dependencies:
-  erlang.org: '*'
+  erlang.org: 26
+  openssl.org: ^1.1
+  linux:
+    # since v4.2.4 for GCC_12.0.0 and GLIBCXX_3.4.29
+    gnu.org/gcc: 14
+    gnu.org/gcc/libstdcxx: 14
+
 build:
-  script:
-    - run: |
-        cp -r $SRCROOT/* ./
-        find . -mindepth 1 -maxdepth 1 -name \*.pkgx.\* -exec rm -rf {} \;
-        if test -f pkgx.yaml; then rm pkgx.yaml; fi
-      working-directory: '{{prefix}}'
-    - run: mkdir -p lib/rabbitmq og/rabbitmq
-      working-directory: '{{prefix}}/var'
+  - run:
+      - cp -r $SRCROOT/* ./
+      - find . -mindepth 1 -maxdepth 1 -name \*.pkgx.\* -exec rm -rf {} \;
+      - if test -f pkgx.yaml; then rm pkgx.yaml; fi
+    working-directory: "{{prefix}}"
+  - run: mkdir -p lib/rabbitmq og/rabbitmq
+    working-directory: "{{prefix}}/var"
+
 provides:
   - bin/rabbitmqctl
   - bin/rabbitmq-defaults
@@ -27,12 +36,22 @@ provides:
   - bin/rabbitmq-streams
   - bin/rabbitmq-upgrade
   - bin/vmware-rabbitmq
+
 test:
   env:
     RABBITMQ_MNESIA_BASE: $PWD/var/lib/rabbitmq/mnesia
+    RABBITMQ_NODENAME: rabbit@localhost
+    LANG: C.UTF-8
+    LC_ALL: C.UTF-8
   script:
+    # clean up orphaned stuff
     - killall rabbitmq-server || true
-    - rabbitmq-server -detached && sleep 15
-    # Let's give the server 15 seconds to start
-    - rabbitmqctl status | grep "Virtual host count"
-    - rabbitmqctl stop | grep "Stopping and halting node"
+    - killall epmd || true
+    - killall beam.smp || true
+    - rabbitmq-server &
+    - sleep 5
+    - rabbitmqctl await_startup --timeout 60
+    - rabbitmqctl status 2>&1 | tee out
+    - grep "Virtual host count" out
+    - rabbitmqctl stop 2>&1 | tee out
+    - grep "Stopping and halting node" out

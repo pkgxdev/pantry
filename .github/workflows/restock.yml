@@ -15,10 +15,8 @@ jobs:
     outputs:
       versions: ${{ steps.inventory.outputs.versions }}
     steps:
-      - uses: pkgxdev/setup@v2
-        with:
-          version: 1.1.6
-      - uses: actions/checkout@v4
+      - uses: pkgxdev/setup@v5
+      - uses: actions/checkout@v6
       - run: ./.github/scripts/inventory.ts ${{ inputs.project }}
         id: inventory
 
@@ -30,10 +28,10 @@ jobs:
         version: ${{ fromJSON(needs.ingest.outputs.versions) }}
     uses: ./.github/workflows/pkg.yml
     permissions:
-      issues: write  #FIXME we don’t want this but I don’t think we can alter the way permissions are inherited
+      issues: write #FIXME we don’t want this but I don’t think we can alter the way permissions are inherited
     with:
       pkg: ${{inputs.project}}=${{ matrix.version }}
-      invalidate-cloudfront: false  # we do it all at once below otherwise
+      invalidate-cloudfront: false # we do it all at once below otherwise
     secrets: inherit
 
   invalidate-cloudfront:
@@ -46,7 +44,7 @@ jobs:
     # for most of the builds.
 
     steps:
-      - uses: aws-actions/configure-aws-credentials@v4
+      - uses: aws-actions/configure-aws-credentials@v6
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

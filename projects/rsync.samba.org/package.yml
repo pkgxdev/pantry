@@ -11,7 +11,20 @@ dependencies:
   lz4.org: ^1
 
 build:
+  dependencies:
+    linux:
+      # since v3.4.3 for linux/openat2.h
+      kernel.org/linux-headers: ">=5.6"
   script:
+    - run: sed -i "/#include <linux\/openat2.h>/r $PROP" syscall.c
+      if: '>=3.4.3 linux'
+      prop: |
+        #ifndef SYS_openat2
+        # include <asm/unistd.h>
+        # ifdef __NR_openat2
+        #  define SYS_openat2 __NR_openat2
+        # endif
+        #endif
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
   env:

@@ -1,0 +1,34 @@
+distributable:
+  url: https://github.com/h4ckf0r0day/obscura/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/obscura
+  - bin/obscura-worker
+
+versions:
+  github: h4ckf0r0day/obscura
+
+build:
+  dependencies:
+    rust-lang.org: ">=1.75"
+    rust-lang.org/cargo: "*"
+  script: cargo install --locked --root {{prefix}} --path crates/obscura-cli --bin obscura --bin obscura-worker
+
+test:
+  # The previous test invoked `obscura fetch https://pkgx.dev/` —
+  # which depends on outbound network from the CI sandbox. Several
+  # of the linux test images (ubuntu / debian:buster-slim) either
+  # block egress or briefly couldn't reach pkgx.dev, firing #13095
+  # with "Network error: Failed to navigate to https://pkgx.dev/".
+  #
+  # Switch to a hermetic check: feed obscura a `file://` URL pointing
+  # at a fixture we generate in the test step. Still exercises the
+  # URL-fetch + `--eval` JS execution paths, no network required.
+  - run: out=$(obscura fetch "file://$FIXTURE" --eval 'document.title')
+    fixture:
+      extname: html
+      content: |
+        <!doctype html><html><head><title>pkgx-test</title></head>
+        <body><h1 id="msg">hello from obscura</h1></body></html>
+  - echo "$out" | grep -q pkgx-test
