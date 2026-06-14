@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/jdx/usage/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/jdx/usage/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 provides:
@@ -7,11 +7,6 @@ provides:
 
 versions:
   github: jdx/usage
-  strip: /^v/
-
-platforms:
-  - linux
-  - darwin
 
 build:
   dependencies:
@@ -19,5 +14,5 @@ build:
   script: cargo install --locked --path cli --root {{prefix}}
 
 test:
-  script:
-    - usage --version | grep {{version}}
+    - usage --version | tee out
+    - grep {{version}} out
