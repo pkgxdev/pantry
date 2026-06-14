@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/uutils/findutils/archive/refs/tags/{{version}}.tar.gz
+  url: https://github.com/uutils/findutils/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 provides:
@@ -11,16 +11,15 @@ provides:
 versions:
   github: uutils/findutils
 
-platforms:
-  - linux
-  - darwin
-
 build:
   dependencies:
     rust-lang.org/cargo: '*'
   script:
     cargo install --locked --path . --root {{prefix}}
 
-test: |
-  test "$({{prefix}}/bin/find --version | head -n1 | grep -o '{{version}}')" = "{{version}}"
-  test "$({{prefix}}/bin/xargs --version | head -n1 | grep -o '{{version}}')" = "{{version}}"
+test:
+  - test "$(command -v find)" = "{{prefix}}/bin/find"
+  - find --version | tee out
+  - test "$(head -n1 out | grep -o '{{version}}')" = "{{version}}"
+  - xargs --version | tee out
+  - test "$(head -n1 out | grep -o '{{version}}')" = "{{version}}"
