@@ -60,7 +60,7 @@ build:
       serializers.prometheus,
       processors.enum,
       processors.regex
-  script: go build -trimpath -tags "$TAGS" -ldflags "-s -w -X github.com/influxdata/telegraf/internal.Version={{version}}" -o "{{prefix}}/bin/telegraf" ./cmd/telegraf
+  script: go build -trimpath -tags "$(echo $TAGS | sed 's/, /,/g')" -ldflags "-s -w -X github.com/influxdata/telegraf/internal.Version={{version}}" -o "{{prefix}}/bin/telegraf" ./cmd/telegraf
 
 test:
   - telegraf --version 2>&1 | tee out
