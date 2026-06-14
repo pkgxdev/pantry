@@ -1,0 +1,42 @@
+# TiKV — distributed transactional key-value database (CNCF graduated),
+# the storage layer behind TiDB. We vendor PingCAP's official prebuilt
+# `tikv-server` from the TiUP mirror; a from-source build is a very large
+# Rust + RocksDB compile (follow-up).
+
+distributable: ~
+
+versions:
+  github: tikv/tikv
+
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+  - darwin/x86-64
+  - darwin/aarch64
+
+warnings:
+  - vendored
+
+build:
+  dependencies:
+    curl.se: "*"
+    gnu.org/tar: "*"
+  env:
+    linux/x86-64:
+      OSARCH: linux-amd64
+    linux/aarch64:
+      OSARCH: linux-arm64
+    darwin/x86-64:
+      OSARCH: darwin-amd64
+    darwin/aarch64:
+      OSARCH: darwin-arm64
+  script:
+    - mkdir -p "{{prefix}}/bin"
+    - curl -Lf "https://tiup-mirrors.pingcap.com/tikv-v{{version}}-${OSARCH}.tar.gz" | tar xzf - -C "{{prefix}}/bin"
+
+test:
+  - tikv-server --version 2>&1 | tee out
+  - grep {{version}} out
+
+provides:
+  - bin/tikv-server
