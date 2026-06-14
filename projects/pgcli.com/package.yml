@@ -1,0 +1,32 @@
+# pgcli — a PostgreSQL CLI with auto-completion and syntax highlighting.
+
+distributable:
+  url: https://github.com/dbcli/pgcli/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: dbcli/pgcli/tags
+
+dependencies:
+  pkgx.sh: ">=1"
+
+build:
+  dependencies:
+    python.org: ~3.11
+  env:
+    SETUPTOOLS_SCM_PRETEND_VERSION: "{{version}}"
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    # psycopg's pure-python libpq lookup fails on Linux (ctypes
+    # find_library ignores LD_LIBRARY_PATH). The binary wheel bundles
+    # libpq, so pgcli runs with no system postgres install.
+    - ${{prefix}}/venv/bin/pip install "psycopg[binary]"
+    - bkpyvenv seal {{prefix}} pgcli
+
+provides:
+  - bin/pgcli
+
+test:
+  - pgcli --version | tee out
+  - grep {{version}} out
