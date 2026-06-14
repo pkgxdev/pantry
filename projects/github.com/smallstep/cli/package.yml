@@ -1,0 +1,22 @@
+# step — Smallstep's CLI for zero-trust crypto: X.509 + SSH certificates, ACME, JWT/JWK/JWS/JWE, OAuth/OIDC. Pairs with step-ca.
+
+distributable:
+  url: https://github.com/smallstep/cli/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: smallstep/cli
+
+build:
+  dependencies:
+    go.dev: "*"
+  env:
+    CGO_ENABLED: 0
+  script: go build -trimpath -ldflags "-s -w -X main.Version={{version.tag}}" -o "{{prefix}}/bin/step" ./cmd/step
+
+test:
+  - step version 2>&1 | tee out
+  - grep {{version}} out
+
+provides:
+  - bin/step
