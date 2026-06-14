@@ -1,0 +1,34 @@
+distributable:
+  url: https://github.com/asdf-vm/asdf/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: asdf-vm/asdf
+  strip: /^v/
+
+provides:
+  - bin/asdf
+
+build:
+  dependencies:
+    go.dev: ^1.24
+  script:
+    - go build $ARGS -ldflags="$LDFLAGS" ./cmd/asdf
+  env:
+    CGO_ENABLED: 0
+    ARGS:
+      - -trimpath
+      - -o={{prefix}}/bin/asdf
+    LDFLAGS:
+      - -s
+      - -w
+      - -X main.version={{version}}
+    linux:
+      LDFLAGS:
+        - -buildmode=pie
+
+test:
+  # `asdf version` (and --version) print "<version> (revision <ref>)";
+  # build from a tarball has no .git so the revision resolves to "unknown".
+  - asdf version | grep {{version}}
+  - asdf --version | grep {{version}}
