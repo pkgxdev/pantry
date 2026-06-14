@@ -15,11 +15,7 @@ build:
     go.dev: "*"
   env:
     CGO_ENABLED: 0
-  script:
-    - mkdir -p "{{prefix}}/bin"
-    # internal.Version is ParseInt'd per dotted field, so pass the bare
-    # numeric version (no leading "v") or `telegraf --version` panics.
-    - go build -trimpath -ldflags "-s -w -X github.com/influxdata/telegraf/internal.Version={{version}}" -o "{{prefix}}/bin/telegraf" ./cmd/telegraf
+  script: go build -trimpath -ldflags "-s -w -X github.com/influxdata/telegraf/internal.Version={{version}}" -o "{{prefix}}/bin/telegraf" ./cmd/telegraf
 
 test:
   - telegraf --version 2>&1 | tee out
