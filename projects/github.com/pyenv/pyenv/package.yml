@@ -1,0 +1,33 @@
+distributable:
+  url: https://github.com/pyenv/pyenv/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: pyenv/pyenv
+  strip:
+    - /^v/
+
+provides:
+  - bin/pyenv
+
+dependencies:
+  gnu.org/bash: '*'
+
+build:
+  # pyenv is a tree of bash scripts. The optional src/ C "realpath" helper
+  # is intentionally skipped — pyenv falls back to a pure-bash abs_dirname,
+  # and shipping the tiny dylib trips brewkit's rpath fix-up ("load commands
+  # do not fit in the header"). bin/pyenv is a symlink into libexec, so -a
+  # preserves it and both targets are copied together.
+  script:
+    - mkdir -p "{{prefix}}"
+    - cp -a bin libexec plugins completions pyenv.d "{{prefix}}/"
+
+runtime:
+  env:
+    PYENV_ROOT: ${{prefix}}
+
+test:
+  - pyenv --version | grep {{version}}
+  - pyenv commands | grep '^install$'
+  - pyenv root
