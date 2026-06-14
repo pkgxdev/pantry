@@ -1,0 +1,110 @@
+# Emscripten — LLVM-based C/C++ → WebAssembly toolchain.
+#
+# Provides emcc/em++/emar/emranlib wrappers around llvm.org clang
+# that target WebAssembly. The emscripten Python toolkit + Node.js
+# runtime are required at runtime.
+#
+# Closes part of pkgxdev/pantry#99 (Top 300 holdout #594).
+
+distributable:
+  url: https://github.com/emscripten-core/emscripten/archive/refs/tags/{{ version.raw }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: emscripten-core/emscripten/tags
+  match: /^\d+\.\d+\.\d+$/
+
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+  - darwin/x86-64
+  - darwin/aarch64
+
+dependencies:
+  python.org: '>=3.9'
+  nodejs.org: '*'
+  llvm.org: '*'
+  github.com/WebAssembly/binaryen: '*'
+
+runtime:
+  env:
+    EMSDK: ${{prefix}}
+    EM_CONFIG: ${{prefix}}/.emscripten
+    LLVM_ROOT: ${{deps.llvm.org.prefix}}/bin
+    BINARYEN_ROOT: ${{deps.github.com/WebAssembly/binaryen.prefix}}
+    NODE_JS: ${{deps.nodejs.org.prefix}}/bin/node
+    PYTHON: ${{deps.python.org.prefix}}/bin/python3
+
+build:
+  dependencies:
+    gnu.org/coreutils: '*'
+
+  script:
+    # Emscripten is a Python toolchain — `make install` doesn't exist.
+    # Copy the entire tree into {{prefix}} and seed a minimal .emscripten
+    # config that points at llvm.org's clang.
+    - run: |
+        mkdir -p "{{prefix}}"
+        cp -R . "{{prefix}}/"
+        cat > "{{prefix}}/.emscripten" <<EOF
+        LLVM_ROOT = "{{deps.llvm.org.prefix}}/bin"
+        BINARYEN_ROOT = "{{deps.github.com/WebAssembly/binaryen.prefix}}"
+        NODE_JS = "{{deps.nodejs.org.prefix}}/bin/node"
+        EMSCRIPTEN_ROOT = "{{prefix}}"
+        COMPILER_ENGINE = NODE_JS
+        JS_ENGINES = [NODE_JS]
+        EOF
+        # BINARYEN_ROOT points at WebAssembly/binaryen which ships
+        # wasm-opt. pantry's llvm.org does NOT bundle wasm-opt, so
+        # emscripten requires binaryen as a separate dep.
+
+        # emscripten 5.0.x dropped the bare-name entry points in
+        # favor of .py-suffixed Python scripts. Wrap each as a small
+        # shell shim that resolves its own bin/ at runtime so the
+        # bottle is relocation-safe (the literal +brewing prefix would
+        # be wrong post-install).
+        #
+        # Python comes from a pkgx dep and has a stable path — fine to
+        # hardcode that. Only the bottle-relative .py path needs to be
+        # runtime-resolved via ${0%/*}.
+        mkdir -p "{{prefix}}/bin"
+        PY="{{deps.python.org.prefix}}/bin/python3"
+        for tool in emcc em++ emar emranlib emcmake emconfigure emmake emrun; do
+          src="{{prefix}}/$tool.py"
+          dst="{{prefix}}/bin/$tool"
+          if [ -f "$src" ]; then
+            printf '%s\n%s\n%s\n%s\n' \
+              '#!/bin/sh' \
+              'bindir=$(CDPATH= cd -- "${0%/*}" && pwd)' \
+              'prefix=$(CDPATH= cd -- "$bindir/.." && pwd)' \
+              "exec \"$PY\" \"\$prefix/$tool.py\" \"\$@\"" > "$dst"
+            chmod 755 "$dst"
+          else
+            echo "warn: $src does not exist — skipping"
+          fi
+        done
+        ls -la "{{prefix}}/bin/" | head -15
+        echo "── sample wrapper ──"
+        cat "{{prefix}}/bin/emcc" 2>/dev/null || true
+
+test:
+  script:
+    - emcc --version 2>&1 | head -1
+    - run: |
+        cat > hello.c <<'EOF'
+        #include <stdio.h>
+        int main() { printf("hello from emscripten\n"); return 0; }
+        EOF
+        emcc hello.c -o hello.js
+        test -f hello.js
+        test -f hello.wasm
+
+provides:
+  - bin/emcc
+  - bin/em++
+  - bin/emar
+  - bin/emranlib
+  - bin/emcmake
+  - bin/emconfigure
+  - bin/emmake
+  - bin/emrun
