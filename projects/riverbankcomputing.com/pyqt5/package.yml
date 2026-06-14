@@ -1,12 +1,18 @@
-# PyQt5 — Meta-package: pulls all PyQt5 sub-bindings together.
+# PyQt5 — Python bindings for Qt 5, installed from upstream's official
+# PyPI wheel (which bundles the Qt5 libraries). Provides the
+# pyuic5/pyrcc5/pylupdate5 tools and an importable `PyQt5`.
 #
-# Equivalent to homebrew's `pyqt@5` formula or apt's `python3-pyqt5`.
-# Per-binding sub-recipes (QtCore / QtGui / QtWidgets / etc.) live in
-# sibling directories so each binding gets its own CI job and its own
-# 6 h timeout — the monolithic recipe was being OOM-killed and then
-# GHA-cancelled at 1h33min.  See PR pkgxdev/pantry#13064.
+# Why vendored (wheel): building PyQt5 from the sip sources compiles
+# enormous generated C++ per binding and OOM-killed CI; splitting into
+# per-binding sub-recipes then hit a lockstep co-dependency (each
+# binding 404'd resolving its sibling's not-yet-published bottle). The
+# official wheel sidesteps both, in one package.
 #
-# Top 300 holdout #591.
+# Path to a from-source recipe: compile sip-build + the PyQt5 bindings
+# against a Qt5 (qtbase) dep — would need Qt5 + riverbankcomputing.com/sip
+# in pantry and per-binding builds with bounded compile parallelism (or a
+# larger CI memory budget) to avoid the OOM; that would also restore
+# linux/aarch64 (no upstream wheel for it, hence omitted here).
 
 distributable:
   url: https://pypi.io/packages/source/P/PyQt5/PyQt5-{{ version.raw }}.tar.gz
@@ -21,39 +27,37 @@ versions:
 
 platforms:
   - linux/x86-64
-  - linux/aarch64
   - darwin/x86-64
   - darwin/aarch64
 
 dependencies:
-  riverbankcomputing.com/pyqt5/QtCore: '*'
-  riverbankcomputing.com/pyqt5/QtDBus: '*'
-  riverbankcomputing.com/pyqt5/QtNetwork: '*'
-  riverbankcomputing.com/pyqt5/QtSql: '*'
-  riverbankcomputing.com/pyqt5/QtTest: '*'
-  riverbankcomputing.com/pyqt5/QtXml: '*'
-  riverbankcomputing.com/pyqt5/QtGui: '*'
-  riverbankcomputing.com/pyqt5/QtSvg: '*'
-  riverbankcomputing.com/pyqt5/QtPrintSupport: '*'
-  riverbankcomputing.com/pyqt5/QtWidgets: '*'
+  pkgx.sh: ">=1"
+  python.org: ~3.11
 
-# Meta package: no build artifacts of its own — every sub-binding
-# carries its own .so into its own prefix and Python's pkgutil
-# extends `PyQt5/__path__` to merge them at import time.  We still
-# need a `build.script` because pkgx requires one; emit a marker file
-# so the package is non-empty and brewkit's bottling sees something.
+runtime:
+  env:
+    # Expose `import PyQt5` to users/dependents from the sealed venv.
+    PYTHONPATH: "${{prefix}}/venv/lib/python{{deps.python.org.version.marketing}}/site-packages"
+
 build:
+  dependencies:
+    python.org: ~3.11
   script:
-    - run: |
-        mkdir -p "{{prefix}}/share/pyqt5"
-        echo "PyQt5 {{version}} (meta-package — see sub-bindings)" > "{{prefix}}/share/pyqt5/README"
+    # Install the prebuilt wheels (Qt bundled) into a venv — pip and
+    # python there share a version, so PyQt5-sip's ABI matches python.
+    # `--only-binary` guarantees the wheel (never an sdist recompile).
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install --only-binary=:all: PyQt5=={{version}} PyQt5-sip
+    - bkpyvenv seal {{prefix}} pyuic5 pyrcc5 pylupdate5
+
+provides:
+  - bin/pyuic5
+  - bin/pyrcc5
+  - bin/pylupdate5
 
 test:
   dependencies:
     python.org: ~3.11
   script:
-    # Importing QtCore exercises the namespace-package overlay across
-    # at least one sub-binding prefix.  Each sub-binding has its own
-    # test pass; this test only checks that the meta successfully
-    # pulled them all into scope.
-    - python{{deps.python.org.version.marketing}} -c "from PyQt5 import QtCore; print(QtCore.QT_VERSION_STR)"
+    - pyuic5 --version 2>&1 | grep {{version}}
+    - python{{deps.python.org.version.marketing}} -c "from PyQt5 import QtCore, QtWidgets; print(QtCore.QT_VERSION_STR)"
