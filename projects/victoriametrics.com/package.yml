@@ -15,23 +15,31 @@ build:
     go.dev: "*"
   env:
     CGO_ENABLED: 0
+    GO_LDFLAGS:
+      - -s
+      - -w
+      - -X github.com/VictoriaMetrics/VictoriaMetrics/lib/buildinfo.Version={{version.tag}}
+    BINS:
+      - victoria-metrics
+      - vmagent
+      - vmalert
+      - vmalert-tool
+      - vmauth
+      - vmbackup
+      - vmrestore
+      - vmctl
   script:
-    # All binaries live under ./app/<name>. Pure-Go, CGO-free. Embed the
-    # release tag into each via lib/buildinfo.Version (mirrors upstream's
-    # Makefile GO_BUILDINFO `-X` so `--version` reports it).
-    - mkdir -p {{prefix}}/bin
-    - |
-      for app in victoria-metrics vmagent vmalert vmalert-tool vmauth vmbackup vmrestore vmctl; do
-        go build -trimpath \
-          -ldflags "-s -w -X github.com/VictoriaMetrics/VictoriaMetrics/lib/buildinfo.Version=$app-{{version.tag}}" \
-          -o "{{prefix}}/bin/$app" "./app/$app"
-      done
+    - for app in $BINS; do
+    - go build -trimpath -ldflags "$GO_LDFLAGS" -o "{{prefix}}/bin/$app" "./app/$app"
+    - done
 
 test:
   - victoria-metrics --version 2>&1 | tee out
   - grep {{version}} out
-  - vmagent --version 2>&1 | grep {{version}}
-  - vmctl --version 2>&1 | grep {{version}}
+  - vmagent --version 2>&1 | tee out
+  - grep {{version}} out
+  - vmctl --version 2>&1 | tee out
+  - grep {{version}} out
 
 provides:
   - bin/victoria-metrics
