@@ -182,5 +182,8 @@ provides:
   - bin/lpunpack
 
 test:
-  - adb --version 2>&1 | head -1 | grep -i "adb"
-  - fastboot --version 2>&1 | head -1 | grep -i "fastboot"
+  # adb's version banner is "Android Debug Bridge version 1.0.41" — the
+  # first line has no "adb" substring, so the old `head -1 | grep adb`
+  # always failed. Match the actual banner instead.
+  - adb --version 2>&1 | grep -iq "android debug bridge"
+  - fastboot --version 2>&1 | grep -iq "fastboot"
