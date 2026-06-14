@@ -1,0 +1,23 @@
+# Atuin — magical shell history: a SQLite-backed, fuzzy-searchable,
+# optionally end-to-end-encrypted-syncable replacement for your shell's
+# history, with rich context (exit code, cwd, duration, host).
+
+distributable:
+  url: https://github.com/atuinsh/atuin/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: atuinsh/atuin
+
+build:
+  dependencies:
+    rust-lang.org: "*"
+    rust-lang.org/cargo: "*"
+  script: cargo install --locked --path crates/atuin --root {{prefix}}
+
+test:
+  - atuin --version 2>&1 | tee out
+  - grep {{version}} out
+
+provides:
+  - bin/atuin
