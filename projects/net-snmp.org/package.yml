@@ -16,7 +16,6 @@ dependencies:
 
 build:
   dependencies:
-    freedesktop.org/pkg-config: '*'
     darwinsys.com/file: '*' # libtool needs the `file` program at configure time
   script:
     - ./configure $ARGS
@@ -55,6 +54,8 @@ test:
   # NB: the net-snmp 5.9.5 source mis-stamps its version as 5.9.4 (upstream
   # AC_INIT was never bumped past 5.9.4), so the tools report "5.9.4" and we
   # can't assert {{version}}. Verify instead that the built tools run and link.
-  script: |
-    snmptranslate -V 2>&1 | grep -i "net-snmp version"
-    net-snmp-config --cflags | grep -- -I
+  script:
+    - snmptranslate -V 2>&1 | tee out
+    - grep -i "net-snmp version" out
+    - net-snmp-config --cflags | tee out
+    - grep -- -I out
