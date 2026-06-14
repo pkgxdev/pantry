@@ -19,11 +19,48 @@ build:
     # Telegraf's `custom` tag compiles ONLY the listed plugins (opt-in).
     # Curated common set; adjust to taste. Parsers/serializers must be
     # listed explicitly too, or the build has no format support.
-    TAGS: "custom,inputs.cpu,inputs.mem,inputs.disk,inputs.diskio,inputs.net,inputs.system,inputs.swap,inputs.kernel,inputs.processes,inputs.procstat,inputs.internal,inputs.exec,inputs.file,inputs.tail,inputs.http,inputs.http_listener_v2,inputs.prometheus,inputs.net_response,inputs.ping,inputs.docker,inputs.socket_listener,inputs.syslog,outputs.influxdb_v2,outputs.prometheus_client,outputs.file,outputs.http,outputs.socket_writer,outputs.discard,outputs.health,outputs.exec,parsers.influx,parsers.json,parsers.prometheus,parsers.value,serializers.influx,serializers.json,serializers.prometheus,processors.enum,processors.regex"
-  script:
-    - mkdir -p "{{prefix}}/bin"
-    # bare numeric version (no "v") — internal.Version is ParseInt'd.
-    - go build -trimpath -tags "$TAGS" -ldflags "-s -w -X github.com/influxdata/telegraf/internal.Version={{version}}" -o "{{prefix}}/bin/telegraf" ./cmd/telegraf
+    TAGS: >
+      custom,
+      inputs.cpu,
+      inputs.mem,
+      inputs.disk,
+      inputs.diskio,
+      inputs.net,
+      inputs.system,
+      inputs.swap,
+      inputs.kernel,
+      inputs.processes,
+      inputs.procstat,
+      inputs.internal,
+      inputs.exec,
+      inputs.file,
+      inputs.tail,
+      inputs.http,
+      inputs.http_listener_v2,
+      inputs.prometheus,
+      inputs.net_response,
+      inputs.ping,
+      inputs.docker,
+      inputs.socket_listener,
+      inputs.syslog,
+      outputs.influxdb_v2,
+      outputs.prometheus_client,
+      outputs.file,
+      outputs.http,
+      outputs.socket_writer,
+      outputs.discard,
+      outputs.health,
+      outputs.exec,
+      parsers.influx,
+      parsers.json,
+      parsers.prometheus,
+      parsers.value,
+      serializers.influx,
+      serializers.json,
+      serializers.prometheus,
+      processors.enum,
+      processors.regex
+  script: go build -trimpath -tags "$TAGS" -ldflags "-s -w -X github.com/influxdata/telegraf/internal.Version={{version}}" -o "{{prefix}}/bin/telegraf" ./cmd/telegraf
 
 test:
   - telegraf --version 2>&1 | tee out
