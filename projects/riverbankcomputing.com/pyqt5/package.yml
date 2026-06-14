@@ -8,11 +8,21 @@
 # binding 404'd resolving its sibling's not-yet-published bottle). The
 # official wheel sidesteps both, in one package.
 #
-# Path to a from-source recipe: compile sip-build + the PyQt5 bindings
-# against a Qt5 (qtbase) dep — would need Qt5 + riverbankcomputing.com/sip
-# in pantry and per-binding builds with bounded compile parallelism (or a
-# larger CI memory budget) to avoid the OOM; that would also restore
-# linux/aarch64 (no upstream wheel for it, hence omitted here).
+# Why darwin-only: the macOS wheels are self-contained (Qt5 + the
+# platform plugin are bundled and rpath-wired), so QtWidgets imports
+# with no external deps. The manylinux wheel is NOT self-contained — its
+# QtGui/QtWidgets dlopen the host X11/xcb/mesa GUI stack (libxcb,
+# libX11, libGL, …), none of which pantry currently packages. QtCore
+# alone imports on linux (it only needs gnome.org/glib), but a PyQt5 that
+# can't load QtWidgets defeats the point, so linux is omitted rather than
+# shipped half-working.
+#
+# Path to a from-source recipe (and to restoring linux): land the Qt5 GUI
+# runtime in pantry (libxcb + xcb-util-*, libX11, mesa/libGL, libxkbcommon,
+# fontconfig, freetype, dbus), then either depend on them at runtime for
+# the manylinux wheel, or compile riverbankcomputing.com/sip + the PyQt5
+# bindings against a pantry Qt5 (qtbase) with bounded compile parallelism
+# (the unbounded per-binding C++ compile is what OOM-killed CI before).
 
 distributable:
   url: https://pypi.io/packages/source/P/PyQt5/PyQt5-{{ version.raw }}.tar.gz
@@ -26,7 +36,6 @@ versions:
     - /\.tar\.gz/
 
 platforms:
-  - linux/x86-64
   - darwin/x86-64
   - darwin/aarch64
 
