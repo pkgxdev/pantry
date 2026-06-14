@@ -1,16 +1,9 @@
 distributable:
-  url: https://github.com/rhysd/actionlint/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/rhysd/actionlint/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
   github: rhysd/actionlint/tags
-  strip: /^v/
-
-platforms:
-  - darwin/aarch64
-  - darwin/x86-64
-  - linux/aarch64
-  - linux/x86-64
 
 provides:
   - bin/actionlint
@@ -18,16 +11,17 @@ provides:
 build:
   dependencies:
     go.dev: '*'
-  script: |
-    go build -trimpath -ldflags="$LDFLAGS" -o {{prefix}}/bin/actionlint ./cmd/actionlint
+  script: go build -trimpath -ldflags="$GO_LDFLAGS" -o {{prefix}}/bin/actionlint ./cmd/actionlint
   env:
     CGO_ENABLED: 0
-    LDFLAGS:
+    GO_LDFLAGS:
       - -s
       - -w
       - -X github.com/rhysd/actionlint.version={{version}}
     linux:
-      LDFLAGS:
+      GO_LDFLAGS:
         - -buildmode=pie
 
-test: test "$(actionlint -version | head -1)" = "{{version}}"
+test:
+  - actionlint -version | tee out
+  - test "$(head -1 out)" = "{{version}}"
