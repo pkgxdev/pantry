@@ -1,0 +1,26 @@
+distributable:
+  url: https://github.com/uutils/findutils/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/find
+  - bin/locate
+  - bin/updatedb
+  - bin/xargs
+
+versions:
+  github: uutils/findutils
+
+platforms:
+  - linux
+  - darwin
+
+build:
+  dependencies:
+    rust-lang.org/cargo: '*'
+  script:
+    cargo install --locked --path . --root {{prefix}}
+
+test: |
+  test "$({{prefix}}/bin/find --version | head -n1 | grep -o '{{version}}')" = "{{version}}"
+  test "$({{prefix}}/bin/xargs --version | head -n1 | grep -o '{{version}}')" = "{{version}}"
