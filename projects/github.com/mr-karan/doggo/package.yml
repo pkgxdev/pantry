@@ -1,0 +1,23 @@
+# doggo — a modern command-line DNS client (like dig), written in Go.
+# Supports DoH, DoT, DoQ, DNSCrypt, JSON output, and colored tabular results.
+
+distributable:
+  url: https://github.com/mr-karan/doggo/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: mr-karan/doggo
+
+build:
+  dependencies:
+    go.dev: '*'
+  env:
+    CGO_ENABLED: 0
+  script: go build -trimpath -ldflags "-s -w -X main.buildVersion={{version}}" -o {{prefix}}/bin/doggo ./cmd/doggo
+
+provides:
+  - bin/doggo
+
+test:
+  - doggo --version 2>&1 | tee out
+  - grep {{version}} out
