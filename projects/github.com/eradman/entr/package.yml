@@ -19,6 +19,9 @@ provides:
   - bin/entr
 
 test:
-  # entr has no --version flag; run with no args, which prints
-  # "usage: entr ..." to stderr and exits non-zero.
-  - entr 2>&1 | grep -iE "usage|entr"
+  # entr has no --version flag; run with no args, which prints "usage: entr"
+  # to stderr and exits non-zero. Capture (tolerating the exit) so pipefail
+  # doesn't fail the test on entr's non-zero status, then grep the banner.
+  script: |
+    out="$(entr 2>&1 || true)"
+    echo "$out" | grep -iE "usage|entr"
