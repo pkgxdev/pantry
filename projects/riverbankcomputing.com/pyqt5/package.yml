@@ -49,8 +49,6 @@ build:
     riverbankcomputing.com/pyqt-builder: '*'  # pyqtbuild backend sip-install uses
     qt.io: ~5.15                              # qmake + Qt5 headers/libs
     gnu.org/make: '*'
-    linux:
-      llvm.org: <17  # mirror the sip recipe's toolchain
   script:
     - bkpyvenv stage {{prefix}} {{version}}
     # Build + install PyQt5 from the extracted sdist against qt.io's Qt5.
@@ -69,10 +67,6 @@ build:
     - bkpyvenv seal {{prefix}} pyuic5 pyrcc5 pylupdate5
   env:
     MAKEFLAGS: -j1  # belt-and-suspenders OOM bound for the qmake-driven C++ build
-    linux:
-      CC: clang
-      CXX: clang++
-      AS: llvm-as
 provides: [bin/pyuic5, bin/pyrcc5, bin/pylupdate5]
 test:
   dependencies: { python.org: ~3.11 }
