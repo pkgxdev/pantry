@@ -49,6 +49,12 @@ build:
     riverbankcomputing.com/pyqt-builder: '*'  # pyqtbuild backend sip-install uses
     qt.io: ~5.15                              # qmake + Qt5 headers/libs
     gnu.org/make: '*'
+    linux:
+      # sip-install's QtGui config test runs a Qt exe that loads mesa's libGL,
+      # which dlopens libLLVM (llvmpipe). mesa pulls llvm transitively, but it
+      # isn't on the build's library path, so depend on it directly (same '*'
+      # mesa3d.org uses — pinning an older soname is what broke the test).
+      llvm.org: '*'
   script:
     - bkpyvenv stage {{prefix}} {{version}}
     # Build + install PyQt5 from the extracted sdist against qt.io's Qt5.
