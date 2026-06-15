@@ -1,0 +1,36 @@
+distributable:
+  url: https://github.com/fullstorydev/grpcui/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: fullstorydev/grpcui
+
+provides:
+  - bin/grpcui
+
+build:
+  dependencies:
+    go.dev: '*'
+  script: |
+    go mod download
+    mkdir -p "{{ prefix }}"/bin
+    go build -v -trimpath -ldflags="$LDFLAGS" -o $BUILDLOC ./cmd/grpcui
+  env:
+    GOPROXY: https://proxy.golang.org,direct
+    GOSUMDB: sum.golang.org
+    GO111MODULE: on
+    CGO_ENABLED: 0
+    BUILDLOC: "{{prefix}}/bin/grpcui"
+    LDFLAGS:
+      - -s
+      - -w
+      - -X main.version={{version}}
+    linux:
+      # or segmentation fault
+      # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
+      LDFLAGS:
+        - -buildmode=pie
+
+test:
+  script:
+    - grpcui -version 2>&1 | grep {{version}}
