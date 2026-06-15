@@ -1,0 +1,49 @@
+distributable:
+  url: https://github.com/vectordotdev/vector/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+display-name: Vector
+
+provides:
+  - bin/vector
+
+versions:
+  github: vectordotdev/vector
+
+# vector is a large Rust workspace. We build the upstream `default` feature set
+# (`enable-unix` -> `base`: all sources/sinks/transforms + api + secrets + dnstap),
+# which is the canonical binary users expect. We intentionally do NOT add the
+# `vendored`/`gssapi` features used by the official Linux GA artifacts: those
+# statically link cyrus-sasl + krb5 for kafka GSSAPI and require extra system C
+# libs, while upstream itself disables them for plain `cargo build`/`make build`.
+build:
+  dependencies:
+    rust-lang.org/rustup: '*'
+    # protoc: vector's `api`/`protobuf-build` feature drives prost-build/tonic-build.
+    protobuf.dev: '*'
+    # rdkafka and other native deps build through cmake.
+    cmake.org: '*'
+    # required by several openssl/native build scripts.
+    perl.org: '*'
+  script:
+    # Pin to the exact stable channel from rust-toolchain.toml (currently 1.92).
+    - run: ln -sf {{deps.rust-lang.org/rustup.prefix}}/bin/rustup rustup
+      working-directory: $HOME/.cargo/bin
+    - run: rustup default "$(sed -n 's/^channel = "\(.*\)".*/\1/p' $SRCROOT/rust-toolchain.toml)"
+    - run: ln -sf $HOME/.rustup/toolchains/*/bin/* .
+      working-directory: $HOME/.cargo/bin
+
+    - cargo install --path . --root {{prefix}} --locked
+  env:
+    PATH: $HOME/.cargo/bin:$PATH
+    # protoc lives in the protobuf.dev prefix; prost-build/tonic-build honor $PROTOC.
+    PROTOC: ${{deps.protobuf.dev.prefix}}/bin/protoc
+    linux:
+      # bundled librdkafka's version script lists rd_ut_coverage_check (a
+      # coverage-only symbol); lld rejects undefined version symbols by default
+      # and broke the arm64 link. Allow them.
+      LDFLAGS: -Wl,--undefined-version
+
+test:
+  - vector --version | tee out
+  - grep {{version}} out
