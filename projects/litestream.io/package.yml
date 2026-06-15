@@ -1,0 +1,24 @@
+# Litestream — streaming replication for SQLite. Continuously ships the
+# WAL to S3-compatible object storage (and other backends) for
+# point-in-time recovery, with near-zero overhead on the live database.
+
+distributable:
+  url: https://github.com/benbjohnson/litestream/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: benbjohnson/litestream
+
+build:
+  dependencies:
+    go.dev: "*"
+  env:
+    CGO_ENABLED: 0   # pure-Go (modernc.org/sqlite), no cgo sqlite
+  script: go build -trimpath -ldflags "-s -w -X main.Version={{version.tag}}" -o {{prefix}}/bin/litestream ./cmd/litestream
+
+test:
+  - litestream version 2>&1 | tee out
+  - grep {{version}} out
+
+provides:
+  - bin/litestream

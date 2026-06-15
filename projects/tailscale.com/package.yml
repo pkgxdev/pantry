@@ -1,0 +1,35 @@
+distributable:
+  url: https://github.com/tailscale/tailscale/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: tailscale/tailscale
+
+build:
+  dependencies:
+    go.dev: =1.25.1
+  env:
+    GO_LDFLAGS:
+      - -s
+      - -w
+      - -X tailscale.com/version.longStamp={{version}}-pkgx
+      - -X tailscale.com/version.shortStamp={{version}}
+      - -X tailscale.com/version.gitCommitStamp=pkgx
+    linux:
+      GO_LDFLAGS:
+        - -buildmode=pie
+  script:
+    - go build -v -ldflags="${GO_LDFLAGS}" -o "{{ prefix }}"/bin/tailscale ./cmd/tailscale
+    - go build -v -ldflags="${GO_LDFLAGS}" -o "{{ prefix }}"/bin/tailscaled ./cmd/tailscaled
+
+provides:
+  - bin/tailscale
+  - bin/tailscaled
+
+test:
+  - tailscale --help
+  - tailscale version
+  - tailscale version | grep {{version}}
+  - tailscaled --help
+  - tailscaled -version
+  - tailscaled -version | grep {{version}}

@@ -1,0 +1,45 @@
+distributable:
+  url: https://zsync.moria.org.uk/download/zsync-{{version}}.tar.bz2
+  strip-components: 1
+
+# Original C reference implementation of zsync — a one-sided rsync-over-HTTP
+# transfer protocol (Mark Adler, 2010+, periodic continuation releases at
+# zsync.moria.org.uk). Ships zsyncmake (builder of .zsync metadata) and zsync
+# (delta-downloader).
+
+versions:
+  url: https://zsync.moria.org.uk/downloads
+  match: /zsync-\d+\.\d+(\.\d+)?\.tar\.bz2/
+  strip:
+    - /zsync-/
+    - /\.tar\.bz2$/
+
+build:
+  script:
+    # Upstream ships config.guess/config.sub from 2009; that copy doesn't know
+    # about aarch64 and configure aborts with "cannot guess build type" on ARM.
+    # Drop in the current FSF copies (same fix Debian's dh-autoreconf applies).
+    - cp props/config.guess props/config.sub autotools/
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --disable-dependency-tracking
+    # The bundled zlib uses K&R-style function definitions that recent clang
+    # rejects in default-strict mode; -std=gnu89 restores acceptance. The
+    # feature-test macros expose timegm() (BSD/POSIX-extension) on macOS/Linux.
+    CFLAGS: $CFLAGS -std=gnu89 -D_DARWIN_C_SOURCE -D_GNU_SOURCE
+
+provides:
+  - bin/zsync
+  - bin/zsyncmake
+
+test:
+  - zsyncmake -V 2>&1 | tee out
+  - grep -F {{version}} out
+  # generate metadata for a local file, then transfer it via file:// URL
+  - head -c 65536 /dev/urandom > basis.bin
+  - cp basis.bin original.bin
+  - zsyncmake -u file://$(pwd)/original.bin -o original.zsync original.bin
+  - test -f original.zsync

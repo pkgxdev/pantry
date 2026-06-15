@@ -8,19 +8,17 @@ versions:
     - /^libXtst-/
     - /\.tar\.gz/
 dependencies:
-  x.org/xi: '*'
-  x.org/protocol: '*'
+  x.org/xi: "*"
+  x.org/protocol: "*"
 build:
   dependencies:
-    gnu.org/make: '*'
-    freedesktop.org/pkg-config: '*'
-    x.org/util-macros: '*'
+    gnu.org/make: "*"
+    freedesktop.org/pkg-config: "*"
+    x.org/util-macros: "*"
   script:
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }}
     - make --jobs {{ hw.concurrency }} install
-    - run: find . -name "*.la" -exec rm -f {} \;
-      working-directory: '{{prefix}}/lib'
   env:
     ARGS:
       - --prefix={{prefix}}
@@ -31,6 +29,6 @@ build:
       - --enable-specs=no
 test:
   dependencies:
-    freedesktop.org/pkg-config: '*'
+    freedesktop.org/pkg-config: "*"
   script:
     - pkg-config --modversion xtst | grep {{version}}

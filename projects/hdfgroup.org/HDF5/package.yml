@@ -12,42 +12,74 @@ dependencies:
     zlib.net: 1
 
 companions:
-  gnu.org/gcc: '*'
+  freedesktop.org/pkg-config: "*"
+  linux:
+    gnu.org/gcc: "*"
+  darwin:
+    llvm.org: ">=17"
 
 build:
   dependencies:
-    gnu.org/autoconf: '*'
-    gnu.org/automake: '*'
-    gnu.org/libtool: '*'
-    gnu.org/gcc: '*' # gfortran
+    cmake.org: "*" # v2
+    gnu.org/autoconf: "*"
+    gnu.org/automake: "*"
+    gnu.org/libtool: "*"
+    linux:
+      gnu.org/gcc: "*" # gfortran
+    darwin:
+      llvm.org: 20
 
   script:
-    - autoreconf --force --install --verbose
-    - ./configure $ARGS
-    - make --jobs {{hw.concurrency}} install
+    - run:
+        - autoreconf --force --install --verbose
+        - ./configure $ARGS
+        - make --jobs {{hw.concurrency}} install
+      if: <2
+    - run:
+        - cmake -S .. -B . $CMAKE_ARGS
+        - cmake --build .
+        - cmake --install .
+      working-directory: build
+      if: ">=2"
 
     # relocate h5cc, h5c++, h5fc
-    - run: sed -i -f $PROP h5cc h5c++ h5fc
+    - run:
+        - sed "s|HOME|$HOME|" $PROP >prop.sed
+        - sed -i -f prop.sed h5cc h5c++
+        - if test -f h5fc; then sed -i -f prop.sed h5fc; fi
+        - CC="$(command -v cc)"
+        - sed -i "s|${CC}|cc|g" h5cc h5c++
       working-directory: ${{prefix}}/bin
       prop: |
         s|{{deps.dkrz.de/libaec.prefix}}|{{pkgx.prefix}}/dkrz.de/libaec/v{{deps.dkrz.de/libaec.version.major}}|g
+        s|{{deps.llvm.org.prefix}}/bin/||g
+        s|{{deps.gnu.org/gcc.prefix}}/bin/||g
         s|{{prefix}}|\\$(cd \\$(dirname \\$0)/.. \&\& pwd)|g
         s|{{pkgx.prefix}}|\\$(cd \\$(dirname \\$0)/../../../.. \&\& pwd)|g
         s|\+brewing||g
 
   env:
-    HDF5_ROOT: '{{prefix}}'
     ARGS:
-      - --prefix="$HDF5_ROOT"
+      - --prefix="{{prefix}}"
       - --disable-dependency-tracking
       - --disable-silent-rules
       - --enable-build-mode=production
-      - --enable-fortran
       - --enable-cxx
       - --with-szlib={{deps.dkrz.de/libaec.prefix}}
     linux:
       ARGS:
+        - --enable-fortran
         - --with-zlib={{deps.zlib.net.prefix}}
+    CMAKE_ARGS:
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
+      - -DHDF5_USE_GNU_DIRS:BOOL=ON
+      - -DHDF5_INSTALL_CMAKE_DIR=lib/cmake/hdf5
+      - -DHDF5_BUILD_CPP_LIB:BOOL=ON
+      - -DHDF5_ENABLE_SZIP_SUPPORT:BOOL=ON
+      - -DHDF5_ENABLE_ZLIB_SUPPORT:BOOL=ON
+      - -Dlibaec_DIR={{deps.dkrz.de/libaec.prefix}}/lib/cmake/libaec
+      # Disable Fortran for now
+      - -DHDF5_BUILD_FORTRAN:BOOL=OFF
 
 provides:
   - bin/h5c++
@@ -58,14 +90,12 @@ provides:
   - bin/h5delete
   - bin/h5diff
   - bin/h5dump
-  - bin/h5fc
   - bin/h5format_convert
   - bin/h5import
   - bin/h5jam
   - bin/h5ls
   - bin/h5mkgrp
   - bin/h5perf_serial
-  - bin/h5redeploy
   - bin/h5repack
   - bin/h5repart
   - bin/h5stat
@@ -74,6 +104,4 @@ provides:
 
 test:
   - h5cc test.c
-  - ./a.out | grep {{version}}
-  - h5fc test.f90
   - ./a.out | grep {{version}}

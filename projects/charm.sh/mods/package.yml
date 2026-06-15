@@ -9,20 +9,30 @@ provides:
   - bin/mods
 
 build:
-  script: |
-    go mod download
-    go build -v -ldflags="$LDFLAGS"
-    mkdir -p "{{ prefix }}"/bin
-    mv mods "{{ prefix }}"/bin
+  script:
+    - go mod download
+    - go build -v -ldflags="$GO_LDFLAGS"
+    - mkdir -p "{{ prefix }}"/bin
+    - mv mods "{{ prefix }}"/bin
   dependencies:
-    go.dev: ^1.18
+    go.dev: ~1.24.0
 
   env:
     GO111MODULE: on
-    LDFLAGS: [-s, -w, "-X=main.Version={{version}}"]
+    GO_LDFLAGS: [-s, -w, '-X=main.Version={{version}}']
     linux:
       # or segmentation fault
       # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
-      LDFLAGS:
+      GO_LDFLAGS:
         - -buildmode=pie
-test: mods --version
+test:
+  env:
+    linux:
+      DB_PATH: $HOME/.local/share/mods/conversations
+    darwin:
+      DB_PATH: $HOME/Library/Application Support/mods/conversations
+  script:
+    # else error in 1.8.0
+    - run: mkdir -p "$DB_PATH"
+      if: =1.8.0
+    - mods --version

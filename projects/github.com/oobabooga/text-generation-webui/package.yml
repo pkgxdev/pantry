@@ -10,7 +10,7 @@ versions:
 
 dependencies:
   python.org: ~3.10
-  pkgx.sh: ^1
+  pkgx.sh: ">=1"
 
 entrypoint: pgkx ./entrypoint.sh
 
@@ -22,12 +22,12 @@ platforms: darwin
 # TODO  entry
 build:
   dependencies:
-    gnu.org/coreutils: '*'
+    gnu.org/coreutils: "*"
   script:
     # pkg expects all the files from its checkout
     - mkdir -p {{prefix}}/venv/bin
     - cp -R . {{prefix}}/venv/bin
-    - working-directory: '{{prefix}}/venv/bin'
+    - working-directory: "{{prefix}}/venv/bin"
       run: rm -rf docker .github docs .gitignore *.md
 
     - |
@@ -39,7 +39,7 @@ build:
 
     # requirements moved in v3
     - run: REQS="requirements/full/$REQS"
-      if: '>=3'
+      if: ">=3"
 
     # requirements_apple_intel.txt links to a missing version
     # of llama.cpp
@@ -48,7 +48,7 @@ build:
     - pip install -r $REQS
 
     # pkg expects to be run with CWD set to its checkout
-    - working-directory: '{{prefix}}/venv/bin'
+    - working-directory: "{{prefix}}/venv/bin"
       run:
         - echo '#!/usr/bin/env python' > text-generation-webui
         - echo 'import os' >> text-generation-webui

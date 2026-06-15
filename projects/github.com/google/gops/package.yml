@@ -1,23 +1,26 @@
 distributable:
-  url: https://github.com/google/gops/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/google/gops/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
   github: google/gops/tags
 
 dependencies:
-  go.dev: '*'
+  go.dev: "*"
 
 build:
   dependencies:
-    go.dev: '*'
-  script: |
-    go build -ldflags="$LDFLAGS"
-    mkdir -p "{{ prefix }}"/bin
-    mv gops "{{ prefix }}"/bin
+    go.dev: "*"
+  script:
+    - go build -ldflags="$LDFLAGS"
+    - install -Dm755 gops "{{ prefix }}"/bin/gops
   env:
     LDFLAGS:
-      - -s -w
+      - -s
+      - -w
+    linux:
+      LDFLAGS:
+        - -buildmode=pie
 
 provides:
   - bin/gops

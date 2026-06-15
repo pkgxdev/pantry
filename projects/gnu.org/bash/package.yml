@@ -18,14 +18,19 @@ interprets:
   args: [bash, -e]
 
 build:
-  script: |
-    ./configure --prefix={{ prefix }}
-    make --jobs {{ hw.concurrency }} install
+  script:
+    - ./configure --prefix={{ prefix }}
+    - make --jobs {{ hw.concurrency }} install
   env:
     CFLAGS:
       # causes bash to source ~/.bashrc when instantiated
       # non-interactively from sshd. macOS’s bash does this so users expect it.
       - -DSSH_SOURCE_BASHRC
       - -Wno-implicit-function-declaration
+    darwin:
+      LDFLAGS: $LDFLAGS -Wl,-headerpad_max_install_names
 
-test: bash -c "set -o pipefail"
+test:
+  - bash --version | tee out
+  - grep {{version}} out
+  - bash -c "set -o pipefail"

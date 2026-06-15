@@ -1,0 +1,22 @@
+# Sealed Secrets — kubeseal CLI. Encrypts K8s Secrets into SealedSecrets safe to commit; the in-cluster controller decrypts them.
+
+distributable:
+  url: https://github.com/bitnami-labs/sealed-secrets/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: bitnami-labs/sealed-secrets
+
+build:
+  dependencies:
+    go.dev: "*"
+  env:
+    CGO_ENABLED: 0
+  script: go build -trimpath -ldflags "-s -w -X main.VERSION={{version.tag}}" -o "{{prefix}}/bin/kubeseal" ./cmd/kubeseal
+
+test:
+  - kubeseal --version 2>&1 | tee out
+  - grep {{version}} out
+
+provides:
+  - bin/kubeseal

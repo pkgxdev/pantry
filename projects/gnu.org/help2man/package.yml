@@ -10,29 +10,43 @@ versions:
     - /\.tar\.xz/
 
 dependencies:
-  gnu.org/gettext: '*'
-  perl.org: 5.38 # perl modules require matching minors
+  gnu.org/gettext: ^0
+  perl.org: ~5.42 # perl modules require matching minors; must match gettext
 
 runtime:
   env:
-    PERL5LIB: '{{prefix}}/lib/perl5:{{prefix}}/libexec/lib/perl5:$PERL5LIB'
+    PERL5LIB: "{{prefix}}/lib/perl5:{{prefix}}/libexec/lib/perl5:$PERL5LIB"
 
 build:
   dependencies:
-    cpanmin.us: '*'
+    cpanmin.us: "*"
   script:
-    - cpanm -l {{prefix}} Locale::gettext
+    # wrap cc so cpanm's XS link step gets -headerpad_max_install_names
+    # (PERL_MM_OPT/OTHERLDFLAGS don't propagate through MakeMaker)
+    - run:
+        - WRAP=$(mktemp -d)
+        - install -Dm755 $PROP $WRAP/cc
+        - PATH="$WRAP:$PATH" CC="$WRAP/cc" cpanm -l {{prefix}} Locale::gettext
+        - rm -rf "$WRAP"
+      prop: |
+        #!/bin/sh
+        exec /usr/bin/cc -Wl,-headerpad_max_install_names -Wl,-rpath,{{pkgx.prefix}} "$@"
+      if: darwin
+    - run: cpanm -l {{prefix}} Locale::gettext
+      if: linux
     - ./configure $CONFIGURE_ARGS
     - make install
     - run: sed -i '1s|.*|#!/usr/bin/env perl|' help2man
       working-directory: ${{prefix}}/bin
   env:
-    PERL5LIB: '{{prefix}}/lib/perl5:{{prefix}}/libexec/lib/perl5:$PERL5LIB'
+    PERL5LIB: "{{prefix}}/lib/perl5:{{prefix}}/libexec/lib/perl5:$PERL5LIB"
     CONFIGURE_ARGS:
       - --disable-debug
       - --disable-dependency-tracking
       - --prefix="{{prefix}}"
       - --libdir="{{prefix}}/lib"
+    darwin:
+      LDFLAGS: $LDFLAGS -Wl,-headerpad_max_install_names
 
 provides:
   - bin/help2man

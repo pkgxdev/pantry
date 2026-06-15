@@ -1,13 +1,18 @@
 distributable:
-  url: https://prdownloads.sourceforge.net/tcl/tcl{{ version }}-src.tar.gz
+  url: https://downloads.sourceforge.net/project/tcl/Tcl/{{ version }}/tcl{{ version }}-src.tar.gz
   strip-components: 1
 
 versions:
-  url: https://sourceforge.net/projects/tcl/files/Tcl/
-  match: /files\/Tcl\/\d+\.\d+\.\d+\//
+  # Match release tarballs from the SourceForge file feed (enumerates all
+  # versions). The previous dir listing matched version dirs, but the latest
+  # dir (9.0.4/) holds only a release candidate (tcl9.0.4rc0-src.tar.gz), so it
+  # resolved to 9.0.4 whose final -src tarball 404s. Matching the final tarball
+  # name skips rc-only releases.
+  url: https://sourceforge.net/projects/tcl/rss?path=/Tcl
+  match: /tcl\d+\.\d+\.\d+-src\.tar\.gz/
   strip:
-    - /files\/Tcl\//
-    - /\//
+    - /^tcl/
+    - /-src\.tar\.gz/
 
 build:
   working-directory: unix

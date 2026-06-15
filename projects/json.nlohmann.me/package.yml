@@ -1,0 +1,44 @@
+distributable:
+  url: https://github.com/nlohmann/json/releases/download/{{version.tag}}/json.tar.xz
+  strip-components: 1
+
+versions:
+  github: nlohmann/json
+
+build:
+  dependencies:
+    cmake.org: 3
+  script:
+    - cmake -B build $CMAKE_ARGS
+    - cmake --build build
+    - cmake --install build
+  env:
+    CMAKE_ARGS:
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DJSON_BuildTests=OFF
+      - -DJSON_MultipleHeaders=ON
+test:
+  - run: c++ $FIXTURE -std=c++11 -o test
+    fixture:
+      extname: cpp
+      content: |
+        #include <iostream>
+        #include <nlohmann/json.hpp>
+
+        using nlohmann::json;
+
+        int main() {
+          json j = {
+            {"pi", 3.141},
+            {"name", "Niels"},
+            {"list", {1, 0, 2}},
+            {"object", {
+              {"happy", true},
+              {"nothing", nullptr}
+            }}
+          };
+          std::cout << j << std::endl;
+        }
+  - run: test "$(./test)" = "$(cat $FIXTURE)"
+    fixture: '{"list":[1,0,2],"name":"Niels","object":{"happy":true,"nothing":null},"pi":3.141}'

@@ -14,7 +14,7 @@ versions:
     - /-\d+-MacOSX-arm64.sh/
 
 dependencies:
-  pkgx.sh: ^1
+  pkgx.sh: ">=1"
   openssl.org: ^1.1
 
 runtime:
@@ -25,8 +25,8 @@ build:
   dependencies:
     # https://docs.conda.io/projects/miniconda/en/latest/#latest-miniconda-installer-links
     python.org: =3.11.5
-    gnu.org/patch: '*'
-    curl.se: '*'
+    gnu.org/patch: "*"
+    curl.se: "*"
   script:
     - bkpyvenv stage {{prefix}} {{version}}
     # FIXME: we need a way to handle suffix versions
@@ -53,7 +53,7 @@ build:
     # we desire to provide a conda that doesn’t require you to force it into
     # your shellrc this command modifies the installation to prevent it
     # erroring so we have to do prior to pkging it
-    - '{{prefix}}/bin/conda init'
+    - "{{prefix}}/bin/conda init"
 
     # put the conda libs in a findable path
     - run: ln -s venv/lib lib
@@ -73,12 +73,15 @@ provides:
 
 test:
   - conda --version | grep {{version}}
-  - |
-    source /dev/stdin <<<"$(conda shell.bash hook)"
-    conda create --yes --name snowflakes biopython
-    conda activate snowflakes
-    conda info --envs | grep snowflakes
-    conda deactivate
+  - source /dev/stdin <<<"$(conda shell.bash hook)"
+  - run:
+      - conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main
+      - conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
+    if: ">=25.7.0"
+  - conda create --yes --name snowflakes biopython
+  - conda activate snowflakes
+  - conda info --envs | grep snowflakes
+  - conda deactivate
 
   # check env has been restored
   - |

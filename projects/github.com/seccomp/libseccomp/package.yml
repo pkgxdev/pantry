@@ -5,22 +5,17 @@ distributable:
 versions:
   github: seccomp/libseccomp
 
-display-name:
-  libseccomp
+display-name: libseccomp
 
 platforms: [linux]
 
 build:
   dependencies:
-    gnu.org/libtool: '*'
-    gnu.org/gperf: '*'
+    gnu.org/libtool: "*"
+    gnu.org/gperf: "*"
   script:
     - ./configure --prefix={{prefix}} --disable-silent-rules
     - make install
-
-    # .la files are not relocatable
-    - run: find . -name '*.la' -exec rm -f {} \;
-      working-directory: ${{prefix}}/lib
 
 provides:
   - bin/scmp_sys_resolver

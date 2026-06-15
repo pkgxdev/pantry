@@ -1,0 +1,30 @@
+# mycli — a MySQL/MariaDB CLI with auto-completion and syntax highlighting.
+
+distributable:
+  url: https://github.com/dbcli/mycli/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: dbcli/mycli/tags
+
+dependencies:
+  pkgx.sh: ">=1"
+
+build:
+  dependencies:
+    python.org: ~3.11
+  env:
+    # GitHub archives carry no .git, so setuptools-scm can't infer the
+    # version — hand it the tag.
+    SETUPTOOLS_SCM_PRETEND_VERSION: "{{version}}"
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} mycli
+
+provides:
+  - bin/mycli
+
+test:
+  - mycli --version | tee out
+  - grep {{version}} out

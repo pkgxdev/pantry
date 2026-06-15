@@ -1,0 +1,21 @@
+distributable:
+  url: https://github.com/aws/amazon-q-developer-cli/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/q
+
+versions:
+  github: aws/amazon-q-developer-cli
+
+build:
+  dependencies:
+    rust-lang.org: ^1.87
+  script:
+    - cargo install --locked --path crates/chat-cli --root {{prefix}} --bin chat_cli
+    - run: mv chat_cli q
+      working-directory: ${{prefix}}/bin
+
+test:
+  - q --help
+  - test "$(q --version)" = "qchat {{version}}"

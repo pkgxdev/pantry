@@ -1,0 +1,113 @@
+display-name: libdnf5
+summary: Package management library
+
+distributable:
+  url: https://github.com/rpm-software-management/dnf5/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+platforms: [linux]
+
+versions:
+  github: rpm-software-management/dnf5
+
+dependencies:
+  rpm.org/rpm: "*"
+  rpm.org/popt: "*"
+  rpm.org/librepo: "*"
+  gnome.org/glib: "*"
+  opensuse.org/libsolv: "*"
+  github.com/json-c/json-c: "*"
+  openssl.org: "*"
+  sqlite.org: "*"
+  fmt.dev: "*"
+  savannah.nongnu.org/acl: "*"
+  gnome.org/libxml2: "*"
+  pcre.org/v2: "*"
+  sourceware.org/libffi: "*"
+  github.com/util-linux/util-linux: "*"
+
+build:
+  dependencies:
+    cmake.org: ">=3.16"
+    gnu.org/gcc: "^14"
+    gnu.org/gettext: "*"
+    swig.org: "*"
+    python.org: ">=3.9"
+    github.com/ToruNiina/toml11: "*"
+  env:
+    CMAKE_ARGS:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_INSTALL_SYSCONFDIR={{prefix}}/etc
+      - -DCMAKE_INSTALL_LOCALSTATEDIR={{prefix}}/var
+      - -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON
+      - -DENABLE_NLS=OFF
+      - -DWITH_DNF5=OFF
+      - -DWITH_DNF5_PLUGINS=OFF
+      - -DWITH_DNF5DAEMON_CLIENT=OFF
+      - -DWITH_DNF5DAEMON_SERVER=OFF
+      - -DWITH_GO=OFF
+      - -DWITH_PERL5=OFF
+      - -DWITH_PYTHON3=OFF
+      - -DWITH_RUBY=OFF
+      - -DWITH_TESTS=OFF
+      - -DBUILD_SHARED_LIBS=ON
+      - -DWITH_MODULEMD=OFF
+      - -DWITH_SYSTEMD=OFF
+      - -DWITH_PLUGIN_ACTIONS=OFF
+      - -DWITH_PLUGIN_EXPIRED_PGP_KEYS=OFF
+      - -DWITH_PLUGIN_LOCAL=OFF
+      - -DWITH_PLUGIN_MANIFEST=OFF
+      - -DWITH_PLUGIN_APPSTREAM=OFF
+      - -DWITH_PYTHON_PLUGINS_LOADER=OFF
+  script:
+    - run: cp $PROP pool_parserpmrichdep.h
+      working-directory: .compat-headers/solv
+      prop: |
+        #ifndef POOL_PARSERPMRICHDEP_H
+        #define POOL_PARSERPMRICHDEP_H
+        #include <solv/pool.h>
+        #ifdef __cplusplus
+        extern "C" {
+        #endif
+        extern Id pool_parserpmrichdep(Pool *pool, const char *dep);
+        #ifdef __cplusplus
+        }
+        #endif
+        #endif
+    - export CPLUS_INCLUDE_PATH="$PWD/.compat-headers:$CPATH"
+    - sed -i 's|set(SYSTEMD_DIR "/usr/lib/systemd/system")|set(SYSTEMD_DIR "{{prefix}}/lib/systemd/system")|' CMakeLists.txt
+    - cmake . $CMAKE_ARGS
+    - cmake --build .
+    - cmake --install .
+    - run: |
+        for lib in libdnf5.so libdnf5-cli.so; do
+          if [ -f "$lib" ]; then
+            mv "$lib" "${lib}.{{version}}"
+            ln -s "${lib}.{{version}}" "${lib}.{{version.major}}"
+            ln -s "${lib}.{{version.major}}" "$lib"
+          fi
+        done
+      working-directory: ${{prefix}}/lib
+
+test:
+  - test -f {{prefix}}/lib/libdnf5.so.{{version}}
+  - test -L {{prefix}}/lib/libdnf5.so.{{version.major}}
+  - test -L {{prefix}}/lib/libdnf5.so
+  # FIXME: missing symbols on archlinux
+  - run: |
+      if [ -f /etc/os-release ] && grep -q '^ID=arch' /etc/os-release; then
+        echo "Arch Linux detected! Not currently testable."
+        exit 0
+      fi
+    if: linux
+  - run: c++ $FIXTURE -o test $(pkg-config --cflags --libs libdnf5)
+    fixture:
+      extname: cpp
+      content: |
+        #include <libdnf5/version.hpp>
+
+        int main() {
+          return 0;
+        }
+  - ./test

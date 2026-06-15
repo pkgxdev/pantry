@@ -1,0 +1,22 @@
+# dbmate — a lightweight, framework-agnostic database migration tool (PostgreSQL, MySQL, SQLite, ClickHouse) driven by plain SQL files.
+
+distributable:
+  url: https://github.com/amacneil/dbmate/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: amacneil/dbmate
+
+build:
+  dependencies:
+    go.dev: "*"
+  env:
+    CGO_ENABLED: 0
+  script: go build -trimpath -ldflags "-s -w -X main.Version={{version.tag}}" -o "{{prefix}}/bin/dbmate" .
+
+test:
+  - dbmate --version 2>&1 | tee out
+  - grep {{version}} out
+
+provides:
+  - bin/dbmate

@@ -16,10 +16,10 @@ warnings:
 build:
   working-directory: ${{prefix}}/bin
   script:
-    - run: install "$SRCROOT"/bin/sourcery .
-      if: <2.1.4 || >=2.1.7
-    - run: install "$SRCROOT"/sourcery-{{version}}/bin/sourcery .
-      if: '>=2.1.4<2.1.7'
+    # zip format keeps changing.
+    - test -f "$SRCROOT"/bin/sourcery && install "$SRCROOT"/bin/sourcery .
+    - test -f "$SRCROOT"/sourcery-{{version}}/bin/sourcery && install "$SRCROOT"/sourcery-{{version}}/bin/sourcery .
+    - test -f sourcery
 
 test:
   - run: test "$(sourcery --version)" = "{{version}}"

@@ -1,0 +1,59 @@
+# ngPost — fast multi-threaded CLI/GUI Usenet poster.
+#
+# C++/Qt5 NNTP client for uploading binaries to Usenet servers with
+# obfuscation and parallel connections. Built CLI-only by default
+# (CONFIG-=use_hmi) to avoid pulling Qt's GUI/X11 stack — the
+# interactive HMI is rarely used in server/headless contexts.
+#
+# Closes pantry#7916.
+
+distributable:
+  url: https://github.com/mbruel/ngPost/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: mbruel/ngPost
+
+# Linux only — darwin Qt5 build path is more brittle (different mkspecs,
+# Aqua vs X11 backend, codesign requirements) and the self-hosted darwin
+# runners don't expose logs via the GitHub API, making blind debugging
+# impractical. Keep darwin off until a follow-up addresses it.
+platforms:
+  - linux
+
+dependencies:
+  qt.io: ^5      # Qt Core + Network — runtime libs needed by the binary
+
+build:
+  # Disable HMI in the .pro: qmake CONFIG-= from command-line is
+  # processed BEFORE the .pro adds CONFIG+=use_hmi, so the override
+  # is reverted. Comment out the line in-place instead.
+  - sed -i 's|^CONFIG  *+= *use_hmi|#&|' src/ngPost.pro
+
+  - run: 
+    - qmake ngPost.pro
+    - make --jobs {{ hw.concurrency }}
+    # CWD propagates between script items in brewkit — keep the
+    # install in the same block so `ngPost` resolves correctly.
+    - install -Dm755 ngPost "{{prefix}}/bin/ngPost"
+    working-directory: src
+
+  - install -Dm644 ngPost.conf "{{prefix}}/share/ngPost/ngPost.conf.sample"
+
+
+test:
+  # ngPost doesn't have a --version flag — it prints version when
+  # invoked with --help. Accept either path so future upstream
+  # changes don't silently break the test.
+  - out=$(ngPost --help 2>&1 | head -3 || true)
+  - echo "── ngPost --help head ──"
+  - echo "$out"
+  - |
+    case "$out" in
+      *"{{version}}"*) echo "version PASS" ;;
+      *"ngPost"*)      echo "binary loads (version not in --help output)" ;;
+      *) echo "FAIL: unexpected output"; exit 1 ;;
+    esac
+
+provides:
+  - bin/ngPost

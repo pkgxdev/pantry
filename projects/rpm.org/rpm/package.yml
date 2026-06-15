@@ -1,0 +1,104 @@
+distributable:
+  url: http://ftp.rpm.org/releases/rpm-{{version.major}}.{{version.minor}}.x/rpm-{{version}}.tar.bz2
+  strip-components: 1
+
+display-name: rpm
+
+platforms: [linux] # they don't officially support darwin, and it's a bear to patch
+
+versions:
+  github: rpm-software-management/rpm
+  strip:
+    - /^rpm-/
+    - /-release$/
+
+dependencies:
+  lua.org: ~5.4
+  gnu.org/gmp: "*"
+  libarchive.org: "*"
+  darwinsys.com/file: "*"
+  rpm.org/popt: "*"
+  gnu.org/readline: "*"
+  invisible-island.net/ncurses: "*"
+  sqlite.org: "*"
+  tukaani.org/xz: "*"
+  facebook.com/zstd: "*"
+  elfutils.org: "*"
+  gnu.org/gcc/libstdcxx: ">=15"
+  gnu.org/gcc/libgomp: ">=15"
+  openssl.org: "*"
+  rpm.org/rpm-sequoia: "*"
+
+build:
+  dependencies:
+    cmake.org: ^3.18
+    zlib.net: "*"
+    gnu.org/gettext: "*"
+    python.org: ">=3.10"
+    sr.ht/scdoc: "*"
+    curl.se: "*"
+    gnu.org/tar: "*"
+    gnu.org/gcc: ">=15"
+    gnu.org/binutils: ~2.44
+  env:
+    CC: gcc
+    CXX: g++
+    LDFLAGS:
+      - $LDFLAGS
+      - "-Wl,-rpath,{{deps.rpm.org/rpm-sequoia.prefix}}/lib"
+    INSTALL_RPATH_PATHS:
+      - "$ORIGIN/../lib"
+      - "{{deps.rpm.org/rpm-sequoia.prefix}}/lib"
+      - "{{deps.openssl.org.prefix}}/lib"
+      - "{{deps.rpm.org/popt.prefix}}/lib"
+    CMAKE_ARGS:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_C_COMPILER=gcc
+      - -DCMAKE_CXX_COMPILER=g++
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_INSTALL_SYSCONFDIR={{prefix}}/etc
+      - -DCMAKE_INSTALL_SHAREDSTATEDIR={{prefix}}/var/lib
+      - -DCMAKE_INSTALL_LOCALSTATEDIR={{prefix}}/var
+      - -DCMAKE_BUILD_RPATH=ON
+      - -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON
+      - -DENABLE_NLS=ON
+      - -DENABLE_PLUGINS=OFF
+      - -DENABLE_PYTHON=OFF
+      - -DWITH_AUDIT=OFF
+      - -DWITH_SELINUX=OFF
+      - -DRPM_VENDOR=pkgx
+      - -DENABLE_TESTSUITE=OFF
+      - -DWITH_ACL=OFF
+      - -DWITH_CAP=OFF
+      - -DLUA_INCLUDE_DIR={{deps.lua.org.prefix}}/include
+      - -DLUA_LIBRARY={{deps.lua.org.prefix}}/lib/liblua.so
+      - -DLUA_LIBRARIES={{deps.lua.org.prefix}}/lib/liblua.so
+      - -DMAGIC_LIBRARY={{deps.darwinsys.com/file.prefix}}/lib/libmagic.so
+      - -DMAGIC_INCLUDE_DIR={{deps.darwinsys.com/file.prefix}}/include
+      - -DSCDOC={{deps.sr.ht/scdoc.prefix}}/bin/scdoc
+      - -DGETTEXT_MSGMERGE_EXECUTABLE={{deps.gnu.org/gettext.prefix}}/bin/msgmerge
+      - -DGETTEXT_MSGFMT_EXECUTABLE={{deps.gnu.org/gettext.prefix}}/bin/msgfmt
+      - -DXGETTEXT={{deps.gnu.org/gettext.prefix}}/bin/xgettext
+  working-directory: build
+  script:
+    - cmake .. $CMAKE_ARGS -DCMAKE_INSTALL_RPATH="$INSTALL_RPATH"
+    - cmake --build .
+    - cmake --install .
+    # fix lua lib issues
+    - run: cp "{{deps.lua.org.prefix}}/lib/liblua.so" liblua.so
+      working-directory: ${{prefix}}/lib
+
+runtime:
+  env:
+    RPM_CONFIGDIR: "{{prefix}}/lib/rpm"
+
+provides:
+  - bin/rpm
+
+test:
+  env:
+    RPM_CONFIGDIR: "{{prefix}}/lib/rpm"
+  script:
+    - test "$(rpm --version)" = "RPM version {{version}}"
+    - "rpm --eval '%{lua:print(_VERSION)}' | grep -q '^Lua 5\\.4$'"
+

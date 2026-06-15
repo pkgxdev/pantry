@@ -1,0 +1,28 @@
+# uutils coreutils ~ cross-platform Rust rewrite of GNU coreutils
+# Ships ONLY the multicall `coreutils` binary (e.g. `coreutils ls`, `coreutils cat`).
+# Does NOT install individual ls/cat/... bins, so it never clobbers GNU coreutils.
+
+distributable:
+  url: https://github.com/uutils/coreutils/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/coreutils
+
+versions:
+  github: uutils/coreutils
+
+build:
+  dependencies:
+    rust-lang.org/cargo: '*'
+  script:
+    # upstream's .cargo/config.toml pins linker = aarch64-linux-gnu-gcc for the
+    # arm64 target, which the native arm64 builder doesn't have; drop it so cargo
+    # uses the default cc.
+    - rm -f .cargo/config.toml
+    - cargo install --locked --path . --root {{prefix}}
+
+test:
+  - coreutils --version | tee out
+  - grep {{version}} out
+  - coreutils echo hi | grep hi

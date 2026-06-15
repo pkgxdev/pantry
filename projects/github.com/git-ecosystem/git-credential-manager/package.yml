@@ -12,17 +12,17 @@ dependencies:
   openssl.org: ^1.1.1
   unicode.org: ^71
   zlib.net: ^1.3
-  dotnet.microsoft.com: ^8.0
+  dotnet.microsoft.com: ^10.0 # since 2.8.0
 
 companions:
-  git-scm.org: '*'
+  git-scm.org: "*"
 
 build:
   dependencies:
     git-scm.org: ^2.27.0
     kerberos.org: ^1.21.3
     linux:
-      gnu.org/gcc: '>=12'
+      gnu.org/gcc: ">=12"
   script:
     - dotnet build ${CSPROJ}
       -p:InstallFromSource=true
@@ -40,7 +40,7 @@ build:
         - mkdir -p {{prefix}}/bin
         - cp -aR * {{prefix}}/bin
       if: darwin || linux/aarch64
-      working-directory: out/shared/Git-Credential-Manager/bin/${CONFIGURATION}/net8.0/${RUNTIME}
+      working-directory: out/shared/Git-Credential-Manager/bin/${CONFIGURATION}/net{{deps.dotnet.microsoft.com.version.marketing}}/${RUNTIME}
   env:
     DOTNET_CLI_TELEMETRY_OPTOUT: 1
     linux:

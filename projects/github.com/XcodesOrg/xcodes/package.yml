@@ -1,12 +1,12 @@
 distributable:
-  url: https://github.com/XcodesOrg/xcodes/archive/refs/tags/{{version}}.tar.gz
+  url: https://github.com/XcodesOrg/xcodes/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
   github: XcodesOrg/xcodes
 
 companions:
-  aria2.github.io: '*'
+  aria2.github.io: "*"
 
 platforms:
   - darwin
@@ -15,12 +15,20 @@ provides:
   - bin/xcodes
 
 build:
-  # dependencies:
-  #   swift.org: 5
-  #   apple.com/xcode: >=13.3
-  script: |
-    swift build --configuration release
-    mkdir -p {{prefix}}/bin
-    mv $(swift build --configuration release --show-bin-path)/xcodes {{prefix}}/bin
+  dependencies:
+    git-scm.org: "*"
+  script:
+    # v2.0.1 added two sibling dependencies.
+    - run:
+        - git clone --depth 1 --branch v1.0.0 https://github.com/XcodesOrg/XcodesLoginKit.git XcodesLoginKit
+        - git clone --depth 1 --branch v1.0.3 https://github.com/XcodesOrg/XcodesKit.git XcodesKit
+        - sed -i -f $PROP Package.swift
+      prop: |
+        s|\.\./XcodesLoginKit|XcodesLoginKit|g
+        s|\.\./XcodesKit|XcodesKit|g
+      if: ">=2.0.1"
+    - swift build --configuration release
+    - mkdir -p {{prefix}}/bin
+    - mv $(swift build --configuration release --show-bin-path)/xcodes {{prefix}}/bin
 
 test: xcodes version | grep {{version}}

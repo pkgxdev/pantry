@@ -1,0 +1,31 @@
+distributable:
+  url: https://github.com/denisidoro/navi/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+display-name: navi
+
+versions:
+  github: denisidoro/navi
+
+build:
+  dependencies:
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path . --root {{prefix}}
+
+provides:
+  - bin/navi
+
+companions:
+  github.com/junegunn/fzf: '*'
+  crates.io/skim: '*'
+
+test:
+  script:
+    - test "$(navi --version)" = "navi {{version}}"
+    - cp $FIXTURE hello-world.cheat
+    - NAVI_PATH=. navi --query "Print hello world" --best-match | grep "hello world"
+  fixture: |
+    % echo
+
+    # Print hello world
+    echo hello world

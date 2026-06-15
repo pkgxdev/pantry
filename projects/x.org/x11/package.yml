@@ -11,20 +11,17 @@ versions:
 
 dependencies:
   x.org/xcb: ^1
-  x.org/protocol: '*'
+  x.org/protocol: "*"
 
 build:
   dependencies:
     freedesktop.org/pkg-config: ~0.29
-    x.org/util-macros: '*'
+    x.org/util-macros: "*"
     x.org/xtrans: ^1
-    gnu.org/sed: '*' # or build fails on macOS
+    gnu.org/sed: "*" # or build fails on macOS
   script:
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
-    # .la are unrelocatable, but only used if found
-    - run: find . -name '*.la' -exec rm {} \;
-      working-directory: ${{prefix}}/lib
   env:
     SHELF: ${{pkgx.prefix}}/x.org
     ARGS:

@@ -1,0 +1,46 @@
+# cert-manager — X.509 cert management for Kubernetes (CNCF graduated).
+#
+# Automates issuance + renewal of TLS certificates from Let's Encrypt,
+# HashiCorp Vault, internal CAs, etc. Standard component in Kubernetes
+# production deployments.
+#
+# This recipe ships the binaries normally deployed as Kubernetes pods
+# (controller, webhook, cainjector, acmesolver, startupapicheck) plus
+# the `cmctl` CLI for client-side troubleshooting. Most users will
+# install via Helm in cluster; the CLI is the bit you want locally.
+
+distributable:
+  url: https://github.com/cert-manager/cert-manager/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: cert-manager/cert-manager
+
+build:
+  dependencies:
+    go.dev: '*'
+  env:
+    CGO_ENABLED: 0
+    GO_LDFLAGS:
+      - -s
+      - -w
+      - -X github.com/cert-manager/cert-manager/pkg/util.AppVersion={{ version.tag }}"
+  script:
+    # cert-manager uses a multi-module layout — each cmd/* has its own
+    # go.mod. So we cd into each cmd dir + go build there.
+    - mkdir -p {{prefix}}/bin
+    - for cmd in controller webhook cainjector acmesolver startupapicheck; do
+    - if [ ! -d "cmd/$cmd" ]; then continue; fi
+    - run: go build -trimpath -ldflags "$GO_LDFLAGS" -o "{{prefix}}/bin/cert-manager-$cmd" .
+      working-directory: cmd/$cmd
+    - done
+
+test:
+  - cert-manager-controller --help
+
+provides:
+  - bin/cert-manager-controller   # main reconciler loop
+  - bin/cert-manager-webhook      # admission webhook
+  - bin/cert-manager-cainjector   # CA bundle injector
+  - bin/cert-manager-acmesolver   # ACME HTTP-01 solver
+  - bin/cert-manager-startupapicheck

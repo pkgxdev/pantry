@@ -1,0 +1,49 @@
+distributable:
+  url: http://www.ferzkopp.net/Software/SDL2_gfx/SDL2_gfx-{{version}}.tar.gz
+  strip-components: 1
+
+display-name: SDL2_gfx
+
+versions:
+  url: https://www.ferzkopp.net/wordpress/2016/01/02/sdl_gfx-sdl2_gfx/
+  match: /SDL2_gfx-\d+\.\d+\.\d+.tar.\gz/
+  strip:
+    - /^SDL2_gfx-/
+    - /\.tar\.gz$/
+
+dependencies:
+  libsdl.org: 2
+
+build:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+    gnu.org/autoconf: '*'
+    gnu.org/automake: '*'
+    gnu.org/libtool: '*'
+  script: |
+    # config.guess is outdated and can't detect aarch64
+    autoreconf -fi
+    ./configure $ARGS
+    make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+    ACLOCAL_PATH: ${{deps.freedesktop.org/pkg-config.prefix}}/share/aclocal:{{deps.gnu.org/libtool.prefix}}/share/aclocal:{{deps.libsdl.org.prefix}}/share/aclocal
+    aarch64:
+      ARGS:
+        - --disable-mmx
+      
+test:
+  - run: cc $FIXTURE -lSDL2_gfx
+    fixture:
+      extname: c
+      content: |
+        #include <SDL2/SDL2_framerate.h>
+        
+        int main() {
+          FPSmanager *manager = malloc(sizeof(FPSmanager));
+          SDL_initFramerate(manager);
+          free(manager);
+          return 0;
+        }
+  - ./a.out

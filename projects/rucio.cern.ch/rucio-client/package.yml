@@ -7,25 +7,29 @@ versions:
   github: rucio/rucio
 
 dependencies:
-  pkgx.sh: ^1
+  pkgx.sh: ">=1"
 
 build:
   dependencies:
     gnu.org/bash: ^5
-    python.org: '>=3.9'
+    python.org: '>=3.9<3.13'
+    postgresql.org: '*' # to build psycopg2
   script:
     - bkpyvenv stage {{prefix}} {{version}}
-    - ${{prefix}}/venv/bin/pip install setuptools
+    - ${{prefix}}/venv/bin/pip install setuptools wheel
     # in 35.7.0 this got renamed to build_sdist_wheel.sh
     - ./tools/build_sdist*.sh clients
-    - ${{prefix}}/venv/bin/python setup.py install
+    - run: ${{prefix}}/venv/bin/python setup.py install
+      if: <39
+    - run: ${{prefix}}/venv/bin/python setuputil.py install
+      if: '>=39'
     # missing req
     - run: ${{prefix}}/venv/bin/pip install dogpile.cache
       if: '>=35'
     # missing req
     - run: ${{prefix}}/venv/bin/pip install click
       if: '>=37'
-    - run: ${{prefix}}/venv/bin/pip install rucio[mysql,postgresql,sqlite,ldap,webui,webapi,vo]
+    - run: ${{prefix}}/venv/bin/pip install rucio[mysql,postgresql,sqlite,ldap,webui,webapi,vo]=={{version}}
       if: '>=35'
     - bkpyvenv seal {{prefix}} rucio rucio-admin
 

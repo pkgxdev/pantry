@@ -1,0 +1,18 @@
+distributable:
+  url: https://github.com/jdx/usage/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/usage
+
+versions:
+  github: jdx/usage
+
+build:
+  dependencies:
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path cli --root {{prefix}}
+
+test:
+    - usage --version | tee out
+    - grep {{version}} out

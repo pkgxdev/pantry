@@ -1,0 +1,22 @@
+# step-ca — Smallstep's online certificate authority: private ACME, X.509 + SSH CA, policy + provisioners. Pairs with the step CLI.
+
+distributable:
+  url: https://github.com/smallstep/certificates/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: smallstep/certificates
+
+build:
+  dependencies:
+    go.dev: "*"
+  env:
+    CGO_ENABLED: 0
+  script: go build -trimpath -ldflags "-s -w -X main.Version={{version.tag}}" -o "{{prefix}}/bin/step-ca" ./cmd/step-ca
+
+test:
+  - step-ca version 2>&1 | tee out
+  - grep {{version}} out
+
+provides:
+  - bin/step-ca

@@ -1,0 +1,52 @@
+# VictoriaMetrics — fast, cost-effective, scalable monitoring &
+# time-series database. Drop-in Prometheus-compatible TSDB (remote-write
+# + PromQL/MetricsQL) plus the vm* tool suite (vmagent scraper, vmalert
+# rules, vmauth proxy, vmbackup/vmrestore, vmctl migrator).
+
+distributable:
+  url: https://github.com/VictoriaMetrics/VictoriaMetrics/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: VictoriaMetrics/VictoriaMetrics
+
+build:
+  dependencies:
+    go.dev: "*"
+  env:
+    CGO_ENABLED: 0
+    GO_LDFLAGS:
+      - -s
+      - -w
+      - -X github.com/VictoriaMetrics/VictoriaMetrics/lib/buildinfo.Version={{version.tag}}
+    BINS:
+      - victoria-metrics
+      - vmagent
+      - vmalert
+      - vmalert-tool
+      - vmauth
+      - vmbackup
+      - vmrestore
+      - vmctl
+  script:
+    - for app in $BINS; do
+    - go build -trimpath -ldflags "$GO_LDFLAGS" -o "{{prefix}}/bin/$app" "./app/$app"
+    - done
+
+test:
+  - victoria-metrics --version 2>&1 | tee out
+  - grep {{version}} out
+  - vmagent --version 2>&1 | tee out
+  - grep {{version}} out
+  - vmctl --version 2>&1 | tee out
+  - grep {{version}} out
+
+provides:
+  - bin/victoria-metrics
+  - bin/vmagent
+  - bin/vmalert
+  - bin/vmalert-tool
+  - bin/vmauth
+  - bin/vmbackup
+  - bin/vmrestore
+  - bin/vmctl

@@ -1,19 +1,23 @@
 distributable:
-  url: https://github.com/python-lsp/python-lsp-server/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/python-lsp/python-lsp-server/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
-  github: python-lsp/python-lsp-server/releases/tags
-  strip: /^v/
+  github: python-lsp/python-lsp-server
 
 dependencies:
-  python.org: '>=3<3.12'
+  pkgx.sh: '>=1'
 
-build: python-venv.sh {{prefix}}/bin/pylsp
+build:
+  dependencies:
+    python.org: '>=3<3.12'
+  script:
+    # - python-venv.sh {{prefix}}/bin/pylsp
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} pylsp
 
 provides:
   - bin/pylsp
 
-test:
-  script: |
-    test "$(pylsp --version)" = "pylsp v{{version}}"
+test: test "$(pylsp --version)" = "pylsp v{{version}}"

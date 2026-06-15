@@ -1,0 +1,120 @@
+# ImageMagick 6.x — legacy line.
+#
+# The current imagemagick.org recipe tracks the 7.x stream (provides
+# `magick` as the unified entry point). Some downstream tools (older
+# PHP-Imagick, Drupal extensions, legacy image-processing pipelines)
+# pin to 6.x because the 7.x API broke compatibility.
+#
+# Companion to brew's `imagemagick@6` formula. Uses the dedicated
+# `ImageMagick/ImageMagick6` upstream repo (separate from main) and
+# only provides the v6 CLI tools (no `magick`).
+#
+# Closes part of pkgxdev/pantry#99 (Top 300 holdout #687).
+
+distributable:
+  # version.tag preserves the dash from the original upstream tag
+  # (e.g. 6.9.13-49); using version.raw + .build would substitute
+  # an empty build segment and produce a 404 URL.
+  url: https://github.com/ImageMagick/ImageMagick6/archive/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: ImageMagick/ImageMagick6
+  # tags are of the form 6.9.13-49 — the `-49` is the build number,
+  # transform `-` to `.` so semver parses cleanly.
+  transform: v => v.replace('-', '.')
+
+dependencies:
+  libpng.org: '*'
+  ijg.org: '*'
+  freetype.org: '*'
+  libjpeg-turbo.org: '*'
+  liblqr.wikidot.com: '*'
+  simplesystems.org/libtiff: '*'
+  gnu.org/libtool: '*'
+  littlecms.com: '*'
+  openexr.com: '*'
+  openjpeg.org: '*'
+  google.com/webp: '*'
+  tukaani.org/xz: '*'
+  sourceware.org/bzip2: '*'
+  gnome.org/libxml2: '*'
+  zlib.net: ^1
+  perl.org: '*'
+  libzip.org: '*'
+  linux:
+    x.org/x11: '*'
+
+runtime:
+  env:
+    MAGICK_HOME: ${{prefix}}
+
+build:
+  script:
+    - sed -i -e 's|${PACKAGE_NAME}-${PACKAGE_BASE_VERSION}|${PACKAGE_NAME}|g' configure
+    - find . -type f -name '*-config.in' -exec sed -i -e 's|@PKG_CONFIG@|pkg-config|g' {} +
+
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+
+    - run: sed -i -e 's|^prefix=.*|prefix=${MAGICK_HOME}|g' Magick++-config MagickCore-config MagickWand-config
+      working-directory: ${{prefix}}/bin
+
+  env:
+    ARGS:
+      - --prefix={{ prefix }}
+      - --libdir={{prefix}}/lib
+      - --enable-osx-universal-binary=no
+      - --disable-silent-rules
+      - --disable-opencl
+      - --enable-static
+      - --disable-installed
+      - --enable-shared
+      - --with-png=yes
+      - --with-tiff=yes
+      - --with-perl=yes
+      - --with-freetype=yes
+      - --with-gvc=no
+      - --with-modules
+      - --with-openjp2
+      - --with-openexr
+      - --with-webp=yes
+      - --with-lqr
+      - --without-lzma
+      - --without-djvu
+      - --without-fftw
+      - --without-pango
+      - --without-wmf
+      - --without-perl
+      - --enable-openmp
+      - --with-zip=yes
+    linux:
+      ARGS:
+        - --with-x=yes
+        - --x-includes={{deps.x.org/x11.prefix}}/include
+        - --x-libraries={{deps.x.org/x11.prefix}}/lib
+    darwin:
+      ARGS:
+        - --without-x
+
+# v6.x tools — no `magick` (that's the v7 unified binary).
+provides:
+  - bin/animate
+  - bin/compare
+  - bin/composite
+  - bin/conjure
+  - bin/convert
+  - bin/display
+  - bin/identify
+  - bin/import
+  - bin/Magick++-config
+  - bin/MagickCore-config
+  - bin/MagickWand-config
+  - bin/mogrify
+  - bin/montage
+  - bin/stream
+
+test:
+  - identify -version | grep "ImageMagick 6"
+  - pkgx curl "https://upload.wikimedia.org/wikipedia/commons/6/6a/PNG_Test.png" -o a.png
+  - identify a.png | grep "a.png PNG"

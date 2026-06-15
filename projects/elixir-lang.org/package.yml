@@ -7,7 +7,9 @@ versions:
   strip: /v/
 
 dependencies:
-  erlang.org: '*'
+  erlang.org: '>=25'
+  linux:
+    gnu.org/gcc/libstdcxx: ">=12" # strangely not picking this up from erlang.org.
 
 build: make install PREFIX="{{prefix}}"
 
@@ -18,23 +20,24 @@ provides:
   - bin/mix
 
 test:
-  script: |
-    elixir --version
-    mkdir test
-    cp $FIXTURE test/test.exs
-    cd test
-    elixir test.exs
+  - elixir --version
+  - run:
+      - cp $FIXTURE test.exs
+      - elixir test.exs
+    working-directory: test
+    fixture: |
+      whichfizz = fn
+        (0, 0, _) -> "FizzBuzz"
+        (0, _, _) -> "Fizz"
+        (_, 0, _) -> "Buzz"
+        (_, _, n) -> n
+      end
+  
+      fizzbuzz = fn (n) ->
+        whichfizz.(rem(n, 3), rem(n, 5), n)
+      end
+  
+      [1, 2, "Fizz", 4, "Buzz", "Fizz", 7, 8, "Fizz", "Buzz"] = Enum.map(1..10, fizzbuzz)
 
-  fixture: |
-    whichfizz = fn
-      (0, 0, _) -> "FizzBuzz"
-      (0, _, _) -> "Fizz"
-      (_, 0, _) -> "Buzz"
-      (_, _, n) -> n
-    end
 
-    fizzbuzz = fn (n) ->
-      whichfizz.(rem(n, 3), rem(n, 5), n)
-    end
 
-    [1, 2, "Fizz", 4, "Buzz", "Fizz", 7, 8, "Fizz", "Buzz"] = Enum.map(1..10, fizzbuzz)

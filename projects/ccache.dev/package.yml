@@ -1,17 +1,22 @@
 distributable:
   url: https://github.com/ccache/ccache/releases/download/{{version.tag}}/ccache-{{version.raw}}.tar.gz
   strip-components: 1
+
 versions:
   github: ccache/ccache
+
 dependencies:
-  github.com/redis/hiredis: '*'
-  facebook.com/zstd: '*'
+  github.com/redis/hiredis: "*"
+  facebook.com/zstd: "*"
+  linux:
+    gnu.org/gcc/libstdcxx: 15
+
 build:
   dependencies:
-    asciidoctor.org: '*'
-    cmake.org: '*'
+    asciidoctor.org: "*"
+    cmake.org: "*"
     linux:
-      llvm.org: '*'
+      gnu.org/gcc: 15
   script:
     - cmake -S . -B build $CMAKE_ARGS
     - cmake --build build
@@ -32,7 +37,7 @@ build:
         for file in "${files_array[@]}"; do
           ln -s ../bin/ccache "$file"
         done
-      working-directory: '{{prefix}}/libexec'
+      working-directory: "{{prefix}}/libexec"
   env:
     CMAKE_ARGS:
       - -DCMAKE_INSTALL_PREFIX="{{prefix}}
@@ -43,14 +48,12 @@ build:
       - -Wno-dev
       - -DBUILD_TESTING=OFF
       - -DENABLE_IPO=TRUE
-    linux:
-      CMAKE_ARGS:
-        - -DCMAKE_C_COMPILER_AR={{deps.llvm.org.prefix}}/bin/llvm-ar
+
 provides:
   - bin/ccache
+
 test:
-  script:
-    - ccache -s
-    - ccache --version | grep {{version.raw}}
-    - export PATH={{prefix}}/libexec:$PATH
-    - command -v clang | grep "{{prefix}}"
+  - ccache -s
+  - ccache --version | grep {{version.raw}}
+  - export PATH={{prefix}}/libexec:$PATH
+  - command -v clang | grep "{{prefix}}"

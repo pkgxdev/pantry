@@ -13,36 +13,43 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Find Issue
-      uses: actions-cool/issues-helper@v3
-      id: find
-      with:
-        actions: 'find-issues'
-        token: ${{ inputs.token }}
-        issue-state: 'open'
-        title-includes: '❌ build issues: ${{ inputs.pkg }}'
-        labels: 'build-failure'
+    # prevent issue storms by randomizing the delay before we check/create
+    # otherwise, if multiple builds fail at once, they will all try to create issues
+    - name: Variable Sleep
+      shell: bash
+      run: sleep $(( RANDOM % 120 ))
 
-    - name: Create Issue
-      uses: actions-cool/issues-helper@v3
-      id: create
-      if: ${{ steps.find.outputs.issues == '[]' }}
-      with:
-        actions: 'create-issue'
-        token: ${{ inputs.token }}
-        title: '❌ build issues: ${{ inputs.pkg }}'
-        body: 'Running log of build failure for ${{ inputs.pkg }}'
-        labels: 'build-failure'
-        assignees: 'jhheider'
+    - name: Find or Create Issue
+      id: issue
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        TITLE: '❌ build issues: ${{ inputs.pkg }}'
+      run: |
+        issue_number=$(gh api --method GET search/issues \
+          -f q="repo:${GITHUB_REPOSITORY} is:issue is:open label:build-failure in:title ${TITLE}" \
+          -f per_page=1 \
+          --jq '.items[0].number // empty')
+
+        if test -z "$issue_number"; then
+          issue_number=$(gh api "repos/${GITHUB_REPOSITORY}/issues" \
+            -f title="$TITLE" \
+            -f body='Running log of build failure for ${{ inputs.pkg }}' \
+            -f labels[]=build-failure \
+            -f assignees[]=jhheider \
+            --jq '.number')
+        fi
+
+        echo "number=$issue_number" >> "$GITHUB_OUTPUT"
 
     - name: Log Comment
-      uses: actions-cool/issues-helper@v3
-      with:
-        actions: 'create-comment'
-        token: ${{ inputs.token }}
-        issue-number: ${{ steps.create.outputs.issue-number || fromJSON(steps.find.outputs.issues)[0].number }}
-        body: |
-          # Build failure
-          ## ${{ inputs.pkg }}
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        ISSUE_NUMBER: ${{ steps.issue.outputs.number }}
+      run: |
+        gh api "repos/${GITHUB_REPOSITORY}/issues/${ISSUE_NUMBER}/comments" \
+          -f body="# Build failure
+        ## ${{ inputs.pkg }}
 
-          logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

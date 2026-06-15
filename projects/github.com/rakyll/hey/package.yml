@@ -1,0 +1,28 @@
+distributable:
+  url: https://github.com/rakyll/hey/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+display-name: hey
+
+versions:
+  github: rakyll/hey
+
+build:
+  dependencies:
+    go.dev: ~1.24
+  script: go build -trimpath -ldflags="$GO_LDFLAGS" -o {{prefix}}/bin/hey .
+  env:
+    GO_LDFLAGS:
+      - -s
+      - -w
+    linux:
+      GO_LDFLAGS:
+        - -buildmode=pie
+
+provides:
+  - bin/hey
+
+test:
+  - (hey 2>&1 || true) | tee out
+  - 'grep "Usage: hey" out'
+  - hey -n 1 -c 1 https://example.com

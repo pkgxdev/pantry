@@ -12,11 +12,28 @@ build:
   dependencies:
     rust-lang.org: '>=1.56'
     rust-lang.org/cargo: '*'
-  script: cargo install --locked --path . --root {{prefix}}
+  script:
+    # linux/aarch64 looks for aarch64-linux-gnu-gcc
+    - run: ln -s "$(command -v clang)" aarch64-linux-gnu-gcc
+      working-directory: $HOME/.local/bin
+      if: linux/aarch64
+    - run: cargo install --locked --path . --root {{prefix}}
+      if: <4
+    - run: cargo install --locked --path dotenv-cli --root {{prefix}}
+      if: '>=4'
+  env:
+    linux/aarch64:
+      PATH: $HOME/.local/bin:$PATH
 
 test:
+  - run: SCHEMA="-s ExtraBlankLine"
+    if: <4
+  - run:
+      - SCHEMA="-i ExtraBlankLine"
+      - CHECK=check
+    if: '>=4'
   # success
-  - run: dotenv-linter $FIXTURE -s ExtraBlankLine
+  - run: dotenv-linter $CHECK $FIXTURE $SCHEMA
     fixture:
       extname: env
       content: |
@@ -24,7 +41,7 @@ test:
         BAR=$BAZ
         FOO=$BAR
   # failure
-  - run: dotenv-linter $FIXTURE >out || true
+  - run: dotenv-linter $CHECK $FIXTURE >out || true
     fixture:
       extname: env
       content: |

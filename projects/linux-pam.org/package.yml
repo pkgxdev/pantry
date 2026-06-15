@@ -9,17 +9,16 @@ platforms:
   - linux
 
 dependencies:
-  github.com/thkukuk/libnsl: '*'
-  sourceforge.net/libtirpc: '*'
-  github.com/besser82/libxcrypt: '*'
+  github.com/thkukuk/libnsl: "*"
+  sourceforge.net/libtirpc: "*"
+  github.com/besser82/libxcrypt: "*"
 
 build:
   dependencies:
-    freedesktop.org/pkg-config: '*'
-    gnu.org/gcc: '*'
-    gnu.org/make: '*'
-    mesonbuild.com: '*' # since 1.7.0
-    ninja-build.org: '*' # since 1.7.0
+    gnu.org/gcc: "*"
+    gnu.org/make: "*"
+    mesonbuild.com: "*" # since 1.7.0
+    ninja-build.org: "*" # since 1.7.0
   script:
     # 1.6.0 is missing an include
     - run: |
@@ -34,48 +33,14 @@ build:
         - make --jobs {{ hw.concurrency }} install
       if: <1.7.0
 
-    # -shared and -pie don't mix
-    - run:
-        - cp $PROP gcc-wrapper
-        - chmod +x gcc-wrapper
-      prop: |
-        #!/bin/bash
-        # Capture all arguments into an array
-        ARGS=("$@")
-
-        # Check if the '-shared' flag is present in the arguments
-        if printf "%s\n" "${ARGS[@]}" | grep -q -e '-shared'; then
-
-          # Use a loop to filter out the '-pie' flag from the arguments
-          FILTERED_ARGS=()
-          for arg in "${ARGS[@]}"; do
-            if [ "$arg" != "-pie" ]; then
-              FILTERED_ARGS+=("$arg")
-            fi
-          done
-
-          # Pass the filtered arguments to gcc
-          exec gcc "${FILTERED_ARGS[@]}"
-        else
-          # Pass the original arguments to gcc
-          exec gcc "${ARGS[@]}"
-        fi
-      working-directory: $HOME/.local/bin
-      if: linux
-
     - run:
         - meson setup build $MESON_ARGS
         - meson compile -C build --verbose
         - meson install -C build
-      if: '>=1.7.0'
+      if: ">=1.7.0"
     - run: sed -i "s|{{prefix}}|\$(dirname \$0)/..|g" pam_namespace_helper
-      working-directory: '{{prefix}}/sbin'
-    - run: find . -name '*.la' -exec rm {} \;
-      working-directory: '{{prefix}}/lib'
+      working-directory: "{{prefix}}/sbin"
   env:
-    linux:
-      PATH: $HOME/.local/bin:$PATH
-      CC: gcc-wrapper
     CONFIGURE_ARGS:
       - --disable-debug
       - --disable-dependency-tracking
@@ -97,6 +62,7 @@ build:
       - -Dsecuredir={{prefix}}/lib/security
       - -Dsysconfdir={{prefix}}/etc
       - -Dxml-catalog={{prefix}}/etc/xml/catalog
+      - -Dvendordir={{prefix}}/share/pam
       - -Dexamples=false
 
 provides:
@@ -108,8 +74,8 @@ provides:
 
 test:
   dependencies:
-    freedesktop.org/pkg-config: '*'
-    gnu.org/gcc: '*'
+    freedesktop.org/pkg-config: "*"
+    gnu.org/gcc: "*"
   script:
     - mkhomedir_helper || echo $? | grep 14
     - pkg-config --modversion pam | grep {{version}}

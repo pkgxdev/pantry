@@ -1,0 +1,98 @@
+# Go toolchain built from the experimental `dev.simd` branch (targeting Go 1.27),
+# which adds the `simd/archsimd` SIMD intrinsics for amd64 (AVX2/AVX-512) AND
+# arm64 (NEON). Lets you build cgo-free, assembly-free SIMD code with
+# `GOEXPERIMENT=simd` before Go 1.27 is released.
+#
+# `dev.simd` is a moving branch with no tags, so each packaged version is a
+# PINNED COMMIT. The version is the commit's committer date as CalVer
+# (YYYY.M.D.HH.MM.SS) — meaningful, monotonic, and parseable (no SemVer
+# pre-release, which brewkit can't parse). The build fetches that exact commit.
+#
+# To add another snapshot: append its CalVer to `versions:` and a matching
+# `<calver>) SHA=<full-40-char-sha> ;;` arm to the case in build.script.
+display-name: Go (dev.simd SIMD intrinsics)
+
+distributable: ~  # no single archive; each version fetches its pinned commit
+
+versions:
+  - 2026.6.1.17.4.35  # go.googlesource.com/go dev.simd @ 0e5948dc (2026-06-01)
+
+# Deliberately NO `provides:` and NO `interprets:`. This package ships bin/go and
+# bin/gofmt just like go.dev, so claiming them here would make the bare `pkgx go`
+# / `.go` interpreter ambiguous between the two. pkgx has no `conflicts:` field;
+# the idiomatic mutual exclusion is to let the canonical `go.dev` own those
+# command/interpreter names and use this experimental toolchain only explicitly:
+#
+#     pkgx +go.dev/dev-simd -- go build ...      # opt-in; never shadows go.dev
+#
+# (`+pkg` puts this package's bin/ on PATH regardless of `provides`.)
+
+dependencies:
+  openssl.org: 1  # for ca-certificates
+
+build:
+  dependencies:
+    curl.se: '*'   # fetch the pinned commit archive
+    gnu.org/m4: 1
+    go.dev: '*'    # bootstrap toolchain
+  working-directory: src
+  # will only segfault if updated with patchelf
+  skip: fix-patchelf
+  script:
+    # version specific data
+    - run:
+      - export SHA=0e5948dc597c831b0c235cc0b3d34fa7587ddd47
+      - export GOVER=go1.27
+      if: 2026.6.1.17.4.35
+    # Map this version -> the dev.simd commit it pins, and fetch that exact
+    # source. GitHub mirrors go.googlesource.com/go; the archive needs the full
+    # 40-char SHA.
+    - run:
+        - curl -Lf "https://github.com/golang/go/archive/${SHA}.tar.gz" | tar xz --strip-components=1
+        # No .git in the archive and dev.simd has no VERSION file, so cmd/dist
+        # can't derive a version; synthesize one (functional toolchain; the
+        # pinned commit above is the real identity of the snapshot).
+        - test -f VERSION || echo "$GOVER" > VERSION
+      working-directory: $SRCROOT
+
+    - ./make.bash
+
+    # cleanup + install the GOROOT
+    - rm -f *.{bash,bat,rc} Make.dist
+    - run: find . -mindepth 1 -exec rm -r {} \;
+      working-directory: ${{ prefix }}
+    - run:
+        - cp -a api bin doc lib misc pkg src test "{{prefix}}"
+        - if test -f go.env; then cp go.env "{{prefix}}"; fi
+        - if test -f VERSION; then cp VERSION "{{prefix}}"; fi
+      working-directory: $SRCROOT
+  env:
+    # `make.bash` complains about unset GOCACHE and HOME otherwise
+    GOCACHE: "$SRCROOT/.gocache"
+    GOROOT_FINAL: ${{ prefix }}
+    GOROOT_BOOTSTRAP: ${{ deps.go.dev.prefix }}
+
+test:
+  env:
+    GOEXPERIMENT: simd  # the whole point of this package
+  script:
+    - mv $FIXTURE $FIXTURE.go
+    # 1) the toolchain works
+    - test "Hello World" = "$(go run $FIXTURE.go)"
+    # 2) the experimental SIMD package is present and builds under the flag
+    - go build -o /dev/null $FIXTURE.go
+  fixture: |
+    package main
+
+    import (
+        "fmt"
+
+        "simd/archsimd"
+    )
+
+    func main() {
+        // Compiles only when the simd intrinsics package exists (GOEXPERIMENT=simd).
+        // AVX2() is defined on every GOARCH (false off amd64), so this is portable.
+        _ = archsimd.X86.AVX2()
+        fmt.Println("Hello World")
+    }

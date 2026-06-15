@@ -8,17 +8,17 @@ versions:
   github: canonical/charmcraft
 
 dependencies:
-  pkgx.sh: ^1
-  libgit2.org: ~1.7
+  pkgx.sh: ">=1"
+  libgit2.org: ~1.9 # as of v4.1.0
 
 build:
   dependencies:
-    python.org: ^3
+    python.org: ~3.13 # limit for v2.7.6
   script:
     - bkpyvenv stage {{prefix}} {{version}}
     - ${{prefix}}/venv/bin/pip install .
     - run: ${{prefix}}/venv/bin/pip install setuptools
-      if: '>=2.7.4'
+      if: ">=2.7.4"
     - bkpyvenv seal {{prefix}} charmcraft
 
 provides:
@@ -26,6 +26,6 @@ provides:
 
 test:
   - run: test "$(charmcraft --version|cut -d' ' -f 2)" = {{version}}
-    if: '>=3'
+    if: ">=3"
   - run: test "$(charmcraft version)" = {{version}}
     if: <3

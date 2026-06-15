@@ -1,21 +1,25 @@
 distributable:
-  url: https://github.com/asciinema/asciinema/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/asciinema/asciinema/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 display-name: asciinema
 
 versions:
-  github: asciinema/asciinema/tags  # reads github tags from github
+  github: asciinema/asciinema
 
 dependencies:
-  python.org: ^3.12
+  python.org: ^3.12 # v2
 
 build:
-  script: python-venv.sh {{prefix}}/bin/asciinema
+  dependencies:
+    rust-lang.org: ^1.75
+  script:
+    - run: python-venv.sh {{prefix}}/bin/asciinema
+      if: <3
+    - run: cargo install --path . --root {{prefix}}
+      if: '>=3'
 
 provides:
   - bin/asciinema
 
-test:
-  script:
-    test "$(asciinema --version)" = "asciinema {{version}}"
+test: test "$(asciinema --version)" = "asciinema {{version}}"

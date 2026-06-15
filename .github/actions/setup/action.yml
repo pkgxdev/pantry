@@ -41,27 +41,28 @@ runs:
       if: runner.os == 'macOS' && inputs.p12-password && inputs.p12-file-base64
       run: security delete-keychain signing_temp.keychain || true
 
-    - uses: apple-actions/import-codesign-certs@v2
+    - uses: apple-actions/import-codesign-certs@v6
       if: runner.os == 'macOS' && inputs.p12-password && inputs.p12-file-base64
       with:
         p12-file-base64: ${{ inputs.p12-file-base64 }}
         p12-password: ${{ inputs.p12-password }}
 
-    # Needed for self-hosted runner, since it doesn't destroy itself automatically.
-    - name: Delete keychain
-      uses: webiny/action-post-run@3.0.0
-      if: runner.os == 'macOS' && inputs.p12-password && inputs.p12-file-base64
-      with:
-        run: security delete-keychain signing_temp.keychain
-
     # the intention is to make none of these required eventually
     - name: apt-get install
       run: |
         SUDO=$(if command -v sudo >/dev/null 2>&1; then echo "sudo"; else echo ""; fi)
-        $SUDO apt-get update && $SUDO apt-get install --yes \
-          netbase \
-          ca-certificates \
-          libc-dev libstdc++-8-dev libgcc-8-dev \
-          libudev-dev
+
+        # As of 2025-07-12, debian:buster needs updates to work
+        if [ -f /etc/debian_version ] && grep -q '^10' /etc/debian_version; then
+          echo "Debian Buster detected, updating apt-get sources."
+          $SUDO sed -i 's/deb\.debian/archive\.debian/g' /etc/apt/sources.list
+
+          echo "Using apt-get to install dependencies."
+          $SUDO apt-get update && $SUDO apt-get install --yes \
+            netbase \
+            ca-certificates \
+            libc-dev libstdc++-8-dev libgcc-8-dev \
+            libudev-dev
+        fi
       shell: bash
       if: runner.os == 'linux'

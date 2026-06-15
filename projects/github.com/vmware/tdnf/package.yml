@@ -1,0 +1,119 @@
+distributable:
+  url: https://github.com/vmware/tdnf/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+display-name: tdnf
+
+versions:
+  github: vmware/tdnf/releases
+
+platforms: [linux] # rpm doesn't support darwin, and patching is a nightmare.
+
+dependencies:
+  rpm.org/rpm: "*"
+  libexpat.github.io: "*"
+  sqlite.org: 3
+  opensuse.org/libsolv: "*"
+  gnupg.org/gpgme: "*"
+  gnupg.org/libgpg-error: "*"
+  openssl.org: ~1.1
+  curl.se: "*"
+
+build:
+  dependencies:
+    cmake.org: ^3
+  working-directory: build
+  script:
+    # tdnf hardcodes /etc paths, patch to use CMAKE_INSTALL_PREFIX
+    - run: sed -i -f $PROP ../CMakeLists.txt
+      prop: |
+        s|set(CMAKE_INSTALL_FULL_SYSCONDIR "/etc")|set(CMAKE_INSTALL_FULL_SYSCONDIR "${CMAKE_INSTALL_PREFIX}/etc")|
+        s|set(SYSCONFDIR /etc)|set(SYSCONFDIR "${CMAKE_INSTALL_PREFIX}/etc")|
+        s|set(MOTGEN_DIR /etc/motdgen.d)|set(MOTGEN_DIR "${CMAKE_INSTALL_PREFIX}/etc/motdgen.d")|
+    - mkdir -p {{prefix}}/etc {{prefix}}/var/lib/tdnf
+    - cmake .. $CMAKE_ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
+  env:
+    CMAKE_ARGS:
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_EXE_LINKER_FLAGS=-ldl
+      - -DCMAKE_SHARED_LINKER_FLAGS=-Wl,-ldl,-lssl,-lcrypto
+      - -DSYSTEMD_DIR={{prefix}}/lib/systemd/system
+      - -DHISTORY_DB_DIR={{prefix}}/var/lib/tdnf
+
+provides:
+  - bin/tdnf
+
+test:
+  # Representative test:
+  #   1. tdnf --version returns the bottle's version
+  #   2. tdnf talks to a real repo end-to-end (download + parse metadata,
+  #      resolve a package) — without root, so it passes on both the
+  #      root x86_64 container and the unprivileged aarch64 runner.
+  #
+  # Notes / prior iterations:
+  #   - no `sudo`, and a read-only `list` rather than `install`: tdnf
+  #     requires root only for mutating commands (install/erase/update),
+  #     so the previous `install` test could only pass as root.
+  #   - tdnf is on PATH from `provides: bin/tdnf`; don't wrap in
+  #     `pkgx tdnf` (trips brewkit's auto-fetch / refuse-to-update).
+  #   - --forcearch needs RPM's `_` form (`{{hw.arch}}` is "x86-64").
+  env:
+    RELEASE: "10"
+    ROOTFS: rocky-${RELEASE}-rootfs
+    x86-64:
+      ARCH: x86_64
+    aarch64:
+      ARCH: aarch64
+  script:
+    - run: 'test "$(tdnf --version)" = "tdnf: {{version}}"'
+      # Seed tdnf.conf + Rocky BaseOS repo file — pkgx runners have
+      # neither /etc/tdnf/tdnf.conf nor /etc/yum.repos.d (no system
+      # tdnf install). Without the conf, tdnf returns error 1602
+      # (CONF_FILE_LOAD). Pass both via --config + --setopt=reposdir.
+    - run: cp $FIXTURE tdnf.conf
+      fixture: |
+        [main]
+        gpgcheck=0
+        installonly_limit=3
+        clean_requirements_on_remove=true
+        best=true
+        keepcache=false
+    - run: cp $FIXTURE rocky.repo
+      working-directory: yum.repos.d
+      fixture: |
+        [rocky-baseos]
+        name=Rocky Linux $releasever BaseOS
+        baseurl=https://download.rockylinux.org/pub/rocky/$releasever/BaseOS/$basearch/os/
+        gpgcheck=0
+        enabled=1
+
+      # `install` carries tdnf's ReqRoot flag (tools/cli/main.c) and
+      # bails with `Error(1601): you have to be root` off any non-root
+      # runner — which is exactly the asymmetry that left x86_64 (root
+      # container) green but aarch64 (unprivileged runner) red. So
+      # exercise the same end-to-end stack with a read-only command,
+      # which tdnf does NOT gate on root: `list available` still does a
+      # live `--refresh` (curl → repomd), parses it (libsolv), opens an
+      # rpmdb in the user-writable installroot (rpm), and resolves a
+      # real package — all into testdir-local install/cache roots.
+      # tdnf only sets CURLOPT_CAINFO when a repo has `sslcacert`
+      # (client/repoutils.c); otherwise libcurl falls back to its
+      # compiled-in default bundle — present in the rooted Rocky
+      # container but absent on the bare Ubuntu runner, where the
+      # refresh dies with `Problem with the SSL CA cert`. Point the
+      # repo at the ca-certs bundle pkgx exposes via $SSL_CERT_FILE.
+    - tdnf
+      --config="$PWD/tdnf.conf"
+      --setopt=reposdir="$PWD/yum.repos.d"
+      --setopt=cachedir="$PWD/cache"
+      --setopt=rocky-baseos.sslcacert="$SSL_CERT_FILE"
+      --installroot="$PWD/${ROOTFS}"
+      --releasever="${RELEASE}"
+      --forcearch="$ARCH"
+      --refresh
+      list available filesystem | tee list.out
+      # tdnf resolved the package out of the live repo metadata.
+    - grep '^filesystem' list.out
