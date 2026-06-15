@@ -17,8 +17,6 @@ dependencies:
   openssl.org: '*'
 
 build:
-  dependencies:
-    freedesktop.org/pkg-config: '*'
   script:
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }}
@@ -35,4 +33,5 @@ provides:
 test:
   # iperf reports its bare upstream version (e.g. "iperf 3.21"); pantry pads
   # the 2-component tag to 3.21.0, so grep the marketing (major.minor) form.
-  script: iperf3 --version 2>&1 | grep {{version.marketing}}
+  - iperf3 --version 2>&1 | tee out
+  - grep {{version.marketing}} out
