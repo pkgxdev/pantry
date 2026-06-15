@@ -18,7 +18,6 @@ build:
     rust-lang.org/rustup: "*"
     cmake.org: ^3.12
     protobuf.dev: "*"
-    freedesktop.org/pkg-config: "*"
     linux:
       llvm.org: ^18 # bindgen needs libclang; RocksDB/grpcio C++ bindings
   script:
@@ -36,14 +35,14 @@ build:
     # path (which needs rust-src + an explicit --target). The libclang/bindgen
     # env must live in the same shell as `make`, so set it inline (linux only —
     # llvm-config comes from the linux-scoped llvm.org dep).
-    - run: |
-        if [ "$(uname -s)" = Linux ]; then
-          export LIBCLANG_PATH="$(llvm-config --libdir)"
-          export BINDGEN_EXTRA_CLANG_ARGS="--sysroot=/ -isystem /usr/include/$(uname -m)-linux-gnu"
-        fi
-        TIKV_FRAME_POINTER=0 make release
+    - run:
+        - export LIBCLANG_PATH="$(llvm-config --libdir)"
+        - export BINDGEN_EXTRA_CLANG_ARGS="--sysroot=/ -isystem /usr/include/$(uname -m)-linux-gnu"
+      if: linux
+    - make release
     - install -D target/release/tikv-server {{prefix}}/bin/tikv-server
   env:
+    TIKV_FRAME_POINTER: 0
     PATH: $HOME/.cargo/bin:$PATH
     # Force openssl-sys to compile AND link against the pinned 1.1 prefix;
     # without this it picked up a stray openssl 3 at link time and failed on
@@ -57,4 +56,5 @@ build:
     ROCKSDB_SYS_SSE: "0"
 
 test:
-  - tikv-server --version | grep {{version}}
+  - tikv-server --version | tee out
+  - grep {{version}} out
