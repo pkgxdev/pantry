@@ -45,6 +45,11 @@ build:
     - install -D target/release/tikv-server {{prefix}}/bin/tikv-server
   env:
     PATH: $HOME/.cargo/bin:$PATH
+    # Force openssl-sys to compile AND link against the pinned 1.1 prefix;
+    # without this it picked up a stray openssl 3 at link time and failed on
+    # the (1.1-only) SSL_get_peer_certificate symbol.
+    OPENSSL_DIR: ${{deps.openssl.org.prefix}}
+    OPENSSL_NO_VENDOR: "1"
 
 test:
   - tikv-server --version | grep {{version}}
