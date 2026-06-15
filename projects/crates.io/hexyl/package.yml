@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/sharkdp/hexyl/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/sharkdp/hexyl/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 provides:
@@ -7,14 +7,14 @@ provides:
 
 versions:
   github: sharkdp/hexyl
-  strip: /^v/
 
 build:
   dependencies:
     rust-lang.org/cargo: '*'
-  script:
-    cargo install --locked --path . --root {{prefix}}
+  script: cargo install --locked --path . --root {{prefix}}
 
-test: |
-  hexyl --version | grep {{version}}
-  echo hi | hexyl | grep -i '68 69'
+test:
+  - hexyl --version | tee out
+  - grep {{version}} out
+  - echo hi | hexyl | tee out
+  - grep -i '68 69' out
