@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/vectordotdev/vector/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/vectordotdev/vector/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 display-name: Vector
@@ -9,7 +9,6 @@ provides:
 
 versions:
   github: vectordotdev/vector
-  strip: /^v/
 
 # vector is a large Rust workspace. We build the upstream `default` feature set
 # (`enable-unix` -> `base`: all sources/sinks/transforms + api + secrets + dnstap),
@@ -24,8 +23,6 @@ build:
     protobuf.dev: '*'
     # rdkafka and other native deps build through cmake.
     cmake.org: '*'
-    # native -sys crates locate system libs via pkg-config.
-    freedesktop.org/pkg-config: '*'
     # required by several openssl/native build scripts.
     perl.org: '*'
   script:
@@ -48,4 +45,5 @@ build:
       LDFLAGS: -Wl,--undefined-version
 
 test:
-  - vector --version | grep {{version}}
+  - vector --version | tee out
+  - grep {{version}} out
