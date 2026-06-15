@@ -1,23 +1,21 @@
 distributable:
-  url: https://github.com/rui314/mold/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/rui314/mold/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
   github: rui314/mold/tags
-  strip: /^v/
 
 # mold is an ELF linker; macOS support (sold/macho) was dropped upstream,
 # so it only builds & runs on Linux. Official release binaries are
 # linux-only (x86_64, aarch64, arm, ppc64le, riscv64, s390x, loongarch64).
 platforms:
-  - linux/x86-64
-  - linux/aarch64
+  - linux
 
 provides:
   - bin/mold
 
 dependencies:
-  gnu.org/gcc/libstdcxx: "*" # the C++20 libstdc++ mold links at runtime
+  gnu.org/gcc/libstdcxx: 14 # the C++20 libstdc++ mold links at runtime
 
 build:
   dependencies:
@@ -40,5 +38,5 @@ build:
       - -DMOLD_USE_MIMALLOC=OFF
 
 test:
-  script:
-    - mold --version | grep {{version}}
+  - mold --version | tee out
+  - grep {{version}} out
