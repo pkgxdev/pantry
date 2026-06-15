@@ -3,12 +3,11 @@
 # to set breakpoints, inspect goroutines, and step through Go programs.
 
 distributable:
-  url: https://github.com/go-delve/delve/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/go-delve/delve/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
   github: go-delve/delve
-  strip: /^v/
 
 provides:
   - bin/dlv
@@ -23,4 +22,6 @@ build:
   # Version comes from constants in pkg/version/version.go, so no -X needed.
   script: go build -trimpath -ldflags "-s -w" -o {{prefix}}/bin/dlv ./cmd/dlv
 
-test: dlv version | grep {{version}}
+test:
+- dlv version | tee out
+- grep {{version}} out
