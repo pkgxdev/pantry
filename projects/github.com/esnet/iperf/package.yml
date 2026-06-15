@@ -1,0 +1,37 @@
+distributable:
+  url: https://github.com/esnet/iperf/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+display-name: iperf3
+
+versions:
+  github: esnet/iperf/tags
+  # tags are bare numeric (e.g. `3.21`); ignore the legacy `iperf-3.x` /
+  # `trunk` / `iperf3` tags by stripping any non-numeric prefix.
+  strip:
+    - /^iperf-/
+
+dependencies:
+  # iperf3 uses OpenSSL for authenticated tests (-A / RSA public-key auth).
+  # configure auto-detects it; we include it for the full feature set.
+  openssl.org: '*'
+
+build:
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --disable-dependency-tracking
+      - --with-openssl={{deps.openssl.org.prefix}}
+
+provides:
+  - bin/iperf3
+
+test:
+  # iperf reports its bare upstream version (e.g. "iperf 3.21"); pantry pads
+  # the 2-component tag to 3.21.0, so grep the marketing (major.minor) form.
+  - iperf3 --version 2>&1 | tee out
+  - grep {{version.marketing}} out
