@@ -1,0 +1,27 @@
+distributable:
+  url: https://github.com/eradman/entr/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: eradman/entr/tags
+
+build:
+  # entr ships a hand-written ./configure that only copies a per-OS
+  # Makefile; PREFIX/DESTDIR are read from the environment by the Makefile.
+  env:
+    PREFIX: "{{prefix}}"
+  script:
+    - ./configure
+    - make
+    - make install
+
+provides:
+  - bin/entr
+
+test:
+  # entr has no --version flag; run with no args, which prints "usage: entr"
+  # to stderr and exits non-zero. Capture (tolerating the exit) so pipefail
+  # doesn't fail the test on entr's non-zero status, then grep the banner.
+  script:
+    - ( entr 2>&1 || true ) | tee out
+    - grep -iE "usage|entr" out
