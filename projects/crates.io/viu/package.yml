@@ -1,0 +1,18 @@
+distributable:
+  url: https://github.com/atanunq/viu/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/viu
+
+versions:
+  github: atanunq/viu
+
+build:
+  dependencies:
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path . --root {{prefix}}
+
+test:
+  - viu --version | tee out
+  - grep {{version}} out
