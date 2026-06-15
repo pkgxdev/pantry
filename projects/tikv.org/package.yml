@@ -50,6 +50,10 @@ build:
     # the (1.1-only) SSL_get_peer_certificate symbol.
     OPENSSL_DIR: ${{deps.openssl.org.prefix}}
     OPENSSL_NO_VENDOR: "1"
+    # Build RocksDB/Titan portable (no -msse4.2): the default FORCE_SSE42 is
+    # x86-only and aborts the arm64 cmake, and a distributed binary shouldn't
+    # bake in host CPU features anyway.
+    ROCKSDB_SYS_PORTABLE: "1"
 
 test:
   - tikv-server --version | grep {{version}}
