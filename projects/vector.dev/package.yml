@@ -1,36 +1,46 @@
-# Vector — a high-performance observability data pipeline: collect,
-# transform and route logs, metrics and traces. We vendor upstream's
-# prebuilt Linux binaries (vectordotdev doesn't publish macOS builds,
-# and a from-source build is a very large Rust compile).
+distributable:
+  url: https://github.com/vectordotdev/vector/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
 
-distributable: ~
-
-versions:
-  github: vectordotdev/vector
-
-platforms:
-  - linux/x86-64
-  - linux/aarch64
-
-warnings:
-  - vendored
-
-build:
-  dependencies:
-    curl.se: "*"
-    gnu.org/tar: "*"
-  env:
-    linux/x86-64:
-      TRIPLE: x86_64-unknown-linux-gnu
-    linux/aarch64:
-      TRIPLE: aarch64-unknown-linux-gnu
-    URL: https://github.com/vectordotdev/vector/releases/download/{{version.tag}}/vector-{{version}}
-  working-directory: ${{prefix}}
-  script: curl -Lf "$URL-${TRIPLE}.tar.gz" | tar xzf - --strip-components=1
-
-test:
-  - vector --version 2>&1 | tee out
-  - grep {{version}} out
+display-name: Vector
 
 provides:
   - bin/vector
+
+versions:
+  github: vectordotdev/vector
+  strip: /^v/
+
+# vector is a large Rust workspace. We build the upstream `default` feature set
+# (`enable-unix` -> `base`: all sources/sinks/transforms + api + secrets + dnstap),
+# which is the canonical binary users expect. We intentionally do NOT add the
+# `vendored`/`gssapi` features used by the official Linux GA artifacts: those
+# statically link cyrus-sasl + krb5 for kafka GSSAPI and require extra system C
+# libs, while upstream itself disables them for plain `cargo build`/`make build`.
+build:
+  dependencies:
+    rust-lang.org/rustup: '*'
+    # protoc: vector's `api`/`protobuf-build` feature drives prost-build/tonic-build.
+    protobuf.dev: '*'
+    # rdkafka and other native deps build through cmake.
+    cmake.org: '*'
+    # native -sys crates locate system libs via pkg-config.
+    freedesktop.org/pkg-config: '*'
+    # required by several openssl/native build scripts.
+    perl.org: '*'
+  script:
+    # Pin to the exact stable channel from rust-toolchain.toml (currently 1.92).
+    - run: ln -sf {{deps.rust-lang.org/rustup.prefix}}/bin/rustup rustup
+      working-directory: $HOME/.cargo/bin
+    - run: rustup default "$(sed -n 's/^channel = "\(.*\)".*/\1/p' $SRCROOT/rust-toolchain.toml)"
+    - run: ln -sf $HOME/.rustup/toolchains/*/bin/* .
+      working-directory: $HOME/.cargo/bin
+
+    - cargo install --path . --root {{prefix}} --locked
+  env:
+    PATH: $HOME/.cargo/bin:$PATH
+    # protoc lives in the protobuf.dev prefix; prost-build/tonic-build honor $PROTOC.
+    PROTOC: ${{deps.protobuf.dev.prefix}}/bin/protoc
+
+test:
+  - vector --version | grep {{version}}
