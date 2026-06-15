@@ -9,7 +9,7 @@ provides:
   - bin/pyenv
 
 dependencies:
-  gnu.org/bash: '*'
+  gnu.org/bash: "*"
 
 build:
   # pyenv is a tree of bash scripts. The optional src/ C "realpath" helper
@@ -26,6 +26,10 @@ runtime:
     PYENV_ROOT: ${{prefix}}
 
 test:
+  # debuggins
+  - bash -c 'echo bash-ok'
+  - bash --version
+  - bash -x -- {{prefix}}/libexec/pyenv --version
   - pyenv --version | tee out
   - grep {{version}} out
   - pyenv commands | tee out
