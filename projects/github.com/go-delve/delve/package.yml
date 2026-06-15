@@ -1,0 +1,27 @@
+# Delve — a debugger for the Go programming language. The `dlv` binary
+# wraps the runtime/ptrace (Linux) and LLDB/debugserver (macOS) backends
+# to set breakpoints, inspect goroutines, and step through Go programs.
+
+distributable:
+  url: https://github.com/go-delve/delve/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: go-delve/delve
+
+provides:
+  - bin/dlv
+
+build:
+  dependencies:
+    go.dev: "*"
+  env:
+    # Core debugger builds pure-Go: Linux native backend uses ptrace,
+    # the cgo darwin native backend is gated behind the `macnative` tag.
+    CGO_ENABLED: 0
+  # Version comes from constants in pkg/version/version.go, so no -X needed.
+  script: go build -trimpath -ldflags "-s -w" -o {{prefix}}/bin/dlv ./cmd/dlv
+
+test:
+- dlv version | tee out
+- grep {{version}} out
