@@ -31,8 +31,9 @@ build:
     - cmake --build build --parallel {{ hw.concurrency }}
     - cmake --install build
   env:
-    CC: "{{deps.gnu.org/gcc.prefix}}/bin/gcc"
-    CXX: "{{deps.gnu.org/gcc.prefix}}/bin/g++"
+    # No CC/CXX override: the gnu.org/gcc dep puts its cc/c++ first on PATH and
+    # cmake detects them as GNU (so it links the shared mold-wrapper correctly).
+    # Forcing CC to an absolute path broke cmake's -shared detection.
     ARGS:
       - -DCMAKE_BUILD_TYPE=Release
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
