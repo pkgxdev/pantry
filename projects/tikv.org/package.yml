@@ -1,0 +1,60 @@
+distributable:
+  url: https://github.com/tikv/tikv/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: tikv/tikv
+
+provides:
+  - bin/tikv-server
+
+dependencies:
+  # openssl-sys links the system openssl; pin 1.1 (its SSL_get_peer_certificate
+  # is dropped from openssl 3's default-visible surface, which failed the link).
+  openssl.org: ^1.1
+
+build:
+  dependencies:
+    rust-lang.org/rustup: "*"
+    cmake.org: ^3.12
+    protobuf.dev: "*"
+    linux:
+      llvm.org: ^18 # bindgen needs libclang; RocksDB/grpcio C++ bindings
+  script:
+    # tikv pins a specific nightly via rust-toolchain.toml; install it through
+    # rustup the same way crates.io/skim handles its pinned toolchain.
+    - run: ln -sf {{deps.rust-lang.org/rustup.prefix}}/bin/rustup rustup
+      working-directory: $HOME/.cargo/bin
+    - run: rustup default "$(sed -n 's/^channel = "\(.*\)".*/\1/p' $SRCROOT/rust-toolchain.toml)"
+    - run: ln -sf $HOME/.rustup/toolchains/*/bin/* .
+      working-directory: $HOME/.cargo/bin
+
+    # `make release` assembles the per-platform feature set (allocator, portable,
+    # sse, mem-profiling) and runs `cargo build --release --no-default-features
+    # --features "$ENABLE_FEATURES"`. TIKV_FRAME_POINTER=0 avoids the -Zbuild-std
+    # path (which needs rust-src + an explicit --target). The libclang/bindgen
+    # env must live in the same shell as `make`, so set it inline (linux only —
+    # llvm-config comes from the linux-scoped llvm.org dep).
+    - run:
+        - export LIBCLANG_PATH="$(llvm-config --libdir)"
+        - export BINDGEN_EXTRA_CLANG_ARGS="--sysroot=/ -isystem /usr/include/$(uname -m)-linux-gnu"
+      if: linux
+    - make release
+    - install -D target/release/tikv-server {{prefix}}/bin/tikv-server
+  env:
+    TIKV_FRAME_POINTER: 0
+    PATH: $HOME/.cargo/bin:$PATH
+    # Force openssl-sys to compile AND link against the pinned 1.1 prefix;
+    # without this it picked up a stray openssl 3 at link time and failed on
+    # the (1.1-only) SSL_get_peer_certificate symbol.
+    OPENSSL_DIR: ${{deps.openssl.org.prefix}}
+    OPENSSL_NO_VENDOR: "1"
+    # Disable the SSE4.2 RocksDB feature. tikv's Makefile only clears it on ARM
+    # via `uname -p`, but on the arm64 runner `uname -p` returns "unknown" (not
+    # "aarch64"), so it left FORCE_SSE42=ON and the arm64 cmake aborted. Off
+    # everywhere also keeps the binary portable (no baked-in host CPU features).
+    ROCKSDB_SYS_SSE: "0"
+
+test:
+  - tikv-server --version | tee out
+  - grep {{version}} out
