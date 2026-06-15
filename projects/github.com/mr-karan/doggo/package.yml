@@ -13,11 +13,11 @@ build:
     go.dev: '*'
   env:
     CGO_ENABLED: 0
-  script: |
-    go build -trimpath -ldflags "-s -w -X main.buildVersion={{version}}" -o {{prefix}}/bin/doggo ./cmd/doggo
+  script: go build -trimpath -ldflags "-s -w -X main.buildVersion={{version}}" -o {{prefix}}/bin/doggo ./cmd/doggo
 
 provides:
   - bin/doggo
 
 test:
-  - doggo --version 2>&1 | grep {{version}}
+  - doggo --version 2>&1 | tee out
+  - grep {{version}} out
