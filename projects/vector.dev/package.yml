@@ -41,6 +41,11 @@ build:
     PATH: $HOME/.cargo/bin:$PATH
     # protoc lives in the protobuf.dev prefix; prost-build/tonic-build honor $PROTOC.
     PROTOC: ${{deps.protobuf.dev.prefix}}/bin/protoc
+    linux:
+      # bundled librdkafka's version script lists rd_ut_coverage_check (a
+      # coverage-only symbol); lld rejects undefined version symbols by default
+      # and broke the arm64 link. Allow them.
+      LDFLAGS: -Wl,--undefined-version
 
 test:
   - vector --version | grep {{version}}
