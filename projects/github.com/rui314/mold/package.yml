@@ -16,9 +16,13 @@ platforms:
 provides:
   - bin/mold
 
+dependencies:
+  gnu.org/gcc/libstdcxx: "*" # the C++20 libstdc++ mold links at runtime
+
 build:
   dependencies:
     cmake.org: "*"
+    gnu.org/gcc: 14 # the runner's default g++ is too old for C++20 (<bit>)
   script:
     # mold needs a C++20 compiler; it bundles its third-party deps
     # (zlib, zstd, blake3, mimalloc, tbb) under third-party/ and pulls
@@ -27,6 +31,8 @@ build:
     - cmake --build build --parallel {{ hw.concurrency }}
     - cmake --install build
   env:
+    CC: "{{deps.gnu.org/gcc.prefix}}/bin/cc"
+    CXX: "{{deps.gnu.org/gcc.prefix}}/bin/c++"
     ARGS:
       - -DCMAKE_BUILD_TYPE=Release
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
