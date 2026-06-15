@@ -1,12 +1,12 @@
 distributable:
   url: git+https://github.com/ollama/ollama
-  ref: v{{version}}
+  ref: ${{version.tag}}
 
 versions:
   github: ollama/ollama
 
 dependencies:
-  curl.se/ca-certs: '*'
+  curl.se/ca-certs: "*"
 
 build:
   dependencies:
@@ -14,17 +14,17 @@ build:
     cmake.org: ^3
     git-scm.org: ^2
     linux:
-      gnu.org/binutils: '*' # objdump needed for 0.5.8
+      gnu.org/binutils: ~2.44 # objdump needed for 0.5.8
   script:
     - run:
         - git submodule init
         - git submodule update
-      if: '>=0.0.18'
+      if: ">=0.0.18"
     # arm64 build bug
     # https://github.com/ollama/ollama/issues/7292#issuecomment-2427773036
     - run: sed -i 's/-D__ARM_FEATURE_MATMUL_INT8//g' llama.go
       working-directory: llama
-      if: '>=0.4.0'
+      if: ">=0.4.0<0.30.0"
     - run:
         - go generate ./...
         - go build -ldflags="$GO_LDFLAGS" -o '{{prefix}}/bin/ollama' .
@@ -32,14 +32,14 @@ build:
     - run:
         - make dist -j {{hw.concurrency}}
         - install -D dist/{{hw.platform}}-*/bin/ollama '{{prefix}}/bin/ollama'
-      if: '>=0.5.2<0.5.8'
+      if: ">=0.5.2<0.5.8"
     - run:
         - cmake -S .. $CMAKE_ARGS
         - cmake --build .
         - cmake --install .
         - go build -ldflags="$GO_LDFLAGS" -o '{{prefix}}/bin/ollama' ../
       working-directory: build
-      if: '>=0.5.8'
+      if: ">=0.5.8"
   env:
     GO_LDFLAGS:
       # versions older than 0.1.30
@@ -49,12 +49,16 @@ build:
     CMAKE_ARGS:
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
       - -DCMAKE_BUILD_TYPE=Release
+      - -DOLLAMA_MLX_BACKENDS=
     linux:
       GO_LDFLAGS:
         # else segfaults
         - -buildmode=pie
+      CMAKE_ARGS:
+        - -DCMAKE_CXX_STANDARD_LIBRARIES=-lstdc++fs
       CGO_LDFLAGS:
         - -lstdc++fs
+      LDFLAGS: $LDFLAGS -lstdc++fs
 
 provides:
   - bin/ollama
@@ -63,7 +67,7 @@ test:
   qa-required: true
   dependencies:
     linux:
-      gitlab.com/procps-ng/procps: '*'
+      gitlab.com/procps-ng/procps: "*"
   script:
     - ollama --version | grep 'client version is {{version}}'
     # 0.0.19 complains about a missing blobs directory

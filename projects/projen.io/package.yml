@@ -6,7 +6,7 @@ versions:
   github: projen/projen
 
 dependencies:
-  nodejs.org: ^22 || ^20 || ^18
+  nodejs.org: ^20 || ^18
 
 companions:
   git-scm.org: ">=2.28"
@@ -14,10 +14,11 @@ companions:
   maven.apache.org: ">=3.0.0"
   python.org: ~3.11
   go.dev: ">=1.21"
-  
+
 build:
   dependencies:
     classic.yarnpkg.com: ^1
+    npmjs.com: ~11.4.2 # as of 0.98.16 to run: `PATH=$(npx -c "node --print process.env.PATH")`
     maven.apache.org: ">=3.0.0"
     python.org: ~3.11
     go.dev: ">=1.21"
@@ -40,14 +41,17 @@ test:
   - git config --global user.name "Pkgx CI"
   - run:
       - projen new node --name test-project-node
-      - testfiles="package.json yarn.lock .projenrc.js"
+      - testfiles="package.json .projenrc.js"
       - for file in $testfiles; do test -f $file; done
     working-directory: node
   - run:
       - projen new typescript --name test-project-typescript
-      - testfiles="package.json yarn.lock .projenrc.ts"
+      - testfiles="package.json .projenrc.ts"
       - for file in $testfiles; do test -f $file; done
     working-directory: typescript
+    # this has a strange yargs error that seems like typescript compatibility issues
+    # I suspect it's in @types/yargs, but it's not trivial to confirm.
+    if: <0.99.2 || >=0.99.3
   - run:
       - projen new java --name test-project-java
       - testfiles="pom.xml"

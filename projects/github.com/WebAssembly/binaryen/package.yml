@@ -1,0 +1,92 @@
+# binaryen — WebAssembly compiler infrastructure and toolchain.
+#
+# Provides wasm-opt (the WebAssembly optimizer), wasm-as / wasm-dis,
+# wasm-merge, wasm2js. Required by emscripten at link time to produce
+# optimized .wasm output.
+#
+# Companion to emscripten.org — adding this here unblocks the
+# emscripten pantry recipe (#13065) which needs wasm-opt on PATH.
+
+distributable:
+  url: https://github.com/WebAssembly/binaryen/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: WebAssembly/binaryen
+  strip: /^version_/
+
+build:
+  dependencies:
+    cmake.org: ^3
+    python.org: "*"
+    linux:
+      gnu.org/gcc: 14 # for its modern libstdc++ headers — Nix-style
+  working-directory: build
+  script:
+    # binaryen 129's IR code uses std::set::contains / std::map::contains
+    # (added in C++20). Three earlier iters tried CMAKE_CXX_STANDARD=20,
+    # then CMAKE_CXX_FLAGS=-std=c++20, then CXXFLAGS=...-std=c++20 — none
+    # stuck. The real issue (nixpkgs's binaryen recipe ships an EMPTY
+    # cmakeFlags and works fine): clang ends up picking up the host's
+    # /usr/include/c++/12/ libstdc++ headers (Ubuntu 22.04, gcc 12),
+    # whose `<set>` / `<map>` don't expose `contains` even at -std=c++20
+    # because the host's libstdc++ predates the back-port.
+    #
+    # Fix the way Nix's cc-wrapper does it: prepend pkgx-gcc's libstdc++
+    # include dir via -isystem so clang resolves <set>/<map> against
+    # gcc 16's libstdc++ (which DOES expose contains via the
+    # __cpp_lib_set_contains feature-test macro).
+    - run:
+        # gcc's libstdc++ headers live at $prefix/include/c++/<version>
+        # (e.g. /opt/gnu.org/gcc/v16.1.0/include/c++/16.1.0/). Glob to
+        # find the actual version directory.
+        - for d in "$GCC_PFX"/include/c++/*; do
+        - test -d "$d" && CXX_INC="$d" && break
+        - done
+        - export CXXFLAGS="${CXXFLAGS:-} -isystem $CXX_INC"
+        # Static-link libstdc++ + libgcc into libbinaryen.so so the
+        # resulting binaries don't depend on the host's libstdc++.so.6
+        # at runtime. Without this, wasm-opt fails to start on Ubuntu
+        # 22.04 with `version 'GLIBCXX_3.4.31' not found` (pkgx gcc 16's
+        # libstdc++ is ABI-newer than what the runner ships).
+      if: linux
+    - cmake .. $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
+  env:
+    linux:
+      GCC_PFX: "{{deps.gnu.org/gcc.prefix}}"
+      LDFLAGS: "$LDFLAGS -static-libstdc++ -static-libgcc"
+    ARGS:
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DBUILD_TESTS=OFF
+      # Don't disable DWARF — binaryen's CMakeLists only adds the
+      # third_party/llvm-project/include to the search path when
+      # BUILD_LLVM_DWARF=ON, but `suffix_tree.h` includes
+      # `llvm/Support/Allocator.h` unconditionally. With DWARF OFF
+      # the build hits "Allocator.h: No such file" on every TU that
+      # transitively pulls suffix_tree.h. Net binary cost: ~2 MB
+      # extra in wasm-opt; worth it for a clean build.
+      # - -DBUILD_LLVM_DWARF=OFF
+
+provides:
+  - bin/wasm-opt
+  - bin/wasm-as
+  - bin/wasm-dis
+  - bin/wasm-merge
+  - bin/wasm2js
+  - bin/wasm-emscripten-finalize
+  - bin/wasm-ctor-eval
+  - bin/wasm-metadce
+  - bin/wasm-reduce
+  - bin/wasm-shell
+  - bin/wasm-split
+
+test:
+  # wasm-opt's --version output format has shifted across versions
+  # (older: "wasm-opt version_129"; newer: "wasm-opt 129.0"). Just
+  # verify the binary runs and prints something matching our raw
+  # numeric version, on either stream.
+  - wasm-opt --version 2>&1 | tee out
+  - grep -i "{{version.major}}" out

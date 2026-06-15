@@ -13,9 +13,9 @@ dependencies:
 build:
   dependencies:
     python.org: ~3.10
-    classic.yarnpkg.com: '*'
+    yarnpkg.com: ">=4.12" # per package.json, v18.0.3
     linux:
-      gnu.org/gcc: '*'
+      gnu.org/gcc: "*"
   script:
     - mkdir -p "{{prefix}}"
 
@@ -30,9 +30,10 @@ build:
     - run: BUILD_CMD="build-ci"
       if: <6
     - run: BUILD_CMD="build"
-      if: '>=6'
+      if: ">=6"
 
     - run: yarn $BUILD_CMD
+      if: <18.0.1
       working-directory: packages/eas-json/
 
     - yarn $BUILD_CMD

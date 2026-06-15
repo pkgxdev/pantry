@@ -1,0 +1,22 @@
+# Popeye — a Kubernetes cluster sanitizer: scans live clusters (and manifests) for misconfigurations, grouped by resource.
+
+distributable:
+  url: https://github.com/derailed/popeye/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: derailed/popeye
+
+build:
+  dependencies:
+    go.dev: "*"
+  env:
+    CGO_ENABLED: 0
+  script: go build -trimpath -ldflags "-s -w -X github.com/derailed/popeye/cmd.version={{version.tag}}" -o "{{prefix}}/bin/popeye" .
+
+test:
+  - popeye version 2>&1 | tee out
+  - grep {{version}} out
+
+provides:
+  - bin/popeye

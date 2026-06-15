@@ -1,0 +1,20 @@
+--- a/mdb.c
++++ b/mdb.c
+@@ -129,7 +129,7 @@
+ #elif defined(__APPLE__) || defined (BSD) || defined(__FreeBSD_kernel__)
+ # define MDB_USE_POSIX_SEM	1
+ # if defined(__APPLE__)
+-#  define MDB_FDATASYNC		fcntl(fd, F_FULLFSYNC)
++#  define MDB_FDATASYNC(fd)	fcntl(fd, F_FULLFSYNC)
+ # else
+ #  define MDB_FDATASYNC		fsync
+ # endif
+@@ -2586,7 +2586,7 @@ mdb_env_sync(MDB_env *env, int force)
+ #if defined(_WIN32) || defined(__APPLE__)
+ 			else if (flags == MS_SYNC && MDB_FDATASYNC(env->me_fd))
+ 				rc = ErrCode();
+-#endif
++#endif
+ 		} else {
+ #ifdef BROKEN_FDATASYNC
+ 			if (env->me_flags & MDB_FSYNCONLY) {

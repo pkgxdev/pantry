@@ -1,0 +1,46 @@
+distributable:
+  url: https://codeberg.org/mergiraf/mergiraf/archive/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  # No support for codeberg api yet, so we use a regex match on the raw json api.
+  url: https://codeberg.org/api/v1/repos/mergiraf/mergiraf/releases
+  match: /"tag_name":"v\d+\.\d+\.\d+"/
+
+  strip:
+    - /^"tag_name":"v/
+    - /"$/
+
+build:
+  dependencies:
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path . --root {{prefix}}
+
+provides:
+  - bin/mergiraf
+
+test:
+  - test "$(mergiraf --version)" = "mergiraf {{version}}"
+  - run: |
+      mergiraf solve $FIXTURE
+      test "$(cat $FIXTURE)" = 'restaurant:
+        tasks:
+          plates: 1
+          bowls: 4'
+    fixture:
+      extname: yml
+      content: |
+        <<<<<<< HEAD
+        restaurant:
+          tasks:
+            plates: 1
+            bowls: 2
+        ||||||| 15b798c
+        tasks:
+          plates: 1
+          bowls: 2
+        =======
+        tasks:
+          plates: 1
+          bowls: 4
+        >>>>>>> origin/main

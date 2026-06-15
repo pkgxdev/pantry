@@ -17,22 +17,35 @@ dependencies:
   protobuf.dev: ^21
   zlib.net: ^1.2
   facebook.com/zstd: ^1
-  curl.se: '>=6.0'
+  curl.se: ">=6.0"
   thrysoee.dk/editline: ^3
   developers.yubico.com/libfido2: ^1
   linux:
     # llvm cannot find #include <bit>
-    # use our libstdc++ instead
-    gnu.org/gcc/libstdcxx: 14
+    # use our libstdc++ instead.
+    #
+    # IMPORTANT: keep this in sync with the build-time `gnu.org/gcc`
+    # version below — if build uses gcc 16 but runtime ships libstdcxx
+    # 14, mysqld ends up referencing GLIBCXX_3.4.35 symbols (gcc 16
+    # only) that the runtime libstdc++.so.6 (gcc 14) doesn't expose,
+    # and `mysqld --no-defaults --help` at install-test time fails
+    # with `version 'GLIBCXX_3.4.35' not found (required by mysqld)`.
+    # nixpkgs solves this structurally via cc-wrapper auto-propagating
+    # stdenv.cc.cc.lib into RUNPATH; arch via lockstep rebuild of
+    # gcc-libs with every gcc bump. We don't have either, so the two
+    # version constraints must literally match.
+    gnu.org/gcc/libstdcxx: ^14
 
 build:
   dependencies:
     cmake.org: ^3
-    gnu.org/bison: '>=3.0.4'
+    gnu.org/bison: ">=3.0.4"
     linux:
       # llvm cannot find #include <bit>
-      # use our libstdc++ instead
-      gnu.org/gcc: '*'
+      # use our libstdc++ instead.
+      # Pin to the same major as runtime libstdcxx above so the
+      # binary's GLIBCXX_3.4.x symver references resolve at runtime.
+      gnu.org/gcc: ^14
   working-directory: build
   script:
     # https://www.mail-archive.com/ports@freebsd.org/msg00418.html
@@ -46,7 +59,7 @@ build:
     # Call Stack (most recent call first):
     # CMakeLists.txt:1742 (MYSQL_CHECK_ZLIB)
     - run: export ARGS="$(echo $ARGS | sed 's/WITH_ZLIB=system/WITH_ZLIB=bundled/g')"
-      if: '>=8.0.33<8.0.38'
+      if: ">=8.0.33<8.0.38"
 
     - run: export ARGS="$ARGS -DCMAKE_C_STANDARD=17"
       if: ^8.4
@@ -134,11 +147,11 @@ provides:
 test:
   dependencies:
     gnu.org/coreutils: ^9
-    pkgx.sh: ^1
+    npmjs.com: "*"
   script:
     - mkdir -p mysql tmp
     - mysqld --no-defaults --initialize-insecure --user=$USER --datadir=$PWD/mysql --tmpdir=$PWD/tmp
-    - PORT=$(pkgx get-port | tail -n1)
+    - PORT=$(npx --yes get-port-cli | tail -n1)
     - mysqld --no-defaults --user=$USER --datadir=$PWD/mysql --port=$PORT --tmpdir=$PWD/tmp &
     - sleep 5
     - mysql --port=$PORT --user=root --password= --execute='show databases;'

@@ -1,0 +1,36 @@
+# nvitop — interactive NVIDIA-GPU process viewer.
+#
+# Curses-style top-like UI over the NVIDIA Management Library
+# (NVML). Pure-Python (no compiled bits); installs cleanly into a
+# python venv. ~7k stars upstream, frequently asked for —
+# closes pkgxdev/pantry#6879.
+#
+# Linux + darwin both supported by the package itself. nvitop will
+# print "No NVIDIA driver detected" on hosts without GPUs, which
+# is the expected behaviour; we don't try to gate on driver presence.
+
+distributable:
+  url: https://github.com/XuehaiPan/nvitop/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: XuehaiPan/nvitop
+
+dependencies:
+  python.org: '>=3.8'
+
+build:
+  - bkpyvenv stage {{prefix}} {{version}}
+  - ${{prefix}}/venv/bin/pip install .
+  - bkpyvenv seal {{prefix}} nvitop
+
+provides:
+  - bin/nvitop
+
+test:
+  # `nvitop --version` works without an NVIDIA driver present — it
+  # short-circuits before touching libnvidia-ml. `--help` is the
+  # same way. The CI sandbox has no GPU, so the interactive UI can't
+  # actually be tested here.
+  - nvitop --version
+  - nvitop --version 2>&1 | grep "{{version}}"

@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/google/glog/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/google/glog/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
@@ -7,15 +7,15 @@ versions:
   strip: /^v/
 
 dependencies:
-  gflags.github.io: '*'
+  gflags.github.io: ~2.2
 
 build:
   dependencies:
     cmake.org: '*'
-  script: |
-    cmake -S . -B build -G "Unix Makefiles" $ARGS
-    cmake --build build
-    cmake --build build --target install
+  script:
+    - cmake -S . -B build -G "Unix Makefiles" $ARGS
+    - cmake --build build
+    - cmake --build build --target install
   env:
     ARGS:
       - -DCMAKE_INSTALL_PREFIX={{prefix}}

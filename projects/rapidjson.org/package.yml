@@ -1,23 +1,20 @@
 distributable:
-  url: https://github.com/Tencent/rapidjson/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/Tencent/rapidjson/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
   github: Tencent/rapidjson/tags
-  strip: /^v/
 
 build:
   dependencies:
-    cmake.org: '*'
+    cmake.org: 3
     doxygen.nl: 1
-  script: |
-    cmake . $ARGS
-    sed -i.bak \
-        -e "s/-march=native//" \
-        -e "s/-Werror//" \
-        CMakeLists.txt
-    rm CMakeLists.txt.bak
-    make . install
+    gnu.org/patch: "*"
+  script:
+    - patch -p1 < props/gcc-clang.patch
+    - cmake . $ARGS
+    - sed -i -e "s/-march=native//" -e "s/-Werror//" CMakeLists.txt
+    - make . install
   env:
     ARGS:
       - -DCMAKE_BUILD_TYPE=Release
@@ -25,6 +22,5 @@ build:
       - -DRAPIDJSON_BUILD_EXAMPLES=OFF
 
 test:
-  script: |
-    c++ ./capitalize.cpp -o capitalize
-    test $(echo '{"a":"b"}' | ./capitalize) = '{"A":"B"}'
+  - c++ ./capitalize.cpp -o capitalize
+  - test $(echo '{"a":"b"}' | ./capitalize) = '{"A":"B"}'

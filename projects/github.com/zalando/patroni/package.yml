@@ -1,0 +1,35 @@
+distributable:
+  # NB: the project moved from zalando/patroni to patroni/patroni (community fork).
+  # GitHub redirects the old path, but we pin the canonical one.
+  url: https://github.com/patroni/patroni/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: patroni/patroni
+  ignore:
+    - /-(rc|alpha|beta)\d/
+
+dependencies:
+  pkgx.sh: ">=1"
+  postgresql.org: "*" # patroni invokes pg_ctl, pg_rewind, pg_basebackup, pg_controldata
+  # DCS backends — users pick one (etcd is the most common default):
+  # etcd.io: '*'
+  # consul.io: '*'
+  # zookeeper.apache.org: '*'
+  psycopg.org/psycopg2: "*" # patroni's Python code depends on psycopg2
+
+build:
+  dependencies:
+    python.org: ^3.9
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} patroni patronictl
+
+test:
+  - test "$(patroni --version)" = "patroni {{version}}"
+  - test "$(patronictl version)" = "patronictl version {{version}}"
+
+provides:
+  - bin/patroni
+  - bin/patronictl

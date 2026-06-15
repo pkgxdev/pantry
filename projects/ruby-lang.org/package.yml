@@ -14,35 +14,48 @@ dependencies:
 
 build:
   dependencies:
-    freedesktop.org/pkg-config: ^0.29
     gnu.org/gettext: ^0.21
-    gnu.org/patch: '*'
+    gnu.org/patch: "*"
     gnu.org/bison: ^3
-    gnu.org/autoconf: '*'
+    gnu.org/autoconf: "*"
     rust-lang.org: ^1 # required to build YJIT
+    rsync.samba.org: "*" # v4 fixes
     linux:
       ruby-lang.org: ^3 # ruby requires ruby to build
+      rubygems.org: "*"
       # ^^ only linux because we got issues on darwin currently and darwin provides ruby (for now)
   script:
+    - run: ARGS="$ARGS --with-sitearchdir={{prefix}}/lib/ruby/site_ruby"
+      if: <4
+    # gets topdir prefix bc enable-load-relative. in v4
+    - run: ARGS="$ARGS --with-sitearchdir=/lib/ruby/site_ruby"
+      if: ">=4"
+
     - patch -p1 -F5 < props/mkconfig.rb.diff
 
     - CC=cc CXX=c++ ./configure $ARGS
 
     # clang17 doesn't like [[maybe_unused]] on types
     # fix cribbed from https://github.com/ruby/ruby/pull/4603/commits/fbdff085ef3c8a56e0a33404e8795879e3167549
-    - run: |
-        if test -f maybe_unused.h; then
-          sed -i -e 's/elif RBIMPL_HAS_C_ATTRIBUTE(maybe_unused)/elif RBIMPL_HAS_C_ATTRIBUTE(maybe_unused) \&\& (__STDC_VERSION__ >= 202000L)/' maybe_unused.h
-        fi
+    - run:
+        - if test -f maybe_unused.h; then
+        - sed -i -e 's/elif RBIMPL_HAS_C_ATTRIBUTE(maybe_unused)/elif RBIMPL_HAS_C_ATTRIBUTE(maybe_unused) \&\& (__STDC_VERSION__ >= 202000L)/' maybe_unused.h
+        - fi
       if: linux
       working-directory: include/ruby/internal/attr
 
     # ^3.1.4 can't find rubygems without help on linux
-    - run: |
-        if test "{{hw.platform}}" = "linux"; then
-          sed -i "s_^RUBYLIB.*=.*\$_RUBYLIB = ${RUBYLIB}_" uncommon.mk
-        fi
-      if: '>=3.1.4<3.2'
+    - run:
+        - if test "{{hw.platform}}" = "linux"; then
+        - sed -i "s_^RUBYLIB.*=.*\$_RUBYLIB = ${RUBYLIB}_" uncommon.mk
+        - fi
+      if: ">=3.1.4<3.2"
+    # back in 4.0.0
+    - run:
+        - if test "{{hw.platform}}" = "linux"; then
+        - sed -i "s_^RUBYLIB.*=.*\$_RUBYLIB = ${RUBYLIB}_" common.mk
+        - fi
+      if: ">=4"
 
     - make install
 
@@ -59,32 +72,35 @@ build:
     # pkgenv. Ruby behaves well if gems isn't around but the user may get
     # unexpected errors in scenarios where they constructed an pkgenv manually
     - working-directory: ${{prefix}}/lib/ruby/{{version.marketing}}.0
-      run: |
-        for x in bundler rubygems bundler.rb rubygems.rb; do
-          if test -d $x; then
-            rm -rf $x
-          else
-            rm -f $x
-          fi
-        done
-        rm -rf ../gems/3.2.0/gems/bundler-*.*.*
+      run:
+        - |
+          for x in bundler rubygems bundler.rb rubygems.rb; do
+            if test -d $x; then
+              rm -rf $x
+            else
+              rm -f $x
+            fi
+          done
+        - rm -rf ../gems/3.2.0/gems/bundler-*.*.*
 
-    - run: |
-        rm -rf share/ri
-        rm -rf share/doc
-        rm -rf lib/ruby/site_ruby
-        rm -rf lib/ruby/vendor_ruby
+    - run:
+        - rm -rf share/ri
+        - rm -rf share/doc
+        - rm -rf lib/ruby/site_ruby
+        - rm -rf lib/ruby/vendor_ruby
       working-directory: ${{prefix}}
 
     # weirdly files get put here and we can't figure out how to stop it
-    - run: |
-        if test -d pkgconfig; then rm -rf pkgconfig; fi
-        if test -d *-{{hw.platform}}* ; then
-          mv *-{{hw.platform}}*/* .
-          rmdir *-{{hw.platform}}*
-        fi
+    - run:
+        - if test -d pkgconfig; then rm -rf pkgconfig; fi
+        - |
+          if test -d *-{{hw.platform}}* ; then
+            mv *-{{hw.platform}}*/* .
+            rmdir *-{{hw.platform}}*
+          fi
       working-directory: ${{prefix}}/lib
-      if: '>=2.6'
+      if: ">=2.6"
+
     - run: |
         if test *-{{hw.platform}}*/bin/ruby ; then
           unlink bin/ruby
@@ -93,15 +109,48 @@ build:
           rmdir *-{{hw.platform}}*
         fi
       working-directory: ${{prefix}}
-      if: '>=3.4'
+      if: ">=3.4"
 
-    - run: sed -i
-        -e 's|$(DESTDIR){{prefix}}|$(topdir)|g'
-        -e 's|CONFIG\["topdir"\] = .*|CONFIG\["topdir"\] = TOPDIR|g'
-        -e 's|CONFIG\["INSTALL"\] =.*|CONFIG\["INSTALL"\] = "/usr/bin/install"|g'
-        -e 's|CONFIG\["MJIT_CC"\] =.*|CONFIG\["MJIT_CC"\] = "/usr/bin/cc"|g'
-        rbconfig.rb
+    # v4 is adding {{prefix}}/{{prefix}}, oddly.
+    - run:
+        - if test -d include; then rsync include/ {{prefix}}/include/ -a; fi
+        # rbconfig.rb has a nil ref issue
+        # rbconfig.rb:310:in 'RbConfig.expand': undefined method 'gsub' for nil (NoMethodError)
+        # from ~/.pkgx/ruby-lang.org/v4.0.0/lib/ruby/4.0.0/rbconfig.rb:328:in 'block in <module:RbConfig>'
+        - sed -i -f $PROP lib/ruby/{{version.marketing}}.0/rbconfig.rb
+        - if test -d lib; then rsync lib/ {{prefix}}/lib/ -a; fi
+        - cd ..
+        # this './' is IMPORTANT
+        - rm -rf ./{{prefix}}
+      prop: |
+        /def RbConfig::expand/a\
+            val = val || ''
+      if: ">=4"
+      working-directory: ${{prefix}}/{{prefix}}
+
+    - run: sed -i -f $PROP rbconfig.rb
+      prop: |
+        s|$$(DESTDIR){{prefix}}|$$(topdir)|g
+        s|CONFIG\["prefix"\] = .*|CONFIG\["prefix"\] = KEGDIR|g
+        s|CONFIG\["topdir"\] = .*|CONFIG\["topdir"\] = KEGDIR\n  CONFIG["kegdir"] = KEGDIR\n  CONFIG["sitearchdir"] = File.join(KEGDIR, "lib", "ruby", "site_ruby", File.basename(File.dirname(__FILE__)))|g
+        s|CONFIG\["bindir"\] = .*|CONFIG\["bindir"\] = File.join(KEGDIR, "bin")|g
+        s|CONFIG\["sysconfdir"\] = .*|CONFIG\["sysconfdir"\] = File.join(KEGDIR, "etc")|g
+        s|CONFIG\["rubyhdrdir"\] = .*|CONFIG\["rubyhdrdir"\] = File.join(KEGDIR, "include")|g
+        s|CONFIG\["rubyarchhdrdir"\] = .*|CONFIG\["rubyarchhdrdir"\] = File.join(KEGDIR, "include")|g
+        s|CONFIG\["rubylibprefix"\] = .*|CONFIG\["rubylibprefix"\] = File.join(KEGDIR, "lib", "ruby")|g
+        s|CONFIG\["rubylibdir"\] = .*|CONFIG\["rubylibdir"\] = File.join(KEGDIR, "lib", "ruby", File.basename(File.dirname(__FILE__)))|g
+        s|CONFIG\["archdir"\] = .*|CONFIG\["archdir"\] = File.join(KEGDIR, "lib", "ruby", File.basename(File.dirname(__FILE__)))|g
+        s|CONFIG\["rubyarchdir"\] = .*|CONFIG\["rubyarchdir"\] = File.join(KEGDIR, "lib", "ruby", File.basename(File.dirname(__FILE__)))|g
+        s|CONFIG\["sitehdrdir"\] = .*|CONFIG\["sitehdrdir"\] = File.join(KEGDIR, "include", "site_ruby")|g
+        s|CONFIG\["vendorhdrdir"\] = .*|CONFIG\["vendorhdrdir"\] = File.join(KEGDIR, "include", "vendor_ruby")|g
+        s|CONFIG\["INSTALL"\] =.*|CONFIG\["INSTALL"\] = "/usr/bin/install"|g
       working-directory: ${{prefix}}/lib/ruby/{{version.marketing}}.0
+
+    - run: |
+        sed -i -e 's|CONFIG\["MJIT_CC"\] =.*|CONFIG\["MJIT_CC"\] = "/usr/bin/cc"|g' rbconfig.rb
+      if: "<4"
+      working-directory: ${{prefix}}/lib/ruby/{{version.marketing}}.0
+
   env:
     CFLAGS: $CFLAGS -Wno-implicit-function-declaration
     ARGS:
@@ -114,13 +163,12 @@ build:
       - --disable-multiarch # ^^
       - --with-vendordir=no # is empty so don’t pollute
       - --with-vendorarchdir=no # ^^
-      - --with-sitearchdir=no # ^^
       - --enable-yjit # https://github.com/pkgxdev/pantry/issues/3538
       - --disable-install-doc
 
 test:
   dependencies:
-    rubygems.org: '*' # is a companion __however__ brewkit doesn’t add companions to the test env automatically
+    rubygems.org: "*" # is a companion __however__ brewkit doesn’t add companions to the test env automatically
   script:
     - ruby -e 'puts "Hello World!"'
 
@@ -161,6 +209,45 @@ test:
           puts fib(35)
         extname: rb
 
+    # Verify all RbConfig::CONFIG paths are correctly relocated at runtime.
+    # Expected values are derived independently from the actual location of
+    # rbconfig.rb itself (<keg>/lib/ruby/<version>/rbconfig.rb), 4 levels up,
+    # so this test is self-contained and doesn't rely on any of the values it's testing.
+    - run: ruby $FIXTURE
+      fixture:
+        extname: rb
+        content: |
+          require 'rbconfig'
+          rbconfig_path = $LOADED_FEATURES.grep(/rbconfig\.rb$/).first
+          kegdir = File.expand_path("../../../..", rbconfig_path)
+          v = File.basename(File.dirname(rbconfig_path))
+          errors = []
+          {
+            "prefix"         => kegdir,
+            "kegdir"         => kegdir,
+            "topdir"         => kegdir,
+            "bindir"         => File.join(kegdir, "bin"),
+            "sysconfdir"     => File.join(kegdir, "etc"),
+            "rubyhdrdir"     => File.join(kegdir, "include"),
+            "rubyarchhdrdir" => File.join(kegdir, "include"),
+            "rubylibprefix"  => File.join(kegdir, "lib", "ruby"),
+            "rubylibdir"     => File.join(kegdir, "lib", "ruby", v),
+            "rubyarchdir"    => File.join(kegdir, "lib", "ruby", v),
+            "archdir"        => File.join(kegdir, "lib", "ruby", v),
+            "sitearchdir"    => File.join(kegdir, "lib", "ruby", "site_ruby", v),
+            "sitehdrdir"     => File.join(kegdir, "include", "site_ruby"),
+            "vendorhdrdir"   => File.join(kegdir, "include", "vendor_ruby"),
+            "INSTALL"        => "/usr/bin/install",
+          }.each do |key, expected|
+            actual = RbConfig::CONFIG[key]
+            errors << "#{key} — expected #{expected.inspect}, got #{actual.inspect}" unless actual == expected
+          end
+          if RbConfig::CONFIG["MJIT_CC"]
+            errors << "MJIT_CC — expected \"/usr/bin/cc\", got #{RbConfig::CONFIG["MJIT_CC"].inspect}" unless RbConfig::CONFIG["MJIT_CC"] == "/usr/bin/cc"
+          end
+          abort errors.join("\n") unless errors.empty?
+          puts "RbConfig OK"
+
 provides:
   - bin/erb
   - bin/irb
@@ -174,4 +261,4 @@ interprets:
   args: ruby
 
 companions:
-  rubygems.org: '*'
+  rubygems.org: "*"

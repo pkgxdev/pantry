@@ -1,0 +1,38 @@
+# KEDA — Kubernetes Event-Driven Autoscaling (CNCF graduated).
+#
+# Scales K8s deployments based on event sources (Kafka, RabbitMQ,
+# Prometheus, AWS SQS, GitHub Actions queue, etc.) rather than just
+# CPU/memory. Ships operator + adapter pods.
+#
+# This recipe builds the binaries; in practice you deploy via Helm.
+
+distributable:
+  url: https://github.com/kedacore/keda/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: kedacore/keda
+
+build:
+  dependencies:
+    go.dev: "*"
+  env:
+    CGO_ENABLED: 0
+    GO_LDFLAGS:
+      - -s
+      - -w
+      - -X github.com/kedacore/keda/v2/version.Version={{ version.tag }}
+  script:
+    - mkdir -p {{prefix}}/bin
+    - for cmd in operator adapter webhooks; do
+    - if [ ! -d "cmd/$cmd" ]; then continue; fi
+    - go build -trimpath -ldflags "$GO_LDFLAGS" -o "{{prefix}}/bin/keda-$cmd" "./cmd/$cmd"
+    - done
+
+test:
+  - keda-operator --help
+
+provides:
+  - bin/keda-operator
+  - bin/keda-adapter
+  - bin/keda-webhooks

@@ -14,7 +14,11 @@ build:
     rust-lang.org: '>=1.60'
     rust-lang.org/cargo: '*'
     freedesktop.org/pkg-config: ^0.29
-  script: cargo install --locked --path . --root {{prefix}}
+  script:
+    - run: cargo install --locked --path . --root {{prefix}}
+      if: <0.54
+    - run: cargo install --locked --path crates/pixi --root {{prefix}}
+      if: '>=0.54'
 
 provides:
   - bin/pixi

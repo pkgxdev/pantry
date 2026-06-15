@@ -1,0 +1,46 @@
+# MoltenVK — Vulkan→Metal translation layer for Apple platforms.
+#
+# Implements a subset of the Vulkan API by translating to Apple's
+# Metal API. Required for running Vulkan apps (games, GPU compute,
+# Blender, etc.) on macOS.
+#
+# Closes part of pkgxdev/pantry#99 (Top 300 holdout #599).
+
+distributable:
+  url: https://github.com/KhronosGroup/MoltenVK/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: KhronosGroup/MoltenVK
+
+# macOS-only — Metal doesn't exist elsewhere.
+platforms:
+  - darwin
+
+build:
+  dependencies:
+    cmake.org: "*"
+    python.org: "*" # external dep fetch scripts use python
+  script:
+    # MoltenVK fetches its own external deps (SPIRV-Cross, glslang,
+    # cereal) via fetchDependencies. This is part of the upstream
+    # build flow; pkgx pantry's `external` git submodules approach
+    # would also work but is more invasive.
+    - ./fetchDependencies --macos
+    - make macos
+    - mkdir -p "{{prefix}}/lib" "{{prefix}}/include"
+    - cp -R Package/Release/MoltenVK/dynamic/dylib/macOS/* "{{prefix}}/lib/"
+    - cp -R Package/Release/MoltenVK/include/* "{{prefix}}/include/"
+
+test:
+  - run: cc $FIXTURE -o test -lMoltenVK
+    fixture:
+      extname: c
+      content: |
+        #include <stdio.h>
+        #include <MoltenVK/mvk_vulkan.h>
+
+        int main() {
+          printf("Hello, world!");
+        }
+  - test "$(./test)" = "Hello, world!"

@@ -8,18 +8,19 @@ versions:
 build:
   dependencies:
     cmake.org: ^3
-    freetype.org: '*'
+    freetype.org: "*"
+    python.org: ">=3.6"
   working-directory: build
-  script: |
-    cmake .. -DCMAKE_INSTALL_PREFIX={{prefix}} -DCMAKE_BUILD_TYPE=Release
-    make --jobs {{ hw.concurrency }} install
+  script:
+    - cmake .. -DCMAKE_INSTALL_PREFIX={{prefix}} -DCMAKE_BUILD_TYPE=Release
+    - make --jobs {{ hw.concurrency }} install
 
 provides:
   - bin/gr2fonttest
 
 test:
   dependencies:
-    gnu.org/wget: '*'
-  script: |
-    wget https://scripts.sil.org/pub/woff/fonts/Simple-Graphite-Font.ttf
-    gr2fonttest Simple-Graphite-Font.ttf 'abcde'
+    gnu.org/wget: "*"
+  script:
+    - wget https://scripts.sil.org/pub/woff/fonts/Simple-Graphite-Font.ttf
+    - gr2fonttest Simple-Graphite-Font.ttf 'abcde'

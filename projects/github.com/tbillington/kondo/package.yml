@@ -1,0 +1,25 @@
+distributable:
+  url: https://github.com/tbillington/kondo/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/kondo
+
+versions:
+  github: tbillington/kondo
+
+build:
+  dependencies:
+    rust-lang.org: ">=1.89"
+    rust-lang.org/cargo: "*"
+  script: cargo install --locked --path kondo --root {{prefix}}
+
+test:
+  dependencies:
+    npmjs.com: "*"
+  script:
+    - kondo --help
+    - npm i express
+    - test -d node_modules/express
+    - kondo -a .
+    - test ! -d node_modules

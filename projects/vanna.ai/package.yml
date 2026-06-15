@@ -18,35 +18,35 @@ runtime:
 
 build:
   dependencies:
-    rust-lang.org: ^1.80
-    rust-lang.org/cargo: <0.83
+    rust-lang.org: ^1.85
+    rust-lang.org/cargo: ^0.90
   script:
     - python -m pip install . --prefix={{prefix}}
     # additional requirements as of 0.1.0
     - run: python -m pip install openai mistralai --prefix={{prefix}}
-      if: '>=0.1'
+      if: ">=0.1"
     # additional requirements as of 0.2.0
     - run: python -m pip install chromadb python-dotenv onnxruntime --prefix={{prefix}}
-      if: '>=0.2'
+      if: ">=0.2"
     # additional requirements as of 0.3.0
     - run: python -m pip install anthropic --prefix={{prefix}}
-      if: '>=0.3'
+      if: ">=0.3"
     # additional requirements as of 0.4.0
     - run: python -m pip install google-generativeai --prefix={{prefix}}
-      if: '>=0.4'
+      if: ">=0.4"
     # additional requirements as of 0.4.1
     - run: python -m pip install qdrant-client fastembed --prefix={{prefix}}
-      if: '>=0.4.1'
+      if: ">=0.4.1"
     # additional requirements as of 0.6.1
     - run: python -m pip install 'pymilvus[model]' --prefix={{prefix}}
-      if: '>=0.6.1'
+      if: ">=0.6.1"
     # protobuf ^5.27 (transient dep) currently not playing nicely with other components
     - run: |
         rm -rf ${{prefix}}/lib/python{{deps.python.org.version.marketing}}/site-packages/proto
         python -m pip install proto-plus==1.24.0.dev1 --prefix={{prefix}}
-      if: '>=0.6.0'
+      if: ">=0.6.0"
     # safetensors needs to rebuilt for headerpad_max_install_names on darwin
-    - run: 'python -m pip install --no-deps --force-reinstall --no-cache-dir -v --no-binary :all: --prefix={{prefix}} safetensors'
+    - run: "python -m pip install --no-deps --force-reinstall --no-cache-dir -v --no-binary :all: --prefix={{prefix}} safetensors"
       if: darwin
 
     - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
@@ -57,12 +57,21 @@ build:
       CXX: clang++
       LD: clang
     darwin:
+      RUSTFLAGS: -C link-args=-Wl,-headerpad_max_install_names
       LDFLAGS:
+        - $LDFLAGS
         - -Wl,-headerpad_max_install_names
 
 test:
   dependencies:
-    curl.se: '*'
+    curl.se: "*"
+    astral.sh/uv: "*"
   script:
-    - curl -LO "https://raw.githubusercontent.com/vanna-ai/vanna/{{ version.tag }}/tests/test_imports.py"
-    - python test_imports.py
+    - run:
+        - curl -LO "https://raw.githubusercontent.com/vanna-ai/vanna/{{ version.tag }}/tests/test_imports.py"
+        - python test_imports.py
+      if: <2
+    - run:
+        - curl -LO "https://raw.githubusercontent.com/vanna-ai/vanna/{{ version.tag }}/tests/test_database_sanity.py"
+        - uv run --with pytest test_database_sanity.py
+      if: ">=2"

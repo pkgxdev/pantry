@@ -1,47 +1,73 @@
 distributable:
-  url: https://ftp.gnu.org/gnu/gcc/gcc-{{version.raw}}/gcc-{{ version.raw }}.tar.xz
-  strip-components: 1
+  - url: https://ftp.gnu.org/gnu/gcc/gcc-{{version.raw}}/gcc-{{ version.raw }}.tar.xz
+    strip-components: 1
+  # Pre-5.5 gcc only published .tar.bz2 / .tar.gz; needed for cascade to
+  # glibc 2.17 (which empirically wants gcc ~7.5 to build cleanly).
+  - url: https://ftp.gnu.org/gnu/gcc/gcc-{{version.raw}}/gcc-{{ version.raw }}.tar.gz
+    strip-components: 1
+  - url: https://ftp.gnu.org/gnu/gcc/gcc-{{version.raw}}/gcc-{{ version.raw }}.tar.bz2
+    strip-components: 1
 
 versions:
   github: gcc-mirror/gcc/tags
   strip: /^releases\/gcc-/
 
+# NOTE: pkgx today ships 10.5 – 16.1. Older gcc (5–9) is required to
+# build glibc 2.17 – 2.26 (HPC / manylinux2014 / RHEL 7-8) because
+# glibc’s rtld sources emit relocation forms newer binutils ld reject
+# in shared/PIE mode, and modern gcc’s default code-gen choices (PIC
+# semantics, code-model defaults) conflict with old glibc build
+# assumptions. The empirically-validated cascade (linux/aarch64 and
+# linux/x86-64) is documented in projects/gnu.org/glibc/README.md.
+
 dependencies:
-  gnu.org/binutils: '*' # linker needs `as`
-  gnu.org/gmp: '>=4.2'
-  gnu.org/mpfr: '>=2.4.0'
-  gnu.org/mpc: '>=0.8.0'
+  gnu.org/binutils: "*" # linker needs `as`
+  gnu.org/gmp: ">=4.2"
+  gnu.org/mpfr: ">=2.4.0"
+  gnu.org/mpc: ">=0.8.0"
   zlib.net: ^1.3
+  darwin/x86-64: # since 15.1.0
+    libisl.sourceforge.io: ^0
 
 build:
   dependencies:
     linux:
-      gnu.org/gcc: '*'
-    gnu.org/make: '*'
-    perl.org: '^5.6.1'
-    gnu.org/patch: '*'
-    curl.se: '*'
-    github.com/westes/flex: '*'
-    darwin/x86-64: # since 15.1.0
-      libisl.sourceforge.io: ^0
+      gnu.org/gcc: 14
+    gnu.org/make: "*"
+    perl.org: "^5.6.1"
+    gnu.org/patch: "*"
+    curl.se: "*"
+    github.com/westes/flex: "*"
   working-directory: build
   script:
     # Applying ians patches on x86-64 too, since he sometimes gets fixes in faster, like:
     # https://github.com/orgs/Homebrew/discussions/5216
     # If we have a patch, apply it
-    - run: |
-        if test -n "$PATCH{{version.major}}{{version.minor}}"; then
-          curl "$PATCH{{version.major}}{{version.minor}}" | patch -p1
-        fi
+    - run:
+        - if test -n "$PATCH{{version.major}}{{version.minor}}"; then
+        - curl "$PATCH{{version.major}}{{version.minor}}" | patch -p1
+        - fi
       if: darwin
       working-directory: ..
 
     # if there's no diff yet, unpack iains' source over ours
-    - run: |
-        if test -n "$BRANCH{{version.major}}{{version.minor}}"; then
-          curl -L "$BRANCH{{version.major}}{{version.minor}}" | tar xz --strip-components=1
-        fi
-      if: darwin
+    - run:
+        - if test -n "$BRANCH{{version.major}}{{version.minor}}"; then
+        - curl -L "$BRANCH{{version.major}}{{version.minor}}" | tar xz --strip-components=1
+        - fi
+      if: darwin/aarch64
+      working-directory: ..
+
+    - run:
+        - if test "{{hw.platform}}/{{hw.arch}}" = "darwin/x86-64"; then
+        # Apply CFI directive fix for x86-64 Darwin (LLVM assembler compatibility)
+        - patch -p1 < props/disable-cfi-x86-64-darwin.patch
+        # Disable MS ABI stubs on Darwin - not needed and causes CFI/LLVM assembler issues
+        - sed -i 's/ i386\/t-msabi//g' libgcc/config.host
+        # Remove old frame registration symbols from darwin-unwind.ver (GCC 15+ doesn't provide these)
+        - patch -p1 < props/remove-old-frame-symbols-darwin.patch
+        - fi
+      if: "^14.2 || >=15.2"
       working-directory: ..
 
     # The spaces mess things up in the env key
@@ -51,34 +77,118 @@ build:
     - run: export ARGS=("${ARGS[@]}" --with-boot-ldflags="-static-libstdc++ -static-libgcc $LDFLAGS")
       if: linux
 
+    # PIE-by-default linux flags were added across gcc versions:
+    #   --enable-default-pie : gcc 6+
+    #   --enable-pie-tools   : gcc 9+
+    #   --enable-host-pie    : gcc 13+
+    # Add each only when the gcc version supports it, so older gcc
+    # (used in the HPC cascade to build glibc 2.17/2.24) doesn't fail
+    # configure with "unrecognized option".
+    - run: |
+        if [ {{version.major}} -ge 6 ];  then ARGS=("${ARGS[@]}" --enable-default-pie); fi
+        if [ {{version.major}} -ge 9 ];  then ARGS=("${ARGS[@]}" --enable-pie-tools); fi
+        if [ {{version.major}} -ge 13 ]; then ARGS=("${ARGS[@]}" --enable-host-pie); fi
+        export ARGS
+      if: linux
+
+    # For old gcc (< 10) used in the HPC bootstrap cascade, also disable
+    # LTO and the linker plugin. Both load shared objects that mix libc
+    # versions across host ld-linux and the bottle's libc at link time.
+    # Modern gcc bottles (>= 10) keep LTO enabled.
+    - run: ARGS=("${ARGS[@]}" --disable-lto --disable-plugin); export ARGS
+      if: "<10"
+
+    # Bake mpc / mpfr / gmp / zlib RUNPATH into all linked binaries so
+    # the built gcc + cc1 / cc1plus run without requiring
+    # LD_LIBRARY_PATH at runtime.
+    - run: |
+        DEPRP="{{deps.gnu.org/mpc.prefix}}/lib:{{deps.gnu.org/mpfr.prefix}}/lib:{{deps.gnu.org/gmp.prefix}}/lib:{{deps.zlib.net.prefix}}/lib"
+        export LDFLAGS="$LDFLAGS -Wl,-rpath,$DEPRP -Wl,-rpath-link,$DEPRP"
+      if: linux
+
+    # needed to get the LDFLAGS to libgfortran on darwin
+    # for -headerpad_max_install_names
+    - run: export LDFLAGS_FOR_TARGET="$LDFLAGS"
+      if: darwin
+
     - ../configure "${ARGS[@]}"
     - make --jobs {{ hw.concurrency }}
     - make install
+
+    # For old-gcc bottles intended to participate in the HPC cascade
+    # (gcc 5–9 used to build glibc 2.17–2.26), strip the era-mismatched
+    # include-fixed/bits/* files that gcc's install-time fixincludes
+    # generated from the host's modern glibc headers. They reference
+    # symbols (openat2, statx-flags-bits, ...) absent in the old glibc
+    # this gcc will build. Also strip the zlib-compressed .debug_info
+    # from libgcc/crt so very old binutils ld can read them.
+    # No-op for current gcc bottles (>= 10).
+    - run: |
+        if [ {{version.major}} -lt 10 ]; then
+          for d in {{prefix}}/lib/gcc/*/{{version.raw}}/include-fixed; do
+            [ -d "$d/bits" ] || continue
+            mv "$d/bits" "$d/bits.disabled-by-pantry" || true
+            mkdir -p "$d/bits"
+          done
+          find {{prefix}}/lib/gcc -name 'libgcc*.a' -o -name 'crt*.o' 2>/dev/null | while read f; do
+            {{deps.gnu.org/binutils.prefix}}/bin/strip --strip-debug "$f" 2>/dev/null || true
+          done
+        fi
+      if: linux
+
+    # fixincludes can emit a malformed stdio.h against newer macOS SDKs,
+    # leaving FILE, fpos_t, and size_t undefined for downstream builds.
+    - run:
+        - for hdr in lib/gcc/*/*/include-fixed/stdio.h; do
+        - if ! grep -q 'extern FILE \*__stdinp' "$hdr" || grep -q '#include <_stdio.h>' "$hdr"; then continue; fi
+        - sed -i -f $PROP "$hdr"
+        - done
+      prop: |
+        /#define .*STDIO/a\
+        #include <stddef.h>\
+        #include <_stdio.h>
+      if: darwin
+      working-directory: ${{prefix}}
 
     # Since we depend on ourselves, this symlink might already exist
     - run: test -f gc++ || ln -sf c++ gc++
       working-directory: ${{prefix}}/bin
 
-    # On Linux, we need to move the libraries to the lib directory.
-    - run: |
-        mv lib64/* lib/
-        rmdir lib64
-      if: linux
-      working-directory: ${{prefix}}
-
     # other tools simply expect these symlinks and often fail without them
     # NOTE forcing symlinks because we build with ourselves and sometimes that
     # means we're building with the exact same version FIXME
-    - run: |
-        ln -sf gcc cc
-        ln -sf ../../../binutils/v\*/bin/ar ar
-        ln -sf ../../../binutils/v\*/bin/nm nm
-        ln -sf ../../../binutils/v\*/bin/ranlib ranlib
+    - run:
+        - ln -sf gcc cc
+        - ln -sf ../../../binutils/v\*/bin/ar ar
+        - ln -sf ../../../binutils/v\*/bin/nm nm
+        - ln -sf ../../../binutils/v\*/bin/ranlib ranlib
       working-directory: ${{prefix}}/bin
 
-    # .la archives aren't relocatable
-    - run: find . -name '*.la' -exec rm {} \;
+    # fixup the signatures on libgcc_s on darwin x86-64
+    - run:
+        - if test -f libgcc_s.1.1.dylib; then
+        - codesign --remove-signature libgcc_s.1.1.dylib || true
+        - codesign -s - --force libgcc_s.1.1.dylib
+        - fi
+        - if test -f libgcc_s.1.dylib; then
+        - codesign --remove-signature libgcc_s.1.dylib || true
+        - codesign -s - --force libgcc_s.1.dylib
+        - fi
+      if: darwin/x86-64
       working-directory: ${{prefix}}/lib
+
+    # Many Linux build systems (autoconf, distutils/setuptools, pip
+    # build backends) probe for the Debian-style multi-arch triplet
+    # binary names ($arch-linux-gnu-gcc, etc.) before falling back to
+    # plain `gcc`. Without these, pip-install of C-extension Python
+    # wheels fails on Ubuntu/Debian rootfs even when gcc IS on PATH.
+    # See pkgxdev/pantry#8423.
+    - run:
+        - for tool in gcc g++ cpp c++ ar nm ranlib; do
+        - if test -e "$tool"; then ln -sf "$tool" "$TRIPLET-$tool"; fi
+        - done
+      if: linux
+      working-directory: ${{prefix}}/bin
 
   env:
     # Branch from the Darwin maintainer of GCC, with a few generic fixes and
@@ -91,12 +201,18 @@ build:
     BRANCH115: https://github.com/iains/gcc-11-branch/archive/refs/tags/gcc-11.5-darwin-r0.tar.gz
     BRANCH123: https://github.com/iains/gcc-12-branch/archive/refs/tags/gcc-12.3-darwin-r0.tar.gz
     BRANCH124: https://github.com/iains/gcc-12-branch/archive/refs/heads/gcc-12-4-darwin.tar.gz
+    # no branch for 12.5
+    BRANCH125: https://github.com/iains/gcc-12-branch/archive/refs/heads/gcc-12-4-darwin.tar.gz
     BRANCH132: https://github.com/iains/gcc-13-branch/archive/refs/heads/gcc-13-2-darwin.tar.gz
     BRANCH133: https://github.com/iains/gcc-13-branch/archive/refs/heads/gcc-13-3-darwin.tar.gz
+    BRANCH134: https://github.com/iains/gcc-13-branch/archive/refs/heads/gcc-13-4-darwin-p0.tar.gz
     BRANCH141: https://github.com/iains/gcc-14-branch/archive/refs/heads/gcc-14-1-darwin.tar.gz
     BRANCH142: https://github.com/iains/gcc-14-branch/archive/refs/heads/gcc-14-2-darwin.tar.gz
     BRANCH143: https://github.com/iains/gcc-14-branch/archive/refs/heads/gcc-14-3-darwin-pre-0.tar.gz
     BRANCH151: https://github.com/iains/gcc-15-branch/archive/refs/heads/gcc-15-1-darwin-rc1.tar.gz
+    BRANCH152: https://github.com/iains/gcc-15-branch/archive/refs/heads/gcc-15-2-darwin-pre-0.tar.gz
+    BRANCH153: https://github.com/iains/gcc-darwin-arm64/archive/refs/heads/master-wip-apple-si-on-r15-9392-g711c10383f494b.tar.gz
+    BRANCH161: https://github.com/iains/gcc-darwin-arm64/archive/refs/heads/master-wip-apple-si-on-r16-8803-g376d03b7b44da2.tar.gz
     ARGS:
       - --prefix={{ prefix }}
       - --libdir={{ prefix }}/lib
@@ -108,9 +224,6 @@ build:
     linux:
       ARGS:
         - --disable-multilib
-        - --enable-default-pie
-        - --enable-pie-tools
-        - --enable-host-pie
     linux/x86-64:
       LDFLAGS:
         - -pie
@@ -121,6 +234,7 @@ build:
         - -fPIC
         - -fPIE
     darwin:
+      LDFLAGS: $LDFLAGS -Wl,-headerpad_max_install_names
       ARGS:
         # Reliance on CLT hard path is yuck.
         - --with-sysroot=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
@@ -138,21 +252,37 @@ build:
         - -Wa,-mmacos-version-min=10.5
       CFLAGS_FOR_TARGET:
         - -Wa,-mmacos-version-min=10.5
+        # 15.3+ libgcc2.c v* overflow funcs emit `.cfi_advance_loc` symdiffs
+        # across abort() noreturn edges that LLVM's integrated `as` rejects
+        # with "invalid CFI advance_loc expression". Emit unwind via .eh_frame
+        # instead of inline .cfi_* asm directives.
+        - -fno-dwarf2-cfi-asm
       CXXFLAGS_FOR_TARGET:
         - -Wa,-mmacos-version-min=10.5
+        - -fno-dwarf2-cfi-asm
+    # triplets for linux
+    x86-64:
+      TRIPLET: x86_64-linux-gnu
+    aarch64:
+      TRIPLET: aarch64-linux-gnu
 
 test:
   - gcc --version | grep -q "pkgx GCC {{version}}"
   - gcc -print-libgcc-file-name
   - gcc -print-multiarch
-  - gcc -dumpspecs
-  # gha mac runners have broken SDKs...
-  - run: |
-      if ! test -f /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/AvailabilityInternalLegacy.h; then
-        echo "Missing SDK; skipping remaining tests"
-        exit 0
-      fi
+  # some gha mac runners have broken SDKs...
+  - run:
+      - if ! test -f /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/AvailabilityInternalLegacy.h || ! test -f ; then
+      - echo "Missing SDK; skipping remaining tests"
+      - exit 0
+      - fi
     if: darwin
+  - run:
+      - if test "{{hw.platform}}" = "darwin" && test ! -f /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/_bounds.h ; then
+      - echo "Missing SDK; skipping remaining tests"
+      - exit 0
+      - fi
+    if: "^14.2 || >=15.2"
   - gcc -o test1 test.c -lgmp
   - ./test1
   - g++ -o test2 test.cc
@@ -175,6 +305,5 @@ provides:
   - bin/gcov-dump
   - bin/gcov-tool
   - bin/gfortran
-  - bin/lto-dump
   - bin/nm
   - bin/ranlib

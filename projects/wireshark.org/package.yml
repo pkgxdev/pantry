@@ -1,12 +1,14 @@
 distributable:
   url: https://www.wireshark.org/download/src/all-versions/wireshark-{{version}}.tar.xz
   strip-components: 1
+
 versions:
   url: https://www.wireshark.org/download/src/all-versions/
   match: /wireshark-\d+\.\d+\.\d+\.tar\.xz/
   strip:
     - /^wireshark-/
     - /\.tar\.xz/
+
 dependencies:
   c-ares.org: ^1.23
   gnome.org/glib: ^2.78.3
@@ -21,11 +23,12 @@ dependencies:
   github.com/xiph/speexdsp: ^1.2.1
   tcpdump.org: ^1.10.4
   gnome.org/libxml2: ^2.12.3
+
 build:
   dependencies:
-    cmake.org: '*'
-    gnu.org/bison: '*'
-    github.com/westes/flex: '*'
+    cmake.org: "*"
+    gnu.org/bison: "*"
+    github.com/westes/flex: "*"
     python.org: ^3.11
     perl.org: 5
   script:
@@ -62,6 +65,7 @@ build:
     linux:
       CMAKE_ARGS:
         - -DLUA_LIBRARY={{deps.lua.org.prefix}}/lib/liblua.so
+
 provides:
   - bin/capinfos
   - bin/captype
@@ -76,8 +80,25 @@ provides:
   - bin/sharkd
   - bin/text2pcap
   - bin/tshark
+
 test:
-  - c++ -std=c++11 -o test test.cpp
-  - ./test | grep {{version}}
-  - randpkt -b 100 -c 2 capture.pcap
-  - capinfos -Tmc capture.pcap | grep 'capture.pcap,2'
+  dependencies:
+    gnu.org/sed: "*"
+  script:
+    - run: cp $FIXTURE test.cpp
+      fixture: |
+        #include <stdio.h>
+        #include <wireshark/ws_version.h>
+
+        int main() {
+            printf("%d.%d.%d", WIRESHARK_VERSION_MAJOR, WIRESHARK_VERSION_MINOR,
+                    WIRESHARK_VERSION_MICRO);
+            return 0;
+        }
+    # darwin only changed at v4.7.0 for some reason
+    - run: if test "{{hw.platform}}" = "darwin"; then sed -i 's|wireshark/||' test.cpp; fi
+      if: ">=4.7.0"
+    - c++ -std=c++11 -o test test.cpp
+    - ./test | grep {{version}}
+    - randpkt -b 100 -c 2 capture.pcap
+    - capinfos -Tmc capture.pcap | grep 'capture.pcap,2'

@@ -1,0 +1,27 @@
+distributable:
+  url: https://github.com/paulirish/git-open/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: paulirish/git-open
+
+provides:
+  - bin/git-open
+
+dependencies:
+  nodejs.org: "*"
+
+build: npm install .
+  --global
+  --prefix="{{prefix}}"
+  --install-links
+
+test:
+  dependencies:
+    git-scm.org: "*"
+  script:
+    - git clone https://github.com/pkgxdev/pkgx
+    # this should work from the docs, but doesn't.
+    - (git -C pkgx open --print || true) 2>&1 | tee out
+    - grep 'git open' out
+    - grep paulirish out

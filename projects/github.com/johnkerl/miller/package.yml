@@ -1,0 +1,22 @@
+# Miller (mlr) — like awk/sed/cut/join/sort for CSV, TSV, JSON and other structured data.
+
+distributable:
+  url: https://github.com/johnkerl/miller/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: johnkerl/miller
+
+build:
+  dependencies:
+    go.dev: "*"
+  env:
+    CGO_ENABLED: 0
+  script: go build -trimpath -ldflags "-s -w" -o "{{prefix}}/bin/mlr" ./cmd/mlr
+
+test:
+  - mlr version 2>&1 | tee out
+  - grep {{version}} out
+
+provides:
+  - bin/mlr

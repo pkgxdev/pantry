@@ -10,17 +10,19 @@ dependencies:
 
 build:
   dependencies:
-    gnu.org/autoconf: '*'
-  script: |
-    ./autogen.sh
-    ./configure --prefix={{prefix}}
-    make
-    make install
+    gnu.org/autoconf: "*"
+  script:
+    # hexedit is a TUI with no --version flag; patch one in for testing
+    - run: sed -i -f $PROP hexedit.c
+      prop: |
+        /streq(\*argv, "-s")/i\
+            if (streq(*argv, "-V") || streq(*argv, "--version")) { puts("hexedit {{version}}"); exit(0); } else
+    - ./autogen.sh
+    - ./configure --prefix={{prefix}}
+    - make
+    - make install
 
-test:
-  true
-  # FIXME: curses tool, no --version, --help is exit code 1
-  # hexedit -h
+test: test "$(hexedit --version)" = "hexedit {{version}}"
 
 provides:
   - bin/hexedit

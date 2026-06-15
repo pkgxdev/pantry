@@ -1,0 +1,26 @@
+distributable:
+  url: https://github.com/notaryproject/notation/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: notaryproject/notation/releases
+
+build:
+  dependencies:
+    go.dev: "*"
+  env:
+    CGO_ENABLED: 0
+    GO_LDFLAGS:
+      - -s
+      - -w
+      - -X github.com/notaryproject/notation/internal/version.Version={{ version.tag }}
+      - -X github.com/notaryproject/notation/internal/version.BuildMetadata=pkgx
+  script: go build -trimpath -ldflags "$GO_LDFLAGS" -o "{{prefix}}/bin/notation" ./cmd/notation
+  skip: fix-patchelf
+
+test:
+  - notation version 2>&1 | tee out
+  - grep {{ version.tag }} out
+
+provides:
+  - bin/notation

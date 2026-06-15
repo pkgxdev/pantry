@@ -1,0 +1,33 @@
+#!/usr/bin/env sh
+set -eu
+
+self="$(realpath "$0")"
+real="$(dirname "$self")/../libexec/protoc"
+
+# extract abseil soversion from ELF NEEDED entries
+# e.g. [libabsl_die_if_null.so.2501.0.0] → 2501
+soversion=$(readelf -d "$real" 2>/dev/null \
+  | grep -o 'libabsl[^]]*\.so\.[0-9]*' \
+  | head -1 \
+  | sed 's/.*\.so\.//')
+
+if [ -z "${soversion:-}" ]; then
+  exec "$real" "$@"
+fi
+
+# soversion YYMM → abseil.io version range >=20YYMM00<20YYNN00
+yy="${soversion%??}"
+mm="${soversion#${yy}}"
+mm=$(expr "$mm" + 0)
+
+lower=$(printf '20%s%02d00' "$yy" "$mm")
+
+next_mm=$(expr "$mm" + 1)
+next_yy="$yy"
+if [ "$next_mm" -gt 12 ]; then
+  next_mm=1
+  next_yy=$(printf '%02d' "$(expr "${yy#0}" + 1)")
+fi
+upper=$(printf '20%s%02d00' "$next_yy" "$next_mm")
+
+exec pkgx +"abseil.io>=${lower}<${upper}" "$real" "$@"

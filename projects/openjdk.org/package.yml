@@ -6,6 +6,8 @@ distributable:
     strip-components: 1
   - url: https://github.com/openjdk/jdk11u/archive/{{version.tag}}.tar.gz
     strip-components: 1
+  - url: https://github.com/openjdk/jdk8u/archive/{{version.tag}}.tar.gz
+    strip-components: 1
 
 versions:
   # each repo contains all the prior repo tags at the time of the fork,
@@ -17,6 +19,10 @@ versions:
     transform: 'v => v.match(/jdk-17\.0\./) ? v.replace(/\+/, ".").replace(/^jdk-/, "") : undefined'
   - github: openjdk/jdk11u/tags
     transform: 'v => v.match(/jdk-11\.0\./) ? v.replace(/\+/, ".").replace(/^jdk-/, "") : undefined'
+  # v8 uses tags like jdk8u452-b09, which should be 8.0.452.09
+  # it also have no darwin/aarch64 support, which we'll need to accept.
+  - github: openjdk/jdk8u/tags
+    transform: 'v => v.match(/jdk8u/) ? v.replace("jdk", "").replace("u", ".0.").replace("-b", ".") : undefined'
 
 interprets:
   extensions: java
@@ -58,27 +64,28 @@ build:
     freedesktop.org/pkg-config: '*'
     gnu.org/wget: '*'
   script:
-    - run: |
-        BOOT_JDK_VERSION="${BOOT_JDK{{version.major}}_VERSION}"
-        BOOT_JDK_MAJOR=$(echo "${BOOT_JDK_VERSION}" | grep -o '^[0-9]\+')
-        BOOT_JDK_URL="https://github.com/adoptium/temurin${BOOT_JDK_MAJOR}-binaries/releases/download/jdk-${BOOT_JDK_VERSION}/OpenJDK${BOOT_JDK_MAJOR}U-jdk_${BOOT_JDK_ARCH}_hotspot_${BOOT_JDK_VERSION//+/_}.tar.gz"
-        wget -c "${BOOT_JDK_URL}" -O - | tar xz -C . --strip-components=1
-        unset BOOT_JDK_VERSION BOOT_JDK_MAJOR BOOT_JDK_URL
+    - run:
+        - BOOT_JDK_VERSION="${BOOT_JDK{{version.major}}_VERSION}"
+        - BOOT_JDK_MAJOR=$(echo "${BOOT_JDK_VERSION}" | grep -o '^[0-9]\+')
+        - BOOT_JDK_URL_VERSION="$(echo "${BOOT_JDK_VERSION}" | sed -e 's/\+/_/g' -e 's/-//g')"
+        - BOOT_JDK_URL="https://github.com/adoptium/temurin${BOOT_JDK_MAJOR}-binaries/releases/download/jdk-${BOOT_JDK_VERSION}/OpenJDK${BOOT_JDK_MAJOR}U-jdk_${BOOT_JDK_ARCH}_hotspot_${BOOT_JDK_URL_VERSION}.tar.gz"
+        - wget -c "${BOOT_JDK_URL}" -O - | tar xz -C . --strip-components=1
       working-directory: boot-jdk
-    - run: |
-        ARGS+=" --disable-hotspot-gtest --with-jvm-features=shenandoahgc --with-conf-name=release"
-        MAKE_ARGS+=" CONF=release"
+    - run:
+        - ARGS+=" --disable-hotspot-gtest --with-jvm-features=shenandoahgc --with-conf-name=release"
+        - MAKE_ARGS+=" CONF=release"
 
         # This is hacky, but it's necessary to version the LLVM dependency by openjdk version.
-        if test {{hw.platform}} = "linux"; then
-          LLVM_VERSION_MAJOR='12'
-          pkgx "+llvm.org^${LLVM_VERSION_MAJOR}"
-          LLVM_BIN_PATH="$(realpath "{{deps.llvm.org.prefix}}/../v${LLVM_VERSION_MAJOR}/bin")"
-          PATH_WITHOUT_LLVM="$(echo "${PATH}" | tr ':' '\n' | grep -v '/llvm.org/' | tr '\n' ':')"
-          export PATH="${LLVM_BIN_PATH}:${PATH_WITHOUT_LLVM}"
-          clang --version | grep "clang version ${LLVM_VERSION_MAJOR}"
-          unset LLVM_VERSION_MAJOR LLVM_BIN_PATH PATH_WITHOUT_.LLVM
-        fi
+        - |
+          if test {{hw.platform}} = "linux"; then
+            LLVM_VERSION_MAJOR='12'
+            pkgx "+llvm.org^${LLVM_VERSION_MAJOR}"
+            LLVM_BIN_PATH="$(realpath "{{deps.llvm.org.prefix}}/../v${LLVM_VERSION_MAJOR}/bin")"
+            PATH_WITHOUT_LLVM="$(echo "${PATH}" | tr ':' '\n' | grep -v '/llvm.org/' | tr '\n' ':')"
+            export PATH="${LLVM_BIN_PATH}:${PATH_WITHOUT_LLVM}"
+            clang --version | grep "clang version ${LLVM_VERSION_MAJOR}"
+            unset LLVM_VERSION_MAJOR LLVM_BIN_PATH PATH_WITHOUT_.LLVM
+          fi
       if: <12
     - bash configure $ARGS
       --with-boot-jdk="$BOOT_JDK_DIR"
@@ -90,13 +97,14 @@ build:
     - make images $MAKE_ARGS
     - mkdir -p {{prefix}}
     - mv $JDK_DIR {{prefix}}/
-    - run: |
+    - run:
         # jni.h:45:10: fatal error: 'jni_md.h' file not found
-        if test -d {{ hw.platform }}; then
-          mv {{ hw.platform }}/* .
-          rmdir {{ hw.platform }}
-          ln -s . {{ hw.platform }}
-        fi
+        - |
+          if test -d {{ hw.platform }}; then
+            mv {{ hw.platform }}/* .
+            rmdir {{ hw.platform }}
+            ln -s . {{ hw.platform }}
+          fi
       working-directory: ${{prefix}}/include
   env:
     MAKE_ARGS: 'JOBS={{ hw.concurrency }}'
@@ -134,6 +142,8 @@ build:
     BOOT_JDK17_VERSION: 17.0.9+9
     # https://github.com/adoptium/temurin11-binaries/releases
     BOOT_JDK11_VERSION: 11.0.22+7
+    # https://github.com/adoptium/temurin8-binaries/releases
+    BOOT_JDK8_VERSION: 8u452b09
 
     ARGS:
       - --disable-warnings-as-errors

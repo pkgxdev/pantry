@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/gruntwork-io/terragrunt/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/gruntwork-io/terragrunt/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
@@ -9,22 +9,23 @@ provides:
   - bin/terragrunt
 
 dependencies:
-  terraform.io: '*'
+  terraform.io: "*"
 
 build:
-  script: go build -v -ldflags="$LDFLAGS" -o "{{prefix}}"/bin/terragrunt
+  script: go build -v -ldflags="$GO_LDFLAGS" -o "{{prefix}}"/bin/terragrunt
   dependencies:
     go.dev: ^1.18
   env:
-    LDFLAGS:
+    GO_LDFLAGS:
       - -s
       - -w
       - -X=main.VERSION={{ version }}
       # Moved to this in 0.49.0
       - -X=github.com/gruntwork-io/go-commons/version.Version={{ version }}
+      # Moved to this in 1.0.6
+      - -X=github.com/gruntwork-io/terragrunt/internal/version.Version={{ version }}
     linux:
-      LDFLAGS:
-      - -buildmode=pie
+      GO_LDFLAGS:
+        - -buildmode=pie
 
-test:
-  test "$(terragrunt --version)" = "terragrunt version {{ version }}"
+test: test "$(terragrunt --version)" = "terragrunt version {{ version }}"

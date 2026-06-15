@@ -25,13 +25,16 @@ companions:
 
 build:
   dependencies:
-    go.dev: =1.23.3
+    go.dev: =1.24.2 # as of 5.7
     gnu.org/coreutils: '*'
   script:
     # podman searches a compile-time configured set of paths for helper binaries
     # so we add a relative lookup for the major version of gvproxy we require
-    - run: sed -i -f $PROP config_{darwin,linux}.go
-      working-directory: vendor/github.com/containers/common/pkg/config
+    - run: LOC=vendor/github.com/containers/common/pkg/config
+      if: <5.7
+    - run: LOC=vendor/go.podman.io/common/pkg/config
+      if: '>=5.7'
+    - run: sed -i -f $PROP $LOC/config_{darwin,linux}.go
       prop: |-
         s_\(^var defaultHelperBinariesDir.*\)_\
         \1\n        "$BINDIR/../../../github.com/containers/gvisor-tap-vsock/v{{deps.github.com/containers/gvisor-tap-vsock.version.major}}/bin",_

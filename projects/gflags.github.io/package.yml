@@ -1,19 +1,18 @@
 distributable:
-  url: https://github.com/gflags/gflags/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/gflags/gflags/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
   github: gflags/gflags/tags
-  strip: /^v/
 
 build:
   dependencies:
     cmake.org: '*'
   working-directory: buildroot
-  script: |
-    cmake $ARGS ..
-    make --jobs {{ hw.concurrency }}
-    make install
+  script:
+    - cmake $ARGS ..
+    - make --jobs {{ hw.concurrency }}
+    - make install
   env:
     ARGS:
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
@@ -22,28 +21,30 @@ build:
       - -DCMAKE_POSITION_INDEPENDENT_CODE=ON
 
 test:
-  fixture: |
-    #include <iostream>
-    #include "gflags/gflags.h"
-    DEFINE_bool(verbose, false, "Display program name before message");
-    DEFINE_string(message, "Hello world!", "Message to print");
-    static bool IsNonEmptyMessage(const char *flagname, const std::string &value)
-    {
-      return value[0] != '\0';
-    }
-    DEFINE_validator(message, &IsNonEmptyMessage);
-    int main(int argc, char *argv[])
-    {
-      gflags::SetUsageMessage("some usage message");
-      gflags::SetVersionString("1.0.0");
-      gflags::ParseCommandLineFlags(&argc, &argv, true);
-      if (FLAGS_verbose) std::cout << gflags::ProgramInvocationShortName() << ": ";
-      std::cout << FLAGS_message;
-      gflags::ShutDownCommandLineFlags();
-      return 0;
-    }
-
-  script: |
-    mv $FIXTURE test.cpp
-    g++ test.cpp -lgflags -o test
-    ./test
+  dependencies:
+    gnu.org/gcc/libstdcxx: 14 # needs a new GLIBCXX than our build manchines.
+  script:
+    - run: g++ $FIXTURE -lgflags -o test
+      fixture:
+        extname: cpp
+        content: |
+          #include <iostream>
+          #include "gflags/gflags.h"
+          DEFINE_bool(verbose, false, "Display program name before message");
+          DEFINE_string(message, "Hello world!", "Message to print");
+          static bool IsNonEmptyMessage(const char *flagname, const std::string &value)
+          {
+            return value[0] != '\0';
+          }
+          DEFINE_validator(message, &IsNonEmptyMessage);
+          int main(int argc, char *argv[])
+          {
+            gflags::SetUsageMessage("some usage message");
+            gflags::SetVersionString("1.0.0");
+            gflags::ParseCommandLineFlags(&argc, &argv, true);
+            if (FLAGS_verbose) std::cout << gflags::ProgramInvocationShortName() << ": ";
+            std::cout << FLAGS_message;
+            gflags::ShutDownCommandLineFlags();
+            return 0;
+          }
+    - ./test

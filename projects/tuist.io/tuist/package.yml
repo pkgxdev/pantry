@@ -1,0 +1,111 @@
+# tuist — declarative Xcode project generator.
+#
+# Pure-Swift project built via Swift Package Manager. Tuist consumes
+# its dependencies from the Tuist swift package registry
+# (registry.tuist.dev), so the SPM resolve step needs network egress
+# (anonymous reads are public).
+#
+# Upstream sed-patches `cli/Sources/TuistConstants/Constants.swift`
+# at release-time to bake the version into the binary — the source
+# tarball still carries an older string (the previous release). We
+# replicate that sed in the build step so `tuist --version` prints
+# the recipe's `{{version}}` rather than the stale TaskLocal default.
+#
+# At runtime tuist locates `libProjectDescription.dylib` and the
+# `Templates` directory relative to the binary; the Homebrew layout
+# is explicitly supported (`bin/tuist` + `lib/libProjectDescription.dylib`
+# + `share/Templates`). See
+# cli/Sources/TuistLoader/Utils/ResourceLocator.swift and
+# TemplatesDirectoryLocator.swift in the source tree.
+#
+# Linux: pantry's swift.org is darwin-only (see its commented-out
+# linux platforms — Ubuntu 22.04 toolchain not yet available in CI).
+# Revisit when that lands. Upstream's own Linux release uses the
+# musl static SDK, which is orthogonal to pkgx's approach anyway.
+
+distributable:
+  url: https://github.com/tuist/tuist/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: tuist/tuist
+
+platforms:
+  - darwin
+
+build:
+  dependencies:
+    # Package.swift declares swift-tools-version: 6.1.
+    swift.org: ">=6.1"
+  script:
+    # Bake the recipe version into Constants.swift (upstream does the
+    # same sed in its release workflow; the tarball string is stale).
+    # Wrapped in `run: |` because the sed pattern contains `: ` which
+    # YAML otherwise mis-parses as a mapping key/value separator.
+    - run: sed -i -E -f $PROP Constants.swift
+      prop: 's/(@TaskLocal public static var version: String! = ")[^"]+(")/\1{{version}}\2/'
+      working-directory: cli/Sources/TuistConstants
+
+    # Resolve & build. `--replace-scm-with-registry` honours the
+    # registry-pinned Package.resolved (every pin is `kind: registry`,
+    # served by registry.tuist.dev anonymously).
+    #
+    # IMPORTANT: swift build's `--product` flag is SINGULAR — repeating
+    # it with two values silently keeps only the LAST one. Previous
+    # iteration (commit 4c2dd83f) used `--product tuist --product
+    # ProjectDescription` and only ProjectDescription got built;
+    # tuist itself was skipped, causing `install: cannot stat
+    # .swift-build/release/tuist`. Two separate invocations is the
+    # idiomatic SwiftPM pattern.
+    - swift build --product ProjectDescription $BUILD_OPTS
+    - swift build --product tuist $BUILD_OPTS
+
+    # Install in the Homebrew-shaped layout that tuist's ResourceLocator
+    # and TemplatesDirectoryLocator both look for:
+    #   {{prefix}}/bin/tuist
+    #   {{prefix}}/lib/libProjectDescription.dylib
+    #   {{prefix}}/lib/Modules/ProjectDescription.swiftmodule  (commandLine include path)
+    #   {{prefix}}/share/Templates
+    - run:
+        - install -D -m755 tuist "{{prefix}}/bin/tuist"
+        - install -D -m755 libProjectDescription.dylib "{{prefix}}/lib/libProjectDescription.dylib"
+        # ProjectDescription.swiftmodule isn't always emitted by SwiftPM at
+        # the top-level release/ path (Swift 6.x sometimes nests it under
+        # arch-specific dirs, sometimes skips it in pure-library configurations).
+        # Search for it; skip gracefully if absent. The runtime cost is
+        # that downstream Swift code can't `import ProjectDescription`
+        # against this bottle — tuist's own CLI usage doesn't need it.
+        - mkdir -p "{{prefix}}/lib/Modules"
+        - if [ -d .swift-build/release/ProjectDescription.swiftmodule ]; then
+        - cp -R .swift-build/release/ProjectDescription.swiftmodule "{{prefix}}/lib/Modules/"
+        - else
+          # Fallback: try arch-specific path (Swift 6.x layout)
+        - find .. -name 'ProjectDescription.swiftmodule' -type d -exec cp -R {} "{{prefix}}/lib/Modules/" \;
+        - fi
+      working-directory: .swift-build/release
+    - mkdir -p "{{prefix}}/share"
+    - cp -R cli/Templates "{{prefix}}/share/Templates"
+  env:
+    BUILD_OPTS:
+      - --configuration release
+      - --replace-scm-with-registry
+      - --force-resolved-versions
+      - --build-path "$PWD/.swift-build"
+
+provides:
+  - bin/tuist
+
+test:
+  # dyld[15201]: Library not loaded: /usr/lib/swift/libswiftSynchronization.dylib
+  #   Referenced from: <2DBD100C-C440-309E-A712-6806C65F4FEC> /Users/runner/.pkgx/tuist.io/tuist/v4.200.1/bin/tuist (built for macOS 15.0 which is newer than running OS)
+  #   Reason: tried: '/usr/lib/swift/libswiftSynchronization.dylib' (no such file), '/System/Volumes/Preboot/Cryptexes/OS/usr/lib/swift/libswiftSynchronization.dylib' (no such file), '/usr/lib/swift/libswiftSynchronization.dylib' (no such file, not in dyld cache), '/Users/runner/.pkgx/tuist.io/tuist/v4.200.1/lib/libswiftSynchronization.dylib' (no such file)
+  - run: |
+      if test "$(sw_vers -productVersion | cut -d . -f 1)" -lt 15; then
+        exit 0
+      fi
+    if: darwin
+  # `tuist version` prints just the version string (see
+  # TuistVersionCommand/VersionService.swift — it passthrough's
+  # Constants.version with a trailing newline).
+  - tuist version 2>&1 | tee out
+  - grep "{{version}}" out

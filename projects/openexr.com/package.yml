@@ -8,13 +8,17 @@ versions:
 
 dependencies:
   zlib.net: ^1
-  openexr.com/imath: '*'
+  openexr.com/imath: "*"
+  linux:
+    gnu.org/gcc/libstdcxx: 14 # needed since 3.4.0
 
 build:
   dependencies:
-    cmake.org: '*'
-    freedesktop.org/pkg-config: '*'
-    git-scm.org: '*'
+    cmake.org: "*"
+    git-scm.org: "*"
+    linux:
+      kernel.org/linux-headers: "*" # needs HWCAP2_SVE2 for aarch64 since 3.4.0
+      gnu.org/gcc: 14
   working-directory: build
   script:
     - cmake .. $ARGS
@@ -40,7 +44,7 @@ provides:
 
 test:
   dependencies:
-    gnu.org/wget: '*'
+    gnu.org/wget: "*"
   script: |
     wget https://github.com/AcademySoftwareFoundation/openexr-images/raw/main/TestImages/AllHalfValues.exr
     exrheader AllHalfValues.exr

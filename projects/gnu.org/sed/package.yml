@@ -10,9 +10,15 @@ versions:
     - /.tar.gz/
 
 build:
-  script: |
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }} install
+  # self-dep so brewkit installs an older sed; then shadow brewkit's libexec
+  # sed shim with a direct symlink so bare `sed` calls in generated Makefile
+  # snippets don't go through pkgx and race against our +brewing install.
+  dependencies:
+    gnu.org/sed: "*"
+  script:
+    - export PATH="{{deps.gnu.org/sed.prefix}}/bin:$PATH"
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
   env:
     ARGS:
       - --prefix="{{prefix}}"
@@ -23,6 +29,6 @@ provides:
 
 test:
   fixture: Hello world!
-  script: |
-    sed -i 's/world/World/g' $FIXTURE
-    test "$(cat $FIXTURE)" = 'Hello World!'
+  script:
+    - sed -i 's/world/World/g' $FIXTURE
+    - test "$(cat $FIXTURE)" = 'Hello World!'

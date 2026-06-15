@@ -10,21 +10,24 @@ versions:
     - /\.tar\.gz/
 
 build:
-  script: |-
-    ./configure \
-      --disable-dependency-tracking \
-      --disable-silent-rules \
+  script:
+    # config.guess from 2011 doesn't recognize aarch64
+    - run: cp props/config.guess props/config.sub .
+      if: ^8
+    - ./configure
+      --disable-dependency-tracking
+      --disable-silent-rules
       --prefix="{{ prefix }}"
-    make --jobs {{ hw.concurrency }} install
+    - make --jobs {{ hw.concurrency }} install
 
 test:
   dependencies:
-    curl.se: '*'
+    curl.se: "*"
   env:
     FIXTURE: https://samplelib.com/lib/preview/jpeg/sample-clouds-400x300.jpg
-  script: |
-    curl $FIXTURE > test.jpeg
-    djpeg test.jpeg
+  script:
+    - curl $FIXTURE > test.jpeg
+    - djpeg test.jpeg
 
 provides:
   - bin/cjpeg

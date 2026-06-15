@@ -1,0 +1,42 @@
+# Tempo — distributed tracing backend (Grafana Labs).
+#
+# Stores traces in object storage (S3/GCS/Azure) without an indexer,
+# making it cheap to scale. Drop-in replacement for Jaeger backend
+# when running Grafana stack.
+
+distributable:
+  url: https://github.com/grafana/tempo/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: grafana/tempo
+  # Skip release candidates / beta tags.
+  ignore:
+    - /-rc/
+    - /-beta/
+
+build:
+  dependencies:
+    go.dev: "*"
+  env:
+    CGO_ENABLED: 0
+    GO_LDFLAGS:
+      - -s
+      - -w
+      - -X main.Version={{ version }}
+  script:
+    - mkdir -p {{prefix}}/bin
+    - for cmd in tempo tempo-cli tempo-query tempo-vulture; do
+    - if test ! -d "cmd/$cmd"; then continue; fi
+    - go build -trimpath -ldflags "$GO_LDFLAGS" -o "{{prefix}}/bin/$cmd" "./cmd/$cmd"
+    - done
+
+test:
+  - tempo --version 2>&1 | tee out
+  - grep {{version}} out
+
+provides:
+  - bin/tempo
+  - bin/tempo-cli
+  - bin/tempo-query
+  - bin/tempo-vulture

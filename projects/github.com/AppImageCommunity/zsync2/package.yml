@@ -1,0 +1,69 @@
+# zsync2 — modernized rsync-like delta updates over HTTP.
+#
+# Fetches only the differences between a local file and a remote
+# version, using a control file (.zsync). Widely used by AppImage
+# for in-place updates without re-downloading the whole image.
+#
+# This is the C++17 rewrite of the original zsync; same on-the-wire
+# format, modern CMake build, libcurl + openssl + libssh2.
+
+distributable:
+  url: https://github.com/AppImageCommunity/zsync2/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: AppImageCommunity/zsync2
+  # Upstream releases as `2.0.0-alpha-1-YYYYMMDD` tags + a `continuous`
+  # tag. Transform to a semver-compatible string `2.0.0.YYYYMMDD` so
+  # pkgx parses it cleanly.
+  transform: |
+    v => {
+      if (v === 'continuous') return undefined;
+      const m = v.match(/^2\.0\.0-alpha-1-(\d{8})$/);
+      return m ? `2.0.0.${m[1]}` : undefined;
+    }
+
+dependencies:
+  openssl.org: "*"
+  curl.se: "*"
+  libssh2.org: "*"
+  zlib.net: "*"
+  gnupg.org/libgcrypt: "*"
+  gnupg.org/libgpg-error: "*" # transitive pkg-config dep of libgcrypt
+
+build:
+  dependencies:
+    cmake.org: ^3
+    git-scm.org: "*" # CMake submodule init for cpr
+  working-directory: build
+  script:
+    # darwin patches: st_mtim is glibc-only (darwin uses st_mtimespec);
+    # openGzFile() #errors on non-Linux because fopencookie is glibc-only.
+    # Returning NULL on darwin lets zsync fall back to fetching all
+    # blocks when the seed is .gz (uncompressed seeds work normally).
+    - run:
+        - sed -i -e 's|return fstat\.st_mtim\.tv_sec;|return fstat.st_mtimespec.tv_sec;|' zsutil.cpp
+        - "sed -i -e 's|#error TODO: implement openGzFile() for this platform!|return NULL;|' zsclient.cpp"
+      working-directory: ../src
+      if: darwin
+    - cmake .. $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
+  env:
+    ARGS:
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DUSE_SYSTEM_CURL=1
+      - -DBUILD_CPR_TESTS=0
+      # off_t / long long mismatch in zsync.c:950 — modern clang
+      # promotes -Wincompatible-pointer-types from warning to error.
+      - -DCMAKE_C_FLAGS=-Wno-error=incompatible-pointer-types
+      - -DCMAKE_CXX_FLAGS=-Wno-error=incompatible-pointer-types
+
+provides:
+  - bin/zsync2
+  - bin/zsyncmake2
+
+test:
+  - zsync2 -h
+  - zsyncmake2 -h

@@ -1,10 +1,9 @@
 distributable:
-  url: https://github.com/luarocks/luarocks/archive/refs/tags/v{{version.raw}}.tar.gz
+  url: https://github.com/luarocks/luarocks/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
   github: luarocks/luarocks/tags
-  strip: /v/
 
 dependencies:
   lua.org: '*'
@@ -22,22 +21,22 @@ build:
   script:
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
-    - run: |
-        fix-shebangs.ts luarocks-admin luarocks
-        sed -i \
-            -e 's|\[\[{{prefix}}|debug.getinfo(1).source:match("@?(.*/)") .. \[\[..|g' \
-            luarocks-admin luarocks
+    - run:
+        - fix-shebangs.ts luarocks-admin luarocks
+        - sed -i
+          -e 's|\[\[{{prefix}}|debug.getinfo(1).source:match("@?(.*/)") .. \[\[..|g'
+          luarocks-admin luarocks
       working-directory: ${{prefix}}/bin
 
     # luarocks config has fixed paths
-    - run: |
-        mv bin tbin
-        mkdir bin
+    - run:
+        - mv bin tbin
+        - mkdir bin
       working-directory: ${{prefix}}
-    - run: |
-        cat $PROP >luarocks
-        cat $PROP >luarocks-admin
-        chmod +x luarocks luarocks-admin
+    - run:
+        - cat $PROP >luarocks
+        - cat $PROP >luarocks-admin
+        - chmod +x luarocks luarocks-admin
       working-directory: ${{prefix}}/bin
       prop: |
         #!/bin/sh
@@ -75,7 +74,8 @@ provides:
 
 test:
   dependencies:
-    gnu.org/gcc: '*'
+    linux:
+      gnu.org/gcc: '*'
     curl.se: '*'
   script:
     - run: EXTRA_ARGS="RT_LIBDIR=$(dirname $(find /usr/lib -name librt.a | head -n1))"
