@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/orf/gping/archive/refs/tags/gping-v{{version}}.tar.gz
+  url: https://github.com/orf/gping/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 provides:
@@ -12,8 +12,8 @@ versions:
 build:
   dependencies:
     rust-lang.org/cargo: '*'
-  script:
-    cargo install --locked --path gping --root {{prefix}}
+  script: cargo install --locked --path gping --root {{prefix}}
 
-test: |
-  gping --version | grep {{version}}
+test:
+  - gping --version | tee out
+  - grep {{version}} out
