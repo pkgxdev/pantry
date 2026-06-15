@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/01mf02/jaq/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/01mf02/jaq/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 provides:
@@ -7,14 +7,13 @@ provides:
 
 versions:
   github: 01mf02/jaq
-  strip: /v/
 
 build:
   dependencies:
     rust-lang.org/cargo: '*'
-  script:
-    cargo install --locked --path jaq --root {{prefix}}
+  script: cargo install --locked --path jaq --root {{prefix}}
 
-test: |
-  jaq --version | grep {{version}}
-  echo '{"a":1}' | jaq '.a' | grep '^1$'
+test:
+  - jaq --version | tee out
+  - grep {{version}} out
+  - echo '{"a":1}' | jaq '.a' | grep '^1$'
