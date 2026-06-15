@@ -1,0 +1,40 @@
+# gopls — the official Go language server (golang.org/x/tools/gopls).
+#
+# gopls lives in the golang/tools repo under the gopls/ subdirectory and is
+# its own Go module, released on its own tag namespace: `gopls/vX.Y.Z`.
+# The parent repo ALSO carries plain `vX.Y.Z` tags for the x/tools module
+# itself, so version discovery must be scoped to the `gopls/v` tags only.
+
+distributable:
+  # extracts to tools-gopls-v{{version}}/ ; strip-components lands us in it
+  url: https://github.com/golang/tools/archive/refs/tags/gopls/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  # `github: golang/tools/tags` is NOT usable here: the repo mixes
+  # `gopls/vX.Y.Z` with the x/tools module's own `vX.Y.Z` tags (e.g.
+  # v0.46.0), and the latter would win version selection. Scrape the tags
+  # page and match ONLY gopls stable tags, then strip the `gopls/v` prefix.
+  url: https://github.com/golang/tools/tags
+  match: /gopls\/v\d+\.\d+\.\d+(?=["<])/
+  strip:
+    - /^gopls\/v/
+
+build:
+  dependencies:
+    go.dev: '*'
+  env:
+    CGO_ENABLED: 0
+  script:
+    - run: go build -trimpath -ldflags "-s -w" -o {{prefix}}/bin/gopls
+      working-directory: gopls
+
+provides:
+  - bin/gopls
+
+test:
+  # `gopls version` reads its version from the module build info, which a
+  # source-tree build doesn't carry (it reports "(devel)"), so assert the
+  # binary builds and runs rather than the exact version.
+  - gopls version 2>&1 | tee out
+  - grep -i gopls out
