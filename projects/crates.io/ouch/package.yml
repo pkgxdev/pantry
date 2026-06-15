@@ -1,0 +1,22 @@
+distributable:
+  url: https://github.com/ouch-org/ouch/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/ouch
+
+versions:
+  github: ouch-org/ouch
+
+build:
+  dependencies:
+    rust-lang.org/cargo: '*'
+  # Drop the default `unrar` feature: it builds the vendored unrar-ng C++
+  # sources, which need a full C++ toolchain the build sandbox lacks (clang
+  # can't find <new>). rar is a proprietary read-only format; everything else
+  # (tar/zip/gz/zst/bz2/bz3/7z/brotli/lz4) stays.
+  script: cargo install --locked --no-default-features --features use_zlib,use_zstd_thin,bzip3 --path . --root {{prefix}}
+
+test:
+  - ouch --version | tee out
+  - grep {{version}} out
