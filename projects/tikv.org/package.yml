@@ -1,42 +1,45 @@
-# TiKV — distributed transactional key-value database (CNCF graduated),
-# the storage layer behind TiDB. We vendor PingCAP's official prebuilt
-# `tikv-server` from the TiUP mirror; a from-source build is a very large
-# Rust + RocksDB compile (follow-up).
-
-distributable: ~
+distributable:
+  url: https://github.com/tikv/tikv/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
 
 versions:
   github: tikv/tikv
 
-platforms:
-  - linux/x86-64
-  - linux/aarch64
-  - darwin/x86-64
-  - darwin/aarch64
-
-warnings:
-  - vendored
+provides:
+  - bin/tikv-server
 
 build:
   dependencies:
-    curl.se: "*"
-    gnu.org/tar: "*"
-  env:
-    linux/x86-64:
-      OSARCH: linux-amd64
-    linux/aarch64:
-      OSARCH: linux-arm64
-    darwin/x86-64:
-      OSARCH: darwin-amd64
-    darwin/aarch64:
-      OSARCH: darwin-arm64
+    rust-lang.org/rustup: "*"
+    cmake.org: ^3.12
+    protobuf.dev: "*"
+    freedesktop.org/pkg-config: "*"
+    linux:
+      llvm.org: ^18 # bindgen needs libclang; RocksDB/grpcio C++ bindings
   script:
-    - mkdir -p "{{prefix}}/bin"
-    - curl -Lf "https://tiup-mirrors.pingcap.com/tikv-v{{version}}-${OSARCH}.tar.gz" | tar xzf - -C "{{prefix}}/bin"
+    # tikv pins a specific nightly via rust-toolchain.toml; install it through
+    # rustup the same way crates.io/skim handles its pinned toolchain.
+    - run: ln -sf {{deps.rust-lang.org/rustup.prefix}}/bin/rustup rustup
+      working-directory: $HOME/.cargo/bin
+    - run: rustup default "$(sed -n 's/^channel = "\(.*\)".*/\1/p' $SRCROOT/rust-toolchain.toml)"
+    - run: ln -sf $HOME/.rustup/toolchains/*/bin/* .
+      working-directory: $HOME/.cargo/bin
+
+    # `make release` assembles the per-platform feature set (allocator, portable,
+    # sse, mem-profiling) and runs `cargo build --release --no-default-features
+    # --features "$ENABLE_FEATURES"`. TIKV_FRAME_POINTER=0 avoids the -Zbuild-std
+    # path (which needs rust-src + an explicit --target). The libclang/bindgen
+    # env must live in the same shell as `make`, so set it inline (linux only —
+    # llvm-config comes from the linux-scoped llvm.org dep).
+    - run: |
+        if [ "$(uname -s)" = Linux ]; then
+          export LIBCLANG_PATH="$(llvm-config --libdir)"
+          export BINDGEN_EXTRA_CLANG_ARGS="--sysroot=/ -isystem /usr/include/$(uname -m)-linux-gnu"
+        fi
+        TIKV_FRAME_POINTER=0 make release
+    - install -D target/release/tikv-server {{prefix}}/bin/tikv-server
+  env:
+    PATH: $HOME/.cargo/bin:$PATH
 
 test:
-  - tikv-server --version 2>&1 | tee out
-  - grep {{version}} out
-
-provides:
-  - bin/tikv-server
+  - tikv-server --version | grep {{version}}
