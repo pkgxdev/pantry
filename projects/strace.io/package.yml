@@ -3,7 +3,7 @@ distributable:
   strip-components: 1
 
 versions:
-  github: strace/strace/releases/tags
+  github: strace/strace
 
 platforms: linux
 
@@ -12,7 +12,22 @@ build:
     linux:
       kernel.org/linux-headers: ">=6.20" # as of v7
   script:
-    - run: cp {{deps.kernel.org/linux-headers.prefix}}/include/linux/time_types.h bundled/linux/include/uapi/linux/
+    # strace v7's bundled linux/ headers carry clone3 flags (CLONE_AUTOREAP &c.)
+    # newer than any released kernel headers; we must compile against them. The
+    # linux-headers dep is still required: bundled is missing time_types.h *and*
+    # the newer kernel types it needs (e.g. __kernel_old_time_t), and the build
+    # sysroot is too old to provide them. But pkgx puts the dep on CPATH, which
+    # clang searches before strace's -isystem bundled, so the dep's older linux/
+    # headers shadow bundled ("undeclared identifier 'CLONE_AUTOREAP'"). Only a
+    # -I outranks CPATH — but a -I for the bundled dir gets deduped back to its
+    # -isystem slot. So copy bundled's linux/ to a *separate* dir and -I that:
+    # bundled's linux/ now wins, while the dep still supplies asm/* + new types.
+    - run:
+        - cp {{deps.kernel.org/linux-headers.prefix}}/include/linux/time_types.h .
+        - cp -r ../bundled/linux/include/uapi/linux .
+        - export ARGS="$ARGS --enable-bundled=yes"
+        - export CPPFLAGS="-I$SRCROOT/hdr-override $CPPFLAGS"
+      working-directory: hdr-override
       if: ">=7"
     - ./configure $ARGS
     - make --jobs {{hw.concurrency}} install
