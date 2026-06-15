@@ -1,0 +1,25 @@
+distributable:
+  url: https://github.com/vi/websocat/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/websocat
+
+versions:
+  github: vi/websocat
+
+# websocat's default features include `ssl`, which pulls in
+# native-tls -> openssl-sys, so we need a system OpenSSL at build and runtime.
+dependencies:
+  openssl.org: '*'
+
+build:
+  dependencies:
+    rust-lang.org/cargo: '*'
+  env:
+    OPENSSL_DIR: '{{deps.openssl.org.prefix}}'
+  script: cargo install --locked --path . --root {{prefix}}
+
+test:
+  - websocat --version | tee out
+  - grep {{version}} out
