@@ -1,0 +1,18 @@
+distributable:
+  url: https://github.com/ouch-org/ouch/archive/refs/tags/{{version}}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/ouch
+
+versions:
+  github: ouch-org/ouch
+
+build:
+  dependencies:
+    rust-lang.org/cargo: '*'
+  script:
+    cargo install --locked --path . --root {{prefix}}
+
+test: |
+  ouch --version | grep {{version}}
