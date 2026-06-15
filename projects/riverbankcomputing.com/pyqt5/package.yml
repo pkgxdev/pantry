@@ -1,48 +1,29 @@
-# PyQt5 — Python bindings for Qt 5, installed from upstream's official
-# PyPI wheel (which bundles the Qt5 libraries). Provides the
-# pyuic5/pyrcc5/pylupdate5 tools and an importable `PyQt5`.
+# PyQt5 — built from the PyPI sdist with sip-install (the SIP build tool from
+# riverbankcomputing.com/sip + the pyqtbuild backend from
+# riverbankcomputing.com/pyqt-builder), linked against the Qt5 from qt.io.
 #
-# Why vendored (wheel): building PyQt5 from the sip sources compiles
-# enormous generated C++ per binding and OOM-killed CI; splitting into
-# per-binding sub-recipes then hit a lockstep co-dependency (each
-# binding 404'd resolving its sibling's not-yet-published bottle). The
-# official wheel sidesteps both, in one package.
-#
-# Platform note: the macOS wheels are self-contained (Qt5 + the cocoa
-# platform plugin are bundled and rpath-wired). The manylinux wheel is
-# NOT self-contained — its QtGui/QtWidgets dlopen the host X11/xcb/mesa
-# GUI stack, so on linux we pull that stack in as runtime deps below
-# (x.org/*, mesa3d.org, xkbcommon.org, glib, fontconfig, freetype, dbus).
-# Confirmed `from PyQt5 import QtWidgets` imports on a minimal linux
-# sandbox with exactly those deps.
-#
-# Path to a from-source recipe: compile riverbankcomputing.com/sip + the
-# PyQt5 bindings against a pantry Qt5 (qtbase) with bounded compile
-# parallelism (the unbounded per-binding C++ compile is what OOM-killed
-# CI before) — that would also restore linux/aarch64 (no upstream wheel).
+# Notes:
+#   - Qt5 is NOT bundled (unlike the old PyPI wheel): the built bindings load
+#     qt.io's Qt5 libs at runtime, hence qt.io is a runtime dependency and we
+#     point sip-install at its qmake.
+#   - PyQt5's generated QtGui/QtWidgets C++ units are huge; unbounded parallel
+#     compilation OOM-killed CI, so we bound it with `--jobs 1` (+ MAKEFLAGS=-j1).
+#   - PyQt5 uses the separate PyQt5-sip runtime module (the private `PyQt5.sip`):
+#     sip-install does NOT build it, so we pip-install PyQt5-sip into the venv.
 
 distributable:
   url: https://pypi.io/packages/source/P/PyQt5/PyQt5-{{ version.raw }}.tar.gz
   strip-components: 1
-
 versions:
   url: https://pypi.org/simple/pyqt5/
   match: /PyQt5-\d+\.\d+\.\d+\.tar\.gz/
-  strip:
-    - /^PyQt5-/
-    - /\.tar\.gz/
-
-platforms:
-  - linux/x86-64
-  - darwin/x86-64
-  - darwin/aarch64
-
+  strip: [/^PyQt5-/, /\.tar\.gz/]
+platforms: [linux/x86-64, linux/aarch64, darwin/x86-64, darwin/aarch64]
 dependencies:
   pkgx.sh: ">=1"
   python.org: ~3.11
-  # The manylinux wheel's QtGui/QtWidgets dlopen the host GUI stack;
-  # the macOS wheels bundle it, so these are linux-only.
-  linux:
+  qt.io: ~5.15  # Qt5 is no longer bundled; bindings load it at runtime
+  linux:   # Qt5's xcb plugin GUI stack, needed at runtime
     gnome.org/glib: '*'
     freetype.org: '*'
     freedesktop.org/fontconfig: '*'
@@ -58,31 +39,43 @@ dependencies:
     x.org/xi: '*'
     x.org/xau: '*'
     x.org/xdmcp: '*'
-
 runtime:
   env:
-    # Expose `import PyQt5` to users/dependents from the sealed venv.
     PYTHONPATH: "${{prefix}}/venv/lib/python{{deps.python.org.version.marketing}}/site-packages"
-
 build:
   dependencies:
     python.org: ~3.11
+    riverbankcomputing.com/sip: '*'           # provides sip-install/sip-build
+    riverbankcomputing.com/pyqt-builder: '*'  # pyqtbuild backend sip-install uses
+    qt.io: ~5.15                              # qmake + Qt5 headers/libs
+    gnu.org/make: '*'
+    linux:
+      llvm.org: <17  # mirror the sip recipe's toolchain
   script:
-    # Install the prebuilt wheels (Qt bundled) into a venv — pip and
-    # python there share a version, so PyQt5-sip's ABI matches python.
-    # `--only-binary` guarantees the wheel (never an sdist recompile).
     - bkpyvenv stage {{prefix}} {{version}}
-    - '${{prefix}}/venv/bin/pip install --only-binary=:all: PyQt5=={{version}} PyQt5-sip'
+    # Build + install PyQt5 from the extracted sdist against qt.io's Qt5.
+    # --confirm-license: accept the GPL terms non-interactively (else CI hangs).
+    # --jobs 1 (+ MAKEFLAGS=-j1): bound the C++ compile to avoid OOM.
+    # --target-dir: land PyQt5/ in the venv site-packages so PYTHONPATH/test work.
+    - sip-install
+        --confirm-license
+        --qmake {{deps.qt.io.prefix}}/bin/qmake
+        --jobs 1
+        --target-dir {{prefix}}/venv/lib/python{{deps.python.org.version.marketing}}/site-packages
+        --verbose
+    # PyQt5 needs the separate PyQt5-sip runtime module (private PyQt5.sip);
+    # sip-install does not build it, so install it into the venv.
+    - '{{prefix}}/venv/bin/pip install PyQt5-sip'
     - bkpyvenv seal {{prefix}} pyuic5 pyrcc5 pylupdate5
-
-provides:
-  - bin/pyuic5
-  - bin/pyrcc5
-  - bin/pylupdate5
-
+  env:
+    MAKEFLAGS: -j1  # belt-and-suspenders OOM bound for the qmake-driven C++ build
+    linux:
+      CC: clang
+      CXX: clang++
+      AS: llvm-as
+provides: [bin/pyuic5, bin/pyrcc5, bin/pylupdate5]
 test:
-  dependencies:
-    python.org: ~3.11
+  dependencies: { python.org: ~3.11 }
   script:
     - pyuic5 --version 2>&1 | grep {{version}}
     - python{{deps.python.org.version.marketing}} -c "from PyQt5 import QtCore, QtWidgets; print(QtCore.QT_VERSION_STR)"
