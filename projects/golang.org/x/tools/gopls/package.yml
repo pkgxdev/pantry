@@ -7,7 +7,7 @@
 
 distributable:
   # extracts to tools-gopls-v{{version}}/ ; strip-components lands us in it
-  url: https://github.com/golang/tools/archive/refs/tags/gopls/v{{version}}.tar.gz
+  url: https://github.com/golang/tools/archive/refs/tags/gopls/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
@@ -36,4 +36,5 @@ test:
   # `gopls version` reads its version from the module build info, which a
   # source-tree build doesn't carry (it reports "(devel)"), so assert the
   # binary builds and runs rather than the exact version.
-  - gopls version 2>&1 | grep -i gopls
+  - gopls version 2>&1 | tee out
+  - grep -i gopls out
