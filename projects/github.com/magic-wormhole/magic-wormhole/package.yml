@@ -24,10 +24,16 @@ build:
     python.org: "~3.11"
   script:
     - bkpyvenv stage {{prefix}} {{version}}
-    # pip pulls binary wheels for the C-extension deps (pynacl/libsodium,
-    # cryptography); no compiler needed on the supported platforms.
+    # The staged pip (24.0) is too old to match the current macOS/manylinux
+    # wheel tags for cryptography, so it fell back to a (failing) source build.
+    # Upgrade pip first so it resolves the prebuilt wheels.
+    - "{{prefix}}/venv/bin/pip install --upgrade pip"
     - "{{prefix}}/venv/bin/pip install magic-wormhole=={{version}}"
     - bkpyvenv seal {{prefix}} wormhole
+  env:
+    # cbor2's C extension is optional; build it pure-Python so no C toolchain
+    # is needed if its wheel is ever missing.
+    CBOR2_BUILD_C_EXTENSION: "0"
 
 provides:
   - bin/wormhole
