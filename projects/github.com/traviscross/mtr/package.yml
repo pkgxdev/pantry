@@ -22,12 +22,9 @@ build:
     - make --jobs {{ hw.concurrency }}
     - make install
   env:
-    # Point at the pantry ncursesw headers so stdscr binds to the lib's
-    # (reentrant) accessor; without them mtr found a fallback curses.h and
-    # referenced stdscr as a plain symbol the lib doesn't export. lld also
-    # needs the lib after the objects, hence LIBS.
-    # lld defaults to --as-needed and drops libncursesw (seen before the objects
-    # that reference stdscr/raw), leaving them undefined; force it to keep the lib.
+    # configure detects ncursesw and adds -lncursesw, but lld defaults to
+    # --as-needed and drops it (seen before the objects that reference
+    # stdscr/raw), leaving them undefined; force it to keep the lib.
     LDFLAGS: -Wl,--no-as-needed
     LIBS: -lncursesw
     ARGS:
