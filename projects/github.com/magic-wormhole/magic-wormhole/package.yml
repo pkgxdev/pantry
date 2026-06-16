@@ -15,8 +15,7 @@ versions:
 # wheel, and the rust+openssl source build is impractical there. The other
 # platforms install cryptography/cbor2/pynacl from wheels cleanly.
 platforms:
-  - linux/x86-64
-  - linux/aarch64
+  - linux
   - darwin/aarch64
 
 dependencies:
@@ -34,11 +33,12 @@ build:
     - bkpyvenv stage {{prefix}} {{version}}
     # pip resolves binary wheels for the C/Rust deps (cryptography, pynacl,
     # cbor2) on these platforms; no compiler/toolchain needed.
-    - "{{prefix}}/venv/bin/pip install magic-wormhole=={{version}}"
+    - "{{prefix}}/venv/bin/pip install ."
     - bkpyvenv seal {{prefix}} wormhole
 
 provides:
   - bin/wormhole
 
 test:
-  - wormhole --version 2>&1 | grep {{version}}
+  - wormhole --version 2>&1 | tee out
+  - grep {{version}} out
