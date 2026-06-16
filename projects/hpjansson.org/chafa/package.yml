@@ -9,8 +9,6 @@ dependencies:
   gnome.org/glib: '*'
 
 build:
-  dependencies:
-    freedesktop.org/pkg-config: '*'
   script:
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }}
@@ -23,4 +21,6 @@ build:
 provides:
   - bin/chafa
 
-test: chafa --version 2>&1 | grep {{version}}
+test:
+  - chafa --version 2>&1 | tee out
+  - grep {{version}} out
