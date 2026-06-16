@@ -1,0 +1,42 @@
+distributable:
+  url: https://github.com/rui314/mold/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: rui314/mold/tags
+
+# mold is an ELF linker; macOS support (sold/macho) was dropped upstream,
+# so it only builds & runs on Linux. Official release binaries are
+# linux-only (x86_64, aarch64, arm, ppc64le, riscv64, s390x, loongarch64).
+platforms:
+  - linux
+
+provides:
+  - bin/mold
+
+dependencies:
+  gnu.org/gcc/libstdcxx: 14 # the C++20 libstdc++ mold links at runtime
+
+build:
+  dependencies:
+    cmake.org: "*"
+    gnu.org/gcc: 14 # the runner's default g++ is too old for C++20 (<bit>)
+  script:
+    # mold needs a C++20 compiler; it bundles its third-party deps
+    # (zlib, zstd, blake3, mimalloc, tbb) under third-party/ and pulls
+    # the rest via CMake FetchContent — no extra system libs required.
+    - cmake -B build -S . $ARGS
+    - cmake --build build --parallel {{ hw.concurrency }}
+    - cmake --install build
+  env:
+    # No CC/CXX override: the gnu.org/gcc dep puts its cc/c++ first on PATH and
+    # cmake detects them as GNU (so it links the shared mold-wrapper correctly).
+    # Forcing CC to an absolute path broke cmake's -shared detection.
+    ARGS:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DMOLD_USE_MIMALLOC=OFF
+
+test:
+  - mold --version | tee out
+  - grep {{version}} out
