@@ -4,7 +4,6 @@ distributable:
 
 versions:
   github: traviscross/mtr/tags
-  strip: /^v/
 
 dependencies:
   invisible-island.net/ncurses: 6
@@ -13,7 +12,6 @@ build:
   dependencies:
     gnu.org/autoconf: '*'
     gnu.org/automake: '*'
-    freedesktop.org/pkg-config: '*' # provides PKG_CHECK_MODULES m4 macros for bootstrap.sh
   script:
     # the GitHub source archive ships configure.ac + bootstrap.sh but no
     # pre-generated configure (no dist tarball is published on GitHub Releases)
@@ -40,4 +38,6 @@ provides:
 # mtr needs raw-socket / setuid privileges to actually trace at runtime,
 # but `--version` parses args and exits before any privilege/socket setup.
 # mtr reports its bare upstream version (mtr 0.96); pantry pads it to 0.96.0.
-test: mtr --version 2>&1 | grep {{version.marketing}}
+test:
+  - mtr --version 2>&1 | tee out
+  - grep {{version.marketing}} out
