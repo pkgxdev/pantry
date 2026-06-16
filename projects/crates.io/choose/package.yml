@@ -1,0 +1,19 @@
+distributable:
+  url: https://github.com/theryangeary/choose/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/choose
+
+versions:
+  github: theryangeary/choose
+
+build:
+  dependencies:
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path . --root {{prefix}}
+
+test:
+  - choose --version | tee out
+  - grep {{version}} out
+  - test "$(echo 'a b c' | choose 1)" = "b"
