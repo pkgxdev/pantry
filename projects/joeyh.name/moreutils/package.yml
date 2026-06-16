@@ -17,14 +17,18 @@
 #    (prints an anti-AI screed, then `sleep 3600`). We install by hand.
 
 distributable:
-  url: https://git.joeyh.name/index.cgi/moreutils.git/snapshot/moreutils-{{version.marketing}}.tar.gz
+  # Debian's orig tarball (unmodified upstream source) — reliable, unlike
+  # joeyh.name's cgit, which 403s its tag list and intermittently fails
+  # version resolution from CI. Debian tracks upstream closely (now 0.70).
+  url: https://deb.debian.org/debian/pool/main/m/moreutils/moreutils_{{version.marketing}}.orig.tar.xz
   strip-components: 1
 
 versions:
-  url: https://git.joeyh.name/index.cgi/moreutils.git/
-  match: /h=\d+\.\d+/
+  url: https://deb.debian.org/debian/pool/main/m/moreutils/
+  match: /moreutils_\d+\.\d+\.orig\.tar\.xz/
   strip:
-    - /^h=/
+    - /^moreutils_/
+    - /\.orig\.tar\.xz/
 
 dependencies:
   perl.org: '*'
