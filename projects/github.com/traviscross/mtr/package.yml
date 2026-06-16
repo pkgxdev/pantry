@@ -1,0 +1,44 @@
+distributable:
+  url: https://github.com/traviscross/mtr/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: traviscross/mtr/tags
+
+dependencies:
+  invisible-island.net/ncurses: 6
+
+build:
+  dependencies:
+    gnu.org/autoconf: '*'
+    gnu.org/automake: '*'
+    freedesktop.org/pkg-config: '*'
+  script:
+    # the GitHub source archive ships configure.ac + bootstrap.sh but no
+    # pre-generated configure (no dist tarball is published on GitHub Releases)
+    - ./bootstrap.sh
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
+  env:
+    LIBS: -lncursesw
+    linux:
+      # On linux the pantry ncurses splits stdscr/raw (and the other curses
+      # globals) into libtinfow; libncursesw only NEEDs it transitively, and
+      # lld won't resolve the executable's symbols from a transitive dep, so
+      # link libtinfow directly. (darwin's ncurses isn't split this way.)
+      LIBS: -lncursesw -ltinfow
+    ARGS:
+      - --prefix={{prefix}}
+      - --without-gtk # skip the GTK+ GUI; keep curses `mtr` + `mtr-packet`
+
+provides:
+  - bin/mtr
+  - bin/mtr-packet
+
+# mtr needs raw-socket / setuid privileges to actually trace at runtime,
+# but `--version` parses args and exits before any privilege/socket setup.
+# mtr reports its bare upstream version (mtr 0.96); pantry pads it to 0.96.0.
+test:
+  - mtr --version 2>&1 | tee out
+  - grep {{version.marketing}} out
