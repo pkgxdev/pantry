@@ -22,8 +22,11 @@ build:
     - make --jobs {{ hw.concurrency }}
     - make install
   env:
-    # Force-link ncurses after the objects: lld (single-pass) drops a curses
-    # lib that configure places before the objects, leaving stdscr undefined.
+    # Point at the pantry ncursesw headers so stdscr binds to the lib's
+    # (reentrant) accessor; without them mtr found a fallback curses.h and
+    # referenced stdscr as a plain symbol the lib doesn't export. lld also
+    # needs the lib after the objects, hence LIBS.
+    CPPFLAGS: -I{{deps.invisible-island.net/ncurses.prefix}}/include
     LIBS: -lncursesw
     ARGS:
       - --prefix={{prefix}}
