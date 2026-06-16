@@ -1,0 +1,18 @@
+distributable:
+  url: https://github.com/mfontanini/presenterm/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/presenterm
+
+versions:
+  github: mfontanini/presenterm
+
+build:
+  dependencies:
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path . --root {{prefix}}
+
+test:
+  - presenterm --version | tee out
+  - grep {{version}} out
