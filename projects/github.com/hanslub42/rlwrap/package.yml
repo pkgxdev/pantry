@@ -1,0 +1,31 @@
+distributable:
+  # release tarball ships a pre-generated `configure` (verified: configure
+  # + Makefile.in present), so no autoreconf/autoconf/automake needed
+  url: https://github.com/hanslub42/rlwrap/releases/download/v{{version.marketing}}/rlwrap-{{version.marketing}}.tar.gz
+  strip-components: 1
+
+display-name: rlwrap
+
+versions:
+  github: hanslub42/rlwrap/tags
+
+dependencies:
+  gnu.org/readline: '*'
+
+build:
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --disable-dependency-tracking
+      - --without-libptytty # optional pty lib, not in pantry; rlwrap works without it
+
+provides:
+  - bin/rlwrap
+
+test:
+  - rlwrap --version 2>&1 | tee out
+  - grep {{version.marketing}} out
