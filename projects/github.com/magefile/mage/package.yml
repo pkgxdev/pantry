@@ -9,6 +9,10 @@ distributable:
 versions:
   github: magefile/mage
 
+# mage compiles magefiles with the Go toolchain at runtime, so it needs `go`.
+dependencies:
+  go.dev: '*'
+
 build:
   dependencies:
     go.dev: '*'
@@ -29,24 +33,22 @@ build:
       -o {{prefix}}/bin/mage .
 
 test:
-  # -version always prints the "Mage Build Tool" banner; assert the binary
-  # links and runs. (Tag is not embedded in a tarball build — see build note.)
-  - mage -version 2>&1 | tee out
-  - grep "Mage Build Tool" out
-  # smoke-test the compiler path end-to-end with a trivial magefile.
-  - |
-    cat > magefile.go <<'EOF'
-    //go:build mage
-
-    package main
-
-    import "fmt"
-
-    // Hello prints a greeting.
-    func Hello() { fmt.Println("hello from mage") }
-    EOF
-  - mage hello 2>&1 | tee run
-  - grep "hello from mage" run
+  dependencies:
+    go.dev: '*' # mage shells out to `go` to compile the magefile
+  # -version prints the "Mage Build Tool" banner (the tag isn't embedded in a
+  # tarball build — see build note); then compile+run a trivial magefile end
+  # to end to exercise the toolchain path.
+  fixture:
+    extname: go
+    content: |
+      //go:build mage
+      package main
+      import "fmt"
+      func Hello() { fmt.Println("hello from mage") }
+  script:
+    - mage -version 2>&1 | grep "Mage Build Tool"
+    - cp $FIXTURE magefile.go
+    - mage hello 2>&1 | grep "hello from mage"
 
 provides:
   - bin/mage
