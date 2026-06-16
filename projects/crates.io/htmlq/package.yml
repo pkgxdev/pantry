@@ -1,0 +1,19 @@
+distributable:
+  url: https://github.com/mgdm/htmlq/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/htmlq
+
+versions:
+  github: mgdm/htmlq
+
+build:
+  dependencies:
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path . --root {{prefix}}
+
+test:
+  - htmlq --version | tee out
+  - grep {{version}} out
+  - echo '<p>hi</p>' | htmlq --text p | grep '^hi$'
