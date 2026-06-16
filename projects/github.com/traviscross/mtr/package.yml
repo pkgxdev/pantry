@@ -19,10 +19,16 @@ build:
     # pre-generated configure (no dist tarball is published on GitHub Releases)
     - ./bootstrap.sh
     - ./configure $ARGS
-    - make --jobs {{ hw.concurrency }} V=1
+    - make --jobs {{ hw.concurrency }}
     - make install
   env:
     LIBS: -lncursesw
+    linux:
+      # On linux the pantry ncurses splits stdscr/raw (and the other curses
+      # globals) into libtinfow; libncursesw only NEEDs it transitively, and
+      # lld won't resolve the executable's symbols from a transitive dep, so
+      # link libtinfow directly. (darwin's ncurses isn't split this way.)
+      LIBS: -lncursesw -ltinfow
     ARGS:
       - --prefix={{prefix}}
       - --without-gtk # skip the GTK+ GUI; keep curses `mtr` + `mtr-packet`
