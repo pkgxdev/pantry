@@ -1,0 +1,18 @@
+distributable:
+  url: https://github.com/alexpasmantier/television/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/tv
+
+versions:
+  github: alexpasmantier/television
+
+build:
+  dependencies:
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path . --root {{prefix}}
+
+test:
+  - tv --version | tee out
+  - grep {{version}} out
