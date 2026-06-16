@@ -22,18 +22,21 @@ runtime:
 build:
   dependencies:
     python.org: "~3.11"
+    # cryptography/pynacl have no prebuilt wheel for the pantry darwin-x64
+    # python, so pip source-builds them: cryptography needs rust + openssl,
+    # the C extensions need a compiler (present).
+    rust-lang.org/cargo: '*'
+    openssl.org: '*'
+  env:
+    OPENSSL_DIR: "${{deps.openssl.org.prefix}}"
+    CBOR2_BUILD_C_EXTENSION: "0" # build cbor2 pure-Python (no wheel needed)
   script:
     - bkpyvenv stage {{prefix}} {{version}}
-    # The staged pip (24.0) is too old to match the current macOS/manylinux
-    # wheel tags for cryptography, so it fell back to a (failing) source build.
-    # Upgrade pip first so it resolves the prebuilt wheels.
+    # Upgrade pip so it matches current wheel tags; where no wheel exists
+    # (pantry darwin-x64 python) cryptography source-builds via rust+openssl.
     - "{{prefix}}/venv/bin/pip install --upgrade pip"
     - "{{prefix}}/venv/bin/pip install magic-wormhole=={{version}}"
     - bkpyvenv seal {{prefix}} wormhole
-  env:
-    # cbor2's C extension is optional; build it pure-Python so no C toolchain
-    # is needed if its wheel is ever missing.
-    CBOR2_BUILD_C_EXTENSION: "0"
 
 provides:
   - bin/wormhole
