@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/nextest-rs/nextest/archive/refs/tags/cargo-nextest-{{version}}.tar.gz
+  url: https://github.com/nextest-rs/nextest/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 provides:
@@ -12,8 +12,8 @@ versions:
 build:
   dependencies:
     rust-lang.org/cargo: '*'
-  script:
-    cargo install --locked --path cargo-nextest --root {{prefix}}
+  script: cargo install --locked --path cargo-nextest --root {{prefix}}
 
-test: |
-  cargo-nextest --version | grep {{version}}
+test:
+  - cargo-nextest --version | tee out
+  - grep {{version}} out
