@@ -1,0 +1,76 @@
+# moreutils — a growing collection of the unix tools that nobody thought
+# to write long ago when unix was young.
+#
+# Build notes:
+#  * Plain Makefile, no autotools. We build only the requested binaries as
+#    explicit make goals rather than `make all`, because `all` also builds
+#    $(MANS), which needs docbook-xsl + xsltproc + xmllint + pod2man —
+#    tooling we don't want to pull in. The perl scripts need no compile step.
+#  * We deliberately leave `parallel` out of the goal list, so we never build
+#    or ship a bin/parallel that would clobber GNU parallel
+#    (gnu.org/software/parallel).
+#  * The perl scripts (vidir vipe ts combine zrun chronic) ship a hardcoded
+#    `#!/usr/bin/perl` shebang; we rewrite them to `/usr/bin/env perl` so the
+#    perl.org runtime dep on PATH is used. Hence perl.org is a runtime dep.
+#  * NB: we never invoke the Makefile's `install` target — it always installs
+#    bin/parallel and the manpages, and it booby-traps `MANS=.noop`
+#    (prints an anti-AI screed, then `sleep 3600`). We install by hand.
+
+distributable:
+  # Debian's orig tarball (unmodified upstream source) — reliable, unlike
+  # joeyh.name's cgit, which 403s its tag list and intermittently fails
+  # version resolution from CI. Debian tracks upstream closely (now 0.70).
+  url: https://deb.debian.org/debian/pool/main/m/moreutils/moreutils_{{version.marketing}}.orig.tar.xz
+  strip-components: 1
+
+versions:
+  url: https://deb.debian.org/debian/pool/main/m/moreutils/
+  match: /moreutils_\d+\.\d+\.orig\.tar\.xz/
+  strip:
+    - /^moreutils_/
+    - /\.orig\.tar\.xz/
+
+dependencies:
+  perl.org: '*'
+
+build:
+  script:
+    # Build the exact C tools we want as make goals (NOT `make all`, which
+    # also builds $(MANS) and needs docbook tooling). `parallel` is simply
+    # never named as a goal, so it is never built nor installed.
+    - make $BINS
+    - mkdir -p "{{prefix}}/bin"
+    - install $BINS "{{prefix}}/bin"
+    # make the perl scripts use the pkgx-provided perl rather than /usr/bin/perl
+    - sed -i '1s|^#!/usr/bin/perl|#!/usr/bin/env perl|' $PERLSCRIPTS
+    # perl scripts ship as-is (no compile step), copy them too
+    - install $PERLSCRIPTS "{{prefix}}/bin"
+  env:
+    BINS: isutf8 ifdata ifne pee sponge mispipe lckdo errno
+    PERLSCRIPTS: vidir vipe ts combine zrun chronic
+
+provides:
+  - bin/sponge
+  - bin/ts
+  - bin/vidir
+  - bin/vipe
+  - bin/pee
+  - bin/ifne
+  - bin/ifdata
+  - bin/chronic
+  - bin/combine
+  - bin/errno
+  - bin/isutf8
+  - bin/lckdo
+  - bin/mispipe
+  - bin/zrun
+  # NB: no bin/parallel — excluded to avoid clobbering GNU parallel
+
+test:
+  # C tool: sponge soaks stdin then writes it back out
+  - run: test "$(echo hi | sponge /dev/stdout)" = hi
+  # C tool: errno name lookup
+  - run: errno 2 | tee out
+  - grep ENOENT out
+  # perl script: ts prepends a timestamp (proves perl runtime + shebang)
+  - run: echo x | ts | grep x
