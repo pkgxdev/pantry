@@ -1,0 +1,45 @@
+# https://github.com/magic-wormhole/magic-wormhole
+# get things from one computer to another, safely (short-code file transfer)
+
+distributable:
+  url: https://files.pythonhosted.org/packages/source/m/magic-wormhole/magic_wormhole-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://pypi.org/simple/magic-wormhole/
+  match: /magic_wormhole-\d+\.\d+\.\d+\.tar\.gz/
+  strip:
+    - /magic_wormhole-/
+    - /\.tar\.gz/
+
+# darwin/x86-64 omitted: its pantry python has no matching cryptography
+# wheel, and the rust+openssl source build is impractical there. The other
+# platforms install cryptography/cbor2/pynacl from wheels cleanly.
+platforms:
+  - linux
+  - darwin/aarch64
+
+dependencies:
+  pkgx.sh: ">=1"
+  python.org: "~3.11"
+
+runtime:
+  env:
+    PYTHONPATH: ${{prefix}}/venv/lib/python{{deps.python.org.version.marketing}}/site-packages
+
+build:
+  dependencies:
+    python.org: "~3.11"
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    # pip resolves binary wheels for the C/Rust deps (cryptography, pynacl,
+    # cbor2) on these platforms; no compiler/toolchain needed.
+    - "{{prefix}}/venv/bin/pip install ."
+    - bkpyvenv seal {{prefix}} wormhole
+
+provides:
+  - bin/wormhole
+
+test:
+  - wormhole --version 2>&1 | tee out
+  - grep {{version}} out
