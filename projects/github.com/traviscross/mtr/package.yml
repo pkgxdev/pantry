@@ -22,6 +22,9 @@ build:
     - make --jobs {{ hw.concurrency }}
     - make install
   env:
+    # Force-link ncurses after the objects: lld (single-pass) drops a curses
+    # lib that configure places before the objects, leaving stdscr undefined.
+    LIBS: -lncurses
     ARGS:
       - --prefix={{prefix}}
       - --without-gtk # skip the GTK+ GUI; keep curses `mtr` + `mtr-packet`
@@ -32,4 +35,5 @@ provides:
 
 # mtr needs raw-socket / setuid privileges to actually trace at runtime,
 # but `--version` parses args and exits before any privilege/socket setup.
-test: mtr --version 2>&1 | grep {{version}}
+# mtr reports its bare upstream version (mtr 0.96); pantry pads it to 0.96.0.
+test: mtr --version 2>&1 | grep {{version.marketing}}
