@@ -1,0 +1,52 @@
+# mage — a make/rake-like build tool for Go. Magefiles are plain Go,
+# so builds are written in Go instead of a bespoke DSL.
+# https://github.com/magefile/mage
+
+distributable:
+  url: https://github.com/magefile/mage/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: magefile/mage
+
+build:
+  dependencies:
+    go.dev: '*'
+  env:
+    CGO_ENABLED: 0   # pure-Go, no cgo
+  # main package is the repo ROOT (`.`): main.go calls mage.Main().
+  #
+  # NOTE on version embedding: `mage -version` reads its tag from
+  # debug.ReadBuildInfo().Main.Version (mage/main.go doVersion), NOT from a
+  # package-level ldflags var. A from-tarball build has no module version, so
+  # the printed tag is empty. The -X below targets mage.gitTag, which does not
+  # exist as a package var in current mage; Go's linker silently ignores an
+  # unknown -X target, so it is a harmless forward-compat hint and does not
+  # actually populate the version. (See CI risk in PR notes.)
+  script: |
+    go build -trimpath \
+      -ldflags "-s -w -X github.com/magefile/mage/mage.gitTag=v{{version}}" \
+      -o {{prefix}}/bin/mage .
+
+test:
+  # -version always prints the "Mage Build Tool" banner; assert the binary
+  # links and runs. (Tag is not embedded in a tarball build — see build note.)
+  - mage -version 2>&1 | tee out
+  - grep "Mage Build Tool" out
+  # smoke-test the compiler path end-to-end with a trivial magefile.
+  - |
+    cat > magefile.go <<'EOF'
+    //go:build mage
+
+    package main
+
+    import "fmt"
+
+    // Hello prints a greeting.
+    func Hello() { fmt.Println("hello from mage") }
+    EOF
+  - mage hello 2>&1 | tee run
+  - grep "hello from mage" run
+
+provides:
+  - bin/mage
