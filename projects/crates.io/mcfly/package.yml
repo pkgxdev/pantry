@@ -1,0 +1,18 @@
+distributable:
+  url: https://github.com/cantino/mcfly/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/mcfly
+
+versions:
+  github: cantino/mcfly
+
+build:
+  dependencies:
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path . --root {{prefix}}
+
+test:
+  - mcfly --version | tee out
+  - grep {{version}} out
