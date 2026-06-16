@@ -22,7 +22,7 @@
 
 distributable:
   url: git+https://github.com/tianocore/edk2
-  ref: edk2-stable{{version.raw}}
+  ref: ${{version.tag}}
 
 versions:
   github: tianocore/edk2/tags
@@ -31,26 +31,25 @@ versions:
 
 build:
   dependencies:
-    git-scm.org: '*'
+    git-scm.org: "*"
     python.org: ~3.11
-    nasm.us: '*'
-    freedesktop.org/pkg-config: '*'
+    nasm.us: "*"
     # iasl (ACPI compiler) — EDK II compiles `.asl` ACPI tables to `.aml`
     # for several modules (RamDiskDxe's NFIT, etc.). It is not in qemu's
     # toolchain, so without this the X64 build dies with
     # `iasl: command not found` (exit 127) on every platform.
-    acpica.org: '*'
+    acpica.org: "*"
     linux:
-      gnu.org/gcc: '*'
+      gnu.org/gcc: "*"
       # BaseTools' GenFv #includes <uuid/uuid.h> and links -luuid; on
       # Linux that comes from util-linux's libuuid (on darwin it's in the
       # SDK). Without it the BaseTools build fails:
       # `GenFvInternalLib.c: fatal error: uuid/uuid.h: No such file`.
-      github.com/util-linux/util-linux: '*'
+      github.com/util-linux/util-linux: "*"
     darwin:
       # CLANGPDB toolchain emits PE/COFF directly via lld-link, avoiding
       # the macOS-only `mtoc` that XCODE5 requires.
-      llvm.org: '*'
+      llvm.org: 19
   env:
     darwin:
       # EDK II's CLANGPDB toolchain calls clang/lld-link as
@@ -60,173 +59,91 @@ build:
       # non-existent /usr/bin/lld-link → `lld-link: No such file`. Using
       # the dep prefix (not `which clang`) avoids resolving to that shim.
       CLANG_BIN: "{{deps.llvm.org.prefix}}/bin/"
+      TC: CLANGPDB
+    linux:
+      TC: GCC
+    x86-64:
+      NATIVE_FW: "{{prefix}}/share/qemu/edk2-x86_64-code.fd"
+      HOST_ARCH: X64
+    aarch64:
+      NATIVE_FW: "{{prefix}}/share/qemu/edk2-aarch64-code.fd"
+      HOST_ARCH: AARCH64
+    WORKSPACE: "$SRCROOT"
+    EDK_TOOLS_PATH: "$SRCROOT/BaseTools"
+    CONF_PATH: "$SRCROOT/Conf"
   script:
-    - run: |
-        set -e
+    # EDK II pulls a pinned OpenSSL via submodule (CryptoPkg) and a
+    # handful of others (BrotliCustomDecompressLib, MipiSysTLib, …).
+    # We need them for SecureBoot-capable OVMF builds.
+    - git submodule update --init --recursive --depth 1
 
-        # Brewkit checks out git+ sources to ${PKGX_PANTRY_PATH}/srcs/...
-        # and rsyncs once into ${SRCROOT}. After a manual `rm -rf builds`
-        # the re-stage may skip the copy (only rsyncs `props/`), leaving
-        # cwd empty. Repopulate from srcs/ if needed.
-        SRC_DIR="${PKGX_PANTRY_PATH}/srcs/$(basename "$SRCROOT")"
-        if [ ! -d ./BaseTools ] && [ -d "$SRC_DIR/BaseTools" ]; then
-          echo "edk2: repopulating build dir from $SRC_DIR"
-          cp -a "$SRC_DIR/." ./
-        fi
+    # BaseTools — the C helpers (GenFv, GenFw, …) used by the build.
+    #
+    # Built SERIALLY on purpose. The VfrCompile sub-makefile has a
+    # missing dependency between the `dlg`-generated VfrLexer.cpp and
+    # its own compile step; under `make -j` the compiler races the
+    # generator and reads a half-written file, failing with
+    # `VfrLexer.cpp: error: expected expression`. With many cores
+    # (CI runners) the race is near-deterministic, which is why every
+    # platform's build was red. Serial BaseTools is quick (~1-2 min)
+    # and the EDK II `build` below is still fully parallel via `-n`.
+    - make -C BaseTools
 
-        # EDK II pulls a pinned OpenSSL via submodule (CryptoPkg) and a
-        # handful of others (BrotliCustomDecompressLib, MipiSysTLib, …).
-        # We need them for SecureBoot-capable OVMF builds.
-        git submodule update --init --recursive --depth 1
+    # edksetup.sh is bash-only and expects to be sourced from $PWD.
 
-        # BaseTools — the C helpers (GenFv, GenFw, …) used by the build.
-        #
-        # Built SERIALLY on purpose. The VfrCompile sub-makefile has a
-        # missing dependency between the `dlg`-generated VfrLexer.cpp and
-        # its own compile step; under `make -j` the compiler races the
-        # generator and reads a half-written file, failing with
-        # `VfrLexer.cpp: error: expected expression`. With many cores
-        # (CI runners) the race is near-deterministic, which is why every
-        # platform's build was red. Serial BaseTools is quick (~1-2 min)
-        # and the EDK II `build` below is still fully parallel via `-n`.
-        make -C BaseTools
+    - . ./edksetup.sh BaseTools
 
-        # edksetup.sh is bash-only and expects to be sourced from $PWD.
-        export WORKSPACE="$PWD"
-        export EDK_TOOLS_PATH="$PWD/BaseTools"
-        export CONF_PATH="$PWD/Conf"
-        . ./edksetup.sh BaseTools
+    # ── X64 (amd64) → edk2-x86_64-code.fd / edk2-i386-vars.fd ──
+    - if test "{{hw.platform}}+{{hw.arch}}" != "linux+aarch64"; then
+    - build -a X64 -t "$TC" -b RELEASE
+      -p OvmfPkg/OvmfPkgX64.dsc
+      -D SECURE_BOOT_ENABLE=TRUE
+      -D TPM2_ENABLE=TRUE
+      -D NETWORK_IP6_ENABLE=TRUE
+      -D NETWORK_HTTP_BOOT_ENABLE=TRUE
+      -n {{ hw.concurrency }}
 
-        # EDK II's toolchain tag is platform-specific:
-        #   GCC      → Linux gcc/clang, ld.bfd or ld.lld. (Modern EDK II
-        #              dropped the old GCC5/GCC49/... family tags in favour
-        #              of a single GCC; edk2-stable202605's tools_def only
-        #              ships *_GCC_*, so GCC5 errors `[GCC5] not defined`.)
-        #   CLANGPDB → cross-platform clang + lld-link → PE/COFF directly
-        #              (used on Darwin to skip the macOS-only mtoc hop)
-        case "$(uname -s)" in
-          Darwin) TC=CLANGPDB ;;
-          *)      TC=GCC      ;;
+    - find Build/OvmfX64 -name OVMF_CODE.fd -exec install -Dm0664 {} {{prefix}}/share/qemu/edk2-x86_64-code.fd \;
+    - find Build/OvmfX64 -name OVMF_VARS.fd -exec install -Dm0664 {} {{prefix}}/share/qemu/edk2-i386-vars.fd \;
+    # install if found
+    - find Build/OvmfX64 -name OVMF.fd -exec install -Dm0664 {} {{prefix}}/share/qemu/edk2-x86_64.fd \; || true
+
+    - fi # !linux/aarch64
+
+    # ── AARCH64 (arm64) → edk2-aarch64-code.fd / edk2-arm-vars.fd ──
+    # ArmVirtQemu emits QEMU_EFI.fd + QEMU_VARS.fd.
+    - if test "{{hw.platform}}+{{hw.arch}}" != "linux+x86-64"; then
+
+    - build -a AARCH64 -t "$TC" -b RELEASE
+      -p ArmVirtPkg/ArmVirtQemu.dsc
+      -D NETWORK_HTTP_BOOT_ENABLE=TRUE
+      -n {{ hw.concurrency }}
+    # ArmVirtQemu.dsc names its output dir `ArmVirtQemu-AArch64`
+    # (mixed case, from the DSC, not the -a flag). Hardcoding
+    # `AARCH64` worked on darwin's case-insensitive FS but `install`
+    # couldn't find it on case-sensitive Linux — glob it instead.
+    - find Build/ArmVirtQemu* -name QEMU_EFI.fd -exec install -Dm0664 {} {{prefix}}/share/qemu/edk2-aarch64-code.fd \;
+    - find Build/ArmVirtQemu* -name QEMU_VARS.fd -exec install -Dm0664 {} {{prefix}}/share/qemu/edk2-arm-vars.fd \;
+
+    - fi # !linux/x86-64
+
+    # Thin shim so pkgx has at least one `bin/*` entry to advertise
+    # and so downstream tooling can discover the blob directory
+    # without sourcing env vars.
+    - run: install -Dm755 $PROP {{prefix}}/bin/edk2-firmware-path
+      prop: |
+        #!/bin/sh
+        # Print the absolute path to an EDK II firmware blob.
+        # Usage: edk2-firmware-path [x86_64-code|i386-vars|aarch64-code|arm-vars|dir]
+        dir="$(cd "$(dirname "$0")/../share/qemu" && pwd)"
+        case "${1:-dir}" in
+          dir)                       echo "$dir" ;;
+          x86_64-code|amd64-code)    echo "$dir/edk2-x86_64-code.fd" ;;
+          i386-vars|amd64-vars)      echo "$dir/edk2-i386-vars.fd" ;;
+          aarch64-code|arm64-code)   echo "$dir/edk2-aarch64-code.fd" ;;
+          arm-vars|arm64-vars)       echo "$dir/edk2-arm-vars.fd" ;;
+          *) echo "unknown firmware key: $1" >&2; exit 2 ;;
         esac
-        echo "edk2: using toolchain tag $TC (CLANG_BIN=${CLANG_BIN:-unset})"
-
-        # Recent clang (>=20) tightens -Wcast-function-type-mismatch, which
-        # trips OpenSSL's pem_password_cb casts in CryptoPkg/BaseCryptLib.
-        # EDK II compiles with -Werror, so soften that one warning. We
-        # also relax a couple of other newer-clang diagnostics that
-        # surface in third-party submodules (OpenSSL, MipiSysT).
-        if [ -f Conf/tools_def.txt ]; then
-          EXTRA="-Wno-error=cast-function-type-mismatch -Wno-error=incompatible-function-pointer-types -Wno-error=unused-but-set-variable -Wno-error=deprecated-declarations"
-          # Append EXTRA to every CC_FLAGS line for the active toolchain.
-          sed -i.bak -E \
-            "s@^([[:space:]]*(DEBUG|RELEASE|NOOPT)_${TC}_[A-Z0-9]+_CC_FLAGS[[:space:]]*=.*)\$@\\1 ${EXTRA}@" \
-            Conf/tools_def.txt
-          # Count patched lines in two steps — a `$(grep …"(…)"…)` nested
-          # inside an `echo "…"` tripped a parse error (`unexpected token
-          # (`) on the darwin runner's shell. `grep -c` returns 1 when it
-          # matches nothing, so guard with `|| true` under `set -e`.
-          patched=$(grep -cE "^[[:space:]]*(DEBUG|RELEASE|NOOPT)_${TC}_[A-Z0-9]+_CC_FLAGS.*cast-function-type-mismatch" Conf/tools_def.txt || true)
-          echo "edk2: patched ${patched} ${TC} CC_FLAGS lines"
-
-          # CryptoPkg overrides CC_FLAGS in its DSC, so the tools_def
-          # patch isn't enough — patch the source file directly to
-          # silence the two pem_password_cb casts that newer clang
-          # rejects with -Wcast-function-type-mismatch.
-          CRYPT_PEM="CryptoPkg/Library/BaseCryptLib/Pem/CryptPem.c"
-          if [ -f "$CRYPT_PEM" ] && ! grep -q "clang diagnostic.*cast-function-type-mismatch" "$CRYPT_PEM"; then
-            {
-              printf '%s\n' '#if defined(__clang__)'
-              printf '%s\n' '#pragma clang diagnostic push'
-              printf '%s\n' '#pragma clang diagnostic ignored "-Wcast-function-type-mismatch"'
-              printf '%s\n' '#endif'
-              cat "$CRYPT_PEM"
-              printf '%s\n' '#if defined(__clang__)'
-              printf '%s\n' '#pragma clang diagnostic pop'
-              printf '%s\n' '#endif'
-            } > "$CRYPT_PEM.new"
-            mv "$CRYPT_PEM.new" "$CRYPT_PEM"
-            echo "edk2: patched $CRYPT_PEM for -Wcast-function-type-mismatch"
-          fi
-        fi
-
-        mkdir -p "{{prefix}}/share/qemu"
-
-        # Build both QEMU firmware targets. The host-native arch always
-        # builds; the foreign arch needs a cross-compiler. clang (darwin
-        # CLANGPDB) cross-compiles freely, so darwin bottles carry both
-        # blobs. GCC on Linux only targets its own arch — the X64 OvmfPkg
-        # build feeds x86-only flags (-m64, -mno-red-zone, -mno-sse, …) to
-        # gcc, which a native aarch64 gcc rejects (and vice-versa). So each
-        # target is best-effort; we require the host-native blob at the end.
-        HOST_ARCH="$(uname -m)"
-
-        # ── X64 (amd64) → edk2-x86_64-code.fd / edk2-i386-vars.fd ──
-        if build -a X64 -t "$TC" -b RELEASE \
-              -p OvmfPkg/OvmfPkgX64.dsc \
-              -D SECURE_BOOT_ENABLE=TRUE \
-              -D TPM2_ENABLE=TRUE \
-              -D NETWORK_IP6_ENABLE=TRUE \
-              -D NETWORK_HTTP_BOOT_ENABLE=TRUE \
-              -n {{ hw.concurrency }}; then
-          OUT_X64="Build/OvmfX64/RELEASE_${TC}/FV"
-          install -m 0644 "$OUT_X64/OVMF_CODE.fd" "{{prefix}}/share/qemu/edk2-x86_64-code.fd"
-          install -m 0644 "$OUT_X64/OVMF_VARS.fd" "{{prefix}}/share/qemu/edk2-i386-vars.fd"
-          # Combined CODE+VARS image (qemu `-bios` style).
-          if [ -f "$OUT_X64/OVMF.fd" ]; then
-            install -m 0644 "$OUT_X64/OVMF.fd" "{{prefix}}/share/qemu/edk2-x86_64.fd"
-          fi
-        else
-          echo "edk2: X64 build failed — expected when cross-compiling from a non-x86_64 host with GCC; continuing"
-        fi
-
-        # ── AARCH64 (arm64) → edk2-aarch64-code.fd / edk2-arm-vars.fd ──
-        # ArmVirtQemu emits QEMU_EFI.fd + QEMU_VARS.fd.
-        if build -a AARCH64 -t "$TC" -b RELEASE \
-              -p ArmVirtPkg/ArmVirtQemu.dsc \
-              -D NETWORK_HTTP_BOOT_ENABLE=TRUE \
-              -n {{ hw.concurrency }}; then
-          # ArmVirtQemu.dsc names its output dir `ArmVirtQemu-AArch64`
-          # (mixed case, from the DSC, not the -a flag). Hardcoding
-          # `AARCH64` worked on darwin's case-insensitive FS but `install`
-          # couldn't find it on case-sensitive Linux — glob it instead.
-          OUT_AARCH64=$(ls -d Build/ArmVirtQemu-*/RELEASE_${TC}/FV 2>/dev/null | head -1)
-          install -m 0644 "$OUT_AARCH64/QEMU_EFI.fd"  "{{prefix}}/share/qemu/edk2-aarch64-code.fd"
-          install -m 0644 "$OUT_AARCH64/QEMU_VARS.fd" "{{prefix}}/share/qemu/edk2-arm-vars.fd"
-        else
-          echo "edk2: AARCH64 build failed — expected when cross-compiling from a non-arm64 host with GCC; continuing"
-        fi
-
-        # A bottle with no firmware for its own host arch is a hard fail.
-        case "$HOST_ARCH" in
-          x86_64)        NATIVE_FW="{{prefix}}/share/qemu/edk2-x86_64-code.fd"  ;;
-          arm64|aarch64) NATIVE_FW="{{prefix}}/share/qemu/edk2-aarch64-code.fd" ;;
-          *)             NATIVE_FW="" ;;
-        esac
-        if [ -n "$NATIVE_FW" ] && [ ! -s "$NATIVE_FW" ]; then
-          echo "edk2: FATAL — host-native firmware $NATIVE_FW was not produced" >&2
-          exit 1
-        fi
-
-        # Thin shim so pkgx has at least one `bin/*` entry to advertise
-        # and so downstream tooling can discover the blob directory
-        # without sourcing env vars.
-        mkdir -p "{{prefix}}/bin"
-        shim="{{prefix}}/bin/edk2-firmware-path"
-        {
-          printf '%s\n' '#!/bin/sh'
-          printf '%s\n' '# Print the absolute path to an EDK II firmware blob.'
-          printf '%s\n' '# Usage: edk2-firmware-path [x86_64-code|i386-vars|aarch64-code|arm-vars|dir]'
-          printf '%s\n' 'dir="$(cd "$(dirname "$0")/../share/qemu" && pwd)"'
-          printf '%s\n' 'case "${1:-dir}" in'
-          printf '%s\n' '  dir)                       echo "$dir" ;;'
-          printf '%s\n' '  x86_64-code|amd64-code)    echo "$dir/edk2-x86_64-code.fd" ;;'
-          printf '%s\n' '  i386-vars|amd64-vars)      echo "$dir/edk2-i386-vars.fd" ;;'
-          printf '%s\n' '  aarch64-code|arm64-code)   echo "$dir/edk2-aarch64-code.fd" ;;'
-          printf '%s\n' '  arm-vars|arm64-vars)       echo "$dir/edk2-arm-vars.fd" ;;'
-          printf '%s\n' '  *) echo "unknown firmware key: $1" >&2; exit 2 ;;'
-          printf '%s\n' 'esac'
-        } > "$shim"
-        chmod +x "$shim"
 
 provides:
   - bin/edk2-firmware-path
@@ -242,11 +159,11 @@ runtime:
 
 test:
   dependencies:
-    qemu.org: '*'
+    qemu.org: "*"
     # `timeout` is GNU coreutils — present on Linux runners but NOT on
     # macOS, where the test would otherwise die with `timeout: command
     # not found`.
-    gnu.org/coreutils: '*'
+    gnu.org/coreutils: "*"
   script:
     # Boot whichever firmware blobs this bottle shipped, each under its
     # matching qemu, and confirm UEFI reaches the Boot Manager (BdsDxe)
@@ -258,36 +175,28 @@ test:
     # on our pipe. Do NOT add `-nographic`: it also grabs stdio for the
     # monitor and qemu aborts ("cannot use stdio by multiple character
     # devices").
-    - |
-      Q="{{prefix}}/share/qemu"
-      tested=0
-      booted() { grep -q -E "(TianoCore|EDK II|UEFI Interactive Shell|BdsDxe)" "$1"; }
 
-      # x86_64 firmware (x86_64 hosts + all darwin)
-      if [ -s "$Q/edk2-x86_64-code.fd" ]; then
-        cp "$Q/edk2-i386-vars.fd" vars-x64.fd
-        timeout 90 qemu-system-x86_64 \
-          -machine q35,accel=tcg -m 256 \
-          -drive if=pflash,format=raw,readonly=on,file="$Q/edk2-x86_64-code.fd" \
-          -drive if=pflash,format=raw,file=vars-x64.fd \
-          -display none -no-reboot -serial stdio > boot-x64.log 2>&1 || true
-        if booted boot-x64.log; then echo "x86_64 firmware reached BdsDxe"; tested=1
-        else echo "x86_64 boot FAILED"; cat boot-x64.log; exit 1; fi
-      fi
+    - test "$(edk2-firmware-path dir)" = "{{prefix}}/share/qemu"
 
-      # aarch64 firmware (arm64 hosts + all darwin). ArmVirt pflash images
-      # must be 64MiB, so pad the copies.
-      if [ -s "$Q/edk2-aarch64-code.fd" ]; then
-        cp "$Q/edk2-aarch64-code.fd" code-a64.fd
-        cp "$Q/edk2-arm-vars.fd"     vars-a64.fd
-        truncate -s 64m code-a64.fd vars-a64.fd
-        timeout 90 qemu-system-aarch64 \
-          -machine virt -cpu cortex-a57 -m 256 \
-          -drive if=pflash,format=raw,readonly=on,file=code-a64.fd \
-          -drive if=pflash,format=raw,file=vars-a64.fd \
-          -display none -no-reboot -serial stdio > boot-a64.log 2>&1 || true
-        if booted boot-a64.log; then echo "aarch64 firmware reached BdsDxe"; tested=1
-        else echo "aarch64 boot FAILED"; cat boot-a64.log; exit 1; fi
-      fi
+    # x86_64 firmware (x86_64 hosts + all darwin)
+    - if test "{{hw.platform}}+{{hw.arch}}" != "linux+aarch64"; then
+    - ( timeout 90 qemu-system-x86_64 -machine q35,accel=tcg -m 256
+      -drive if=pflash,format=raw,readonly=on,file="$(edk2-firmware-path x86_64-code)"
+      -drive if=pflash,format=raw,file="$(edk2-firmware-path i386-vars)"
+      -display none -no-reboot -serial stdio 2>&1 | tee boot-x64.log ) || true
+    - grep -E "(TianoCore|EDK II|UEFI Interactive Shell|BdsDxe)" boot-x64.log
+    - fi
 
-      [ "$tested" = 1 ] || { echo "no firmware blob was present to test"; exit 1; }
+    # aarch64 firmware (arm64 hosts + all darwin). ArmVirt pflash images
+    # must be 64MiB, so pad the copies.
+    - if test "{{hw.platform}}+{{hw.arch}}" != "linux+x86-64"; then
+    - cp "$(edk2-firmware-path aarch64-code)" code-a64.fd
+    - cp "$(edk2-firmware-path arm-vars)"     vars-a64.fd
+    - truncate -s 64m code-a64.fd vars-a64.fd
+    - ( timeout 90 qemu-system-aarch64
+      -machine virt -cpu cortex-a57 -m 256
+      -drive if=pflash,format=raw,readonly=on,file=code-a64.fd
+      -drive if=pflash,format=raw,file=vars-a64.fd
+      -display none -no-reboot -serial stdio 2>&1 | tee boot-a64.log ) || true
+    - grep -E "(TianoCore|EDK II|UEFI Interactive Shell|BdsDxe)" boot-a64.log
+    - fi
