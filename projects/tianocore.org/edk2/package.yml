@@ -1,0 +1,202 @@
+# EDK II — TianoCore reference UEFI implementation.
+#
+# Ships OVMF / ArmVirtPkg firmware blobs for qemu, matching qemu's
+# `share/qemu/` bundle layout so existing runners can pick them up
+# via env-var overrides (QEMU_EFI_BIOS, etc.) without code changes.
+#
+# Primary target: X64 (amd64) → edk2-x86_64-code.fd / edk2-i386-vars.fd
+# Secondary: AARCH64 (arm64)  → edk2-aarch64-code.fd / edk2-arm-vars.fd
+#
+# RISCV64 and LOONGARCH64 are tracked as follow-ups: ArmVirtPkg/OvmfPkg
+# DSCs exist for them, but bottle layout + cross-toolchain wiring need
+# additional shake-out.
+#
+# Tag scheme is `edk2-stableYYYYMM[.N]`; pkgx strips the prefix so
+# `versions: github` exposes a YYYYMM[.N] series that orders correctly.
+#
+# Platform notes:
+#   * Linux  (GCC5)     — fully self-contained on pantry deps.
+#   * Darwin (CLANGPDB) — uses pantry's llvm.org (clang + lld-link) to
+#     emit PE/COFF directly, sidestepping macOS-only `mtoc`. Slightly
+#     slower than XCODE5 but reproducible across hosts.
+
+distributable:
+  url: git+https://github.com/tianocore/edk2
+  ref: ${{version.tag}}
+
+versions:
+  github: tianocore/edk2/tags
+  match: /^edk2-stable\d+(\.\d+)?$/
+  strip: /^edk2-stable/
+
+build:
+  dependencies:
+    git-scm.org: "*"
+    python.org: ~3.11
+    nasm.us: "*"
+    # iasl (ACPI compiler) — EDK II compiles `.asl` ACPI tables to `.aml`
+    # for several modules (RamDiskDxe's NFIT, etc.). It is not in qemu's
+    # toolchain, so without this the X64 build dies with
+    # `iasl: command not found` (exit 127) on every platform.
+    acpica.org: "*"
+    linux:
+      gnu.org/gcc: "*"
+      # BaseTools' GenFv #includes <uuid/uuid.h> and links -luuid; on
+      # Linux that comes from util-linux's libuuid (on darwin it's in the
+      # SDK). Without it the BaseTools build fails:
+      # `GenFvInternalLib.c: fatal error: uuid/uuid.h: No such file`.
+      github.com/util-linux/util-linux: "*"
+    darwin:
+      # CLANGPDB toolchain emits PE/COFF directly via lld-link, avoiding
+      # the macOS-only `mtoc` that XCODE5 requires.
+      llvm.org: 19
+  env:
+    darwin:
+      # EDK II's CLANGPDB toolchain calls clang/lld-link as
+      # `DEF(CLANG_BIN)<tool>`. Pin CLANG_BIN to our llvm.org bottle's bin
+      # (trailing slash required) so it uses absolute paths. Without it the
+      # bare `lld-link` hits brewkit's PATH shim, which execs a
+      # non-existent /usr/bin/lld-link → `lld-link: No such file`. Using
+      # the dep prefix (not `which clang`) avoids resolving to that shim.
+      CLANG_BIN: "{{deps.llvm.org.prefix}}/bin/"
+      TC: CLANGPDB
+    linux:
+      TC: GCC
+    x86-64:
+      NATIVE_FW: "{{prefix}}/share/qemu/edk2-x86_64-code.fd"
+      HOST_ARCH: X64
+    aarch64:
+      NATIVE_FW: "{{prefix}}/share/qemu/edk2-aarch64-code.fd"
+      HOST_ARCH: AARCH64
+    WORKSPACE: "$SRCROOT"
+    EDK_TOOLS_PATH: "$SRCROOT/BaseTools"
+    CONF_PATH: "$SRCROOT/Conf"
+  script:
+    # EDK II pulls a pinned OpenSSL via submodule (CryptoPkg) and a
+    # handful of others (BrotliCustomDecompressLib, MipiSysTLib, …).
+    # We need them for SecureBoot-capable OVMF builds.
+    - git submodule update --init --recursive --depth 1
+
+    # BaseTools — the C helpers (GenFv, GenFw, …) used by the build.
+    #
+    # Built SERIALLY on purpose. The VfrCompile sub-makefile has a
+    # missing dependency between the `dlg`-generated VfrLexer.cpp and
+    # its own compile step; under `make -j` the compiler races the
+    # generator and reads a half-written file, failing with
+    # `VfrLexer.cpp: error: expected expression`. With many cores
+    # (CI runners) the race is near-deterministic, which is why every
+    # platform's build was red. Serial BaseTools is quick (~1-2 min)
+    # and the EDK II `build` below is still fully parallel via `-n`.
+    - make -C BaseTools
+
+    # edksetup.sh is bash-only and expects to be sourced from $PWD.
+
+    - . ./edksetup.sh BaseTools
+
+    # ── X64 (amd64) → edk2-x86_64-code.fd / edk2-i386-vars.fd ──
+    - if test "{{hw.platform}}+{{hw.arch}}" != "linux+aarch64"; then
+    - build -a X64 -t "$TC" -b RELEASE
+      -p OvmfPkg/OvmfPkgX64.dsc
+      -D SECURE_BOOT_ENABLE=TRUE
+      -D TPM2_ENABLE=TRUE
+      -D NETWORK_IP6_ENABLE=TRUE
+      -D NETWORK_HTTP_BOOT_ENABLE=TRUE
+      -n {{ hw.concurrency }}
+
+    - find Build/OvmfX64 -name OVMF_CODE.fd -exec install -Dm0664 {} {{prefix}}/share/qemu/edk2-x86_64-code.fd \;
+    - find Build/OvmfX64 -name OVMF_VARS.fd -exec install -Dm0664 {} {{prefix}}/share/qemu/edk2-i386-vars.fd \;
+    # install if found
+    - find Build/OvmfX64 -name OVMF.fd -exec install -Dm0664 {} {{prefix}}/share/qemu/edk2-x86_64.fd \; || true
+
+    - fi # !linux/aarch64
+
+    # ── AARCH64 (arm64) → edk2-aarch64-code.fd / edk2-arm-vars.fd ──
+    # ArmVirtQemu emits QEMU_EFI.fd + QEMU_VARS.fd.
+    - if test "{{hw.platform}}+{{hw.arch}}" != "linux+x86-64"; then
+
+    - build -a AARCH64 -t "$TC" -b RELEASE
+      -p ArmVirtPkg/ArmVirtQemu.dsc
+      -D NETWORK_HTTP_BOOT_ENABLE=TRUE
+      -n {{ hw.concurrency }}
+    # ArmVirtQemu.dsc names its output dir `ArmVirtQemu-AArch64`
+    # (mixed case, from the DSC, not the -a flag). Hardcoding
+    # `AARCH64` worked on darwin's case-insensitive FS but `install`
+    # couldn't find it on case-sensitive Linux — glob it instead.
+    - find Build/ArmVirtQemu* -name QEMU_EFI.fd -exec install -Dm0664 {} {{prefix}}/share/qemu/edk2-aarch64-code.fd \;
+    - find Build/ArmVirtQemu* -name QEMU_VARS.fd -exec install -Dm0664 {} {{prefix}}/share/qemu/edk2-arm-vars.fd \;
+
+    - fi # !linux/x86-64
+
+    # Thin shim so pkgx has at least one `bin/*` entry to advertise
+    # and so downstream tooling can discover the blob directory
+    # without sourcing env vars.
+    - run: install -Dm755 $PROP {{prefix}}/bin/edk2-firmware-path
+      prop: |
+        #!/bin/sh
+        # Print the absolute path to an EDK II firmware blob.
+        # Usage: edk2-firmware-path [x86_64-code|i386-vars|aarch64-code|arm-vars|dir]
+        dir="$(cd "$(dirname "$0")/../share/qemu" && pwd)"
+        case "${1:-dir}" in
+          dir)                       echo "$dir" ;;
+          x86_64-code|amd64-code)    echo "$dir/edk2-x86_64-code.fd" ;;
+          i386-vars|amd64-vars)      echo "$dir/edk2-i386-vars.fd" ;;
+          aarch64-code|arm64-code)   echo "$dir/edk2-aarch64-code.fd" ;;
+          arm-vars|arm64-vars)       echo "$dir/edk2-arm-vars.fd" ;;
+          *) echo "unknown firmware key: $1" >&2; exit 2 ;;
+        esac
+
+provides:
+  - bin/edk2-firmware-path
+
+runtime:
+  env:
+    EDK2_FIRMWARE_DIR: "{{prefix}}/share/qemu"
+    # Backwards-compat names used by some libvirt / qemu wrappers.
+    OVMF_CODE: "{{prefix}}/share/qemu/edk2-x86_64-code.fd"
+    OVMF_VARS: "{{prefix}}/share/qemu/edk2-i386-vars.fd"
+    AAVMF_CODE: "{{prefix}}/share/qemu/edk2-aarch64-code.fd"
+    AAVMF_VARS: "{{prefix}}/share/qemu/edk2-arm-vars.fd"
+
+test:
+  dependencies:
+    qemu.org: "*"
+    # `timeout` is GNU coreutils — present on Linux runners but NOT on
+    # macOS, where the test would otherwise die with `timeout: command
+    # not found`.
+    gnu.org/coreutils: "*"
+  script:
+    # Boot whichever firmware blobs this bottle shipped, each under its
+    # matching qemu, and confirm UEFI reaches the Boot Manager (BdsDxe)
+    # with no boot device. Which blobs exist is host-dependent: darwin
+    # carries both (clang cross-compiles), Linux only its native arch.
+    # We require at least one to boot.
+    #
+    # `-display none -serial stdio` is headless with the firmware console
+    # on our pipe. Do NOT add `-nographic`: it also grabs stdio for the
+    # monitor and qemu aborts ("cannot use stdio by multiple character
+    # devices").
+
+    - test "$(edk2-firmware-path dir)" = "{{prefix}}/share/qemu"
+
+    # x86_64 firmware (x86_64 hosts + all darwin)
+    - if test "{{hw.platform}}+{{hw.arch}}" != "linux+aarch64"; then
+    - ( timeout 90 qemu-system-x86_64 -machine q35,accel=tcg -m 256
+      -drive if=pflash,format=raw,readonly=on,file="$(edk2-firmware-path x86_64-code)"
+      -drive if=pflash,format=raw,file="$(edk2-firmware-path i386-vars)"
+      -display none -no-reboot -serial stdio 2>&1 | tee boot-x64.log ) || true
+    - grep -E "(TianoCore|EDK II|UEFI Interactive Shell|BdsDxe)" boot-x64.log
+    - fi
+
+    # aarch64 firmware (arm64 hosts + all darwin). ArmVirt pflash images
+    # must be 64MiB, so pad the copies.
+    - if test "{{hw.platform}}+{{hw.arch}}" != "linux+x86-64"; then
+    - cp "$(edk2-firmware-path aarch64-code)" code-a64.fd
+    - cp "$(edk2-firmware-path arm-vars)"     vars-a64.fd
+    - truncate -s 64m code-a64.fd vars-a64.fd
+    - ( timeout 90 qemu-system-aarch64
+      -machine virt -cpu cortex-a57 -m 256
+      -drive if=pflash,format=raw,readonly=on,file=code-a64.fd
+      -drive if=pflash,format=raw,file=vars-a64.fd
+      -display none -no-reboot -serial stdio 2>&1 | tee boot-a64.log ) || true
+    - grep -E "(TianoCore|EDK II|UEFI Interactive Shell|BdsDxe)" boot-a64.log
+    - fi
