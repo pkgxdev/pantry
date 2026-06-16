@@ -11,6 +11,14 @@ versions:
     - /magic_wormhole-/
     - /\.tar\.gz/
 
+# darwin/x86-64 omitted: its pantry python has no matching cryptography
+# wheel, and the rust+openssl source build is impractical there. The other
+# platforms install cryptography/cbor2/pynacl from wheels cleanly.
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+  - darwin/aarch64
+
 dependencies:
   pkgx.sh: ">=1"
   python.org: "~3.11"
@@ -22,19 +30,10 @@ runtime:
 build:
   dependencies:
     python.org: "~3.11"
-    # cryptography/pynacl have no prebuilt wheel for the pantry darwin-x64
-    # python, so pip source-builds them: cryptography needs rust + openssl,
-    # the C extensions need a compiler (present).
-    rust-lang.org/cargo: '*'
-    openssl.org: '*'
-  env:
-    OPENSSL_DIR: "${{deps.openssl.org.prefix}}"
-    CBOR2_BUILD_C_EXTENSION: "0" # build cbor2 pure-Python (no wheel needed)
   script:
     - bkpyvenv stage {{prefix}} {{version}}
-    # Upgrade pip so it matches current wheel tags; where no wheel exists
-    # (pantry darwin-x64 python) cryptography source-builds via rust+openssl.
-    - "{{prefix}}/venv/bin/pip install --upgrade pip"
+    # pip resolves binary wheels for the C/Rust deps (cryptography, pynacl,
+    # cbor2) on these platforms; no compiler/toolchain needed.
     - "{{prefix}}/venv/bin/pip install magic-wormhole=={{version}}"
     - bkpyvenv seal {{prefix}} wormhole
 
