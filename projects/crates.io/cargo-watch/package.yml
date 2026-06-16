@@ -1,0 +1,18 @@
+distributable:
+  url: https://github.com/watchexec/cargo-watch/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/cargo-watch
+
+versions:
+  github: watchexec/cargo-watch
+
+build:
+  dependencies:
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path . --root {{prefix}}
+
+test:
+  - cargo-watch --version | tee out
+  - grep {{version}} out
