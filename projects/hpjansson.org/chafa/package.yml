@@ -1,0 +1,26 @@
+distributable:
+  url: https://github.com/hpjansson/chafa/releases/download/{{version}}/chafa-{{version}}.tar.xz
+  strip-components: 1
+
+versions:
+  github: hpjansson/chafa/tags
+
+dependencies:
+  gnome.org/glib: '*'
+
+build:
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --disable-dependency-tracking
+
+provides:
+  - bin/chafa
+
+test:
+  - chafa --version 2>&1 | tee out
+  - grep {{version}} out
