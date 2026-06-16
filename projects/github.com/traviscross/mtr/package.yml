@@ -19,13 +19,9 @@ build:
     # pre-generated configure (no dist tarball is published on GitHub Releases)
     - ./bootstrap.sh
     - ./configure $ARGS
-    - make --jobs {{ hw.concurrency }}
+    - make --jobs {{ hw.concurrency }} V=1
     - make install
   env:
-    # configure detects ncursesw and adds -lncursesw, but lld defaults to
-    # --as-needed and drops it (seen before the objects that reference
-    # stdscr/raw), leaving them undefined; force it to keep the lib.
-    LDFLAGS: -Wl,--no-as-needed
     LIBS: -lncursesw
     ARGS:
       - --prefix={{prefix}}
