@@ -26,7 +26,9 @@ build:
     # (reentrant) accessor; without them mtr found a fallback curses.h and
     # referenced stdscr as a plain symbol the lib doesn't export. lld also
     # needs the lib after the objects, hence LIBS.
-    CPPFLAGS: -I{{deps.invisible-island.net/ncurses.prefix}}/include
+    # lld defaults to --as-needed and drops libncursesw (seen before the objects
+    # that reference stdscr/raw), leaving them undefined; force it to keep the lib.
+    LDFLAGS: -Wl,--no-as-needed
     LIBS: -lncursesw
     ARGS:
       - --prefix={{prefix}}
