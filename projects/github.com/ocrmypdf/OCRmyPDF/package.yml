@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/ocrmypdf/OCRmyPDF/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/ocrmypdf/OCRmyPDF/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
@@ -23,21 +23,18 @@ build:
   dependencies:
     python.org: ~3.11
   script:
+    - pkgx +openssl.org^3
     - bkpyvenv stage {{prefix}} {{version}}
     - ${{prefix}}/venv/bin/pip install .
     # pikepdf/pi_heif libs are compiled for MACOSX_DEPLOYMENT_TARGET=12.0
-    - run: '{{prefix}}/venv/bin/pip install --no-cache-dir --force-reinstall --no-binary :all: pikepdf\>=10 pi_heif\<1.1'
+    - run: '{{prefix}}/venv/bin/pip install --no-cache-dir --force-reinstall --no-binary pikepdf,pi_heif pikepdf\>=10 pi_heif\<1.1'
       if: darwin
     - bkpyvenv seal {{prefix}} ocrmypdf
   env:
-    # add any environment variables here
-    ARGS:
-      - --prefix="{{prefix}}"
-    CC: clang
-    LD: clang
+    OPENSSL_STATIC: "1"
+    OPENSSL_DIR: "{{pkgx.prefix}}/openssl.org/v3"
 
 provides:
   - bin/ocrmypdf
 
-test:
-  script: test "$(ocrmypdf --version)" = {{version}}
+test: test "$(ocrmypdf --version)" = {{version}}
