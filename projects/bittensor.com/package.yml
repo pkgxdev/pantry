@@ -29,12 +29,12 @@ build:
         - bkpyvenv seal {{prefix}} btcli
       if: <8
     # bad headerpad on macOS causing build failures
-    - run: "python -m pip install --no-deps --force-reinstall --no-cache-dir -v --no-binary :all: --prefix={{prefix}} bittensor_drand bittensor_wallet"
+    - run: python -m pip install --no-deps --force-reinstall --no-cache-dir -v --no-binary bittensor_drand,bittensor_wallet --prefix={{prefix}} bittensor_drand bittensor_wallet
       if: ">=10"
     - run:
         - pip install . --prefix={{prefix}} --no-build-isolation
         # bad links to /opt/homebrew on darwin, aarch64 support on linux
-        - "python -m pip install --no-deps --force-reinstall --no-cache-dir -v --no-binary :all: --prefix={{prefix}} bittensor_wallet"
+        - python -m pip install --no-deps --force-reinstall --no-cache-dir -v --no-binary bittensor_wallet --prefix={{prefix}} bittensor_wallet
         - ln -s python{{deps.python.org.version.marketing}} {{prefix}}/lib/python{{deps.python.org.version.major}}
       if: ">=8"
     # Library not loaded: /usr/local/opt/openssl@3/lib/libssl.3.dylib
