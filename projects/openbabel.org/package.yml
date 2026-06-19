@@ -1,0 +1,54 @@
+# Open Babel — the open chemistry toolbox: search, convert, analyze, store
+# molecular file formats. https://github.com/openbabel/openbabel
+distributable:
+  # tags are dash-separated (openbabel-3-2-0) while the version is dotted
+  # (3.2.0); there are no source-tarball release assets, so reconstruct the
+  # dash-tag archive URL from the version components.
+  url: https://github.com/openbabel/openbabel/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: openbabel/openbabel/tags
+  # tags look like `openbabel-3-2-0`; keep only release tags and turn the
+  # dash form into the dotted version pkgx expects.
+  match: /openbabel-\d+-\d+-\d+$/
+  strip:
+    - /^openbabel-/
+  # NOTE: pkgx replaces remaining dashes between digits with dots, so
+  # `3-2-0` -> `3.2.0`.
+
+dependencies:
+  eigen.tuxfamily.org: '*'      # forcefields / geometry optimization (L-BFGS)
+  gnome.org/libxml2: ~2.13      # CML / chemical-markup format (2.14 changed the API version)
+  zlib.net: '*'                 # gz-compressed input/output
+  linux:
+    gnu.org/gcc/libstdcxx: 14   # clang's bundled c++ std headers aren't enough for the c++ build
+
+build:
+  dependencies:
+    cmake.org: ^3
+    linux:
+      gnu.org/gcc: 14           # provide libstdc++ headers; let cmake pick gcc off PATH
+  script:
+    - cmake -B build -S . $ARGS
+    - cmake --build build --parallel {{ hw.concurrency }}
+    - cmake --install build
+  env:
+    ARGS:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
+      - -DCMAKE_INSTALL_RPATH="{{prefix}}/lib"
+      - -Wno-dev
+
+provides:
+  - bin/obabel       # main conversion / analysis driver
+  - bin/obminimize   # minimize the energy of a molecule
+  - bin/obenergy     # evaluate the energy of a molecule
+  - bin/obconformer  # generate / search conformers
+  - bin/obrms        # rmsd between molecular structures
+  - bin/obfit        # superimpose molecules
+  - bin/roundtrip    # read+write round-trip diagnostic
+
+test:
+  - obabel -V 2>&1 | tee out
+  - grep {{version}} out
