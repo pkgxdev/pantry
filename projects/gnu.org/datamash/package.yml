@@ -1,0 +1,22 @@
+distributable:
+  url: https://ftp.gnu.org/gnu/datamash/datamash-{{version.raw}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://ftp.gnu.org/gnu/datamash/
+  match: /datamash-\d+\.\d+\.tar\.gz/
+  strip:
+    - /^datamash-/
+    - /\.tar\.gz$/
+
+build:
+  script:
+    - ./configure --prefix={{prefix}}
+    - make --jobs {{hw.concurrency}} install
+
+provides:
+  - bin/datamash
+
+test:
+  - datamash --version 2>&1 | grep {{version.raw}}
+  - test "$(printf '1\n2\n3\n' | datamash sum 1)" = "6"
