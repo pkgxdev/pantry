@@ -9,6 +9,12 @@ versions:
     - /^units-/
     - /\.tar\.gz$/
 
+runtime:
+  env:
+    # units bakes the data-file path to the (build-time) +brewing staging dir,
+    # which doesn't exist at runtime; point it at the final install location.
+    UNITSFILE: ${{prefix}}/share/units/definitions.units
+
 build:
   script:
     - ./configure --prefix={{prefix}}
