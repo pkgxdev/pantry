@@ -1,0 +1,33 @@
+distributable:
+  url: https://github.com/lh3/bwa/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: lh3/bwa
+
+dependencies:
+  zlib.net: '*'
+
+build:
+  # brewkit's CPATH/LIBRARY_PATH already point at the zlib dep, so the
+  # Makefile finds zlib.h / -lz without extra flags
+  - make --jobs {{hw.concurrency}} CC=cc
+  - install -Dm0755 bwa "{{prefix}}/bin/bwa"
+  - install -Dm0644 bwa.1 "{{prefix}}/share/man/man1/bwa.1"
+
+provides:
+  - bin/bwa
+
+test:
+  script:
+    # bwa with no args prints its banner then exits 1; swallow that so
+    # pipefail keys off grep, not bwa
+    - (bwa 2>&1 || true) | grep '{{version.raw}}'
+    - cp $FIXTURE test.fa
+    - bwa index test.fa
+    - printf ">q1\nGATCGGATCGATCGTAGCTAGCTGATCGATCGATGCTAGCTAGCTAGCATCGTTACGGCA\n" > read.fa
+    - bwa mem test.fa read.fa 2>/dev/null | grep -v "^@" > out.sam
+    - test "$(cut -f2-6 out.sam)" = "$(printf '0\tref1\t21\t60\t60M')"
+  fixture: |
+    >ref1
+    AGCTAGCTAGGCTAGCATCGGATCGGATCGATCGTAGCTAGCTGATCGATCGATGCTAGCTAGCTAGCATCGTTACGGCATCGATCGGCATTAGCGCATCGATCGGCATTAGCATCGGATCG
