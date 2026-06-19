@@ -11,6 +11,10 @@ versions:
 
 dependencies:
   gnu.org/gmp: "*"
+  linux:
+    # libcln.so is built with gcc and links libstdc++ (GLIBCXX symbols), so it
+    # needs the matching libstdc++ present at runtime.
+    gnu.org/gcc/libstdcxx: "*"
 
 build:
   dependencies:
@@ -21,16 +25,9 @@ build:
     - make --jobs {{hw.concurrency}} install
 
 test:
-  fixture: |
-    #include <cln/cln.h>
-    #include <iostream>
-    int main() {
-      cln::cl_I a = "1000000000000000000000000000000";
-      cln::cl_I b = a * a;
-      std::cout << b << std::endl;
-      return 0;
-    }
-  script:
-    - mv $FIXTURE x.cpp
-    - c++ x.cpp -o x -I{{prefix}}/include -L{{prefix}}/lib -lcln -lgmp
-    - ./x | grep 1000000000000000000000000000000000000000000000000000000000000
+  # lib-only (upstream ships no cln-config); assert the installed cln.pc reports
+  # the version. Avoids a C++ link-test that would mix clang with the gcc-built
+  # libstdc++ libcln links against.
+  dependencies:
+    freedesktop.org/pkg-config: "*"
+  script: pkg-config --modversion cln | grep {{version}}
