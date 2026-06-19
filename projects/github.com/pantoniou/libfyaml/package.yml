@@ -17,6 +17,13 @@ build:
     linux:
       gnu.org/m4: "*"
   script:
+    # fix upstream bug: AC_SEARCH_LIBS([trunc],[m]) sets LIBM to "none required"
+    # when trunc is already in libc (e.g. macOS libSystem), but the guard only
+    # scrubs "xyes"/"xno" — never AC_SEARCH_LIBS's real "found in libc" sentinel
+    # — so LIBM keeps the literal string and leaks into Libs: in libfyaml.pc,
+    # breaking every consumer's link line. Broaden the guard to the right value.
+    # No-op on linux (trunc pulls -lm there) and on any version that fixes it.
+    - sed -i 's/"x$LIBM" = "xyes"/"x$LIBM" = "xnone required"/' configure
     - ./configure $ARGS --prefix="{{prefix}}"
     - make --jobs {{ hw.concurrency }} install
     # fix upstream bug: fallback atomic macros use undeclared `__ptr` instead of `(_ptr)`
