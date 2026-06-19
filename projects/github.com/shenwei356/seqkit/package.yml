@@ -1,0 +1,28 @@
+# seqkit — a cross-platform and ultrafast toolkit for FASTA/FASTQ file
+# manipulation (subseq, stats, grep, rmdup, split, sort, etc.). Pure-Go.
+#
+# The version is a source-baked `const VERSION` in seqkit/cmd/version.go,
+# not an -X-settable variable, so the test greps the compiled-in value.
+# Main package lives in ./seqkit (no main.go at repo root); module is /v2.
+
+distributable:
+  url: https://github.com/shenwei356/seqkit/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: shenwei356/seqkit
+  strip: /^v/
+
+build:
+  dependencies:
+    go.dev: '*'
+  env:
+    CGO_ENABLED: 0   # pure-Go, no cgo
+  script: go build -trimpath -ldflags "-s -w" -o {{prefix}}/bin/seqkit ./seqkit
+
+provides:
+  - bin/seqkit
+
+test:
+  - seqkit version 2>&1 | tee out
+  - grep {{version}} out
