@@ -1,0 +1,35 @@
+# minimap2 — fast sequence alignment for long reads and assemblies.
+#
+# Aligns DNA/mRNA against a large reference DB. Builds with a plain
+# Makefile (no configure); produces a single `minimap2` binary that is
+# copied into place (there is no PREFIX-aware `make install`).
+
+distributable:
+  url: https://github.com/lh3/minimap2/releases/download/{{version.tag}}/minimap2-{{version.raw}}.tar.bz2
+  strip-components: 1
+
+versions:
+  github: lh3/minimap2
+
+dependencies:
+  zlib.net: "*"
+
+build:
+  env:
+    aarch64:
+      EXTRA:
+        - arm_neon=1
+        - aarch64=1
+  # Plain Makefile. x86 builds with SSE2/SSE4.1 dispatch by default; aarch64
+  # needs `aarch64=1` (sets arm_neon=1) to use the bundled sse2neon shim.
+  # CC=cc so make uses pkgx's compiler (the Makefile otherwise hardcodes gcc).
+  script:
+    - make --jobs {{hw.concurrency}} CC=cc $EXTRA
+    - install -D minimap2 {{prefix}}/bin/minimap2
+
+provides:
+  - bin/minimap2
+
+test:
+  - minimap2 --version 2>&1 | tee out
+  - grep {{version.raw}} out
