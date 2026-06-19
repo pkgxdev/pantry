@@ -1,0 +1,30 @@
+distributable:
+  url: https://github.com/samtools/bcftools/releases/download/{{version.raw}}/bcftools-{{version.raw}}.tar.bz2
+  strip-components: 1
+
+versions:
+  github: samtools/bcftools
+
+dependencies:
+  htslib.org: '*'
+  zlib.net: 1
+
+build:
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --with-htslib={{deps.htslib.org.prefix}}
+
+provides:
+  - bin/bcftools
+  - bin/color-chrs.pl
+  - bin/guess-ploidy.py
+  - bin/plot-vcfstats
+  - bin/run-roh.pl
+  - bin/vcfutils.pl
+
+test:
+  - bcftools --version 2>&1 | grep {{version.raw}}
