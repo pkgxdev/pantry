@@ -1,0 +1,30 @@
+# https://visidata.org
+# terminal spreadsheet multitool for discovering & arranging tabular data
+distributable: ~
+
+versions:
+  url: https://pypi.org/pypi/visidata/json
+  match: /\d+(\.\d+)+/
+
+dependencies:
+  pkgx.sh: ">=1"
+  python.org: "~3.11"
+
+runtime:
+  env:
+    PYTHONPATH: ${{prefix}}/venv/lib/python{{deps.python.org.version.marketing}}/site-packages
+
+build:
+  dependencies:
+    python.org: "~3.11"
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - "{{prefix}}/venv/bin/pip install visidata=={{version}}"
+    - bkpyvenv seal {{prefix}} vd visidata
+
+provides:
+  - bin/vd
+  - bin/visidata
+
+test:
+  - vd --version 2>&1 | grep "{{version}}"
