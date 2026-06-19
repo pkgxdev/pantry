@@ -1,0 +1,33 @@
+distributable:
+  url: http://eddylab.org/software/hmmer/hmmer-{{version.raw}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: http://eddylab.org/software/hmmer/
+  match: /hmmer-\d+\.\d+(\.\d+)?\.tar\.gz/
+  strip:
+    - /hmmer-/
+    - /.tar.gz/
+
+# HMMER bundles Easel and ships a pre-generated `configure`, so no
+# autoreconf is needed and there are no external deps. SIMD is
+# auto-detected: SSE on x86, NEON on ARM (armv7/aarch64), VMX on
+# PowerPC. Verified that hmmer 3.4's configure has the
+# esl_have_neon_aarch64 probe, so darwin/arm64 + linux/arm64 build fine.
+build:
+  - ./configure --prefix="{{prefix}}"
+  - make --jobs {{ hw.concurrency }}
+  - make install
+
+provides:
+  - bin/hmmsearch
+  - bin/hmmscan
+  - bin/phmmer
+  - bin/jackhmmer
+  - bin/hmmbuild
+  - bin/hmmalign
+  - bin/nhmmer
+
+test:
+  - hmmsearch -h 2>&1 | tee out
+  - grep -i {{version.raw}} out
