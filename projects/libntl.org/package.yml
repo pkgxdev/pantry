@@ -1,10 +1,9 @@
 distributable:
-  url: https://github.com/libntl/ntl/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/libntl/ntl/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
   github: libntl/ntl/tags
-  strip: /^v/
 
 dependencies:
   gnu.org/gmp: ^6
@@ -14,7 +13,6 @@ dependencies:
 build:
   dependencies:
     perl.org: ^5 # ./configure is a shell wrapper around `perl DoConfig`
-    gnu.org/make: "*" # configure runs a test compile via make
     linux:
       gnu.org/gcc: ^14
   working-directory: src
@@ -35,5 +33,4 @@ test:
     freedesktop.org/pkg-config: '*'
   # SHARED=on installs ntl.pc; pkg-config avoids the clang-vs-gcc libstdc++
   # ABI mismatch a compile-link test would otherwise hit on linux
-  script:
-    - pkg-config --modversion ntl | grep {{ version }}
+  script: pkg-config --modversion ntl | grep {{ version }}
