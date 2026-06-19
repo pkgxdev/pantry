@@ -4,7 +4,7 @@ distributable:
   # tags are dash-separated (openbabel-3-2-0) while the version is dotted
   # (3.2.0); there are no source-tarball release assets, so reconstruct the
   # dash-tag archive URL from the version components.
-  url: https://github.com/openbabel/openbabel/archive/refs/tags/openbabel-{{version.major}}-{{version.minor}}-{{version.patch}}.tar.gz
+  url: https://github.com/openbabel/openbabel/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
@@ -26,7 +26,7 @@ dependencies:
 
 build:
   dependencies:
-    cmake.org: '^3'
+    cmake.org: ^3
     linux:
       gnu.org/gcc: 14           # provide libstdc++ headers; let cmake pick gcc off PATH
   script:
@@ -50,5 +50,5 @@ provides:
   - bin/roundtrip    # read+write round-trip diagnostic
 
 test:
-  script:
-    - obabel -V 2>&1 | grep {{version}}
+  - obabel -V 2>&1 | tee out
+  - grep {{version}} out
