@@ -1,0 +1,47 @@
+distributable:
+  # k0s tags are v<semver>+k0s.<N> (N is ~always 0); the +k0s.N build-metadata
+  # is stripped from the version below, so reconstruct the real tag here.
+  url: https://github.com/k0sproject/k0s/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: k0sproject/k0s
+  strip:
+    - /^v/
+    - /\+k0s\.\d+$/ # build-metadata suffix pantry's semver parser rejects
+
+# k0s is a Linux Kubernetes distribution. The control-plane and worker
+# components only run on Linux, so we only build the k0s binary there.
+platforms:
+  - linux
+
+provides:
+  - bin/k0s
+
+build:
+  dependencies:
+    go.dev: ^1.26
+  env:
+    CGO_ENABLED: 0
+    ARGS:
+      # Build only the k0s Go binary, without the embedded component binaries
+      # (kubelet, containerd, etcd, ...). Those are normally produced by a
+      # Docker-based embedded-bins build and appended to the binary tail; that
+      # toolchain is unavailable in the build sandbox. The resulting binary is a
+      # fully functional k0s CLI; embedded artifacts can be fetched at runtime.
+      # Mirrors the upstream Makefile `k0s.bare` recipe (CGO disabled, osusergo,
+      # trimpath, static link) with EMBEDDED_BINS_BUILDMODE=none.
+      - -tags=osusergo
+      - -trimpath
+      - -buildvcs=false
+    GO_LDFLAGS:
+      - -w
+      - -s
+      - -X github.com/k0sproject/k0s/pkg/build.Version={{version.tag}}
+      - -extldflags=-static
+  script: go build $ARGS -ldflags="$GO_LDFLAGS" -o {{prefix}}/bin/k0s main.go
+
+test:
+  # {{version}} (e.g. 1.36.1) is a substring of the printed v1.36.1+k0s.0
+  - k0s version 2>&1 | tee out
+  - grep {{version}} out
