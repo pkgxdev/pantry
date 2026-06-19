@@ -1,15 +1,11 @@
 # https://visidata.org
 # terminal spreadsheet multitool for discovering & arranging tabular data
-distributable: ~
+distributable:
+  url: https://github.com/saulpw/visidata/archive/refs/tags/v3.3.tar.gz
+  strip-components: 1
 
 versions:
-  # Match the sdist filename on the simple index; the JSON API's bare-number
-  # match grabbed a stray number (resolved a bogus 59.813244.0).
-  url: https://pypi.org/simple/visidata/
-  match: /visidata-\d+(\.\d+)+\.tar\.gz/
-  strip:
-    - /visidata-/
-    - /\.tar\.gz/
+  github: saulpw/visidata
 
 dependencies:
   pkgx.sh: ">=1"
@@ -24,7 +20,7 @@ build:
     python.org: "~3.11"
   script:
     - bkpyvenv stage {{prefix}} {{version}}
-    - "{{prefix}}/venv/bin/pip install visidata=={{version}}"
+    - ${{prefix}}/venv/bin/pip install .
     - bkpyvenv seal {{prefix}} vd visidata
 
 provides:
@@ -34,4 +30,5 @@ provides:
 test:
   # vd prints the bare upstream version (saul.pw/VisiData v3.3); pantry pads
   # the 2-component release to 3.3.0, so grep the marketing (major.minor) form.
-  - vd --version 2>&1 | grep "{{version.marketing}}"
+  - vd --version 2>&1 | tee out
+  - grep "{{version.marketing}}" out
