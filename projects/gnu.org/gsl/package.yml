@@ -1,0 +1,27 @@
+distributable:
+  url: https://ftp.gnu.org/gnu/gsl/gsl-{{version.raw}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://ftp.gnu.org/gnu/gsl/
+  match: /gsl-\d+\.\d+(\.\d+)?\.tar\.gz/
+  strip:
+    - /^gsl-/
+    - /\.tar\.gz$/
+
+build:
+  script:
+    - ./configure --prefix={{prefix}}
+    # `make all` first so BUILT_SOURCES (the gsl/ header-symlink dir) is built
+    # before the subdirs compile; a combined parallel `make install` skips it
+    # and races (gsl/gsl_minmax.h not found).
+    - make --jobs {{hw.concurrency}}
+    - make install
+
+provides:
+  - bin/gsl-config
+  - bin/gsl-randist
+  - bin/gsl-histogram
+
+test:
+  - gsl-config --version | grep {{version.raw}}
