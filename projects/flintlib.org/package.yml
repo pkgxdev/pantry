@@ -1,0 +1,25 @@
+distributable:
+  url: https://github.com/flintlib/flint/releases/download/{{ version.tag }}/flint-{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: flintlib/flint/tags
+
+dependencies:
+  gnu.org/gmp: '>=6.2.1'
+  gnu.org/mpfr: '>=4.1.0'
+
+build:
+  dependencies:
+    gnu.org/m4: '*'
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
+  env:
+    ARGS:
+      - --prefix={{ prefix }}
+      - --with-gmp={{ deps.gnu.org/gmp.prefix }}
+      - --with-mpfr={{ deps.gnu.org/mpfr.prefix }}
+
+test: pkg-config --modversion flint | grep {{ version }}
