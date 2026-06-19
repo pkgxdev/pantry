@@ -1,0 +1,39 @@
+distributable:
+  # Release asset (NOT the git archive): bundles htslib & other vendored deps.
+  url: https://github.com/arq5x/bedtools2/releases/download/v{{version}}/bedtools-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: arq5x/bedtools2/tags
+
+provides:
+  - bin/bedtools
+
+dependencies:
+  zlib.net: '*'
+  sourceware.org/bzip2: '*'
+  tukaani.org/xz: '*'
+  linux:
+    # bundled htslib links libstdc++ (built with gcc); keep it at runtime.
+    gnu.org/gcc/libstdcxx: 14
+
+build:
+  dependencies:
+    python.org: '*' # the Makefile's "old CLI" step shells out to python3
+    # Makefile (no autotools/cmake) hardcodes CXX=g++ but honors an env CXX.
+    # On linux build with GCC to match the libstdc++ runtime above and avoid
+    # the clang/libc++ C++ header gaps in the bundled htslib.
+    linux:
+      gnu.org/gcc: 14
+  env:
+    linux:
+      CXX: g++
+  script:
+    - make -j {{ hw.concurrency }}
+    # install target is `install: all`; copies bin/* into $(prefix)/bin.
+    # prefix var is LOWERCASE.
+    - make install prefix="{{prefix}}"
+
+test:
+    - bedtools --version 2>&1 | tee out
+    - grep {{version}} out
