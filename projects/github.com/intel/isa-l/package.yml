@@ -1,0 +1,30 @@
+distributable:
+  url: https://github.com/intel/isa-l/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: intel/isa-l/tags
+
+build:
+  dependencies:
+    gnu.org/autoconf: '*'
+    gnu.org/automake: '*'
+    gnu.org/libtool: '*'
+    x86-64:
+      nasm.us: ^2
+  script:
+    - ./autogen.sh
+    - ./configure --prefix="{{prefix}}"
+    - make --jobs {{hw.concurrency}}
+    - make install
+
+provides:
+  - bin/igzip
+
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script:
+    - test "$(pkg-config --modversion libisal)" = "{{version}}"
+    - igzip --version | tee out
+    - grep "{{version}}" out
