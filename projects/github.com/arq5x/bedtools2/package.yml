@@ -20,10 +20,11 @@ dependencies:
 
 build:
   dependencies:
-    # Makefile (no autotools/cmake). It hardcodes CXX=g++ at the top but honors
-    # an overriding CXX from the environment. On linux build with GCC to match
-    # the libstdc++ runtime above and avoid the clang/libc++ C++ header gaps.
-    linux/gnu.org/gcc: 14
+    # Makefile (no autotools/cmake) hardcodes CXX=g++ but honors an env CXX.
+    # On linux build with GCC to match the libstdc++ runtime above and avoid
+    # the clang/libc++ C++ header gaps in the bundled htslib.
+    linux:
+      gnu.org/gcc: 14
   script:
     - |
       if test "{{ hw.platform }}" = "linux"; then
