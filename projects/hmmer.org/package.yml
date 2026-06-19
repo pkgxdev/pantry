@@ -15,10 +15,9 @@ versions:
 # PowerPC. Verified that hmmer 3.4's configure has the
 # esl_have_neon_aarch64 probe, so darwin/arm64 + linux/arm64 build fine.
 build:
-  script:
-    - ./configure --prefix="{{prefix}}"
-    - make --jobs {{ hw.concurrency }}
-    - make install
+  - ./configure --prefix="{{prefix}}"
+  - make --jobs {{ hw.concurrency }}
+  - make install
 
 provides:
   - bin/hmmsearch
@@ -29,5 +28,6 @@ provides:
   - bin/hmmalign
   - bin/nhmmer
 
-test: |
-  hmmsearch -h 2>&1 | grep -i {{version.raw}}
+test:
+  - hmmsearch -h 2>&1 | tee out
+  - grep -i {{version.raw}} out
