@@ -1,0 +1,30 @@
+distributable:
+  url: https://github.com/lh3/seqtk/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: lh3/seqtk
+
+dependencies:
+  zlib.net: '*'
+
+build:
+  # brewkit's CPATH/LIBRARY_PATH already point at the zlib dep, so the
+  # Makefile's default rule finds zlib.h / -lz without extra flags
+  - make --jobs {{hw.concurrency}} CC=cc
+  - install -Dm0755 seqtk "{{prefix}}/bin/seqtk"
+
+provides:
+  - bin/seqtk
+
+test:
+  script:
+    # seqtk with no args prints its banner ("Version: 1.5-r133") then exits 1;
+    # swallow that for pipefail, and grep the raw 2-component version
+    - (seqtk 2>&1 || true) | grep '{{version.raw}}'
+    - cp $FIXTURE test.fa
+    - test "$(seqtk seq -r test.fa | grep -v '^>')" = "TTGGCCAA"
+    - test "$(seqtk comp test.fa | cut -f2)" = "8"
+  fixture: |
+    >read1
+    TTGGCCAA
