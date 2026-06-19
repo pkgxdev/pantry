@@ -1,0 +1,33 @@
+distributable:
+  url: https://www.ginac.de/CLN/cln-{{version}}.tar.bz2
+  strip-components: 1
+
+versions:
+  url: https://www.ginac.de/CLN/
+  match: /cln-\d+\.\d+\.\d+\.tar\.bz2/
+  strip:
+    - /^cln-/
+    - /\.tar\.bz2$/
+
+dependencies:
+  gnu.org/gmp: "*"
+  linux:
+    # libcln.so is built with gcc and links libstdc++ (GLIBCXX symbols), so it
+    # needs the matching libstdc++ present at runtime.
+    gnu.org/gcc/libstdcxx: "*"
+
+build:
+  dependencies:
+    linux:
+      gnu.org/gcc: "*"
+  script:
+    - ./configure --prefix={{prefix}} --with-gmp={{deps.gnu.org/gmp.prefix}}
+    - make --jobs {{hw.concurrency}} install
+
+test:
+  # lib-only (upstream ships no cln-config); assert the installed cln.pc reports
+  # the version. Avoids a C++ link-test that would mix clang with the gcc-built
+  # libstdc++ libcln links against.
+  dependencies:
+    freedesktop.org/pkg-config: "*"
+  script: pkg-config --modversion cln | grep {{version}}
