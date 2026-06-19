@@ -5,7 +5,6 @@ distributable:
 
 versions:
   github: arq5x/bedtools2/tags
-  strip: /^v/
 
 provides:
   - bin/bedtools
@@ -16,7 +15,7 @@ dependencies:
   tukaani.org/xz: '*'
   linux:
     # bundled htslib links libstdc++ (built with gcc); keep it at runtime.
-    gnu.org/gcc/libstdcxx: '*'
+    gnu.org/gcc/libstdcxx: 14
 
 build:
   dependencies:
@@ -26,16 +25,15 @@ build:
     # the clang/libc++ C++ header gaps in the bundled htslib.
     linux:
       gnu.org/gcc: 14
+  env:
+    linux:
+      CXX: g++
   script:
-    - |
-      if test "{{ hw.platform }}" = "linux"; then
-        export CXX="$(command -v g++-14 || command -v g++)"
-      fi
     - make -j {{ hw.concurrency }}
     # install target is `install: all`; copies bin/* into $(prefix)/bin.
     # prefix var is LOWERCASE.
     - make install prefix="{{prefix}}"
 
 test:
-  script:
-    - bedtools --version 2>&1 | grep {{version}}
+    - bedtools --version 2>&1 | tee out
+    - grep {{version}} out
