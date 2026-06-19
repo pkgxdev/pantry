@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/ms-jpq/sad/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/ms-jpq/sad/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 provides:
@@ -7,7 +7,6 @@ provides:
 
 versions:
   github: ms-jpq/sad
-  strip: /v/
 
 build:
   dependencies:
@@ -18,5 +17,6 @@ build:
     - rm -f .cargo/config.toml
     - cargo install --locked --path . --root {{prefix}}
 
-test: |
-  sad --version | grep {{version}}
+test:
+  - sad --version | tee out
+  - grep {{version}} out
