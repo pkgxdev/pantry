@@ -1,0 +1,19 @@
+distributable:
+  url: https://github.com/ms-jpq/sad/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/sad
+
+versions:
+  github: ms-jpq/sad
+  strip: /v/
+
+build:
+  dependencies:
+    rust-lang.org/cargo: '*'
+  script:
+    cargo install --locked --path . --root {{prefix}}
+
+test: |
+  sad --version | grep {{version}}
