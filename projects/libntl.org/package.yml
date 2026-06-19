@@ -1,0 +1,36 @@
+distributable:
+  url: https://github.com/libntl/ntl/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: libntl/ntl/tags
+
+dependencies:
+  gnu.org/gmp: ^6
+  linux:
+    gnu.org/gcc/libstdcxx: ^14 # libstdc++
+
+build:
+  dependencies:
+    perl.org: ^5 # ./configure is a shell wrapper around `perl DoConfig`
+    linux:
+      gnu.org/gcc: ^14
+  working-directory: src
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
+  env:
+    ARGS:
+      - PREFIX={{ prefix }}
+      - GMP_PREFIX={{ deps.gnu.org/gmp.prefix }}
+      - NTL_GMP_LIP=on # use GMP as the long-integer backend
+      - SHARED=on # also build libntl.so/.dylib (+ ntl.pc); static stays on
+      - CXX=c++ # resolves to gcc on PATH when gcc is a dep, system clang on macOS
+
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  # SHARED=on installs ntl.pc; pkg-config avoids the clang-vs-gcc libstdc++
+  # ABI mismatch a compile-link test would otherwise hit on linux
+  script: pkg-config --modversion ntl | grep {{ version }}
