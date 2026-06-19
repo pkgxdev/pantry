@@ -1,9 +1,14 @@
 distributable:
-  url: https://github.com/k0sproject/k0s/archive/refs/tags/{{version.tag}}.tar.gz
+  # k0s tags are v<semver>+k0s.<N> (N is ~always 0); the +k0s.N build-metadata
+  # is stripped from the version below, so reconstruct the real tag here.
+  url: https://github.com/k0sproject/k0s/archive/refs/tags/v{{version}}+k0s.0.tar.gz
   strip-components: 1
 
 versions:
   github: k0sproject/k0s
+  strip:
+    - /^v/
+    - /\+k0s\.\d+$/ # build-metadata suffix pantry's semver parser rejects
 
 # k0s is a Linux Kubernetes distribution. The control-plane and worker
 # components only run on Linux, so we only build the k0s binary there.
@@ -30,11 +35,11 @@ build:
         -tags=osusergo \
         -trimpath \
         -buildvcs=false \
-        -ldflags="-w -s -X github.com/k0sproject/k0s/pkg/build.Version={{version.tag}} -extldflags=-static" \
+        -ldflags="-w -s -X github.com/k0sproject/k0s/pkg/build.Version=v{{version}}+k0s.0 -extldflags=-static" \
         -o k0s \
         main.go
     - install -D k0s {{prefix}}/bin/k0s
 
 test:
-  # -F: the version.tag has a literal '+' (v1.36.1+k0s.0) which is a regex metachar
-  - k0s version 2>&1 | grep -F {{version.tag}}
+  # {{version}} (e.g. 1.36.1) is a substring of the printed v1.36.1+k0s.0
+  - k0s version 2>&1 | grep {{version}}
