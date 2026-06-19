@@ -1,0 +1,30 @@
+distributable:
+  url: https://ftp.gnu.org/gnu/units/units-{{version.raw}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://ftp.gnu.org/gnu/units/
+  match: /units-\d+(\.\d+)?\.tar\.gz/
+  strip:
+    - /^units-/
+    - /\.tar\.gz$/
+
+runtime:
+  env:
+    # units bakes the data-file path to the (build-time) +brewing staging dir,
+    # which doesn't exist at runtime; point it at the final install location.
+    UNITSFILE: ${{prefix}}/share/units/definitions.units
+
+build:
+  script:
+    - ./configure --prefix={{prefix}}
+    - make --jobs {{hw.concurrency}} install
+  env:
+    PATH: ${{prefix}}/bin:$PATH
+
+provides:
+  - bin/units
+
+test:
+  - units --version 2>&1 | grep {{version.marketing}}
+  - test "$(units -t '2 m' 'ft' | cut -d. -f1)" = 6
