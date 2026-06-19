@@ -10,24 +10,26 @@ distributable:
 
 versions:
   github: lh3/minimap2
-  strip: /^v/ # tags are vX.Y (e.g. v2.31)
 
 dependencies:
   zlib.net: "*"
 
 build:
+  env:
+    aarch64:
+      EXTRA:
+        - arm_neon=1
+        - aarch64=1
   # Plain Makefile. x86 builds with SSE2/SSE4.1 dispatch by default; aarch64
   # needs `aarch64=1` (sets arm_neon=1) to use the bundled sse2neon shim.
   # CC=cc so make uses pkgx's compiler (the Makefile otherwise hardcodes gcc).
   script:
-    - |
-      EXTRA=
-      case "$(uname -m)" in aarch64|arm64) EXTRA="arm_neon=1 aarch64=1" ;; esac
-      make --jobs {{hw.concurrency}} CC=cc $EXTRA
+    - make --jobs {{hw.concurrency}} CC=cc $EXTRA
     - install -D minimap2 {{prefix}}/bin/minimap2
 
 provides:
   - bin/minimap2
 
 test:
-  - minimap2 --version 2>&1 | grep {{version.raw}}
+  - minimap2 --version 2>&1 | tee out
+  - grep {{version.raw}} out
