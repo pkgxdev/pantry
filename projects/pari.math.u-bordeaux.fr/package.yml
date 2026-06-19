@@ -1,0 +1,42 @@
+distributable:
+  url: https://pari.math.u-bordeaux.fr/pub/pari/unix/pari-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://pari.math.u-bordeaux.fr/pub/pari/unix/
+  match: /pari-\d+\.\d+\.\d+\.tar\.gz/
+  strip:
+    - /^pari-/
+    - /\.tar\.gz$/
+
+dependencies:
+  gnu.org/gmp: '*'
+  gnu.org/readline: '*'
+
+build:
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --with-gmp={{deps.gnu.org/gmp.prefix}}
+      - --with-readline={{deps.gnu.org/readline.prefix}}
+  # PARI/GP ships a custom `./Configure` (capital C, hand-written, NOT autotools).
+  # `--with-gmp=DIR` selects the GMP bignum kernel; `--with-readline=DIR` gives gp
+  # line editing. Configure then writes a Makefile under O<os>-<arch>/.
+  script:
+    - ./Configure $ARGS
+    - make --jobs {{ hw.concurrency }} gp
+    - make install
+
+    # gp is a dylib-linked binary; strip stray debug bundles on darwin
+    - run: rm -rf {{prefix}}/bin/*.dSYM
+      if: darwin
+
+provides:
+  - bin/gp
+  - bin/gphelp
+  - bin/tex2mail
+
+test:
+  - gp --version 2>&1 | tee out
+  - grep {{version}} out
+  - run: echo 'print(2+2)' | gp -q 2>&1 | grep 4
