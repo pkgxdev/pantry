@@ -1,0 +1,22 @@
+distributable:
+  url: https://github.com/ms-jpq/sad/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/sad
+
+versions:
+  github: ms-jpq/sad
+
+build:
+  dependencies:
+    rust-lang.org/cargo: '*'
+  script:
+    # upstream's .cargo/config.toml pins linker = aarch64-linux-gnu-gcc for the
+    # arm64 target, absent on the native arm64 builder; drop it so cargo uses cc.
+    - rm -f .cargo/config.toml
+    - cargo install --locked --path . --root {{prefix}}
+
+test:
+  - sad --version | tee out
+  - grep {{version}} out
