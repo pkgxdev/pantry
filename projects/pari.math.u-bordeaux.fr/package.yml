@@ -14,14 +14,16 @@ dependencies:
   gnu.org/readline: '*'
 
 build:
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --with-gmp={{deps.gnu.org/gmp.prefix}}
+      - --with-readline={{deps.gnu.org/readline.prefix}}
   # PARI/GP ships a custom `./Configure` (capital C, hand-written, NOT autotools).
   # `--with-gmp=DIR` selects the GMP bignum kernel; `--with-readline=DIR` gives gp
   # line editing. Configure then writes a Makefile under O<os>-<arch>/.
   script:
-    - ./Configure
-        --prefix={{prefix}}
-        --with-gmp={{deps.gnu.org/gmp.prefix}}
-        --with-readline={{deps.gnu.org/readline.prefix}}
+    - ./Configure $ARGS
     - make --jobs {{ hw.concurrency }} gp
     - make install
 
@@ -35,5 +37,6 @@ provides:
   - bin/tex2mail
 
 test:
-  - gp --version 2>&1 | grep {{version}}
+  - gp --version 2>&1 | tee out
+  - grep {{version}} out
   - run: echo 'print(2+2)' | gp -q 2>&1 | grep 4
