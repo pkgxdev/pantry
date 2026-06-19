@@ -1,0 +1,36 @@
+distributable:
+  url: https://www.ginac.de/CLN/cln-{{version}}.tar.bz2
+  strip-components: 1
+
+versions:
+  url: https://www.ginac.de/CLN/
+  match: /cln-\d+\.\d+\.\d+\.tar\.bz2/
+  strip:
+    - /^cln-/
+    - /\.tar\.bz2$/
+
+dependencies:
+  gnu.org/gmp: "*"
+
+build:
+  dependencies:
+    linux:
+      gnu.org/gcc: "*"
+  script:
+    - ./configure --prefix={{prefix}} --with-gmp={{deps.gnu.org/gmp.prefix}}
+    - make --jobs {{hw.concurrency}} install
+
+test:
+  fixture: |
+    #include <cln/cln.h>
+    #include <iostream>
+    int main() {
+      cln::cl_I a = "1000000000000000000000000000000";
+      cln::cl_I b = a * a;
+      std::cout << b << std::endl;
+      return 0;
+    }
+  script:
+    - mv $FIXTURE x.cpp
+    - c++ x.cpp -o x -I{{prefix}}/include -L{{prefix}}/lib -lcln -lgmp
+    - ./x | grep 1000000000000000000000000000000000000000000000000000000000000
