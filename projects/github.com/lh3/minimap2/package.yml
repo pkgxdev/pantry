@@ -20,14 +20,11 @@ build:
   # needs `aarch64=1` (sets arm_neon=1) to use the bundled sse2neon shim.
   # CC=cc so make uses pkgx's compiler (the Makefile otherwise hardcodes gcc).
   script:
-    - make --jobs {{hw.concurrency}} CC=cc $ARGS
+    - |
+      EXTRA=
+      case "$(uname -m)" in aarch64|arm64) EXTRA="arm_neon=1 aarch64=1" ;; esac
+      make --jobs {{hw.concurrency}} CC=cc $EXTRA
     - install -D minimap2 {{prefix}}/bin/minimap2
-  env:
-    ARGS: ""
-    linux/aarch64:
-      ARGS: arm_neon=1 aarch64=1
-    darwin/aarch64:
-      ARGS: arm_neon=1 aarch64=1
 
 provides:
   - bin/minimap2
