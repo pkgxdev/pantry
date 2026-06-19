@@ -1,0 +1,40 @@
+distributable:
+  url: https://github.com/k0sproject/k0s/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: k0sproject/k0s
+
+# k0s is a Linux Kubernetes distribution. The control-plane and worker
+# components only run on Linux, so we only build the k0s binary there.
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+
+provides:
+  - bin/k0s
+
+build:
+  dependencies:
+    go.dev: ^1.26
+  script:
+    # Build only the k0s Go binary, without the embedded component binaries
+    # (kubelet, containerd, etcd, ...). Those are normally produced by a
+    # Docker-based embedded-bins build and appended to the binary tail; that
+    # toolchain is unavailable in the build sandbox. The resulting binary is a
+    # fully functional k0s CLI; embedded artifacts can be fetched at runtime.
+    # Mirrors the upstream Makefile `k0s.bare` recipe (CGO disabled, osusergo,
+    # trimpath, static link) with EMBEDDED_BINS_BUILDMODE=none.
+    - |
+      CGO_ENABLED=0 go build \
+        -tags=osusergo \
+        -trimpath \
+        -buildvcs=false \
+        -ldflags="-w -s -X github.com/k0sproject/k0s/pkg/build.Version={{version.tag}} -extldflags=-static" \
+        -o k0s \
+        main.go
+    - install -D k0s {{prefix}}/bin/k0s
+
+test:
+  # -F: the version.tag has a literal '+' (v1.36.1+k0s.0) which is a regex metachar
+  - k0s version 2>&1 | grep -F {{version.tag}}
