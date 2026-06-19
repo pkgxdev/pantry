@@ -1,0 +1,44 @@
+distributable:
+  url: https://downloads.sourceforge.net/project/maxima/Maxima-source/{{version}}-source/maxima-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://sourceforge.net/projects/maxima/files/Maxima-source/
+  match: /Maxima-source\/\d+\.\d+\.\d+-source/
+  strip:
+    - /^Maxima-source\//
+    - /-source$/
+
+dependencies:
+  # maxima is written in Common Lisp; clisp is needed at build time to
+  # compile the maxima .mem image AND at runtime to execute it.
+  clisp.org: '*'
+
+build:
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --disable-dependency-tracking
+      # skip the texinfo/makeinfo doc build — not needed for the CLI
+      - --disable-build-docs
+      - --enable-clisp
+      # bake the absolute clisp path into the launcher / image so maxima
+      # does not depend on `clisp` being on PATH at runtime
+      - --with-clisp={{deps.clisp.org.prefix}}/bin/clisp
+
+provides:
+  - bin/maxima
+
+# maxima's launcher cannot derive its prefix from argv[0] in all layouts
+# ("unable to determine MAXIMA_PREFIX"); pin it to the install prefix
+runtime:
+  env:
+    MAXIMA_PREFIX: ${{prefix}}
+
+test:
+  - maxima --version | grep {{version}}
+  - echo '2+2;' | maxima --very-quiet 2>&1 | grep 4
