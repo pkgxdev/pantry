@@ -12,11 +12,10 @@ versions:
 
 runtime:
   env:
-    PERL5LIB: "{{prefix}}/lib/perl5:{{prefix}}/libexec/lib/perl5:$PERL5LIB"
+    PERL5LIB: "{{prefix}}/lib/mummer:$PERL5LIB"
 
 dependencies:
   perl.org: "*" # nucmer/promer/dnadiff/mummerplot perl wrappers
-  cpanmin.us: "*"
   linux:
     gnu.org/gcc/libstdcxx: 14 # GLIBCXX at runtime
     gnu.org/gcc/libgomp: "*" # OpenMP (-fopenmp) runtime
@@ -26,7 +25,6 @@ build:
     linux:
       gnu.org/gcc: 14
   script:
-    - cpanm -l "{{prefix}}" Foundation
     - ./configure --prefix={{prefix}}
     - make --jobs {{ hw.concurrency }}
     - make install
@@ -79,11 +77,14 @@ provides:
   - bin/annotate
 
 test:
-  - (nucmer --version 2>&1 || true) | grep '{{version.raw}}'
-  # real alignment: two near-identical sequences -> expect a 100.00% identity row
-  - nucmer a.fa b.fa -p out
-  - show-coords out.delta | grep '100.00'
-  - mummer -mum a.fa b.fa | grep seqB
-  # exercise a perl wrapper (validates shebang fixup + perl runtime dep)
-  - dnadiff a.fa b.fa -p dd
-  - grep '100.0000' dd.report
+  env:
+    PERL5LIB: "{{prefix}}/lib/mummer:$PERL5LIB"
+  script:
+    - (nucmer --version 2>&1 || true) | grep '{{version.raw}}'
+    # real alignment: two near-identical sequences -> expect a 100.00% identity row
+    - nucmer a.fa b.fa -p out
+    - show-coords out.delta | grep '100.00'
+    - mummer -mum a.fa b.fa | grep seqB
+    # exercise a perl wrapper (validates shebang fixup + perl runtime dep)
+    - dnadiff a.fa b.fa -p dd
+    - grep '100.0000' dd.report
