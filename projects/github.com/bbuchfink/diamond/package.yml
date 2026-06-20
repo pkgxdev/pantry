@@ -1,0 +1,43 @@
+distributable:
+  url: https://github.com/bbuchfink/diamond/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: bbuchfink/diamond
+
+provides:
+  - bin/diamond
+
+dependencies:
+  zlib.net: ^1
+  facebook.com/zstd: ^1
+  sqlite.org: ^3
+  linux:
+    gnu.org/gcc/libstdcxx: ^14
+
+build:
+  dependencies:
+    cmake.org: '*'
+    ninja-build.org: ^1
+    linux:
+      gnu.org/gcc: 14
+  script:
+    - cmake -B build -S . $ARGS
+    - cmake --build build
+    - cmake --install build
+  env:
+    ARGS:
+      - -GNinja
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
+      - -DWITH_ZSTD=ON
+
+test:
+  # version subcommand prints "diamond version X.Y.Z" and exits 0
+  - (diamond version 2>&1 || true) | grep "{{version.raw}}"
+  # real round-trip: build a protein db and self-align it
+  - diamond makedb --in prot.faa -d testdb
+  - diamond blastp -q prot.faa -d testdb -o out.tsv
+  - test -s out.tsv
+  # every query is in the db, so each must produce at least a self-hit
+  - test $(wc -l < out.tsv) -ge 3
