@@ -1,0 +1,23 @@
+distributable:
+  url: https://github.com/lastz/lastz/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: lastz/lastz/tags
+
+build:
+  # CC=gcc is hardcoded in src/Makefile; gcc is absent in CI, so force cc.
+  # LASTZ_INSTALL is the install-prefix env var read by make-include.mak.
+  working-directory: src
+  script:
+    - make CC=cc --jobs {{ hw.concurrency }}
+    - make install CC=cc LASTZ_INSTALL="{{prefix}}/bin"
+
+provides:
+  - bin/lastz
+  - bin/lastz_D
+
+test:
+  - (lastz --version 2>&1 || true) | grep '{{version.raw}}'
+  - lastz a.fa a.fa --format=general > out.txt
+  - grep '100.0%' out.txt
