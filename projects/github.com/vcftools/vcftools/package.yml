@@ -1,0 +1,74 @@
+distributable:
+  # the GitHub release tarball ships a pre-generated `configure`
+  # (the bare source archive would need ./autogen.sh)
+  url: https://github.com/vcftools/vcftools/releases/download/v{{version}}/vcftools-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: vcftools/vcftools/tags
+
+dependencies:
+  zlib.net: ^1
+  # the vcf-* helper scripts (vcf-merge, vcf-annotate, ...) are perl and
+  # `use Vcf` at runtime, so perl must be present
+  perl.org: '*'
+  linux:
+    # built with gcc 14 — needs its libstdc++ at runtime (the system one
+    # lacks GLIBCXX_3.4.32, so vcftools exits 1 with no output without this)
+    gnu.org/gcc/libstdcxx: ^14
+
+build:
+  dependencies:
+    linux:
+      gnu.org/gcc: ^14
+  script:
+    # --with-pmdir pins the perl modules to a version-stable path
+    # (the default derives share/perl/<perl-version> from installsitelib,
+    #  which would couple the install layout to the build perl)
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --with-pmdir=share/perl5
+
+runtime:
+  env:
+    # Vcf.pm / FaSlice.pm / VcfStats.pm land here; the vcf-* scripts need it
+    PERL5LIB: ${{prefix}}/share/perl5
+
+provides:
+  - bin/vcftools
+  - bin/vcf-annotate
+  - bin/vcf-compare
+  - bin/vcf-concat
+  - bin/vcf-consensus
+  - bin/vcf-contrast
+  - bin/vcf-convert
+  - bin/vcf-fix-newlines
+  - bin/vcf-fix-ploidy
+  - bin/vcf-indel-stats
+  - bin/vcf-isec
+  - bin/vcf-merge
+  - bin/vcf-phased-join
+  - bin/vcf-query
+  - bin/vcf-shuffle-cols
+  - bin/vcf-sort
+  - bin/vcf-stats
+  - bin/vcf-subset
+  - bin/vcf-to-tab
+  - bin/vcf-tstv
+  - bin/vcf-validator
+  - bin/fill-aa
+  - bin/fill-an-ac
+  - bin/fill-fs
+  - bin/fill-ref-md5
+
+test:
+  # test.vcf ships alongside this recipe (tab-delimited; building it inline
+  # via printf/fixture is unreliable — the \t/\n escapes don't survive YAML)
+  # --freq table -> stdout, "VCFtools - 0.1.17" -> stderr; swallow vcftools'
+  # exit so pipefail keys off the greps
+  - vcftools --vcf test.vcf --freq --stdout >freq.txt 2>err.log || true
+  - grep 'A:0.75' freq.txt
+  - grep '{{version.raw}}' err.log
