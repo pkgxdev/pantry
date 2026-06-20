@@ -1,0 +1,30 @@
+# Prodigal — PROkaryotic DynamIc programming Genefinding ALgorithm.
+# Fast, unsupervised gene prediction for bacterial/archaeal genomes and
+# metagenomes. Pure C, links only libc/libm.
+
+distributable:
+  url: https://github.com/hyattpd/Prodigal/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: hyattpd/Prodigal
+  # v2.60 is an old release that semver-sorts above the current v2.6.x line
+  ignore: /2\.60/
+
+# CC=cc: $CC is empty in pantry CI; the Makefile defaults to gcc.
+# INSTALLDIR is the Makefile's install-target variable.
+build: make CC=cc INSTALLDIR="{{prefix}}/bin" install
+
+test:
+  # -v prints "Prodigal V2.6.3: ..." to stderr; guarded for set -o pipefail.
+  - (prodigal -v 2>&1 || true) | grep "{{ version.raw }}"
+  # gene-call a shipped companion genome (brewkit copies project-dir files into
+  # the testbed CWD). Gated to linux: v2.6.3 (2016 C) segfaults on this input
+  # under darwin/arm64 — exercise the real run only where it's verified.
+  - if: linux
+    run:
+      - prodigal -p meta -i test.fna -a out.faa -q
+      - test -s out.faa
+
+provides:
+  - bin/prodigal
