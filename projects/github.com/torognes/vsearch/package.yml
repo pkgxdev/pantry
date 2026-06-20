@@ -1,10 +1,9 @@
 distributable:
-  url: https://github.com/torognes/vsearch/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/torognes/vsearch/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
   github: torognes/vsearch/tags
-  strip: /^v/
 
 provides:
   - bin/vsearch
@@ -17,7 +16,6 @@ dependencies:
 
 build:
   dependencies:
-    gnu.org/make: "*"
     linux:
       gnu.org/gcc: 14
   script:
@@ -26,7 +24,6 @@ build:
     - make install
 
 test:
-  script:
-    - (vsearch --version 2>&1 || true) | grep "{{version.raw}}"
-    - vsearch --derep_fulllength seqs.fa --output out.fa
-    - test -s out.fa
+  - (vsearch --version 2>&1 || true) | grep "{{version.raw}}"
+  - vsearch --derep_fulllength seqs.fa --output out.fa
+  - test -s out.fa
