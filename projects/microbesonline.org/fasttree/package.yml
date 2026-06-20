@@ -1,0 +1,31 @@
+distributable:
+  url: https://github.com/morgannprice/fasttree/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  # the repo publishes tags but no GitHub releases, so read /tags
+  github: morgannprice/fasttree/tags
+
+provides:
+  - bin/FastTree
+
+build:
+  - cc -O3 -finline-functions -funroll-loops -Wall -o FastTree FastTree.c -lm
+  - install -Dm0755 FastTree "{{prefix}}/bin/FastTree"
+
+test:
+  # FastTree with no args prints its banner then exits non-zero; swallow it
+  - (FastTree 2>&1 || true) | grep '{{version.raw}}'
+  - run: FastTree -nt $FIXTURE > tree.nwk
+    fixture:
+      extname: fasta
+      content: |
+        >a
+        ACGTACGTAC
+        >b
+        ACGTACGTTC
+        >c
+        ACGAACGTAC
+        >d
+        TCGTACGTAC
+  - grep ")" tree.nwk
