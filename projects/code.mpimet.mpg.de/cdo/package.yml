@@ -1,0 +1,57 @@
+# CDO — Climate Data Operators (https://code.mpimet.mpg.de/projects/cdo)
+#
+# Source tarballs live only on the MPI-MET Redmine instance behind opaque
+# attachment IDs (e.g. .../attachments/download/30213/cdo-2.6.2.tar.gz). The ID
+# is NOT derivable from the version and there is no GitHub release mirror, so the
+# URL cannot be templated from {{version}} — every packager (Spack, Homebrew,
+# FreeBSD) pins the ID per release. We do the same and bump the pair by hand.
+distributable:
+  url: https://code.mpimet.mpg.de/attachments/download/30213/cdo-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  # No machine-readable version list with stable URLs; the listing page is
+  # https://code.mpimet.mpg.de/projects/cdo/files — bump url ID + version together.
+  - 2.6.2
+
+provides:
+  - bin/cdo
+
+# netcdf pulls hdf5 transitively, but CDO ≥2.6 links libhdf5 directly
+# (undefined reference to H5dont_atexit) so HDF5 must be a first-class dep and
+# fed to configure via --with-hdf5.
+dependencies:
+  unidata.ucar.edu/netcdf: "*"
+  hdfgroup.org/HDF5: "*"
+  linux:
+    gnu.org/gcc/libstdcxx: 14 # C++ runtime; without it: GLIBCXX not found, exit 1 no output
+    gnu.org/gcc/libgomp: "*"  # OpenMP runtime, enabled on linux (-fopenmp)
+
+build:
+  dependencies:
+    python.org: "*" # configure aborts "no suitable Python interpreter found"
+    linux:
+      gnu.org/gcc: 14
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --disable-dependency-tracking
+      - --with-netcdf={{deps.unidata.ucar.edu/netcdf.prefix}}
+      - --with-hdf5={{deps.hdfgroup.org/HDF5.prefix}}
+    darwin:
+      # Apple clang has no OpenMP runtime; configure must not try -fopenmp.
+      ARGS:
+        - --disable-openmp
+
+test:
+  # cdo prints --version to stderr and exits non-zero; tolerate both.
+  - (cdo --version 2>&1 || true) | grep '{{version.raw}}'
+  # Self-generating ops: build a field, then read it back — no binary fixture.
+  - cdo -f nc -topo,global_10 topo.nc
+  - (cdo info topo.nc 2>&1) | grep -i mean
+  - cdo -f nc -random,r5x5 r.nc
+  - test -f r.nc
