@@ -10,17 +10,23 @@ versions:
     - /beta/
     - /rc/
 
+runtime:
+  env:
+    PERL5LIB: "{{prefix}}/lib/perl5:{{prefix}}/libexec/lib/perl5:$PERL5LIB"
+
 dependencies:
-  perl.org: '*' # nucmer/promer/dnadiff/mummerplot perl wrappers
+  perl.org: "*" # nucmer/promer/dnadiff/mummerplot perl wrappers
+  cpanmin.us: "*"
   linux:
     gnu.org/gcc/libstdcxx: 14 # GLIBCXX at runtime
-    gnu.org/gcc/libgomp: '*' # OpenMP (-fopenmp) runtime
+    gnu.org/gcc/libgomp: "*" # OpenMP (-fopenmp) runtime
 
 build:
   dependencies:
     linux:
       gnu.org/gcc: 14
   script:
+    - cpanm -l "{{prefix}}" Foundation
     - ./configure --prefix={{prefix}}
     - make --jobs {{ hw.concurrency }}
     - make install
