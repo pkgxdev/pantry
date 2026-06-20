@@ -1,0 +1,61 @@
+distributable:
+  # upstream version is dotless date-ish "YY-DDD" (e.g. 14-137).
+  # we store it as semver "14.137" and rebuild the dash form for the URL.
+  url: https://micans.org/mcl/src/mcl-{{ version.major }}-{{ version.minor }}.tar.gz
+  strip-components: 1
+
+versions:
+  # upstream src/ listing serves mcl-<YY>-<DDD>.tar.gz. The "-" is not valid
+  # semver (pkgx would read it as a prerelease tag and misorder), and pkgx
+  # `strip` cannot rewrite "-" to ".", so we cannot scrape straight into a
+  # version. The newest tarball (22-282) also ships a broken source tree
+  # (missing tingea/types.h), so auto-bumping to "latest" would not build.
+  # We therefore pin the last known-good release, mapped to semver 14.137:
+  #   url: https://micans.org/mcl/src/
+  #   match: /mcl-\d+-\d+\.tar\.gz/
+  #   strip:
+  #     - /^mcl-/
+  #     - /\.tar\.gz$/
+  - 14.137
+
+# linux only: the 14-137 release bundles a 2014 config.sub/config.guess that
+# rejects arm64-apple-darwin (and can't guess darwin arm64), and the newer mcl
+# that fixed autotools (22-282) doesn't compile. Builds cleanly on linux.
+platforms:
+  - linux
+
+provides:
+  - bin/mcl
+  - bin/mcx
+  - bin/mcxload
+  - bin/mcxdump
+  - bin/mcxarray
+  - bin/mcxassemble
+  - bin/mcxi
+  - bin/mcxmap
+  - bin/mcxrand
+  - bin/mcxsubs
+  - bin/clm
+  - bin/clmformat
+  - bin/clxdo
+  - bin/mclcm
+  - bin/mclpipeline
+
+build:
+  script:
+    # config.guess from 2014 doesn't recognize aarch64 -> pass an explicit triple.
+    # -fcommon: pre-C99-tentative globals defined in headers (GCC 10+ defaults to -fno-common).
+    # -Wno-implicit-function-declaration: K&R-era implicit decls are errors under GCC 14 / clang 16.
+    - ./configure
+      --prefix="{{ prefix }}"
+      --build="{{ hw.target }}"
+      --disable-dependency-tracking
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    CC: cc
+    CFLAGS: -fcommon -Wno-implicit-function-declaration -O2
+
+test:
+  - (mcl --version 2>&1 || true) | grep "mcl 14-137"
+  - mcl graph.abc --abc -o out.mcl
+  - test -s out.mcl
