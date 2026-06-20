@@ -3,7 +3,7 @@ distributable:
   # (third_party/simde, third_party/libsais are empty), and the v2.5.x releases
   # ship only prebuilt binaries — there is no `*-source.zip`. So we take the tag
   # tarball and fetch the two submodules at their pinned commits in the build.
-  url: https://github.com/BenLangmead/bowtie2/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/BenLangmead/bowtie2/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
@@ -22,24 +22,23 @@ dependencies:
 
 build:
   dependencies:
-    gnu.org/make: '*'
     tukaani.org/xz: '*' # tar xz of the submodule tarballs
     curl.se: '*'
     linux:
       gnu.org/gcc: 14
+  env:
+    SIMDE_SHA: f6a0b3b2882226e98496be9147265e05c7127c1f
+    LIBSAIS_SHA: 4317a462dfd7ad0e3a97c865a9855ecad934e6dd
   script:
     # --- fetch submodules at the commits pinned by v{{version}} ---
     # simde-no-tests provides third_party/simde/x86/sse2.h (SIMDe shims SSE2 on
     # aarch64); libsais is the suffix-array index builder. Update these SHAs when
     # bumping the version (read .gitmodules + the third_party tree at the new tag).
-    - |
-      SIMDE_SHA=f6a0b3b2882226e98496be9147265e05c7127c1f
-      LIBSAIS_SHA=4317a462dfd7ad0e3a97c865a9855ecad934e6dd
-      rmdir third_party/simde third_party/libsais 2>/dev/null || true
-      curl -sSL https://github.com/simd-everywhere/simde-no-tests/archive/$SIMDE_SHA.tar.gz | tar xz
-      mv simde-no-tests-$SIMDE_SHA third_party/simde
-      curl -sSL https://github.com/ch4rr0/libsais/archive/$LIBSAIS_SHA.tar.gz | tar xz
-      mv libsais-$LIBSAIS_SHA third_party/libsais
+    - rmdir third_party/simde third_party/libsais 2>/dev/null || true
+    - curl -sSL https://github.com/simd-everywhere/simde-no-tests/archive/$SIMDE_SHA.tar.gz | tar xz
+    - mv simde-no-tests-$SIMDE_SHA third_party/simde
+    - curl -sSL https://github.com/ch4rr0/libsais/archive/$LIBSAIS_SHA.tar.gz | tar xz
+    - mv libsais-$LIBSAIS_SHA third_party/libsais
 
     # The Makefile keys SIMD on `uname -m`: on aarch64 it auto-selects the bundled
     # SIMDe (-Ithird_party), POPCNT_CAPABILITY=0 and -fopenmp-simd. No special
@@ -59,7 +58,6 @@ provides:
   - bin/bowtie2-inspect-l
 
 test:
-  script:
     # `bowtie2 --version` exits non-zero -> wrap under pipefail; it prints
     # "bowtie2-align-s version 2.5.5"
     - (bowtie2 --version 2>&1 || true) | grep '{{version.raw}}'
