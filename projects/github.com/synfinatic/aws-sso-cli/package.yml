@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/synfinatic/aws-sso-cli/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/synfinatic/aws-sso-cli/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
@@ -14,22 +14,20 @@ build:
   script: |
     go mod download
     mkdir -p "{{ prefix }}"/bin
-    go build -v -trimpath -ldflags="$LDFLAGS" -o $BUILDLOC ./cmd/aws-sso
+    go build -v -trimpath -ldflags="$GO_LDFLAGS" -o {{prefix}}/bin/aws-sso ./cmd/aws-sso
   env:
-    GOPROXY: https://proxy.golang.org,direct
-    GOSUMDB: sum.golang.org
     GO111MODULE: on
-    CGO_ENABLED: 0
-    BUILDLOC: '{{prefix}}/bin/aws-sso'
-    LDFLAGS:
+    CGO_ENABLED: 1 # needed for onepassword-sdk-go as of 2.3.0
+    GO_LDFLAGS:
       - -s
       - -w
       - -X main.Version={{version}}
     linux:
       # or segmentation fault
       # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
-      LDFLAGS:
-      - -buildmode=pie
+      GO_LDFLAGS:
+        - -buildmode=pie
 
 test:
-  aws-sso version | grep {{version}}
+  - aws-sso version | tee out
+  - grep {{version}} out
