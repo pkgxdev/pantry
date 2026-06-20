@@ -31,27 +31,35 @@ build:
 
     # --- post-install fixups ---
     # 1) the perl wrappers (promer/dnadiff/mummerplot — nucmer & the rest are ELF
-    #    and brewkit relocates those) bake (a) the build perl as their shebang
-    #    and (b) `use lib ".../v4.0.1+brewing/lib/mummer"` — the +brewing STAGING
-    #    path, which brewkit does NOT rewrite inside text scripts, so
-    #    Foundation.pm isn't found. Point the shebang at PATH and strip +brewing.
+    #    and brewkit relocates those) bake their build perl as the shebang and
+    #    absolute build-prefix paths for `use lib`, the bundled Foundation.pm,
+    #    and the helper binaries (@LIB_DIR@/@BIN_DIR@/@LIBEXEC_DIR@). brewkit does
+    #    NOT rewrite paths inside text scripts, so at the relocated runtime prefix
+    #    those /opt build paths don't exist -> Foundation.pm + "critical files"
+    #    failures. Make the wrappers self-locating via FindBin (RealBin = the
+    #    script's own bin/), so every path resolves relative to wherever the
+    #    package is installed. `use FindBin` is inserted *before* `use lib` so the
+    #    compile-time `use lib "$FindBin::RealBin/.."` sees a populated RealBin.
     #    (Do NOT sed nucmer: it's a binary — stripping bytes segfaults it.)
     - run:
         - for s in promer dnadiff mummerplot; do
         - test -f "$s" || continue
-        - sed -i -e '1s|^#!.*perl.*|#!/usr/bin/env perl|' -e 's|+brewing||g' "$s"
+        - sed -i -f $PROP "$s"
         - done
+      prop: |
+        1s|^#!.*perl.*|#!/usr/bin/env perl|
+        /^use lib /i use FindBin;
+        s|^use lib .*|use lib "$FindBin::RealBin/../lib/mummer";|
+        s|^my $BIN_DIR *=.*|my $BIN_DIR = "$FindBin::RealBin";|
+        s|^my $SCRIPT_DIR *=.*|my $SCRIPT_DIR = "$FindBin::RealBin/../lib/mummer";|
+        s|^my $AUX_BIN_DIR *=.*|my $AUX_BIN_DIR = "$FindBin::RealBin/../libexec/mummer";|
       working-directory: "{{prefix}}/bin"
 
-    # 2) upstream bug (4.0.1): scripts/promer.pl uses malformed placeholders
-    #    `@BIN_DIR` / `@LIBEXEC_DIR` (missing trailing `@`), so the Makefile's
-    #    `s,[@]BIN_DIR[@],...` substitution never matches and promer ships with
-    #    literal `@BIN_DIR`/`@LIBEXEC_DIR` -> "Check your paths" failure.
-    #    dnadiff.pl uses the correct `@BIN_DIR@` and is fine. Patch promer here.
+    # 2) upstream bug (4.0.1): scripts/promer.pl uses unsubstituted tool-name
+    #    placeholders (@MUMMER@/@MGAPS@/...). The path placeholders are already
+    #    handled by the FindBin rewrite above; only the bare tool names remain.
     - run: if test -f promer; then sed -i -f $PROP promer; fi
       prop: |
-        s,@LIBEXEC_DIR,{{prefix}}/libexec/mummer,g
-        s,@BIN_DIR,{{prefix}}/bin,g
         s,@MUMMER@,mummer,g
         s,@MGAPS@,mgaps,g
         s,@PREPRO@,prepro,g
