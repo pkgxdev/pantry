@@ -19,7 +19,6 @@ dependencies:
 
 build:
   dependencies:
-    gnu.org/make: '*'
     linux:
       gnu.org/gcc: ^14
   script:
@@ -68,9 +67,8 @@ provides:
 test:
   # test.vcf ships alongside this recipe (tab-delimited; building it inline
   # via printf/fixture is unreliable — the \t/\n escapes don't survive YAML)
-  script:
-    # --freq table -> stdout, "VCFtools - 0.1.17" -> stderr; swallow vcftools'
-    # exit so pipefail keys off the greps
-    - vcftools --vcf test.vcf --freq --stdout >freq.txt 2>err.log || true
-    - grep 'A:0.75' freq.txt
-    - grep '{{version.raw}}' err.log
+  # --freq table -> stdout, "VCFtools - 0.1.17" -> stderr; swallow vcftools'
+  # exit so pipefail keys off the greps
+  - vcftools --vcf test.vcf --freq --stdout >freq.txt 2>err.log || true
+  - grep 'A:0.75' freq.txt
+  - grep '{{version.raw}}' err.log
