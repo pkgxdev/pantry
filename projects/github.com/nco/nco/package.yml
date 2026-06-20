@@ -31,7 +31,6 @@ dependencies:
 
 build:
   dependencies:
-    gnu.org/make: '*'
     gnu.org/m4: '*'
     # flex/bison MUST be present at configure time: configure probes for them
     # and bakes LEX=: (a no-op) into the Makefiles if flex is missing, which
@@ -72,14 +71,11 @@ provides:
   - bin/ncwa
 
 test:
-  dependencies:
-    unidata.ucar.edu/netcdf: '*' # provides ncgen to build the fixture
-  script:
-    # version banner (ncks prints --version to stderr, exits non-zero)
-    - (ncks --version 2>&1 || true) | grep '{{ version }}'
-    # generate a tiny netCDF from the companion CDL, then exercise operators
-    - ncgen -o test.nc test.cdl
-    - ncks -M test.nc | grep temperature
-    # ncra averages over the record (time) dim: 10,20,30,40 -> 25
-    - ncra -O test.nc out.nc
-    - test "$(ncks -s '%g\n' -H -C -v temperature out.nc)" = 25
+  # version banner (ncks prints --version to stderr, exits non-zero)
+  - (ncks --version 2>&1 || true) | grep '{{ version }}'
+  # generate a tiny netCDF from the companion CDL, then exercise operators
+  - ncgen -o test.nc test.cdl
+  - ncks -M test.nc | grep temperature
+  # ncra averages over the record (time) dim: 10,20,30,40 -> 25
+  - ncra -O test.nc out.nc
+  - test "$(ncks -s '%g\n' -H -C -v temperature out.nc)" = 25
