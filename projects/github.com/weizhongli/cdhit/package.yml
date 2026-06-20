@@ -1,0 +1,58 @@
+distributable:
+  url: https://github.com/weizhongli/cdhit/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: weizhongli/cdhit/tags
+  strip: /^V/
+
+# C++/OpenMP runtime: needs libstdc++/libgcc_s (libstdcxx) AND libgomp on linux.
+# Without these the binaries pick up the system libstdc++ and fail with
+# `GLIBCXX_3.4.3x not found`, exiting 1 with no output.
+dependencies:
+  zlib.net: ^1.3 # cd-hit links -lz (default WITH_ZLIB)
+  linux:
+    gnu.org/gcc/libstdcxx: 14 # libstdc++ + libgcc_s
+    gnu.org/gcc/libgomp: "*" # OpenMP runtime (-fopenmp)
+
+build:
+  dependencies:
+    linux:
+      gnu.org/gcc: 14
+  script:
+    # the Makefile hardcodes `CC = g++`; override to `c++` so it picks gcc on
+    # linux (gnu.org/gcc build dep) and clang on darwin. Apple clang rejects
+    # -fopenmp, so OpenMP is on for linux only (openmp=$OPENMP keeps the build
+    # and install make invocations consistent).
+    - make $ARGS
+    # PREFIX in the Makefile is the *bin* directory itself (default
+    # /usr/local/bin), and `install` does not create it.
+    - mkdir -p "{{prefix}}/bin"
+    - make install $ARGS
+  env:
+    ARGS:
+      - CC=c++
+      - PREFIX="{{prefix}}/bin"
+    linux:
+      ARGS:
+        - openmp=yes
+    darwin:
+      ARGS:
+        - openmp=no
+
+provides:
+  - bin/cd-hit
+  - bin/cd-hit-est
+  - bin/cd-hit-2d
+  - bin/cd-hit-est-2d
+  - bin/cd-hit-div
+  - bin/cd-hit-454
+
+test:
+  # banner is printed to stdout with a non-zero exit when run with no args
+  - (cd-hit 2>&1 || true) | grep "{{version.raw}}"
+  # real clustering run: seq1/seq2 are near-identical and must collapse
+  - cd-hit -i prot.faa -o out -c 0.9
+  - test -s out
+  - test -s out.clstr
+  - grep "Cluster" out.clstr
