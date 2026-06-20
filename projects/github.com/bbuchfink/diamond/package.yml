@@ -1,11 +1,9 @@
 distributable:
-  url: https://github.com/bbuchfink/diamond/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/bbuchfink/diamond/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
-  github: bbuchfink/diamond/releases/tags
-  strip:
-    - /^v/
+  github: bbuchfink/diamond
 
 provides:
   - bin/diamond
@@ -35,12 +33,11 @@ build:
       - -DWITH_ZSTD=ON
 
 test:
-  script:
-    # version subcommand prints "diamond version X.Y.Z" and exits 0
-    - (diamond version 2>&1 || true) | grep "{{version.raw}}"
-    # real round-trip: build a protein db and self-align it
-    - diamond makedb --in prot.faa -d testdb
-    - diamond blastp -q prot.faa -d testdb -o out.tsv
-    - test -s out.tsv
-    # every query is in the db, so each must produce at least a self-hit
-    - test $(wc -l < out.tsv) -ge 3
+  # version subcommand prints "diamond version X.Y.Z" and exits 0
+  - (diamond version 2>&1 || true) | grep "{{version.raw}}"
+  # real round-trip: build a protein db and self-align it
+  - diamond makedb --in prot.faa -d testdb
+  - diamond blastp -q prot.faa -d testdb -o out.tsv
+  - test -s out.tsv
+  # every query is in the db, so each must produce at least a self-hit
+  - test $(wc -l < out.tsv) -ge 3
