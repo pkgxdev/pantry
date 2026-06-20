@@ -1,0 +1,69 @@
+distributable:
+  # The auto-generated GitHub source tarball does NOT bundle the git submodules
+  # (third_party/simde, third_party/libsais are empty), and the v2.5.x releases
+  # ship only prebuilt binaries — there is no `*-source.zip`. So we take the tag
+  # tarball and fetch the two submodules at their pinned commits in the build.
+  url: https://github.com/BenLangmead/bowtie2/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: BenLangmead/bowtie2
+  ignore: # skip malformed / pre-release tags that pollute the list
+    - /_new/
+    - /alpha/
+    - /beta/
+
+dependencies:
+  perl.org: '*'    # `bowtie2` wrapper is #!/usr/bin/env perl
+  python.org: '*'  # `bowtie2-build` and `bowtie2-inspect` are #!/usr/bin/env python3
+  zlib.net: 1
+  linux:
+    gnu.org/gcc/libstdcxx: 14 # GLIBCXX at runtime (C++); without it: exit 1, no output
+
+build:
+  dependencies:
+    tukaani.org/xz: '*' # tar xz of the submodule tarballs
+    curl.se: '*'
+    linux:
+      gnu.org/gcc: 14
+  env:
+    SIMDE_SHA: f6a0b3b2882226e98496be9147265e05c7127c1f
+    LIBSAIS_SHA: 4317a462dfd7ad0e3a97c865a9855ecad934e6dd
+  script:
+    # --- fetch submodules at the commits pinned by v{{version}} ---
+    # simde-no-tests provides third_party/simde/x86/sse2.h (SIMDe shims SSE2 on
+    # aarch64); libsais is the suffix-array index builder. Update these SHAs when
+    # bumping the version (read .gitmodules + the third_party tree at the new tag).
+    - rmdir third_party/simde third_party/libsais 2>/dev/null || true
+    - curl -sSL https://github.com/simd-everywhere/simde-no-tests/archive/$SIMDE_SHA.tar.gz | tar xz
+    - mv simde-no-tests-$SIMDE_SHA third_party/simde
+    - curl -sSL https://github.com/ch4rr0/libsais/archive/$LIBSAIS_SHA.tar.gz | tar xz
+    - mv libsais-$LIBSAIS_SHA third_party/libsais
+
+    # The Makefile keys SIMD on `uname -m`: on aarch64 it auto-selects the bundled
+    # SIMDe (-Ithird_party), POPCNT_CAPABILITY=0 and -fopenmp-simd. No special
+    # flags needed beyond pointing CC/CXX at the system toolchain (never $CC/$CXX).
+    - make --jobs {{ hw.concurrency }} CC=cc CXX=c++
+    - make install CC=cc CXX=c++ PREFIX={{prefix}}
+
+provides:
+  - bin/bowtie2
+  - bin/bowtie2-align-s
+  - bin/bowtie2-align-l
+  - bin/bowtie2-build
+  - bin/bowtie2-build-s
+  - bin/bowtie2-build-l
+  - bin/bowtie2-inspect
+  - bin/bowtie2-inspect-s
+  - bin/bowtie2-inspect-l
+
+test:
+    # `bowtie2 --version` exits non-zero -> wrap under pipefail; it prints
+    # "bowtie2-align-s version 2.5.5"
+    - (bowtie2 --version 2>&1 || true) | grep '{{version.raw}}'
+
+    # real index + align: companion ref.fa / reads.fq sit next to package.yml and
+    # are copied into the testbed CWD. Expect one aligned record (non-@ line).
+    - bowtie2-build ref.fa idx      # exercises the python3 wrapper
+    - bowtie2 -x idx -U reads.fq -S out.sam
+    - grep -v '^@' out.sam | grep -q '^r1'
