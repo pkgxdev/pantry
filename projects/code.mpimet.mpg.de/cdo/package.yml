@@ -29,14 +29,13 @@ dependencies:
 
 build:
   dependencies:
-    gnu.org/make: "*"
     python.org: "*" # configure aborts "no suitable Python interpreter found"
     linux:
       gnu.org/gcc: 14
   script:
-    - run: ./configure $ARGS
-    - run: make --jobs {{ hw.concurrency }}
-    - run: make install
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
   env:
     ARGS:
       - --prefix={{prefix}}
@@ -49,14 +48,10 @@ build:
         - --disable-openmp
 
 test:
-  dependencies:
-    unidata.ucar.edu/netcdf: "*"
-    hdfgroup.org/HDF5: "*"
-  script:
-    # cdo prints --version to stderr and exits non-zero; tolerate both.
-    - (cdo --version 2>&1 || true) | grep '{{version.raw}}'
-    # Self-generating ops: build a field, then read it back — no binary fixture.
-    - cdo -f nc -topo,global_10 topo.nc
-    - (cdo info topo.nc 2>&1) | grep -i mean
-    - cdo -f nc -random,r5x5 r.nc
-    - test -f r.nc
+  # cdo prints --version to stderr and exits non-zero; tolerate both.
+  - (cdo --version 2>&1 || true) | grep '{{version.raw}}'
+  # Self-generating ops: build a field, then read it back — no binary fixture.
+  - cdo -f nc -topo,global_10 topo.nc
+  - (cdo info topo.nc 2>&1) | grep -i mean
+  - cdo -f nc -random,r5x5 r.nc
+  - test -f r.nc
