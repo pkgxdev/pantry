@@ -42,8 +42,6 @@ provides:
   - bin/mclpipeline
 
 build:
-  dependencies:
-    gnu.org/make: '*'
   script:
     # config.guess from 2014 doesn't recognize aarch64 -> pass an explicit triple.
     # -fcommon: pre-C99-tentative globals defined in headers (GCC 10+ defaults to -fno-common).
@@ -58,7 +56,6 @@ build:
     CFLAGS: -fcommon -Wno-implicit-function-declaration -O2
 
 test:
-  script:
-    - (mcl --version 2>&1 || true) | grep "mcl 14-137"
-    - mcl graph.abc --abc -o out.mcl
-    - test -s out.mcl
+  - (mcl --version 2>&1 || true) | grep "mcl 14-137"
+  - mcl graph.abc --abc -o out.mcl
+  - test -s out.mcl
