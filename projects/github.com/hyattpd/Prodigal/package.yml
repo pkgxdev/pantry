@@ -8,14 +8,12 @@ distributable:
 
 versions:
   github: hyattpd/Prodigal
-  strip: /^v/
   # v2.60 is an old release that semver-sorts above the current v2.6.x line
   ignore: /2\.60/
 
-build:
-  # CC=cc: $CC is empty in pantry CI; the Makefile defaults to gcc.
-  # INSTALLDIR is the Makefile's install-target variable.
-  script: make CC=cc INSTALLDIR="{{prefix}}/bin" install
+# CC=cc: $CC is empty in pantry CI; the Makefile defaults to gcc.
+# INSTALLDIR is the Makefile's install-target variable.
+build: make CC=cc INSTALLDIR="{{prefix}}/bin" install
 
 test:
   # -v prints "Prodigal V2.6.3: ..." to stderr; guarded for set -o pipefail.
@@ -24,9 +22,9 @@ test:
   # the testbed CWD). Gated to linux: v2.6.3 (2016 C) segfaults on this input
   # under darwin/arm64 — exercise the real run only where it's verified.
   - if: linux
-    run: |
-      prodigal -p meta -i test.fna -a out.faa -q
-      test -s out.faa
+    run:
+      - prodigal -p meta -i test.fna -a out.faa -q
+      - test -s out.faa
 
 provides:
   - bin/prodigal
