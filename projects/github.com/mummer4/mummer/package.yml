@@ -1,0 +1,87 @@
+distributable:
+  # release tarball ships pre-generated `configure` + yaggo outputs -> no Ruby/yaggo/autoreconf needed
+  url: https://github.com/mummer4/mummer/releases/download/v{{version}}/mummer-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: mummer4/mummer
+  ignore: # track stable only; skip alpha/beta/rc release candidates
+    - /alpha/
+    - /beta/
+    - /rc/
+
+dependencies:
+  perl.org: '*' # nucmer/promer/dnadiff/mummerplot perl wrappers
+  linux:
+    gnu.org/gcc/libstdcxx: 14 # GLIBCXX at runtime
+    gnu.org/gcc/libgomp: '*' # OpenMP (-fopenmp) runtime
+
+build:
+  dependencies:
+    gnu.org/make: '*'
+    linux:
+      gnu.org/gcc: 14
+  script:
+    - ./configure --prefix={{prefix}}
+    - make --jobs {{ hw.concurrency }}
+    - make install
+
+    # --- post-install fixups ---
+    # 1) the perl wrappers (promer/dnadiff/mummerplot — nucmer & the rest are ELF
+    #    and brewkit relocates those) bake (a) the build perl as their shebang
+    #    and (b) `use lib ".../v4.0.1+brewing/lib/mummer"` — the +brewing STAGING
+    #    path, which brewkit does NOT rewrite inside text scripts, so
+    #    Foundation.pm isn't found. Point the shebang at PATH and strip +brewing.
+    #    (Do NOT sed nucmer: it's a binary — stripping bytes segfaults it.)
+    - run: |
+        for s in promer dnadiff mummerplot; do
+          test -f "$s" || continue
+          sed -i.bak -e '1s|^#!.*perl.*|#!/usr/bin/env perl|' -e 's|+brewing||g' "$s"
+          rm -f "$s.bak"
+        done
+      working-directory: "{{prefix}}/bin"
+
+    # 2) upstream bug (4.0.1): scripts/promer.pl uses malformed placeholders
+    #    `@BIN_DIR` / `@LIBEXEC_DIR` (missing trailing `@`), so the Makefile's
+    #    `s,[@]BIN_DIR[@],...` substitution never matches and promer ships with
+    #    literal `@BIN_DIR`/`@LIBEXEC_DIR` -> "Check your paths" failure.
+    #    dnadiff.pl uses the correct `@BIN_DIR@` and is fine. Patch promer here.
+    - run: |
+        test -f promer && sed -i.bak \
+          -e "s,@LIBEXEC_DIR,{{prefix}}/libexec/mummer,g" \
+          -e "s,@BIN_DIR,{{prefix}}/bin,g" \
+          -e "s,@MUMMER@,mummer,g" \
+          -e "s,@MGAPS@,mgaps,g" \
+          -e "s,@PREPRO@,prepro,g" \
+          -e "s,@POSTPRO@,postpro,g" \
+          -e "s,@SHOWCOORDS@,show-coords,g" \
+          promer && rm -f promer.bak
+      working-directory: "{{prefix}}/bin"
+
+provides:
+  - bin/mummer
+  - bin/nucmer
+  - bin/promer
+  - bin/delta-filter
+  - bin/show-coords
+  - bin/show-aligns
+  - bin/show-snps
+  - bin/show-tiling
+  - bin/show-diff
+  - bin/dnadiff
+  - bin/mummerplot
+  - bin/repeat-match
+  - bin/exact-tandems
+  - bin/combineMUMs
+  - bin/annotate
+
+test:
+  script:
+    - (nucmer --version 2>&1 || true) | grep '{{version.raw}}'
+    # real alignment: two near-identical sequences -> expect a 100.00% identity row
+    - nucmer a.fa b.fa -p out
+    - show-coords out.delta | grep '100.00'
+    - mummer -mum a.fa b.fa | grep seqB
+    # exercise a perl wrapper (validates shebang fixup + perl runtime dep)
+    - dnadiff a.fa b.fa -p dd
+    - grep '100.0000' dd.report
