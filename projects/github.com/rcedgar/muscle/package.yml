@@ -1,0 +1,53 @@
+distributable:
+  url: https://github.com/rcedgar/muscle/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: rcedgar/muscle/tags
+
+# darwin/x86-64 excluded: pkgx gcc 14 ICEs (cc1plus abort) building muscle
+# there. linux + darwin/aarch64 build cleanly.
+platforms:
+  - linux
+  - darwin/aarch64
+
+provides:
+  - bin/muscle
+
+dependencies:
+  gnu.org/gcc/libstdcxx: 14
+  gnu.org/gcc/libgomp: "*"
+
+build:
+  dependencies:
+    gnu.org/gcc: 14
+  working-directory: src
+  script:
+      # MUSCLE ships no usable Makefile: build_*.bash fetch an external
+      # vcxproj_make.py (network-only) that hard-codes -static, -march=native
+      # and a 32-bit guard. Build directly from the .vcxproj source list,
+      # which is authoritative (excludes unlinked sources such as alpha.cpp).
+      #
+      # BITS guard only recognises Apple's __arm64__, not GCC's __aarch64__,
+      # so Linux arm64 falls back to BITS=32 and aborts (sizeof(void*)==4).
+    - sed -i 's/defined(__arm64__)/defined(__arm64__) || defined(__aarch64__)/' myutils.h
+      # gitver.txt is normally generated from git; ship a quoted literal.
+    - printf '"v%s"\n' "{{version.raw}}" > gitver.txt
+    - grep -oE 'ClCompile Include="[^"]+\.cpp"' muscle.vcxproj | sed -E 's/.*"([^"]+)"/\1/' > sources.txt
+    - mkdir -p o ../bin
+    - while read -r s; do
+    - c++ -ffast-math -O3 -DNDEBUG -fopenmp -c -o "o/${s%.cpp}.o" "$s"
+    - done < sources.txt
+      # darwin: give the Mach-O header room for brewkit's install-name/rpath
+      # rewrite (otherwise "Updated load commands do not fit in the header")
+    - case "$(uname)" in Darwin) LDEXTRA="-Wl,-headerpad_max_install_names";; *) LDEXTRA="";; esac
+    - c++ -ffast-math -O3 -fopenmp o/*.o $LDEXTRA -o ../bin/muscle
+    - strip ../bin/muscle
+    - mkdir -p "{{prefix}}/bin"
+    - install -m0755 ../bin/muscle "{{prefix}}/bin/muscle"
+
+test:
+  - (muscle --version 2>&1 || true) | grep '{{version.raw}}'
+  - muscle -align seqs.fa -output aln.afa
+  - test -s aln.afa
+  - grep '>sp1' aln.afa
