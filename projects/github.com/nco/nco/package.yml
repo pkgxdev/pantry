@@ -1,0 +1,81 @@
+# NCO — netCDF Operators (github.com/nco/nco)
+#
+# The GitHub release source archive ships a generated `configure`, so we build
+# straight from autotools — no autoreconf needed.
+#
+# Feature scope (kept minimal): the core operators only.
+#   * ncap2 needs ANTLR (not in the pantry) — configure auto-disables it when
+#     ANTLR is absent; we pass --disable-ncap2 explicitly so the build is
+#     deterministic. Because ncap2 is the only C++ component, dropping it makes
+#     NCO a pure-C build (no libstdcxx runtime dependency required).
+#   * UDUNITS2 is mandatory-when-enabled and aborts configure if absent; it is
+#     not in the pantry, so we --disable-udunits --disable-udunits2 (both flags
+#     are required; the single flag is silently ignored).
+#   * GSL is optional and only adds polynomial/interpolation extras; we
+#     --disable-gsl for a reproducible, dependency-light build.
+#   * OpenMP (-fopenmp) is rejected by Apple clang on darwin and is not needed
+#     for the core operators, so --disable-openmp everywhere.
+
+distributable:
+  url: https://github.com/nco/nco/archive/{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: nco/nco # release tags are bare "5.3.8" (no v prefix), no strip
+
+dependencies:
+  unidata.ucar.edu/netcdf: '*'
+  # the pantry netcdf is built against zstd, so its link line pulls -lzstd onto
+  # NCO's; without this it fails "cannot find -lzstd"
+  facebook.com/zstd: '*'
+
+build:
+  dependencies:
+    gnu.org/m4: '*'
+    # flex/bison MUST be present at configure time: configure probes for them
+    # and bakes LEX=: (a no-op) into the Makefiles if flex is missing, which
+    # then fails the ncap_lex.c rule even with ncap2 disabled.
+    github.com/westes/flex: '*'
+    gnu.org/bison: '*'
+    linux:
+      gnu.org/gcc: 14
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix={{ prefix }}
+      - --disable-ncap2
+      - --disable-udunits
+      - --disable-udunits2
+      - --disable-gsl
+      - --disable-openmp
+    CPPFLAGS:
+      - -I{{ deps.unidata.ucar.edu/netcdf.prefix }}/include
+    LDFLAGS:
+      - -L{{ deps.unidata.ucar.edu/netcdf.prefix }}/lib
+
+provides:
+  - bin/ncks
+  - bin/ncra
+  - bin/ncrcat
+  - bin/ncbo
+  - bin/ncdiff
+  - bin/ncea
+  - bin/nces
+  - bin/ncecat
+  - bin/ncflint
+  - bin/ncpdq
+  - bin/ncrename
+  - bin/ncatted
+  - bin/ncwa
+
+test:
+  # version banner (ncks prints --version to stderr, exits non-zero)
+  - (ncks --version 2>&1 || true) | grep '{{ version }}'
+  # generate a tiny netCDF from the companion CDL, then exercise operators
+  - ncgen -o test.nc test.cdl
+  - ncks -M test.nc | grep temperature
+  # ncra averages over the record (time) dim: 10,20,30,40 -> 25
+  - ncra -O test.nc out.nc
+  - test "$(ncks -s '%g\n' -H -C -v temperature out.nc)" = 25
