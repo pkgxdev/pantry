@@ -1,0 +1,71 @@
+distributable:
+  # build from the source archive — the release `mmseqs-linux-*.tar.gz` assets are prebuilt binaries
+  url: https://github.com/soedinglab/MMseqs2/archive/refs/tags/18-8cc5c.tar.gz
+  strip-components: 1
+
+# MMseqs2 tags are `<major>-<git-short-hash>` (e.g. 18-8cc5c). The hex hash
+# defeats pkgx's semver parser — letter-bearing tags get dropped, leaving an
+# old all-numeric tag (13-45111, which doesn't even compile) selected as
+# "latest". So pin the release explicitly and hardcode its tag in the URL.
+versions:
+  - 18.0.0
+
+display-name: MMseqs2
+
+provides:
+  - bin/mmseqs
+
+dependencies:
+  zlib.net: ^1
+  sourceware.org/bzip2: ^1
+  linux:
+    # C++ runtime: clang on the buildbots doesn't ship libstdc++; need GLIBCXX
+    gnu.org/gcc/libstdcxx: 14
+    # OpenMP runtime (libgomp.so.1) — separate gcc target, not pulled in by
+    # libstdcxx; libgomp has no v14 tag in the pantry, so use '*'
+    gnu.org/gcc/libgomp: '*'
+
+build:
+  dependencies:
+    cmake.org: ^3
+    linux:
+      gnu.org/gcc: 14
+  script:
+    # $ARCH_ARGS = portable per-arch SIMD/openmp flags (set in env below).
+    # NATIVE_ARCH=0 so we never emit -march=native; we choose the baseline ourselves.
+    # VERSION_OVERRIDE: we build from a tarball (no .git), so without it
+    # `mmseqs version` prints GITDIR-NOTFOUND instead of the version.
+    - cmake -B build $ARGS
+    - cmake --build build --parallel {{ hw.concurrency }}
+    - cmake --install build
+  env:
+    ARGS:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DNATIVE_ARCH=0
+      - -DVERSION_OVERRIDE={{version.raw}}
+    # portable SIMD baseline per-arch (NATIVE_ARCH is off, so this is explicit)
+    linux/aarch64:
+      # -march=armv8-a+simd (NEON) — runs on every armv8 CPU
+      ARGS:
+        - -DHAVE_ARM8=1
+    linux/x86-64:
+      # SSE4.1 baseline, NOT AVX2 (AVX2 SIGILLs on older CI/runtime CPUs)
+      ARGS:
+        - -DHAVE_SSE4_1=1
+    darwin/aarch64:
+      # Apple clang has no -fopenmp → build without OpenMP on darwin
+      ARGS:
+        - -DHAVE_ARM8=1 -DREQUIRE_OPENMP=0
+    darwin/x86-64:
+      ARGS:
+        - -DHAVE_SSE4_1=1 -DREQUIRE_OPENMP=0
+
+test:
+  # mmseqs prints its version via `mmseqs version` (numeric thanks to VERSION_OVERRIDE)
+  # prot.faa is the companion file beside package.yml; brewkit copies the
+  # project dir into the testbed CWD, so it is referenced by bare name.
+    - (mmseqs version 2>&1 || true) | grep -E '^[0-9]+'
+    # real round-trip: self search the bundled FASTA and assert hits are produced
+    - mmseqs easy-search prot.faa prot.faa out.m8 tmp
+    - test -s out.m8
