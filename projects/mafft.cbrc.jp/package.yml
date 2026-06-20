@@ -1,0 +1,55 @@
+distributable:
+  url: https://mafft.cbrc.jp/alignment/software/mafft-{{version.raw}}-without-extensions-src.tgz
+  strip-components: 1
+
+versions:
+  url: https://mafft.cbrc.jp/alignment/software/source.html
+  match: /mafft-\d+\.\d+-without-extensions-src\.tgz/
+  strip:
+    - /^mafft-/
+    - /-without-extensions-src\.tgz$/
+
+build:
+  env:
+    ARGS:
+      - CC=cc
+      - PREFIX="{{prefix}}"
+  # the `mafft` wrapper bakes PREFIX/libexec/mafft as MAFFT_BINARIES at
+  # *compile* time, so PREFIX must be set for both `make` and `make install`
+  working-directory: core
+  script:
+    - make $ARGS --jobs {{ hw.concurrency }}
+    - make $ARGS install
+
+provides:
+  - bin/mafft
+  - bin/linsi
+  - bin/ginsi
+  - bin/einsi
+  - bin/fftns
+  - bin/fftnsi
+  - bin/nwns
+  - bin/nwnsi
+  - bin/mafft-linsi
+  - bin/mafft-ginsi
+  - bin/mafft-einsi
+  - bin/mafft-fftns
+  - bin/mafft-fftnsi
+
+# the wrapper bakes the binaries path at compile time, which goes stale once
+# brewkit relocates the pkg out of its +brewing staging dir (mafft then reports
+# "v0.000"); pin it to the final prefix so it finds its helpers + version file
+runtime:
+  env:
+    MAFFT_BINARIES: ${{prefix}}/libexec/mafft
+
+test:
+  - mafft --version 2>&1 | grep {{version.raw}}
+  - run: mafft --quiet $FIXTURE | grep MKTAYIAK
+    fixture: |
+      >s1
+      MKTAYIAKQR
+      >s2
+      MKTAYIAKER
+      >s3
+      MKTAYIAK
