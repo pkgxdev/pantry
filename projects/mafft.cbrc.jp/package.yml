@@ -10,14 +10,16 @@ versions:
     - /-without-extensions-src\.tgz$/
 
 build:
-  dependencies:
-    gnu.org/make: '*'
+  env:
+    ARGS:
+      - CC=cc
+      - PREFIX="{{prefix}}"
   # the `mafft` wrapper bakes PREFIX/libexec/mafft as MAFFT_BINARIES at
   # *compile* time, so PREFIX must be set for both `make` and `make install`
   working-directory: core
-  script: |
-    make CC=cc PREFIX="{{prefix}}" --jobs {{ hw.concurrency }}
-    make CC=cc PREFIX="{{prefix}}" install
+  script:
+    - make $ARGS --jobs {{ hw.concurrency }}
+    - make $ARGS install
 
 provides:
   - bin/mafft
@@ -42,13 +44,12 @@ runtime:
     MAFFT_BINARIES: ${{prefix}}/libexec/mafft
 
 test:
-  script: |
-    mafft --version 2>&1 | grep {{version.raw}}
-    mafft --quiet $FIXTURE | grep MKTAYIAK
-  fixture: |
-    >s1
-    MKTAYIAKQR
-    >s2
-    MKTAYIAKER
-    >s3
-    MKTAYIAK
+  - mafft --version 2>&1 | grep {{version.raw}}
+  - run: mafft --quiet $FIXTURE | grep MKTAYIAK
+    fixture: |
+      >s1
+      MKTAYIAKQR
+      >s2
+      MKTAYIAKER
+      >s3
+      MKTAYIAK
