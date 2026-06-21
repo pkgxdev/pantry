@@ -13,7 +13,7 @@ runtime:
 
 dependencies:
   linux:
-    gnu.org/gcc/libstdcxx: '*'
+    gnu.org/gcc/libstdcxx: 14
 
 build:
   dependencies:
@@ -45,8 +45,5 @@ provides:
   - bin/bufr_dump
 
 test:
-  script:
-    - run: |
-        set -e -o pipefail
-        (codes_info 2>&1 || true) | grep '{{version.raw}}'
-        (grib_ls {{prefix}}/share/eccodes/samples/GRIB2.tmpl 2>&1 || true) | grep regular_ll
+  - (codes_info 2>&1 || true) | grep '{{version.raw}}'
+  - (grib_ls {{prefix}}/share/eccodes/samples/GRIB2.tmpl 2>&1 || true) | grep regular_ll
