@@ -1,0 +1,48 @@
+distributable:
+  url: https://github.com/marbl/Mash/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: marbl/Mash
+
+provides:
+  - bin/mash
+
+dependencies:
+  capnproto.org: ^1 # libcapnp linked at runtime; capnp codegen at build
+  gnu.org/gsl: ^2
+  zlib.net: ^1
+  linux:
+    gnu.org/gcc/libstdcxx: 14
+
+build:
+  dependencies:
+    gnu.org/autoconf: "*" # bootstrap.sh; tarball ships no configure
+    linux:
+      gnu.org/gcc: 14 # darwin uses Apple clang (pkgx gcc can't link there)
+  script:
+    # gate the x86_64-only memcpy symver hack (references GLIBC_2.2.5, absent on aarch64)
+    - sed -i "s|else\$|else ifeq (\$(shell uname -m),x86_64)|" Makefile.in
+    - ./bootstrap.sh
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
+  env:
+    # Mash 2.3 omits transitive <cstdint>/<limits> that newer libstdc++ no longer leaks
+    CXXFLAGS: $CXXFLAGS -include cstdint -include limits
+    ARGS:
+      - --prefix={{prefix}}
+      - --with-capnp={{deps.capnproto.org.prefix}}
+      - --with-gsl={{deps.gnu.org/gsl.prefix}}
+
+test:
+  - run: cp $FIXTURE a.fa
+    fixture: |
+      >seq1
+      ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTAAAACCCCGGGGTTTTACGTACGTAACCGGTTAACCGGTT
+  - (mash --version 2>&1 || true) | grep "{{version.raw}}"
+  - mash sketch a.fa
+  - test -f a.fa.msh
+  - mash dist a.fa a.fa 2>&1 | tee out
+  # self-distance is 0 (cols: ref query distance p-value shared-hashes)
+  - grep -E "^a.fa.+a.fa.+0.+0.+34/34" out
