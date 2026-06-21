@@ -1,0 +1,53 @@
+distributable:
+  url: https://github.com/Qalculate/libqalculate/releases/download/{{version.tag}}/libqalculate-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: Qalculate/libqalculate
+
+# libqalculate bakes its data dir (PACKAGE_DATA_DIR) at configure time; brewkit
+# doesn't rewrite it inside libqalculate.so, so after relocation out of +brewing
+# it can't find the definition XMLs ("Failed to load global definitions"). 5.11.0
+# honors QALCULATE_DEFINITIONS_DIR (NOT XDG_DATA_DIRS) — point it at the install.
+runtime:
+  env:
+    QALCULATE_DEFINITIONS_DIR: ${{prefix}}/share/qalculate
+
+dependencies:
+  ginac.de/cln: "*"
+  gnu.org/gmp: "*"
+  gnu.org/mpfr: "*"
+  gnome.org/libxml2: "*"
+  unicode.org: "*"
+  gnu.org/readline: ^8
+  gnu.org/gettext: ^0
+  linux:
+    gnu.org/gcc/libstdcxx: 14
+
+build:
+  dependencies:
+    linux:
+      gnu.org/gcc: 14
+  env:
+    # ICU 78 headers require C++17 (Apple clang defaults to an older std and
+    # fails "'auto' not allowed in template parameter"; gcc 14 on linux is C++17)
+    CXXFLAGS: $CXXFLAGS -std=c++17
+    ARGS:
+      - --prefix={{prefix}}
+      - --disable-dependency-tracking
+      - --without-libcurl
+  script:
+    - ./configure $ARGS
+    - make --jobs {{hw.concurrency}}
+    - make install
+
+test:
+  env:
+    QALCULATE_DEFINITIONS_DIR: ${{prefix}}/share/qalculate
+  script:
+    - (qalc --version 2>&1 || true) | grep "{{version.raw}}"
+    - qalc -t "2+2" 2>&1 | tee out
+    - grep "^4$" out
+
+provides:
+  - bin/qalc
