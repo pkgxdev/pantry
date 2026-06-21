@@ -1,0 +1,95 @@
+distributable:
+  url: https://github.com/DaehwanKimLab/hisat2/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: DaehwanKimLab/hisat2
+
+# linux only: hisat2 ships a file named `version`, and with `.` on the include
+# path darwin's libc++ `#include <version>` (C++20) resolves to that text file
+# instead of the system header -> "expected unqualified-id". Builds clean on linux.
+platforms:
+  - linux
+
+dependencies:
+  zlib.net: ^1
+  perl.org: ^5
+  python.org: ^3
+  linux:
+    gnu.org/gcc/libstdcxx: 14
+
+build:
+  dependencies:
+    linux:
+      gnu.org/gcc: 14
+  env:
+    # Makefile hardcodes gcc via `dirname $(which gcc)`; override to the
+    # toolchain cc/c++ (Apple clang on darwin, pkgx gcc 14 on linux).
+    ARGS:
+      - CC=cc
+      - CPP=c++
+      - CXX=c++
+    EXTRA_FLAGS:
+      - -std=c++11
+    aarch64:
+        ARGS:
+          - POPCNT_CAPABILITY=0
+          - SSE_FLAG=-march=armv8-a+simd
+          - BITS_FLAG=
+        EXTRA_FLAGS:
+          - -Wno-narrowing
+          - -DSSE2NEON_SUPPRESS_WARNINGS"
+  script:
+    # x86 builds use the bundled -msse2 path; aarch64 has no SSE2, so shim
+    # <emmintrin.h> onto sse2neon, drop -msse2/-m64 and disable POPCNT (cpuid).
+    - run:
+      - curl -fsSL https://github.com/DLTcollab/sse2neon/raw/v1.9.1/sse2neon.h -o third_party/sse2neon.h
+      # include guard must NOT clash with EList<T,int S> template params
+      - printf '#ifndef HISAT2_EMMINTRIN_SHIM\n#define HISAT2_EMMINTRIN_SHIM\n#include "sse2neon.h"\n#endif\n' > third_party/emmintrin.h
+      - printf '#ifndef HISAT2_CPUID_STUB\n#define HISAT2_CPUID_STUB\n#endif\n' > third_party/cpuid.h
+      if: aarch64
+    - make --jobs {{ hw.concurrency }} $ARGS EXTRA_FLAGS="$EXTRA_FLAGS"
+    - install -Dm0755 hisat2 "{{prefix}}/bin/hisat2"
+    - install -Dm0755 hisat2-build "{{prefix}}/bin/hisat2-build"
+    - install -Dm0755 hisat2-inspect "{{prefix}}/bin/hisat2-inspect"
+    - install -Dm0755 hisat2-align-s "{{prefix}}/bin/hisat2-align-s"
+    - install -Dm0755 hisat2-align-l "{{prefix}}/bin/hisat2-align-l"
+    - install -Dm0755 hisat2-build-s "{{prefix}}/bin/hisat2-build-s"
+    - install -Dm0755 hisat2-build-l "{{prefix}}/bin/hisat2-build-l"
+    - install -Dm0755 hisat2-inspect-s "{{prefix}}/bin/hisat2-inspect-s"
+    - install -Dm0755 hisat2-inspect-l "{{prefix}}/bin/hisat2-inspect-l"
+    - install -Dm0755 hisat2-repeat "{{prefix}}/bin/hisat2-repeat"
+
+provides:
+  - bin/hisat2
+  - bin/hisat2-build
+  - bin/hisat2-inspect
+  - bin/hisat2-align-s
+  - bin/hisat2-align-l
+  - bin/hisat2-build-s
+  - bin/hisat2-build-l
+  - bin/hisat2-inspect-s
+  - bin/hisat2-inspect-l
+  - bin/hisat2-repeat
+
+test:
+  - (hisat2 --version 2>&1 || true) | grep "version {{version}}"
+  - run: hisat2-build "$FIXTURE" idx
+    fixture:
+      extname: fa
+      content: |
+        >chr1
+        ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTGGGGCCCCAAAATTTTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTTTTTGGGGCCCCAAAAACGTACGTACGTACGTACGTACGTACGTACGT
+  - run: hisat2 -x idx -U $FIXTURE -S out.sam
+    fixture:
+      extname: fq
+      content: |
+        @r1
+        ACGTACGTACGTACGTACGTACGTACGTACGT
+        +
+        IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII
+        @r2
+        GGGGCCCCAAAATTTTACGTACGTACGTACGT
+        +
+        IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII
+  - grep -v "^@" out.sam | grep -E "^r[12][[:space:]]"
