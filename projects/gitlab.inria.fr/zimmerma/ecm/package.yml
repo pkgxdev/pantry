@@ -1,0 +1,36 @@
+distributable:
+  # GMP-ECM releases are GitLab "uploads" with opaque hashed URLs (no predictable
+  # release-asset or packages/generic path), so the version is pinned and the URL
+  # hardcoded. Canonical page: https://gitlab.inria.fr/zimmerma/ecm/-/releases
+  url: https://gitlab.inria.fr/zimmerma/ecm/uploads/ad3e5019fef98819ceae58b78f4cce93/ecm-7.0.6.tar.gz
+  strip-components: 1
+
+versions:
+  - 7.0.6
+
+provides:
+  - bin/ecm
+
+dependencies:
+  gnu.org/gmp: ^6
+
+build:
+  dependencies:
+    gnu.org/m4: '*' # configure aborts "No usable m4 in $PATH" without it
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
+
+  env:
+    ARGS:
+      - --prefix="{{ prefix }}"
+      - --with-gmp="{{ deps.gnu.org/gmp.prefix }}"
+      - --disable-dependency-tracking
+
+test:
+  # ecm has no --version flag; the version banner prints on a normal run.
+  - '(echo 1234567 | ecm 1000 2>&1 || true) | grep "GMP-ECM {{ version }}"'
+  # Deterministic P-1 factorization: 703142569 = 541 * 1299709, and 541-1=540 is
+  # 5-smooth, so B1=50 always recovers 541 (ecm exits nonzero when it finds one).
+  - '(echo 703142569 | ecm -pm1 -q 50 2>&1 || true) | grep 541'
