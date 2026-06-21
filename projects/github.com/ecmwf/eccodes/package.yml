@@ -1,0 +1,49 @@
+distributable:
+  url: https://github.com/ecmwf/eccodes/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: ecmwf/eccodes
+
+# definitions+samples paths are baked at configure time; reset them post-relocation
+runtime:
+  env:
+    ECCODES_DEFINITION_PATH: ${{prefix}}/share/eccodes/definitions
+    ECCODES_SAMPLES_PATH: ${{prefix}}/share/eccodes/samples
+
+dependencies:
+  linux:
+    gnu.org/gcc/libstdcxx: 14
+
+build:
+  dependencies:
+    cmake.org: '*'
+    linux:
+      gnu.org/gcc: 14
+  script:
+    - cmake -B build -S . $ARGS
+    - cmake --build build --parallel {{ hw.concurrency }}
+    - cmake --install build
+  env:
+    ARGS:
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_BUILD_TYPE=RelWithDebInfo
+      - -DENABLE_FORTRAN=OFF
+      - -DENABLE_PYTHON=OFF
+      - -DENABLE_NETCDF=OFF
+      - -DENABLE_JPG=OFF
+      - -DENABLE_AEC=OFF
+      - -DENABLE_MEMFS=OFF
+
+provides:
+  - bin/codes_info
+  - bin/grib_ls
+  - bin/grib_dump
+  - bin/grib_get
+  - bin/grib_copy
+  - bin/grib_set
+  - bin/bufr_dump
+
+test:
+  - (codes_info 2>&1 || true) | grep '{{version.raw}}'
+  - (grib_ls {{prefix}}/share/eccodes/samples/GRIB2.tmpl 2>&1 || true) | grep regular_ll
