@@ -1,0 +1,69 @@
+distributable:
+  url: https://download.gnome.org/sources/evolution-data-server/{{version.marketing}}/evolution-data-server-{{version}}.tar.xz
+  strip-components: 1
+
+display-name: evolution-data-server
+
+versions:
+  gitlab: gitlab.gnome.org:GNOME/evolution-data-server
+
+dependencies:
+  github.com/util-linux/util-linux: '>=2'
+  gnome.org/glib: '>=2.68'
+  gnome.org/json-glib: '>=1.0.4'
+  gnome.org/libsecret: '>=0.5'
+  gnome.org/libxml2: '*'
+  gtk.org/gtk3: '>=3.20'
+  gtk.org/gtk4: '>=4.4'
+  libical.github.io: '>=3.0.7'
+  libsoup.org: '>=3.1.1'
+  mozilla.org/nspr: '*'
+  mozilla.org/nss: '*'
+  openldap.org: '>=2'
+  oracle.com/berkeley-db: '*'
+  sqlite.org: '>=3.7.17'
+  unicode.org: '*'
+  zlib.net: '*'
+
+build:
+  dependencies:
+    cmake.org: '>=3.15'
+    gnu.org/gperf: '*'
+    nixos.org/patchelf: '*'
+  script:
+    - cmake . $ARGS
+    - cmake --build . --parallel {{ hw.concurrency }}
+    - cmake --install .
+    # Make RPATHs relative
+    - run: find -maxdepth 1 -type f ! -name 'libcamel-1.2.so.*' -exec patchelf --set-rpath '$ORIGIN/evolution-data-server' {} \;
+      working-directory: ${{prefix}}/lib
+    - run: find -mindepth 2 -type f -name '*.so' -exec patchelf --set-rpath '$ORIGIN/..' {} \;
+      working-directory: ${{prefix}}/lib/evolution-data-server
+    - run: find -maxdepth 1 -type f ! -name 'camel-*' -exec patchelf --set-rpath '$ORIGIN/../lib/evolution-data-server' {} \;
+      working-directory: ${{prefix}}/libexec
+    - run: find -maxdepth 1 -type f ! -name 'csv2vcard' -exec patchelf --set-rpath '$ORIGIN/../../lib/evolution-data-server' {} \;
+      working-directory: ${{prefix}}/libexec/evolution-data-server
+  env:
+    ARGS:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DENABLE_TESTS=OFF
+      - -DENABLE_OAUTH2_WEBKITGTK=OFF
+      - -DENABLE_OAUTH2_WEBKITGTK4=OFF
+      - -DENABLE_EXAMPLES=OFF
+      - -DENABLE_GOA=OFF
+      - -DENABLE_WEATHER=OFF
+      - -DENABLE_CANBERRA=OFF
+
+test:
+  - run: cc $FIXTURE $(pkg-config --cflags --libs libedataserver-1.2)
+    fixture:
+      extname: c
+      contents: |
+        #include <evolution-data-server/libedataserver/libedataserver.h>
+        
+        int main() {
+          printf("%s", e_util_generate_uid());
+          return 0;
+        }
+  - ./a.out
