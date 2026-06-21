@@ -1,0 +1,30 @@
+distributable:
+  url: https://ftp.gnu.org/gnu/glpk/glpk-{{version.raw}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://ftp.gnu.org/gnu/glpk/
+  match: /glpk-\d+\.\d+\.tar\.gz/
+  strip:
+    - /^glpk-/
+    - /\.tar\.gz$/
+
+provides:
+  - bin/glpsol
+
+build:
+  script:
+    - ./configure $ARGS
+    - make --jobs {{hw.concurrency}}
+    - make install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --disable-dependency-tracking
+
+test:
+  - (glpsol --version 2>&1 || true) | grep "{{version.raw}}"
+  - run: |
+      printf 'maximize obj: x + y\nsubject to c1: x + 2 y <= 14\nc2: 3 x - y >= 0\nc3: x - y <= 2\nend\n' > model.lp
+      glpsol --lp model.lp -o out.sol
+      grep OPTIMAL out.sol
