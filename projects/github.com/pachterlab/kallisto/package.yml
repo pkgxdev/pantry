@@ -1,0 +1,56 @@
+distributable:
+  url: https://github.com/pachterlab/kallisto/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: pachterlab/kallisto
+
+# linux only: the bundled bifrost injects -mno-avx2 on darwin, which clang
+# rejects on arm64-apple-darwin ("unsupported option"). Builds clean on linux.
+platforms:
+  - linux
+
+dependencies:
+  hdfgroup.org/HDF5: "*"
+  zlib.net: "*"
+  linux:
+    gnu.org/gcc/libstdcxx: 14
+
+build:
+  dependencies:
+    cmake.org: "*"
+    linux:
+      gnu.org/gcc: 14
+  env:
+    # find_package(HDF5) is commented out upstream; point the link straight at the lib.
+    # COMPILATION_ARCH=OFF drops -march=native; do NOT set ENABLE_AVX2=OFF (injects x86-only -mno-avx2).
+    CMAKE_POLICY_VERSION_MINIMUM: "3.5"
+    ARGS:
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DUSE_HDF5=ON
+      - -DCOMPILATION_ARCH=OFF
+      - -DHDF5_INCLUDE_DIRS="{{deps.hdfgroup.org/HDF5.prefix}}/include"
+    linux:
+      ARGS:
+        - -DHDF5_LIBRARIES="{{deps.hdfgroup.org/HDF5.prefix}}/lib/libhdf5.so"
+    darwin:
+      ARGS:
+        - -DHDF5_LIBRARIES="{{deps.hdfgroup.org/HDF5.prefix}}/lib/libhdf5.dylib"
+  script:
+    - cmake -B build -S . $ARGS
+    - cmake --build build
+    - cmake --install build
+
+provides:
+  - bin/kallisto
+
+test:
+  # transcripts.fa is a companion file in this directory, copied into the test sandbox.
+  script:
+    - (kallisto version 2>&1 || true) | grep "kallisto, version {{version}}"
+    - kallisto index -i idx transcripts.fa
+    - test -s idx
+    # single-quote the whole command: the ": " in the grep pattern would
+    # otherwise make YAML parse this list item as a map (not a string)
+    - '(kallisto inspect idx 2>&1 || true) | grep "number of targets: 3"'
