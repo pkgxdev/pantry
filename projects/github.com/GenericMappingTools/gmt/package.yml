@@ -1,0 +1,53 @@
+distributable:
+  url: https://github.com/GenericMappingTools/gmt/releases/download/{{version.tag}}/gmt-{{version}}-src.tar.gz
+  strip-components: 1
+
+versions:
+  github: GenericMappingTools/gmt
+  ignore: /rc/ # skip release candidates (e.g. 6.2.0rc1)
+
+# linux only for now: the darwin link fails inside GDAL's dependency closure
+# (libunwind/libcxx reexport mismatch). Builds + runs clean on linux.
+platforms:
+  - linux
+
+provides:
+  - bin/gmt
+
+dependencies:
+  unidata.ucar.edu/netcdf: '*'
+  curl.se: '*'
+  gdal.org: '*'
+  proj.org: '*'
+  fftw.org: '*'
+  pcre.org: '*'
+  zlib.net: '*'
+
+build:
+  dependencies:
+    cmake.org: '*'
+    linux:
+      gnu.org/gcc: 14
+  script:
+    - cmake -B build -S . $ARGS
+    - cmake --build build
+    - cmake --install build
+  env:
+    ARGS:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DGMT_DATADIR=share/gmt
+      - -DGMT_DOCDIR=share/doc/gmt
+      - -DGMT_MANDIR=share/man
+      - -DCOPY_GSHHG=OFF
+      - -DCOPY_DCW=OFF
+      - -Wno-dev
+    linux:
+      CC: gcc
+      ARGS:
+        - -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined
+
+test:
+  - ({{prefix}}/bin/gmt --version 2>&1 || true) | grep '{{version.raw}}'
+  - gmt math -T0/10/1 T SQRT = out.txt
+  - grep 2.2360679775 out.txt
