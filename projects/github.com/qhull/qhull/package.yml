@@ -1,0 +1,44 @@
+distributable:
+  url: https://github.com/qhull/qhull/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: qhull/qhull/tags
+  ignore:
+    - /alpha/        # pre-releases
+    - /^\d{4}\./     # date-style tags (e.g. 2020.2) duplicate the semver releases
+
+build:
+  dependencies:
+    cmake.org: ^3
+  env:
+    ARGS:
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_BUILD_TYPE=Release
+      # qhull declares cmake_minimum_required(3.0); cmake >=4 needs this to proceed
+      - -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+      # qhull hardcodes the target's INSTALL_RPATH to a RELATIVE "lib" (ignoring
+      # CMAKE_INSTALL_RPATH), which brewkit's elf fixer rejects ("invalid
+      # absolute path: lib"); skip baking any rpath and let brewkit set it
+      - -DCMAKE_SKIP_INSTALL_RPATH=ON
+  script:
+    # NB: build dir must not be named "build" — the source ships a build/ dir
+    # holding CMakeModules/CheckLFS.cmake that an out-of-source "build" clobbers
+    - cmake -B builddir -S . $ARGS
+    - cmake --build builddir --parallel {{hw.concurrency}}
+    - cmake --install builddir
+
+provides:
+  - bin/qhull
+  - bin/rbox
+  - bin/qconvex
+  - bin/qdelaunay
+  - bin/qvoronoi
+  - bin/qhalf
+
+test:
+  # qconvex prints the qhull version in its options banner
+  - '(qconvex 2>&1 || true) | grep "Qhull"'
+  # rbox generates a unit cube (8 pts); qconvex/qhull computes its convex hull
+  # (single-quoted: the ": " in the grep pattern would otherwise parse as a map)
+  - 'rbox c | qhull | grep "Number of vertices: 8"'
