@@ -1,0 +1,31 @@
+distributable:
+  url: https://github.com/gpertea/gffread/releases/download/{{version.tag}}/gffread-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: gpertea/gffread
+
+# the release-download tarball bundles a curated gclib/ subset and defaults
+# GCLDIR to ./gclib, so no sibling ../gclib clone is needed
+
+dependencies:
+  linux:
+    gnu.org/gcc/libstdcxx: 14
+
+build:
+  dependencies:
+    linux:
+      gnu.org/gcc: 14
+  script:
+    # Makefile hardcodes g++; force the toolchain c++ (Apple clang on darwin)
+    - make CXX=c++ LINKER=c++ release
+    - install -Dm0755 gffread "{{prefix}}"/bin/gffread
+
+provides:
+  - bin/gffread
+
+test:
+  - run: |
+      (gffread --version 2>&1 || true) | grep '{{version}}'
+      gffread test.gff3 -T -o out.gtf
+      grep 'transcript_id' out.gtf
