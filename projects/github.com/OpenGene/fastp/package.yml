@@ -15,7 +15,6 @@ dependencies:
 
 build:
   dependencies:
-    freedesktop.org/pkg-config: "*"
     linux:
       gnu.org/gcc: 14
   script:
@@ -30,10 +29,8 @@ provides:
   - bin/fastp
 
 test:
-  - run: (fastp --version 2>&1 || true) | grep "{{version}}"
-  - run: |
-      fastp -i $FIXTURE -o out.fq --disable_adapter_trimming
-      test -s out.fq
+  - (fastp --version 2>&1 || true) | grep "{{version}}"
+  - run: fastp -i $FIXTURE -o out.fq --disable_adapter_trimming
     fixture:
       extname: fq
       content: |
@@ -45,3 +42,4 @@ test:
         TTTTGGGGCCCCAAAATTTTGGGGCCCCAAAA
         +
         IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII
+  - test -s out.fq
