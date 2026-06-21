@@ -1,0 +1,45 @@
+distributable:
+  url: https://github.com/OpenGene/fastp/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: OpenGene/fastp
+
+dependencies:
+  github.com/intel/isa-l: ^2
+  github.com/ebiggers/libdeflate: ^1
+  google.com/highway: ^1
+  zlib.net: ^1
+  linux:
+    gnu.org/gcc/libstdcxx: 14
+
+build:
+  dependencies:
+    linux:
+      gnu.org/gcc: 14
+  script:
+    - mkdir -p "{{prefix}}/bin"
+    - make CXX=c++ $ARGS
+    - make install $ARGS
+  env:
+    ARGS:
+      - PREFIX="{{prefix}}"
+
+provides:
+  - bin/fastp
+
+test:
+  - (fastp --version 2>&1 || true) | grep "{{version}}"
+  - run: fastp -i $FIXTURE -o out.fq --disable_adapter_trimming
+    fixture:
+      extname: fq
+      content: |
+        @r1
+        ACGTACGTACGTACGTACGTACGTACGTACGT
+        +
+        IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII
+        @r2
+        TTTTGGGGCCCCAAAATTTTGGGGCCCCAAAA
+        +
+        IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII
+  - test -s out.fq
