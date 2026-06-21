@@ -7,34 +7,31 @@ versions:
 
 dependencies:
   openblas.net: ^0.3
-  python.org: ^3.11
+  python.org: ~3.12
+  mesonbuild.com: "*" # since 2.5
+  ninja-build.org: "*" # since 2.5
 
 companions:
   gnu.org/gcc: "*" #gfortran (no Fortran compiler found)
 
 runtime:
   env:
-    PYTHONPATH: $PYTHONPATH:{{prefix}}/lib/python{{deps.python.org.version.major}}/site-packages
+    PYTHONPATH: ${{prefix}}/lib/python3/site-packages:$PYTHONPATH
 
 build:
   dependencies:
-    cython.org/libcython: "*"
     llvm.org: "*" # fails with gcc
   script:
-    - run: |
-        cat <<EOF > site.cfg
+    - run: cp $PROP site.cfg
+      if: <2.5
+      prop: |
         [openblas]
         libraries = openblas
         library_dirs = {{deps.openblas.net.prefix}}/lib
         include_dirs = {{deps.openblas.net.prefix}}/include
-        EOF
-    - python -m pip install --prefix={{prefix}} .
-    - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
+    - python -m pip install --prefix {{prefix}} .
+    - run: ln -sf python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
       working-directory: ${{prefix}}/lib
-    - run: |
-        sed -i.bak "s|{{deps.python.org.prefix}}/bin/python|/usr/bin/env python|g" f2py
-        rm f2py.bak
-      working-directory: ${{prefix}}/bin
   env:
     # ld unrecognized option '--version'
     CC: clang
@@ -54,14 +51,21 @@ provides:
 test:
   dependencies:
     llvm.org: "*" # fails with gcc
-    darwin/x86-64:
-      gnu.org/gcc: 14 # gfortan isn't happy on v15
   script:
     - python test.py
     - f2py -v | grep {{version}}
+    # gfortran doesn't like this arch
+    - run: exit 0
+      if: darwin/x86-64
     - f2py -c -m test test.f90
     - ls | grep test.cpython
   env:
     CC: clang
     CXX: clang++
     LD: clang
+    darwin:
+      # f2py -c uses meson, which sanity-checks gfortran by compiling and RUNNING
+      # a test exe. pkgx libgfortran is @rpath/gnu.org/gcc/.../libgfortran.5.dylib,
+      # runnable only if the pkgx root is on the exe's rpath. dyld ignores
+      # LD_LIBRARY_PATH and SIP strips DYLD_*, so bake the rpath at link time.
+      LDFLAGS: $LDFLAGS -Wl,-rpath,{{pkgx.prefix}}
