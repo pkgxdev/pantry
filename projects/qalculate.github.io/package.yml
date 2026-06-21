@@ -20,21 +20,18 @@ dependencies:
   gnome.org/libxml2: "*"
   unicode.org: "*"
   gnu.org/readline: ^8
+  gnu.org/gettext: ^0
   linux:
     gnu.org/gcc/libstdcxx: 14
-  darwin:
-    gnu.org/gettext: ^0
 
 build:
   dependencies:
-    freedesktop.org/pkg-config: "*"
-    gnu.org/gettext: ^0 # msgfmt --xml generates the definition data
     linux:
       gnu.org/gcc: 14
   env:
     # ICU 78 headers require C++17 (Apple clang defaults to an older std and
     # fails "'auto' not allowed in template parameter"; gcc 14 on linux is C++17)
-    CXXFLAGS: -std=c++17
+    CXXFLAGS: $CXXFLAGS -std=c++17
     ARGS:
       - --prefix={{prefix}}
       - --disable-dependency-tracking
