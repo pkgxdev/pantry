@@ -22,6 +22,14 @@ versions:
   # Upstream publishes git tags but ZERO GitHub Releases. Use /tags.
   github: jmacd/xdelta/tags
 
+# liblzma secondary compression. Since 3.2 the CMake build links liblzma
+# dynamically (find_package(LibLZMA) -> LibLZMA::LibLZMA), so xz is needed at
+# runtime as well as build. (3.1.0 autotools shipped SECONDARY_LZMA=0 and used
+# no lzma; this enables it via the pantry xz rather than 3.2's bundled
+# FetchContent of upstream xz.)
+dependencies:
+  tukaani.org/xz: ^5
+
 build:
   working-directory: xdelta3
   dependencies:
@@ -30,11 +38,29 @@ build:
     gnu.org/libtool: "*"
     linux:
       gnu.org/gcc: "*"
+    # since 3.2
+    cmake.org: ^3
   script:
-    - autoreconf -fi
-    - ./configure --prefix={{prefix}}
-    - make --jobs {{ hw.concurrency }}
-    - make install
+    - run:
+        - autoreconf -fi
+        - ./configure --prefix={{prefix}}
+        - make --jobs {{ hw.concurrency }}
+        - make install
+      if: <3.2
+    - run:
+        - cmake -S . -B build $CMAKE_ARGS
+        - cmake --build build
+        - cmake --install build
+      if: ">=3.2"
+  env:
+    CMAKE_ARGS:
+      - -DCMAKE_INSTALL_PREFIX={{ prefix }}
+      - -DCMAKE_BUILD_TYPE=Release
+      - -Wno-dev
+      # require the pantry liblzma (FATAL if not found) instead of fetching xz.
+      # armor/BLAKE3 is left at its default (ON) and is still FetchContent'd from
+      # upstream at configure time -> the build needs network for that clone.
+      - -DXD3_LZMA_MODE=on
 
 provides:
   - bin/xdelta3
