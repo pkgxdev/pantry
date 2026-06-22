@@ -23,6 +23,11 @@ provides:
   - bin/csvtk
 
 test:
-  - '(csvtk version 2>&1 || true) | grep "{{ version.raw }}"'
-  - printf 'a,b\n1,2\n3,4\n' | csvtk cut -f a 2>&1 | tee out
+  - (csvtk version 2>&1 || true) | tee out
+  - grep "{{ version.raw }}" out
+  - run: cat $FIXTURE | csvtk cut -f a 2>&1 | tee out
+    fixture: |
+      a,b
+      1,2
+      3,4
   - grep 3 out
