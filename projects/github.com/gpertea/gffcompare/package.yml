@@ -1,0 +1,33 @@
+distributable:
+  url: https://github.com/gpertea/gffcompare/releases/download/{{version.tag}}/gffcompare-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: gpertea/gffcompare
+
+# the release-download tarball bundles a curated gclib/ subset and defaults
+# GCLIB to ./gclib, so no sibling ../gclib clone is needed
+
+dependencies:
+  linux:
+    gnu.org/gcc/libstdcxx: 14
+
+build:
+  dependencies:
+    linux:
+      gnu.org/gcc: 14
+  script:
+    # Makefile hardcodes g++; force the toolchain c++ (Apple clang on darwin)
+    - make CXX=c++ LINKER=c++ release
+    - install -Dm0755 gffcompare "{{prefix}}"/bin/gffcompare
+    - install -Dm0755 trmap "{{prefix}}"/bin/trmap
+
+provides:
+  - bin/gffcompare
+  - bin/trmap
+
+test:
+  - (gffcompare --version 2>&1 || true) | tee out
+  - grep '{{version.raw}}' out
+  - gffcompare -r ref.gtf -o cmp query.gtf
+  - grep 'class_code' cmp.annotated.gtf
