@@ -1,0 +1,30 @@
+distributable:
+  url: https://github.com/Unidata/UDUNITS-2/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: Unidata/UDUNITS-2/tags # no GitHub releases, only tags
+
+dependencies:
+  libexpat.github.io: ^2
+
+build:
+  dependencies:
+    cmake.org: ^3
+    github.com/westes/flex: '*' # archive lacks the generated lexer
+    gnu.org/bison: '*' # ...and parser
+    gnu.org/texinfo: '*' # *.info docs are an ALL target, not shipped
+  env:
+    ARGS:
+      - -DCMAKE_INSTALL_PREFIX={{ prefix }}
+  script:
+    - cmake -B build -S . $ARGS
+    - cmake --build build --parallel {{ hw.concurrency }}
+    - cmake --install build
+
+test:
+  # -H/-W still read stdin, so feed /dev/null; one pipe so it's a single shell
+  - (udunits2 -H hours -W seconds </dev/null 2>&1 || true) | grep "1 hours = 3600 seconds"
+
+provides:
+  - bin/udunits2
