@@ -1,0 +1,58 @@
+distributable:
+  url: https://pallini.di.uniroma1.it/nauty{{version.major}}_{{version.minor}}_{{version.patch}}.tar.gz
+  strip-components: 1
+
+versions:
+  # The homepage is a single page (no directory listing); it links the
+  # current stable tarball as nautyX_Y_Z.tar.gz. Match the stable form only,
+  # excluding betas like nauty2_9_4b5.tar.gz.
+  url: https://pallini.di.uniroma1.it/
+  match: /nauty\d+_\d+_\d+\.tar\.gz/
+  strip:
+    - /nauty/
+    - /\.tar\.gz/
+  # nautyX_Y_Z -> X.Y.Z
+  transform: v => v.replace(/_/g, '.')
+
+build:
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
+  env:
+    # nauty's makefile defaults to gcc; force the platform cc.
+    CC: cc
+    ARGS:
+      - --prefix={{prefix}}
+      # disable the default -march=native (would bake builder-CPU ISA into
+      # the distributed binaries); keep generic, portable codegen.
+      - --enable-generic
+
+provides:
+  - bin/dreadnaut
+  - bin/geng
+  - bin/gentourng
+  - bin/genrang
+  - bin/genbg
+  - bin/gentreeg
+  - bin/labelg
+  - bin/shortg
+  - bin/amtog
+  - bin/complg
+  - bin/copyg
+  - bin/listg
+  - bin/showg
+  - bin/pickg
+  - bin/countg
+  - bin/directg
+  - bin/multig
+  - bin/planarg
+  - bin/converseg
+  - bin/dretog
+  - bin/uniqg
+
+test: |
+  # 4 vertices => 11 graphs, 5 vertices => 34 graphs (deterministic).
+  geng -u 4 2>&1 | grep "11 graphs generated"
+  geng -u 5 2>&1 | grep "34 graphs generated"
+  test "$(geng 4 2>/dev/null | wc -l)" = "11"
