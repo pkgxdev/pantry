@@ -1,0 +1,43 @@
+distributable:
+  url: https://github.com/DerrickWood/kraken2/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: DerrickWood/kraken2
+
+# linux only: the src Makefile's -fopenmp can't be reliably skipped through
+# install_kraken2.sh for Apple clang on darwin (build fails); kraken2 is a
+# Linux-cluster tool and builds clean on linux.
+platforms:
+  - linux
+
+# kraken2/kraken2-build/kraken2-inspect are perl wrappers that self-locate the
+# C++ helpers (classify, build_db, ...) relative to their own dir in bin/.
+dependencies:
+  perl.org: "*"
+  zlib.net: ^1 # k2mask links -lz
+  gnu.org/gcc/libstdcxx: 14
+  gnu.org/gcc/libgomp: '*' # -fopenmp threading (no v14 tag, use *)
+
+build:
+  dependencies:
+    gnu.org/gcc: 14
+  env:
+    CXX: c++
+    CC: cc
+  script:
+    # install_kraken2.sh canonicalizes the target with perl abs_path BEFORE
+    # creating it (empty for a non-existent dir → "mkdir ''"), so pre-make it
+    - mkdir -p "{{prefix}}/bin"
+    - ./install_kraken2.sh "{{prefix}}/bin"
+
+provides:
+  - bin/kraken2
+  - bin/kraken2-build
+  - bin/kraken2-inspect
+
+test:
+  - (kraken2 --version 2>&1 || true) | tee out
+  - grep "{{version.raw}}" out
+  - kraken2-build --help 2>&1 | tee out
+  - grep -i kraken2-build out
