@@ -1,0 +1,47 @@
+distributable:
+  url: https://github.com/passagemath/lrslib/archive/refs/tags/lrslib-{{version.major}}{{version.minor}}{{version.patch}}.tar.gz
+  strip-components: 1
+
+# github tags are `lrslib-0XX` (no dots) plotted against the upstream
+# release archives from cgm.cs.mcgill.ca/~avis/C/lrslib ; the noisy
+# `+autotools` tags rule out a clean github scrape, so pin (cdo/mcl pattern)
+versions:
+  - 0.7.3
+
+dependencies:
+  gnu.org/gmp: ^6
+
+build:
+  dependencies:
+    gnu.org/gmp: ^6
+  env:
+    ARGS:
+      - CC=cc
+      - PLRSFLAGS= # no OpenMP/MPI: GMP user-facing binaries only
+      - INCLUDEDIR={{deps.gnu.org/gmp.prefix}}/include
+      - LIBDIR={{deps.gnu.org/gmp.prefix}}/lib
+  script:
+    - make default lrsnash $ARGS
+    - mkdir -p {{prefix}}/bin
+    - install -m0755 -t {{prefix}}/bin lrs lrsgmp lrsnash
+    # lrs dispatches on argv[0] (cf. upstream symlinks)
+    - cd {{prefix}}/bin
+    - for t in redund minrep fel; do ln -sf lrs $t; done
+
+provides:
+  - bin/lrs
+  - bin/lrsgmp
+  - bin/lrsnash
+  - bin/redund
+  - bin/minrep
+  - bin/fel
+
+test:
+  # write the .ine with printf (space-delimited, no tabs) rather than $FIXTURE:
+  # lrslib couldn't open the sandbox $FIXTURE path (prints "bad input file name"
+  # → no vertices; and the hybrid `lrs` even segfaults on that error path).
+  # lrsgmp is the crash-safe pure-GMP build; it prints "*Totals: vertices=4".
+  - printf 'square\nH-representation\nbegin\n4 3 rational\n1 1 0\n1 0 1\n1 -1 0\n1 0 -1\nend\n' > square.ine
+  - lrsgmp square.ine > out.txt
+  - grep 'vertices=4' out.txt
+  - redund square.ine | grep -i 'no redundant'
