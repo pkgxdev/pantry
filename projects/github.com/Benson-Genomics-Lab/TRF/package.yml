@@ -1,0 +1,24 @@
+distributable:
+  url: https://github.com/Benson-Genomics-Lab/TRF/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+display-name: Tandem Repeats Finder
+
+versions:
+  github: Benson-Genomics-Lab/TRF
+
+build:
+  # autotools, out-of-source build per upstream README; configure is committed
+  working-directory: build
+  script:
+    - ../configure --prefix="{{prefix}}"
+    - make --jobs {{ hw.concurrency }} install
+
+provides:
+  - bin/trf
+
+# trf prints "Version 4.09" but pkgx's {{version.marketing}} drops the leading
+# zero (4.9 != 4.09), so assert the program identity instead; -v exits nonzero
+test:
+  - (trf -v 2>&1 || true) | tee out
+  - grep -i "Tandem Repeats Finder" out
