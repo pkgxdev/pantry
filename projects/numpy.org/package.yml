@@ -32,6 +32,9 @@ build:
     - python -m pip install --prefix {{prefix}} .
     - run: ln -sf python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
       working-directory: ${{prefix}}/lib
+    - run: sed -i "s|{{deps.python.org.prefix}}/bin/python|/usr/bin/env python|g" f2py
+      working-directory: ${{prefix}}/bin
+
   env:
     # ld unrecognized option '--version'
     CC: clang
