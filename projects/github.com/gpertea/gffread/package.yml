@@ -1,0 +1,39 @@
+distributable:
+  url: https://github.com/gpertea/gffread/releases/download/{{version.tag}}/gffread-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: gpertea/gffread
+
+# the release-download tarball bundles a curated gclib/ subset and defaults
+# GCLDIR to ./gclib, so no sibling ../gclib clone is needed
+
+dependencies:
+  linux:
+    gnu.org/gcc/libstdcxx: 14
+
+build:
+  dependencies:
+    linux:
+      gnu.org/gcc: 14
+  script:
+    # Makefile hardcodes g++; force the toolchain c++ (Apple clang on darwin)
+    - make CXX=c++ LINKER=c++ release
+    - install -Dm0755 gffread "{{prefix}}"/bin/gffread
+
+provides:
+  - bin/gffread
+
+test:
+  - (gffread --version 2>&1 || true) | tee out
+  - grep '{{version}}' out
+  - run: gffread $FIXTURE -T -o out.gtf
+    fixture:
+      extname: gff3
+      content: |
+        ##gff-version 3
+        chr1	test	gene	1000	2000	.	+	.	ID=gene1
+        chr1	test	mRNA	1000	2000	.	+	.	ID=mrna1;Parent=gene1
+        chr1	test	exon	1000	1500	.	+	.	Parent=mrna1
+        chr1	test	exon	1600	2000	.	+	.	Parent=mrna1
+  - grep 'transcript_id' out.gtf
