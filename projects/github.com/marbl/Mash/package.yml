@@ -6,7 +6,8 @@ versions:
   github: marbl/Mash
 
 provides:
-  - bin/mash
+  # avoid conflict with pkgx.sh/mash
+  - bin/marbl-mash
 
 dependencies:
   capnproto.org: ^1 # libcapnp linked at runtime; capnp codegen at build
@@ -27,6 +28,8 @@ build:
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }}
     - make install
+    - run: ln -s mash marbl-mash
+      working-directory: ${{prefix}}/bin
   env:
     # Mash 2.3 omits transitive <cstdint>/<limits> that newer libstdc++ no longer leaks
     CXXFLAGS: $CXXFLAGS -include cstdint -include limits
@@ -40,9 +43,9 @@ test:
     fixture: |
       >seq1
       ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTAAAACCCCGGGGTTTTACGTACGTAACCGGTTAACCGGTT
-  - (mash --version 2>&1 || true) | grep "{{version.raw}}"
-  - mash sketch a.fa
+  - (marbl-mash --version 2>&1 || true) | grep "{{version.raw}}"
+  - marbl-mash sketch a.fa
   - test -f a.fa.msh
-  - mash dist a.fa a.fa 2>&1 | tee out
+  - marbl-mash dist a.fa a.fa 2>&1 | tee out
   # self-distance is 0 (cols: ref query distance p-value shared-hashes)
   - grep -E "^a.fa.+a.fa.+0.+0.+34/34" out
