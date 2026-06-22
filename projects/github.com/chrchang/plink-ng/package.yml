@@ -1,0 +1,45 @@
+distributable:
+  url: https://github.com/chrchang/plink-ng/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: chrchang/plink-ng/tags
+
+# x86-64 only: plink2_base.h hard-#errors without x86 SSE2 and #includes
+# <emmintrin.h>, and the bundled libdeflate lacks arm/* headers — upstream's
+# arm64 support needs a manual SIMDe wiring this build config doesn't do.
+platforms:
+  - linux/x86-64
+  - darwin/x86-64
+
+# plink2 (the 2.0/ subtree) is C++ with bundled zstd/libdeflate/mini-gmp.
+# NO_LAPACK=1: the Makefile's only external linear-algebra option is ATLAS
+# (-lcblas -latlas, absent) and wiring in openblas drags an unresolved gfortran
+# runtime; NO_LAPACK builds the self-contained core (data mgmt, freq, assoc, LD).
+dependencies:
+  zlib.net: 1
+  linux:
+    gnu.org/gcc/libstdcxx: '*'
+
+build:
+  dependencies:
+    linux:
+      gnu.org/gcc: '*'
+  working-directory: 2.0/build_dynamic
+  script:
+    - make CC=cc CXX=c++ NO_LAPACK=1 --jobs {{hw.concurrency}}
+    - install -Dm0755 plink2 {{prefix}}/bin/plink2
+    - install -Dm0755 pgen_compress {{prefix}}/bin/pgen_compress
+
+test:
+  - (plink2 --version 2>&1 || true) | tee out
+  - grep "{{version.raw}}" out
+  - grep "PLINK v2" out
+  # 4 samples, genotypes 0/0 0/1 1/1 0/1 → ALT allele freq 0.5
+  - printf '##fileformat=VCFv4.2\n##contig=<ID=1>\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tS1\tS2\tS3\tS4\n1\t100\trs1\tA\tG\t.\t.\t.\tGT\t0/0\t0/1\t1/1\t0/1\n' > t.vcf
+  - plink2 --vcf t.vcf --freq --out f
+  - test "$(awk 'NR==2{print $5}' f.afreq)" = "0.5"
+
+provides:
+  - bin/plink2
+  - bin/pgen_compress
