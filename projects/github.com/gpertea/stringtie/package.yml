@@ -1,0 +1,39 @@
+distributable:
+  url: https://github.com/gpertea/stringtie/releases/download/{{version.tag}}/stringtie-{{version}}.offline.tar.gz
+  strip-components: 1
+
+versions:
+  github: gpertea/stringtie
+
+# the `.offline` release asset bundles gclib/ + htslib/ + htslib's xlibs
+# (libdeflate/bzip2/xz) and defaults the include paths, so a plain `make
+# release` builds with no fetch; the bare stringtie-{{version}}.tar.gz instead
+# git-clones/curls those xlibs mid-build, which a clean build cannot do
+
+dependencies:
+  zlib.net: ^1
+  linux:
+    gnu.org/gcc/libstdcxx: 14
+
+build:
+  dependencies:
+    linux:
+      gnu.org/gcc: 14
+  script:
+    # bundled htslib Makefile hardcodes x86 SIMD flags; strip them off x86 or
+    # g++ rejects -msse*/-mpopcnt on arm64/riscv64/loong64
+    - run: sed -i 's/-msse4.1//g; s/-mssse3//g; s/-mpopcnt//g' Makefile
+      working-directory: htslib
+      if: aarch64
+    # Makefile hardcodes g++; force the toolchain c++ (Apple clang on darwin)
+    - make CXX=c++ LINKER=c++ release
+    - install -Dm0755 stringtie "{{prefix}}"/bin/stringtie
+
+provides:
+  - bin/stringtie
+
+test:
+  - (stringtie --version 2>&1 || true) | tee out
+  - grep '{{version.raw}}' out
+  - (stringtie --help 2>&1 || true) | tee out
+  - grep 'StringTie v{{version.raw}}' out
