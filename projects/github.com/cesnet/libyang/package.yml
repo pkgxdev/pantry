@@ -8,15 +8,36 @@ versions:
   github: CESNET/libyang
 
 dependencies:
-  pcre.org/v2: '>=10.21'
+  pcre.org/v2: ">=10.21"
+
+runtime:
+  # libyang bakes absolute module/plugin dirs (derived from CMAKE_INSTALL_PREFIX)
+  # into the binary — not relocatable: a bottle built under /opt won't find its
+  # modules once installed under ~/.pkgx, etc. It natively honors env overrides
+  # for the plugin dirs; we patch ly_yang_module_dir() (see build) to honor
+  # LIBYANG_YANG_MODULE_DIR too. {{prefix}} resolves to the real install root at
+  # runtime, so these point at wherever the package actually landed.
+  env:
+    LIBYANG_YANG_MODULE_DIR: "{{prefix}}/share/yang/modules/libyang"
+    LIBYANG_TYPES_PLUGINS_DIR: "{{prefix}}/lib/libyang/types"
+    LIBYANG_EXTENSIONS_PLUGINS_DIR: "{{prefix}}/lib/libyang/extensions"
 
 build:
   dependencies:
-    graphviz.org: '*'
-    doxygen.nl: '*'
+    graphviz.org: "*"
+    doxygen.nl: "*"
     cmake.org: ^3
   working-directory: build
   script:
+    # The tools (yanglint/yangre) pass ly_yang_module_dir() — a baked absolute
+    # CMAKE_INSTALL_PREFIX path — as the YANG search dir, so a relocated bottle
+    # fails realpath() on a path that no longer exists. Make it honor an env var
+    # first (same pattern libyang uses for plugin dirs); set via runtime.env.
+    - run: sed -i -f $PROP parser_common.c
+      working-directory: ../src/
+      if: ">=5.8.6"
+      prop: |
+        s|return LY_YANG_MODULE_DIR;|const char *env = getenv("LIBYANG_YANG_MODULE_DIR"); return env ? env : LY_YANG_MODULE_DIR;|
     - cmake ${ARGS} ..
     - make
     - make install
@@ -30,51 +51,56 @@ provides:
   - bin/yangre
 
 test:
-  - test "$(yangre --version|cut -d' ' -f2)" = {{version}}
-  - run: yanglint $FIXTURE
-    fixture:
-      extname: yang
-      content: |
-        module moddefault {
-          namespace "urn:yanglint:moddefault";
-          prefix md;
+  env:
+    LIBYANG_YANG_MODULE_DIR: "{{prefix}}/share/yang/modules/libyang"
+    LIBYANG_TYPES_PLUGINS_DIR: "{{prefix}}/lib/libyang/types"
+    LIBYANG_EXTENSIONS_PLUGINS_DIR: "{{prefix}}/lib/libyang/extensions"
+  script:
+    - test "$(yangre --version|cut -d' ' -f2)" = {{version}}
+    - run: yanglint $FIXTURE
+      fixture:
+        extname: yang
+        content: |
+          module moddefault {
+            namespace "urn:yanglint:moddefault";
+            prefix md;
 
-          container mdc {
-            leaf lf {
-              type uint16;
+            container mdc {
+              leaf lf {
+                type uint16;
+              }
+              leaf di {
+                type int16;
+                default "5";
+              }
+              leaf ds {
+                type string;
+                default "str";
+              }
             }
-            leaf di {
-              type int16;
-              default "5";
-            }
-            leaf ds {
-              type string;
-              default "str";
-            }
+
           }
+    - run:
+        - (yanglint $FIXTURE || true) 2>&1 | grep 'Invalid character sequence'
+      fixture:
+        extname: xml
+        content: |
+          module moddefault {
+            namespace "urn:yanglint:moddefault";
+            prefix md;
 
-        }
-  - run:
-      - (yanglint $FIXTURE || true) 2>&1 | grep 'Invalid character sequence'
-    fixture:
-      extname: xml
-      content: |
-        module moddefault {
-          namespace "urn:yanglint:moddefault";
-          prefix md;
+            container mdc {
+              leaf lf {
+                type uint16;
+              }
+              leaf di {
+                type int16;
+                default "5";
+              }
+              leaf ds {
+                type string;
+                default str";
+              }
+            }
 
-          container mdc {
-            leaf lf {
-              type uint16;
-            }
-            leaf di {
-              type int16;
-              default "5";
-            }
-            leaf ds {
-              type string;
-              default str";
-            }
           }
-
-        }
