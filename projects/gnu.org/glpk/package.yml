@@ -23,8 +23,15 @@ build:
       - --disable-dependency-tracking
 
 test:
-  - (glpsol --version 2>&1 || true) | grep "{{version.raw}}"
-  - run: |
-      printf 'maximize obj: x + y\nsubject to c1: x + 2 y <= 14\nc2: 3 x - y >= 0\nc3: x - y <= 2\nend\n' > model.lp
-      glpsol --lp model.lp -o out.sol
-      grep OPTIMAL out.sol
+  - (glpsol --version 2>&1 || true) | tee out
+  - grep "{{version.raw}}" out
+  - run: glpsol --lp $FIXTURE -o out.sol
+    fixture:
+      extname: lp
+      content: |
+        maximize obj: x + y
+        subject to c1: x + 2 y <= 14
+        c2: 3 x - y >= 0
+        c3: x - y <= 2
+        end
+  - grep OPTIMAL out.sol
