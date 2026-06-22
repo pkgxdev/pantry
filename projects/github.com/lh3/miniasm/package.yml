@@ -1,0 +1,30 @@
+# miniasm — de novo assembler for long noisy reads (Heng Li).
+# Reads PAF all-vs-all read overlaps (e.g. from minimap2) and emits an
+# assembly graph; ships `minidot` to render the graph as a dot plot.
+
+distributable:
+  url: https://github.com/lh3/miniasm/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: lh3/miniasm
+
+dependencies:
+  zlib.net: ^1
+
+build:
+  # The Makefile hardcodes CC=gcc; override to the toolchain cc (Apple clang
+  # on darwin). Pure C, links -lz — brewkit's CPATH/LIBRARY_PATH supply zlib.
+  - make CC=cc
+  - install -Dm0755 miniasm "{{prefix}}/bin/miniasm"
+  - install -Dm0755 minidot "{{prefix}}/bin/minidot"
+
+provides:
+  - bin/miniasm
+  - bin/minidot
+
+test:
+  # `miniasm -V` prints the version banner (e.g. 0.3-r179) to stdout.
+  - (miniasm -V 2>&1 || true) | grep '{{version.raw}}'
+  # minidot has no -V; a no-arg invocation prints usage.
+  - "(minidot 2>&1 || true) | grep 'Usage: minidot'"
