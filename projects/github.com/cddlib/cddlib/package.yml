@@ -1,0 +1,48 @@
+distributable:
+  url: https://github.com/cddlib/cddlib/releases/download/{{version.tag}}/cddlib-{{version.raw}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: cddlib/cddlib
+
+dependencies:
+  gnu.org/gmp: '*'
+
+build:
+  - ./configure --prefix="{{prefix}}"
+  - make --jobs {{hw.concurrency}}
+  - make install
+
+provides:
+  - bin/scdd
+  - bin/scdd_gmp
+  - bin/lcdd
+  - bin/lcdd_gmp
+  - bin/redcheck
+  - bin/redcheck_gmp
+  - bin/adjacency
+  - bin/adjacency_gmp
+  - bin/allfaces
+  - bin/allfaces_gmp
+  - bin/fourier
+  - bin/fourier_gmp
+  - bin/projection
+  - bin/projection_gmp
+  - bin/cddexec
+  - bin/cddexec_gmp
+
+test:
+  - run: cp $FIXTURE square.ine
+    fixture: |
+      H-representation
+      begin
+      4 3 integer
+      1 1 0
+      1 -1 0
+      1 0 1
+      1 0 -1
+      end
+  - scdd_gmp square.ine
+  - grep V-representation square.ext
+  - grep "4 3 rational" square.ext
+  - grep "Version {{version.raw}}" square.ext
