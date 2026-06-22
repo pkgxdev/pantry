@@ -27,7 +27,7 @@ provides:
   - bin/trmap
 
 test:
-  - run: |
-      (gffcompare --version 2>&1 || true) | grep '{{version.raw}}'
-      gffcompare -r ref.gtf -o cmp query.gtf
-      grep 'class_code' cmp.annotated.gtf
+  - (gffcompare --version 2>&1 || true) | tee out
+  - grep '{{version.raw}}' out
+  - gffcompare -r ref.gtf -o cmp query.gtf
+  - grep 'class_code' cmp.annotated.gtf
