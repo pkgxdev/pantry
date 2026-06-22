@@ -1,0 +1,49 @@
+distributable:
+  url: https://github.com/bedops/bedops/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: bedops/bedops
+
+dependencies:
+  linux:
+    gnu.org/gcc/libstdcxx: 14
+
+build:
+  dependencies:
+    sourceware.org/bzip2: '*' # build unpacks its bundled bzip2 source with bzcat
+    linux:
+      gnu.org/gcc: 14
+  env:
+    # SFLAGS= drops the Makefile's hardcoded -static (fails on aarch64/darwin)
+    ARGS:
+      - SFLAGS=
+      - CC=cc
+      - CXX=c++
+  script:
+    - make $ARGS --jobs {{hw.concurrency}}
+    - make install $ARGS BINDIR="{{prefix}}/bin"
+
+provides:
+  - bin/bedops
+  - bin/bedmap
+  - bin/sort-bed
+  - bin/closest-features
+  - bin/bedextract
+  - bin/starch
+  - bin/unstarch
+  - bin/starchcat
+  - bin/starchstrip
+  - bin/convert2bed
+  - bin/gtf2bed
+  - bin/gff2bed
+  - bin/vcf2bed
+  - bin/sam2bed
+  - bin/wig2bed
+
+test:
+  - (bedops --version 2>&1 || true) | grep '{{version.raw}}'
+  - printf 'chr1\t100\t200\nchr1\t400\t500\n' > a.bed
+  - printf 'chr1\t150\t450\n' > b.bed
+  - bedops --intersect a.bed b.bed | grep "$(printf 'chr1\t150\t200')"
+  - bedmap --echo --count a.bed b.bed | grep "$(printf 'chr1\t100\t200|1')"
