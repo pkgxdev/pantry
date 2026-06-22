@@ -1,0 +1,36 @@
+distributable:
+  url: https://github.com/gmarcais/Jellyfish/releases/download/{{version.tag}}/jellyfish-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: gmarcais/Jellyfish
+
+provides:
+  - bin/jellyfish
+
+build:
+  dependencies:
+    linux:
+      gnu.org/gcc: 14
+  script:
+    - ./configure --prefix={{prefix}}
+    - make --jobs {{hw.concurrency}}
+    - make install
+
+dependencies:
+  linux:
+    gnu.org/gcc/libstdcxx: 14
+
+test:
+  script:
+    - (jellyfish --version 2>&1 || true) | grep '{{version.raw}}'
+    - run: jellyfish count -m 5 -s 100 -o out.jf $FIXTURE
+      fixture:
+        extname: fa
+        content: |
+          >seq1
+          ACGTACGTACGTACGTACGTACGTACGTACGT
+          >seq2
+          TTTTACGTGGGGCCCCAAAATTTTACGTGGGG
+    - jellyfish stats out.jf | grep 'Distinct'
+    - jellyfish dump out.jf | grep '>'
