@@ -1,0 +1,33 @@
+# csvtk — a cross-platform, efficient and practical CSV/TSV toolkit
+# (cut, grep, join, sort, stats, plot, etc.). Pure-Go, same author as seqkit.
+#
+# Version is a source-baked `const VERSION` in csvtk/cmd/version.go, not an
+# -X-settable variable, so the test greps the compiled-in value. Main package
+# lives in ./csvtk (no main.go at repo root).
+
+distributable:
+  url: https://github.com/shenwei356/csvtk/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: shenwei356/csvtk
+
+build:
+  dependencies:
+    go.dev: '*'
+  env:
+    CGO_ENABLED: 0
+  script: go build -trimpath -ldflags "-s -w" -o {{prefix}}/bin/csvtk ./csvtk
+
+provides:
+  - bin/csvtk
+
+test:
+  - (csvtk version 2>&1 || true) | tee out
+  - grep "{{ version.raw }}" out
+  - run: cat $FIXTURE | csvtk cut -f a 2>&1 | tee out
+    fixture: |
+      a,b
+      1,2
+      3,4
+  - grep 3 out
