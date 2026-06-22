@@ -27,5 +27,13 @@ provides:
 test:
   - (gffread --version 2>&1 || true) | tee out
   - grep '{{version}}' out
-  - gffread test.gff3 -T -o out.gtf
+  - run: gffread $FIXTURE -T -o out.gtf
+    fixture:
+      extname: gff3
+      content: |
+        ##gff-version 3
+        chr1	test	gene	1000	2000	.	+	.	ID=gene1
+        chr1	test	mRNA	1000	2000	.	+	.	ID=mrna1;Parent=gene1
+        chr1	test	exon	1000	1500	.	+	.	Parent=mrna1
+        chr1	test	exon	1600	2000	.	+	.	Parent=mrna1
   - grep 'transcript_id' out.gtf
