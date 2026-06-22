@@ -1,0 +1,33 @@
+distributable:
+  url: https://github.com/lh3/bioawk/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: lh3/bioawk/tags
+
+dependencies:
+  zlib.net: 1
+
+build:
+  dependencies:
+    gnu.org/bison: '*'
+  script:
+    - make CC=cc YACC="bison -y"
+    - install -Dm0755 bioawk {{ prefix }}/bin/bioawk
+
+test:
+  - (bioawk 2>&1 || true) | tee out
+  - grep -i 'usage\|bioawk' out
+  # -c fastx exposes $name/$seq; both records are length 4
+  - run: bioawk -c fastx '{print length($seq)}' $FIXTURE | tee out
+    fixture:
+      extname: fa
+      content: |
+        >s1
+        ACGT
+        >s2
+        AAAA
+  - grep 4 out
+
+provides:
+  - bin/bioawk
