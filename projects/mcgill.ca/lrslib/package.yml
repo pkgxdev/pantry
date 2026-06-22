@@ -22,11 +22,10 @@ build:
       - LIBDIR={{deps.gnu.org/gmp.prefix}}/lib
   script:
     - make default lrsnash $ARGS
-    - mkdir -p {{prefix}}/bin
-    - install -m0755 -t {{prefix}}/bin lrs lrsgmp lrsnash
+    - install -Dm0755 -t {{prefix}}/bin lrs lrsgmp lrsnash
     # lrs dispatches on argv[0] (cf. upstream symlinks)
-    - cd {{prefix}}/bin
-    - for t in redund minrep fel; do ln -sf lrs $t; done
+    - run: for t in redund minrep fel; do ln -sf lrs $t; done
+      working-directory: ${{prefix}}/bin
 
 provides:
   - bin/lrs
@@ -41,7 +40,17 @@ test:
   # lrslib couldn't open the sandbox $FIXTURE path (prints "bad input file name"
   # → no vertices; and the hybrid `lrs` even segfaults on that error path).
   # lrsgmp is the crash-safe pure-GMP build; it prints "*Totals: vertices=4".
-  - printf 'square\nH-representation\nbegin\n4 3 rational\n1 1 0\n1 0 1\n1 -1 0\n1 0 -1\nend\n' > square.ine
-  - lrsgmp square.ine > out.txt
+  - run: cp $FIXTURE square.ine
+    fixture: |
+      square
+      H-representation
+      begin
+      4 3 rational
+      1 1 0
+      1 0 1
+      1 -1 0
+      1 0 -1
+      end
+  - lrsgmp square.ine tee out out.txt
   - grep 'vertices=4' out.txt
   - redund square.ine | grep -i 'no redundant'
