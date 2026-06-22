@@ -15,11 +15,15 @@ build:
   dependencies:
     python.org: ~3.13 # limit for v2.7.6
   script:
+    - pkgx +openssl.org^3
     - bkpyvenv stage {{prefix}} {{version}}
     - ${{prefix}}/venv/bin/pip install .
     - run: ${{prefix}}/venv/bin/pip install setuptools
       if: ">=2.7.4"
     - bkpyvenv seal {{prefix}} charmcraft
+  env:
+    OPENSSL_STATIC: 1
+    OPENSSL_DIR: "{{pkgx.prefix}}/openssl.org/v3"
 
 provides:
   - bin/charmcraft
