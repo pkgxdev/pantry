@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/ParBLiSS/FastANI/archive/refs/tags/v{{version.raw}}.tar.gz
+  url: https://github.com/ParBLiSS/FastANI/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
@@ -24,7 +24,7 @@ build:
   script:
     # upstream pins memcpy@GLIBC_2.2.5 for old-glibc portability; the .symver hack
     # has no matching symbol on a modern toolchain and breaks the link (all archs)
-    - run: sed -i.bak -e "s| -include src/common/memcpyLink.h -Wl,--wrap=memcpy||" -e "s| -include src/common/memcpyLink.h||" Makefile.in
+    - run: sed -i -e "s| -include src/common/memcpyLink.h -Wl,--wrap=memcpy||" -e "s| -include src/common/memcpyLink.h||" Makefile.in
       if: linux
     - ./bootstrap.sh
     - ./configure $ARGS
