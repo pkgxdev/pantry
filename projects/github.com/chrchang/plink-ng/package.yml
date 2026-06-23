@@ -1,0 +1,59 @@
+distributable:
+  url: https://github.com/chrchang/plink-ng/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: chrchang/plink-ng/tags
+  strip: /-[ab]/
+
+# plink2 (the 2.0/ subtree) is C++ with bundled zstd/libdeflate/mini-gmp.
+# NO_LAPACK=1: the Makefile's only external linear-algebra option is ATLAS
+# (-lcblas -latlas, absent) and wiring in openblas drags an unresolved gfortran
+# runtime; NO_LAPACK builds the self-contained core (data mgmt, freq, assoc, LD).
+dependencies:
+  zlib.net: 1
+  linux:
+    gnu.org/gcc/libstdcxx: "*"
+
+build:
+  dependencies:
+    linux:
+      gnu.org/gcc: "*"
+  working-directory: 2.0/build_dynamic
+  script:
+    - run:
+        - if ! grep -q cmath plink2_base.h; then
+        - sed -i -f $PROP plink2_base.h
+        - fi
+      if: linux/x86-64
+      working-directory: ../include
+      prop: |
+        /<algorithm>/a #include <cmath>
+    - make CC=cc CXX=c++ NO_LAPACK=1 --jobs {{hw.concurrency}}
+    - install -Dm0755 plink2 {{prefix}}/bin/plink2
+    - install -Dm0755 pgen_compress {{prefix}}/bin/pgen_compress
+
+test:
+  dependencies:
+    gnu.org/sed: "*"
+  script:
+    - (plink2 --version 2>&1 || true) | tee out
+    - grep "{{version.tag}}" out
+    - grep "PLINK v2" out
+    # 4 samples, genotypes 0/0 0/1 1/1 0/1 → ALT allele freq 0.5
+    - run:
+        # some builds add a blank line
+        - sed -i 5d $FIXTURE
+        - plink2 --vcf $FIXTURE --freq --out f
+      fixture:
+        extname: vcf
+        content: |
+          ##fileformat=VCFv4.2
+          ##contig=<ID=1>
+          #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	S1	S2	S3	S4
+          1	100	rs1	A	G	.	.	.	GT	0/0	0/1	1/1	0/1
+    - test "$(awk 'NR==2{print $5}' f.afreq)" = "0.5"
+
+provides:
+  - bin/plink2
+  - bin/pgen_compress
