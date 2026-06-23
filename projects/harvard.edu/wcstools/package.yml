@@ -1,0 +1,75 @@
+distributable:
+  url: https://github.com/olebole/wcstools/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: olebole/wcstools/tags
+
+build:
+  # the Makefile writes binaries into bin/ but never creates it
+  - mkdir -p bin
+  - make CC=cc --jobs {{ hw.concurrency }}
+  # copy only regular files: on darwin the build also drops *.dSYM debug-symbol
+  # DIRECTORIES in bin/ (find -type f skips them; a `test -f && cp` loop would
+  # also end on a false test → nonzero exit → set -e failure)
+  - mkdir -p "{{prefix}}/bin"
+  - find bin -maxdepth 1 -type f -exec cp {} "{{prefix}}/bin/" \;
+
+provides:
+  - bin/sky2xy
+  - bin/xy2sky
+  - bin/imhead
+  - bin/gethead
+  - bin/sethead
+  - bin/delhead
+  - bin/edhead
+  - bin/keyhead
+  - bin/wcshead
+  - bin/cphead
+  - bin/imwcs
+  - bin/delwcs
+  - bin/imcat
+  - bin/immatch
+  - bin/imrot
+  - bin/imsize
+  - bin/imstar
+  - bin/imstack
+  - bin/imextract
+  - bin/imfill
+  - bin/imsmooth
+  - bin/imresize
+  - bin/scat
+  - bin/getfits
+  - bin/newfits
+  - bin/getcol
+  - bin/getdate
+  - bin/gettab
+  - bin/sumpix
+  - bin/subpix
+  - bin/addpix
+  - bin/getpix
+  - bin/setpix
+  - bin/fixpix
+  - bin/conpix
+  - bin/remap
+  - bin/skycoor
+  - bin/simpos
+  - bin/bincat
+  - bin/char2sp
+  - bin/sp2char
+  - bin/fileroot
+  - bin/filename
+  - bin/filext
+  - bin/crlf
+  - bin/htmlsp
+  - bin/i2f
+  - bin/isnum
+  - bin/isrange
+  - bin/isfits
+  - bin/isfile
+
+test:
+  - (sky2xy 2>&1 || true) | tee out
+  - grep "WCSTools {{version}}" out
+  - (gethead 2>&1 || true) | tee out
+  - grep "WCSTools {{version}}" out
