@@ -1,0 +1,41 @@
+distributable:
+  url: https://github.com/lcn2/calc/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: lcn2/calc
+
+provides:
+  - bin/calc
+
+# calc bakes its share/lib paths into the binary at compile time (conf.h /
+# DEFAULTCALCPATH). The Makefile defaults are absolute (/usr/bin, /usr/share/calc,
+# ...) and are NOT derived from PREFIX, so each path var is set to {{prefix}}
+# explicitly. readline/ncurses are disabled to keep the dep set empty.
+build:
+  script: |
+    make $ARGS
+    make $ARGS install
+  env:
+    ARGS:
+      - CC=cc
+      - PREFIX="{{prefix}}"
+      - BINDIR="{{prefix}}/bin"
+      - LIBDIR="{{prefix}}/lib"
+      - INCDIR="{{prefix}}/include"
+      - CALC_SHAREDIR="{{prefix}}/share/calc"
+      - MANDIR="{{prefix}}/share/man/man1"
+      - USE_READLINE=
+      - READLINE_LIB=
+      - READLINE_EXTRAS=
+      - READLINE_INCLUDE=
+
+runtime:
+  env:
+    CALCPATH: ".:./cal:~/.cal:{{prefix}}/share/calc:{{prefix}}/share/calc/custom"
+
+test:
+  - (calc -v 2>&1 || true) | tee out
+  - grep {{version.raw}} out
+  - echo '2+2' | calc -p | grep 4
+  - echo 'sqrt(2)' | calc -p | grep 1.41
