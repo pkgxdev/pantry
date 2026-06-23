@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/aws-cloudformation/cfn-lint/archive/v{{version}}.tar.gz
+  url: https://github.com/aws-cloudformation/cfn-lint/archive/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
@@ -26,6 +26,20 @@ provides:
   - bin/cfn-lint
 
 test:
-  script:
-    - cfn-lint test.yml
-    - cfn-lint -v | grep {{version}}
+  - run: cfn-lint --update-specs
+  - run: cfn-lint $FIXTURE
+    fixture:
+      extname: yml
+      content: |
+        ---
+        AWSTemplateFormatVersion: '2010-09-09'
+        Resources:
+          # Helps tests map resource types
+          IamPipeline:
+            Type: "AWS::CloudFormation::Stack"
+            Properties:
+              TemplateURL: !Sub 'https://s3.${AWS::Region}.amazonaws.com/bucket-dne-${AWS::Region}/${AWS::AccountId}/pipeline.yaml'
+              Parameters:
+                DeploymentName: iam-pipeline
+                Deploy: 'auto'
+  - cfn-lint -v | grep {{version}}
