@@ -1,0 +1,48 @@
+distributable:
+  url: https://github.com/ParBLiSS/FastANI/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: ParBLiSS/FastANI
+
+# linux only: FastANI hard-#includes <omp.h> and Apple clang has no OpenMP
+platforms:
+  - linux
+
+dependencies:
+  gnu.org/gsl: '*'
+  zlib.net: '*'
+  linux:
+    gnu.org/gcc/libstdcxx: '*'
+    gnu.org/gcc/libgomp: '*' # -fopenmp threading
+
+build:
+  dependencies:
+    gnu.org/autoconf: '*'
+    linux:
+      gnu.org/gcc: '*'
+  script:
+    # upstream pins memcpy@GLIBC_2.2.5 for old-glibc portability; the .symver hack
+    # has no matching symbol on a modern toolchain and breaks the link (all archs)
+    - run: sed -i -e "s| -include src/common/memcpyLink.h -Wl,--wrap=memcpy||" -e "s| -include src/common/memcpyLink.h||" Makefile.in
+      if: linux
+    - ./bootstrap.sh
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --with-gsl={{deps.gnu.org/gsl.prefix}}
+
+provides:
+  - bin/fastANI
+
+# test.fa companion is a 6 kb random-DNA genome; self-ANI must report 100.
+# the binary prints "version 1.33" even on the v1.34 tag (upstream never bumped
+# it), so the assert greps the literal word "version" rather than the number
+test:
+  - (fastANI --version 2>&1 || true) | tee out
+  - grep version out
+  - fastANI -q test.fa -r test.fa -o ani.out
+  - grep 100 ani.out
