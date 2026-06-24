@@ -6,17 +6,17 @@ versions:
   github: fish-shell/fish-shell
 
 dependencies:
-  gnu.org/gettext: '*'
-  invisible-island.net/ncurses: '>=6.0'
+  gnu.org/gettext: "*"
+  invisible-island.net/ncurses: ">=6.0"
 
 build:
   dependencies:
-    cmake.org: '>=3.5'
-    freedesktop.org/pkg-config: '*'
-    gnu.org/patch: '*'
+    cmake.org: ">=3.5"
+    freedesktop.org/pkg-config: "*"
+    gnu.org/patch: "*"
     git-scm.org: ^2 # needed for fish's pcre
     rust-lang.org: ^1.56 # v4
-    rust-lang.org/cargo: '*'
+    rust-lang.org/cargo: "*"
   script:
     # By default, fish's fish_command_not_found handler will redirect to stderr,
     # return an exit code of 127. Always. This patch fixes it. Hopefully, it will
@@ -33,6 +33,7 @@ build:
 
     - run: sed -i -e "s| $PKGX_DIR/| \$PKGX_DIR/|g" __fish_build_paths.fish
       working-directory: ${{prefix}}/share/fish
+      if: <4.8.0
   env:
     ARGS:
       - -DCMAKE_BUILD_TYPE=Release
