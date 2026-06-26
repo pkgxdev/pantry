@@ -1,0 +1,25 @@
+# rainfrog — a database management TUI for Postgres, MySQL and SQLite.
+
+distributable:
+  url: https://github.com/achristmascarl/rainfrog/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: achristmascarl/rainfrog
+
+provides:
+  - bin/rainfrog
+
+dependencies:
+  linux:
+    gnu.org/gcc/libstdcxx: "*"
+
+build:
+  dependencies:
+    rust-lang.org: ">=1.80"
+    rust-lang.org/cargo: "*"
+    linux:
+      gnu.org/gcc: "*"
+  script: cargo install --locked --path . --root {{prefix}}
+
+test: rainfrog --version | grep {{version}}
