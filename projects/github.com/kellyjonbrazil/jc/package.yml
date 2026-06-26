@@ -1,0 +1,29 @@
+# jc — converts the output of many CLI tools, file types and common strings
+# to structured JSON/YAML. Pure-python, so the interpreter is contained in a
+# bkpyvenv to keep python out of the runtime dependency graph.
+
+distributable:
+  url: https://github.com/kellyjonbrazil/jc/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: kellyjonbrazil/jc
+
+dependencies:
+  pkgx.sh: ">=1"
+
+build:
+  dependencies:
+    python.org: ^3
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} jc
+
+provides:
+  - bin/jc
+
+test:
+  - jc --version | grep {{version}}
+  - ls /usr | jc --ls
+  - 'printf "a=1\nb=2\n" | jc --kv | grep ''"a":"1"'''
