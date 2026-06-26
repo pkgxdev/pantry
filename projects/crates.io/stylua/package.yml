@@ -1,0 +1,26 @@
+# StyLua — an opinionated code formatter for Lua.
+
+distributable:
+  url: https://github.com/JohnnyMorganz/StyLua/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: JohnnyMorganz/StyLua
+
+provides:
+  - bin/stylua
+
+build:
+  dependencies:
+    rust-lang.org: ">=1.74"
+    rust-lang.org/cargo: "*"
+    linux:
+      gnu.org/gcc: "*"
+  script: cargo install --locked --path . --root {{prefix}}
+
+test:
+  - stylua --version | grep {{version}}
+  - run: cp $FIXTURE t.lua
+    fixture: local  x=1
+  - stylua t.lua
+  - grep 'local x = 1' t.lua
