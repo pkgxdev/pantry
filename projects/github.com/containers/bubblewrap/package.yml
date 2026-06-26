@@ -1,0 +1,49 @@
+distributable:
+  url: https://github.com/containers/bubblewrap/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: containers/bubblewrap
+
+# bubblewrap is a Linux user-namespaces sandbox (unshare/pivot_root); no macOS.
+platforms:
+  - linux
+
+dependencies:
+  kernel.org/libcap: "*"
+
+build:
+  dependencies:
+    mesonbuild.com: "*"
+    ninja-build.org: "*"
+  script:
+    - meson setup build $ARGS
+    - meson compile -C build
+    - meson install -C build
+    - run: chmod +s bwrap # setuid root to allow unprivileged users to create sandboxes
+      working-directory: ${{prefix}}/bin
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --buildtype=release
+      - -Dman=disabled # man pages need xsltproc + docbook XSL (network fetch)
+      - -Dselinux=disabled
+      - -Dtests=false
+
+provides:
+  - bin/bwrap
+
+test:
+  env:
+    ARGS:
+      - --ro-bind /bin /bin
+      - --symlink usr/lib64 /lib64
+      - --proc /proc
+      - --dev /dev
+      - --unshare-pid
+      - --new-session
+  script:
+    - bwrap --version | grep {{version}}
+    # exercise the sandbox: run a command in a minimal bind-mounted root
+    # we'd like to do this, but it doesn't work in docker containers:
+    # - test "$(bwrap $ARGS sh -c echo hi)" = hi
