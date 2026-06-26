@@ -21,7 +21,7 @@ dependencies:
     mesa3d.org: ^23
     freeglut.sourceforge.io: ^3
     freedesktop.org/mesa-glu: ^9
-    x.org/protocol: '>=2022'
+    x.org/protocol: ">=2022"
     x.org/x11: ^1
     x.org/xcursor: ^1
     x.org/xinerama: ^1
@@ -31,21 +31,18 @@ dependencies:
 
 build:
   dependencies:
-    git-scm.org: '*'
+    git-scm.org: "*"
   script:
-    - git submodule update --init --recursive
-    - run:
-        - for x in $(ls); do
-        - if test "$x" = "extract"; then continue; fi
-        - if test "$x" = "lcms2"; then continue; fi
-        - if test "$x" = "gumbo-parser"; then continue; fi
-        - if test "$x" = "mujs"; then continue; fi
-        - rm -rf "$x"
-        - done
-      working-directory: thirdparty
+    # init only the bundled libs we actually use; every other thirdparty/ entry
+    # is a submodule replaced by a system dep (USE_SYSTEM_LIBS=yes), so leaving
+    # it uninitialized is equivalent to the old clone-then-rm but skips fetching
+    # freetype/harfbuzz/openjpeg/etc. entirely. (cmark-gfm: bundled markdown
+    # since 1.28, no system option. mujs: system mujs is used, but the build
+    # still needs its regexp.h header — see the sed below.)
+    - git submodule update --init --recursive $SUBMODULES
     - run: sed -i 's|"\.\./thirdparty/mujs/regexp\.h"|"../../thirdparty/mujs/regexp.h"|' stext-search.c
       working-directory: source/fitz
-      if: '>=1.27'
+      if: ">=1.27"
     - run:
         # preserve quoting
         - declare -a DARWIN_ARGS
@@ -68,11 +65,17 @@ build:
       working-directory: ${{prefix}}
       if: darwin
   env:
+    SUBMODULES:
+      - thirdparty/extract
+      - thirdparty/lcms2
+      - thirdparty/gumbo-parser
+      - thirdparty/mujs
+      - thirdparty/cmark-gfm # added in v1.28.0
     CC: clang
     CXX: clang++
     LD: clang
     AS: llvm-as
-    CPATH: '$SRCROOT/thirdparty/gumbo-parser/src:$SRCROOT/thirdparty/mujs:$CPATH'
+    CPATH: "$SRCROOT/thirdparty/gumbo-parser/src:$SRCROOT/thirdparty/mujs:$CPATH"
     linux:
       LDFLAGS: $LDFLAGS -Wl,-allow-shlib-undefined
     darwin:
