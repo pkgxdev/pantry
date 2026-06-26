@@ -60,4 +60,5 @@ test:
   - grep "11 graphs generated" out
   - geng -u 5 2>&1 | tee out
   - grep "34 graphs generated" out
-  - test "$(geng 4 2>/dev/null | wc -l)" = "11"
+  # grep -c (not wc -l: BSD wc pads the count with leading spaces on darwin)
+  - test "$(geng 4 2>/dev/null | grep -c .)" = "11"
