@@ -1,0 +1,22 @@
+# oha — a tiny program that sends load to a web application and shows a
+# real-time TUI of the results.
+
+distributable:
+  url: https://github.com/hatoo/oha/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: hatoo/oha
+
+provides:
+  - bin/oha
+
+build:
+  dependencies:
+    rust-lang.org: ">=1.80"
+    rust-lang.org/cargo: "*"
+    linux:
+      gnu.org/gcc: "*"
+  script: cargo install --locked --path . --root {{prefix}}
+
+test: oha --version | grep {{version}}
