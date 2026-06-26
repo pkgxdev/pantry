@@ -165,7 +165,9 @@ test:
         - echo "Skipping test on darwin/x86-64 macOS < 15"
         - exit 0
         - fi
-      if: ">=15.2"
+      # 14.4 rebuilt on a macOS 15 runner bakes _GLIBCXX_HAVE_*_QUICK_EXIT, which
+      # the macOS 14 x86-64 SDK can't satisfy — same skip as >=15.2.
+      if: ">=15.2 || ^14.4"
     - run: clang++ -o test $FIXTURE $FLAGS
       fixture:
         extname: cc
