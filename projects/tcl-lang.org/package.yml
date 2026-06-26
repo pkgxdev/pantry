@@ -25,14 +25,30 @@ build:
       curl.se: "*"
       tukaani.org/xz: "*" # for tar -xJ
   script:
+    - run: ./configure $ARGS
+      working-directory: unix
+    # >=9.0.4: the bundled-package subbuild (configure-packages, e.g. `thread`)
+    # RUNS the just-built tclsh, but it can't load its not-yet-installed
+    # libtcl9.0 — the install path is baked in (install_name on darwin / RPATH on
+    # linux) and nothing's installed mid-`make`. fix-machos can't help (it runs
+    # in the post-build fix-up phase). So build the core first (`binaries`, no
+    # packages), stage libtcl9.0 where tclsh expects it, then build the rest;
+    # `make install` overwrites the staged copy. LD_LIBRARY_PATH covers linux
+    # (dyld ignores it on darwin, where the staged install_name path resolves).
     - run:
-        - ./configure $ARGS
+        - make --jobs {{hw.concurrency}} binaries
+        - mkdir -p {{prefix}}/lib
+        - cp libtcl9.0.* {{prefix}}/lib/
+        - export LD_LIBRARY_PATH="{{prefix}}/lib:$LD_LIBRARY_PATH"
+      working-directory: unix
+      if: ">=9.0.4"
+    - run:
         - make --jobs {{hw.concurrency}}
         - make --jobs {{hw.concurrency}} install
         - make --jobs {{hw.concurrency}} install-private-headers
       working-directory: unix
 
-    - run: ln -s tclsh{{version.marketing}} tclsh
+    - run: if test ! -f tclsh; then ln -s tclsh{{version.marketing}} tclsh; fi
       working-directory: "{{prefix}}/bin"
 
     # fixed in 8.6.14
@@ -51,7 +67,7 @@ build:
         - make --jobs {{hw.concurrency}} install-private-headers
       working-directory: tk
 
-    - run: ln -s wish{{version.marketing}} wish
+    - run: if test ! -f wish; then ln -s wish{{version.marketing}} wish; fi
       working-directory: "{{prefix}}/bin"
 
     - run:
@@ -100,7 +116,32 @@ build:
       prop: |
         s|='\(.*\){{prefix}}\(.*\)'|="\1$(cd $(dirname $0) \&\& pwd)/../..\2"|g
         s|="\(.*\){{prefix}}\(.*\)"|="\1$(cd $(dirname $0) \&\& pwd)/../..\2"|g
-  # causes 9.0.2 to error on aarch64
+
+    # darwin: we skip fix-machos because its ruby-macho re-sign keeps a lib's ld
+    # `linker-signed` flag with stale hashes -> invalid sig -> arm64 Killed:9. So
+    # do the relocation ourselves with cctools + a clean codesign. For every
+    # Mach-O: rewrite its own id and any {{prefix}}/ self-reference (libtcl,
+    # libtcl9tk, ...; names vary by version, so match generically rather than
+    # hardcode) to a @loader_path path, swap the absolute pkgx-root rpath baked
+    # by the build for a @loader_path-relative one, then re-sign. All paths are
+    # computed per file depth (../-chain from the file's dir back to {{prefix}},
+    # then two more up to the pkgx root). This makes the bottle self-contained.
+    - run:
+        - for f in $(find bin lib -type f); do
+        - file "$f" | grep -q Mach-O || continue
+        - up="$(dirname "$f" | sed 's:[^/][^/]*:..:g')"
+        - id=$(otool -D "$f" | sed -n 2p)
+        - case "$id" in {{prefix}}/*) install_name_tool -id "@rpath/${id##*/}" "$f";; esac
+        - for dep in $(otool -L "$f" | awk 'NR>1{print $1}' | grep -F "{{prefix}}/"); do
+        - install_name_tool -change "$dep" "@loader_path/$up/${dep#{{prefix}}/}" "$f"
+        - done
+        - install_name_tool -add_rpath "@loader_path/$up/../.." "$f"
+        - if otool -l "$f" | grep -qF "{{pkgx.prefix}} (offset"; then install_name_tool -delete_rpath {{pkgx.prefix}} "$f"; fi
+        - codesign --remove-signature "$f"
+        - codesign -s - --force "$f"
+        - done
+      working-directory: ${{prefix}}
+      if: darwin
   skip: fix-machos
   env:
     res_critcl: https://github.com/andreas-kupries/critcl/archive/refs/tags/3.3.1.tar.gz
@@ -116,8 +157,20 @@ build:
       - --mandir={{prefix}}/share/man
       - --enable-threads
       - --enable-64bit
+      # Tcl appends the zipfs archive to the END of libtcl/libtk (after
+      # __LINKEDIT), which makes install_name_tool reject them ("__LINKEDIT
+      # segment does not cover the end of the file"). Disable zipfs so the libs
+      # are plain Mach-O we can relocate + re-sign; the script library installs
+      # on-disk instead (fine for a bottle). Harmless on 8.6 (zipfs off there).
+      - --disable-zipfs
     TCL_PACKAGE_PATH: "{{prefix}}/lib"
     PATH: "{{prefix}}/bin:$PATH"
+    darwin:
+      # headerpad so our post-build install_name_tool can ADD an rpath to every
+      # Mach-O. critcl appends $LDFLAGS to its link line (critcl.tcl), and the TEA
+      # packages honour it too, so the critcl-built dylibs (tcllibc/md5c/…) and
+      # tcltls/etc. get the room they otherwise lack ("load commands do not fit").
+      LDFLAGS: $LDFLAGS -Wl,-headerpad_max_install_names
     TLS_ARGS:
       - --with-openssl-dir={{deps.openssl.org.prefix}}
       - --prefix={{prefix}}
