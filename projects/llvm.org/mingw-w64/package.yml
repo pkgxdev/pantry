@@ -27,11 +27,43 @@ versions:
 warnings:
   - vendored # we redistribute upstream prebuilt binaries
 
+# Runtime libs the LLVM toolchain itself links (host-side, not the
+# Windows target). On a modern host these resolve from the system, but
+# once we bundle our own glibc (below) so the toolchain runs on old CI
+# hosts, the host's copies are bypassed — so pkgx must supply these via
+# its runtime env. These are pkgx-built, so they're guaranteed under
+# pkgx's default GLIBC_2.28 symbol floor (and are — libstdc++ 2.26, the
+# rest 2.14). It's the *vendored* upstream binaries that break that floor:
+# clang/libLLVM need GLIBC_2.34, which is the whole reason this bundle is
+# necessary. linux-only: darwin links libSystem/libc++ from the OS.
+dependencies:
+  linux:
+    gnu.org/gcc/libstdcxx: ^14 # libstdc++.so.6 + libgcc_s.so.1
+    zlib.net: "*" # libz.so.1
+    facebook.com/zstd: "*" # libzstd.so.1
+
 build:
+  # We bundle our own ld.so + libc.so.6 (see the seal step) and patch the
+  # toolchain's PT_INTERP to it. brewkit's fix-patchelf would force-rpath
+  # *every* ELF under lib/ — including the bundled loader — and a loader
+  # that parses its own RPATH at startup SIGSEGVs (pkgxdev/brewkit#345,
+  # reproduced on x86-64 glibc 2.43). So skip it: the upstream binaries
+  # already carry relative $ORIGIN rpaths, bklibcvenv prepends the bundled
+  # libc dir as DT_RPATH, and cross-package deps resolve via pkgx's runtime
+  # env (same approach as the gnu.org/glibc recipe).
+  skip: fix-patchelf
   dependencies:
     curl.se: "*"
     gnu.org/tar: "*"
     tukaani.org/xz: "*"
+    linux:
+      # The libc to bundle. ~2.34 is the *oldest* glibc that still satisfies
+      # the vendored toolchain's symbol versions (clang/libLLVM reference up
+      # to GLIBC_2.34, above pkgx's default 2.28 floor; older won't load —
+      # see the test's glibc<2.34 guard). Bundling replaces the host libc
+      # entirely, so host range is set by glibc's --enable-kernel floor
+      # (CentOS 7), not this version.
+      gnu.org/glibc: ~2.34
   env:
     linux/x86-64:
       PLATFORM: ubuntu-22.04-x86_64
@@ -41,9 +73,33 @@ build:
       PLATFORM: macos-universal
     darwin/aarch64:
       PLATFORM: macos-universal
+    linux:
+      GLIBC_DIR: $(basename "$(echo {{deps.gnu.org/glibc.prefix}}/lib/glibc-*)")
     URL: https://github.com/mstorsjo/llvm-mingw/releases/download/{{version.tag}}/llvm-mingw-{{version.tag}}-ucrt
   working-directory: ${{prefix}}
-  script: curl -Lf "$URL-${PLATFORM}.tar.xz" | tar Jxpf - --strip-components=1
+  script:
+    - curl -Lf "$URL-${PLATFORM}.tar.xz" | tar Jxpf - --strip-components=1
+
+    # Linux: bundle our own libc + seal the toolchain so it runs on hosts
+    # whose system glibc is older than the toolchain needs (the CI-runner
+    # case behind pkgxdev/brewkit#346). darwin uses dyld/libSystem — n/a.
+    - run:
+        # The glibc dep installs its loader + libc into lib/glibc-<X.Y>/;
+        # copy that whole dir in so the bottle ships its own loader.
+        - cp -a "{{deps.gnu.org/glibc.prefix}}/lib/$GLIBC_DIR" "{{prefix}}/lib/$GLIBC_DIR"
+
+        # Force compiler-rt. After the seal moves clang to libexec/, clang's
+        # MinGW runtime auto-detection (which keys off its bin/ siblings)
+        # falls back to libgcc and emits -lgcc/-lgcc_eh, which this toolchain
+        # doesn't ship. llvm-mingw is always compiler-rt + libunwind, so make
+        # it explicit — also fixes a latent location-sensitivity bug.
+        - sed -i 's|FLAGS="$FLAGS -target $TARGET"|FLAGS="$FLAGS -rtlib=compiler-rt -unwindlib=libunwind -target $TARGET"|' bin/clang-target-wrapper.sh
+
+        # Seal: patch each toolchain binary's PT_INTERP to the bundled loader
+        # via a load-time fixup stub, keeping /proc/self/exe pointing at the
+        # real binary (so clang -> cc1 works) while staying relocatable.
+        - bklibcvenv seal "{{prefix}}" "$GLIBC_DIR"
+      if: linux
 
 test:
   # winehq.org/wine is a soft dep — if present, we actually run the
@@ -65,15 +121,6 @@ test:
     # accessible) becomes visible to maintainers.
     - command -v aarch64-w64-mingw32-clang
     - command -v x86_64-w64-mingw32-clang
-
-    # Pre-flight: can clang actually run on this host?
-    # On a buster-sandbox host (glibc 2.28) clang can't load —
-    # `GLIBC_2.34 not found`. Skip gracefully then.
-    - if ! x86_64-w64-mingw32-clang --version 2>&1; then
-    - echo "clang can't run on this host (likely glibc < 2.34) —"
-    - echo "skipping cross-compile test, recipe install OK."
-    - exit 0
-    - fi
 
     # Cross-compile a trivial Windows binary for x86-64 and aarch64.
     - run: cp $FIXTURE hello.c
