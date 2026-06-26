@@ -1,0 +1,46 @@
+# opam: the OCaml package manager
+# the `opam-full` tarball vendors all build dependencies, so the build needs
+# no network access — `--with-vendored-deps` builds them from the bundle.
+
+distributable:
+  url: https://github.com/ocaml/opam/releases/download/{{version}}/opam-full-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: ocaml/opam
+
+provides:
+  - bin/opam
+
+# opam shells out to these at runtime to fetch and build switches
+dependencies:
+  curl.se: "*"
+  git-scm.org: "*"
+  gnu.org/patch: "*"
+  info-zip.org/unzip: "*"
+  sourceware.org/bzip2: "*"
+  gnu.org/make: "*"
+  rsync.samba.org: "*"
+  linux:
+    gnu.org/gcc: "*"
+    github.com/containers/bubblewrap: "*"
+
+build:
+  dependencies:
+    ocaml.org: ">=4.08"
+  script:
+    - ./configure $ARGS
+    - make
+    - make install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --mandir={{prefix}}/share/man
+      - --with-vendored-deps
+      - --with-mccs
+
+test:
+  - opam --version | tee out
+  - grep {{version}} out
+  - opam init --bare --no-setup
+  - opam list lwt
