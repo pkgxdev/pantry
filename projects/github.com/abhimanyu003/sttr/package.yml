@@ -1,0 +1,30 @@
+# sttr — a command-line tool to run various string transformations
+# (encode/decode, hash, case conversions, etc.).
+
+distributable:
+  url: https://github.com/abhimanyu003/sttr/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: abhimanyu003/sttr
+
+provides:
+  - bin/sttr
+
+build:
+  dependencies:
+    go.dev: ^1.22
+  script:
+    - go build -ldflags="$GO_LDFLAGS" -o {{prefix}}/bin/sttr .
+  env:
+    GO_LDFLAGS:
+      - -s
+      - -w
+      - -X main.version={{version}}
+    linux:
+      GO_LDFLAGS:
+        - -buildmode=pie
+
+test:
+  - sttr version 2>&1 | grep {{version}}
+  - test "$(echo hello | sttr upper)" = "HELLO"
