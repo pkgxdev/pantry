@@ -1,0 +1,56 @@
+distributable:
+  url: https://github.com/ocaml/ocaml/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: ocaml/ocaml
+
+provides:
+  - bin/ocaml
+  - bin/ocamlc
+  - bin/ocamlopt
+  - bin/ocamlrun
+  - bin/ocamldep
+  - bin/ocamllex
+  - bin/ocamlyacc
+  - bin/ocamlmklib
+  - bin/ocamlmktop
+  - bin/ocamldoc
+
+companions:
+  linux:
+    gnu.org/gcc: "*" # needs a compiler
+
+build:
+  script:
+    # ocaml ships a hand-written configure, not GNU autoconf
+    - ./configure $ARGS
+    - make world.opt
+    - make install
+  # headerpads don't get into the plugins, and it's not dynlinking our
+  # stuff anyway
+  skip: fix-machos
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --enable-debug-runtime
+      - --mandir={{prefix}}/share/man
+      # relocatability: let bytecode executables find ocamlrun via PATH
+      # rather than embedding the (staging) build prefix, and locate the
+      # stdlib relative to bindir.
+      - --enable-runtime-search
+      - --with-relative-libdir=../lib/ocaml
+
+test:
+  dependencies:
+    linux:
+      gnu.org/gcc: "*" # needs a compiler
+  script:
+    - ocaml --version | grep {{version}}
+    - run: cp $FIXTURE test.ml
+      fixture: let () = print_endline "Hello, World!"
+    - ocamlopt test.ml -o test
+    - test "$(./test)" = "Hello, World!"
+    # bytecode compiler too
+    - ocamlc test.ml -o test.byte
+    - test "$(./test.byte)" = "Hello, World!"
