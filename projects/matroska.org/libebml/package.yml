@@ -1,0 +1,39 @@
+distributable:
+  url: https://github.com/Matroska-Org/libebml/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: Matroska-Org/libebml/tags
+  strip: /^release-/
+
+build:
+  dependencies:
+    cmake.org: ^3
+  script:
+    - cmake -S . -B build $CMAKE_ARGS
+    - cmake --build build
+    - cmake --install build
+  env:
+    CMAKE_ARGS:
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DBUILD_SHARED_LIBS=YES
+      - -DCMAKE_INSTALL_LIBDIR=lib
+      - -DCMAKE_VERBOSE_MAKEFILE=ON
+      - -Wno-dev
+
+test:
+  dependencies:
+    freedesktop.org/pkg-config: "*"
+  script:
+    - pkg-config --modversion libebml | grep {{version}}
+    - run: c++ -std=c++17 $FIXTURE -o test $(pkg-config --cflags --libs libebml)
+      fixture:
+        extname: cpp
+        content: |
+          #include <ebml/EbmlVersion.h>
+
+          int main() {
+            return 0;
+          }
+    - ./test
