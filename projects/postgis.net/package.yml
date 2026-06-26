@@ -1,0 +1,106 @@
+# PostGIS — spatial and geographic objects for PostgreSQL.
+#
+# PGXS/autotools-based Postgres extension. Adds geometry/geography types,
+# spatial indexing and hundreds of GIS functions, plus loader CLIs
+# (shp2pgsql, pgsql2shp, raster2pgsql). Loaded inside Postgres via
+# `CREATE EXTENSION postgis`.
+
+distributable:
+  url: https://download.osgeo.org/postgis/source/postgis-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://download.osgeo.org/postgis/source/
+  match: /postgis-(\d+\.\d+\.\d+)\.tar\.gz/
+  strip:
+    - /postgis-/
+    - /.tar.gz/
+
+dependencies:
+  postgresql.org: ">=15<19"
+  libgeos.org: "*"
+  proj.org: "*"
+  github.com/json-c/json-c: "*"
+  gnome.org/libxml2: "*"
+  pcre.org/v2: "*"
+  # NOTE: two optional features are disabled because of upstream pantry
+  # dependency problems (not PostGIS itself):
+  #   * raster — needs gdal.org, which pins python ~3.11 and can't be
+  #     reconciled with the rest of the graph (~3.12).
+  #   * MVT (ST_AsMVT) — needs protobuf-c, currently broken against the
+  #     pantry's protobuf (unresolved abseil symbols, cf. #13105).
+  # Core geometry/geography/topology are fully built.
+
+build:
+  dependencies:
+    # xsltproc generates the function-comment SQL. Pin to the libxslt
+    # built against libxml2 2.13 (soname .so.2); 1.1.43+ needs libxml2
+    # 2.14 (.so.16), which conflicts with our libxml2 (cf. php.net).
+    gnome.org/libxslt: "<1.1.43"
+    linux:
+      # PostgreSQL was bottled with clang and the extension inherits
+      # clang-specific CFLAGS via `pg_config --cflags`; build with the
+      # same compiler (cf. citus).
+      llvm.org: "*"
+  script:
+    - ./configure $ARGS
+    # On darwin, PG's installed Makefile.global has `-isysroot $(PG_SYSROOT)`
+    # in CPPFLAGS/LDFLAGS, where PG_SYSROOT is the SDK PG was bottled with
+    # (MacOSX15.2.sdk) — absent on current runners, so the PGXS extension's
+    # system headers vanish. Override just PG_SYSROOT on the make line with the
+    # live SDK: it's a make variable, so this fixes the isysroot for compile
+    # AND link while leaving liblwgeom's own configure-derived includes
+    # (-I../deps for the bundled ryu, json-c, geos, proj) untouched. Overriding
+    # CPPFLAGS wholesale instead would strip those -> 'ryu/ryu.h' not found.
+    # Empty/no-op on linux (PG_SYSROOT is darwin-only).
+    # topology/Makefile reassigns `bindir = @bindir@` (= {{prefix}}/bin) AFTER
+    # including PGXS, so its darwin bundle-loader becomes {{prefix}}/bin/postgres
+    # (nonexistent) instead of PG's real postgres. Force bindir back to PG's at
+    # link time; the loader path is baked now, so the install-time bindir below
+    # still lands the CLIs in postgis's bottle.
+    - make --jobs {{ hw.concurrency }} PG_SYSROOT="$PG_SYSROOT" bindir={{deps.postgresql.org.prefix}}/bin
+    # redirect the PGXS install dirs so files land in postgis's bottle
+    # rather than inside the postgres dependency's tree
+    - make install $INSTALL_DIRS PG_SYSROOT="$PG_SYSROOT"
+  env:
+    CC: cc
+    darwin:
+      # Brewkit's hermetic CPATH masks the Xcode SDK; point the toolchain at
+      # the active SDK (also feeds PG_SYSROOT above to replace PG's stale one).
+      SDKROOT: $(xcrun --sdk macosx --show-sdk-path)
+      PG_SYSROOT: $(xcrun --sdk macosx --show-sdk-path)
+    ARGS:
+      - --prefix={{prefix}}
+      - --without-raster # see note above (gdal/python conflict)
+      - --without-protobuf # see note above (protobuf-c breakage, #13105)
+      - --with-pgconfig={{deps.postgresql.org.prefix}}/bin/pg_config
+      - --with-geosconfig={{deps.libgeos.org.prefix}}/bin/geos-config
+      - --with-projdir={{deps.proj.org.prefix}}
+      - --with-jsondir={{deps.github.com/json-c/json-c.prefix}}
+      - --with-xml2config={{deps.gnome.org/libxml2.prefix}}/bin/xml2-config
+    INSTALL_DIRS:
+      - bindir={{prefix}}/bin
+      - docdir={{prefix}}/share/doc
+      - mandir={{prefix}}/share/man
+      - pkglibdir={{prefix}}/lib/postgresql
+      - datadir={{prefix}}/share/postgresql
+      - PG_SHAREDIR={{prefix}}/share/postgresql
+
+provides:
+  - bin/shp2pgsql
+  - bin/pgsql2shp
+  - bin/postgis
+  - bin/postgis_restore
+  - bin/pgtopo_export
+  - bin/pgtopo_import
+
+test:
+  env:
+    linux:
+      DYLIB: so
+    darwin:
+      DYLIB: dylib
+  script:
+    - 'shp2pgsql 2>&1 | grep -i "RELEASE: {{version}}"'
+    - test -f "{{prefix}}/share/postgresql/extension/postgis.control"
+    - test -f "{{prefix}}/lib/postgresql/postgis-3.$DYLIB"

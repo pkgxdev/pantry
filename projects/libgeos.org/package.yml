@@ -13,6 +13,13 @@ build:
     - cmake .. $ARGS
     - make --jobs {{ hw.concurrency }}
     - make install
+    # CMake freezes CMAKE_INSTALL_PREFIX (the +brewing staging dir) into
+    # geos-config as a literal `prefix=...`. brewkit doesn't rewrite scripts on
+    # relocation, so consumers (e.g. postgis via `geos-config --clibs`) get a
+    # dead -L/-rpath into the staging tree. Make the prefix self-locating from
+    # the script's own dir; exec_prefix/libdir/includedir already derive from it.
+    - run: sed -i 's|^prefix=.*|prefix=$(CDPATH= cd -- "$(dirname -- "$0")/.." \&\& pwd)|' geos-config
+      working-directory: ${{prefix}}/bin
   env:
     linux:
       # as of v3.14.0
