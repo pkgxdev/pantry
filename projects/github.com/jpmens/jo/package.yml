@@ -1,0 +1,21 @@
+# jo — a small utility to create JSON objects from the command line.
+
+distributable:
+  # upstream uses two-component tags (e.g. 1.9), so use version.raw
+  url: https://github.com/jpmens/jo/releases/download/{{version.raw}}/jo-{{version.raw}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: jpmens/jo
+
+provides:
+  - bin/jo
+
+build:
+  - ./configure --prefix={{prefix}}
+  - make
+  - make install
+
+test:
+  - jo -v 2>&1 | grep {{version.raw}}
+  - 'test "$(jo a=1 b=two)" = "{\"a\":1,\"b\":\"two\"}"'
