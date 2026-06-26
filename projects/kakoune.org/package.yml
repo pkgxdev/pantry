@@ -1,0 +1,29 @@
+# Kakoune — a modal code editor in the vi lineage, with multiple selections
+# as the central editing primitive.
+
+distributable:
+  url: https://github.com/mawww/kakoune/releases/download/{{version.tag}}/kakoune-{{version.raw}}.tar.bz2
+  strip-components: 1
+
+versions:
+  github: mawww/kakoune
+
+provides:
+  - bin/kak
+
+dependencies:
+  invisible-island.net/ncurses: "*"
+  linux:
+    gnu.org/gcc/libstdcxx: 14
+
+build:
+  dependencies:
+    linux:
+      gnu.org/gcc: 14
+  script:
+    - make --jobs {{ hw.concurrency }}
+    - make install PREFIX={{prefix}}
+
+test:
+  - kak -version | grep {{version.raw}}
+  - 'echo "" | kak -ui dummy -e quit'
