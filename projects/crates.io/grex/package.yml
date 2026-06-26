@@ -1,0 +1,18 @@
+distributable:
+  url: https://github.com/pemistahl/grex/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: pemistahl/grex
+
+provides:
+  - bin/grex
+
+build:
+  dependencies:
+    rust-lang.org: ">=1.70"
+    rust-lang.org/cargo: "*"
+  script:
+    - cargo install --locked --path . --root {{prefix}}
+
+test: test "$(grex --version)" = "grex {{version}}"
