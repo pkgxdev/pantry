@@ -1,0 +1,29 @@
+# hck — a sharp cut(1): split lines by a regex/multi-char delimiter and
+# reorder/select fields.
+
+distributable:
+  url: https://github.com/sstadick/hck/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: sstadick/hck
+
+provides:
+  - bin/hck
+
+build:
+  dependencies:
+    cmake.org: 3 # for libz-sys
+    rust-lang.org: ">=1.70"
+    rust-lang.org/cargo: "*"
+  script:
+    # hck's --version is derived from `git describe` via the git-version
+    # crate, which resolves to a bare commit hash in our build tree. Use the
+    # crate version from Cargo.toml so the binary reports the real release.
+    - sed -i 's/version = HCK_VERSION/version = env!("CARGO_PKG_VERSION")/' src/main.rs
+    - cargo install --locked --path . --root {{prefix}}
+
+test:
+  - hck --version | grep {{version}}
+  - run: test "$(hck -f3,1 $FIXTURE)" = "c	a"
+    fixture: a b c
