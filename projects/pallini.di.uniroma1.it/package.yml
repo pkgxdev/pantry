@@ -1,0 +1,64 @@
+# nauty/Traces (Brendan McKay & Adolfo Piperno). The authoritative homepage
+# pallini.di.uniroma1.it ships underscore-versioned tarballs (nautyX_Y_Z.tar.gz)
+# from a single page with no directory listing — pkgx's URL-scrape can't turn
+# `2_9_3` into a semver (it has no transform step). So we mirror versions and
+# source from lonnen/nauty (a maintained GitHub mirror of the same release set,
+# the github: path DOES honor transform); old-style tags (nauty27r4, *rc*) carry
+# no underscores, fail to parse, and drop out automatically.
+distributable:
+  # the git tag is nautyX_Y_Z; {{version.tag}} isn't reliable through the
+  # transform path, so reconstruct it from the version components.
+  url: https://github.com/lonnen/nauty/archive/refs/tags/nauty{{version.major}}_{{version.minor}}_{{version.patch}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: lonnen/nauty
+  strip: /^nauty/
+  # nautyX_Y_Z -> X.Y.Z
+  transform: v => v.replace(/_/g, '.')
+
+build:
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
+  env:
+    # nauty's makefile defaults to gcc; force the platform cc.
+    CC: cc
+    ARGS:
+      - --prefix={{prefix}}
+      # disable the default -march=native (would bake builder-CPU ISA into
+      # the distributed binaries); keep generic, portable codegen.
+      - --enable-generic
+
+provides:
+  - bin/dreadnaut
+  - bin/geng
+  - bin/gentourng
+  - bin/genrang
+  - bin/genbg
+  - bin/gentreeg
+  - bin/labelg
+  - bin/shortg
+  - bin/amtog
+  - bin/complg
+  - bin/copyg
+  - bin/listg
+  - bin/showg
+  - bin/pickg
+  - bin/countg
+  - bin/directg
+  - bin/multig
+  - bin/planarg
+  - bin/converseg
+  - bin/dretog
+  - bin/uniqg
+
+test:
+  # 4 vertices => 11 graphs, 5 vertices => 34 graphs (deterministic).
+  - geng -u 4 2>&1 | tee out
+  - grep "11 graphs generated" out
+  - geng -u 5 2>&1 | tee out
+  - grep "34 graphs generated" out
+  # grep -c (not wc -l: BSD wc pads the count with leading spaces on darwin)
+  - test "$(geng 4 2>/dev/null | grep -c .)" = "11"
