@@ -1,0 +1,77 @@
+# TruffleRuby — GraalVM-based Ruby (community, NATIVE standalone).
+#
+# VENDORED (prebuilt binary): TruffleRuby cannot be built from source in CI.
+# The from-source path is github.com/oracle/truffleruby built via GraalVM `mx`
+# + native-image, which needs a bootstrap GraalVM/labsjdk and runs for many
+# hours of AOT compilation — infeasible for the pantry build runners. We ship
+# the upstream community native standalone release asset instead.
+#
+# Asset chosen: `truffleruby-community-{{version}}-<PLATFORM>.tar.gz`, i.e. the
+# open GraalVM-CE *native* build (fast startup, self-contained). NOT the
+# Oracle GFTC `truffleruby-...` distribution and NOT the `-jvm-` variants.
+
+warnings:
+  - vendored
+
+versions:
+  github: oracle/truffleruby
+  strip: /^graal-/
+
+build:
+  dependencies:
+    curl.se: '*'
+  # extract the tarball (which contains bin/, lib/, release, METADATA, ...)
+  # directly into {{prefix}} so we get {{prefix}}/bin/ruby etc.
+  # the tarball holds bin/, lib/, release, METADATA, ... ; --strip-components=1
+  # drops the top truffleruby-community-<ver>-<plat>/ dir so we land bin/ruby
+  # directly under {{prefix}}/bin
+  working-directory: ${{prefix}}
+  script:
+    - curl -Lf "https://github.com/oracle/truffleruby/releases/download/{{version.tag}}/truffleruby-community-{{version}}-$PLATFORM.tar.gz" | tar xz --strip-components=1
+    # The native standalone ships a post-install hook; the README recommends
+    # running it for standalone installs. In 34.x it is a no-op success notice
+    # (the native image bundles its C extensions — openssl/zlib/psych all load
+    # without recompilation), but we run it for forward-compatibility.
+    - ./lib/truffle/post_install_hook.sh
+  # prebuilt native-image binaries: don't let brewkit rewrite their rpaths.
+  # fix-machos must also be skipped — it resolves `ruby` and errors
+  # MultipleProjects(ruby, [truffleruby, ruby-lang.org]) on darwin otherwise.
+  skip:
+    - fix-patchelf
+    - fix-machos
+  # upstream os = linux/macos, arch = amd64/aarch64; no macos-amd64 is shipped
+  env:
+    linux/x86-64: { PLATFORM: linux-amd64 }
+    linux/aarch64: { PLATFORM: linux-aarch64 }
+    darwin/aarch64: { PLATFORM: macos-aarch64 }
+
+# upstream ships no macos-amd64 community asset
+platforms:
+  - linux
+  - darwin/aarch64
+
+test:
+  - (ruby --version 2>&1 || true) | tee out
+  - grep -i truffleruby out
+  - grep {{version}} out
+  - test "$(ruby -e 'puts "hello"')" = "hello"
+  - gem --version
+  # confirms the bundled openssl C extension loads (post-install hook worked)
+  - ruby -ropenssl -e 'puts OpenSSL::VERSION'
+
+# don't conflict with ruby-lang.org
+provides:
+  # - bin/ruby
+  - bin/truffleruby
+  # - bin/gem
+  # - bin/irb
+  # - bin/rake
+  # - bin/bundle
+  # - bin/bundler
+  # - bin/rdoc
+  # - bin/ri
+  # - bin/erb
+  # - bin/racc
+  # - bin/rbs
+  # - bin/rdbg
+  - bin/syntax_suggest
