@@ -35,6 +35,7 @@ dependencies:
   ijg.org: ^9
   gnu.org/sed: ^4 # phpize requires this
   openldap.org: ^2 # since 8.1.31, 8.2.26, 8.3.14, 8.4.0
+  postgresql.org: '*' # libpq for pdo_pgsql, see #5048
   gnu.org/gcc/libstdcxx: ^14
   darwin:
     sourceware.org/bzip2: ^1
@@ -125,6 +126,8 @@ build:
       - --with-libedit
       - --with-openssl
       - --with-pdo-sqlite
+      - --with-pdo-mysql=mysqlnd
+      - --with-pdo-pgsql={{deps.postgresql.org.prefix}}
       - --with-pic
       - --with-sodium
       - --with-sqlite3
@@ -170,3 +173,6 @@ provides:
 test:
   - php --version | grep {{ version }}
   - php -r 'echo "Hello World!\n";'
+  # PDO drivers requested in #5048
+  - php -m | grep -w pdo_mysql
+  - php -m | grep -w pdo_pgsql
