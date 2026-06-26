@@ -1,0 +1,26 @@
+# xan — a command-line tool to process CSV files (successor to xsv).
+
+distributable:
+  url: https://github.com/medialab/xan/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: medialab/xan
+
+provides:
+  - bin/xan
+
+build:
+  dependencies:
+    rust-lang.org: ">=1.74"
+    rust-lang.org/cargo: "*"
+  script: cargo install --locked --path . --root {{prefix}}
+
+test:
+  - xan --version | grep {{version}}
+  - run: xan count $FIXTURE | grep 3
+    fixture: |
+      n
+      1
+      2
+      3
