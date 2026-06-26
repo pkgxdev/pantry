@@ -51,8 +51,10 @@ provides:
   - bin/dretog
   - bin/uniqg
 
-test: |
+test:
   # 4 vertices => 11 graphs, 5 vertices => 34 graphs (deterministic).
-  geng -u 4 2>&1 | grep "11 graphs generated"
-  geng -u 5 2>&1 | grep "34 graphs generated"
-  test "$(geng 4 2>/dev/null | wc -l)" = "11"
+  - geng -u 4 2>&1 | tee out
+  - grep "11 graphs generated" out
+  - geng -u 5 2>&1 | tee out
+  - grep "34 graphs generated" out
+  - test "$(geng 4 2>/dev/null | wc -l)" = "11"
