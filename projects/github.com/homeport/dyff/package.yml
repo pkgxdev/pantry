@@ -1,0 +1,38 @@
+# dyff — a diff tool for YAML (and JSON) files that understands structure
+# instead of comparing text line-by-line.
+
+distributable:
+  url: https://github.com/homeport/dyff/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: homeport/dyff
+
+provides:
+  - bin/dyff
+
+build:
+  dependencies:
+    go.dev: ^1.22
+  script:
+    - go build -ldflags="$GO_LDFLAGS" -o {{prefix}}/bin/dyff ./cmd/dyff
+  env:
+    GO_LDFLAGS:
+      - -s
+      - -w
+      - -X github.com/homeport/dyff/internal/cmd.version={{version}}
+    linux:
+      GO_LDFLAGS:
+        - -buildmode=pie
+
+test:
+  - dyff version | grep {{version}}
+  - run: cp $FIXTURE x.yml
+    fixture: |
+      a: 1
+      b: 2
+  - run: cp $FIXTURE y.yml
+    fixture: |
+      a: 1
+      b: 3
+  - dyff between x.yml y.yml | grep -i b
