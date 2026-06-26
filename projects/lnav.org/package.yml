@@ -1,0 +1,40 @@
+# lnav — the Logfile Navigator: an advanced log file viewer with SQL
+# querying, automatic format detection, timestamp merging and more.
+
+distributable:
+  url: https://github.com/tstack/lnav/releases/download/{{version.tag}}/lnav-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: tstack/lnav
+
+provides:
+  - bin/lnav
+
+dependencies:
+  sqlite.org: "*"
+  pcre.org/v2: "*"
+  invisible-island.net/ncurses: "*"
+  gnu.org/readline: "*"
+  zlib.net: "*"
+  libarchive.org: "*"
+  curl.se: "*"
+  gnu.org/libunistring: "*"
+  linux:
+    gnu.org/gcc/libstdcxx: "*"
+
+build:
+  dependencies:
+    linux:
+      gnu.org/gcc: "*"
+  script:
+    - ./configure --prefix={{prefix}} $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
+  env:
+    ARGS:
+      - --disable-static
+      - --with-pcre2={{deps.pcre.org/v2.prefix}}
+      - --with-sqlite3={{deps.sqlite.org.prefix}}
+
+test: lnav --version | grep {{version}}
