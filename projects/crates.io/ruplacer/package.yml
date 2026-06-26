@@ -1,0 +1,24 @@
+# ruplacer — find and replace text in source files, recursively.
+
+distributable:
+  url: https://github.com/your-tools/ruplacer/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: your-tools/ruplacer
+
+provides:
+  - bin/ruplacer
+
+build:
+  dependencies:
+    rust-lang.org: ">=1.74"
+    rust-lang.org/cargo: "*"
+  script: cargo install --locked --path . --root {{prefix}}
+
+test:
+  - ruplacer --version | grep {{version}}
+  - run: cp $FIXTURE t.txt
+    fixture: hello world
+  - ruplacer world there t.txt --go
+  - test "$(cat t.txt)" = "hello there"
