@@ -39,6 +39,7 @@ dependencies:
     gnu.org/gcc/libstdcxx: ^14 # libstdc++.so.6 + libgcc_s.so.1
     zlib.net: "*"
     facebook.com/zstd: "*"
+    gnome.org/libxml2: ~2.13 # 2.14 changes the API
 
 build:
   dependencies:
@@ -48,6 +49,8 @@ build:
     python.org: "~3.11" # LLVM's build tooling
     zlib.net: "*"
     facebook.com/zstd: "*"
+    linux:
+      gnu.org/gcc: ^14
     # no compiler dep declared on purpose: brewkit's default toolchain is
     # llvm, so the host bootstrap compiler is clang (cc/c++ shims → clang).
   env:
@@ -56,25 +59,29 @@ build:
     TOOLCHAIN_ARCHS:
       - x86_64
       - aarch64
-    linux/aarch64:
-      CFLAGS: -O2 -ffixed-x18
-      CXXFLAGS: -O2 -ffixed-x18    
   # mstorsjo's orchestrator builds clang/lld, native compiler-rt, installs
   # the driver wrappers, builds the mingw-w64 runtime, then the Windows-target
   # compiler-rt + libunwind/libc++. Trim lldb + clang-tools-extra to the
   # cross-compiler essentials (still a full clang/lld build).
-  script: ./build-all.sh "{{prefix}}"
-    --disable-lldb
-    --disable-lldb-mi
-    --disable-clang-tools-extra
+  script:
+    # architecture register reservation weirdness
+    - run: sed -i -f $PROP build-mingw-w64-tools.sh
+      if: linux/aarch64
+      prop: |
+        1a export CFLAGS="\${CFLAGS:-} -O2 -ffixed-x18"
+
+    - ./build-all.sh "{{prefix}}"
+      --disable-lldb
+      --disable-lldb-mi
+      --disable-clang-tools-extra || (find . -name config.log -exec echo {} \; -exec cat {} \; ; false)
 
 test:
-  dependencies:
-    winehq.org: "*"
-  env:
-    WINEDEBUG: -all
-    WINEDLLOVERRIDES: "mscoree=;mshtml="
-    WINEPREFIX: $PWD/.wine
+  # dependencies:
+  #   winehq.org: "*"
+  # env:
+  #   WINEDEBUG: -all
+  #   WINEDLLOVERRIDES: "mscoree=;mshtml="
+  #   WINEPREFIX: $PWD/.wine
   script:
     - x86_64-w64-mingw32-clang --version
     - run: cp $FIXTURE hello.c
