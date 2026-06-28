@@ -139,16 +139,18 @@ build:
       working-directory: ${{prefix}}
 
 test:
-  # NOTE: wine execution is commented out until winehq.org builds reliably —
-  # depending on it (or running wine64) would fail the test stage. The compile
-  # + PE-magic checks below are the real proof the toolchain produces Windows
-  # binaries; re-enable the wine run once winehq.org is in place.
-  # dependencies:
-  #   winehq.org: "*"
-  # env:
-  #   WINEDEBUG: -all
-  #   WINEDLLOVERRIDES: "mscoree=;mshtml="
-  #   WINEPREFIX: $PWD/.wine
+  # winehq.org runs the cross-compiled .exe to prove the toolchain end-to-end.
+  # It's linux/x86-64-only (wine's sole pantry platform) and used ONLY here in
+  # `test` — never in build — so there's no dependency cycle with the wine
+  # recipe (which build-deps on us). On other platforms the compile + PE-magic
+  # checks stand on their own; the wine run is guarded by `command -v wine64`.
+  dependencies:
+    linux/x86-64:
+      winehq.org: "*"
+  env:
+    WINEDEBUG: -all
+    WINEDLLOVERRIDES: "mscoree=;mshtml="
+    WINEPREFIX: $PWD/.wine
   script:
     - x86_64-w64-mingw32-clang --version
     - run: cp $FIXTURE hello.c
@@ -159,9 +161,8 @@ test:
     - aarch64-w64-mingw32-clang -o hello-aarch64.exe hello.c
     - test "$(head -c 2 hello-x86_64.exe)" = "MZ"
     - test "$(head -c 2 hello-aarch64.exe)" = "MZ"
-    # - if command -v wine64 >/dev/null 2>&1; then
-    # - test "$(wine64 hello-x86_64.exe | tr -d '\r')" = "Hello from native Windows cross-compile."
-    # - fi
+    - run: test "$(wine64 hello-x86_64.exe | tr -d '\r')" = "Hello from native Windows cross-compile."
+      if: linux/x86-64
 
 provides:
   - bin/x86_64-w64-mingw32-clang
