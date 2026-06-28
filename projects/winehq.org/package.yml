@@ -71,6 +71,8 @@ build:
     - ./configure $ARGS || (cat config.log && false)
     - make --jobs {{ hw.concurrency }}
     - make install
+    - run: if test ! -f wine64; then ln -s wine wine64; fi
+      working-directory: ${{prefix}}/bin
 
   env:
     ARGS:
