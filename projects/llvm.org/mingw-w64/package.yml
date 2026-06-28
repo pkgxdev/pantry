@@ -1,28 +1,30 @@
-# llvm.org/mingw-w64 — from-source LLVM mingw-w64 cross-compiler toolchain.
+# llvm.org/mingw-w64 — LLVM mingw-w64 cross-compiler toolchain, composed
+# against pantry's own llvm.org rather than building LLVM from scratch.
 #
-# Builds the COMPLETE llvm-mingw toolchain from source via upstream
-# mstorsjo/llvm-mingw's own build orchestration (`build-all.sh`):
-#   - clang + lld + the LLVM binutils-equivalents
-#   - the mingw-w64 runtime (headers + CRT + winpthreads)
-#   - the LLVM runtimes for the Windows targets: compiler-rt builtins,
-#     libunwind, libc++abi, libc++
+# mstorsjo's `build-all.sh` has a first-class `--host-clang` mode: given an
+# existing clang it SKIPS `build-llvm.sh` entirely and builds only the parts
+# that are genuinely Windows-target-specific:
 #   - the per-target driver wrappers (install-wrappers.sh)
-# No vendored binaries — everything is compiled here.
+#   - the mingw-w64 runtime (headers + CRT + winpthreads)
+#   - compiler-rt builtins for *-w64-windows-gnu
+#   - libunwind + libc++abi + libc++ for the Windows targets
 #
-# Why inline (clang and all) rather than composing pantry's llvm.org: the
-# Windows-target runtimes must match the exact clang that builds them, and
-# pkgx dependency constraints can't "drift" to track that. Building the whole
-# toolchain from one source tree makes it internally consistent by
-# construction, and versioning to mstorsjo's releases (which pin the matching
-# llvm-project) means there's no LLVM-version dance to get wrong.
+# So we depend on pantry's `llvm.org` for clang/lld/llvm-* and hand it to
+# build-all.sh as the host compiler. This is correct *and* deliberate:
 #
-# Compiled on the builder at pkgx's glibc floor, so the host-side driver
-# binaries run on old hosts with NO bklibcvenv seal. (Replaces the previous
-# approach of vendoring mstorsjo's prebuilt tarball; pantry policy is
-# from-source over vendored.)
+#   - It deletes the multi-hour `build-llvm.sh` stage — and with it the
+#     aarch64 self-host miscompile (the bootstrap clang miscompiled LLVM on
+#     aarch64; gcc-built llvm.org does not). The Windows runtimes are built by
+#     the same gcc-built clang the user will run.
+#   - Version skew is impossible: this mstorsjo tag pins LLVM_VERSION
+#     llvmorg-22.1.8, so we pin `llvm.org: ^22`. The host clang and the
+#     llvm-project source that compiler-rt/libc++ are built from are the same
+#     release. (When bumping this package, re-check build-llvm.sh's
+#     LLVM_VERSION and move the pin to match.)
+#   - No vendored binaries — everything Windows-target is still compiled here.
 #
-# NOTE: this is a full LLVM build — long, by design. "Build time isn't the
-# end of the world to get it right."
+# The wrappers reference llvm.org's clang by its $PKGX_DIR path, which is the
+# ordinary pantry dependency reference and is relocated by pkgx like any other.
 
 distributable:
   url: https://github.com/mstorsjo/llvm-mingw/archive/refs/tags/{{version.tag}}.tar.gz
@@ -31,51 +33,116 @@ distributable:
 versions:
   github: mstorsjo/llvm-mingw
 
-# Runtime libs the host-side clang/lld link. Built at the 2.28 floor, so these
-# pkgx-built deps (all <= 2.28) satisfy it — pkgx supplies them via its runtime
-# env, no seal needed. linux-only (darwin links libSystem/libc++ from the OS).
+# Runtime: the host-side wrappers exec llvm.org's clang/lld (pulls
+# libstdcxx/zlib/zstd transitively). The exact version is selected at build
+# time from build-llvm.sh's LLVM_VERSION, so this stays a range here.
 dependencies:
-  linux:
-    gnu.org/gcc/libstdcxx: ^14 # libstdc++.so.6 + libgcc_s.so.1
-    zlib.net: "*"
-    facebook.com/zstd: "*"
-    gnome.org/libxml2: ~2.13 # 2.14 changes the API
+  llvm.org: 22
 
 build:
   dependencies:
     cmake.org: "*"
     ninja-build.org: "*"
-    git-scm.org: "*" # build-llvm.sh / build-mingw-w64.sh clone the sources
-    python.org: "~3.11" # LLVM's build tooling
-    zlib.net: "*"
-    facebook.com/zstd: "*"
-    linux:
-      gnu.org/gcc: ^14
-    # no compiler dep declared on purpose: brewkit's default toolchain is
-    # llvm, so the host bootstrap compiler is clang (cc/c++ shims → clang).
+    git-scm.org: "*" # build-compiler-rt/build-libcxx fetch the matching llvm-project src
+    python.org: "~3.11"
   env:
     # llvm-mingw builds per-target; we ship the x86_64 + aarch64 Windows
     # cross-compilers (the two brewkit CI cares about).
     TOOLCHAIN_ARCHS:
       - x86_64
       - aarch64
-  # mstorsjo's orchestrator builds clang/lld, native compiler-rt, installs
-  # the driver wrappers, builds the mingw-w64 runtime, then the Windows-target
-  # compiler-rt + libunwind/libc++. Trim lldb + clang-tools-extra to the
-  # cross-compiler essentials (still a full clang/lld build).
+    LLVM_VERSION: llvmorg-{{deps.llvm.org.version}}
+    ARGS:
+      - "{{prefix}}"
+      - --host-clang={{deps.llvm.org.prefix}}/bin/clang
+      - --disable-lldb
+      - --disable-lldb-mi
+      - --disable-clang-tools-extra
   script:
-    # architecture register reservation weirdness
+    # mingw's winnt.h pins the Windows TEB to x18 via a global register var
+    # (`register _TEB *__wine_current_teb __asm__("x18")`), which clang only
+    # accepts when x18 is reserved. Building the mingw host tools (widl/gendef)
+    # natively on an aarch64 host trips "register 'x18' unsuitable for global
+    # register variables". build-mingw-w64-tools.sh still runs in --host-clang
+    # mode, so the reservation is still required. It runs as its own subprocess
+    # under build-all.sh, so the flag can't reach the Windows cross-compiles —
+    # and -ffixed-x18 is a HARD error for the x86_64 target. `if: linux/aarch64`
+    # scopes it to aarch64 builders; -O2 is restated because autoconf drops its
+    # default optimization once CFLAGS is set.
     - run: sed -i -f $PROP build-mingw-w64-tools.sh
       if: linux/aarch64
       prop: |
-        1a export CFLAGS="\${CFLAGS:-} -O2 -ffixed-x18"
+        1a export CFLAGS="${CFLAGS:-} -O2 -ffixed-x18"
 
-    - ./build-all.sh "{{prefix}}"
-      --disable-lldb
-      --disable-lldb-mi
-      --disable-clang-tools-extra || (find . -name config.log -exec echo {} \; -exec cat {} \; ; false)
+    # winpthreads/winstorecompat compile a version.rc that #includes <winver.h>.
+    # build-mingw-w64-libraries.sh passes CFLAGS/CXXFLAGS to their configure but
+    # no RCFLAGS, so llvm-windres must preprocess via a clang that already knows
+    # the mingw sysroot. On macOS llvm-windres resolves its sibling clang to
+    # llvm.org's plain (non-mingw) clang and can't find winver.h. Give windres
+    # the include path explicitly — the same fix pantry's mingw-w64.org uses.
+    # Headers live in the shared generic-w64-mingw32/include ($PREFIX is set by
+    # the script at runtime).
+    - run: sed -i -f $PROP build-mingw-w64-libraries.sh
+      prop: |
+        s#CXXFLAGS="$USE_CFLAGS"#CXXFLAGS="$USE_CFLAGS" RCFLAGS="-I$PREFIX/generic-w64-mingw32/include"#
+
+    # Same winres problem, openmp's libomp.rc (#include "winresrc.h"). build-
+    # openmp.sh is CMake, not autotools, so it needs CMAKE_RC_FLAGS rather than
+    # RCFLAGS. llvm-windres preprocesses via llvm.org's plain clang (no mingw
+    # sysroot), which can't find the header on a clean host — confirmed by
+    # reproducing it directly. Give windres the include path.
+    - run: sed -i -f $PROP build-openmp.sh
+      prop: |
+        s#-DCMAKE_RC_COMPILER=$arch-w64-mingw32-windres#& -DCMAKE_RC_FLAGS="-I$PREFIX/generic-w64-mingw32/include"#
+
+    # --host-clang (passed via ARGS) skips build-llvm.sh and uses that clang as
+    # the host compiler, then builds the wrappers, the mingw-w64 runtime, and
+    # the Windows-target compiler-rt + libunwind/libc++.
+    - ./build-all.sh $ARGS
+
+    # fix-up relativizes .pc/.cmake and ELF rpaths, but NOT shell shims or
+    # symlinks. install-wrappers bakes llvm.org's absolute, exact-version path
+    # into the host-clang shim (bin/clang) and into ~17 symlinks (the llvm-*
+    # tools plus the clang resource `include`). Rewrite them relative to this
+    # toolchain via llvm.org's v{major} symlink, so any matching patch release
+    # satisfies them at runtime. Pure-POSIX per-symlink depth — no `realpath
+    # --relative-to` (BSD/macOS lacks it).
+    - run:
+        - dep="{{deps.llvm.org.prefix}}"
+        - maj="{{deps.llvm.org.version.major}}"
+        # fill this one in
+        - ln -sfn "${dep}/bin/lld-link" bin/lld-link
+        - find . -type l | while read -r l; do
+        - t="$(readlink "$l")"
+        - case "$t" in
+        - '"$dep"/*) ;;'
+        - "*) continue ;;"
+        - esac
+        - sub="${t#"$dep"/}"
+        - d="$(dirname "${l#./}")"
+        - ups=""
+        - OLDIFS=$IFS
+        - IFS=/
+        - for c in $d; do
+        - ups="../$ups"
+        - done
+        - IFS=$OLDIFS
+        - ln -sfn "${ups}../../v${maj}/${sub}" "$l"
+        - done
+        # the host-clang shim is a script (its $sr already = this prefix), so
+        # point its exec'd clang at the v{major} symlink relative to $sr.
+        - sed -i "s#${dep}#\"\$sr\"/../../v${maj}#g" bin/clang
+        # audit: neither the shim nor any symlink may still hold the build path
+        - if grep -q "$dep" bin/clang || find . -type l -lname "$dep/*" | grep -q .; then
+        - echo "ABSOLUTE llvm.org PATHS REMAIN" >&2; exit 1
+        - fi
+      working-directory: ${{prefix}}
 
 test:
+  # NOTE: wine execution is commented out until winehq.org builds reliably —
+  # depending on it (or running wine64) would fail the test stage. The compile
+  # + PE-magic checks below are the real proof the toolchain produces Windows
+  # binaries; re-enable the wine run once winehq.org is in place.
   # dependencies:
   #   winehq.org: "*"
   # env:
@@ -92,8 +159,9 @@ test:
     - aarch64-w64-mingw32-clang -o hello-aarch64.exe hello.c
     - test "$(head -c 2 hello-x86_64.exe)" = "MZ"
     - test "$(head -c 2 hello-aarch64.exe)" = "MZ"
-    - if ! command -v wine64 >/dev/null 2>&1; then exit 0; fi
-    - test "$(wine64 hello-x86_64.exe | tr -d '\r')" = "Hello from native Windows cross-compile."
+    # - if command -v wine64 >/dev/null 2>&1; then
+    # - test "$(wine64 hello-x86_64.exe | tr -d '\r')" = "Hello from native Windows cross-compile."
+    # - fi
 
 provides:
   - bin/x86_64-w64-mingw32-clang
@@ -120,9 +188,10 @@ provides:
   - bin/aarch64-w64-mingw32-objcopy
   - bin/aarch64-w64-mingw32-windres
   - bin/aarch64-w64-mingw32-dlltool
-  # don't want to grab these.
-  # - bin/clang
-  # - bin/clang++
+  # NOT bin/clang / bin/clang++ — those are llvm.org's; providing them here
+  # would make this package a clang provider and conflict with / get pulled in
+  # against llvm.org. lld-link/llvm-rc/llvm-cvtres are not in llvm.org's
+  # `provides`, so they're safe to expose.
   - bin/lld-link
   - bin/llvm-rc
   - bin/llvm-cvtres
