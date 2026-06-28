@@ -1,0 +1,139 @@
+# Wine: Windows API implementation for POSIX hosts.
+#
+# Headless minimal build aimed at CI use — runs cross-compiled
+# Windows .exe files in brewkit's Linux test sandbox so we can
+# validate native-Windows pantry recipes without spinning up
+# GitHub Windows runners. See pkgxdev/pantry#12985 for context
+# and pkgxdev/brewkit#346 for the broader RFC.
+#
+# What's deliberately out of this build:
+#
+#   - X11 (--without-x): no GUI in CI
+#   - OpenGL/Vulkan/OSMesa: no 3D rendering
+#   - ALSA/PulseAudio/OSS: no audio
+#   - SDL/GStreamer: no media
+#   - CUPS/gphoto2/USB/V4L2/SANE/UDev: no peripherals
+#   - 32-bit Win support (--enable-archs=x86_64): 64-bit only
+#   - tests (--disable-tests): skip wine's own test suite (massive
+#     build-time saving, irrelevant for our use case)
+#
+# Result: a headless wine64 binary that can launch a console-only
+# Windows .exe and capture its stdout/stderr. Good for CLI tool
+# testing; not useful for GUI apps, games, or anything graphical.
+
+distributable:
+  url: https://dl.winehq.org/wine/source/{{ version.major }}.0/wine-{{ version.raw }}.tar.xz
+  strip-components: 1
+
+# Wine's release naming:
+#   wine-X.0       — stable (annual, lives at dl.winehq.org/.../X.0/)
+#   wine-X.Y       — dev release (lives at dl.winehq.org/.../X.x/)
+#   wine-X.0-rcN   — release candidates
+#
+# We list ONLY stable major-version directories from the dl.winehq.org
+# index, then semver-sort to pick the latest. URL mode is required:
+# brewkit's `github:` mode silently ignores `match:`, so we can't use
+# it to filter dev releases out of the tag list.
+versions:
+  url: https://dl.winehq.org/wine/source/
+  match: /\d{2,}\.0\//
+  strip: /\//
+
+# Pilot scope: linux/x86-64 only. Once the integration with
+# brewkit#346 lands, expanding to linux/aarch64 + darwin/* is
+# a follow-up — both have wine-side complications:
+#   - linux/aarch64: wine can run aarch64 Windows binaries but
+#     x86-64 Windows requires qemu-user or hangover
+#   - darwin: Apple deprecated 32-bit; wine 11.x ships darwin
+#     support but it's a meaningful extra config dance
+platforms:
+  - linux/x86-64
+
+build:
+  dependencies:
+    gnu.org/bison: "^3"
+    github.com/westes/flex: "*"
+    perl.org: "^5"
+    gnu.org/gettext: "*"
+    freetype.org: "*"
+    gnutls.org: "*"
+    zlib.net: "*"
+    gnu.org/gcc: "*"
+    gnu.org/binutils: "*"
+    # Modern Wine compiles its built-in DLLs as real PE binaries, so it
+    # needs a PE cross-compiler at build time — configure aborts with
+    # "x86_64 PE cross-compiler not found" without one. llvm.org/mingw-w64
+    # provides x86_64-w64-mingw32-{gcc,clang}. No build-dep cycle: the
+    # mingw recipe uses Wine only in its *test* step, never its build.
+    llvm.org/mingw-w64: "*"
+
+  script:
+    - ./configure $ARGS || (cat config.log && false)
+    - make --jobs {{ hw.concurrency }}
+    - make install
+    - run: if test ! -f wine64; then ln -s wine wine64; fi
+      working-directory: ${{prefix}}/bin
+
+  env:
+    ARGS:
+      - --prefix={{ prefix }}
+      # 64-bit only — half the build, all we need
+      - --enable-archs=x86_64
+      # skip wine's massive internal test suite
+      - --disable-tests
+      # build the win-side DLLs as PE with the
+      # llvm.org/mingw-w64 cross-compiler (now a
+      # build dep). Required: modern Wine has no
+      # ELF-builtin fallback, so configure demands
+      # a PE cross-compiler regardless.
+      - --with-mingw
+      # no X11
+      - --without-x
+      - --without-opengl
+      - --without-osmesa
+      - --without-vulkan
+      - --without-alsa
+      - --without-pulse
+      - --without-oss
+      - --without-sdl
+      - --without-gstreamer
+      - --without-cups
+      - --without-gphoto
+      - --without-capi
+      - --without-cms
+      - --without-udev
+      - --without-v4l2
+      - --without-sane
+      - --without-usb
+      - --without-pcap
+      - --without-fontconfig
+      - --without-krb5
+
+test:
+  dependencies:
+    llvm.org/mingw-w64: "*"
+  env:
+    WINEDEBUG: "-all"
+    WINEDLLOVERRIDES: "mscoree=;mshtml="
+    WINEPREFIX: $PWD/.wine
+  script:
+    - wine64 --version | grep {{version.raw}}
+    # cross-compile a console .exe and actually run it through wine
+    - run: x86_64-w64-mingw32-clang -o hello.exe $FIXTURE
+      fixture:
+        extname: c
+        content: |
+          #include <stdio.h>
+          int main(void) {
+            printf("hello from wine\n");
+            return 0;
+          }
+    # strip the Windows CR; wine prints "hello from wine\r\n"
+    - test "$(wine64 hello.exe | tr -d '\r')" = "hello from wine"
+
+provides:
+  - bin/wine
+  - bin/wine64
+  - bin/winepath
+  - bin/wineserver
+  - bin/winecfg
