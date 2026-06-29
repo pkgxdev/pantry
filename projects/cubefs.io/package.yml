@@ -64,7 +64,6 @@ build:
     #   deploy     → cfs-deploy (cluster bootstrap helper)
     #   bcache     → cfs-bcache (block cache daemon)
     #   fdstore    → fdstore    (file-descriptor passing helper)
-    #   preload    → cfs-preload (prefetch tool)
     #   libsdkpre  → libcfs.so (C shared library — NOT libsdk; libsdk
     #                would also run mvn to produce a Java jar, which
     #                we skip to avoid maven as a build dep)
@@ -85,7 +84,7 @@ build:
         # gcc 8 defaults to gnu++14 already — no extra CXXFLAGS needed
         # for the FileMetaData implicit-copy-ctor path.
 
-        for TARGET in server client cli authtool fsck deploy bcache fdstore preload libsdkpre blobstore; do
+        for TARGET in server client cli authtool fsck deploy bcache fdstore libsdkpre blobstore; do
           make $TARGET threads={{ hw.concurrency }}
         done
 
@@ -98,7 +97,6 @@ build:
         install -Dm755 build/bin/cfs-fsck     "{{prefix}}/bin/cfs-fsck"
         install -Dm755 build/bin/cfs-deploy   "{{prefix}}/bin/cfs-deploy"
         install -Dm755 build/bin/cfs-bcache   "{{prefix}}/bin/cfs-bcache"
-        install -Dm755 build/bin/cfs-preload  "{{prefix}}/bin/cfs-preload"
         # `fdstore` is the lone exception to the cfs- prefix upstream;
         # rename for namespace hygiene in $PATH.
         install -Dm755 build/bin/fdstore      "{{prefix}}/bin/cfs-fdstore"
@@ -147,7 +145,7 @@ test:
     - run: |
         # Extra daemons + tools: verify each binary at least loads
         # (i.e. all CGO+vendored RocksDB linkage resolves at runtime).
-        for B in cfs-deploy cfs-bcache cfs-preload cfs-fdstore; do
+        for B in cfs-deploy cfs-bcache cfs-fdstore; do
           ($B --help 2>&1 || $B -h 2>&1 || true) | head -1
         done
     - run: |
@@ -176,7 +174,6 @@ provides:
   - bin/cfs-fsck       # filesystem consistency checker
   - bin/cfs-deploy     # cluster bootstrap / deploy helper
   - bin/cfs-bcache     # block cache daemon
-  - bin/cfs-preload    # data prefetch tool
   - bin/cfs-fdstore    # fd-passing helper (upstream name: fdstore)
   # Blobstore object-storage suite (S3-compatible)
   - bin/blobstore-clustermgr  # blobstore cluster manager
