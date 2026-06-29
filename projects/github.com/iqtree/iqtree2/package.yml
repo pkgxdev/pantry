@@ -17,6 +17,9 @@ dependencies:
   linux:
     gnu.org/gcc/libstdcxx: '*'
     gnu.org/gcc/libgomp: '*'
+  # Apple clang has no built-in OpenMP runtime; the multicore build links libomp
+  darwin:
+    openmp.llvm.org: '*'
 
 build:
   dependencies:
@@ -25,6 +28,8 @@ build:
     boost.org: '*'
     linux:
       gnu.org/gcc: '*'
+    darwin:
+      openmp.llvm.org: '*'
   # CMake reads uname -m and routes aarch64 to the ARM-NEON path
   # (adds the `novx` flag, no -msse/-mavx), x86 to the SSE/AVX variants.
   # find_package(Eigen3) misses our layout, so point at the headers.
@@ -32,6 +37,12 @@ build:
     ARGS:
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
       - -DEIGEN3_INCLUDE_DIR={{deps.eigen.tuxfamily.org.prefix}}/include/eigen3
+    # IQ-TREE's CMake emits `-Xpreprocessor -fopenmp` + `-lomp` on darwin but
+    # assumes omp.h / libomp are on the default path — point them at libomp.
+    darwin:
+      ARGS:
+        - -DCMAKE_CXX_FLAGS=-I{{deps.openmp.llvm.org.prefix}}/include
+        - -DCMAKE_EXE_LINKER_FLAGS=-L{{deps.openmp.llvm.org.prefix}}/lib
   script:
     - run: git submodule update --init --recursive
     - cmake -B build -S . $ARGS
