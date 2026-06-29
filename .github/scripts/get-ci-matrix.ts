@@ -67,7 +67,8 @@ function get_matrix(platform: string) {
         tinyname: "x64"
       }}
     case 'linux/x86-64': {
-      const os = {group: "linux-x86-64"}
+      // const os = {group: "linux-x86-64"}
+      const os = "ubuntu-latest"
       return {
         os, name,
         container: "debian:buster-slim",

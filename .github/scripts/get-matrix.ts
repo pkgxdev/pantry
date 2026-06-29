@@ -69,12 +69,16 @@ function get_matrix(platform: string) {
       const os = ["self-hosted", "macOS", "X64"]
       return {
         os, name,
-        "test-os": ["macos-14-large", "macos-15-large"],
+        // "test-os": ["macos-14-large", "macos-15-large"],
+        // halve our costs
+        "test-os": [os],
         "test-container": [null],
         tinyname: "x64"
       }}
     case 'linux/x86-64': {
-      const os = {group: "linux-x86-64"}
+      // const os = {group: "linux-x86-64"}
+      // cost reduction; watch for big failures.
+      const os = "ubuntu-latest"
       return {
         os, name,
         container: "debian:buster-slim",
