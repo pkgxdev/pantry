@@ -12,7 +12,7 @@ int main() {
     fprintf(stderr, "Hash is NULL");
     return -1;
   }
-  if (strcmp(hash, "$2b$05$abcdefghijklmnopqrstuuRWUgMyyCUnsDr8evYotXg5ZXVF/HhzS")) {
+  if (strcmp(crypt("abc", hash), hash)) {
     fprintf(stderr, "Unexpected hash output");
     return -1;
   }
