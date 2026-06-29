@@ -21,8 +21,11 @@ provides:
 build:
   dependencies:
     go.dev: ^1.26
+    linux:
+      gnu.org/gcc: 14
+      gnu.org/binutils: ~2.44
   env:
-    CGO_ENABLED: 0
+    CGO_ENABLED: 1
     ARGS:
       # Build only the k0s Go binary, without the embedded component binaries
       # (kubelet, containerd, etcd, ...). Those are normally produced by a
@@ -31,7 +34,7 @@ build:
       # fully functional k0s CLI; embedded artifacts can be fetched at runtime.
       # Mirrors the upstream Makefile `k0s.bare` recipe (CGO disabled, osusergo,
       # trimpath, static link) with EMBEDDED_BINS_BUILDMODE=none.
-      - -tags=osusergo
+      - -tags=osusergo,noembedbins
       - -trimpath
       - -buildvcs=false
     GO_LDFLAGS:
