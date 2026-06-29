@@ -12,32 +12,58 @@ dependencies:
 build:
   dependencies:
     freedesktop.org/pkg-config: ^0.29
-    mesonbuild.com: ^0.63
+    mesonbuild.com: "*"
     ninja-build.org: 1
     gnome.org/libxml2: 2
   working-directory: build
   script:
     # darwin doesn't have fdatasync like linux does, but it has an alias that
     # gets detected wrongly.
-    - run: |
-        sed -i.bak -e '/fdatasync/d' meson.build
-        rm meson.build.bak
+    - run: sed -i -e '/fdatasync/d' meson.build
       working-directory: ..
       if: darwin
-    - meson .. --prefix={{prefix}} --buildtype=release
+    - meson .. $MESON_ARGS
+    # xdgmime is a meson subproject fetched DURING `meson ..`, so patch it after
+    # configure: its fuzzers use Linux-only O_PATH/memmem and nothing depends on
+    # them. Drop the unconditional subdir('fuzzing'); ninja re-runs meson to pick
+    # up the edited subproject meson.build.
+    - run: sed -i -e "/subdir('fuzzing')/d" meson.build
+      working-directory: ../subprojects/xdgmime
+      if: darwin
     - ninja
     - ninja install
     - run: ./update-mime-database ../share/mime
       working-directory: ${{prefix}}/bin
   env:
+    MESON_ARGS:
+      - --prefix={{prefix}}
+      - --buildtype=release
+      # build-spec builds the HTML spec via xmlto+docbook-xsl — not installed, and
+      # pkgx's xmlto can't do html-nochunks. We don't ship it, so skip it.
+      - -Dbuild-spec=false
     CXXFLAGS: $CXXFLAGS -std=c++17 -Wno-reserved-user-defined-literal
+    CFLAGS: $CFLAGS -Wno-implicit-function-declaration
     linux:
       LDFLAGS: $LDFLAGS -lstdc++fs
 
-#TODO you need a library to use this db
 #see: https://www.freedesktop.org/wiki/Specifications/shared-mime-info-spec/
-test: |
-  test -f "{{prefix}}"/share/mime/packages/freedesktop.org.xml
+test:
+  # exercise update-mime-database: feed it a custom type and confirm it parses
+  # the XML and compiles the binary cache + text indices, registering our type.
+  - run: cp $FIXTURE pkgx-test.xml
+    working-directory: mimetest/packages
+    fixture: |
+      <?xml version="1.0" encoding="UTF-8"?>
+      <mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+        <mime-type type="application/x-pkgx-test">
+          <comment>pkgx test type</comment>
+          <glob pattern="*.pkgxtest"/>
+        </mime-type>
+      </mime-info>
+  - update-mime-database mimetest
+  - test -f mimetest/mime.cache # binary cache compiled
+  - grep -q 'application/x-pkgx-test' mimetest/types
+  - grep -q '\.pkgxtest' mimetest/globs
 
 provides:
   - bin/update-mime-database
