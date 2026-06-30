@@ -12,9 +12,13 @@ build:
   dependencies:
     python.org: ~3.11
   script:
+    - pkgx +openssl.org^3
     - bkpyvenv stage {{prefix}} {{version}}
     - ${{prefix}}/venv/bin/pip install .
     - bkpyvenv seal {{prefix}} ansible-lint
+  env:
+    OPENSSL_STATIC: 1
+    OPENSSL_DIR: "{{pkgx.prefix}}/openssl.org/v3"
 
 test:
   - run: cat $FIXTURE | sed '/^$/d' >test.toml
