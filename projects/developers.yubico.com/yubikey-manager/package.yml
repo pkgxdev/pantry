@@ -10,13 +10,18 @@ versions:
 dependencies:
   python.org: ~3.11
   linux:
-    pcsclite.apdu.fr: '^2'
+    pcsclite.apdu.fr: "^2"
 
 build:
   dependencies:
-    pip.pypa.io: '*'
-    swig.org: '*'
-  script: python-venv.sh {{prefix}}/bin/ykman
+    pip.pypa.io: "*"
+    swig.org: "*"
+  script:
+    - pkgx +openssl.org^3
+    - python-venv.sh {{prefix}}/bin/ykman
+  env:
+    OPENSSL_STATIC: 1
+    OPENSSL_DIR: "{{pkgx.prefix}}/openssl.org/v3"
 
 provides:
   - bin/ykman
