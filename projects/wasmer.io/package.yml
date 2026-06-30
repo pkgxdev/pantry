@@ -1,5 +1,10 @@
 distributable:
-  # added in v7.1.0 with all submodules.
+  # full-source artifact bundles the submodules (lib/napi etc.); added in v7.1.0.
+  # wasmer switched its compression xz -> gz in v7.2.0, so try both. the bare
+  # github tag archive is a LAST resort — it has NO submodules and won't build
+  # versions that need them; it's only here for versions lacking a full-source.
+  - url: https://github.com/wasmerio/wasmer/releases/download/{{version.tag}}/wasmer-full-source.tar.gz
+    strip-components: 1
   - url: https://github.com/wasmerio/wasmer/releases/download/{{version.tag}}/wasmer-full-source.tar.xz
     strip-components: 1
   - url: https://github.com/wasmerio/wasmer/archive/refs/tags/{{version.tag}}.tar.gz
@@ -33,9 +38,8 @@ build:
       CXX: clang++
       LD: clang
   script:
-    - mkdir -p "{{prefix}}"/bin
     - make build-wasmer
-    - mv target/release/wasmer "{{prefix}}"/bin
+    - install -D target/release/wasmer "{{prefix}}"/bin/wasmer
 
 provides:
   - bin/wasmer
