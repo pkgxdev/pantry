@@ -17,6 +17,12 @@ build:
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
       - -DCMAKE_BUILD_TYPE=Release
       - -DWITH_JPEG8=1
+    linux:
+      ARGS:
+        # bundled libspng's spng_decode_image calls fpclassify (__fpclassifyf);
+        # glibc keeps that in libm, so the static cjpeg/djpeg need -lm on linux.
+        # (no-op on macOS, where it's in unified libSystem.)
+        - -DCMAKE_EXE_LINKER_FLAGS=-lm
 
 provides:
   - bin/cjpeg
