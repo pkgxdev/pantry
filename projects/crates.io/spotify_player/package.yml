@@ -17,8 +17,8 @@ dependencies:
 
 build:
   dependencies:
-    rust-lang.org: '>=1.60'
-    rust-lang.org/cargo: '*'
+    rust-lang.org: ">=1.60"
+    rust-lang.org/cargo: "*"
   script:
     # they shipped v0.0.0 after v0.20.0; but the release is there, so we can build it.
     - sed -i '1,10s/^version = ".*"/version = "{{version}}"/' spotify_player/Cargo.toml
@@ -26,8 +26,13 @@ build:
 
     # link to libsixel properly
     - run:
-        - SIXEL=$(otool -l {{prefix}}/bin/spotify_player | grep 'libsixel.1.dylib' | sed 's/.*name \(.*\) (offset .*/\1/')
+        # sed -n …/p (not grep|sed): emits the path if libsixel is linked, else
+        # empty + exit 0. grep exits 1 on no-match, which trips set -e/pipefail
+        # and aborts before the `if -z` guard below can skip the relink.
+        - SIXEL=$(otool -l {{prefix}}/bin/spotify_player | sed -n 's/.*name \(.*libsixel\.1\.dylib\) (offset.*/\1/p')
+        - if test ! -z "$SIXEL"; then
         - install_name_tool -change "$SIXEL" {{deps.github.com/libsixel/libsixel.prefix}}/lib/libsixel.1.dylib {{prefix}}/bin/spotify_player
+        - fi
       if: darwin
   env:
     ARGS:
