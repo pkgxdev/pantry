@@ -21,7 +21,7 @@ versions:
   github: citusdata/citus
 
 dependencies:
-  postgresql.org: ">=16<19"
+  postgresql.org: "*" # need to match versions
   curl.se: "*" # anonymous statistics collection
   lz4.org: "*" # column compression
   facebook.com/zstd: "*" # column compression
@@ -36,38 +36,59 @@ build:
       # that gcc rejects. Use the same clang to stay compatible.
       llvm.org: "*"
   script:
-    # PGXS uses pg_config to determine install dirs. Override `prefix` at
-    # install time so extension files land in pantry's bottle, not in the
-    # Postgres dependency's tree.
+    - run: eval $(pkgx +postgresql.org^16)
+      if: <13
+    - run: eval $(pkgx +postgresql.org^17)
+      if: ">=13<14"
+    - run: eval $(pkgx +postgresql.org^18)
+      if: ">=14"
+    # darwin only: PG's bottled Makefile.global records a stale Xcode SDK path
+    # (the one PG was built against) in CPPFLAGS/LDFLAGS; it's absent on current
+    # runners, so <stdio.h>/<inttypes.h> vanish. Rebuild sanitised flag strings
+    # (rewriting that SDK path to the live one) and pass them to make below.
+    # Linux does NOT get these: PGXS already reads the correct flags from
+    # Makefile.global and pkgx's CPATH covers includes — and passing pg_config's
+    # value there is a landmine, since older linux PG bottles (e.g. 16) print the
+    # literal "not recorded", which clang then treats as input filenames.
+    - run:
+        - CPPFLAGS_PG=$(pg_config --cppflags | sed -E "s#/Applications/Xcode[^[:space:]]*/SDKs/MacOSX[0-9.]+\\.sdk#$(xcrun --sdk macosx --show-sdk-path)#g")
+        - export LDFLAGS_PG=$(pg_config --ldflags | sed -E "s#/Applications/Xcode[^[:space:]]*/SDKs/MacOSX[0-9.]+\\.sdk#$(xcrun --sdk macosx --show-sdk-path)#g")
+      if: darwin
+    # PGXS ignores prefix=; INSTALL_DIRS (pkglibdir/datadir/includedir_server)
+    # redirects the install into our bottle instead of the Postgres dep's tree.
     - ./configure $ARGS
-    # On darwin, PG's installed Makefile.global hard-codes -isysroot
-    # /Applications/Xcode.app/.../SDKs/MacOSX15.2.sdk (the SDK PG was
-    # bottled with). That SDK isn't present on current runners, so
-    # stdio.h / inttypes.h disappear. Build a sanitised CPPFLAGS string
-    # by re-reading pg_config --cppflags and rewriting the path, then
-    # pass it on the make command line so it overrides PG's value
-    # (PGXS's `override CPPFLAGS := -I. -I$(srcdir) $(CPPFLAGS)` then
-    # prepends its own bits, preserving our SDK fix). Linux gets the
-    # unmodified value, so the rewrite is a no-op there.
-    - make --jobs {{ hw.concurrency }} CPPFLAGS="$CPPFLAGS_PG" LDFLAGS="$LDFLAGS_PG"
-    - make install-all prefix={{prefix}} CPPFLAGS="$CPPFLAGS_PG" LDFLAGS="$LDFLAGS_PG"
+    # citus hard-codes a `.so` decoder-module name; macOS builds `.dylib`
+    # ($(DLSUFFIX)). Fix the source ref so install finds the built file.
+    - run: sed -i 's/citus_$(DECODER)\.so/citus_$(DECODER)$(DLSUFFIX)/' Makefile.decoder
+      if: darwin
+      working-directory: src/backend/distributed/cdc
+    - run: make --jobs {{ hw.concurrency }}
+      if: linux
+    - run: make --jobs {{ hw.concurrency }} CPPFLAGS="$CPPFLAGS $CPPFLAGS_PG" LDFLAGS="$LDFLAGS $LDFLAGS_PG"
+      if: darwin
+    # INSTALL=install: PG's Makefile.global bakes an absolute path to brewkit's
+    # `install` wrapper from the runner that built PG; the PATH-resolved name
+    # works both in CI and locally.
+    - run: make install $INSTALL_DIRS INSTALL=install
+      if: linux
+    - run: make install $INSTALL_DIRS INSTALL=install CPPFLAGS="$CPPFLAGS $CPPFLAGS_PG" LDFLAGS="$LDFLAGS $LDFLAGS_PG"
+      if: darwin
   env:
     CC: clang
+    INSTALL_DIRS:
+      - pkglibdir={{prefix}}/lib/postgresql
+      - datadir={{prefix}}/share/postgresql
+      - includedir_server={{prefix}}/include/server
     ARGS:
       - --prefix={{prefix}}
       - --with-libcurl
       - --with-lz4
       - --with-zstd
-    linux:
-      CPPFLAGS_PG: $(pg_config --cppflags)
-      LDFLAGS_PG: $(pg_config --ldflags)
     darwin:
       # Brewkit's hermetic CPATH masks the Xcode SDK, so Xcode clang's
       # #include_next chain can't reach <stdio.h>, <inttypes.h>, etc.
       # Point the toolchain at the active SDK explicitly.
       SDKROOT: $(xcrun --sdk macosx --show-sdk-path)
-      CPPFLAGS_PG: $(pg_config --cppflags | sed -E "s#/Applications/Xcode[^[:space:]]*/SDKs/MacOSX[0-9.]+\\.sdk#$(xcrun --sdk macosx --show-sdk-path)#g")
-      LDFLAGS_PG: $(pg_config --ldflags | sed -E "s#/Applications/Xcode[^[:space:]]*/SDKs/MacOSX[0-9.]+\\.sdk#$(xcrun --sdk macosx --show-sdk-path)#g")
 
 # Citus ships no executables — it's a Postgres extension loaded inside
 # the server process. Bottle contents:
