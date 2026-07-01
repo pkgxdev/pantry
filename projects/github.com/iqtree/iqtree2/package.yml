@@ -1,0 +1,68 @@
+# IQ-TREE 2 pulls cmaple + lsd2 as git submodules; the github release
+# tarball omits them, so fetch via git and `git submodule update`.
+distributable:
+  url: git+https://github.com/iqtree/iqtree2
+  ref: v{{version}}
+
+versions:
+  github: iqtree/iqtree2/tags
+  # keep plain vX.Y.Z…; drop variant tags v2.3.5.cmaple / v2.2.4.hmmster /
+  # v2.2.2-fundi / v2.2.0.8.mix and the malformed v.2.3.3
+  ignore: /[.-][a-z]|^v\./
+
+provides:
+  - bin/iqtree2
+
+dependencies:
+  linux:
+    gnu.org/gcc/libstdcxx: '*'
+    gnu.org/gcc/libgomp: '*'
+  # Apple clang has no built-in OpenMP runtime; the multicore build links libomp
+  darwin:
+    openmp.llvm.org: '*'
+
+build:
+  dependencies:
+    cmake.org: '*'
+    eigen.tuxfamily.org: '*'
+    boost.org: '*'
+    linux:
+      gnu.org/gcc: '*'
+    darwin:
+      openmp.llvm.org: '*'
+  # CMake reads uname -m and routes aarch64 to the ARM-NEON path
+  # (adds the `novx` flag, no -msse/-mavx), x86 to the SSE/AVX variants.
+  # find_package(Eigen3) misses our layout, so point at the headers.
+  env:
+    ARGS:
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DEIGEN3_INCLUDE_DIR={{deps.eigen.tuxfamily.org.prefix}}/include/eigen3
+    # IQ-TREE's CMake emits `-Xpreprocessor -fopenmp` + `-lomp` on darwin but
+    # assumes omp.h / libomp are on the default path — point them at libomp.
+    darwin:
+      ARGS:
+        - -DCMAKE_CXX_FLAGS=-I{{deps.openmp.llvm.org.prefix}}/include
+        - -DCMAKE_EXE_LINKER_FLAGS=-L{{deps.openmp.llvm.org.prefix}}/lib
+  script:
+    - run: git submodule update --init --recursive
+    - cmake -B build -S . $ARGS
+    # cap at -j2: the x86 AVX/FMA kernel TUs (phylotreeavx/phylokernelfma) are
+    # very RAM-hungry at -O3, and running many concurrently can exhaust a
+    # builder's memory and thrash. 2 keeps the heaviest TUs from co-residing.
+    - cmake --build build --parallel 2
+    - cmake --install build
+
+test:
+  script:
+    - run: (iqtree2 --version 2>&1 || true) | tee out
+    - grep {{version.raw}} out
+    - run: iqtree2 -s $FIXTURE -m JC --seqtype DNA -redo -pre t
+      fixture:
+        extname: phy
+        content: |
+          4 12
+          taxonA    ACGTACGTACGT
+          taxonB    ACGTACGTACGA
+          taxonC    ACGTACGTACTA
+          taxonD    ACGTAAGTACTA
+    - grep "Log-likelihood of the tree:" t.iqtree
