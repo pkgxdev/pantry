@@ -31,6 +31,12 @@ build:
       - --disable-pinentry-qt5
       - --disable-pinentry-tqt
       - --enable-pinentry-tty
+    darwin:
+      # macOS keeps iconv in the system libiconv (not libc like glibc), and
+      # pinentry's configure fails its "working iconv" probe and never links it —
+      # so pinentry-curses ends up with undefined _iconv/_iconv_open/_iconv_close.
+      # Force -liconv; it also makes the configure probe link cleanly.
+      LIBS: -liconv
 
 provides:
   - bin/pinentry
