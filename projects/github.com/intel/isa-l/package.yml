@@ -7,23 +7,28 @@ versions:
 
 build:
   dependencies:
-    gnu.org/autoconf: '*'
-    gnu.org/automake: '*'
-    gnu.org/libtool: '*'
+    gnu.org/autoconf: "*"
+    gnu.org/automake: "*"
+    gnu.org/libtool: "*"
     x86-64:
       nasm.us: ^2
   script:
     - ./autogen.sh
-    - ./configure --prefix="{{prefix}}"
+    - run: ./configure --prefix="{{prefix}}"
+      if: <2.32.1
+    - run: ./configure --prefix="{{prefix}}" --enable-programs
+      if: ">=2.32.1"
     - make --jobs {{hw.concurrency}}
     - make install
+  env:
+    SED: sed
 
 provides:
   - bin/igzip
 
 test:
   dependencies:
-    freedesktop.org/pkg-config: '*'
+    freedesktop.org/pkg-config: "*"
   script:
     - test "$(pkg-config --modversion libisal)" = "{{version}}"
     - igzip --version | tee out
