@@ -15,21 +15,26 @@ companions:
     gnu.org/sed: "*" # needed to edit new deploys at run time
 
 build:
-  # 5.11.1 shipped as 5.11.0
-  - run: sed -i "s/'Laravel Installer', '[0-9\.]*'/'Laravel Installer', '{{version}}'/" laravel
-    working-directory: bin
-  - composer install --no-dev
-  - mkdir -p {{prefix}}/libexec
-  - cp -r ./* {{prefix}}/libexec
-  - run: ln -s ../libexec/bin/laravel laravel
-    working-directory: ${{prefix}}/bin
-  # patch installer so `laravel new` projects pass LD_LIBRARY_PATH to `artisan serve`
-  - run: sed -i -f $PROP NewCommand.php
-    prop: |
-      /))->isSuccessful/a\
-                  $this->replaceInFile("'PATH',", "'PATH',\\n        'LD_LIBRARY_PATH',", "$directory/vendor/laravel/framework/src/Illuminate/Foundation/Console/ServeCommand.php");
-    if: linux
-    working-directory: ${{prefix}}/libexec/src
+  dependencies:
+    linux:
+      # composer install --no-dev needs unzip
+      info-zip.org/unzip: ^6
+  script:
+    # 5.11.1 shipped as 5.11.0
+    - run: sed -i "s/'Laravel Installer', '[0-9\.]*'/'Laravel Installer', '{{version}}'/" laravel
+      working-directory: bin
+    - composer install --no-dev
+    - mkdir -p {{prefix}}/libexec
+    - cp -r ./* {{prefix}}/libexec
+    - run: ln -s ../libexec/bin/laravel laravel
+      working-directory: ${{prefix}}/bin
+    # patch installer so `laravel new` projects pass LD_LIBRARY_PATH to `artisan serve`
+    - run: sed -i -f $PROP NewCommand.php
+      prop: |
+        /))->isSuccessful/a\
+                    $this->replaceInFile("'PATH',", "'PATH',\\n        'LD_LIBRARY_PATH',", "$directory/vendor/laravel/framework/src/Illuminate/Foundation/Console/ServeCommand.php");
+      if: linux
+      working-directory: ${{prefix}}/libexec/src
 
 provides:
   - bin/laravel
