@@ -57,6 +57,10 @@ build:
   script:
     - bkpyvenv stage {{prefix}} {{version}}
     - ${{prefix}}/venv/bin/pip install cython
+    # xpra's install converts docs/ via pandoc (a heavy Haskell dep) when
+    # docs_ENABLED — bottles don't ship docs, so force it off (equivalent to
+    # upstream --without-docs, which is awkward to thread through pip).
+    - sed -i 's/^docs_ENABLED.*= DEFAULT/docs_ENABLED = False/' setup.py
     - ${{prefix}}/venv/bin/pip install . --no-build-isolation
     - bkpyvenv seal {{prefix}} xpra
 
