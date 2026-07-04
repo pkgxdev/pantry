@@ -11,11 +11,12 @@ dependencies:
 build:
   dependencies:
     npmjs.com: '*'
+    github.com/mikefarah/yq: '>=4' # safe-edit json bin field
   script:
     # v11+: bin field points to ./bin/run but file is ./bin/run.js
     - run: |
         if ! test -f bin/run && test -f bin/run.js; then
-          sed -i 's|"./bin/run"|"./bin/run.js"|' package.json
+          yq -i '(.. | select(. == "./bin/run")) = "./bin/run.js"' package.json
         fi
     - npm i $ARGS .
   env:

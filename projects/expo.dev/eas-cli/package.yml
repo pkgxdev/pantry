@@ -14,14 +14,14 @@ build:
   dependencies:
     python.org: ~3.10
     yarnpkg.com: ">=4.12" # per package.json, v18.0.3
+    github.com/mikefarah/yq: ">=4" # safe-edit json version field
     linux:
       gnu.org/gcc: "*"
   script:
     - mkdir -p "{{prefix}}"
 
     # missed version bump
-    - run: |
-        sed -i '1,10s/"version": ".*"/"version": "{{version}}"/' package.json
+    - run: yq -i '.version = "{{version}}"' package.json
       working-directory: packages/eas-cli
 
     - yarn install

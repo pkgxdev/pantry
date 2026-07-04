@@ -15,10 +15,11 @@ build:
   dependencies:
     rust-lang.org: ^1.81
     rust-lang.org/cargo: "*"
+    github.com/mikefarah/yq: ">=4" # safe-edit json version field
   working-directory: cli
   script:
     # missed version bump
-    - sed -i '1,10s/"version":.*/"version":"{{version}}",/' ../package.json
+    - yq -i '.version = "{{version}}"' ../package.json
     - cargo install --locked --path . --root {{prefix}}
     - run: install_name_tool -change "@rpath/gnu.org/libiconv/v1/lib/libiconv.2.dylib" "/usr/lib/libiconv.2.dylib" code
       working-directory: ${{prefix}}/bin

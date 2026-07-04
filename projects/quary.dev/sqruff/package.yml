@@ -15,6 +15,7 @@ build:
     linux:
       llvm.org: '*' # else toolchain failures in build.rs
       github.com/mikefarah/yq: '>=4' # safe-delete jemallocator dep
+      ast-grep.github.io: '*' # structural rust rewrite of the allocator
   working-directory: crates/cli
   script:
     # requires nightly features
@@ -24,17 +25,20 @@ build:
         - ln -sf $HOME/.rustup/toolchains/*/bin/* .
       working-directory: $HOME/.cargo/bin
 
-    # jemalloc breaks linux build
+    # jemalloc breaks linux build: drop the dep and swap the global allocator
+    # to std's System (a structural rewrite — attributes stay attached; no-op
+    # on modern versions, which use mimalloc)
     - run:
         # per-file: multi-file `yq -i` concatenates toml docs into the first
         - yq -i 'del(.target[].dependencies.jemallocator)' cli/Cargo.toml
         - yq -i 'del(.target[].dependencies.jemallocator)' lib/Cargo.toml
-        - sed -i -f $PROP cli/src/main.rs
+        - >-
+          ast-grep run -l rust
+          -p 'static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;'
+          -r 'static ALLOC: std::alloc::System = std::alloc::System;'
+          -U cli/src/main.rs
       working-directory: ..
       if: linux
-      prop: |
-        s|^\(.*any(target_arch = "x86_64", target_arch = "aarch64", target_arch = "powerpc64"\)|//\1|
-        /^\#\[global_allocator\]$/ {N; s|^\(#\[global_allocator\]\)\n\(static ALLOC: jemallocator\)|//\1\n//\2|}
 
     # -Ctarget-cpu is breaking darwin/x86-64
     - run: if test -f config.toml; then sed -i '/-Ctarget-cpu=native/d' config.toml; fi
