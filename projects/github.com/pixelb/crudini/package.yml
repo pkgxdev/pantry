@@ -1,0 +1,36 @@
+distributable:
+  url: https://github.com/pixelb/crudini/releases/download/{{version.tag}}/crudini-{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: pixelb/crudini
+
+dependencies:
+  pkgx.sh: ">=1"
+
+build:
+  dependencies:
+    python.org: ~3.11
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} crudini
+
+test:
+  - test "$(crudini --version)" = "crudini {{version}}"
+  - run: cp $FIXTURE out.ini
+    fixture: |
+      [main]
+      a = 1
+      b = 2
+  - crudini --set out.ini main a 2 --set out.ini main c 3
+  - cat out.ini
+  - run: cmp out.ini $FIXTURE
+    fixture: |
+      [main]
+      a = 2
+      b = 2
+      c = 3
+
+provides:
+  - bin/crudini
