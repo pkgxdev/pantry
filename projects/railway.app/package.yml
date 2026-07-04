@@ -10,11 +10,12 @@ build:
   dependencies:
     rust-lang.org: ^1.77
     rust-lang.org/cargo: "*"
+    github.com/mikefarah/yq: ">=4" # safe-edit toml version field
     darwin:
       gnu.org/libiconv: "*" # transitive, but we need it here to get it *out*
   script:
     # 3.5.2 didn't bump version
-    - run: sed -i 's/^version = ".*"$/version = "{{version}}"/' Cargo.toml
+    - run: yq -i '.package.version = "{{version}}"' Cargo.toml
     - cargo add proc-macro2
     - cargo install $ARGS
     # something weird is causing it to link in unneeded iconv in 4.27.5

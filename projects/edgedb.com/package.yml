@@ -11,6 +11,7 @@ build:
     rust-lang.org: ^1.61
     rust-lang.org/cargo: ^0
     perl.org: ^5
+    github.com/mikefarah/yq: ">=4" # safe-edit toml version field
   env:
     RUSTFLAGS:
       # Ignore warnings (to focus on errors)
@@ -25,7 +26,7 @@ build:
       working-directory: src
       if: '>=4'
     # missed version bump
-    - run: sed -i '1,40s/^version = .*$/version = "{{version.raw}}"/' Cargo.toml
+    - run: yq -i '.package.version = "{{version.raw}}"' Cargo.toml
     - cargo install --locked --path . --root {{prefix}}
     - run:
         - |

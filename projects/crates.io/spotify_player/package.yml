@@ -19,9 +19,10 @@ build:
   dependencies:
     rust-lang.org: ">=1.60"
     rust-lang.org/cargo: "*"
+    github.com/mikefarah/yq: ">=4" # safe-edit toml version field
   script:
     # they shipped v0.0.0 after v0.20.0; but the release is there, so we can build it.
-    - sed -i '1,10s/^version = ".*"/version = "{{version}}"/' spotify_player/Cargo.toml
+    - yq -i '.package.version = "{{version}}"' spotify_player/Cargo.toml
     - cargo install $ARGS
 
     # link to libsixel properly

@@ -12,9 +12,10 @@ build:
   dependencies:
     rust-lang.org: ^1.85
     rust-lang.org/cargo: "*"
+    github.com/mikefarah/yq: ">=4" # safe-edit toml version field
   script:
     # missing version bump
-    - sed -i '1,10s/^version = ".*"/version = "{{version}}"/' Cargo.toml
+    - yq -i '.package.version = "{{version}}"' Cargo.toml
     - run: EXTRA_ARGS="-Znext-lockfile-bump"
       if: ">=1.10"
     - cargo install --locked --path . --root {{prefix}} $EXTRA_ARGS

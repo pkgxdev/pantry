@@ -8,8 +8,10 @@ versions:
 build:
   dependencies:
     rust-lang.org/cargo: "*"
+    github.com/mikefarah/yq: ">=4" # safe-edit toml version field
   script:
-    - sed -i 's/^version = ".*"$/version = "{{version}}"/' Cargo.toml
+    # missed version bump; version lives in [workspace.package]
+    - yq -i '.workspace.package.version = "{{version}}"' Cargo.toml
     - cargo install --locked --path crates/cli --root {{prefix}}
 
 provides:

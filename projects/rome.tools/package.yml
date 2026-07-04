@@ -14,9 +14,10 @@ build:
   dependencies:
     rust-lang.org: '>=1.65'
     rust-lang.org/cargo: '*'
+    github.com/mikefarah/yq: '>=4' # safe-edit toml version field
   script:
-    - sed -i.bak 's/version = "0.0.0"/version = "{{version}}"/' Cargo.toml
-    - rm Cargo.toml.bak
+    # shipped with a 0.0.0 placeholder version
+    - yq -i '.package.version = "{{version}}"' Cargo.toml
     - cargo install --locked --path . --root {{prefix}}
 
 test:
