@@ -17,6 +17,7 @@ build:
     git-scm.org: "*"
     gnu.org/wget: "*"
     gnu.org/gcc: ^11 # for gfortran
+    github.com/mikefarah/yq: ">=4" # set cluster.name in the shipped config (yaml comments survive)
     linux:
       # on mac we use the Accelerate framework instead, on linux this is linked statically
       netlib.org/lapack: "*"
@@ -32,7 +33,9 @@ build:
     - ./gradlew -Dbuild.snapshot=false ":distribution:archives:no-jdk-{{hw.platform}}-tar:assemble"
     - run: tar --strip-components=1 -xf $SRCROOT/distribution/archives/no-jdk-{{hw.platform}}-tar/build/distributions/opensearch-*.tar.gz
       working-directory: ${{prefix}}
-    - run: 'sed -i "s|#\s*cluster.name: .*|cluster.name: opensearch_pkgx|" opensearch.yml'
+    # yq preserves the yaml comments in this user-facing config; the stock
+    # `# cluster.name: my-application` comment stays, the real key is appended
+    - run: yq -i '.["cluster.name"] = "opensearch_pkgx"' opensearch.yml
       working-directory: ${{prefix}}/config
 
     # checkout k-NN plugin
