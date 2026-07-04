@@ -32,11 +32,15 @@ build:
         # per-file: multi-file `yq -i` concatenates toml docs into the first
         - yq -i 'del(.target[].dependencies.jemallocator)' cli/Cargo.toml
         - yq -i 'del(.target[].dependencies.jemallocator)' lib/Cargo.toml
+        # guard: ast-grep exits 1 on no-match, and only old (<0.19) layouts
+        # have the jemalloc allocator; modern versions use mimalloc
+        - if grep -q 'jemallocator::Jemalloc' cli/src/main.rs; then
         - >-
           ast-grep run -l rust
           -p 'static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;'
           -r 'static ALLOC: std::alloc::System = std::alloc::System;'
           -U cli/src/main.rs
+        - fi
       working-directory: ..
       if: linux
 
