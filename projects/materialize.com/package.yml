@@ -21,12 +21,13 @@ build:
     gnu.org/automake: "*"
     gnu.org/autoconf: "*"
     protobuf.dev: 26.1
+    github.com/mikefarah/yq: ">=4" # safe-edit toml features array
     linux:
       git-scm.org: ^2
       llvm.org: <17
   script:
     # the protobuf-src crate isn't building atm
-    - run: sed -i '/^default =/s/"protobuf-src", //' Cargo.toml
+    - run: yq -i '.features.default -= ["protobuf-src"]' Cargo.toml
       working-directory: ../build-tools
       if: ">=0.106"
     - cargo install --locked --path . --root {{prefix}}
