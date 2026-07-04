@@ -1,0 +1,39 @@
+distributable:
+  url: https://github.com/killercup/cargo-edit/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/cargo-add
+  - bin/cargo-rm
+  - bin/cargo-set-version
+  - bin/cargo-upgrade
+
+versions:
+  github: killercup/cargo-edit
+
+build:
+  dependencies:
+    rust-lang.org: ">=1.86"
+    rust-lang.org/cargo: "*"
+  script: cargo install --locked --path . --root {{prefix}}
+
+test:
+  dependencies:
+    rust-lang.org/cargo: "*"
+  script:
+    - cargo new pkgx_test
+    - run:
+        - cargo set-version 1.0.0
+        - cargo set-version --bump major
+        - cargo set-version --bump minor
+        - cargo set-version --bump patch
+        - echo >>Cargo.toml
+        - cmp Cargo.toml $FIXTURE
+      working-directory: pkgx_test
+      fixture: |
+        [package]
+        name = "pkgx_test"
+        version = "2.1.1"
+        edition = "2024"
+
+        [dependencies]
