@@ -6,38 +6,33 @@ display-name: go-png2ico
 
 versions:
   github: J-Siu/go-png2ico
+
 provides:
   - bin/go-png2ico
 
 build:
   dependencies:
     go.dev: ^1.26
-  script: |
-    go mod download
-    go build -v -trimpath -ldflags="$LDFLAGS" -o $BUILDLOC .
+  script:
+    - go mod download
+    - go build -v -trimpath -ldflags="$GO_LDFLAGS" -o {{prefix}}/bin/go-png2ico .
   env:
-    GOPROXY: https://proxy.golang.org,direct
-    GOSUMDB: sum.golang.org
     GO111MODULE: on
     CGO_ENABLED: 0
-    BUILDLOC: '{{prefix}}/bin/go-png2ico'
-    LDFLAGS:
+    GO_LDFLAGS:
       - -s
       - -w
     linux:
       # -buildmode=pie or segmentation fault
       # https://github.com/docker-library/golang/issues/402#issuecomment-982204575
-      LDFLAGS:
-        - -s
-        - -w
+      GO_LDFLAGS:
         - -buildmode=pie
 
 test:
-  script: |
-    # 1) version string is wired to the released tag (p2i.Version == the git tag)
-    test "$(go-png2ico --version)" = "go-png2ico version {{version.tag}}"
-    # 2) round-trip: a 1x1 PNG -> ICO, and the output carries the ICO magic (00 00 01 00)
-    printf '%s' 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGNgYGAAAAAEAAH2FzhVAAAAAElFTkSuQmCC' | base64 -d > one.png
-    go-png2ico one.png out.ico
-    test -s out.ico
-    test "$(od -An -tx1 -N4 out.ico | tr -d ' \n')" = "00000100"
+  # 1) version string is wired to the released tag (p2i.Version == the git tag)
+  - test "$(go-png2ico --version)" = "go-png2ico version {{version.tag}}"
+  # 2) round-trip: a 1x1 PNG -> ICO, and the output carries the ICO magic (00 00 01 00)
+  - printf '%s' 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGNgYGAAAAAEAAH2FzhVAAAAAElFTkSuQmCC' | base64 -d > one.png
+  - go-png2ico one.png out.ico
+  - test -s out.ico
+  - test "$(od -An -tx1 -N4 out.ico | tr -d ' \n')" = "00000100"
