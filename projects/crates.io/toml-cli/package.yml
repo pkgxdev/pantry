@@ -1,0 +1,35 @@
+distributable:
+  url: https://github.com/gnprice/toml-cli/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/toml
+
+versions:
+  github: gnprice/toml-cli
+
+build:
+  dependencies:
+    rust-lang.org: ">=1.56"
+    rust-lang.org/cargo: "*"
+  script: cargo install --locked --path . --root {{prefix}}
+
+test:
+  - toml --version | tee out
+  - grep {{version}} out
+  - run: toml set $FIXTURE 'some.path[0].value' 2 | tee out.toml
+    fixture: |
+      [[some.path]]
+      value = "1"
+      another_value = "2"
+      a_third_value = "3"
+  - toml set out.toml new.new_value 4 | tee out2.toml
+  - run: cmp out2.toml $FIXTURE
+    fixture: |
+      [[some.path]]
+      value = "2"
+      another_value = "2"
+      a_third_value = "3"
+
+      [new]
+      new_value = "4"
