@@ -14,6 +14,7 @@ build:
     rust-lang.org/cargo: '*'
     openssl.org: '*'
     perl.org: '*'
+    github.com/mikefarah/yq: '>=4' # safe-edit toml version field
   script:
     - run: cd cli
       if: <2
@@ -21,8 +22,8 @@ build:
       if: '>=2<2.2'
     - run: cd crates/squawk
       if: '>=2.2'
-    # missing version bump
-    - sed -i '1,/dependencies/s/version = ".*"/version = "{{ version }}"/' Cargo.toml
+    # missing version bump (cwd set by the cd above, per version)
+    - yq -i '.package.version = "{{ version }}"' Cargo.toml
     - cargo install --path . --root {{prefix}}
   env:
     darwin/x86-64:

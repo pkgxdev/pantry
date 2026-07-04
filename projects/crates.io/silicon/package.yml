@@ -25,8 +25,10 @@ build:
     rust-lang.org: '>=1.65'
     rust-lang.org/cargo: '*'
     cmake.org: ^3
+    github.com/mikefarah/yq: '>=4' # safe-edit toml version field
   script:
-    - sed -i '1,20s/^version = .*/version = "{{ version }}"/' Cargo.toml
+    # missed version bump
+    - yq -i '.package.version = "{{ version }}"' Cargo.toml
     - cargo install --locked --path . --root {{prefix}}
 
 test: test "$(silicon --version)" = "silicon {{version}}"

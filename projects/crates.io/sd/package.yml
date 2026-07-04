@@ -12,9 +12,10 @@ build:
   dependencies:
     rust-lang.org: ">=1.65"
     rust-lang.org/cargo: "*"
+    github.com/mikefarah/yq: ">=4" # safe-edit toml version field
   script:
-    # missed version bump
-    - sed -i 's/^version = ".*"/version = "{{version}}"/' Cargo.toml
+    # missed version bump; workspace.package for >=1.1.0, package for older
+    - yq -i '(.workspace.package // .package).version = "{{version}}"' Cargo.toml
     - run: cargo install --locked --path . --root {{prefix}}
       if: <1.1.0
     - run: cargo install --locked --path sd-cli --root {{prefix}}

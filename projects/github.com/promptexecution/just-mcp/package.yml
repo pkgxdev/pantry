@@ -10,9 +10,10 @@ description: Production-ready MCP server that exposes Justfile recipes over MCP.
 build:
   dependencies:
     rust-lang.org: '>=1.89'
+    github.com/mikefarah/yq: '>=4' # safe-edit toml version field
   script:
     # missed version bump
-    - sed -i '1,20s/^version = ".*"$/version = "{{version}}"/' Cargo.toml
+    - yq -i '.package.version = "{{version}}"' Cargo.toml
     - cargo install --path . --root {{prefix}}
 
 provides:
