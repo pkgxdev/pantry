@@ -9,8 +9,10 @@ build:
   dependencies:
     rust-lang.org: ^1.65
     rust-lang.org/cargo: '*'
+    github.com/mikefarah/yq: '>=4' # conditional toml dep-version pin
   script:
-    - sed -i 's/cargo_toml = "0.13.0"/cargo_toml = "0.14.0"/' Cargo.toml
+    # cargo_toml 0.13.0 fails to build; bump that pin to 0.14.0
+    - yq -i '(.dependencies.cargo_toml | select(. == "0.13.0")) = "0.14.0"' Cargo.toml
     - cargo install $ARGS
   env:
     ARGS:

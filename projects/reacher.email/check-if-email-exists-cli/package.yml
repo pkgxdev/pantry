@@ -17,12 +17,16 @@ build:
     rust-lang.org: '>=1.65'
     rust-lang.org/cargo: '*'
     perl.org: '*'
+    github.com/mikefarah/yq: '>=4' # safe-edit toml version/deps
   script:
-    # forgot to bump the version
-    - run: sed -i -e '1,20s/^version = ".*"/version = "{{version}}"/' core/Cargo.toml cli/Cargo.toml backend/Cargo.toml
+    # forgot to bump the version (per-file: multi-file `yq -i` corrupts toml)
+    - run:
+        - yq -i '.package.version = "{{version}}"' core/Cargo.toml
+        - yq -i '.package.version = "{{version}}"' cli/Cargo.toml
+        - yq -i '.package.version = "{{version}}"' backend/Cargo.toml
       working-directory: ..
     # missing feature needed to build
-    - run: sed -i '/check-if-email-exists =/s/ \}/, features = ["sentry"] \}/' Cargo.toml
+    - run: yq -i '.dependencies["check-if-email-exists"].features = ["sentry"]' Cargo.toml
       if: ^0.10
     - cargo install --path . --root {{prefix}}
 

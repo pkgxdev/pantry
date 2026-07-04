@@ -14,6 +14,7 @@ build:
     rust-lang.org/rustup: '*'
     linux:
       llvm.org: '*' # else toolchain failures in build.rs
+      github.com/mikefarah/yq: '>=4' # safe-delete jemallocator dep
   working-directory: crates/cli
   script:
     # requires nightly features
@@ -25,7 +26,9 @@ build:
 
     # jemalloc breaks linux build
     - run:
-        - sed -i '/jemallocator/{N;N;d;}' cli/Cargo.toml lib/Cargo.toml
+        # per-file: multi-file `yq -i` concatenates toml docs into the first
+        - yq -i 'del(.target[].dependencies.jemallocator)' cli/Cargo.toml
+        - yq -i 'del(.target[].dependencies.jemallocator)' lib/Cargo.toml
         - sed -i -f $PROP cli/src/main.rs
       working-directory: ..
       if: linux

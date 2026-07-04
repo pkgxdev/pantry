@@ -15,11 +15,12 @@ build:
     rust-lang.org: '>=1.75<1.78'
     rust-lang.org/cargo: <0.83
     freedesktop.org/pkg-config: ^0.29
+    github.com/mikefarah/yq: '>=4' # conditional toml dep-version pin
     linux:
       systemd.io: '*' # hidapi crate requires libudev
   script:
-    # ahash 0.8.3 got yanked, and 0.8.4 has build failures
-    - sed -i -e 's/^ahash = "=0\.8\.[34]"$/ahash = "=0.8.5"/' Cargo.toml
+    # ahash 0.8.3 got yanked, and 0.8.4 has build failures; pin those to 0.8.5
+    - yq -i '(.workspace.dependencies.ahash | select(. == "=0.8.3" or . == "=0.8.4")) = "=0.8.5"' Cargo.toml
     - |
       for x in \
         cli \

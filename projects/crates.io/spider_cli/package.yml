@@ -12,6 +12,7 @@ build:
   dependencies:
     rust-lang.org: ">=1.56"
     rust-lang.org/cargo: "*"
+    github.com/mikefarah/yq: ">=4" # safe-edit toml deps/features
   env:
     linux/x86-64:
       # -pie: ubuntu requires PIE (passes on debian without it, SIGILL on ubuntu)
@@ -19,14 +20,11 @@ build:
       RUSTFLAGS: -C target-cpu=x86-64 -C link-args=-pie
   script:
     # needs openssl 3 on linux, but our rust locks us to 1.1.1
-    - run: sed -f $PROP -i Cargo.toml
+    - run: yq -i '.dependencies.openssl-sys.version = "*" | .dependencies.openssl-sys.features = ["vendored"]' Cargo.toml
       working-directory: spider_cli
       if: linux
-      prop: |
-        /^serde_json =/a\
-        openssl-sys = { version = "*", features = ["vendored"] }
     # io_uring is default-on but SIGILLs on CI ubuntu runners (since v2.47.22)
-    - run: sed -i -E 's/,? *"io_uring"//' Cargo.toml
+    - run: yq -i '.features.default -= ["io_uring"]' Cargo.toml
       working-directory: spider
       if: linux/x86-64
     # _requires_ spider/serde to build since 2.37.120
