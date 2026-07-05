@@ -1,0 +1,35 @@
+distributable:
+  url: https://github.com/jhheider/gpg-inspector/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/gpg-inspector
+
+versions:
+  github: jhheider/gpg-inspector
+
+build:
+  dependencies:
+    rust-lang.org: ">=1.85" # edition 2024
+    rust-lang.org/cargo: "*"
+  script: cargo install --locked --path crates/gpg-inspector --root {{prefix}}
+
+test:
+  - gpg-inspector --version | tee out
+  - grep {{version}} out
+  - run: gpg-inspector -f $FIXTURE --txt | tee out.txt
+    fixture: |
+      -----BEGIN PGP PUBLIC KEY BLOCK-----
+
+      mDMEaknMsxYJKwYBBAHaRw8BAQdAveEBGZGIUobvQVmN4jzDqnLoWkBaQy5tVGCO
+      PFxG8zy0IHBrZ3ggdGVzdCA8dGVzdEBleGFtcGxlLmludmFsaWQ+iJMEExYKADsW
+      IQRB78GwIj83EQNgSMz0mOgWC5b4CQUCaknMswIbAwULCQgHAgIiAgYVCgkICwIE
+      FgIDAQIeBwIXgAAKCRD0mOgWC5b4CWp7AQDBttDKKk6McaSSfalGdYcnZkuRv5ZB
+      wnnQugGCQWdNuwD/Wj7/on2OvUPJOP3SWYpDj/7qwfxDQZss6dfWAQXKhQs=
+      =6b/0
+      -----END PGP PUBLIC KEY BLOCK-----
+  # parsed packet structure, identity, and the computed v4 fingerprint
+  - grep 'Public Key Packet' out.txt
+  - "grep 'Curve: Ed25519' out.txt"
+  - grep 'pkgx test <test@example.invalid>' out.txt
+  - "grep 'Fingerprint (computed): 41EFC1B0223F3711036048CCF498E8160B96F809' out.txt"
