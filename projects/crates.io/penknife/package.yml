@@ -1,0 +1,25 @@
+distributable:
+  url: https://github.com/jhheider/penknife/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/penknife
+
+versions:
+  github: jhheider/penknife
+
+build:
+  dependencies:
+    rust-lang.org: ">=1.85" # edition 2024
+    rust-lang.org/cargo: "*"
+  script: cargo install --locked --path crates/penknife --root {{prefix}}
+
+test:
+  - penknife --version | tee out
+  - grep {{version}} out
+  # render and search are the no-account, no-network surface.
+  - test "$(printf '# Hi' | penknife render -)" = "<h1>Hi</h1>"
+  - run:
+      - printf 'a TODO here\n' > note.md
+      - penknife search TODO . | grep note.md
+      - if penknife search NOPE .; then exit 1; fi
