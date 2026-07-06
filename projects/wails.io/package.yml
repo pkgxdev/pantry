@@ -21,6 +21,11 @@ dependencies:
 build:
   working-directory: v2
   script:
+    # 2.13.0 added a root go.work that lists only ./v3; ignore it so `go build`
+    # resolves against the v2 module instead of erroring that v2/cmd/wails isn't
+    # a workspace module.
+    - run: export GOWORK=off
+      if: '>=2.13'
     - go build -v -ldflags="$LDFLAGS" -o wails ./cmd/wails
     - install -D wails {{prefix}}/bin/wails
   env:
