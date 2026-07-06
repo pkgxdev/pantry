@@ -49,6 +49,15 @@ build:
       working-directory: thrift/cmake
       if: darwin
 
+    # the compiler's `switch (token_.kind)` (kind is a token_kind, a class type)
+    # relies on its implicit `operator tok()` to pick the switch's adjusted type.
+    # clang mis-selects the class type instead and rejects the `case tok::…`
+    # labels as non-constant (gcc/linux is fine). Cast the condition to force the
+    # intended conversion; no-op on versions predating the token_.kind switches.
+    - run: sed -i 's/switch (token_.kind)/switch (tok(token_.kind))/g' parser_core.h
+      working-directory: thrift/compiler/parse
+      if: darwin
+
     # fmt 12 moved fmt::join to <fmt/ranges.h>; fbthrift doesn't include it
     - run: sed -i -f $PROP RoundRobinRequestPile.h
       prop: |
