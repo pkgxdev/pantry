@@ -56,13 +56,16 @@ build:
       working-directory: k-NN
 
     # workarounds for m1 build. see: https://github.com/opensearch-project/k-NN/blob/main/DEVELOPER_GUIDE.md#extra-setup-for-mac-m1-machines
+    #
+    # the distcomp_scalar.cc edit is owned by k-NN's nmslib patch 0005 (>=2.19.6,
+    # "fix pragma error") — editing it ourselves dirties the tree and k-NN's
+    # `git am` aborts, so only do it on versions that lack the patch. (the SIMD
+    # flag, patch 0006's territory, is handled at the cmake step below.)
     - run:
         - if test "{{hw.platform}}+{{hw.arch}}" = "darwin+aarch64"; then
-        - sed -i -e 's/-march=native/-mcpu=apple-m1/g' nmslib/similarity_search/CMakeLists.txt
         - sed -i -e 's/-mcpu=apple-a14/-mcpu=apple-m1/g' nmslib/python_bindings/setup.py
         - sed -i -e 's/__aarch64__/__undefine_aarch64__/g' faiss/faiss/utils/distances_simd.cpp
-        - |
-          sed -i '/#pragma message WARN("ScalarProductSIMD<float>: SSE2 is not available/d' nmslib/similarity_search/src/distcomp_scalar.cc
+        - test -f ../patches/nmslib/0005-*.patch || sed -i '/#pragma message WARN("ScalarProductSIMD<float>:/d' nmslib/similarity_search/src/distcomp_scalar.cc
         - fi
       if: <3.4.0
       working-directory: k-NN/jni/external
@@ -77,15 +80,21 @@ build:
       if: darwin
       working-directory: k-NN
 
-    # this is recommended in https://github.com/opensearch-project/k-NN/blob/45e9e542aef60ef7073ee726e6ac14dec27bfa04/scripts/build.sh#L91-L94
-    - run: |
-        if test "{{hw.arch}}" = "x86-64"; then
-          sed -i -e 's/-march=native/-march=x86-64/g' CMakeLists.txt
-        fi
-      working-directory: k-NN/jni/external/nmslib/similarity_search
-      if: ^2
+    # nmslib hardcodes -march=native (bakes in the builder's exact CPU). k-NN's
+    # nmslib patch 0006 (>=2.19.6) makes it the overridable NMSLIB_SIMD_FLAGS
+    # cache var we set below; on versions without 0006 we sed $NMSLIB_SIMD in
+    # directly — gated on the patch's absence, since editing the patched file
+    # would dirty the tree and abort git am. $NMSLIB_SIMD is per-arch (env).
+    # k-NN >=3.4.0 auto-enables AVX512_SPR when the build runner is a Sapphire
+    # Rapids Intel CPU (via lscpu), then hard-errors if the compiler lacks
+    # -mavx512fp16 (needs gcc 12+; the build uses 11.5). Force it off — plain
+    # AVX512 is what gcc 11.5 supports, and not baking the build host's exact CPU
+    # into the bottle is what we want for a distributable anyway.
+    - run: export KNN_SIMD_ARGS=-DAVX512_SPR_ENABLED=false
+      if: ">=3.4.0"
     - run:
-        - cmake . $CMAKE_ARGS -DCONFIG_FAISS=ON -DCONFIG_NMSLIB=ON -DCONFIG_TEST=OFF
+        - test -f patches/nmslib/0006-*.patch || sed -i "s/-march=native/$NMSLIB_SIMD/g" external/nmslib/similarity_search/CMakeLists.txt
+        - cmake . $CMAKE_ARGS $KNN_SIMD_ARGS -DCONFIG_FAISS=ON -DCONFIG_NMSLIB=ON -DCONFIG_TEST=OFF -DNMSLIB_SIMD_FLAGS="$NMSLIB_SIMD"
         - make
       working-directory: k-NN/jni
     - run: |
@@ -119,6 +128,13 @@ build:
       working-directory: ${{prefix}}/bin
       if: linux
   env:
+    # nmslib SIMD target — override the default -march=native (non-portable) per
+    # arch; consumed by the k-NN cmake step above (as NMSLIB_SIMD_FLAGS / sed).
+    NMSLIB_SIMD: -march=native
+    x86-64:
+      NMSLIB_SIMD: -march=x86-64
+    darwin/aarch64:
+      NMSLIB_SIMD: -mcpu=apple-m1
     linux/x86-64:
       # /opt/gnu.org/binutils/v2.43.1/bin/ld: release/libopensearchknn_faiss_avx2.so: undefined reference to `_gfortran_concat_string'
       LDFLAGS: $LDFLAGS -Wl,-lgfortran
