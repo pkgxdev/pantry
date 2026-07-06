@@ -1,0 +1,31 @@
+distributable:
+  url: https://github.com/jhheider/edikt/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/edikt
+
+versions:
+  github: jhheider/edikt
+
+build:
+  dependencies:
+    rust-lang.org: ">=1.85" # edition 2024
+    rust-lang.org/cargo: "*"
+  script: cargo install --locked --path crates/edikt --root {{prefix}}
+
+test:
+  - edikt --version | tee out
+  - grep {{version}} out
+  - test "$(echo "{\"a\":1}" | edikt -t json .a)" = "1"
+  - run:
+      - edikt -i ".port = 9090" $FIXTURE
+      - grep '// keep me' $FIXTURE
+      - grep 9090 $FIXTURE
+    fixture:
+      extname: jsonc
+      content: |
+        {
+          // keep me
+          "port": 8080,
+        }
