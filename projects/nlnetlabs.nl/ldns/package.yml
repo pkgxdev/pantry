@@ -9,6 +9,14 @@ dependencies:
   openssl.org: ^1
 
 build:
+  # ldns's public API is namespaced (`#include <ldns/…>`), so brewkit's default
+  # header flattening (include/ldns/*.h -> include/*.h) buys nothing and instead
+  # drops generically-named headers (util.h, net.h, error.h, parse.h, …) into
+  # the include root. Those land on dependents' CPATH and shadow system headers:
+  # e.g. openssh's `#include <util.h>` resolves to ldns's instead of the SDK's,
+  # loses the openpty() declaration, and fails the darwin build. brewkit only
+  # guards ISO-C stdlib names, not POSIX/BSD ones like util.h — so opt out.
+  skip: flatten-includes
   dependencies:
     gnu.org/autoconf: '*'
     gnu.org/automake: '*'
