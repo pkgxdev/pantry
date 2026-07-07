@@ -90,20 +90,27 @@ build:
     - sed -i.bak "s/__VERSION__/{{version}}/g;s|__TRIPLE__|$(go env GOOS)-$(go env GOARCH)|g" build/bazelutil/stamp.sh
     - rm -f build/bazelutil/stamp.sh.bak
     - chmod +x build/bazelutil/stamp.sh
+    # ld.gold (the linker bazel/rules_go drive) is a C++ program linked
+    # against pkgx's newer libstdc++. rules_go's link builder scrubs
+    # LD_LIBRARY_PATH from the linker subprocess, so ld.gold falls back to
+    # the container's ancient libstdc++ and dies (`GLIBCXX_3.4.32 not
+    # found`). We can't switch to ld.bfd — bazel/protobuf pass gold/lld-only
+    # options like `--start-lib`. Instead install pkgx's libstdc++ as the
+    # system one so ld.gold resolves it via the default loader path, immune
+    # to whatever env the sub-builders scrub. (libstdc++ is backward
+    # compatible, so pre-existing distro tools keep working.)
+    - |
+      command -v sudo >/dev/null 2>&1 && SUDO=sudo || SUDO=
+      SYS_LIBDIR=$(dirname "$(ldconfig -p | awk '/libstdc\+\+\.so\.6/{print $NF; exit}')")
+      SRC=$(ls {{deps.gnu.org/gcc.prefix}}/lib64/libstdc++.so.6* 2>/dev/null || ls {{deps.gnu.org/gcc.prefix}}/lib/libstdc++.so.6*)
+      $SUDO cp -Pf $SRC "$SYS_LIBDIR/"
+      $SUDO ldconfig
     # cockroach-short is the pure-binary target (no embedded JS web UI),
     # which keeps the build tractable without docker / nodejs in CI.
     # `--spawn_strategy=local` disables bazel's sandbox so the compiler can
     # see the pkgx include/lib dirs handed to it via the action env.
     # --action_env feeds target-config actions; --host_action_env feeds the
     # exec-config ("[for tool]") codegen + rules_go cgo actions; set both.
-    #
-    # -fuse-ld=bfd: the default linker in the pkgx binutils is `ld.gold`,
-    # which is itself a C++ program linked against pkgx's newer libstdc++.
-    # rules_go's link builder scrubs LD_LIBRARY_PATH from the linker's env,
-    # so ld.gold resolves the ancient distro libstdc++ and fails
-    # (`GLIBCXX_3.4.32 not found`). ld.bfd is plain C with no libstdc++
-    # dependency, so force it for both cgo (CGO_LDFLAGS) and bazel's own
-    # C/C++ links (--linkopt/--host_linkopt).
     - bazel build //pkg/cmd/cockroach-short:cockroach-short
         --config=ci
         --jobs={{ hw.concurrency }}
@@ -115,7 +122,6 @@ build:
         --action_env=LD_LIBRARY_PATH=$PKGX_LDLP
         --action_env=PATH=$PKGX_PATH
         --action_env=HOME=$PKGX_HOME
-        --action_env=CGO_LDFLAGS=-fuse-ld=bfd
         --host_action_env=CC=$PKGX_CC
         --host_action_env=CXX=$PKGX_CXX
         --host_action_env=CPATH=$PKGX_CPATH
@@ -123,9 +129,6 @@ build:
         --host_action_env=LD_LIBRARY_PATH=$PKGX_LDLP
         --host_action_env=PATH=$PKGX_PATH
         --host_action_env=HOME=$PKGX_HOME
-        --host_action_env=CGO_LDFLAGS=-fuse-ld=bfd
-        --linkopt=-fuse-ld=bfd
-        --host_linkopt=-fuse-ld=bfd
         --workspace_status_command=$(pwd)/build/bazelutil/stamp.sh
     - install -D -m755 bazel-bin/pkg/cmd/cockroach-short/cockroach-short_/cockroach-short
         "{{prefix}}/bin/cockroach"
