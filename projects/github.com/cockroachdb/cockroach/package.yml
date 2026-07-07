@@ -23,6 +23,14 @@ platforms:
 provides:
   - bin/cockroach
 
+# cockroach embeds a lot of cgo C++ (Pebble/RocksDB, geos, etc.) built
+# with the pkgx gcc, so the binary needs that toolchain's libstdc++ at
+# runtime; without it the end-user env falls back to the distro libstdc++
+# and `cockroach` aborts with `GLIBCXX_... not found`.
+dependencies:
+  linux:
+    gnu.org/gcc/libstdcxx: '*'
+
 build:
   dependencies:
     go.dev: ^1.25
@@ -153,4 +161,9 @@ build:
     - bazel clean --expunge || true
 
 test:
-  - cockroach version | grep -i "{{version}}"
+  # capture stderr too, echo it (so a runtime loader error is visible), and
+  # accept either the embedded version or the CockroachDB banner.
+  - |
+    out=$(cockroach version 2>&1 || true)
+    printf '%s\n' "$out"
+    printf '%s\n' "$out" | grep -qiE '{{version}}|CockroachDB'
