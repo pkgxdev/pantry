@@ -89,7 +89,9 @@ build:
     # vm86), xres / xinerama / xv / dpms (standard X extensions),
     # pciaccess+drm (modern DDX needs DRM/KMS to find outputs).
     - meson setup .. $MESON_ARGS
-    - ninja --jobs {{ hw.concurrency }}
+    # ninja takes -j (short form only); `--jobs` is unrecognized and makes
+    # ninja print its usage and exit non-zero.
+    - ninja -j {{ hw.concurrency }}
     - ninja install
 
   env:
