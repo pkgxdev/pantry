@@ -138,8 +138,13 @@ build:
         --host_action_env=PATH=$PKGX_PATH
         --host_action_env=HOME=$PKGX_HOME
         --workspace_status_command=$(pwd)/build/bazelutil/stamp.sh
-    - install -D -m755 bazel-bin/pkg/cmd/cockroach-short/cockroach-short_/cockroach-short
-        "{{prefix}}/bin/cockroach"
+    # rules_go's output layout for the binary varies by version
+    # (`cockroach-short_/cockroach-short` vs `cockroach-short`), so locate
+    # the built executable rather than hard-coding the path.
+    - |
+      BIN=$(find -L bazel-bin/pkg/cmd/cockroach-short -type f -name cockroach-short 2>/dev/null | head -1)
+      test -n "$BIN" || { echo "cockroach-short binary not found under bazel-bin:"; find bazel-bin/pkg/cmd/cockroach-short -maxdepth 3 2>/dev/null; exit 1; }
+      install -D -m755 "$BIN" "{{prefix}}/bin/cockroach"
     # do not leave the bazel cache behind
     - bazel clean --expunge || true
 
