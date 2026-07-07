@@ -1,0 +1,23 @@
+distributable:
+  url: https://github.com/jhheider/govee-tui/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/govee-tui
+
+versions:
+  github: jhheider/govee-tui/tags
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.75'
+    rust-lang.org/cargo: '*'
+  script:
+    - cargo build --release --locked
+    - run:
+        - mkdir -p {{prefix}}/bin
+        - install govee-tui {{prefix}}/bin/
+      working-directory: target/release
+
+test:
+  - govee-tui --version | grep {{version}}
