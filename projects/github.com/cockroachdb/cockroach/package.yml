@@ -12,11 +12,13 @@ versions:
     - /-beta/
     - /-rc/
 
+# Linux-only. CockroachDB is a Linux server product and its Bazel build
+# pins a rules_go go_sdk that has no darwin toolchain
+# (`unsupported platform darwin_amd64`); upstream ships dev darwin
+# binaries through a separate path that isn't reproducible here.
 platforms:
   - linux/x86-64
   - linux/aarch64
-  - darwin/x86-64
-  - darwin/aarch64
 
 provides:
   - bin/cockroach
@@ -61,7 +63,14 @@ build:
     - export CXX="{{deps.gnu.org/gcc.prefix}}/bin/g++"
     - PKGX_CC="$CC"
     - PKGX_CXX="$CXX"
-    - PKGX_PATH="$PATH"
+    # Real gcc still shells out to `as`/`ld`; those are found on PATH, where
+    # brewkit's wrapper dir sits first and each wrapper re-execs
+    # "$HOME/toolchain/<tool>". rules_go's stdlib builder scrubs HOME from
+    # the env of the go/gcc/as subprocess, so the wrappers collapse to
+    # "/toolchain/as: No such file or directory". Strip the wrapper dir from
+    # the PATH we forward to bazel actions so the real binutils (already on
+    # PATH under /opt) is used directly — no wrapper, no HOME dependency.
+    - PKGX_PATH=$(echo "$PATH" | sed -E 's#[^:]*brewkit/v1/share/toolchain/bin[^:]*:?##g' | sed 's/:$//')
     - PKGX_HOME="$HOME"
     - PKGX_LDLP="$LD_LIBRARY_PATH"
     - PKGX_CPATH="$CPATH"
