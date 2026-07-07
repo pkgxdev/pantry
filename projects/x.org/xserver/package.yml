@@ -85,9 +85,15 @@ build:
     # - xselinux=false : SELinux integration, Linux-distro-specific.
     # - docs=false / devel-docs=false : avoid pulling xmlto+xsltproc.
     #
-    # Enabled: xorg=true (the headline binary), int10=stub (no x86emu
-    # vm86), xres / xinerama / xv / dpms (standard X extensions),
-    # pciaccess+drm (modern DDX needs DRM/KMS to find outputs).
+    # Enabled: xorg=true (the headline binary), int10=x86emu (the portable
+    # software real-mode emulator, works on both x86-64 and aarch64),
+    # xres / xinerama / xv / dpms (standard X extensions), pciaccess+drm
+    # (modern DDX needs DRM/KMS to find outputs).
+    #
+    # NB: int10=stub is not usable here — on x86-64 meson still compiles
+    # xf86int10.c (which defines xf86InitInt10) alongside stub.c (which
+    # redefines it), and lld rejects the duplicate symbol. x86emu links
+    # cleanly and is the config every distro ships for cross-arch VBIOS.
     - meson setup .. $MESON_ARGS
     # ninja takes -j (short form only); `--jobs` is unrecognized and makes
     # ninja print its usage and exit non-zero.
@@ -118,7 +124,7 @@ build:
       - -Ddevel-docs=false
       - -Dxkb_dir={{prefix}}/share/X11/xkb
       - -Dxkb_output_dir={{prefix}}/var/lib/xkb
-      - -Dint10=stub
+      - -Dint10=x86emu
       - -Ddri1=false                  # legacy DRI1, no consumers
       - -Ddri2=true
       - -Ddri3=true
