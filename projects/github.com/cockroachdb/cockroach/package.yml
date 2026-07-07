@@ -42,11 +42,16 @@ build:
     USE_BAZEL_VERSION: '7.6.0'
   script:
     # cockroach's .bazelrc enables --incompatible_strict_action_env, which
-    # wipes HOME and PATH from each spawned compiler action. pkgx's gcc
-    # wrapper relies on $HOME/toolchain/<tool> and on tools (ar, ranlib...)
-    # being on PATH, so we forward both into action envs explicitly.
+    # wipes HOME, PATH and LD_LIBRARY_PATH from each spawned compiler
+    # action. pkgx's gcc wrapper relies on $HOME/toolchain/<tool> and on
+    # tools (ar, ranlib...) being on PATH; and the pkgx binutils `ld.gold`
+    # itself links against pkgx's newer libstdc++, so it needs
+    # LD_LIBRARY_PATH pointing at the gcc bottle's lib dir or it picks up
+    # the ancient distro libstdc++ (`GLIBCXX_3.4.32 not found`). Forward
+    # all three into both the target and exec action envs.
     - PKGX_PATH="$PATH"
     - PKGX_HOME="$HOME"
+    - PKGX_LDLP="$LD_LIBRARY_PATH"
     # the github source tarball has no .git directory; cockroach's bazel
     # rules rely on workspace_status.sh probing git, so stub it
     - |
@@ -79,8 +84,10 @@ build:
         --spawn_strategy=local
         --action_env=HOME=$PKGX_HOME
         --action_env=PATH=$PKGX_PATH
+        --action_env=LD_LIBRARY_PATH=$PKGX_LDLP
         --host_action_env=HOME=$PKGX_HOME
         --host_action_env=PATH=$PKGX_PATH
+        --host_action_env=LD_LIBRARY_PATH=$PKGX_LDLP
         --workspace_status_command=$(pwd)/build/bazelutil/stamp.sh
     - install -D -m755 bazel-bin/pkg/cmd/cockroach-short/cockroach-short_/cockroach-short
         "{{prefix}}/bin/cockroach"
