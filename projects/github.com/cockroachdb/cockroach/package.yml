@@ -42,16 +42,30 @@ build:
     USE_BAZEL_VERSION: '7.6.0'
   script:
     # cockroach's .bazelrc enables --incompatible_strict_action_env, which
-    # wipes HOME, PATH and LD_LIBRARY_PATH from each spawned compiler
-    # action. pkgx's gcc wrapper relies on $HOME/toolchain/<tool> and on
-    # tools (ar, ranlib...) being on PATH; and the pkgx binutils `ld.gold`
-    # itself links against pkgx's newer libstdc++, so it needs
-    # LD_LIBRARY_PATH pointing at the gcc bottle's lib dir or it picks up
-    # the ancient distro libstdc++ (`GLIBCXX_3.4.32 not found`). Forward
-    # all three into both the target and exec action envs.
+    # wipes the environment from every spawned compiler action. pkgx's gcc
+    # is a wrapper script that execs "$HOME/toolchain/<tool>" and shells
+    # out to "$HOME/.pkgx/.../pkgx"; with HOME cleared it collapses to the
+    # absolute "/toolchain/gcc" and dies (`No such file or directory`).
+    # Rather than chase HOME through every one of bazel's action kinds
+    # (target C++, exec "[for tool]" codegen, rules_go's cgo stdlib build,
+    # each of which sanitises env differently), point the toolchain at the
+    # REAL gcc/g++ and feed the compiler the include/lib search paths and
+    # runtime loader path directly. This removes the HOME dependency
+    # entirely. Exporting CC/CXX before `bazel` makes bazel's C++ auto-
+    # configuration pick the real compiler; forwarding them (plus CPATH /
+    # LIBRARY_PATH / LD_LIBRARY_PATH) into target AND exec action envs
+    # covers the go cgo compiles too. LD_LIBRARY_PATH is also what keeps
+    # pkgx's binutils ld.gold off the ancient distro libstdc++
+    # (`GLIBCXX_3.4.32 not found`).
+    - export CC="{{deps.gnu.org/gcc.prefix}}/bin/gcc"
+    - export CXX="{{deps.gnu.org/gcc.prefix}}/bin/g++"
+    - PKGX_CC="$CC"
+    - PKGX_CXX="$CXX"
     - PKGX_PATH="$PATH"
     - PKGX_HOME="$HOME"
     - PKGX_LDLP="$LD_LIBRARY_PATH"
+    - PKGX_CPATH="$CPATH"
+    - PKGX_LIBP="$LIBRARY_PATH"
     # the github source tarball has no .git directory; cockroach's bazel
     # rules rely on workspace_status.sh probing git, so stub it
     - |
@@ -69,25 +83,28 @@ build:
     - chmod +x build/bazelutil/stamp.sh
     # cockroach-short is the pure-binary target (no embedded JS web UI),
     # which keeps the build tractable without docker / nodejs in CI.
-    # `--spawn_strategy=local` disables bazel's sandbox so pkgx's gcc
-    # wrapper can reach $HOME/toolchain/gcc (the sandbox masks $HOME).
-    #
-    # pkgx's gcc wrapper execs "$HOME/toolchain/<tool>"; with HOME unset it
-    # collapses to the absolute "/toolchain/gcc", which does not exist
-    # (`/toolchain/gcc: No such file or directory`). --action_env only
-    # forwards HOME/PATH to *target*-configuration actions — protobuf and
-    # the other codegen tools compile in the *exec* ("[for tool]")
-    # configuration, which needs --host_action_env. Set both.
+    # `--spawn_strategy=local` disables bazel's sandbox so the compiler can
+    # see the pkgx include/lib dirs handed to it via the action env.
+    # --action_env feeds target-config actions; --host_action_env feeds the
+    # exec-config ("[for tool]") codegen + rules_go cgo actions; set both.
     - bazel build //pkg/cmd/cockroach-short:cockroach-short
         --config=ci
         --jobs={{ hw.concurrency }}
         --spawn_strategy=local
-        --action_env=HOME=$PKGX_HOME
-        --action_env=PATH=$PKGX_PATH
+        --action_env=CC=$PKGX_CC
+        --action_env=CXX=$PKGX_CXX
+        --action_env=CPATH=$PKGX_CPATH
+        --action_env=LIBRARY_PATH=$PKGX_LIBP
         --action_env=LD_LIBRARY_PATH=$PKGX_LDLP
-        --host_action_env=HOME=$PKGX_HOME
-        --host_action_env=PATH=$PKGX_PATH
+        --action_env=PATH=$PKGX_PATH
+        --action_env=HOME=$PKGX_HOME
+        --host_action_env=CC=$PKGX_CC
+        --host_action_env=CXX=$PKGX_CXX
+        --host_action_env=CPATH=$PKGX_CPATH
+        --host_action_env=LIBRARY_PATH=$PKGX_LIBP
         --host_action_env=LD_LIBRARY_PATH=$PKGX_LDLP
+        --host_action_env=PATH=$PKGX_PATH
+        --host_action_env=HOME=$PKGX_HOME
         --workspace_status_command=$(pwd)/build/bazelutil/stamp.sh
     - install -D -m755 bazel-bin/pkg/cmd/cockroach-short/cockroach-short_/cockroach-short
         "{{prefix}}/bin/cockroach"
