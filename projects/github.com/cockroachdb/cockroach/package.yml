@@ -138,15 +138,16 @@ build:
         --host_action_env=PATH=$PKGX_PATH
         --host_action_env=HOME=$PKGX_HOME
         --workspace_status_command=$(pwd)/build/bazelutil/stamp.sh
-    # `bazel build` completes; ask bazel itself where it put the binary.
-    # The `bazel-bin` convenience symlink points at the default config's
-    # output tree, but --config=ci builds under a different config dir, so a
-    # find under bazel-bin misses it. `cquery --output=files` returns the
-    # config-correct path (reachable through the bazel-out symlink).
+    # `bazel build` completes; install the built binary. cockroach's
+    # .bazelrc sets --symlink_prefix=_bazel/, so the convenience symlinks
+    # are `_bazel/bin` (not the default `bazel-bin`), and rules_go nests the
+    # executable under `<name>_/<name>`. Search the known prefixes.
     - |
-      BIN=$(bazel cquery --config=ci --output=files //pkg/cmd/cockroach-short:cockroach-short 2>/dev/null | grep -E '/cockroach-short$' | tail -1)
-      { [ -n "$BIN" ] && [ -e "$BIN" ]; } || BIN=$(find -L bazel-out -type f -path '*cockroach-short_*/cockroach-short' 2>/dev/null | head -1)
-      { [ -n "$BIN" ] && [ -e "$BIN" ]; } || { echo "cockroach-short binary not found; candidates:"; find -L bazel-out -name 'cockroach-short' 2>/dev/null | head; exit 1; }
+      for pfx in _bazel/bin bazel-bin; do
+        BIN=$(find -L "$pfx/pkg/cmd/cockroach-short" -type f -name cockroach-short 2>/dev/null | head -1)
+        [ -n "$BIN" ] && break
+      done
+      test -n "$BIN" || { echo "cockroach-short binary not found:"; ls -la _bazel bazel-bin 2>/dev/null; exit 1; }
       install -D -m755 "$BIN" "{{prefix}}/bin/cockroach"
     # do not leave the bazel cache behind
     - bazel clean --expunge || true
