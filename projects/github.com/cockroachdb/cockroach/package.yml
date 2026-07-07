@@ -66,12 +66,21 @@ build:
     # which keeps the build tractable without docker / nodejs in CI.
     # `--spawn_strategy=local` disables bazel's sandbox so pkgx's gcc
     # wrapper can reach $HOME/toolchain/gcc (the sandbox masks $HOME).
+    #
+    # pkgx's gcc wrapper execs "$HOME/toolchain/<tool>"; with HOME unset it
+    # collapses to the absolute "/toolchain/gcc", which does not exist
+    # (`/toolchain/gcc: No such file or directory`). --action_env only
+    # forwards HOME/PATH to *target*-configuration actions — protobuf and
+    # the other codegen tools compile in the *exec* ("[for tool]")
+    # configuration, which needs --host_action_env. Set both.
     - bazel build //pkg/cmd/cockroach-short:cockroach-short
         --config=ci
         --jobs={{ hw.concurrency }}
         --spawn_strategy=local
         --action_env=HOME=$PKGX_HOME
         --action_env=PATH=$PKGX_PATH
+        --host_action_env=HOME=$PKGX_HOME
+        --host_action_env=PATH=$PKGX_PATH
         --workspace_status_command=$(pwd)/build/bazelutil/stamp.sh
     - install -D -m755 bazel-bin/pkg/cmd/cockroach-short/cockroach-short_/cockroach-short
         "{{prefix}}/bin/cockroach"
