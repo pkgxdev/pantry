@@ -111,10 +111,18 @@ build:
     # see the pkgx include/lib dirs handed to it via the action env.
     # --action_env feeds target-config actions; --host_action_env feeds the
     # exec-config ("[for tool]") codegen + rules_go cgo actions; set both.
+    # --spawn_strategy=local is needed so the compiler actions can reach the
+    # pkgx toolchain under /opt (a sandbox would hide it). But running every
+    # genrule unsandboxed in the shared exec root makes cockroach's goyacc
+    # codegen scripts race on their fixed-name scratch files
+    # (`sed: couldn't open file types_regex.tmp`). Re-sandbox just the
+    # genrules — their tools are declared bazel inputs, so they don't need
+    # /opt — which gives each its own tmp dir and removes the race.
     - bazel build //pkg/cmd/cockroach-short:cockroach-short
         --config=ci
         --jobs={{ hw.concurrency }}
         --spawn_strategy=local
+        --strategy=Genrule=sandboxed
         --action_env=CC=$PKGX_CC
         --action_env=CXX=$PKGX_CXX
         --action_env=CPATH=$PKGX_CPATH
