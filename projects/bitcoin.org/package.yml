@@ -14,7 +14,12 @@ dependencies:
   sqlite.org: ^3
   capnproto.org: ^1 # since 30.0
   linux:
-    gnu.org/gcc/libstdcxx: '*' # c++20 support and libc++
+    # must lockstep with the build gcc below: 31.x uses std::atomic::wait, whose
+    # libstdc++ internals (std::__detail::__wait_impl / __wait_args_base) are gcc
+    # 15+ symbols. '*' floats the compiler to 16 while the runtime lib settles at
+    # 14 (the ecosystem's bottles), so gcc-16 objects fail to link against
+    # libstdc++ 14. Pin both to the same major.
+    gnu.org/gcc/libstdcxx: 14
 
 build:
   dependencies:
@@ -25,7 +30,7 @@ build:
     cmake.org: ^3.22
     ninja-build.org: '*'
     linux:
-      gnu.org/gcc: '*' # c++20 support and libc++
+      gnu.org/gcc: 14 # lockstep with libstdcxx above (atomic-wait ABI)
       nixos.org/patchelf: '*'
   script:
     - run:
