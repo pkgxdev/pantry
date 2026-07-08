@@ -161,9 +161,14 @@ build:
     - bazel clean --expunge || true
 
 test:
-  # capture stderr too, echo it (so a runtime loader error is visible), and
-  # accept either the embedded version or the CockroachDB banner.
+  # `cockroach version` was exiting non-zero with no output at all (a hard
+  # crash, not a loader message). Dump the binary's linkage + the exit code
+  # so the actual cause is visible in CI, then still assert on the banner so
+  # a broken binary can't pass.
   - |
-    out=$(cockroach version 2>&1 || true)
-    printf '%s\n' "$out"
-    printf '%s\n' "$out" | grep -qiE '{{version}}|CockroachDB'
+    bin=$(command -v cockroach)
+    echo "== file ==";  file "$bin" 2>&1 || true
+    echo "== ldd ==";   ldd  "$bin" 2>&1 || true
+    echo "== run ==";   out=$("$bin" version 2>&1); rc=$?
+    printf '%s\nexit=%s\n' "$out" "$rc"
+    printf '%s' "$out" | grep -qiE '{{version}}|CockroachDB'
