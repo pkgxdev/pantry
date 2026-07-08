@@ -23,13 +23,15 @@ platforms:
 provides:
   - bin/cockroach
 
-# cockroach embeds a lot of cgo C++ (Pebble/RocksDB, geos, etc.) built
-# with the pkgx gcc, so the binary needs that toolchain's libstdc++ at
-# runtime; without it the end-user env falls back to the distro libstdc++
-# and `cockroach` aborts with `GLIBCXX_... not found`.
+# cockroach embeds a lot of cgo C++ (Pebble/RocksDB, geos, etc.) compiled
+# with the pkgx gcc, so it needs that exact toolchain's libstdc++ at
+# runtime. The standalone gnu.org/gcc/libstdcxx bottle is an older gcc
+# series than the compiler used to build here; mixing it with the freshly
+# compiled objects segfaults on startup. Depend on the matching gcc bottle
+# so the runtime libstdc++ is the one the objects were built against.
 dependencies:
   linux:
-    gnu.org/gcc/libstdcxx: '*'
+    gnu.org/gcc: '*'
 
 build:
   dependencies:
@@ -161,14 +163,7 @@ build:
     - bazel clean --expunge || true
 
 test:
-  # `cockroach version` was exiting non-zero with no output at all (a hard
-  # crash, not a loader message). Dump the binary's linkage + the exit code
-  # so the actual cause is visible in CI, then still assert on the banner so
-  # a broken binary can't pass.
   - |
-    bin=$(command -v cockroach)
-    echo "== file ==";  file "$bin" 2>&1 || true
-    echo "== ldd ==";   ldd  "$bin" 2>&1 || true
-    echo "== run ==";   out=$("$bin" version 2>&1); rc=$?
-    printf '%s\nexit=%s\n' "$out" "$rc"
+    out=$(cockroach version 2>&1 || true)
+    printf '%s\n' "$out"
     printf '%s' "$out" | grep -qiE '{{version}}|CockroachDB'
