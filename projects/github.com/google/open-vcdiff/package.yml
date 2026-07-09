@@ -1,0 +1,111 @@
+# open-vcdiff — VCDIFF (RFC 3284) encoder/decoder by Google.
+#
+# Generic-differencing format used by Chrome's SDCH (Shared Dictionary
+# Compression over HTTP), Google's Update protocol, and various delta
+# compression schemes. Apache-2.0.
+#
+# Upstream marked the repo archived on 2023-08-26 — no active
+# development but it's RFC-compliant and remains the canonical
+# reference C++ implementation. Worth packaging precisely because
+# nothing replaces it.
+
+distributable:
+  url: https://github.com/google/open-vcdiff/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  # Upstream publishes git tags but ZERO GitHub Releases. Default
+  # `github: <repo>` mode queries /releases and returns empty
+  # (hence `not-found: version` on first CI runs). Force /tags.
+  github: google/open-vcdiff/tags
+  # Tag scheme changed: older releases used `open-vcdiff-X.Y` (dashes),
+  # recent ones use `openvcdiff-X.Y.Z` (no dash). Single combined regex.
+  strip: /^open-?vcdiff-/
+  # First tag `open-vcdiff-0.8` is 2-part — invalid strict semver.
+  ignore:
+    - /^open-vcdiff-0\.8$/
+
+# The `vcdiff` CLI parses its flags with google-gflags — that is a real
+# runtime dependency of the command-line tool, not a test-only one.
+dependencies:
+  gflags.github.io: '*'
+
+build:
+  dependencies:
+    linux:
+      gnu.org/gcc: '*'
+  script:
+    # ── Why not autotools ──────────────────────────────────────────
+    # The release tarball is a raw `git archive` of the tag. Upstream
+    # kept gflags + gtest as *in-tree* sources (Google-Code svn era,
+    # never git submodules — there is no .gitmodules), and those trees
+    # were dropped when the repo migrated to GitHub. So the shipped
+    # configure.ac / Makefile.am reference `gflags/src/*.cc`,
+    # `gtest/src/*.cc` and `AC_CONFIG_FILES([gflags/src/gflags/*.h])`
+    # that no longer exist: `autoreconf` (needed anyway to refresh the
+    # 2010 config.sub for arm64) dies on the missing gflags .h.in, and
+    # even if it didn't, `make` cannot build the bundled libgflags the
+    # `vcdiff` binary links against. gtest is genuinely test-only.
+    #
+    # The open-vcdiff library sources are self-contained and namespace
+    # everything under `open_vcdiff`, so we skip the broken build system
+    # entirely: hand a minimal portable config.h and compile the library
+    # translation units straight into a statically-linked `vcdiff`,
+    # linking the *packaged* gflags (its header lives at the expected
+    # `gflags/gflags.h`). This also sidesteps every libtool/config.sub
+    # arm64 issue the old build had.
+    - run: cp $PROP config.h
+      prop: |
+        /* Minimal portable config.h for open-vcdiff. Every HAVE_* below
+           is a POSIX facility present on all four supported targets
+           (linux/darwin x x86-64/aarch64). Optional accelerations that
+           are NOT uniformly available (HAVE_MEMALIGN, HAVE_MALLOC_H,
+           HAVE_EXT_ROPE) are deliberately left undefined so the sources
+           fall back to their portable code paths identically everywhere. */
+        #define HAVE_UNISTD_H 1
+        #define HAVE_SYS_MMAN_H 1
+        #define HAVE_SYS_TIME_H 1
+        #define HAVE_GETTIMEOFDAY 1
+        #define HAVE_MPROTECT 1
+        #define HAVE_POSIX_MEMALIGN 1
+        #define PACKAGE "open-vcdiff"
+        #define PACKAGE_NAME "open-vcdiff"
+        #define PACKAGE_VERSION "{{version}}"
+        #define VERSION "{{version}}"
+    # The bundled zlib checksum is C (K&R-era declarations) — compile it
+    # with the C driver so the C++ driver doesn't misparse it. Locate it
+    # with `find`: it moved from src/ (0.8.1) to src/zlib/ (0.8.2+), and
+    # its "zlib.h" lives beside it, hence -Isrc/zlib.
+    - cc -DNDEBUG -I. -Isrc -Isrc/zlib -c $(find src -name '*.c') -o adler32.o
+    # -std=c++14: the sources still use std::auto_ptr, removed in C++17
+    # (gcc's default). c++14 keeps it (deprecated-but-present).
+    #
+    # Linux: this is built with the pkgx gcc (a recent libstdc++), but the
+    # binary runs against whatever libstdc++ the end user's distro ships —
+    # which is routinely older and lacks the newer GLIBCXX_* symbols
+    # (`version GLIBCXX_3.4.32 not found`). Statically link libstdc++/libgcc
+    # AND gflags so `vcdiff` only needs the ambient libc at runtime. Darwin
+    # keeps the plain dynamic link (its toolchain ld doesn't take -Bstatic,
+    # and libc++ is the system one, so there is no ABI-skew problem).
+    - c++ -std=c++14 -DNDEBUG -DNO_THREADS -I. -Isrc -Isrc/zlib $(find src -name '*.cc' ! -name '*_test.cc' | sort)
+      adler32.o $PLATFORM_FLAGS -lgflags -o vcdiff
+    - install -D vcdiff "{{prefix}}/bin/vcdiff"
+  env:
+    linux:
+      PLATFORM_FLAGS:
+        - -static-libstdc++
+        - -static-libgcc
+        - -Wl,-Bstatic
+        - -Wl,-Bdynamic
+        - -pthread
+
+provides:
+  - bin/vcdiff
+
+test:
+  # Round-trip: create dict, target; encode; decode; check identity.
+  - printf 'the quick brown fox jumps over the lazy dog\n' > dict.txt
+  - printf 'the quick brown FOX jumps over the lazy DOG\n' > target.txt
+  - vcdiff encode -dictionary dict.txt -target target.txt -delta delta.vcdiff
+  - vcdiff decode -dictionary dict.txt -delta delta.vcdiff -target out.txt
+  - diff -q target.txt out.txt
