@@ -27,13 +27,15 @@ build:
     npmjs.com: "*"
   script:
     - npm i $ARGS .
+    - run: node postinstall.mjs
+      working-directory: "{{prefix}}/lib/node_modules/opencode-ai"
+      if: ">=1.17.16"
     - install -Dm755 props/opencode-init {{prefix}}/bin/opencode-init
   env:
     ARGS:
       - --global
       - --prefix={{prefix}}
       - --install-links
-      - --unsafe-perm
 
 test:
   - opencode --version
