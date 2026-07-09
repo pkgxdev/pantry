@@ -25,12 +25,6 @@ versions:
   ignore:
     - /^open-vcdiff-0\.8$/
 
-platforms:
-  - linux/x86-64
-  - linux/aarch64
-  - darwin/x86-64
-  - darwin/aarch64
-
 # The `vcdiff` CLI parses its flags with google-gflags — that is a real
 # runtime dependency of the command-line tool, not a test-only one.
 dependencies:
@@ -60,8 +54,8 @@ build:
     # linking the *packaged* gflags (its header lives at the expected
     # `gflags/gflags.h`). This also sidesteps every libtool/config.sub
     # arm64 issue the old build had.
-    - run: |
-        cat > config.h <<'EOF'
+    - run: cp $PROP config.h
+      prop: |
         /* Minimal portable config.h for open-vcdiff. Every HAVE_* below
            is a POSIX facility present on all four supported targets
            (linux/darwin x x86-64/aarch64). Optional accelerations that
@@ -78,14 +72,11 @@ build:
         #define PACKAGE_NAME "open-vcdiff"
         #define PACKAGE_VERSION "{{version}}"
         #define VERSION "{{version}}"
-        EOF
     # The bundled zlib checksum is C (K&R-era declarations) — compile it
     # with the C driver so the C++ driver doesn't misparse it. Locate it
     # with `find`: it moved from src/ (0.8.1) to src/zlib/ (0.8.2+), and
     # its "zlib.h" lives beside it, hence -Isrc/zlib.
-    - run: |
-        cfiles=$(find src -name '*.c')
-        cc -DNDEBUG -I. -Isrc -Isrc/zlib -c $cfiles -o adler32.o
+    - cc -DNDEBUG -I. -Isrc -Isrc/zlib -c $(find src -name '*.c') -o adler32.o
     # -std=c++14: the sources still use std::auto_ptr, removed in C++17
     # (gcc's default). c++14 keeps it (deprecated-but-present).
     #
@@ -96,27 +87,20 @@ build:
     # AND gflags so `vcdiff` only needs the ambient libc at runtime. Darwin
     # keeps the plain dynamic link (its toolchain ld doesn't take -Bstatic,
     # and libc++ is the system one, so there is no ABI-skew problem).
-    - run: |
-        srcs=$(find src -name '*.cc' ! -name '*_test.cc' | sort)
-        c++ -std=c++14 -DNDEBUG -DNO_THREADS -I. -Isrc -Isrc/zlib \
-            $srcs adler32.o -lgflags -o vcdiff
-      if: darwin
-    - run: |
-        srcs=$(find src -name '*.cc' ! -name '*_test.cc' | sort)
-        c++ -std=c++14 -DNDEBUG -DNO_THREADS -I. -Isrc -Isrc/zlib \
-            $srcs adler32.o -static-libstdc++ -static-libgcc \
-            -Wl,-Bstatic -lgflags -Wl,-Bdynamic -pthread -o vcdiff
-      if: linux
+    - c++ -std=c++14 -DNDEBUG -DNO_THREADS -I. -Isrc -Isrc/zlib $(find src -name '*.cc' ! -name '*_test.cc' | sort)
+      adler32.o $PLATFORM_FLAGS -lgflags -o vcdiff
     - install -D vcdiff "{{prefix}}/bin/vcdiff"
+  env:
+    linux:
+      PLATFORM_FLAGS="-static-libstdc++ -static-libgcc -Wl,-Bstatic -Wl,-Bdynamic -pthread"
 
 provides:
   - bin/vcdiff
 
 test:
   # Round-trip: create dict, target; encode; decode; check identity.
-  - run: |
-      printf 'the quick brown fox jumps over the lazy dog\n' > dict.txt
-      printf 'the quick brown FOX jumps over the lazy DOG\n' > target.txt
-      vcdiff encode -dictionary dict.txt -target target.txt -delta delta.vcdiff
-      vcdiff decode -dictionary dict.txt -delta delta.vcdiff -target out.txt
-      diff -q target.txt out.txt
+  - printf 'the quick brown fox jumps over the lazy dog\n' > dict.txt
+  - printf 'the quick brown FOX jumps over the lazy DOG\n' > target.txt
+  - vcdiff encode -dictionary dict.txt -target target.txt -delta delta.vcdiff
+  - vcdiff decode -dictionary dict.txt -delta delta.vcdiff -target out.txt
+  - diff -q target.txt out.txt
