@@ -10,12 +10,13 @@ dependencies:
   gnome.org/adwaita-icon-theme: "*"
   gnu.org/gettext: "*"
   freedesktop.org/appstream: "*"
-  pwmt.org/girara: ^2026
+  pwmt.org/girara: ^2026.7
   freedesktop.org/intltool: "*"
   freedesktop.org/desktop-file-utils: "*"
   darwinsys.com/file: "*"
   gtk.org/gtk3: ^3.22
   gtk.org/gtk4: ^4.13 # as of 2026.7.2
+  gnome.org/pango: ">=1.58" # required by newer gtk4.pc
   # further new required deps in 2026.x's meson.build
   gnome.org/json-glib: "*"
   github.com/Cyan4973/xxHash: "*"
@@ -35,6 +36,20 @@ build:
     # Fix build with newer girara
     - run: sed -i 's/girara_warn(/girara_warning(/g' main.c
       working-directory: zathura
+    # Fix Clang error: goto bypasses initialization of cleanup variables.
+    - run: sed -i -f $PROP zathura.c
+      prop: |
+        s/g_autofree char\* first_page_column_list = NULL;/char* first_page_column_list = NULL;/
+        s/g_autofree char\* page_mode = NULL;/char* page_mode = NULL;/
+        /g_free(first_page_column_list);/d
+        /g_free(page_mode);/d
+        s/girara_setting_set(zathura->ui.session, "first-page-column", first_page_column_list);/&\n  g_free(first_page_column_list);/
+        s/zathura_update_view_ppi(zathura);/g_free(page_mode);\n\n  &/
+      working-directory: zathura
+      if: =2026.7.8
+    - run: sed -i 's|features</issue>|features</p>|' org.pwmt.zathura.metainfo.xml.in
+      working-directory: data
+      if: =2026.7.8
     - meson setup build --prefix={{prefix}} -Dmanpages=disabled
     - ninja -C build
     - ninja -C build install
