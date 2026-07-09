@@ -12,6 +12,13 @@ dependencies:
 
 build:
   script:
+    - run: sed -i -f $PROP bam_fastq.c
+      if: ">=1.24"
+      prop: |
+        /static char \*samtools_fgets/d
+        /#include "sam_opts.h"/a\
+        static char *samtools_fgets(char *buffer, int size, void *fp) { return fgets(buffer, size, (FILE *)fp); }
+        s/kfgetline(&ks, fp)/kgetline(\&ks, samtools_fgets, fp)/
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
   env:
