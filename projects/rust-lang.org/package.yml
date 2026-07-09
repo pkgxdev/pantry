@@ -57,8 +57,8 @@ build:
       if: ">=1.68<1.70"
       working-directory: src/bootstrap
 
-    # prevent system LLVM headers from interfering with bundled LLD build
-    - run: export CMAKE_PREFIX_PATH=$(echo $CMAKE_PREFIX_PATH | tr ':' '\n' | grep -v llvm.org | tr '\n' ':' | sed 's/:$//')
+    # avoid rebuilding bundled LLVM; it exhausts disk on smaller Linux runners
+    - run: export ARGS="$ARGS --llvm-config={{deps.llvm.org.prefix}}/bin/llvm-config --disable-lld --disable-codegen-tests"
       if: linux
 
     - ./configure $ARGS
