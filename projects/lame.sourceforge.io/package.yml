@@ -12,17 +12,35 @@ versions:
 provides:
   - bin/lame
 
+dependencies:
+  mpg123.de: "*" # since 3.101
+
 build:
-  script: |
+  script:
     # Fix for Undefined symbols ... "_lame_init_old"
     # https://sourceforge.net/p/lame/mailman/message/36081038/
-    sed -i.bak "/lame_init_old/d" include/libmp3lame.sym
+    - sed -i "/lame_init_old/d" include/libmp3lame.sym
+    # 3.101's UTF-8 ID3 path has stale UCS-2 names/types.
+    - run: sed -i -f $PROP parse.c
+      working-directory: frontend
+      prop: |
+        s/int type, unsigned short const\* str)/int type, void const* str)/
+        s/id3tag_set_comment_ucs2(gfp, 0, 0, str)/id3tag_set_comment_utf8(gfp, 0, 0, str)/
+        s/id3tag_set_fieldvalue_ucs2(gfp, str)/id3tag_set_fieldvalue(gfp, str)/
+    - sed -i 's/id3tag_set_textinfo_utf8(lame_t gfp, char const \*id, unsigned short const \*text)/id3tag_set_textinfo_utf8(lame_t gfp, char const *id, char const *text)/' include/lame.h libmp3lame/id3tag.c
+    - run: sed -i -f $PROP id3tag.c
+      working-directory: libmp3lame
+      prop: |
+        s/id3tag_set_genre_utf8(lame_t gfp, unsigned short const\* text)/id3tag_set_genre_utf8(lame_t gfp, char const* text)/
+        /id3tag_set_genre_utf8/,/id3tag_set_genre_utf16/ s/if (maybeLatin1(text)) {/if (text != 0) {/
+        /id3tag_set_genre_utf8/,/id3tag_set_genre_utf16/ s/char\*   latin1 = local_strdup_utf16_to_latin1(text);/char const* latin1 = text;/
+        /id3tag_set_genre_utf8/,/id3tag_set_genre_utf16/ s/free(latin1);//
 
-    ./configure --prefix={{prefix}} \
-                --disable-debug \
-                --disable-dependency-tracking \
+    - ./configure --prefix={{prefix}}
+                --disable-debug
+                --disable-dependency-tracking
                 --enable-nasm
-    make install
+    - make install
   env:
     linux/x86-64:
       CFLAGS: -fPIC
