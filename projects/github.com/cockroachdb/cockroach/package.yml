@@ -105,24 +105,38 @@ build:
     - sed -i.bak "s/__VERSION__/{{version}}/g;s|__TRIPLE__|$(go env GOOS)-$(go env GOARCH)|g" build/bazelutil/stamp.sh
     - rm -f build/bazelutil/stamp.sh.bak
     - chmod +x build/bazelutil/stamp.sh
-    # libstdc++ for the SHIPPED binary: cockroach's cgo (Pebble/geos/…) and
-    # bazel's own C++ codegen tools (e.g. protoc) are built with the pkgx
-    # gcc and need THAT gcc's libstdc++, newer than an old base image's
-    # system copy. Left to the default loader search the final binary picks
-    # up the host's system libstdc++ — ABI-mismatched on an old base — and
-    # segfaults on startup. Installing pkgx's libstdc++ as the system one
-    # doesn't fix this: it needs root and only patches the build machine, so
-    # the CI test container and end users still get the wrong lib and the
-    # bottle still segfaults. Instead we bake an -rpath to this gcc bottle's
-    # lib dir into every bazel-linked output via --linkopt/--host_linkopt
-    # below, so protoc and the cockroach binary resolve libstdc++ from the
-    # (rpath-recorded, brewkit-rewritten) gcc bottle regardless of env or
-    # host — no root, no system libstdc++. The gnu.org/gcc runtime dep
-    # guarantees that bottle is installed alongside cockroach. Verified
-    # end-to-end on x86-64: `env -i cockroach version` -> exit 0, ldd shows
-    # the pkgx libstdc++. (The linker tool ld.gold is a prebuilt binutils
-    # binary, not a bazel output, so it isn't rpath'd — it gets its own
-    # libstdc++ from the LD_LIBRARY_PATH forwarded into the actions below.)
+    # libstdc++ is a two-front problem here — BUILD-time and RUNTIME — and
+    # each front needs its own fix:
+    #
+    # (1) BUILD-time: the linker ld.gold (pkgx binutils) is itself a C++
+    # program needing a newer GLIBCXX than an old base image's system
+    # libstdc++. rules_go's link builder scrubs LD_LIBRARY_PATH from the
+    # linker subprocess, so the --action_env below does NOT reach ld.gold;
+    # it falls back to the container's ancient libstdc++ and dies
+    # (`ld.gold: GLIBCXX_3.4.32 not found`). We can't switch to ld.bfd —
+    # bazel/protobuf pass gold/lld-only options like `--start-lib`. So we
+    # install pkgx's libstdc++ as the system one (backward-compatible, so
+    # pre-existing distro tools keep working), which ld.gold resolves via
+    # the default loader path regardless of the scrubbed env. This only
+    # touches the build machine.
+    #
+    # (2) RUNTIME: (1) alone is NOT enough — the shipped cockroach binary,
+    # left to the default loader search, would pick up whatever libstdc++
+    # is on the USER's (or the CI *test* container's) system, which is
+    # ABI-mismatched against the pkgx-gcc-built cgo and segfaults on
+    # startup (this was the CI failure: build green, `cockroach version`
+    # exit 139). So we ALSO bake an -rpath to this gcc bottle's lib dir
+    # into every bazel-linked output via --linkopt/--host_linkopt below,
+    # making the binary resolve libstdc++ from the (rpath-recorded,
+    # brewkit-rewritten) gcc bottle on any host. The gnu.org/gcc runtime
+    # dep guarantees that bottle is present. Verified on x86-64:
+    # `env -i cockroach version` -> exit 0, ldd shows the pkgx libstdc++.
+    - |
+      command -v sudo >/dev/null 2>&1 && SUDO=sudo || SUDO=
+      SYS_LIBDIR=$(dirname "$(ldconfig -p | awk '/libstdc\+\+\.so\.6/{print $NF; exit}')")
+      SRC=$(ls {{deps.gnu.org/gcc.prefix}}/lib64/libstdc++.so.6* 2>/dev/null || ls {{deps.gnu.org/gcc.prefix}}/lib/libstdc++.so.6*)
+      $SUDO cp -Pf $SRC "$SYS_LIBDIR/"
+      $SUDO ldconfig
     # cockroach-short is the pure-binary target (no embedded JS web UI),
     # which keeps the build tractable without docker / nodejs in CI.
     # `--spawn_strategy=local` disables bazel's sandbox so the compiler can
