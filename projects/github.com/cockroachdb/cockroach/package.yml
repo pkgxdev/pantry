@@ -12,13 +12,17 @@ versions:
     - /-beta/
     - /-rc/
 
-# Linux-only. CockroachDB is a Linux server product and its Bazel build
-# pins a rules_go go_sdk that has no darwin toolchain
+# Linux/x86-64 only. CockroachDB is a Linux server product and its Bazel
+# build pins a rules_go go_sdk that has no darwin toolchain
 # (`unsupported platform darwin_amd64`); upstream ships dev darwin
 # binaries through a separate path that isn't reproducible here.
+# aarch64 is deferred: the CI ARM runner dies ~2.5 min into the build
+# (before x86-64's ~12 min build even links), with no uploaded logs —
+# an infra/runner limit on this heavy bazel build, not a recipe bug.
+# Ship x86-64 (the primary server target) now; revisit aarch64 when the
+# ARM build can be reproduced.
 platforms:
   - linux/x86-64
-  - linux/aarch64
 
 provides:
   - bin/cockroach
