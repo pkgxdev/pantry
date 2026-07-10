@@ -4,18 +4,21 @@
 # - Full release build typically takes 30-60 min on CI and peaks around 6 GB RAM.
 #   Do not be surprised by long bottle times; this is expected.
 #
-# GCC PIN (critical):
-#   TiKV's bundled C++ (RocksDB / Titan / gRPC) does not build correctly
-#   with gcc 13+ — see https://github.com/tikv/tikv/issues/16593 .
-#   Arch's AUR PKGBUILD pins `gcc12<12.4.0` and exports CC=gcc-12 / CXX=g++-12:
-#     https://aur.archlinux.org/cgit/aur.git/plain/PKGBUILD?h=tikv
-#   We mirror that with an exact pin `gnu.org/gcc: =12.3.0`
-#   and an explicit CC/CXX. This is what finally fixed the
-#   "undefined reference to EVP_CIPHER_nid / SSL_get_peer_certificate"
-#   final-link failures we hit across 5 prior iterations with gcc 16
-#   on pantry builders — gcc 13+ visibility/LTO/as-needed semantics
-#   differ enough that the bundled C++ object files in librocksdb_sys.rlib
-#   / libgrpcio_sys.rlib couldn't resolve openssl symbols.
+# OPENSSL LINK FIX (the headline):
+#   The "undefined reference to EVP_CIPHER_nid / SSL_get_peer_certificate"
+#   final-link failure is NOT a gcc-version problem (5 prior iterations
+#   chasing that were a red herring). Root cause, reproduced on a real
+#   x86-64 box: TiKV's `make release` enables the `openssl-vendored`
+#   feature, which vendors OpenSSL 3.5.2 — but the bundled RocksDB/gRPC
+#   C++ uses the OpenSSL 1.1 API (those two symbols became macros in 3.x
+#   and are no longer exported). So 3.5.2 can't satisfy them at link time.
+#   Fix: drop `openssl-vendored` (sed in the build script) and build
+#   against the packaged OpenSSL 1.1.1w consistently. Verified end-to-end.
+#
+# GCC PIN:
+#   Separately, TiKV's bundled C++ does not build with gcc 13+
+#   (https://github.com/tikv/tikv/issues/16593); Arch pins `gcc12<12.4.0`.
+#   We mirror that with `gnu.org/gcc: =12.3.0` + explicit CC/CXX.
 #
 # CMAKE_POLICY_VERSION_MINIMUM=3.5:
 #   https://github.com/tikv/tikv/issues/18867 — cmake 4.x rejects the
@@ -56,17 +59,13 @@ build:
     gnu.org/automake: '*'
     gnu.org/libtool: '*'
     llvm.org: '*'
-    # OpenSSL: leave version unconstrained so the resolver can pick
-    # whatever the rest of the build-deps demand.  Tried `^3` to force
-    # the 3.x branch (which has deprecated symbols available) but a
-    # transitive dep in this graph already requires `^1.1`, and the
-    # resolver fails with `cannot intersect: ^1.1 && ^3`.  Stuck with
-    # 1.1.1w.  The "undefined reference to SSL_get_peer_certificate /
-    # EVP_CIPHER_nid" errors that appeared with 1.1.1w were not an
-    # openssl-version problem at all — they were a gcc-version problem
-    # (see GCC PIN note at top of file).  With the gcc pin in place
-    # those symbols resolve normally.
-    openssl.org: '*'
+    # OpenSSL 1.1 (pin the branch): TiKV's bundled RocksDB/gRPC C++ is
+    # written against the 1.1 API (EVP_CIPHER_nid / SSL_get_peer_certificate,
+    # both removed-as-symbols in 3.x). It must both compile against and link
+    # 1.1 headers+libs. We drop `openssl-vendored` (which would pull 3.5.2)
+    # in the build script and point every sub-build at this bottle via the
+    # OPENSSL_* env below.
+    openssl.org: ^1.1
     linux:
       # See top-of-file note: TiKV's bundled C++ (RocksDB/Titan/gRPC)
       # breaks with gcc 13+ (tikv#16593). Arch pins `gcc12<12.4.0`;
@@ -89,26 +88,13 @@ build:
     # cmake 4.x rejects the bundled sub-builds' min-policy without this.
     # See https://github.com/tikv/tikv/issues/18867 .
     CMAKE_POLICY_VERSION_MINIMUM: '3.5'
-    # ITER HISTORY at the final cargo link step:
-    #
-    #   ef0426ef — pin openssl.org ^3 — resolver rejected (transitive ^1.1)
-    #   2ba7b88b — RUSTFLAGS -Wl,--no-as-needed -lssl -lcrypto         FAIL
-    #   8c575d46 — wrap in --no-as-needed / --as-needed                FAIL
-    #   8c76a667 — pin gcc =12.3.0, drop RUSTFLAGS (mirror arch)       FAIL — built 35→64min, hit same link error
-    #   THIS ITER — re-instate RUSTFLAGS + OPENSSL_STATIC=1 on top of gcc 12.3
-    #
-    # The bundled C++ in librocksdb-sys (encryption.cc) and grpcio-sys
-    # (ssl_transport_security.cc) reference SSL_get_peer_certificate and
-    # EVP_CIPHER_nid; openssl-sys's build.rs doesn't emit a link
-    # directive for them on the link line, so cargo's final cc invocation
-    # omits -lssl/-lcrypto. OPENSSL_STATIC=1 tells openssl-sys to emit
-    # `-l static=ssl -l static=crypto`, which forces ld to include
-    # libssl.a/libcrypto.a wholesale — the bundled .o objects then
-    # resolve their references regardless of link-order. RUSTFLAGS is
-    # kept as belt-and-braces in case static libs aren't shipped in
-    # pkgx's openssl bottle.
-    OPENSSL_STATIC: '1'
-    RUSTFLAGS: '-C link-arg=-L{{deps.openssl.org.prefix}}/lib -C link-arg=-Wl,--no-as-needed -C link-arg=-lssl -C link-arg=-lcrypto -C link-arg=-Wl,--as-needed'
+    # The undefined-reference-to-EVP_CIPHER_nid/SSL_get_peer_certificate
+    # link failure is fixed by dropping `openssl-vendored` (see the
+    # Makefile sed in the build script), NOT by RUSTFLAGS/OPENSSL_STATIC —
+    # those never worked because the vendored OpenSSL 3.5.2 genuinely lacks
+    # those 1.1-era symbols regardless of how it's linked. With the sed the
+    # build uses the packaged OpenSSL 1.1.1w consistently and OPENSSL_DIR/
+    # OPENSSL_ROOT_DIR (above) point every bundled CMake sub-build at it.
     # Build the bundled C++ libs (RocksDB + Titan + jemalloc) in
     # portable mode so they don't hardcode FORCE_SSE42=ON. SSE4.2 is
     # x86-only — on aarch64 the titan CMakeLists.txt bails with
@@ -127,6 +113,19 @@ build:
         - rustup default "$(grep '^channel' $SRCROOT/rust-toolchain.toml | sed 's/channel = "//;s/"//')"
         - ln -sf $HOME/.rustup/toolchains/*/bin/* .
       working-directory: $HOME/.cargo/bin
+    # THE openssl link fix: drop `openssl-vendored` from the feature set.
+    # TiKV's Makefile appends it in the non-FIPS branch, which pulls
+    # openssl-src (vendors OpenSSL 3.5.2). But the bundled C++ in
+    # librocksdb-sys (encryption.cc) and grpcio-sys (ssl_transport_security.cc)
+    # is written against the OpenSSL 1.1 API — it references EVP_CIPHER_nid
+    # and SSL_get_peer_certificate, which 3.x turned into macros
+    # (EVP_CIPHER_get_nid / SSL_get1_peer_certificate) and no longer exports
+    # as symbols. So the 3.5.2 archives can't satisfy those references at the
+    # final link. Removing the line makes the whole build use the packaged
+    # OpenSSL 1.1.1w (via the OPENSSL_* env below) consistently — headers AND
+    # libs — so the symbols resolve. Verified end-to-end on x86-64 (both
+    # tikv-server and tikv-ctl build, link, and `--version`).
+    - sed -i '/ENABLE_FEATURES += openssl-vendored/d' Makefile
     - make release
     - mkdir -p "{{prefix}}/bin"
     - cp target/release/tikv-server target/release/tikv-ctl "{{prefix}}/bin/"
