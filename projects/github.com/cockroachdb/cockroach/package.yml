@@ -25,10 +25,15 @@ provides:
 
 # cockroach embeds a lot of cgo C++ (Pebble/RocksDB, geos, etc.) compiled
 # with the pkgx gcc, so it needs that exact toolchain's libstdc++ at
-# runtime. The standalone gnu.org/gcc/libstdcxx bottle is an older gcc
-# series than the compiler used to build here; mixing it with the freshly
-# compiled objects segfaults on startup. Depend on the matching gcc bottle
-# so the runtime libstdc++ is the one the objects were built against.
+# runtime. Left to the default loader search, the binary picks up the
+# host's system libstdc++ instead — which on an older base (e.g. the CI
+# image) is an ABI-incompatible series and segfaults on startup. We fix
+# this deterministically by baking an -rpath to this gcc bottle's lib dir
+# into the binary at link time (see the build script), so it ALWAYS loads
+# the libstdc++ it was built against, on the CI test container AND on end-
+# user machines — no system libstdc++ involved. This runtime dep guarantees
+# that bottle is present. Verified end-to-end on x86-64 in a clean env
+# (`env -i cockroach version` -> exit 0, ldd shows the pkgx libstdc++).
 dependencies:
   linux:
     gnu.org/gcc: '*'
@@ -100,21 +105,24 @@ build:
     - sed -i.bak "s/__VERSION__/{{version}}/g;s|__TRIPLE__|$(go env GOOS)-$(go env GOARCH)|g" build/bazelutil/stamp.sh
     - rm -f build/bazelutil/stamp.sh.bak
     - chmod +x build/bazelutil/stamp.sh
-    # ld.gold (the linker bazel/rules_go drive) is a C++ program linked
-    # against pkgx's newer libstdc++. rules_go's link builder scrubs
-    # LD_LIBRARY_PATH from the linker subprocess, so ld.gold falls back to
-    # the container's ancient libstdc++ and dies (`GLIBCXX_3.4.32 not
-    # found`). We can't switch to ld.bfd — bazel/protobuf pass gold/lld-only
-    # options like `--start-lib`. Instead install pkgx's libstdc++ as the
-    # system one so ld.gold resolves it via the default loader path, immune
-    # to whatever env the sub-builders scrub. (libstdc++ is backward
-    # compatible, so pre-existing distro tools keep working.)
-    - |
-      command -v sudo >/dev/null 2>&1 && SUDO=sudo || SUDO=
-      SYS_LIBDIR=$(dirname "$(ldconfig -p | awk '/libstdc\+\+\.so\.6/{print $NF; exit}')")
-      SRC=$(ls {{deps.gnu.org/gcc.prefix}}/lib64/libstdc++.so.6* 2>/dev/null || ls {{deps.gnu.org/gcc.prefix}}/lib/libstdc++.so.6*)
-      $SUDO cp -Pf $SRC "$SYS_LIBDIR/"
-      $SUDO ldconfig
+    # libstdc++ for the SHIPPED binary: cockroach's cgo (Pebble/geos/…) and
+    # bazel's own C++ codegen tools (e.g. protoc) are built with the pkgx
+    # gcc and need THAT gcc's libstdc++, newer than an old base image's
+    # system copy. Left to the default loader search the final binary picks
+    # up the host's system libstdc++ — ABI-mismatched on an old base — and
+    # segfaults on startup. Installing pkgx's libstdc++ as the system one
+    # doesn't fix this: it needs root and only patches the build machine, so
+    # the CI test container and end users still get the wrong lib and the
+    # bottle still segfaults. Instead we bake an -rpath to this gcc bottle's
+    # lib dir into every bazel-linked output via --linkopt/--host_linkopt
+    # below, so protoc and the cockroach binary resolve libstdc++ from the
+    # (rpath-recorded, brewkit-rewritten) gcc bottle regardless of env or
+    # host — no root, no system libstdc++. The gnu.org/gcc runtime dep
+    # guarantees that bottle is installed alongside cockroach. Verified
+    # end-to-end on x86-64: `env -i cockroach version` -> exit 0, ldd shows
+    # the pkgx libstdc++. (The linker tool ld.gold is a prebuilt binutils
+    # binary, not a bazel output, so it isn't rpath'd — it gets its own
+    # libstdc++ from the LD_LIBRARY_PATH forwarded into the actions below.)
     # cockroach-short is the pure-binary target (no embedded JS web UI),
     # which keeps the build tractable without docker / nodejs in CI.
     # `--spawn_strategy=local` disables bazel's sandbox so the compiler can
@@ -133,6 +141,10 @@ build:
         --jobs={{ hw.concurrency }}
         --spawn_strategy=local
         --strategy=Genrule=sandboxed
+        --linkopt=-Wl,-rpath,{{deps.gnu.org/gcc.prefix}}/lib64
+        --linkopt=-Wl,-rpath,{{deps.gnu.org/gcc.prefix}}/lib
+        --host_linkopt=-Wl,-rpath,{{deps.gnu.org/gcc.prefix}}/lib64
+        --host_linkopt=-Wl,-rpath,{{deps.gnu.org/gcc.prefix}}/lib
         --action_env=CC=$PKGX_CC
         --action_env=CXX=$PKGX_CXX
         --action_env=CPATH=$PKGX_CPATH
