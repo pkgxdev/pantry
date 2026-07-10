@@ -1,0 +1,103 @@
+# MySQL 5.7 — legacy line.
+#
+# 5.7 reached EOL in October 2023 — homebrew dropped its `mysql@5.7`
+# formula in 2024. Some legacy applications (Rails 5.x apps,
+# WordPress legacy sites, custom replication setups) still pin to
+# 5.7 because the 8.0 migration broke their schema or auth modes.
+#
+# Build is best-effort — 5.7 needs older C++ idioms, boost 1.59,
+# OpenSSL 1.0.x patterns. Expect to iterate.
+#
+# Closes part of pkgxdev/pantry#99 (Top 300 holdout #735).
+
+distributable:
+  url: https://cdn.mysql.com/Downloads/MySQL-{{version.marketing}}/mysql-boost-{{version}}.tar.gz
+  strip-components: 1
+
+# Pin to the 5.7.x stream. mysql-server tags use "mysql-5.7.X" format.
+versions:
+  github: mysql/mysql-server/tags
+  # `github:` mode silently ignores `match:`. Negative lookahead in
+  # `ignore:` also doesn't work (RE2-like regex, no lookahead).
+  # Use `transform:` instead — return the stripped 5.7.X version for
+  # matching tags, undefined for everything else.
+  transform: |
+    v => {
+      const m = v.match(/^mysql-(5\.7\.\d+)$/);
+      return m ? m[1] : undefined;
+    }
+
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+  - darwin/x86-64
+  - darwin/aarch64
+
+dependencies:
+  unicode.org: '*'
+  libevent.org: ^2
+  openssl.org: ^1.1
+  zlib.net: ^1
+  curl.se: '*'
+  thrysoee.dk/editline: '*'
+  linux:
+    # Runtime libstdc++. gcc 8 produced older GLIBCXX_3.4.25-ish
+    # symver references which libstdcxx ^14 (forward-compatible) can
+    # resolve. Same lockstep rationale as the main mysql recipe
+    # (PR #13104) — pantry doesn't auto-propagate stdenv.cc.cc.lib
+    # the way nixpkgs does, so the runtime libstdc++ must be
+    # explicit.
+    gnu.org/gcc/libstdcxx: ^14
+
+build:
+  dependencies:
+    cmake.org: ^3
+    gnu.org/bison: '*'
+    linux:
+      # MySQL 5.7's vendored InnoDB uses unnamed scoped enums + other
+      # pre-C++17 idioms that gcc 12+ rejects. Use the dedicated gcc 8
+      # recipe (companion PR #13070). Linux only — homebrew's
+      # mysql@5.7 builds fine on darwin with the system clang (which
+      # is what pantry uses on darwin too), no gcc pin needed.
+      gnu.org/gcc/v8: '*'
+  working-directory: build
+  script:
+    # 5.7's bundled boost has the old `cmake_minimum_required` which
+    # CMake 4.x rejects without the policy floor override.
+    - run: |
+        export CMAKE_POLICY_VERSION_MINIMUM=3.5
+        cmake .. $ARGS
+        make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DDOWNLOAD_BOOST=0
+      - -DWITH_BOOST=../boost   # bundled
+      - -DWITH_SSL=system
+      - -DWITH_ZLIB=system
+      - -DWITH_LIBEVENT=system
+      - -DWITH_EDITLINE=system
+      - -DENABLED_LOCAL_INFILE=1
+      - -DWITHOUT_TOKUDB=1
+      - -DWITHOUT_ROCKSDB=1
+      - -DWITHOUT_MROONGA=1
+      - -DWITHOUT_SPIDER=1
+      # Don't force CXX_STANDARD=17 — the whole point of pinning gcc 8
+      # is that 5.7's vendored sources are pre-C++17. Let the gcc 8
+      # default (gnu++14) apply, matching homebrew's mysql@5.7 build.
+
+provides:
+  - bin/mysql
+  - bin/mysqld
+  - bin/mysqldump
+  - bin/mysqladmin
+  - bin/mysqlimport
+  - bin/mysqlcheck
+  - bin/mysqlshow
+  - bin/mysqlbinlog
+  - bin/mysql_secure_installation
+  - bin/mysql_config
+
+test:
+  - mysql --version | grep "5\\.7\\."
