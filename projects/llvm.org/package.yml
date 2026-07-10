@@ -40,9 +40,20 @@ build:
   script:
     # Building compiler-rt on darwin+aarch64 fails for versions less than
     # 14 with the below configuration. FIXME if possible, of course.
+    #
+    # On linux we ALSO build libc++/libc++abi/libunwind as runtimes so the
+    # bottle ships a usable libc++ (headers under include/c++/v1 + the
+    # shared libs). Without it, clang has no libc++ at all on linux — only
+    # gcc's libstdc++ (which stays the default via CLANG_DEFAULT_CXX_STDLIB
+    # below) — so anything requiring `-stdlib=libc++` (e.g. envoyproxy.io,
+    # which dropped gcc/libstdc++ support in 1.21+) fails with
+    # "'iostream'/'string' file not found". This is additive: libstdc++
+    # remains the default; libc++ is now available on request. Darwin gets
+    # libc++ from the SDK, so we only add these on linux.
     - run: |
         RUNTIMES="-DLLVM_ENABLE_RUNTIMES='compiler-rt'"
         if test "{{hw.platform}}" = "linux"; then
+          RUNTIMES="-DLLVM_ENABLE_RUNTIMES='compiler-rt;libcxx;libcxxabi;libunwind'"
           ARGS="$ARGS $RUNTIMES"
         elif semverator satisfies '>=14' {{version}}; then
           ARGS="$ARGS $RUNTIMES"
