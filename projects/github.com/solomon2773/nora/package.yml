@@ -1,0 +1,28 @@
+distributable:
+  url: https://registry.npmjs.org/@noraai/cli/-/cli-{{version}}.tgz
+  strip-components: 1
+
+display-name: nora
+
+versions:
+  npm: "@noraai/cli"
+
+provides:
+  - bin/nora
+
+dependencies:
+  nodejs.org: ^24
+
+build:
+  dependencies:
+    npmjs.com: "*"
+  script: npm i $ARGS .
+  env:
+    ARGS:
+      - --global
+      - --prefix={{prefix}}
+      - --install-links
+
+test:
+  - run: 'nora --version | grep -q "{{version}}"'
+  - run: 'nora --help | grep -q "Usage: nora"'
