@@ -1,0 +1,93 @@
+# PyQt5 — Python bindings for Qt 5, installed from upstream's official
+# PyPI wheel (which bundles the Qt5 libraries). Provides the
+# pyuic5/pyrcc5/pylupdate5 tools and an importable `PyQt5`.
+#
+# Why vendored (wheel): building PyQt5 from the sip sources compiles
+# enormous generated C++ per binding and OOM-killed CI; splitting into
+# per-binding sub-recipes then hit a lockstep co-dependency (each
+# binding 404'd resolving its sibling's not-yet-published bottle). The
+# official wheel sidesteps both, in one package.
+#
+# Platform note: the macOS wheels are self-contained (Qt5 + the cocoa
+# platform plugin are bundled and rpath-wired). The manylinux wheel is
+# NOT self-contained — its QtGui/QtWidgets dlopen the host X11/xcb/mesa
+# GUI stack, so on linux we pull that stack in as runtime deps below
+# (x.org/*, mesa3d.org, xkbcommon.org, glib, fontconfig, freetype, dbus).
+# Confirmed `from PyQt5 import QtWidgets` imports on a minimal linux
+# sandbox with exactly those deps.
+#
+# Why not from-source: I tried building the bindings with sip-install
+# against qt.io's Qt 5.15.10 (sip + pyqt-builder are now in the pantry).
+# It fails before the compile even starts — sip-install *runs* a small Qt
+# test exe per module, and executing a Qt program in the headless build
+# sandbox breaks on loader paths: on linux the QtGui cfgtest can't load
+# mesa's libLLVM.so (llvmpipe, dlopened via libGL); on darwin the cfgtest
+# can't resolve qt.io's QtCore.framework via @rpath (DYLD path stripping).
+# Both are sip-install-internal cfgtests, so they're not fixable from the
+# recipe's own env. The official wheel (Qt bundled) sidesteps all of it.
+
+distributable:
+  url: https://pypi.io/packages/source/P/PyQt5/PyQt5-{{ version.raw }}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://pypi.org/simple/pyqt5/
+  match: /PyQt5-\d+\.\d+\.\d+\.tar\.gz/
+  strip:
+    - /^PyQt5-/
+    - /\.tar\.gz/
+
+platforms:
+  - linux/x86-64
+  - darwin/x86-64
+  - darwin/aarch64
+
+dependencies:
+  pkgx.sh: ">=1"
+  python.org: ~3.11
+  # The manylinux wheel's QtGui/QtWidgets dlopen the host GUI stack;
+  # the macOS wheels bundle it, so these are linux-only.
+  linux:
+    gnome.org/glib: '*'
+    freetype.org: '*'
+    freedesktop.org/fontconfig: '*'
+    freedesktop.org/dbus: '*'
+    xkbcommon.org: '*'
+    mesa3d.org: '*'
+    x.org/x11: '*'
+    x.org/xcb: '*'
+    x.org/xcb-util: '*'
+    x.org/xrender: '*'
+    x.org/xfixes: '*'
+    x.org/xrandr: '*'
+    x.org/xi: '*'
+    x.org/xau: '*'
+    x.org/xdmcp: '*'
+
+runtime:
+  env:
+    # Expose `import PyQt5` to users/dependents from the sealed venv.
+    PYTHONPATH: "${{prefix}}/venv/lib/python{{deps.python.org.version.marketing}}/site-packages"
+
+build:
+  dependencies:
+    python.org: ~3.11
+  script:
+    # Install the prebuilt wheels (Qt bundled) into a venv — pip and
+    # python there share a version, so PyQt5-sip's ABI matches python.
+    # `--only-binary` guarantees the wheel (never an sdist recompile).
+    - bkpyvenv stage {{prefix}} {{version}}
+    - '${{prefix}}/venv/bin/pip install --only-binary=:all: PyQt5=={{version}} PyQt5-sip'
+    - bkpyvenv seal {{prefix}} pyuic5 pyrcc5 pylupdate5
+
+provides:
+  - bin/pyuic5
+  - bin/pyrcc5
+  - bin/pylupdate5
+
+test:
+  dependencies:
+    python.org: ~3.11
+  script:
+    - pyuic5 --version 2>&1 | grep {{version}}
+    - python{{deps.python.org.version.marketing}} -c "from PyQt5 import QtCore, QtWidgets; print(QtCore.QT_VERSION_STR)"
