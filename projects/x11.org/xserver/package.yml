@@ -1,0 +1,71 @@
+distributable:
+  url: https://www.x.org/archive/individual/xserver/xorg-server-{{version}}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/Xorg
+
+versions:
+  url: https://www.x.org/archive/individual/xserver/
+  match: /xorg-server-\d+\.\d+\.\d+.tar.gz/
+  strip:
+    - /xorg-server-/
+    - /.tar.gz/
+
+dependencies:
+  x.org/xcb: ^1
+  x.org/protocol: '*'
+
+build:
+  dependencies:
+    x.org/libcvt: '*'
+    x.org/libxfont2: '*'
+    gnu.org/make: '*'
+    gnu.org/gcc: '*'
+    freedesktop.org/pkg-config: ~0.29
+    x.org/util-macros: '*'
+    x.org/xtrans: ^1
+    gnu.org/sed: '*' # or build fails on macOS
+    x.org/x11: '*'
+    # x.org/xext: '*'
+    x.org/protocol: '*'
+    x.org/xau: '*'
+    x.org/xdmcp: '*'
+    x.org/pciaccess: '*'
+    pixman.org: '*'
+    github.com/anholt/libepoxy: '*'
+    x.org/xkbfile: '*'
+    x.org/xshmfence: '*'
+    freedesktop.org/XKeyboardConfig: '*'
+    x.org/xinput: '*'
+    xkbcommon.org: '*'
+
+
+  script:
+    - echo {{deps.x.org/libcvt.prefix}}
+    - cp {{deps.x.org/libcvt.prefix}}/lib/x86_64-linux-gnu/pkgconfig/libxcvt.pc  {{deps.x.org/libcvt.prefix}}/lib/x86_64-linux-gnu/pkgconfig/xcvt.pc 
+    - pkg-config --modversion xcvt
+    - ./configure $ARGS
+    - cp {{deps.x.org/libxfont2.prefix}}/lib/pkgconfig/../../lib/libXfont2.la lib/
+    - make
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    PKG_CONFIG_PATH: '{{deps.x.org/libcvt.prefix}}/lib/x86_64-linux-gnu/pkgconfig:$PKG_CONFIG_PATH'
+    SHELF: ${{pkgx.prefix}}/x.org
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --enable-dri
+      # - --sysconfdir="$SHELF"/etc
+      # - --localstatedir="$SHELF"/var
+      # - --disable-debug
+      # - --enable-unix-transport
+      # - --enable-tcp-transport
+      # - --enable-ipv6
+      # - --enable-local-transport
+      # - --enable-loadable-i18n
+      # - --enable-xthreads
+      # - --enable-specs=no
+
+test:
+  script: |
+    xserver --version
