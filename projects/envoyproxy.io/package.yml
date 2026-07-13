@@ -1,0 +1,165 @@
+# Envoy — high-performance edge/middle/service proxy.
+#
+# Built from source via Bazel. WARNING: this is a heavy build —
+# expect 1-3 hours on CI hardware and ~8 GB peak RAM. If pantry's
+# CI runners can't sustain it, we'll need to tune the build (drop
+# extensions, reduce parallelism, split into stages, etc.); pantry
+# policy is from-source over vendored binaries.
+
+distributable:
+  url: https://github.com/envoyproxy/envoy/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: envoyproxy/envoy
+
+# Upstream officially ships standalone binaries only for Linux.
+# darwin builds via Bazel are possible but require a darwin-host
+# Bazel setup that's beyond Phase 1 of this recipe.
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+
+build:
+  dependencies:
+    github.com/bazelbuild/bazelisk: '*'   # bazel wrapper / version manager
+    github.com/mikefarah/yq: '*'          # envoy's @yq external repo replacement
+    llvm.org: '*'                         # local clang for BAZEL_LLVM_PATH
+    gnu.org/coreutils: '*'                # install(1)
+    cmake.org: '*'                        # some bazel rules use cmake
+    python.org: '~3.11'                   # bazel build rules use python
+    gnu.org/m4: '*'
+    gnu.org/automake: '*'
+    gnu.org/autoconf: '*'
+    gnu.org/libtool: '*'
+    gnu.org/patch: '*'
+    freedesktop.org/pkg-config: '*'
+    curl.se: '*'
+
+  script:
+    # Envoy's `bazel/repo.bzl:_envoy_repo_impl` calls `@yq` to parse
+    # `.github/config.yml`. It declares @yq via http_archive on the
+    # mikefarah/yq release page — but that release ships a single
+    # binary `yq_linux_amd64`, not a tarball, so bazel ends up with
+    # `external/yq/yq_linux_amd64` while repo.bzl expects `external/yq/yq`.
+    # Result: "execvp(.../external/yq/yq): No such file or directory".
+    #
+    # Patch repo.bzl to use the yq from PATH (pkgx-installed via the
+    # build dep above) instead of the http_archive.
+    - run: |
+        sed -i 's|repository_ctx.path(repository_ctx.attr.yq)|repository_ctx.which("yq")|' \
+          bazel/repo.bzl
+        grep -A1 'which("yq")' bazel/repo.bzl | head -5
+
+    # envoy's `dynamic_modules.bzl:envoy_dynamic_module_prefix_symbols`
+    # hardcodes `@llvm_toolchain_llvm//:objcopy` in the genrule that
+    # renames dynamic-module symbols. When BAZEL_LLVM_PATH is set,
+    # envoy doesn't register the @llvm_toolchain_llvm http_archive,
+    # so the genrule fails analysis:
+    #
+    #   no such package '@@llvm_toolchain_llvm//': not defined and
+    #   referenced by 'source/extensions/dynamic_modules/builtin_extensions:_hickory_dns_static_renamed'
+    #
+    # Patch the .bzl to use the llvm-objcopy from pkgx's llvm.org
+    # (full path so bazel's action sandbox can find it without PATH
+    # access).
+    - run: |
+        sed -i \
+          -e 's|$(location @llvm_toolchain_llvm//:objcopy)|{{deps.llvm.org.prefix}}/bin/llvm-objcopy|g' \
+          -e 's|tools = \["@llvm_toolchain_llvm//:objcopy"\],|tools = [],|g' \
+          source/extensions/dynamic_modules/dynamic_modules.bzl
+        grep -A 3 "llvm-objcopy" source/extensions/dynamic_modules/dynamic_modules.bzl | head -6
+
+    # Use the release config: -c opt + stripped + minimal symbols.
+    # `bazelisk` here is the canonical entry point — it reads
+    # `.bazelversion` from the source tree and downloads the right
+    # bazel for us.
+    #
+    # Bazel's user output goes under $HOME by default; redirect to
+    # our build dir so the cellar stays clean.
+    - run: |
+        export USER=$(id -un)
+        export TEST_TMPDIR=$PWD/.bazel-cache
+        mkdir -p $TEST_TMPDIR
+
+        # Envoy's repo.bzl checks BAZEL_LLVM_PATH and uses a local
+        # LLVM install when set. Without this, it falls back to the
+        # @llvm_toolchain http_archive which fails in our sandbox
+        # (Exit 127 when invoking external/llvm_toolchain/bin/clang).
+        export BAZEL_LLVM_PATH="{{deps.llvm.org.prefix}}"
+        echo "BAZEL_LLVM_PATH=$BAZEL_LLVM_PATH"
+
+        # The bazel-rules-cc llvm toolchain uses libstdc++ by default
+        # on Linux, but the pkgx llvm bottle ships only libc++ (no
+        # libstdc++ — that comes from gcc). Without an override, clang
+        # fails with "'string' file not found" on the first C++ source.
+        #
+        # Nix's nixpkgs envoy build sidesteps this by using gcc with
+        # its hermetic cc-wrapper, but envoy dropped gcc support in
+        # 1.21+. So we force libc++ explicitly via envoy's --config:
+        BAZEL_OPTS="--config=libc++"
+
+        # Memory-constrain bazel to fit on standard CI runners.
+        # `--local_resources` units: cpu=count, ram=MB.
+        BAZEL_OPTS="$BAZEL_OPTS -c opt"
+        BAZEL_OPTS="$BAZEL_OPTS --jobs=HOST_CPUS*0.5"
+        BAZEL_OPTS="$BAZEL_OPTS --local_ram_resources=HOST_RAM*0.7"
+        # Tarball install has no .git, so envoy's workspace_status.sh
+        # fails at `git rev-parse`. Stub workspace status with `true`
+        # — we don't need stamping for a from-source release build.
+        BAZEL_OPTS="$BAZEL_OPTS --workspace_status_command=true"
+
+        # libc++ headers live at {{deps.llvm.org.prefix}}/include/c++/v1.
+        # Clang's relative auto-detection from BAZEL_LLVM_PATH/bin/clang
+        # usually finds them, but bazel's cc_wrapper.sh adds -nostdinc++
+        # by default with --config=libc++; we re-add the include path so
+        # <string>, <vector>, <algorithm>, etc. resolve.
+        #
+        # bazel's --cxxopt=X passes a SINGLE token to clang; clang's
+        # -isystem expects its path as a separate argv element OR as
+        # -isystem=PATH joined-equals. Use the joined form here — the
+        # split-flag form (--cxxopt=-isystem followed by --cxxopt=PATH)
+        # ends up consumed as two unrelated -isystem flags by bazel's
+        # build action shuffling and the path doesn't bind.
+        #
+        # Critically, the protobuf/upb code generators are "[for tool]"
+        # actions that build under bazel's EXEC config, not the TARGET
+        # config. --cxxopt/--copt/--linkopt only apply to TARGET; we
+        # need the --host_* variants too, otherwise the host tools get
+        # built without libc++ on the include path and fail with
+        # "'string' file not found" before any target action runs.
+        BAZEL_OPTS="$BAZEL_OPTS --cxxopt=-isystem{{deps.llvm.org.prefix}}/include/c++/v1"
+        BAZEL_OPTS="$BAZEL_OPTS --host_cxxopt=-isystem{{deps.llvm.org.prefix}}/include/c++/v1"
+        # Some bazel rules apply --copt to C++ compiles too; mirror.
+        BAZEL_OPTS="$BAZEL_OPTS --copt=-isystem{{deps.llvm.org.prefix}}/include/c++/v1"
+        BAZEL_OPTS="$BAZEL_OPTS --host_copt=-isystem{{deps.llvm.org.prefix}}/include/c++/v1"
+        # And the matching rpath/linker hint so the produced binary
+        # finds libc++ at runtime against the same bottle.
+        BAZEL_OPTS="$BAZEL_OPTS --linkopt=-L{{deps.llvm.org.prefix}}/lib"
+        BAZEL_OPTS="$BAZEL_OPTS --linkopt=-Wl,-rpath,{{deps.llvm.org.prefix}}/lib"
+        BAZEL_OPTS="$BAZEL_OPTS --host_linkopt=-L{{deps.llvm.org.prefix}}/lib"
+        BAZEL_OPTS="$BAZEL_OPTS --host_linkopt=-Wl,-rpath,{{deps.llvm.org.prefix}}/lib"
+
+        # `envoy-static.stripped` is upstream's stripped release target.
+        bazelisk build $BAZEL_OPTS //source/exe:envoy-static.stripped
+
+    - install -Dm755 bazel-bin/source/exe/envoy-static.stripped "{{prefix}}/bin/envoy"
+
+    # Bazel leaves a multi-GB output_base under .bazel-cache that we
+    # don't want in the bottle.
+    - run: rm -rf .bazel-cache
+
+test:
+  # `envoy --version` returns "envoy  version: <commit>/<ver>/<type>/<status>/<...>".
+  # We pin against the marketing version to confirm the binary loads.
+  script:
+    - run: |
+        out=$(envoy --version 2>&1 | head -1)
+        echo "envoy --version: $out"
+        case "$out" in
+          *"version: "*"/{{version}}/"*) echo PASS ;;
+          *) echo "FAIL: expected version {{version}} in output, got: $out"; exit 1 ;;
+        esac
+
+provides:
+  - bin/envoy
