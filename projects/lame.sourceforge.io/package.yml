@@ -20,10 +20,12 @@ build:
     # Fix for Undefined symbols ... "_lame_init_old"
     # https://sourceforge.net/p/lame/mailman/message/36081038/
     - sed -i "/lame_init_old/d" include/libmp3lame.sym
+    # 4.0 uses setlocale when langinfo exists, even when iconv is disabled.
     # 3.101's UTF-8 ID3 path has stale UCS-2 names/types.
     - run: sed -i -f $PROP parse.c
       working-directory: frontend
       prop: |
+        /#ifdef HAVE_ICONV/i#include <locale.h>
         s/int type, unsigned short const\* str)/int type, void const* str)/
         s/id3tag_set_comment_ucs2(gfp, 0, 0, str)/id3tag_set_comment_utf8(gfp, 0, 0, str)/
         s/id3tag_set_fieldvalue_ucs2(gfp, str)/id3tag_set_fieldvalue(gfp, str)/
