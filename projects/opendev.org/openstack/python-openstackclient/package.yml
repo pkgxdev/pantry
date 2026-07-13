@@ -17,6 +17,8 @@ build:
   dependencies:
     python.org: ^3
   script:
+    # cryptography needs openssl^3
+    - pkgx +openssl.org^3
     - "pip download --no-deps --no-binary :all: --dest . python-openstackclient=={{version}}"
     - tar zxvf python_openstackclient-{{version}}.tar.gz --strip-components=1
     - bkpyvenv stage {{prefix}} {{version}}
@@ -25,6 +27,9 @@ build:
     - run: cp -a openstackclient {{prefix}}/venv/lib/python{{deps.python.org.version.marketing}}/site-packages/
       if: ">=8.2"
     - bkpyvenv seal {{prefix}} openstack openstack-inventory
+  env:
+    OPENSSL_STATIC: 1
+    OPENSSL_DIR: "{{pkgx.prefix}}/openssl.org/v3"
 
 provides:
   - bin/openstack
