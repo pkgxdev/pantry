@@ -27,8 +27,7 @@ versions:
 # up — users on darwin needing legacy C++ are better off with clang
 # from llvm.org which has its own legacy mode.
 platforms:
-  - linux/x86-64
-  - linux/aarch64
+  - linux
 
 dependencies:
   gnu.org/binutils: '*'
@@ -41,7 +40,6 @@ build:
   dependencies:
     linux:
       gnu.org/gcc: '*'   # bootstrap with current gcc
-    gnu.org/make: '*'
     perl.org: '*'
     gnu.org/patch: '*'
     curl.se: '*'
@@ -57,12 +55,12 @@ build:
     # gcc symlinks expected by some build systems. This recipe lives
     # one level deeper than the main gnu.org/gcc (v8 subdir), so the
     # relative path to binutils needs `../../../../` (4 levels).
-    - run: |
-        cd "{{prefix}}/bin"
-        ln -sf gcc cc
-        ln -sf ../../../../binutils/v\*/bin/ar ar
-        ln -sf ../../../../binutils/v\*/bin/nm nm
-        ln -sf ../../../../binutils/v\*/bin/ranlib ranlib
+    - run:
+        - ln -sf gcc cc
+        - ln -sf ../../../../binutils/v\*/bin/ar ar
+        - ln -sf ../../../../binutils/v\*/bin/nm nm
+        - ln -sf ../../../../binutils/v\*/bin/ranlib ranlib
+      working-directory: "{{prefix}}/bin"
 
   env:
     ARGS:
@@ -95,7 +93,9 @@ build:
       # aarch64.
       CFLAGS: -fPIC -fPIE
       CXXFLAGS: -fPIC -fPIE
-      LDFLAGS: -Wl,-rpath,{{deps.gnu.org/mpc.prefix}}/lib:{{deps.gnu.org/mpfr.prefix}}/lib:{{deps.gnu.org/gmp.prefix}}/lib:{{deps.zlib.net.prefix}}/lib -Wl,-rpath-link,{{deps.gnu.org/mpc.prefix}}/lib:{{deps.gnu.org/mpfr.prefix}}/lib:{{deps.gnu.org/gmp.prefix}}/lib:{{deps.zlib.net.prefix}}/lib
+      LDFLAGS:
+        - -Wl,-rpath,{{deps.gnu.org/mpc.prefix}}/lib:{{deps.gnu.org/mpfr.prefix}}/lib:{{deps.gnu.org/gmp.prefix}}/lib:{{deps.zlib.net.prefix}}/lib
+        - -Wl,-rpath-link,{{deps.gnu.org/mpc.prefix}}/lib:{{deps.gnu.org/mpfr.prefix}}/lib:{{deps.gnu.org/gmp.prefix}}/lib:{{deps.zlib.net.prefix}}/lib
 
 test:
   - gcc --version | grep -q "pkgx GCC {{version}}"
@@ -104,14 +104,19 @@ test:
   # driver: compile, link, AND run both a C and a C++ program. The old
   # version-only test let a bottle whose cc1 SIGSEGV'd on every compile
   # pass CI. This guards against that regression.
-  - |
-    echo 'int main(){return 0;}' > t.c
-    gcc t.c -o t-c && ./t-c
-  - |
-    echo '#include <vector>
-    #include <string>
-    int main(){ std::vector<std::string> v{"a","b"}; return v.size()==2 ? 0 : 1; }' > t.cc
-    g++ t.cc -o t-cc && ./t-cc
+  - run: gcc $FIXTURE -o t-c
+    fixture:
+      extname: c
+      content: int main(){return 0;}
+  - ./t-c
+  - run: g++ $FIXTURE -o t-cc
+    fixture:
+      extname: cc
+      content: |
+        #include <vector>
+        #include <string>
+        int main(){ std::vector<std::string> v{"a","b"}; return v.size()==2 ? 0 : 1; }
+  - ./t-cc
 
 provides:
   - bin/ar
