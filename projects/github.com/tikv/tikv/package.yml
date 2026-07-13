@@ -24,7 +24,7 @@
 #   https://github.com/tikv/tikv/issues/18867 — cmake 4.x rejects the
 #   bundled sub-builds' minimum-required policy without this.
 distributable:
-  url: https://github.com/tikv/tikv/archive/refs/tags/v{{version.raw}}.tar.gz
+  url: https://github.com/tikv/tikv/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
@@ -50,10 +50,8 @@ provides:
 build:
   dependencies:
     rust-lang.org/rustup: '*'
-    gnu.org/make: '*'
     cmake.org: ^3
     protobuf.dev: '*'
-    freedesktop.org/pkg-config: ^0.29
     gnu.org/m4: '*'
     gnu.org/autoconf: '*'
     gnu.org/automake: '*'
@@ -84,7 +82,6 @@ build:
     OPENSSL_LIB_DIR: '{{deps.openssl.org.prefix}}/lib'
     OPENSSL_INCLUDE_DIR: '{{deps.openssl.org.prefix}}/include'
     OPENSSL_ROOT_DIR: '{{deps.openssl.org.prefix}}'
-    PKG_CONFIG_PATH: '{{deps.openssl.org.prefix}}/lib/pkgconfig:$PKG_CONFIG_PATH'
     # cmake 4.x rejects the bundled sub-builds' min-policy without this.
     # See https://github.com/tikv/tikv/issues/18867 .
     CMAKE_POLICY_VERSION_MINIMUM: '3.5'
@@ -131,6 +128,5 @@ build:
     - cp target/release/tikv-server target/release/tikv-ctl "{{prefix}}/bin/"
 
 test:
-  script:
-    - "{{prefix}}/bin/tikv-server --version"
-    - "{{prefix}}/bin/tikv-ctl --version"
+    - tikv-server --version
+    - tikv-ctl --version
