@@ -20,8 +20,27 @@ build:
     - make --jobs {{hw.concurrency}}
     - make install
 
-#TODO test functionality
-test: ttyd --help
+test:
+  dependencies:
+    curl.se: '*'
+  script:
+    - ttyd --version | grep {{version}}
+    - ttyd --port 7681 --writable sh >ttyd.log 2>&1 &
+    - pid=$!
+    - trap 'kill "$pid" 2>/dev/null || true' EXIT
+
+    - for _ in $(seq 1 10); do
+    - if curl --fail --silent --output /dev/null http://127.0.0.1:7681/; then
+    -   exit 0
+    - fi
+    - if ! kill -0 "$pid" 2>/dev/null; then
+    -   cat ttyd.log >&2
+    -   exit 1
+    - fi
+    - sleep 1
+    - done
+
+    - cat ttyd.log >&2
 
 provides:
   - bin/ttyd
