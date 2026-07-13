@@ -72,14 +72,51 @@ build:
       - --disable-multilib
       - --with-system-zlib
       - --with-bugurl=https://github.com/pkgxdev/pantry/issues
-    linux/x86-64:
-      LDFLAGS: -fPIC
-      CFLAGS: -fPIC
-      CXXFLAGS: -fPIC
+      # PIE + no-LTO/plugin, mirroring the main gnu.org/gcc recipe's linux
+      # handling for old (>=6, <10) gcc. WITHOUT these the compiler
+      # executables (cc1/cc1plus) built by the modern pkgx toolchain come
+      # out linked such that an older glibc loader SIGSEGVs in dl_main
+      # *before the compiler runs* — i.e. cc1 crashed on every single
+      # compile (`gcc: internal compiler error: Segmentation fault ...
+      # cc1`). The old `gcc --version` test never caught it because that
+      # only runs the driver, not cc1. --enable-default-pie is gcc 6+;
+      # --disable-lto/--disable-plugin are needed for gcc <10 (the LTO
+      # plugin dlopens objects that mix the host ld-linux libc with the
+      # bottle's libc at link time).
+      - --enable-default-pie
+      - --disable-lto
+      - --disable-plugin
+    linux:
+      # Build PIC+PIE and bake the gmp/mpfr/mpc/zlib RUNPATHs into the
+      # compiler binaries so cc1/cc1plus are self-contained (no
+      # LD_LIBRARY_PATH needed at runtime). Applies to both x86-64 and
+      # aarch64.
+      CFLAGS: -fPIC -fPIE
+      CXXFLAGS: -fPIC -fPIE
+      LDFLAGS:
+        - -Wl,-rpath,{{deps.gnu.org/mpc.prefix}}/lib:{{deps.gnu.org/mpfr.prefix}}/lib:{{deps.gnu.org/gmp.prefix}}/lib:{{deps.zlib.net.prefix}}/lib
+        - -Wl,-rpath-link,{{deps.gnu.org/mpc.prefix}}/lib:{{deps.gnu.org/mpfr.prefix}}/lib:{{deps.gnu.org/gmp.prefix}}/lib:{{deps.zlib.net.prefix}}/lib
 
 test:
   - gcc --version | grep -q "pkgx GCC {{version}}"
   - gcc -dumpversion | grep -q "^8\."
+  # Actually exercise the compiler back-ends (cc1/cc1plus), not just the
+  # driver: compile, link, AND run both a C and a C++ program. The old
+  # version-only test let a bottle whose cc1 SIGSEGV'd on every compile
+  # pass CI. This guards against that regression.
+  - run: gcc $FIXTURE -o t-c
+    fixture:
+      extname: c
+      content: int main(){return 0;}
+  - ./t-c
+  - run: g++ $FIXTURE -o t-cc
+    fixture:
+      extname: cc
+      content: |
+        #include <vector>
+        #include <string>
+        int main(){ std::vector<std::string> v{"a","b"}; return v.size()==2 ? 0 : 1; }
+  - ./t-cc
 
 provides:
   - bin/ar
