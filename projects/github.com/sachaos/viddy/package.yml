@@ -1,0 +1,22 @@
+distributable:
+  url: https://github.com/sachaos/viddy/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/viddy
+
+versions:
+  github: sachaos/viddy/tags
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.75'
+    rust-lang.org/cargo: '*'
+  script: cargo install --path . --root {{prefix}}
+
+test:
+  - viddy --version | grep {{version}}
+  # it's a TUI, so exercise the non-interactive surface: --help must describe
+  # the tool and expose its signature "time machine" (scrollback) flag
+  - viddy --help | grep -i 'a modern watch command'
+  - viddy --help | grep -- --differences
