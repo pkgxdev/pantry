@@ -30,13 +30,14 @@ test:
     curl.se: '*'
     gnu.org/coreutils: '*'
   env:
-    linux/aarch64:
-      # ARM64 GitHub Action runners don't support landlock, so we use --best-effort
-      # on all positive tests to avoid failing the build. If landlock is supported
-      # in the future, remove it.
-      LANDRUN_FLAGS: --best-effort
+    # Default landrun targets Landlock ABI v9. CI kernels often expose older ABIs
+    # (e.g. debian-buster = v7; aarch64 runners may lack landlock entirely).
+    # --best-effort degrades to the best supported ABI.
+    LANDRUN_FLAGS: --best-effort
   script:
     # No permissions, should fail to execute any binary
+    # (intentionally no --best-effort: on kernels without landlock this still
+    # exits non-zero, which is what we want for these denial checks)
     - if landrun true; then exit 1; fi
     # No filesystem permissions, should fail to read or write
     - if landrun --rox $PKGX_DIR/ $(command -v ls) /etc; then exit 1; fi
