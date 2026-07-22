@@ -146,9 +146,9 @@ jobs:
     permissions: {}
     strategy:
       matrix:
-        # compression: [xz, gz]
-        # drop .gz for now. pkgx v2 doesn't even use it.
-        compression: [xz]
+        # pkgx is the bootstrap binary — hosts (and setup@v5) may lack xz.
+        # Everything else: xz only (pkgx v2 prefers it and can bootstrap xz).
+        compression: ${{ fromJSON(inputs.pkg).project == 'pkgx.sh' && fromJSON('["xz","gz"]') || fromJSON('["xz"]') }}
     runs-on: ubuntu-latest
     env:
       AWS: ${{ inputs.dry-run && 'echo' || 'aws' }}
