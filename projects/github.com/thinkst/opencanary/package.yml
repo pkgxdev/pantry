@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/thinkst/opencanary/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/thinkst/opencanary/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
@@ -20,12 +20,18 @@ build:
 
   script:
     - pip install setuptools
-    - sed -i -e 's/requirements = \[/requirements = \["scapy","pcapy-ng",/' setup.py
     # missed version bump
     - run: sed -i 's/^__version__ = .*/__version__ = "{{version}}"/' __init__.py
       working-directory: opencanary
-    - python setup.py sdist
-    - python -m pip install --prefix={{prefix}} dist/opencanary-{{version}}.tar.gz
+    - run:
+        # setup.py only through 0.9.7; force snmp deps into install_requires
+        - sed -i -e 's/requirements = \[/requirements = \["scapy","pcapy-ng",/' setup.py
+        - python setup.py sdist
+        - python -m pip install --prefix={{prefix}} dist/opencanary-{{version}}.tar.gz
+      if: <0.9.8
+    # 0.9.8+ is pyproject.toml; snmp extras replace the setup.py sed
+    - run: python -m pip install --prefix={{prefix}} '.[required-for-snmp]'
+      if: '>=0.9.8'
 
     - run: ln -s python{{deps.python.org.version.marketing}} python{{deps.python.org.version.major}}
       working-directory: ${{prefix}}/lib/
