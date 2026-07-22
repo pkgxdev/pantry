@@ -30,10 +30,18 @@ build:
     debian.org/bash-completion: "*" # as of 1.1.2
     linux:
       gnu.org/gperf: "*"
+      # headers only (dlopen at runtime); -Dwayland since 1.1.4
+      wayland.freedesktop.org: "*"
   script:
     # use our local xsl
     - run: sed -i 's_http://docbook.sourceforge.net/release/xsl/current_{{deps.docbook.org/xsl.prefix}}/libexec/docbook-xsl_' meson.build
       working-directory: docs
+    # wayland pkg is linux-only; -Dwayland option added in 1.1.4
+    - run: |
+        if test "{{hw.platform}}" = "darwin"; then
+          ARGS="$ARGS -Dwayland=false"
+        fi
+      if: '>=1.1.4'
     - meson setup build $ARGS
     - meson compile -C build
     - meson install -C build
