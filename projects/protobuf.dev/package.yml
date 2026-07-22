@@ -20,7 +20,9 @@ dependencies:
 build:
   dependencies:
     cmake.org: ^3
-    abseil.io: ^20250127
+    # As of protobuf 32, upstream pins Abseil LTS 20250512.1 (same as grpc ≥1.74).
+    # 30.x bottles were already published against 20250127; new builds use this line.
+    abseil.io: ^20250512
   working-directory: build
   script:
     # cmake really doesn't like this with new xcode
@@ -39,8 +41,7 @@ build:
       working-directory: ${{prefix}}/bin
   env:
     linux:
-      # likely needs bumping to an unreleased abseil.io version
-      # ld.lld: error: undefined reference due to --no-allow-shlib-undefined: absl::lts_20240116::log_internal::LogMessage& absl::lts_20240116::log_internal::LogMessage::operator<<<int, 0>(int const&)
+      # ld.lld: error: undefined reference due to --no-allow-shlib-undefined
       LDFLAGS: $LDFLAGS -Wl,--allow-shlib-undefined
     ARGS:
       - -Dprotobuf_BUILD_LIBPROTOC=ON
