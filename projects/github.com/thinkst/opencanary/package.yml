@@ -17,8 +17,13 @@ runtime:
 build:
   dependencies:
     pip.pypa.io: '*'
-
+    pkgx.sh: '>=1'
+  env:
+    # cryptography now requires v3
+    OPENSSL_STATIC: 1
+    OPENSSL_DIR: '{{pkgx.prefix}}/openssl.org/v3'
   script:
+    - pkgx +openssl.org^3
     - pip install setuptools
     # missed version bump
     - run: sed -i 's/^__version__ = .*/__version__ = "{{version}}"/' __init__.py
