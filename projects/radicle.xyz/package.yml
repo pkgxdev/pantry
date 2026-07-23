@@ -1,0 +1,33 @@
+distributable:
+  url: https://github.com/radicle-dev/heartwood/archive/1af9480b088c3eec800040a1bdcd09941a31bcf3.tar.gz
+  strip-components: 1
+
+versions:
+  - 2023.11.30
+
+dependencies:
+  openssl.org: ^1.1.1
+  zlib.net: "*"
+
+build:
+  dependencies:
+    rust-lang.org: ">=1.65"
+    rust-lang.org/cargo: "*"
+    cmake.org: ^3
+    freedesktop.org/pkg-config: ^0.29
+  script:
+    - cargo install --path radicle-cli --force --locked --root {{prefix}}
+    - cargo install --path radicle-node --force --locked --root {{prefix}}
+    - cargo install --path radicle-remote-helper --force --locked --root {{prefix}}
+
+test:
+  script:
+    - rad --help
+    - rad --version
+    - radicle-node --help
+    - radicle-node --version
+
+provides:
+  - bin/rad
+  - bin/radicle-node
+  - bin/radicle-remote-helper
