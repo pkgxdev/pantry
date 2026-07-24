@@ -1,0 +1,32 @@
+distributable:
+  url: https://github.com/jdx/pitchfork/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/pitchfork
+
+versions:
+  github: jdx/pitchfork/tags
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.88'
+    rust-lang.org/cargo: '*'
+    # the binary embeds ui/dist via rust-embed, so the vue/vite web UI
+    # (pnpm-lock.yaml) must be built before cargo — upstream does the same
+    # (mise `build:ui`: aube install && aube run build)
+    nodejs.org: '*'
+    pnpm.io: '*'
+  script:
+    - run:
+        - pnpm install --frozen-lockfile
+        - pnpm build
+      working-directory: ui
+    # package is `pitchfork-cli`; the bin it produces is `pitchfork`
+    - cargo install --locked --path . --root {{prefix}}
+
+test:
+  - pitchfork --version | grep {{version}}
+  # parse a real daemon config and list it back (no daemon is started)
+  - printf '[daemons.hello]\nrun = "sleep 1"\n' > pitchfork.toml
+  - pitchfork daemons | grep hello

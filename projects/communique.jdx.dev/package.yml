@@ -1,0 +1,25 @@
+distributable:
+  url: https://github.com/jdx/communique/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/communique
+
+versions:
+  github: jdx/communique/tags
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.85' # edition 2024
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path . --root {{prefix}}
+
+test:
+  dependencies:
+    git-scm.org: '*' # communique reads git history
+  script:
+    - communique --version | grep {{version}}
+    # init generates a config file in a real repo
+    - git init
+    - communique init
+    - test -f communique.toml
