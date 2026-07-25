@@ -82,6 +82,20 @@ build:
       if: ">=2.32"
       working-directory: ..
 
+    # glibc 2.44 added a system-wide tunables config file, introducing a NEW
+    # `#define TUNABLES_CONF SYSCONFDIR "/tunables.conf"` in elf/ldconfig.c
+    # (used at the `tunconfig_file = TUNABLES_CONF` site). The cache patch
+    # above renames SYSCONFDIR→PREFIX so the loader/ldconfig read the bottle's
+    # own etc/ instead of the host's /etc — but it predates tunables.conf and
+    # leaves this reference pointing at the now-undefined SYSCONFDIR, so the
+    # ldconfig.c compile fails with "'SYSCONFDIR' undeclared". Redirect it the
+    # same way the patch redirects ld.so.conf / ld.so.cache (ldconfig.c already
+    # gets -DPREFIX via PREFIX-FLAGS). tunconf.c also *defines* TUNABLES_CONF
+    # but never expands it, so it needs no change.
+    - run: sed -i 's#SYSCONFDIR "/tunables.conf"#PREFIX "/etc/tunables.conf"#' elf/ldconfig.c
+      if: ">=2.44"
+      working-directory: ..
+
     - run:
         # glibc 2.17/2.18 configure has a version case that rejects `make` >= 4.0.
         # Keep the same case-pattern shape, accepting modern make.
