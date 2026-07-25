@@ -36,12 +36,19 @@ build:
     # use our local xsl
     - run: sed -i 's_http://docbook.sourceforge.net/release/xsl/current_{{deps.docbook.org/xsl.prefix}}/libexec/docbook-xsl_' meson.build
       working-directory: docs
-    # wayland pkg is linux-only; -Dwayland option added in 1.1.4
+    # wayland is linux-only, so disable display-size detection on darwin.
+    # 1.1.4 exposed a boolean -Dwayland; 1.1.5 replaced it with the
+    # -Ddisplay-detection combo (auto|none|wayland).
     - run: |
         if test "{{hw.platform}}" = "darwin"; then
           ARGS="$ARGS -Dwayland=false"
         fi
-      if: '>=1.1.4'
+      if: '>=1.1.4<1.1.5'
+    - run: |
+        if test "{{hw.platform}}" = "darwin"; then
+          ARGS="$ARGS -Ddisplay-detection=none"
+        fi
+      if: '>=1.1.5'
     - meson setup build $ARGS
     - meson compile -C build
     - meson install -C build
