@@ -1,0 +1,26 @@
+distributable:
+  url: https://github.com/jdx/aube/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/aube
+  - bin/aubr
+  - bin/aubx
+
+versions:
+  github: jdx/aube/tags
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.91'
+    rust-lang.org/cargo: '*'
+    cmake.org: ^3
+  script: cargo install --locked --path crates/aube --root {{prefix}}
+
+test:
+  - aube --version | grep {{version}}
+  # exercise the core job: scaffold a project and install a real npm package
+  - aube init
+  - aube add is-number
+  - test -f node_modules/is-number/package.json
+  - grep '"is-number"' package.json

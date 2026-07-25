@@ -1,0 +1,25 @@
+distributable:
+  url: https://github.com/jdx/fnox/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/fnox
+
+versions:
+  github: jdx/fnox/tags
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.91.1'
+    rust-lang.org/cargo: '*'
+    perl.org: '*' # openssl-sys vendored build
+    linux:
+      systemd.io: '*' # hidapi (via ctap-hid-fido2) requires libudev
+  script: cargo install --locked --path . --root {{prefix}}
+
+test:
+  - fnox --version | grep {{version}}
+  # init writes a config fnox can then discover and load back
+  - fnox init
+  - test -f fnox.toml
+  - fnox config-files | grep fnox.toml

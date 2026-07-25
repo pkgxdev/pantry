@@ -1,0 +1,28 @@
+distributable:
+  url: https://github.com/jdx/hk/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+provides:
+  - bin/hk
+
+versions:
+  github: jdx/hk/tags
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.88'
+    rust-lang.org/cargo: '*'
+    cmake.org: ^3 # git2 vendored-libgit2
+  # --bin hk: the crate also has a `generate-docs` dev bin we don't ship
+  script: cargo install --locked --path . --bin hk --root {{prefix}}
+
+test:
+  dependencies:
+    git-scm.org: '*' # hk operates on a git repo
+  script:
+    - hk --version | grep {{version}}
+    # generate a config in a real repo, then parse+validate it
+    - git init
+    - hk init
+    - test -f hk.pkl
+    - hk validate
