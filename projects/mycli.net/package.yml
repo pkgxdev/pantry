@@ -17,7 +17,10 @@ build:
     # GitHub archives carry no .git, so setuptools-scm can't infer the
     # version — hand it the tag.
     SETUPTOOLS_SCM_PRETEND_VERSION: "{{version}}"
+    OPENSSL_STATIC: 1
+    OPENSSL_DIR: "{{pkgx.prefix}}/openssl.org/v3"
   script:
+    - pkgx +openssl.org^3
     - bkpyvenv stage {{prefix}} {{version}}
     - ${{prefix}}/venv/bin/pip install .
     - bkpyvenv seal {{prefix}} mycli
