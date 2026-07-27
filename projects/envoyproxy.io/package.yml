@@ -115,15 +115,26 @@ build:
         LLVM="{{deps.llvm.org.prefix}}"
         LIBCXX="{{deps.libcxx.llvm.org.prefix}}"
         COMBINED="$PWD/.llvm-libcxx"
-        rm -rf "$COMBINED"; mkdir -p "$COMBINED/include/c++" "$COMBINED/lib"
+        rm -rf "$COMBINED"; mkdir -p "$COMBINED/include/c++" "$COMBINED/lib" "$COMBINED/bin"
         for d in "$LLVM"/*; do
           b=$(basename "$d")
-          case "$b" in include|lib) ;; *) ln -sf "$d" "$COMBINED/$b" ;; esac
+          case "$b" in bin|include|lib) ;; *) ln -sf "$d" "$COMBINED/$b" ;; esac
         done
         for d in "$LLVM"/include/*; do ln -sf "$d" "$COMBINED/include/$(basename "$d")"; done
         ln -sf "$LIBCXX/include/c++/v1" "$COMBINED/include/c++/v1"
         for d in "$LLVM"/lib/*; do ln -sf "$d" "$COMBINED/lib/$(basename "$d")"; done
         for d in "$LIBCXX"/lib/libc++* "$LIBCXX"/lib/libunwind*; do ln -sf "$d" "$COMBINED/lib/$(basename "$d")"; done
+        # bin: symlink the tools, BUT clang locates its libc++/resource dirs
+        # relative to its own binary via /proc/self/exe — a symlink resolves
+        # back to the llvm.org bottle (which has no libc++), so `<algorithm>`
+        # isn't found. COPY the real clang driver into the combined bin so
+        # its self-location is the unified prefix; it still finds libLLVM/
+        # libclang-cpp via its $ORIGIN/../lib rpath (our symlinked lib/).
+        for f in "$LLVM"/bin/*; do ln -sf "$f" "$COMBINED/bin/$(basename "$f")"; done
+        realclang=$(readlink -f "$LLVM/bin/clang")
+        rc=$(basename "$realclang")
+        cp -f "$realclang" "$COMBINED/bin/$rc"
+        for a in clang clang++ clang-cpp; do ln -sf "$rc" "$COMBINED/bin/$a"; done
         export BAZEL_LLVM_PATH="$COMBINED"
         echo "BAZEL_LLVM_PATH=$BAZEL_LLVM_PATH"
 
