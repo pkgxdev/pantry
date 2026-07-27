@@ -52,11 +52,15 @@ build:
     # Result: "execvp(.../external/yq/yq): No such file or directory".
     #
     # Patch repo.bzl to use the yq from PATH (pkgx-installed via the
-    # build dep above) instead of the http_archive.
+    # build dep above) instead of the http_archive. Only needed on envoy
+    # releases whose repo.bzl still resolves @yq this way (<=1.38.x);
+    # 1.39+ refactored it out, so guard on the pattern's presence.
     - run: |
-        sed -i 's|repository_ctx.path(repository_ctx.attr.yq)|repository_ctx.which("yq")|' \
-          bazel/repo.bzl
-        grep -A1 'which("yq")' bazel/repo.bzl | head -5
+        if grep -q 'repository_ctx.attr.yq' bazel/repo.bzl; then
+          sed -i 's|repository_ctx.path(repository_ctx.attr.yq)|repository_ctx.which("yq")|' \
+            bazel/repo.bzl
+          grep -A1 'which("yq")' bazel/repo.bzl | head -5
+        fi
 
     # envoy's `dynamic_modules.bzl:envoy_dynamic_module_prefix_symbols`
     # hardcodes `@llvm_toolchain_llvm//:objcopy` in the genrule that
@@ -75,7 +79,7 @@ build:
           -e 's|$(location @llvm_toolchain_llvm//:objcopy)|{{deps.llvm.org.prefix}}/bin/llvm-objcopy|g' \
           -e 's|tools = \["@llvm_toolchain_llvm//:objcopy"\],|tools = [],|g' \
           source/extensions/dynamic_modules/dynamic_modules.bzl
-        grep -A 3 "llvm-objcopy" source/extensions/dynamic_modules/dynamic_modules.bzl | head -6
+        grep -A 3 "llvm-objcopy" source/extensions/dynamic_modules/dynamic_modules.bzl | head -6 || true
 
     # Use the release config: -c opt + stripped + minimal symbols.
     # `bazelisk` here is the canonical entry point — it reads
