@@ -133,7 +133,8 @@ build:
         for f in "$LLVM"/bin/*; do ln -sf "$f" "$COMBINED/bin/$(basename "$f")"; done
         realclang=$(readlink -f "$LLVM/bin/clang")
         rc=$(basename "$realclang")
-        cp -f "$realclang" "$COMBINED/bin/$rc"
+        rm -f "$COMBINED/bin/$rc"           # drop the symlink we just made (else cp = same file)
+        cp "$realclang" "$COMBINED/bin/$rc"
         for a in clang clang++ clang-cpp; do ln -sf "$rc" "$COMBINED/bin/$a"; done
         export BAZEL_LLVM_PATH="$COMBINED"
         echo "BAZEL_LLVM_PATH=$BAZEL_LLVM_PATH"
