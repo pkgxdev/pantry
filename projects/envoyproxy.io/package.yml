@@ -20,11 +20,18 @@ platforms:
   - linux/x86-64
   - linux/aarch64
 
+# The shipped envoy binary is linked against libc++ (see --config=libc++
+# in the build) with an rpath into the libcxx.llvm.org bottle, so it needs
+# that bottle present at runtime.
+dependencies:
+  libcxx.llvm.org: '*'
+
 build:
   dependencies:
     github.com/bazelbuild/bazelisk: '*'   # bazel wrapper / version manager
     github.com/mikefarah/yq: '*'          # envoy's @yq external repo replacement
     llvm.org: '*'                         # local clang for BAZEL_LLVM_PATH
+    libcxx.llvm.org: '*'                  # libc++ (llvm.org ships clang only)
     gnu.org/coreutils: '*'                # install(1)
     cmake.org: '*'                        # some bazel rules use cmake
     python.org: '~3.11'                   # bazel build rules use python
@@ -109,11 +116,13 @@ build:
         # — we don't need stamping for a from-source release build.
         BAZEL_OPTS="$BAZEL_OPTS --workspace_status_command=true"
 
-        # libc++ headers live at {{deps.llvm.org.prefix}}/include/c++/v1.
-        # Clang's relative auto-detection from BAZEL_LLVM_PATH/bin/clang
-        # usually finds them, but bazel's cc_wrapper.sh adds -nostdinc++
-        # by default with --config=libc++; we re-add the include path so
-        # <string>, <vector>, <algorithm>, etc. resolve.
+        # libc++ comes from the dedicated libcxx.llvm.org bottle (the
+        # llvm.org bottle ships clang but no libc++). Headers at
+        # {{deps.libcxx.llvm.org.prefix}}/include/c++/v1, libs at
+        # {{deps.libcxx.llvm.org.prefix}}/lib. bazel's cc_wrapper.sh adds
+        # -nostdinc++ by default with --config=libc++, so we re-add the
+        # include path explicitly so <string>, <vector>, <iostream>, etc.
+        # resolve.
         #
         # bazel's --cxxopt=X passes a SINGLE token to clang; clang's
         # -isystem expects its path as a separate argv element OR as
@@ -122,23 +131,24 @@ build:
         # ends up consumed as two unrelated -isystem flags by bazel's
         # build action shuffling and the path doesn't bind.
         #
-        # Critically, the protobuf/upb code generators are "[for tool]"
-        # actions that build under bazel's EXEC config, not the TARGET
-        # config. --cxxopt/--copt/--linkopt only apply to TARGET; we
-        # need the --host_* variants too, otherwise the host tools get
-        # built without libc++ on the include path and fail with
-        # "'string' file not found" before any target action runs.
-        BAZEL_OPTS="$BAZEL_OPTS --cxxopt=-isystem{{deps.llvm.org.prefix}}/include/c++/v1"
-        BAZEL_OPTS="$BAZEL_OPTS --host_cxxopt=-isystem{{deps.llvm.org.prefix}}/include/c++/v1"
+        # Critically, the protobuf/upb/v8-torque code generators are
+        # "[for tool]" actions that build under bazel's EXEC config, not
+        # the TARGET config. --cxxopt/--copt/--linkopt only apply to
+        # TARGET; we need the --host_* variants too, otherwise the host
+        # tools get built without libc++ on the include path and fail with
+        # "'iostream'/'string' file not found" before any target action runs.
+        LIBCXX="{{deps.libcxx.llvm.org.prefix}}"
+        BAZEL_OPTS="$BAZEL_OPTS --cxxopt=-isystem$LIBCXX/include/c++/v1"
+        BAZEL_OPTS="$BAZEL_OPTS --host_cxxopt=-isystem$LIBCXX/include/c++/v1"
         # Some bazel rules apply --copt to C++ compiles too; mirror.
-        BAZEL_OPTS="$BAZEL_OPTS --copt=-isystem{{deps.llvm.org.prefix}}/include/c++/v1"
-        BAZEL_OPTS="$BAZEL_OPTS --host_copt=-isystem{{deps.llvm.org.prefix}}/include/c++/v1"
+        BAZEL_OPTS="$BAZEL_OPTS --copt=-isystem$LIBCXX/include/c++/v1"
+        BAZEL_OPTS="$BAZEL_OPTS --host_copt=-isystem$LIBCXX/include/c++/v1"
         # And the matching rpath/linker hint so the produced binary
         # finds libc++ at runtime against the same bottle.
-        BAZEL_OPTS="$BAZEL_OPTS --linkopt=-L{{deps.llvm.org.prefix}}/lib"
-        BAZEL_OPTS="$BAZEL_OPTS --linkopt=-Wl,-rpath,{{deps.llvm.org.prefix}}/lib"
-        BAZEL_OPTS="$BAZEL_OPTS --host_linkopt=-L{{deps.llvm.org.prefix}}/lib"
-        BAZEL_OPTS="$BAZEL_OPTS --host_linkopt=-Wl,-rpath,{{deps.llvm.org.prefix}}/lib"
+        BAZEL_OPTS="$BAZEL_OPTS --linkopt=-L$LIBCXX/lib"
+        BAZEL_OPTS="$BAZEL_OPTS --linkopt=-Wl,-rpath,$LIBCXX/lib"
+        BAZEL_OPTS="$BAZEL_OPTS --host_linkopt=-L$LIBCXX/lib"
+        BAZEL_OPTS="$BAZEL_OPTS --host_linkopt=-Wl,-rpath,$LIBCXX/lib"
 
         # `envoy-static.stripped` is upstream's stripped release target.
         bazelisk build $BAZEL_OPTS //source/exe:envoy-static.stripped
