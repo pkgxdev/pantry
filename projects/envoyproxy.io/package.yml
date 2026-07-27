@@ -97,7 +97,34 @@ build:
         # LLVM install when set. Without this, it falls back to the
         # @llvm_toolchain http_archive which fails in our sandbox
         # (Exit 127 when invoking external/llvm_toolchain/bin/clang).
-        export BAZEL_LLVM_PATH="{{deps.llvm.org.prefix}}"
+        #
+        # The pkgx llvm.org bottle ships clang but NOT libc++ (no
+        # include/c++/v1, no libc++.a) — that lives in the dedicated
+        # libcxx.llvm.org bottle. envoy builds with --config=libc++, i.e.
+        # `-stdlib=libc++` + a static `-l%:libc++.a` link, which makes clang
+        # look for libc++ RELATIVE to its LLVM install (BAZEL_LLVM_PATH).
+        # So present a UNIFIED prefix: symlink the llvm.org tree and overlay
+        # libcxx.llvm.org's headers (include/c++/v1) + static archives
+        # (libc++.a / libc++abi.a / libunwind.a) into it. The toolchain
+        # (toolchains_llvm, driven by BAZEL_LLVM_PATH) then discovers libc++
+        # as a BUILTIN include/lib dir — so bazel accepts it (an explicit
+        # `-isystem /opt/...` copt instead trips "the include path references
+        # a path outside of the execution root" on the exec-config
+        # v8/torque/simdutf "[for tool]" compiles) and clang resolves
+        # <string>/<vector>/<iostream> with no extra flags.
+        LLVM="{{deps.llvm.org.prefix}}"
+        LIBCXX="{{deps.libcxx.llvm.org.prefix}}"
+        COMBINED="$PWD/.llvm-libcxx"
+        rm -rf "$COMBINED"; mkdir -p "$COMBINED/include/c++" "$COMBINED/lib"
+        for d in "$LLVM"/*; do
+          b=$(basename "$d")
+          case "$b" in include|lib) ;; *) ln -sf "$d" "$COMBINED/$b" ;; esac
+        done
+        for d in "$LLVM"/include/*; do ln -sf "$d" "$COMBINED/include/$(basename "$d")"; done
+        ln -sf "$LIBCXX/include/c++/v1" "$COMBINED/include/c++/v1"
+        for d in "$LLVM"/lib/*; do ln -sf "$d" "$COMBINED/lib/$(basename "$d")"; done
+        for d in "$LIBCXX"/lib/libc++* "$LIBCXX"/lib/libunwind*; do ln -sf "$d" "$COMBINED/lib/$(basename "$d")"; done
+        export BAZEL_LLVM_PATH="$COMBINED"
         echo "BAZEL_LLVM_PATH=$BAZEL_LLVM_PATH"
 
         # The bazel-rules-cc llvm toolchain uses libstdc++ by default
@@ -131,39 +158,11 @@ build:
         # — we don't need stamping for a from-source release build.
         BAZEL_OPTS="$BAZEL_OPTS --workspace_status_command=true"
 
-        # libc++ comes from the dedicated libcxx.llvm.org bottle (the
-        # llvm.org bottle ships clang but no libc++). Headers at
-        # {{deps.libcxx.llvm.org.prefix}}/include/c++/v1, libs at
-        # {{deps.libcxx.llvm.org.prefix}}/lib. bazel's cc_wrapper.sh adds
-        # -nostdinc++ by default with --config=libc++, so we re-add the
-        # include path explicitly so <string>, <vector>, <iostream>, etc.
-        # resolve.
-        #
-        # bazel's --cxxopt=X passes a SINGLE token to clang; clang's
-        # -isystem expects its path as a separate argv element OR as
-        # -isystem=PATH joined-equals. Use the joined form here — the
-        # split-flag form (--cxxopt=-isystem followed by --cxxopt=PATH)
-        # ends up consumed as two unrelated -isystem flags by bazel's
-        # build action shuffling and the path doesn't bind.
-        #
-        # Critically, the protobuf/upb/v8-torque code generators are
-        # "[for tool]" actions that build under bazel's EXEC config, not
-        # the TARGET config. --cxxopt/--copt/--linkopt only apply to
-        # TARGET; we need the --host_* variants too, otherwise the host
-        # tools get built without libc++ on the include path and fail with
-        # "'iostream'/'string' file not found" before any target action runs.
-        LIBCXX="{{deps.libcxx.llvm.org.prefix}}"
-        BAZEL_OPTS="$BAZEL_OPTS --cxxopt=-isystem$LIBCXX/include/c++/v1"
-        BAZEL_OPTS="$BAZEL_OPTS --host_cxxopt=-isystem$LIBCXX/include/c++/v1"
-        # Some bazel rules apply --copt to C++ compiles too; mirror.
-        BAZEL_OPTS="$BAZEL_OPTS --copt=-isystem$LIBCXX/include/c++/v1"
-        BAZEL_OPTS="$BAZEL_OPTS --host_copt=-isystem$LIBCXX/include/c++/v1"
-        # And the matching rpath/linker hint so the produced binary
-        # finds libc++ at runtime against the same bottle.
-        BAZEL_OPTS="$BAZEL_OPTS --linkopt=-L$LIBCXX/lib"
-        BAZEL_OPTS="$BAZEL_OPTS --linkopt=-Wl,-rpath,$LIBCXX/lib"
-        BAZEL_OPTS="$BAZEL_OPTS --host_linkopt=-L$LIBCXX/lib"
-        BAZEL_OPTS="$BAZEL_OPTS --host_linkopt=-Wl,-rpath,$LIBCXX/lib"
+        # NOTE: no explicit -isystem/-L for libc++ — the unified
+        # BAZEL_LLVM_PATH prefix built above lets the toolchain find it as a
+        # builtin. envoy's --config=libc++ links libc++/libc++abi STATICALLY
+        # (BAZEL_LINKLIBS=-l%:libc++.a), so the binary needs no libc++.so at
+        # runtime either.
 
         # `envoy-static.stripped` is upstream's stripped release target.
         bazelisk build $BAZEL_OPTS //source/exe:envoy-static.stripped
