@@ -206,82 +206,112 @@ build:
     # Users opt in explicitly with `pkgx +gnu.org/glibc`.
     - run: |
         mkdir -p {{prefix}}/libexec/gcc-wrap
-        cat > {{prefix}}/libexec/gcc-wrap.sh <<'WRAPPER'
+        cat > {{prefix}}/libexec/gcc-wrap/.template <<'WRAPPER'
         #!/bin/sh
-        # pkgx libc-wrapper modeled on Nix's cc-wrapper. Activates only
-        # when a sibling pkgx glibc bottle is present and CPATH is unset
-        # (i.e. naked end-user invocations like `pkgx +gnu.org/gcc
-        # +gnu.org/glibc gcc test.c`). Otherwise no-ops.
-        #
-        # When active:
-        #   -nostdinc          drop host /usr/include from search path
-        #   -isystem $gcc/...  re-add gcc's own builtin headers
-        #   -isystem $glibc/   add pkgx glibc headers (replaces host)
-        #   -L $glibc/lib      link against pkgx libc + crt*.o
-        #   --dynamic-linker   bake pkgx ld-linux into PT_INTERP
-        #   -rpath $glibc/lib  resolve dyn libs without LD_LIBRARY_PATH
-        self_name=$(basename "$0")
-        # Strip any Debian multi-arch triplet prefix so the triplet-named
-        # symlinks from #13083 (x86_64-linux-gnu-gcc -> gcc -> this wrapper)
-        # resolve to the real compiler moved into libexec/gcc-wrap/.
-        base=${self_name##*-linux-gnu-}
-        case "$base" in
-          cc)   target=gcc ;;
-          gc++) target=c++ ;;
-          *)    target="$base" ;;
+        # pkgx GCC libc-wrapper (generated per-tool — no $0 basename muxing).
+        # @TARGET@ / @CXX@ are baked in at install time so this shim never has
+        # to infer WHICH compiler it stands in for from $0 (jhheider, #13094).
+        target=@TARGET@
+        cxx=@CXX@
+
+        # Locate ourselves by CANONICALIZING $0 through every symlink — the
+        # sh-script analogue of /proc/self/exe (which for a #!/bin/sh script
+        # would be the interpreter, /bin/sh, not us). bin/<tool>, the triplet
+        # symlinks, and even an external symlink into us all resolve back to the
+        # one real wrapper at <prefix>/libexec/gcc-wrap/<tool>. WHICH compiler we
+        # are is $target, so $0 is used only to find our location, never the tool.
+        case "$0" in
+          */*) invoked=$0 ;;
+          *)   invoked=$(command -v -- "$0" 2>/dev/null || echo "$0") ;;
         esac
-        bindir=$(cd "$(dirname "$0")" && pwd)
-        gcc_root="$bindir/.."
-        # IMPORTANT: keep the real binary in bin/ (as .${target}-real) so
-        # gcc's internal lookup for cc1 / cc1plus / collect2 (all relative
-        # to its own dir at lib/gcc/<triplet>/<ver>/) still resolves.
-        # Moving it under libexec/ broke that lookup (#13094 v1).
+        self=$(readlink -f -- "$invoked" 2>/dev/null) || self=
+        [ -n "$self" ] || self=$invoked
+        selfdir=${self%/*}
+        if [ -d "$selfdir/../../bin" ]; then
+          bindir=$(CDPATH= cd -- "$selfdir/../../bin" && pwd)
+        else
+          bindir=$(CDPATH= cd -- "$selfdir" && pwd)
+        fi
+        gcc_root=$(CDPATH= cd -- "$bindir/.." && pwd)
+
+        # Real driver stays in bin/ as .<target>-real so gcc's own relative lookup
+        # of cc1/cc1plus/collect2 (under libexec/gcc/<triplet>/<ver>/) keeps working.
         real="$bindir/.${target}-real"
+        [ -x "$real" ] || real="$bindir/$target"
+
+        # Opt in only when a sibling pkgx glibc bottle exists and CPATH is unset.
+        libc=
         if [ -z "$CPATH" ]; then
-          for d in "$bindir/../../../glibc/v"*; do
-            [ -d "$d/include" ] && libc="$d" && break
+          for cand in "$bindir/../../../glibc/v"*; do
+            [ -d "$cand/include" ] && libc=$(CDPATH= cd -- "$cand" && pwd) && break
           done
         fi
-        if [ -z "$libc" ]; then
-          exec "$real" "$@"
-        fi
-        # Find gcc's own builtin headers (triplet + version glob)
-        for inc in "$gcc_root"/lib/gcc/*/*/include; do
-          [ -d "$inc" ] && gcc_inc="$inc" && gcc_inc_fixed="${inc}-fixed" && break
+        [ -n "$libc" ] || exec "$real" "$@"
+
+        # glibc bottle keeps crt*.o / libc.so.6 / ld-linux*.so.* in a versioned
+        # sub-libdir (lib/glibc-X.Y), NOT directly in lib/. Find it via libc.so.6.
+        libcdir=
+        for c in "$libc"/lib/glibc-*/libc.so.6 "$libc"/lib/libc.so.6; do
+          [ -f "$c" ] && libcdir=${c%/libc.so.6} && break
         done
-        # For C++ tools, also re-add libstdc++ headers via -isystem
-        case "$target" in
-          g++|c++)
-            cxx_flag=-nostdinc++
-            for cxx_inc in "$gcc_root"/include/c++/*; do
-              [ -d "$cxx_inc" ] && gcc_cxx_inc="$cxx_inc" && break
+        [ -n "$libcdir" ] || exec "$real" "$@"
+
+        ldso=
+        for l in "$libcdir"/ld-linux*.so.* "$libcdir"/ld.so; do
+          [ -e "$l" ] && ldso=$l && break
+        done
+
+        # gcc's own builtin headers (dropped by -nostdinc, re-added here).
+        gcc_inc= gcc_inc_fixed=
+        for inc in "$gcc_root"/lib/gcc/*/*/include; do
+          [ -d "$inc" ] && gcc_inc=$inc && break
+        done
+        [ -n "$gcc_inc" ] && [ -d "${gcc_inc}-fixed" ] && gcc_inc_fixed=${gcc_inc}-fixed
+
+        # libstdc++ headers (dropped by -nostdinc++, re-added for C++ drivers).
+        cxx_flag= cxx_inc= cxx_arch_inc= cxx_back_inc=
+        if [ "$cxx" = 1 ]; then
+          cxx_flag=-nostdinc++
+          for ci in "$gcc_root"/include/c++/*; do
+            [ -d "$ci" ] && [ -f "$ci/vector" ] && cxx_inc=$ci && break
+          done
+          if [ -n "$cxx_inc" ]; then
+            for ai in "$cxx_inc"/*-linux-gnu; do
+              [ -d "$ai" ] && cxx_arch_inc=$ai && break
             done
-            for cxx_arch_inc in "$gcc_cxx_inc"/*-linux-gnu; do
-              [ -d "$cxx_arch_inc" ] && gcc_cxx_arch_inc="$cxx_arch_inc" && break
-            done
-            ;;
-          *) cxx_flag= ;;
-        esac
-        ldso=$(ls "$libc"/lib/ld-linux*.so.* 2>/dev/null | head -n1)
+            [ -d "$cxx_inc/backward" ] && cxx_back_inc="$cxx_inc/backward"
+          fi
+        fi
+
         exec "$real" \
           -nostdinc $cxx_flag \
+          ${cxx_inc:+-isystem "$cxx_inc"} \
+          ${cxx_arch_inc:+-isystem "$cxx_arch_inc"} \
+          ${cxx_back_inc:+-isystem "$cxx_back_inc"} \
           ${gcc_inc:+-isystem "$gcc_inc"} \
           ${gcc_inc_fixed:+-isystem "$gcc_inc_fixed"} \
-          ${gcc_cxx_inc:+-isystem "$gcc_cxx_inc"} \
-          ${gcc_cxx_arch_inc:+-isystem "$gcc_cxx_arch_inc"} \
           -isystem "$libc/include" \
-          -L"$libc/lib" \
+          -B "$libcdir" \
+          -L "$libcdir" \
           ${ldso:+-Wl,--dynamic-linker="$ldso"} \
-          -Wl,-rpath,"$libc/lib" \
+          -Wl,-rpath,"$libcdir" \
+          -Wl,-rpath,"$gcc_root/lib" \
           "$@"
         WRAPPER
-        chmod +x {{prefix}}/libexec/gcc-wrap.sh
+        # Generate one wrapper per tool (target + c++-ness baked in), so the
+        # shim never muxes on $0. bin/<tool> -> ../libexec/gcc-wrap/<tool>;
+        # real driver preserved as bin/.<tool>-real.
         cd {{prefix}}/bin
-        for tool in gcc g++ cpp c++ gfortran; do
+        for spec in gcc:0 g++:1 cpp:0 c++:1 gfortran:0; do
+          tool=${spec%:*}; cxx=${spec#*:}
           [ -f "$tool" ] && [ ! -L "$tool" ] || continue
+          sed -e "s/@TARGET@/$tool/g" -e "s/@CXX@/$cxx/g" \
+            {{prefix}}/libexec/gcc-wrap/.template > {{prefix}}/libexec/gcc-wrap/$tool
+          chmod +x {{prefix}}/libexec/gcc-wrap/$tool
           mv "$tool" ".${tool}-real"
-          ln -sf ../libexec/gcc-wrap.sh "$tool"
+          ln -sf ../libexec/gcc-wrap/$tool "$tool"
         done
+        rm -f {{prefix}}/libexec/gcc-wrap/.template
       if: linux
 
   env:
@@ -361,28 +391,71 @@ build:
       TRIPLET: aarch64-linux-gnu
 
 test:
-  - gcc --version | grep -q "pkgx GCC {{version}}"
-  - gcc -print-libgcc-file-name
-  - gcc -print-multiarch
-  # some gha mac runners have broken SDKs...
-  - run:
-      - if ! test -f /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/AvailabilityInternalLegacy.h || ! test -f ; then
-      - echo "Missing SDK; skipping remaining tests"
-      - exit 0
-      - fi
-    if: darwin
-  - run:
-      - if test "{{hw.platform}}" = "darwin" && test ! -f /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/_bounds.h ; then
-      - echo "Missing SDK; skipping remaining tests"
-      - exit 0
-      - fi
-    if: "^14.2 || >=15.2"
-  - gcc -o test1 test.c -lgmp
-  - ./test1
-  - g++ -o test2 test.cc
-  - test "$(./test2)" = "Hello, world!"
-  - gfortran -o test3 test.f90
-  - test "$(./test3)" = "Hello, world!"
+  # glibc is a linux-only test dep so the wrapper test below has a sibling
+  # pkgx glibc bottle to inject (the whole point of the feature).
+  dependencies:
+    linux:
+      gnu.org/glibc: '*'
+  script:
+    - gcc --version | grep -q "pkgx GCC {{version}}"
+    - gcc -print-libgcc-file-name
+    - gcc -print-multiarch
+    # some gha mac runners have broken SDKs...
+    - run:
+        - if ! test -f /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/AvailabilityInternalLegacy.h || ! test -f ; then
+        - echo "Missing SDK; skipping remaining tests"
+        - exit 0
+        - fi
+      if: darwin
+    - run:
+        - if test "{{hw.platform}}" = "darwin" && test ! -f /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/_bounds.h ; then
+        - echo "Missing SDK; skipping remaining tests"
+        - exit 0
+        - fi
+      if: "^14.2 || >=15.2"
+    - gcc -o test1 test.c -lgmp
+    - ./test1
+    - g++ -o test2 test.cc
+    - test "$(./test2)" = "Hello, world!"
+    - gfortran -o test3 test.f90
+    - test "$(./test3)" = "Hello, world!"
+    # libc-wrapper (#13094): with a sibling pkgx glibc bottle and CPATH
+    # unset, gcc/g++ must compile+link+RUN against that glibc — i.e. the
+    # produced binary's PT_INTERP is the bottle's ld.so — and must NO-OP
+    # (fall back to host libc) when CPATH is set. brewkit's own test env
+    # keeps CPATH populated (dep includes), so the pre-existing steps above
+    # stay on host libc; we drive the wrapper explicitly with `CPATH=`.
+    - run: |
+        set -eu
+        glibc="{{deps.gnu.org/glibc.prefix}}"
+        # (1) C: -nostdinc drops host headers; stdio.h must come from the
+        #     injected pkgx glibc, and PT_INTERP must be that bottle's ld.so.
+        printf '#include <stdio.h>\nint main(void){ printf("wrap-ok\\n"); return 0; }\n' > wrap.c
+        CPATH= gcc wrap.c -o wrap
+        interp=$(readelf -l wrap | sed -n 's/.*program interpreter: \(.*\)]/\1/p')
+        case "$interp" in
+          "$glibc"/*) echo "PASS: C PT_INTERP is pkgx glibc ($interp)" ;;
+          *) echo "FAIL: expected pkgx glibc ld.so under $glibc, got '$interp'"; exit 1 ;;
+        esac
+        test "$(./wrap)" = "wrap-ok" || { echo "FAIL: C binary did not run"; exit 1; }
+        # (2) C++: -nostdinc++ + libstdc++ re-add + libstdc++/libgcc_s rpath.
+        printf '#include <vector>\n#include <cstdio>\nint main(){ std::vector<int> v; v.push_back(7); printf("%%d\\n", v[0]); return 0; }\n' > wrap.cc
+        CPATH= g++ wrap.cc -o wrapxx
+        interpxx=$(readelf -l wrapxx | sed -n 's/.*program interpreter: \(.*\)]/\1/p')
+        case "$interpxx" in
+          "$glibc"/*) echo "PASS: C++ PT_INTERP is pkgx glibc ($interpxx)" ;;
+          *) echo "FAIL: C++ expected pkgx glibc ld.so, got '$interpxx'"; exit 1 ;;
+        esac
+        test "$(./wrapxx)" = "7" || { echo "FAIL: C++ binary did not run/print 7"; exit 1; }
+        # (3) Negative: with CPATH set the wrapper must NO-OP -> host ld.so.
+        echo 'int main(void){return 0;}' > noop.c
+        CPATH=1 gcc noop.c -o noop
+        interp2=$(readelf -l noop | sed -n 's/.*program interpreter: \(.*\)]/\1/p')
+        case "$interp2" in
+          "$glibc"/*) echo "FAIL: wrapper should have no-op'd with CPATH set"; exit 1 ;;
+          *) echo "PASS: CPATH-set no-op falls back to host libc ($interp2)" ;;
+        esac
+      if: linux
 
 provides:
   - bin/ar
