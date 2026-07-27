@@ -179,6 +179,12 @@ build:
         for tc in make pkgconfig cmake ninja; do
           BAZEL_OPTS="$BAZEL_OPTS --extra_toolchains=@rules_foreign_cc//toolchains:preinstalled_${tc}_toolchain"
         done
+        # envoy's --config=libc++ links the static `-l:libc++.a`/`libc++abi.a`/
+        # `libunwind.a`, but nothing tells the linker WHERE they are — they're
+        # in our unified prefix's lib/. Add the -L (target AND exec/host
+        # configs). This is a library search path, not an -isystem include, so
+        # it does NOT trip bazel's "outside the execution root" check.
+        BAZEL_OPTS="$BAZEL_OPTS --linkopt=-L$COMBINED/lib --host_linkopt=-L$COMBINED/lib"
 
         # NOTE: no explicit -isystem/-L for libc++ — the unified
         # BAZEL_LLVM_PATH prefix built above lets the toolchain find it as a
