@@ -34,6 +34,7 @@ build:
     libcxx.llvm.org: '*'                  # libc++ (llvm.org ships clang only)
     gnu.org/coreutils: '*'                # install(1)
     gnu.org/make: '*'                     # rules_foreign_cc make toolchain (else it builds make from source)
+    ninja-build.org: '*'                  # rules_foreign_cc ninja toolchain
     cmake.org: '*'                        # some bazel rules use cmake
     python.org: '~3.11'                   # bazel build rules use python
     gnu.org/m4: '*'
@@ -169,12 +170,15 @@ build:
         # fails at `git rev-parse`. Stub workspace status with `true`
         # — we don't need stamping for a from-source release build.
         BAZEL_OPTS="$BAZEL_OPTS --workspace_status_command=true"
-        # rules_foreign_cc otherwise builds its OWN GNU make from source,
-        # whose ./configure link test fails under envoy's --config=libc++
-        # (static -l%:libc++.a linklibs forced onto a plain-C configure:
-        # "C compiler cannot create executables"). Register the preinstalled
-        # make toolchain so it uses the pkgx `make` on PATH instead.
-        BAZEL_OPTS="$BAZEL_OPTS --extra_toolchains=@rules_foreign_cc//toolchains:preinstalled_make_toolchain"
+        # rules_foreign_cc otherwise builds its OWN build tools (make,
+        # pkgconfig, cmake, ninja) from source, and each ./configure link
+        # test fails under envoy's --config=libc++ (static -l%:libc++.a
+        # linklibs forced onto a plain-C configure: "C compiler cannot
+        # create executables"). Register the preinstalled toolchains so
+        # foreign_cc uses the pkgx tools on PATH instead of compiling them.
+        for tc in make pkgconfig cmake ninja; do
+          BAZEL_OPTS="$BAZEL_OPTS --extra_toolchains=@rules_foreign_cc//toolchains:preinstalled_${tc}_toolchain"
+        done
 
         # NOTE: no explicit -isystem/-L for libc++ — the unified
         # BAZEL_LLVM_PATH prefix built above lets the toolchain find it as a
