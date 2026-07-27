@@ -9,7 +9,12 @@ distributable:
 
 versions:
   url: https://www.tcl-lang.org/software/tcltk/download.html
-  match: /tk\d+\.\d+\.\d+-src\.tar\.gz/
+  # Serve both the current 9.x line and the legacy 8.6 line (so
+  # `tcl-lang.org/tk^8` resolves to Tk 8.6, matching tcl-lang.org's own
+  # version-path approach — this is why a separate /tk/v8 package isn't
+  # needed, cf. #13317). 8.4/8.5 are too old to build against the
+  # current x.org/freetype deps.
+  match: /tk(?:8\.6\.\d+|9\.\d+\.\d+)-src\.tar\.gz/
   strip:
     - /^tk/
     - /-src\.tar\.gz/
