@@ -227,12 +227,14 @@ build:
         self=$(readlink -f -- "$invoked" 2>/dev/null) || self=
         [ -n "$self" ] || self=$invoked
         selfdir=${self%/*}
+        # Canonical layout: <prefix>/libexec/gcc-wrap/<tool> -> bin is ../../bin.
+        # -P everywhere so we work in PHYSICAL paths, never symlink names.
         if [ -d "$selfdir/../../bin" ]; then
-          bindir=$(CDPATH= cd -- "$selfdir/../../bin" && pwd)
+          bindir=$(CDPATH= cd -P -- "$selfdir/../../bin" && pwd -P)
         else
-          bindir=$(CDPATH= cd -- "$selfdir" && pwd)
+          bindir=$(CDPATH= cd -P -- "$selfdir" && pwd -P)
         fi
-        gcc_root=$(CDPATH= cd -- "$bindir/.." && pwd)
+        gcc_root=$(CDPATH= cd -P -- "$bindir/.." && pwd -P)
 
         # Real driver stays in bin/ as .<target>-real so gcc's own relative lookup
         # of cc1/cc1plus/collect2 (under libexec/gcc/<triplet>/<ver>/) keeps working.
@@ -240,10 +242,18 @@ build:
         [ -x "$real" ] || real="$bindir/$target"
 
         # Opt in only when a sibling pkgx glibc bottle exists and CPATH is unset.
+        # pkgx installs a literal 'v*' convenience symlink alongside the real
+        # vX.Y.Z dir (and the glob stays literal if nothing matches at all), so
+        # SKIP any candidate ending in '*' — otherwise 'v*' sorts first (ASCII
+        # '*' < digits) and its name leaks unexpanded into PT_INTERP. Resolve
+        # the chosen dir PHYSICALLY (cd -P / pwd -P) so no symlink name
+        # (v2 / v2.44 / the sibling glibc symlink) survives into $libc either.
         libc=
         if [ -z "$CPATH" ]; then
           for cand in "$bindir/../../../glibc/v"*; do
-            [ -d "$cand/include" ] && libc=$(CDPATH= cd -- "$cand" && pwd) && break
+            case "$cand" in *'*') continue ;; esac
+            [ -d "$cand/include" ] || continue
+            libc=$(CDPATH= cd -P -- "$cand" && pwd -P) && break
           done
         fi
         [ -n "$libc" ] || exec "$real" "$@"
@@ -427,34 +437,55 @@ test:
     # stay on host libc; we drive the wrapper explicitly with `CPATH=`.
     - run: |
         set -eu
-        glibc="{{deps.gnu.org/glibc.prefix}}"
-        # (1) C: -nostdinc drops host headers; stdio.h must come from the
-        #     injected pkgx glibc, and PT_INTERP must be that bottle's ld.so.
-        printf '#include <stdio.h>\nint main(void){ printf("wrap-ok\\n"); return 0; }\n' > wrap.c
-        CPATH= gcc wrap.c -o wrap
-        interp=$(readelf -l wrap | sed -n 's/.*program interpreter: \(.*\)]/\1/p')
-        case "$interp" in
-          "$glibc"/*) echo "PASS: C PT_INTERP is pkgx glibc ($interp)" ;;
-          *) echo "FAIL: expected pkgx glibc ld.so under $glibc, got '$interp'"; exit 1 ;;
-        esac
-        test "$(./wrap)" = "wrap-ok" || { echo "FAIL: C binary did not run"; exit 1; }
-        # (2) C++: -nostdinc++ + libstdc++ re-add + libstdc++/libgcc_s rpath.
-        printf '#include <vector>\n#include <cstdio>\nint main(){ std::vector<int> v; v.push_back(7); printf("%%d\\n", v[0]); return 0; }\n' > wrap.cc
-        CPATH= g++ wrap.cc -o wrapxx
-        interpxx=$(readelf -l wrapxx | sed -n 's/.*program interpreter: \(.*\)]/\1/p')
-        case "$interpxx" in
-          "$glibc"/*) echo "PASS: C++ PT_INTERP is pkgx glibc ($interpxx)" ;;
-          *) echo "FAIL: C++ expected pkgx glibc ld.so, got '$interpxx'"; exit 1 ;;
-        esac
-        test "$(./wrapxx)" = "7" || { echo "FAIL: C++ binary did not run/print 7"; exit 1; }
-        # (3) Negative: with CPATH set the wrapper must NO-OP -> host ld.so.
+        interp_of() { readelf -l "$1" | sed -n 's/.*program interpreter: \(.*\)]/\1/p'; }
+
+        # (0) Host / no-op baseline: with CPATH set the wrapper stays dormant,
+        #     so this binary uses the HOST loader. Header-less so it needs no
+        #     glibc headers. We do NOT hardcode the pkgx prefix (brewkit does
+        #     not template {{deps.*.prefix}} for test deps) — we compare the
+        #     wrapped build against this captured host interpreter instead.
         echo 'int main(void){return 0;}' > noop.c
         CPATH=1 gcc noop.c -o noop
-        interp2=$(readelf -l noop | sed -n 's/.*program interpreter: \(.*\)]/\1/p')
-        case "$interp2" in
-          "$glibc"/*) echo "FAIL: wrapper should have no-op'd with CPATH set"; exit 1 ;;
-          *) echo "PASS: CPATH-set no-op falls back to host libc ($interp2)" ;;
+        host_interp=$(interp_of noop)
+        echo "host  PT_INTERP: $host_interp"
+        case "$host_interp" in
+          */glibc-*/ld-*) echo "FAIL: CPATH-set build should use host libc, got '$host_interp'"; exit 1 ;;
+          *) echo "PASS: CPATH-set no-op uses host libc" ;;
         esac
+
+        # (1) C: -nostdinc drops host headers, so stdio.h must come from the
+        #     injected pkgx glibc; PT_INTERP must switch to the glibc bottle's
+        #     ld.so in its glibc-X.Y sub-libdir — fully resolved (no glob/
+        #     symlink residue like a literal 'v*') — and the binary must RUN.
+        printf '#include <stdio.h>\nint main(void){ printf("wrap-ok\\n"); return 0; }\n' > wrap.c
+        CPATH= gcc wrap.c -o wrap
+        interp=$(interp_of wrap)
+        echo "C     PT_INTERP: $interp"
+        test "$interp" != "$host_interp" || { echo "FAIL: wrapper did not change PT_INTERP"; exit 1; }
+        case "$interp" in
+          *'*'*) echo "FAIL: PT_INTERP has an unexpanded glob: '$interp'"; exit 1 ;;
+        esac
+        case "$interp" in
+          */glibc-*/ld-*) : ;;
+          *) echo "FAIL: PT_INTERP is not a pkgx glibc sub-libdir loader: '$interp'"; exit 1 ;;
+        esac
+        test -e "$interp" || { echo "FAIL: PT_INTERP path does not exist: '$interp'"; exit 1; }
+        out=$(./wrap); test "$out" = "wrap-ok" || { echo "FAIL: C binary did not run (got '$out')"; exit 1; }
+        echo "PASS: C compiled+linked+ran against the pkgx glibc bottle"
+
+        # (2) C++: exercises -nostdinc++ + libstdc++ header re-add + the
+        #     libstdc++/libgcc_s runtime rpath.
+        printf '#include <vector>\n#include <cstdio>\nint main(){ std::vector<int> v; v.push_back(7); printf("%%d\\n", v[0]); return 0; }\n' > wrap.cc
+        CPATH= g++ wrap.cc -o wrapxx
+        interpxx=$(interp_of wrapxx)
+        echo "C++   PT_INTERP: $interpxx"
+        case "$interpxx" in *'*'*) echo "FAIL: C++ PT_INTERP has glob residue: '$interpxx'"; exit 1 ;; esac
+        case "$interpxx" in
+          */glibc-*/ld-*) : ;;
+          *) echo "FAIL: C++ PT_INTERP is not the pkgx glibc loader: '$interpxx'"; exit 1 ;;
+        esac
+        test "$(./wrapxx)" = "7" || { echo "FAIL: C++ binary did not run/print 7"; exit 1; }
+        echo "PASS: C++ compiled+linked+ran against pkgx glibc + libstdc++"
       if: linux
 
 provides:
