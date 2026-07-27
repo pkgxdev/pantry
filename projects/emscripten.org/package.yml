@@ -71,14 +71,31 @@ build:
         PY="{{deps.python.org.prefix}}/bin/python3"
         for tool in emcc em++ emar emranlib emcmake emconfigure emmake emrun; do
           src="{{prefix}}/$tool.py"
-          dst="{{prefix}}/bin/$tool"
           if [ -f "$src" ]; then
-            printf '%s\n%s\n%s\n%s\n' \
+            # emscripten's default cache is $EMSCRIPTEN_ROOT/cache, i.e.
+            # under the read-only bottle prefix — emcc can't build system
+            # libs there. Default EM_CACHE to a writable per-user dir (only
+            # if the user hasn't set it), shell-expanded at run time.
+            emcache=': "${EM_CACHE:=${XDG_CACHE_HOME:-${HOME:-/tmp}/.cache}/emscripten}"; export EM_CACHE'
+            # PATH-facing wrapper in bin/ (prefix is one level up).
+            printf '%s\n%s\n%s\n%s\n%s\n' \
               '#!/bin/sh' \
               'bindir=$(CDPATH= cd -- "${0%/*}" && pwd)' \
               'prefix=$(CDPATH= cd -- "$bindir/.." && pwd)' \
-              "exec \"$PY\" \"\$prefix/$tool.py\" \"\$@\"" > "$dst"
-            chmod 755 "$dst"
+              "$emcache" \
+              "exec \"$PY\" \"\$prefix/$tool.py\" \"\$@\"" > "{{prefix}}/bin/$tool"
+            chmod 755 "{{prefix}}/bin/$tool"
+            # Bare top-level entrypoint too: emscripten spawns
+            # $EMSCRIPTEN_ROOT/{emcc,em++,emar,emranlib} directly
+            # (tools/shared.py: exe_path_from_root) when it builds its
+            # system libraries — the tag ships only <tool>.py, so without
+            # these the syslib build dies with FileNotFoundError.
+            printf '%s\n%s\n%s\n%s\n' \
+              '#!/bin/sh' \
+              'prefix=$(CDPATH= cd -- "${0%/*}" && pwd)' \
+              "$emcache" \
+              "exec \"$PY\" \"\$prefix/$tool.py\" \"\$@\"" > "{{prefix}}/$tool"
+            chmod 755 "{{prefix}}/$tool"
           else
             echo "warn: $src does not exist — skipping"
           fi
@@ -89,8 +106,15 @@ build:
 
 test:
   script:
-    - emcc --version 2>&1 | head -1
     - run: |
+        # emscripten's default cache ($EMSCRIPTEN_ROOT/cache) sits under the
+        # read-only bottle prefix; point it at a writable scratch dir so the
+        # first compile can build the system libs.
+        export EM_CACHE="$(mktemp -d)"
+        # NB: no `| head -1` — on a fresh cache emcc prints several lines and
+        # head closes the pipe early, so emcc (CPython) hits BrokenPipeError
+        # and exits 120, which `set -o pipefail` turns into a test failure.
+        emcc --version
         cat > hello.c <<'EOF'
         #include <stdio.h>
         int main() { printf("hello from emscripten\n"); return 0; }
@@ -98,6 +122,7 @@ test:
         emcc hello.c -o hello.js
         test -f hello.js
         test -f hello.wasm
+        node hello.js
 
 provides:
   - bin/emcc
