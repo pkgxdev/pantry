@@ -64,10 +64,27 @@ build:
   script:
     # 5.7's bundled boost has the old `cmake_minimum_required` which
     # CMake 4.x rejects without the policy floor override.
+    #
+    # LINUX: force the gcc 8 bottle as the compiler. brewkit's toolchain
+    # wrappers symlink cc/c++/gcc/g++ ALL to clang, so cmake would
+    # otherwise detect Clang (not gcc 8) — and MySQL 5.7's bundled
+    # boost 1.59 / InnoDB then fail (e.g. clang rejects boost mpl's
+    # `integral_wrapper.hpp` non-type template usage). Point
+    # CMAKE_C/CXX_COMPILER straight at the gcc 8 bottle's real binaries
+    # (absolute path, past the wrappers) so the pre-C++17 sources build.
+    - run: |
+        export CMAKE_POLICY_VERSION_MINIMUM=3.5
+        CC="{{deps.gnu.org/gcc/v8.prefix}}/bin/gcc"
+        CXX="{{deps.gnu.org/gcc/v8.prefix}}/bin/g++"
+        cmake .. $ARGS -DCMAKE_C_COMPILER="$CC" -DCMAKE_CXX_COMPILER="$CXX"
+        make --jobs {{ hw.concurrency }} install
+      if: linux
+    # DARWIN: system clang builds mysql@5.7 fine (matches homebrew).
     - run: |
         export CMAKE_POLICY_VERSION_MINIMUM=3.5
         cmake .. $ARGS
         make --jobs {{ hw.concurrency }} install
+      if: darwin
   env:
     ARGS:
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
