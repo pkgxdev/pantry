@@ -109,6 +109,9 @@ build:
         # its hermetic cc-wrapper, but envoy dropped gcc support in
         # 1.21+. So we force libc++ explicitly via envoy's --config:
         BAZEL_OPTS="--config=libc++"
+        # This is a huge, layered build; surface the failing compile
+        # command on error instead of just the target label.
+        BAZEL_OPTS="$BAZEL_OPTS --verbose_failures"
 
         # Memory-constrain bazel to fit on standard CI runners.
         # `--local_resources` units: cpu=count, ram=MB.
