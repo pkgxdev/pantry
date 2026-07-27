@@ -151,14 +151,13 @@ build:
         # This is a huge, layered build; surface the failing compile
         # command on error instead of just the target label.
         BAZEL_OPTS="$BAZEL_OPTS --verbose_failures"
-        # The libc++ headers live at an absolute path under /opt (the
-        # libcxx.llvm.org bottle), which bazel's sandbox rejects for the
-        # exec-config "[for tool]" compiles (v8/torque): "include path
-        # references a path outside of the execution root". Run compiles
-        # locally (unsandboxed) so the compiler can reach /opt, but keep
-        # genrules sandboxed to avoid shared-scratch races (same pattern
-        # as the cockroachdb recipe).
-        BAZEL_OPTS="$BAZEL_OPTS --spawn_strategy=local --strategy=Genrule=sandboxed"
+        # Run actions locally (unsandboxed) so the compiler can reach the
+        # clang/libc++ toolchain under /opt (via the unified prefix above).
+        # NB: do NOT force `--strategy=Genrule=sandboxed` — v8's genrules
+        # (generated_inspector_files, embedded.S) can't run sandboxed and
+        # bazel aborts with "Genrule spawn cannot be executed with any of
+        # the available strategies". Let genrules follow --spawn_strategy=local.
+        BAZEL_OPTS="$BAZEL_OPTS --spawn_strategy=local"
 
         # Memory-constrain bazel to fit on standard CI runners.
         # `--local_resources` units: cpu=count, ram=MB.
