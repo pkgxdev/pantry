@@ -35,6 +35,7 @@ build:
     gnu.org/coreutils: '*'                # install(1)
     gnu.org/make: '*'                     # rules_foreign_cc make toolchain (else it builds make from source)
     ninja-build.org: '*'                  # rules_foreign_cc ninja toolchain
+    gnu.org/glibc: '*'                    # run foreign_cc host tools against a modern glibc (see below)
     cmake.org: '*'                        # some bazel rules use cmake
     python.org: '~3.11'                   # bazel build rules use python
     gnu.org/m4: '*'
@@ -194,6 +195,19 @@ build:
         # libraries: libcurl.so.4"). Forward both into target + exec/host.
         BAZEL_OPTS="$BAZEL_OPTS --action_env=PATH=$PATH --host_action_env=PATH=$PATH"
         BAZEL_OPTS="$BAZEL_OPTS --action_env=LD_LIBRARY_PATH=$LD_LIBRARY_PATH --host_action_env=LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+        # Host tools that foreign_cc builds+runs DURING the build (luajit's
+        # `minilua`, etc.) are emitted by the modern pkgx clang and then need a
+        # newer glibc than the CI base image ships ("minilua: libm.so.6:
+        # version GLIBC_2.29 not found"). Link the EXEC-config binaries against
+        # the relocatable pkgx glibc bottle — its own crt + libc + ld-linux, the
+        # pattern documented in gnu.org/glibc/README.md — so they run against
+        # glibc 2.44 on any host. EXEC/host only: baking an absolute PT_INTERP
+        # into the *target* (final envoy) binary would break bottle relocation.
+        GLIBCLIB=$(dirname "$(ls "{{deps.gnu.org/glibc.prefix}}"/lib/glibc-*/libc.so.6 2>/dev/null | head -1)")
+        GLIBCLD=$(ls "$GLIBCLIB"/ld-linux*.so.* 2>/dev/null | head -1)
+        for f in "-B$GLIBCLIB" "-L$GLIBCLIB" "-Wl,--dynamic-linker=$GLIBCLD" "-Wl,-rpath,$GLIBCLIB"; do
+          BAZEL_OPTS="$BAZEL_OPTS --host_linkopt=$f"
+        done
 
         # NOTE: no explicit -isystem/-L for libc++ — the unified
         # BAZEL_LLVM_PATH prefix built above lets the toolchain find it as a
