@@ -251,6 +251,14 @@ build:
         # tells cmake to run those projects under 3.5 policies instead of
         # erroring. Forward into the foreign_cc (exec-config) actions.
         BAZEL_OPTS="$BAZEL_OPTS --action_env=CMAKE_POLICY_VERSION_MINIMUM=3.5 --host_action_env=CMAKE_POLICY_VERSION_MINIMUM=3.5"
+        # rules_rust proc-macro dylibs (thiserror_impl.so, …) failed to load into
+        # rustc (E0463) because our forwarded LD_LIBRARY_PATH — required so
+        # process_wrapper finds pkgx libgcc_s — shadows the rust libstd path.
+        # Link rust binaries via bazel's cc_common (our clang toolchain) instead
+        # of rustc's own linker: this bakes proper RPATHs into process_wrapper
+        # and the proc-macro dylibs, so their libstd/libgcc_s resolve by rpath
+        # regardless of LD_LIBRARY_PATH.
+        BAZEL_OPTS="$BAZEL_OPTS --@rules_rust//rust/settings:experimental_use_cc_common_link=1"
         # (glibc targeting is handled by the clang.cfg written into the unified
         # prefix above — it reaches every clang invocation, including
         # foreign_cc's luajit HOST_CC that bazel --host_linkopt can't touch.)
