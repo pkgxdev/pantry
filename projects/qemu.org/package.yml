@@ -132,6 +132,28 @@ test:
     - qemu-system-xtensa --version | grep "QEMU emulator version {{version}}"
     - qemu-system-xtensaeb --version | grep "QEMU emulator version {{version}}"
 
-    - curl -O "https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/distributions/1.2/official/FD12FLOPPY.zip"
-    - unzip FD12FLOPPY.zip
-    - 'qemu-img info FLOPPY.img | grep "file format: raw"'
+    # FreeDOS 1.4: 1.2 is no longer served, and its layout changed. The Lite USB
+    # edition rather than the Floppy edition because it is smaller (17MB against
+    # 23MB) and ships both a raw image and a VMDK descriptor, so qemu-img can be
+    # checked against two real formats instead of one.
+    - curl -O "https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/distributions/1.4/FD14-LiteUSB.zip"
+    - unzip FD14-LiteUSB.zip
+
+    - 'qemu-img info FD14LITE.img | grep "file format: raw"'
+    - 'qemu-img info FD14LITE.vmdk | grep "file format: vmdk"'
+
+    # Real work rather than header parsing: convert between formats and check
+    # the result, which exercises the block layer instead of just the prober.
+    - qemu-img convert -O qcow2 FD14LITE.img converted.qcow2
+    - 'qemu-img info converted.qcow2 | grep "file format: qcow2"'
+    - 'qemu-img info converted.qcow2 | grep "virtual size: 32 MiB"'
+
+    # Boot it. The old test only ever ran qemu-img, so none of the 26 emulators
+    # this package provides was exercised against an image at all. QMP confirms
+    # the machine reached a running state, then shuts it down, which needs no
+    # timeout and no guest cooperation.
+    - run: qemu-system-i386 -drive file=FD14LITE.img,format=raw -display none -qmp stdio < $FIXTURE | grep '"status":.*"running"'
+      fixture: |
+        {"execute":"qmp_capabilities"}
+        {"execute":"query-status"}
+        {"execute":"quit"}
