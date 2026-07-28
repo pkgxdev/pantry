@@ -281,6 +281,29 @@ build:
           aarch64|arm64) RTRIPLE=aarch64-unknown-linux-gnu; RCPU=aarch64 ;;
           x86_64)        RTRIPLE=x86_64-unknown-linux-gnu;  RCPU=x86_64 ;;
         esac
+        # ROOT FIX for the proc-macro E0463 wall: clang.cfg (above) links every
+        # exec-config output — including the proc-macro dylibs rustc dlopens at
+        # compile time — against the pkgx glibc 2.44 bottle. But the pkgx rustc,
+        # left alone, runs on its standard PT_INTERP = the OLD CI-base glibc, so
+        # when it dlopens a proc-macro that references GLIBC_2.29+ symbols the
+        # already-loaded old libc can't satisfy them → dlopen fails → E0463
+        # "can't find crate for <proc-macro>". Run rustc THROUGH the same pkgx
+        # glibc 2.44 loader (glibc is backward-compatible, so rustc — which needs
+        # only old symbols — runs fine on it), so rustc and the proc-macros it
+        # loads share one modern libc and the dlopen succeeds. Proven on real HW
+        # (cfarm13): rules_rust happily drives a wrapper `rustc` that re-execs the
+        # real rustc via `ld-linux --library-path …`, and a proc_macro crate +
+        # consumer then compile and run. GLIBCLIB/GLIBCLD were computed above for
+        # clang.cfg; reuse them. LD_FWD carries librustc_driver/libstd/libgcc_s.
+        # Keep this OUTSIDE the bazel workspace — new_local_repository rejects a
+        # path that overlaps the main repo.
+        RUSTWRAP="${TMPDIR:-/tmp}/pkgxrust-envoy"
+        mkdir -p "$RUSTWRAP"
+        cat > "$RUSTWRAP/rustc.sh" <<WRAP
+        #!/bin/sh
+        exec "$GLIBCLD" --library-path "$GLIBCLIB:$LD_FWD" "{{deps.rust-lang.org.prefix}}/bin/rustc" "\$@"
+        WRAP
+        chmod +x "$RUSTWRAP/rustc.sh"
         cat >> WORKSPACE <<PKGXRUST
         load("@bazel_tools//tools/build_defs/repo:local.bzl", "new_local_repository")
         new_local_repository(
@@ -288,13 +311,12 @@ build:
             path = "{{deps.rust-lang.org.prefix}}",
             build_file_content = """
         load("@rules_rust//rust:toolchain.bzl", "rust_toolchain", "rust_stdlib_filegroup")
-        filegroup(name = "rustc", srcs = ["bin/rustc"], visibility = ["//visibility:public"])
         filegroup(name = "rustdoc", srcs = ["bin/rustdoc"], visibility = ["//visibility:public"])
         filegroup(name = "rustc_lib", srcs = glob(["lib/*.so*"]), visibility = ["//visibility:public"])
         rust_stdlib_filegroup(name = "rust_std", srcs = glob(["lib/rustlib/$RTRIPLE/lib/*"]), visibility = ["//visibility:public"])
         rust_toolchain(
             name = "pkgx_rust_impl",
-            rustc = ":rustc",
+            rustc = "@rustwrap//:rustc",
             rust_doc = ":rustdoc",
             rustc_lib = ":rustc_lib",
             rust_std = ":rust_std",
@@ -315,6 +337,17 @@ build:
             target_compatible_with = ["@platforms//cpu:$RCPU", "@platforms//os:linux"],
             visibility = ["//visibility:public"],
         )
+        """,
+        )
+        # rustc comes from a tiny second repo holding the glibc-2.44 loader
+        # wrapper written above (keeping pkgx_rust read-only over the bottle).
+        # The filegroup is named differently from its source file (rustc.sh) —
+        # a filegroup whose name equals a src label self-references (cycle).
+        new_local_repository(
+            name = "rustwrap",
+            path = "$RUSTWRAP",
+            build_file_content = """
+        filegroup(name = "rustc", srcs = ["rustc.sh"], visibility = ["//visibility:public"])
         """,
         )
         PKGXRUST
