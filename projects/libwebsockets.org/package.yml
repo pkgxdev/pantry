@@ -14,6 +14,17 @@ build:
     cmake.org: 3
   working-directory: build
   script:
+    # v5.0.0's plugins cannot be configured in-tree. Every plugin gates itself
+    # on require_lws_config, whose in-tree branch is only taken for minimal
+    # examples; otherwise it falls through to a CHECK_C_SOURCE_COMPILES that
+    # includes <libwebsockets.h>. During our own configure nothing is installed
+    # yet, so that probe cannot compile, every role reads as absent, and
+    # protocol_client_loopback_test aborts with "requires LWS_ROLE_WS". The
+    # plugins are dlopened protocol handlers for lwsws; our one dependent, ttyd,
+    # compiles its own protocol in and does not load them.
+    - run: ARGS="$ARGS -DLWS_WITH_PLUGINS=OFF"
+      if: ">=5"
+
     - cmake .. -DCMAKE_INSTALL_PREFIX="{{prefix}}" $ARGS
     - make --jobs {{ hw.concurrency }} install
 
@@ -28,6 +39,15 @@ build:
     ARGS:
       - -DLWS_IPV6=ON
       - -DLWS_WITH_HTTP2=ON
+      # v5.0.0 flipped HTTP/3 on by default (LWS_QUIC_DEFAULT is ON unless
+      # LWS_WITH_UDP is explicitly off). HTTP/3 plus SSL with no alternative TLS
+      # backend then *force*-enables LWS_WITH_GNUTLS, which fails configure
+      # because gnutls is not a dependency here. It cannot simply be added
+      # either: lws needs SSL_set_quic_method for QUIC, which stock OpenSSL does
+      # not provide, so upstream reaches for GnuTLS instead. Taking gnutls would
+      # switch the TLS backend out from under our only dependent, ttyd. Leaving
+      # HTTP/3 off keeps OpenSSL and matches what every prior version shipped.
+      - -DLWS_WITH_HTTP3=OFF
       - -DLWS_WITH_EVLIB_PLUGINS=OFF
       - -DLWS_WITH_LIBEVENT=ON
       - -DLWS_WITH_LIBUV=ON
