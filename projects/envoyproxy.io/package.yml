@@ -250,15 +250,20 @@ build:
         # with E0463 "can't find crate". The pkgx loader still finds libc next
         # to itself by default, so host tools are unaffected.
         LD_FWD=$(printf '%s' "$LD_LIBRARY_PATH" | tr ':' '\n' | grep -v '/gnu\.org/glibc/' | paste -sd: -)
-        # Add the pkgx rust bottle's std dir (lib/rustlib/<triple>/lib holds
-        # libstd-*.so). rust's plain lib/ (librustc_driver.so) is already on
-        # $LD_LIBRARY_PATH via the dep, but libstd lives in this sub-libdir, so
-        # rustc — and the proc-macro dylibs it loads — resolve it from here
-        # instead of an unreachable bazel-out path. This is what lets us keep
-        # forwarding LD_LIBRARY_PATH (for process_wrapper's libgcc_s) without
-        # the E0463 proc-macro failure: one path satisfies both.
+        # Explicitly add the pkgx rust bottle's two lib dirs so bazel's
+        # env-cleared (`env -`) actions can resolve rustc's own libraries:
+        #   lib/                -> librustc_driver-*.so (rustc NEEDED, no RUNPATH)
+        #   lib/rustlib/<t>/lib -> libstd-*.so (loaded by rustc AND by the
+        #                          proc-macro dylibs it dlopens at compile time)
+        # Forwarding both is what clears the E0463 "can't find crate for
+        # proc_macro" wall while still giving process_wrapper its libgcc_s.
+        # Don't rely on the dep implicitly seeding rust/lib onto
+        # $LD_LIBRARY_PATH — add it outright. Validated on real x86_64 HW
+        # (cfarm): a proc_macro crate + consumer compiles and runs under this
+        # exact toolchain + LD config with rules_rust.
+        RUST_LIB="{{deps.rust-lang.org.prefix}}/lib"
         RUST_STD_DIR=$(dirname "$(ls "{{deps.rust-lang.org.prefix}}"/lib/rustlib/*/lib/libstd-*.so 2>/dev/null | head -1)")
-        [ -n "$RUST_STD_DIR" ] && LD_FWD="$LD_FWD:$RUST_STD_DIR"
+        LD_FWD="$LD_FWD:$RUST_LIB${RUST_STD_DIR:+:$RUST_STD_DIR}"
         BAZEL_OPTS="$BAZEL_OPTS --action_env=LD_LIBRARY_PATH=$LD_FWD --host_action_env=LD_LIBRARY_PATH=$LD_FWD"
         # pkgx ships cmake 4.x, which dropped compatibility with projects whose
         # `cmake_minimum_required` is < 3.5. Envoy vendors libevent, whose
