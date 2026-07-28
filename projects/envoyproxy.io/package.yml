@@ -25,6 +25,10 @@ platforms:
 # that bottle present at runtime.
 dependencies:
   libcxx.llvm.org: '*'
+  # The binary is linked against the pkgx glibc bottle (clang.cfg in the
+  # build), including its ld-linux as PT_INTERP — so it runs without a system
+  # libc (the `FROM scratch` goal). Ship that glibc alongside envoy.
+  gnu.org/glibc: '*'
 
 build:
   dependencies:
@@ -139,6 +143,25 @@ build:
         rm -f "$COMBINED/bin/$rc"           # drop the symlink we just made (else cp = same file)
         cp "$realclang" "$COMBINED/bin/$rc"
         for a in clang clang++ clang-cpp; do ln -sf "$rc" "$COMBINED/bin/$a"; done
+        # DON'T depend on the system libc. The modern pkgx clang emits binaries
+        # needing a newer glibc than an old CI base (or a `FROM scratch` image)
+        # provides — e.g. foreign_cc's luajit host tool: "minilua: libm.so.6:
+        # version GLIBC_2.29 not found". Make clang ALWAYS target the
+        # relocatable pkgx glibc bottle (its own crt + libc + ld-linux, the
+        # gnu.org/glibc/README.md pattern) via a clang config file that clang
+        # auto-loads from its own bin dir. This reaches EVERY clang invocation —
+        # bazel target/exec compiles AND foreign_cc deps' own HOST_CC (luajit)
+        # that plain --host_linkopt never touched — with no wrapper script (so
+        # clang's /proc/self/exe self-location for libc++ still works).
+        GLIBCLIB=$(dirname "$(ls "{{deps.gnu.org/glibc.prefix}}"/lib/glibc-*/libc.so.6 2>/dev/null | head -1)")
+        GLIBCLD=$(ls "$GLIBCLIB"/ld-linux*.so.* 2>/dev/null | head -1)
+        cat > "$COMBINED/bin/clang.cfg" <<CFG
+        -B$GLIBCLIB
+        -L$GLIBCLIB
+        -Wl,--dynamic-linker=$GLIBCLD
+        -Wl,-rpath,$GLIBCLIB
+        CFG
+        for a in clang++ clang-cpp "$rc"; do ln -sf clang.cfg "$COMBINED/bin/$a.cfg"; done
         export BAZEL_LLVM_PATH="$COMBINED"
         echo "BAZEL_LLVM_PATH=$BAZEL_LLVM_PATH"
 
@@ -195,19 +218,9 @@ build:
         # libraries: libcurl.so.4"). Forward both into target + exec/host.
         BAZEL_OPTS="$BAZEL_OPTS --action_env=PATH=$PATH --host_action_env=PATH=$PATH"
         BAZEL_OPTS="$BAZEL_OPTS --action_env=LD_LIBRARY_PATH=$LD_LIBRARY_PATH --host_action_env=LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
-        # Host tools that foreign_cc builds+runs DURING the build (luajit's
-        # `minilua`, etc.) are emitted by the modern pkgx clang and then need a
-        # newer glibc than the CI base image ships ("minilua: libm.so.6:
-        # version GLIBC_2.29 not found"). Link the EXEC-config binaries against
-        # the relocatable pkgx glibc bottle — its own crt + libc + ld-linux, the
-        # pattern documented in gnu.org/glibc/README.md — so they run against
-        # glibc 2.44 on any host. EXEC/host only: baking an absolute PT_INTERP
-        # into the *target* (final envoy) binary would break bottle relocation.
-        GLIBCLIB=$(dirname "$(ls "{{deps.gnu.org/glibc.prefix}}"/lib/glibc-*/libc.so.6 2>/dev/null | head -1)")
-        GLIBCLD=$(ls "$GLIBCLIB"/ld-linux*.so.* 2>/dev/null | head -1)
-        for f in "-B$GLIBCLIB" "-L$GLIBCLIB" "-Wl,--dynamic-linker=$GLIBCLD" "-Wl,-rpath,$GLIBCLIB"; do
-          BAZEL_OPTS="$BAZEL_OPTS --host_linkopt=$f"
-        done
+        # (glibc targeting is handled by the clang.cfg written into the unified
+        # prefix above — it reaches every clang invocation, including
+        # foreign_cc's luajit HOST_CC that bazel --host_linkopt can't touch.)
 
         # NOTE: no explicit -isystem/-L for libc++ — the unified
         # BAZEL_LLVM_PATH prefix built above lets the toolchain find it as a
