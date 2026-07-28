@@ -194,6 +194,15 @@ build:
         # fails at `git rev-parse`. Stub workspace status with `true`
         # — we don't need stamping for a from-source release build.
         BAZEL_OPTS="$BAZEL_OPTS --workspace_status_command=true"
+        # Build all Go codegen tools (protoc-gen-validate, protoc plugins…)
+        # as pure Go — CGO off. With cgo, Go's net resolver references the
+        # unversioned `__res_search`, but pkgx glibc 2.44 demoted it to a
+        # non-default compat symbol (the default is now `res_search@@GLIBC_2.34`),
+        # so lld fails: "undefined symbol: __res_search / did you mean
+        # __res_search@GLIBC_2.17". These tools need no cgo; pure Go drops the
+        # glibc resolver dependency entirely. (Starlark build setting → applies
+        # to exec-config tool builds too.)
+        BAZEL_OPTS="$BAZEL_OPTS --@io_bazel_rules_go//go/config:pure"
         # rules_foreign_cc otherwise builds its OWN build tools (make,
         # pkgconfig, cmake, ninja) from source, and each ./configure link
         # test fails under envoy's --config=libc++ (static -l%:libc++.a
