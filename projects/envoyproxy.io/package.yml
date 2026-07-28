@@ -235,7 +235,15 @@ build:
         # needs LD_LIBRARY_PATH too (else "cmake: error while loading shared
         # libraries: libcurl.so.4"). Forward both into target + exec/host.
         BAZEL_OPTS="$BAZEL_OPTS --action_env=PATH=$PATH --host_action_env=PATH=$PATH"
-        BAZEL_OPTS="$BAZEL_OPTS --action_env=LD_LIBRARY_PATH=$LD_LIBRARY_PATH --host_action_env=LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+        # Forward LD_LIBRARY_PATH for the pkgx tool libs (cmake→libcurl,
+        # process_wrapper→libgcc_s), but DROP the pkgx glibc dir from it: rustc
+        # loads Rust proc-macro dylibs (thiserror_impl.so, …) whose NEEDED
+        # libc.so.6 would otherwise resolve to the pkgx glibc 2.44 instead of
+        # the libc the rust toolchain was built against, mismatching and failing
+        # with E0463 "can't find crate". The pkgx loader still finds libc next
+        # to itself by default, so host tools are unaffected.
+        LD_FWD=$(printf '%s' "$LD_LIBRARY_PATH" | tr ':' '\n' | grep -v '/gnu\.org/glibc/' | paste -sd: -)
+        BAZEL_OPTS="$BAZEL_OPTS --action_env=LD_LIBRARY_PATH=$LD_FWD --host_action_env=LD_LIBRARY_PATH=$LD_FWD"
         # pkgx ships cmake 4.x, which dropped compatibility with projects whose
         # `cmake_minimum_required` is < 3.5. Envoy vendors libevent, whose
         # bundled CMakeLists still declares an ancient minimum → "Compatibility
