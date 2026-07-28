@@ -185,12 +185,15 @@ build:
         # configs). This is a library search path, not an -isystem include, so
         # it does NOT trip bazel's "outside the execution root" check.
         BAZEL_OPTS="$BAZEL_OPTS --linkopt=-L$COMBINED/lib --host_linkopt=-L$COMBINED/lib"
-        # foreign_cc build scripts (nghttp2 etc.) invoke the preinstalled
-        # cmake/ninja/pkg-config by bare name, but bazel actions don't
-        # inherit the shell PATH — only the runner's system PATH, which has
-        # `make` but not the pkgx cmake/ninja → "cmake: command not found".
-        # Forward the full PATH into target and exec/host actions.
+        # foreign_cc build scripts (nghttp2/maxmind/…) invoke the
+        # preinstalled cmake/ninja/pkg-config by bare name, but bazel
+        # actions don't inherit the shell PATH — only the runner's system
+        # PATH (has `make`, not the pkgx cmake/ninja) → "cmake: command not
+        # found". And the pkgx cmake itself dlopens libcurl.so.4 etc., so it
+        # needs LD_LIBRARY_PATH too (else "cmake: error while loading shared
+        # libraries: libcurl.so.4"). Forward both into target + exec/host.
         BAZEL_OPTS="$BAZEL_OPTS --action_env=PATH=$PATH --host_action_env=PATH=$PATH"
+        BAZEL_OPTS="$BAZEL_OPTS --action_env=LD_LIBRARY_PATH=$LD_LIBRARY_PATH --host_action_env=LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
 
         # NOTE: no explicit -isystem/-L for libc++ — the unified
         # BAZEL_LLVM_PATH prefix built above lets the toolchain find it as a
