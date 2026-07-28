@@ -40,6 +40,15 @@ build:
     gnu.org/make: '*'                     # rules_foreign_cc make toolchain (else it builds make from source)
     ninja-build.org: '*'                  # rules_foreign_cc ninja toolchain
     gnu.org/glibc: '*'                    # run foreign_cc host tools against a modern glibc (see below)
+    # Once clang.cfg redirects host tools onto the pkgx glibc bottle, the
+    # pkgx ld-linux is their PT_INTERP — and it does NOT fall back to the
+    # system /lib. So the whole libc closure must come from pkgx too, else a
+    # freshly-built host tool (e.g. rules_rust's process_wrapper) dies with
+    # "libgcc_s.so.1: cannot open shared object file". These bottles put
+    # libgcc_s.so.1 + libatomic.so.1 in lib/, which pkgx adds to the build
+    # LD_LIBRARY_PATH that we forward into the bazel actions.
+    gnu.org/gcc/libstdcxx: '*'            # libgcc_s.so.1 (host-tool unwinding)
+    gnu.org/gcc: '*'                      # libatomic.so.1 (pulled by libc++)
     cmake.org: '*'                        # some bazel rules use cmake
     python.org: '~3.11'                   # bazel build rules use python
     gnu.org/m4: '*'
