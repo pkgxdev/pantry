@@ -1,0 +1,37 @@
+distributable:
+  url: https://github.com/eudev-project/eudev/releases/download/v{{ version }}/eudev-{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: eudev-project/eudev/tags
+  strip: /^v/
+
+# eudev is the standalone fork of systemd's udev. This recipe builds it purely
+# as a lightweight provider of libudev.so.1 (the udev client library) — many
+# packages link libudev but the only other pantry source is all of systemd.io.
+# blkid/selinux/kmod/hwdb are optional udevd features we don't need for the
+# library, so they're disabled to keep the closure to just glibc.
+build:
+  dependencies:
+    gnu.org/gperf: '*'
+    freedesktop.org/pkg-config: '*'
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
+  env:
+    ARGS:
+      - --prefix={{ prefix }}
+      - --disable-blkid
+      - --disable-selinux
+      - --disable-kmod
+      - --disable-manpages
+      - --disable-hwdb
+      - --disable-introspection
+
+provides:
+  - bin/udevadm
+
+test:
+  - test -f {{ prefix }}/lib/libudev.so.1
+  - '{{ prefix }}/bin/udevadm --version'
