@@ -49,6 +49,13 @@ build:
     # LD_LIBRARY_PATH that we forward into the bazel actions.
     gnu.org/gcc/libstdcxx: '*'            # libgcc_s.so.1 (host-tool unwinding)
     gnu.org/gcc: '*'                      # libatomic.so.1 (pulled by libc++)
+    # Envoy's WORKSPACE pins rust 1.88.0 and rules_rust auto-DOWNLOADS it; but
+    # that toolchain's libstd lives under bazel-out, unreachable from the
+    # LD_LIBRARY_PATH we must forward (for process_wrapper's libgcc_s), so
+    # rustc can't load proc-macro dylibs (E0463). Use the pkgx rust 1.88.0
+    # bottle as the toolchain instead: its libstd is a bottle we CAN put on
+    # LD_LIBRARY_PATH, so proc-macros AND process_wrapper resolve from one path.
+    rust-lang.org: '~1.88'                # == 1.88.0, matches envoy's pin exactly
     cmake.org: '*'                        # some bazel rules use cmake
     python.org: '~3.11'                   # bazel build rules use python
     gnu.org/m4: '*'
@@ -243,6 +250,15 @@ build:
         # with E0463 "can't find crate". The pkgx loader still finds libc next
         # to itself by default, so host tools are unaffected.
         LD_FWD=$(printf '%s' "$LD_LIBRARY_PATH" | tr ':' '\n' | grep -v '/gnu\.org/glibc/' | paste -sd: -)
+        # Add the pkgx rust bottle's std dir (lib/rustlib/<triple>/lib holds
+        # libstd-*.so). rust's plain lib/ (librustc_driver.so) is already on
+        # $LD_LIBRARY_PATH via the dep, but libstd lives in this sub-libdir, so
+        # rustc — and the proc-macro dylibs it loads — resolve it from here
+        # instead of an unreachable bazel-out path. This is what lets us keep
+        # forwarding LD_LIBRARY_PATH (for process_wrapper's libgcc_s) without
+        # the E0463 proc-macro failure: one path satisfies both.
+        RUST_STD_DIR=$(dirname "$(ls "{{deps.rust-lang.org.prefix}}"/lib/rustlib/*/lib/libstd-*.so 2>/dev/null | head -1)")
+        [ -n "$RUST_STD_DIR" ] && LD_FWD="$LD_FWD:$RUST_STD_DIR"
         BAZEL_OPTS="$BAZEL_OPTS --action_env=LD_LIBRARY_PATH=$LD_FWD --host_action_env=LD_LIBRARY_PATH=$LD_FWD"
         # pkgx ships cmake 4.x, which dropped compatibility with projects whose
         # `cmake_minimum_required` is < 3.5. Envoy vendors libevent, whose
@@ -251,14 +267,53 @@ build:
         # tells cmake to run those projects under 3.5 policies instead of
         # erroring. Forward into the foreign_cc (exec-config) actions.
         BAZEL_OPTS="$BAZEL_OPTS --action_env=CMAKE_POLICY_VERSION_MINIMUM=3.5 --host_action_env=CMAKE_POLICY_VERSION_MINIMUM=3.5"
-        # rules_rust proc-macro dylibs (thiserror_impl.so, …) failed to load into
-        # rustc (E0463) because our forwarded LD_LIBRARY_PATH — required so
-        # process_wrapper finds pkgx libgcc_s — shadows the rust libstd path.
-        # Link rust binaries via bazel's cc_common (our clang toolchain) instead
-        # of rustc's own linker: this bakes proper RPATHs into process_wrapper
-        # and the proc-macro dylibs, so their libstd/libgcc_s resolve by rpath
-        # regardless of LD_LIBRARY_PATH.
-        BAZEL_OPTS="$BAZEL_OPTS --@rules_rust//rust/settings:experimental_use_cc_common_link=1"
+        # Use the pkgx rust 1.88.0 bottle as the rust toolchain (matching envoy's
+        # pin) instead of the one rules_rust downloads. Its libstd is the bottle
+        # dir added to LD_FWD above, so proc-macros load fine; envoy builds
+        # WORKSPACE-style (--noenable_bzlmod), so register a rust_toolchain over
+        # the pkgx bottle and prefer it via --extra_toolchains.
+        case "$(uname -m)" in
+          aarch64|arm64) RTRIPLE=aarch64-unknown-linux-gnu; RCPU=aarch64 ;;
+          x86_64)        RTRIPLE=x86_64-unknown-linux-gnu;  RCPU=x86_64 ;;
+        esac
+        cat >> WORKSPACE <<PKGXRUST
+        load("@bazel_tools//tools/build_defs/repo:local.bzl", "new_local_repository")
+        new_local_repository(
+            name = "pkgx_rust",
+            path = "{{deps.rust-lang.org.prefix}}",
+            build_file_content = """
+        load("@rules_rust//rust:toolchain.bzl", "rust_toolchain", "rust_stdlib_filegroup")
+        filegroup(name = "rustc", srcs = ["bin/rustc"], visibility = ["//visibility:public"])
+        filegroup(name = "rustdoc", srcs = ["bin/rustdoc"], visibility = ["//visibility:public"])
+        filegroup(name = "rustc_lib", srcs = glob(["lib/*.so*"]), visibility = ["//visibility:public"])
+        rust_stdlib_filegroup(name = "rust_std", srcs = glob(["lib/rustlib/$RTRIPLE/lib/*"]), visibility = ["//visibility:public"])
+        rust_toolchain(
+            name = "pkgx_rust_impl",
+            rustc = ":rustc",
+            rust_doc = ":rustdoc",
+            rustc_lib = ":rustc_lib",
+            rust_std = ":rust_std",
+            binary_ext = "",
+            staticlib_ext = ".a",
+            dylib_ext = ".so",
+            stdlib_linkflags = ["-lpthread", "-ldl", "-lm"],
+            default_edition = "2021",
+            exec_triple = "$RTRIPLE",
+            target_triple = "$RTRIPLE",
+            visibility = ["//visibility:public"],
+        )
+        toolchain(
+            name = "pkgx_rust_toolchain",
+            toolchain = ":pkgx_rust_impl",
+            toolchain_type = "@rules_rust//rust:toolchain_type",
+            exec_compatible_with = ["@platforms//cpu:$RCPU", "@platforms//os:linux"],
+            target_compatible_with = ["@platforms//cpu:$RCPU", "@platforms//os:linux"],
+            visibility = ["//visibility:public"],
+        )
+        """,
+        )
+        PKGXRUST
+        BAZEL_OPTS="$BAZEL_OPTS --extra_toolchains=@pkgx_rust//:pkgx_rust_toolchain"
         # (glibc targeting is handled by the clang.cfg written into the unified
         # prefix above — it reaches every clang invocation, including
         # foreign_cc's luajit HOST_CC that bazel --host_linkopt can't touch.)
