@@ -218,6 +218,13 @@ build:
         # libraries: libcurl.so.4"). Forward both into target + exec/host.
         BAZEL_OPTS="$BAZEL_OPTS --action_env=PATH=$PATH --host_action_env=PATH=$PATH"
         BAZEL_OPTS="$BAZEL_OPTS --action_env=LD_LIBRARY_PATH=$LD_LIBRARY_PATH --host_action_env=LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+        # pkgx ships cmake 4.x, which dropped compatibility with projects whose
+        # `cmake_minimum_required` is < 3.5. Envoy vendors libevent, whose
+        # bundled CMakeLists still declares an ancient minimum → "Compatibility
+        # with CMake < 3.5 has been removed". CMAKE_POLICY_VERSION_MINIMUM=3.5
+        # tells cmake to run those projects under 3.5 policies instead of
+        # erroring. Forward into the foreign_cc (exec-config) actions.
+        BAZEL_OPTS="$BAZEL_OPTS --action_env=CMAKE_POLICY_VERSION_MINIMUM=3.5 --host_action_env=CMAKE_POLICY_VERSION_MINIMUM=3.5"
         # (glibc targeting is handled by the clang.cfg written into the unified
         # prefix above — it reaches every clang invocation, including
         # foreign_cc's luajit HOST_CC that bazel --host_linkopt can't touch.)
