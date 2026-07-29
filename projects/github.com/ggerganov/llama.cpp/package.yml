@@ -58,6 +58,19 @@ build:
         // missing include for linux/aarch64 -- HWCAP2_I8MM\\
         #include <asm/hwcap.h>
 
+    # our docker builders are debian:buster (glibc 2.28) and
+    # posix_spawn_file_actions_addchdir_np arrived in glibc 2.29.
+    # only reachable via an MCP stdio server config that sets `cwd`.
+    # vendored since 10141, so `test -f` doubles as the version guard
+    - run: |
+        if test -f subprocess.h; then
+          sed -i -f $PROP subprocess.h
+        fi
+      working-directory: vendor/sheredom
+      if: linux
+      prop: |
+        s|.*posix_spawn_file_actions_addchdir_np(&actions, process_cwd);|#if defined(__GLIBC__) \&\& (__GLIBC__ * 1000 + __GLIBC_MINOR__ < 2029)\n    posix_error = ENOSYS;\n#else\n&\n#endif|
+
     - run: make --jobs {{hw.concurrency}}
       if: <4242
     # *** The Makefile build is deprecated. Use the CMake build instead.
