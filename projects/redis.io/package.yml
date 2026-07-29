@@ -15,10 +15,14 @@ dependencies:
 
 build:
   script:
-    make install
+    # 8.10 added `deploy: PREFIX ?= /usr/local` to the top level Makefile. a
+    # target-specific assignment makes GNU make drop PREFIX from the environment
+    # of *every* recipe, so the `$(MAKE) -C src install` recursion no longer sees
+    # ours and src/Makefile falls back to its own /usr/local default. passing it
+    # on the command line survives the recursion via MAKEOVERRIDES.
     # TODO: configure default redis.conf if necessary
+    - make install PREFIX="{{prefix}}"
   env:
-    PREFIX: ${{prefix}}
     BUILD_TLS: yes
     linux/x86-64:
       CFLAGS: -fPIC
