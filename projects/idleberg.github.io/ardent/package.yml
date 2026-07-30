@@ -1,10 +1,9 @@
 distributable:
-  url: https://github.com/idleberg/ardent/archive/refs/tags/v{{ version }}.tar.gz
+  url: https://github.com/idleberg/ardent/archive/refs/tags/{{ version.tag }}.tar.gz
   strip-components: 1
 
 versions:
   github: idleberg/ardent
-  strip: /^v/
 
 build:
   dependencies:
@@ -17,12 +16,17 @@ provides:
 
 test:
   - run: ardent --version | grep {{ version }}
-  - run: |
-      ardent format $FIXTURE > formatted.nsi
-      printf 'Section\n\tMessageBox MB_OK "hello"\nSectionEnd\n' | diff - formatted.nsi
-    fixture: &unformatted
+  - run: ardent format $FIXTURE > formatted.nsi
+    fixture:
       extname: nsi
       content: |
         section
         messagebox mb_ok "hello"
         sectionend
+  # ugh, newlines
+  - run: head -n3 $FIXTURE >out
+    fixture: |
+      Section
+      	MessageBox MB_OK "hello"
+      SectionEnd
+  - diff out formatted.nsi
