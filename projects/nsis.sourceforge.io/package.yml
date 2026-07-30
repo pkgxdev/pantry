@@ -1,0 +1,105 @@
+# ?viasf=1 is load-bearing: without it every *.dl.sourceforge.net host 301s back
+# to the downloads.sourceforge.net redirector, which geo-picks a mirror.
+distributable:
+  url: https://master.dl.sourceforge.net/project/nsis/NSIS%20{{version.major}}/{{version.raw}}/nsis-{{version.raw}}-src.tar.bz2?viasf=1
+  strip-components: 1
+
+display-name: makensis
+
+versions:
+  url: https://sourceforge.net/projects/nsis/files/NSIS%203/
+  match: _/projects/nsis/files/NSIS%203/\d+(\.\d+)+/_
+  strip:
+    - _^/projects/nsis/files/NSIS%203/_
+    - _/$_
+
+dependencies:
+  zlib.net: ^1
+  linux:
+    gnu.org/gcc/libstdcxx: 14
+
+# NSIS_CONFIG_CONST_DATA_PATH is on by default off Windows, which bakes
+# PREFIX_DATA/PREFIX_CONF into the binary as absolute paths. Both are
+# overridable by env, and that is what keeps us working under a relocated
+# PKGX_DIR.
+runtime:
+  env:
+    NSISDIR: "{{prefix}}/share/nsis"
+    NSISCONFDIR: "{{prefix}}/etc"
+
+build:
+  dependencies:
+    scons.org: '*'
+    curl.se: '*'
+    info-zip.org/unzip: '*'
+  script:
+    # NSIS's SConstruct hands Environment() an empty ENV, so every compiler scons
+    # spawns runs with nothing but SCons' built-in default PATH. SConstruct does
+    # take a PATH= argument, but that alone is not enough here: brewkit's cc/c++
+    # shims read $HOME to locate PKGX_DIR and die on `nil + "/.pkgx"` without it,
+    # which shows up as *every* Configure check failing ("zlib is missing!").
+    # So hand scons the real environment, same as pantry's apache.org/serf does.
+    - run: sed -i -f $PROP SConstruct
+      prop: |
+        s/'ENV': {}/'ENV': dict(os.environ)/
+
+    # scons still won't read CFLAGS/LDFLAGS on its own — those go through the
+    # APPEND_* options NSIS provides for exactly this. On linux/x86-64 that
+    # carries brewkit's -fPIC/-pie, which the audit step insists on.
+    - scons makensis
+        APPEND_CCFLAGS="$CFLAGS"
+        APPEND_LINKFLAGS="$LDFLAGS"
+        APPEND_CPPPATH="{{deps.zlib.net.prefix}}/include"
+        APPEND_LIBPATH="{{deps.zlib.net.prefix}}/lib"
+        PREFIX="{{prefix}}"
+        PREFIX_DOC="{{prefix}}/share/nsis/Docs"
+        VERSION="{{version.raw}}"
+        SKIPSTUBS=all
+        SKIPPLUGINS=all
+        SKIPUTILS=all
+        SKIPMISC=all
+        STRIP=0
+  
+    # `scons install` would drag in the targets we just skipped; the compiler is
+    # the only thing we built, so place it ourselves. STRIP=0 above is
+    # deliberate — stripping makensis breaks it. See
+    # https://github.com/Homebrew/homebrew/issues/28718
+    - mkdir -p {{prefix}}/bin {{prefix}}/etc
+    - cp build/urelease/makensis/makensis {{prefix}}/bin/makensis
+
+    # unzipped under dist/ because SConstruct's instdist target owns (and
+    # Delete()s) a top-level `nsis-<version>` directory in the build tree
+    - curl -Lf --retry 3 --retry-connrefused -o nsis.zip https://master.dl.sourceforge.net/project/nsis/NSIS%20{{version.major}}/{{version.raw}}/nsis-{{version.raw}}.zip?viasf=1
+    - unzip -q nsis.zip -d dist
+    - run:
+        - mkdir -p {{prefix}}/share/nsis
+        - cp -R Bin Contrib Docs Examples Include Plugins Stubs {{prefix}}/share/nsis/
+        - cp nsisconf.nsh {{prefix}}/etc/nsisconf.nsh
+      working-directory: dist/nsis-{{version.raw}}
+
+test:
+  # makensis converts script text through iconv against the locale's codeset;
+  # under LC_ALL=C that lands on US-ASCII and it aborts with std::bad_alloc on
+  # any UTF-8 source. https://sourceforge.net/p/nsis/bugs/1165/
+  env:
+    LANG: C.UTF-8
+    LC_ALL: C.UTF-8
+  script:
+    - test "$(makensis -VERSION)" = "v{{version.raw}}"
+    - makensis "{{prefix}}/share/nsis/Examples/bigtest.nsi" "-XOutfile /dev/null"
+
+    - run: mv $FIXTURE test.nsi
+      fixture: |
+        !include "MUI2.nsh"
+        Name "pkgx"
+        OutFile "test.exe"
+        !insertmacro MUI_PAGE_INSTFILES
+        !insertmacro MUI_LANGUAGE "English"
+        Section
+          DetailPrint "hello from pkgx"
+        SectionEnd
+    - makensis test.nsi
+    - test "$(head -c 2 test.exe)" = "MZ"
+
+provides:
+  - bin/makensis
