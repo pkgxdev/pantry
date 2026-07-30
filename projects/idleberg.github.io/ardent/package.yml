@@ -1,0 +1,32 @@
+distributable:
+  url: https://github.com/idleberg/ardent/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: idleberg/ardent
+
+build:
+  dependencies:
+    rust-lang.org: ^1.85
+    rust-lang.org/cargo: '*'
+  script: cargo install --path . --root {{ prefix }} --locked
+
+provides:
+  - bin/ardent
+
+test:
+  - run: ardent --version | grep {{ version }}
+  - run: ardent format $FIXTURE > formatted.nsi
+    fixture:
+      extname: nsi
+      content: |
+        section
+        messagebox mb_ok "hello"
+        sectionend
+  # ugh, newlines
+  - run: head -n3 $FIXTURE >out
+    fixture: |
+      Section
+      	MessageBox MB_OK "hello"
+      SectionEnd
+  - diff out formatted.nsi
