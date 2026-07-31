@@ -1,0 +1,96 @@
+# udev is Linux-specific (there is no macOS build) — libudev.so.1 is the point.
+platforms:
+  - linux
+
+distributable:
+  url: https://github.com/eudev-project/eudev/releases/download/{{ version.tag }}/eudev-{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: eudev-project/eudev/tags
+
+# eudev is the standalone fork of systemd's udev. This recipe builds it purely
+# as a lightweight provider of libudev.so.1 (the udev client library) — many
+# packages link libudev but the only other pantry source is all of systemd.io.
+# blkid/selinux/kmod/hwdb are optional udevd features we don't need for the
+# library, so they're disabled to keep the closure to just glibc.
+build:
+  dependencies:
+    gnu.org/gperf: '*'
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
+  env:
+    ARGS:
+      - --prefix={{ prefix }}
+      - --disable-blkid
+      - --disable-selinux
+      - --disable-kmod
+      - --disable-manpages
+      - --disable-hwdb
+      - --disable-introspection
+
+# provides:
+#   - bin/udevadm
+
+# Consumers link libudev, so the test links it too and drives the real API
+# rather than checking that a file exists. /dev/null is character device 1:3 —
+# a fixed allocation in the kernel's devices.txt — and /sys/class/mem/null is
+# present even in a bare container, so these values hold without udevd running
+# and without any populated udev database.
+test:
+  - run: cc $FIXTURE -ludev -o udevtest
+    fixture:
+      extname: c
+      content: |
+        #include <libudev.h>
+        #include <stdio.h>
+
+        int main(void) {
+          struct udev *u = udev_new();
+          if (!u) {
+            fprintf(stderr, "udev_new failed\n");
+            return 1;
+          }
+
+          /* Resolve a device through sysfs and read its properties back. */
+          struct udev_device *d =
+            udev_device_new_from_subsystem_sysname(u, "mem", "null");
+          if (!d) {
+            fprintf(stderr, "could not resolve mem/null\n");
+            return 1;
+          }
+
+          printf("devnode=%s\n", udev_device_get_devnode(d));
+          printf("subsystem=%s\n", udev_device_get_subsystem(d));
+          printf("major=%s\n", udev_device_get_property_value(d, "MAJOR"));
+          printf("minor=%s\n", udev_device_get_property_value(d, "MINOR"));
+
+          /* The enumeration path, which is what most consumers actually use. */
+          struct udev_enumerate *e = udev_enumerate_new(u);
+          udev_enumerate_add_match_subsystem(e, "mem");
+          udev_enumerate_scan_devices(e);
+          struct udev_list_entry *le;
+          int n = 0;
+          udev_list_entry_foreach(le, udev_enumerate_get_list_entry(e))
+            n++;
+          printf("enumerated=%d\n", n > 0);
+
+          udev_enumerate_unref(e);
+          udev_device_unref(d);
+          udev_unref(u);
+          return 0;
+        }
+
+  - ./udevtest | tee out.txt
+  - grep -Fx devnode=/dev/null out.txt
+  - grep -Fx subsystem=mem out.txt
+  - grep -Fx major=1 out.txt
+  - grep -Fx minor=3 out.txt
+  - grep -Fx enumerated=1 out.txt
+
+  # udevadm is built but not provided; exercise it in place so a broken binary
+  # is caught even though nothing depends on it being on PATH.
+  - udevadm info --query=all --name=/dev/null 2>&1 | tee out
+  - grep -F DEVNAME=/dev/null out
