@@ -171,11 +171,19 @@ build:
         # clang's /proc/self/exe self-location for libc++ still works).
         GLIBCLIB=$(dirname "$(ls "{{deps.gnu.org/glibc.prefix}}"/lib/glibc-*/libc.so.6 2>/dev/null | head -1)")
         GLIBCLD=$(ls "$GLIBCLIB"/ld-linux*.so.* 2>/dev/null | head -1)
+        # libgcc_s.so.1 (unwinding) lives in the gcc/libstdcxx bottle. Bake an
+        # rpath to it into every clang-linked binary so rules_rust's own host
+        # tools (process_wrapper, cargo_toml_variable_extractor, …) — which are
+        # NOT run through our rustc wrapper and so don't inherit its
+        # --library-path — still resolve libgcc_s at load time regardless of the
+        # (env-cleared) action environment.
+        GCCLIB=$(dirname "$(ls "{{deps.gnu.org/gcc/libstdcxx.prefix}}"/lib*/libgcc_s.so.1 2>/dev/null | head -1)")
         cat > "$COMBINED/bin/clang.cfg" <<CFG
         -B$GLIBCLIB
         -L$GLIBCLIB
         -Wl,--dynamic-linker=$GLIBCLD
         -Wl,-rpath,$GLIBCLIB
+        -Wl,-rpath,$GCCLIB
         CFG
         for a in clang++ clang-cpp "$rc"; do ln -sf clang.cfg "$COMBINED/bin/$a.cfg"; done
         export BAZEL_LLVM_PATH="$COMBINED"
