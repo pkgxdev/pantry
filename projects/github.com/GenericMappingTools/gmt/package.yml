@@ -22,6 +22,7 @@ dependencies:
   fftw.org: '*'
   pcre.org: '*'
   zlib.net: '*'
+  jpeg.org/jpegxl: '*'
 
 build:
   dependencies:
@@ -48,6 +49,7 @@ build:
         - -DCMAKE_EXE_LINKER_FLAGS=-Wl,--allow-shlib-undefined
 
 test:
-  - ({{prefix}}/bin/gmt --version 2>&1 || true) | grep '{{version.raw}}'
+  - (gmt --version 2>&1 || true) | tee out
+  - grep '{{version.raw}}' out
   - gmt math -T0/10/1 T SQRT = out.txt
   - grep 2.2360679775 out.txt
