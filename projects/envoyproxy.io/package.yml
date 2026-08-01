@@ -186,6 +186,19 @@ build:
         -Wl,-rpath,$GCCLIB
         CFG
         for a in clang++ clang-cpp "$rc"; do ln -sf clang.cfg "$COMBINED/bin/$a.cfg"; done
+        # Place the glibc-2.34-merged compat stubs (libdl/librt/libpthread/…,
+        # empty shims whose symbols now live in libc) NEXT TO libclang in the
+        # unified prefix. envoy's dynamic_modules rust build script runs bindgen,
+        # which dlopens $COMBINED/lib/libclang.so; libclang NEEDs libdl.so.2,
+        # which the pkgx glibc merged into libc but still ships as a stub. Put it
+        # where libclang's own $ORIGIN RUNPATH finds it — NOT on any general
+        # LD_LIBRARY_PATH, which would make bazel's system-loader process-wrapper
+        # load pkgx libc.so.6 2.44 and fail "GLIBC_2.35 not found". The stubs
+        # NEED libc.so.6, already loaded (2.44) in the clang.cfg-linked
+        # build-script process, so they resolve cleanly.
+        for s in libdl.so.2 librt.so.1 libpthread.so.0 libanl.so.1 libresolv.so.2; do
+          [ -e "$GLIBCLIB/$s" ] && ln -sf "$GLIBCLIB/$s" "$COMBINED/lib/$s"
+        done
         export BAZEL_LLVM_PATH="$COMBINED"
         echo "BAZEL_LLVM_PATH=$BAZEL_LLVM_PATH"
 
@@ -272,16 +285,12 @@ build:
         RUST_LIB="{{deps.rust-lang.org.prefix}}/lib"
         RUST_STD_DIR=$(dirname "$(ls "{{deps.rust-lang.org.prefix}}"/lib/rustlib/*/lib/libstd-*.so 2>/dev/null | head -1)")
         LD_FWD="$LD_FWD:$RUST_LIB${RUST_STD_DIR:+:$RUST_STD_DIR}"
-        # Re-add the pkgx glibc dir at the END of LD_FWD. It was filtered out
-        # above to keep the OLD (pre-wrapper) rustc off pkgx glibc, but rustc now
-        # runs UNDER the pkgx glibc 2.44 loader (rustc.sh), so that's moot — and
-        # glibc 2.34+ ships the compat stubs (libdl.so.2, librt.so.1, …) that a
-        # dlopen'd, clang.cfg-2.44-linked library needs: e.g. envoy's
-        # dynamic_modules rust build script uses bindgen, which dlopens
-        # libclang.so whose NEEDED libdl.so.2 (merged into libc, but stubbed)
-        # must resolve. RUNPATH isn't transitive to a dlopen'd lib's deps, so it
-        # must come from LD_LIBRARY_PATH.
-        LD_FWD="$LD_FWD:$GLIBCLIB"
+        # NB: do NOT add the pkgx glibc dir to LD_FWD — bazel's own
+        # process-wrapper (a system-loader binary) would then load pkgx
+        # libc.so.6 2.44 and fail "GLIBC_2.35 not found" against the old CI-base
+        # loader. libclang's missing libdl.so.2 is handled scoped, next to
+        # libclang in $COMBINED/lib (see the stub symlinks above), so only
+        # libclang's $ORIGIN RUNPATH sees it.
         BAZEL_OPTS="$BAZEL_OPTS --action_env=LD_LIBRARY_PATH=$LD_FWD --host_action_env=LD_LIBRARY_PATH=$LD_FWD"
         # pkgx ships cmake 4.x, which dropped compatibility with projects whose
         # `cmake_minimum_required` is < 3.5. Envoy vendors libevent, whose
