@@ -272,6 +272,16 @@ build:
         RUST_LIB="{{deps.rust-lang.org.prefix}}/lib"
         RUST_STD_DIR=$(dirname "$(ls "{{deps.rust-lang.org.prefix}}"/lib/rustlib/*/lib/libstd-*.so 2>/dev/null | head -1)")
         LD_FWD="$LD_FWD:$RUST_LIB${RUST_STD_DIR:+:$RUST_STD_DIR}"
+        # Re-add the pkgx glibc dir at the END of LD_FWD. It was filtered out
+        # above to keep the OLD (pre-wrapper) rustc off pkgx glibc, but rustc now
+        # runs UNDER the pkgx glibc 2.44 loader (rustc.sh), so that's moot — and
+        # glibc 2.34+ ships the compat stubs (libdl.so.2, librt.so.1, …) that a
+        # dlopen'd, clang.cfg-2.44-linked library needs: e.g. envoy's
+        # dynamic_modules rust build script uses bindgen, which dlopens
+        # libclang.so whose NEEDED libdl.so.2 (merged into libc, but stubbed)
+        # must resolve. RUNPATH isn't transitive to a dlopen'd lib's deps, so it
+        # must come from LD_LIBRARY_PATH.
+        LD_FWD="$LD_FWD:$GLIBCLIB"
         BAZEL_OPTS="$BAZEL_OPTS --action_env=LD_LIBRARY_PATH=$LD_FWD --host_action_env=LD_LIBRARY_PATH=$LD_FWD"
         # pkgx ships cmake 4.x, which dropped compatibility with projects whose
         # `cmake_minimum_required` is < 3.5. Envoy vendors libevent, whose
