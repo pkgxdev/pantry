@@ -245,6 +245,12 @@ build:
         # Memory-constrain bazel to fit on standard CI runners.
         # `--local_resources` units: cpu=count, ram=MB.
         BAZEL_OPTS="$BAZEL_OPTS -c opt"
+        # envoy's opt config enables Fission (per-object split DWARF), so bazel
+        # DECLARES a `.dwo` output for every compile — which `-g0` then never
+        # produces ("output '…/platform.dwo' was not created"). Turn Fission off
+        # so no `.dwo` is expected; with -g0 there is no debug info to split
+        # anyway, and a non-split, no-debug link is faster still.
+        BAZEL_OPTS="$BAZEL_OPTS --fission=no"
         # Use ALL cores (not half): the previous *0.5 cap left the build at ~89%
         # of actions after 4h and it was killed at the hard 6h runner timeout.
         # --local_ram_resources still governs scheduling, so bazel throttles on
