@@ -184,21 +184,19 @@ build:
         -Wl,--dynamic-linker=$GLIBCLD
         -Wl,-rpath,$GLIBCLIB
         -Wl,-rpath,$GCCLIB
+        -Wl,--disable-new-dtags
         CFG
         for a in clang++ clang-cpp "$rc"; do ln -sf clang.cfg "$COMBINED/bin/$a.cfg"; done
-        # Place the glibc-2.34-merged compat stubs (libdl/librt/libpthread/…,
-        # empty shims whose symbols now live in libc) NEXT TO libclang in the
-        # unified prefix. envoy's dynamic_modules rust build script runs bindgen,
-        # which dlopens $COMBINED/lib/libclang.so; libclang NEEDs libdl.so.2,
-        # which the pkgx glibc merged into libc but still ships as a stub. Put it
-        # where libclang's own $ORIGIN RUNPATH finds it — NOT on any general
-        # LD_LIBRARY_PATH, which would make bazel's system-loader process-wrapper
-        # load pkgx libc.so.6 2.44 and fail "GLIBC_2.35 not found". The stubs
-        # NEED libc.so.6, already loaded (2.44) in the clang.cfg-linked
-        # build-script process, so they resolve cleanly.
-        for s in libdl.so.2 librt.so.1 libpthread.so.0 libanl.so.1 libresolv.so.2; do
-          [ -e "$GLIBCLIB/$s" ] && ln -sf "$GLIBCLIB/$s" "$COMBINED/lib/$s"
-        done
+        # --disable-new-dtags makes clang.cfg's -rpath emit DT_RPATH instead of
+        # DT_RUNPATH. DT_RUNPATH is NOT searched for the deps of a dlopen'd
+        # library, but DT_RPATH IS — so a clang-linked binary that dlopens a
+        # shared lib (e.g. envoy's dynamic_modules rust build script runs bindgen,
+        # which dlopens libclang.so) resolves that lib's own NEEDED (libdl.so.2 —
+        # merged into libc since glibc 2.34 but still shipped as a stub in
+        # $GLIBCLIB, and libgcc_s) from the build binary's RPATH. This keeps the
+        # pkgx glibc OFF any general LD_LIBRARY_PATH (which would break bazel's
+        # system-loader process-wrapper) and out of clang's own $ORIGIN lib dir
+        # (which would break the system-loader clang binary itself).
         export BAZEL_LLVM_PATH="$COMBINED"
         echo "BAZEL_LLVM_PATH=$BAZEL_LLVM_PATH"
 
