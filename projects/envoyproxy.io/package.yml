@@ -213,11 +213,19 @@ build:
         # command on error instead of just the target label.
         BAZEL_OPTS="$BAZEL_OPTS --verbose_failures"
         # pkgx ships a much newer clang (22) than envoy 1.39 targets, so its
-        # stricter default warnings (e.g. -Wnullability-completeness on cel-cpp
-        # headers) trip envoy's -Werror and abort compiles that are otherwise
-        # fine. Demote every warning-as-error to a warning (a warning never
-        # changes codegen); appended AFTER the target's -Werror so it wins.
-        BAZEL_OPTS="$BAZEL_OPTS --copt=-Wno-error --host_copt=-Wno-error --cxxopt=-Wno-error --host_cxxopt=-Wno-error"
+        # stricter default warnings trip envoy's -Werror and abort compiles
+        # that are otherwise fine. `--copt=-Wno-error` alone is NOT enough:
+        # bazel places --copt BEFORE a target's own per-file copts, so the
+        # cc_library's `-Werror` (and cel-cpp's) is applied LAST and wins —
+        # exactly why cel_state.cc kept failing on -Wnullability-completeness.
+        # The order-robust fix is to DISABLE the offending warning categories
+        # themselves: a later generic `-Werror` cannot re-promote a warning
+        # that has been switched off with -Wno-<cat>. Disabling a warning
+        # never changes codegen. Keep -Wno-error too for any case order favours.
+        WNO="-Wno-nullability-completeness -Wno-error"
+        for f in $WNO; do
+          BAZEL_OPTS="$BAZEL_OPTS --copt=$f --host_copt=$f --cxxopt=$f --host_cxxopt=$f"
+        done
         # Run actions locally (unsandboxed) so the compiler can reach the
         # clang/libc++ toolchain under /opt (via the unified prefix above).
         # NB: do NOT force `--strategy=Genrule=sandboxed` — v8's genrules
