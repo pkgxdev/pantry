@@ -228,7 +228,12 @@ build:
         # then demotes ALL warnings-as-errors regardless of category or -Wall.
         # Warnings still print; none is promoted to an error; codegen is
         # unchanged. `.*` matches every compiled source, external deps included.
-        BAZEL_OPTS="$BAZEL_OPTS --per_file_copt=.*@-Wno-error"
+        #
+        # `-g0` (no debug info) rides along the same last-wins per_file_copt: a
+        # bottle ships stripped, so debug info is pure waste — dropping it cuts
+        # both compile time and the (serial, single massive) final link, the
+        # tail that pushed the full build past the 6h GitHub-runner cap.
+        BAZEL_OPTS="$BAZEL_OPTS --per_file_copt=.*@-Wno-error,-g0"
         # Run actions locally (unsandboxed) so the compiler can reach the
         # clang/libc++ toolchain under /opt (via the unified prefix above).
         # NB: do NOT force `--strategy=Genrule=sandboxed` — v8's genrules
@@ -240,7 +245,11 @@ build:
         # Memory-constrain bazel to fit on standard CI runners.
         # `--local_resources` units: cpu=count, ram=MB.
         BAZEL_OPTS="$BAZEL_OPTS -c opt"
-        BAZEL_OPTS="$BAZEL_OPTS --jobs=HOST_CPUS*0.5"
+        # Use ALL cores (not half): the previous *0.5 cap left the build at ~89%
+        # of actions after 4h and it was killed at the hard 6h runner timeout.
+        # --local_ram_resources still governs scheduling, so bazel throttles on
+        # RAM rather than OOMing — full jobs simply fills the cores RAM allows.
+        BAZEL_OPTS="$BAZEL_OPTS --jobs=HOST_CPUS"
         BAZEL_OPTS="$BAZEL_OPTS --local_ram_resources=HOST_RAM*0.7"
         # Tarball install has no .git, so envoy's workspace_status.sh
         # fails at `git rev-parse`. Stub workspace status with `true`
