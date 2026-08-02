@@ -1,5 +1,5 @@
 distributable:
-  url: https://downloads.sourceforge.net/project/mcmc-jags/JAGS/{{version.major}}.x/Source/JAGS-{{version}}.tar.gz
+  url: https://downloads.sourceforge.net/project/mcmc-jags/JAGS/{{version.major}}.x/Source/JAGS-{{version}}.tar.gz?viasf=1
   strip-components: 1
 
 versions:
@@ -10,7 +10,7 @@ versions:
     - /\.tar\.gz$/
 
 dependencies:
-  gnu.org/gcc: '*' # libstdc++
+  gnu.org/gcc: 11 # libstdc++, gfortran
   linux:
     netlib.org/lapack: ^3
 
@@ -25,6 +25,10 @@ build:
   env:
     ARGS:
       - --prefix="{{prefix}}"
+    darwin:
+      CC: clang
+      CXX: clang++
+      LD: clang
 
 provides:
   - bin/jags
