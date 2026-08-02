@@ -251,14 +251,13 @@ build:
         # so no `.dwo` is expected; with -g0 there is no debug info to split
         # anyway, and a non-split, no-debug link is faster still.
         BAZEL_OPTS="$BAZEL_OPTS --fission=no"
-        # Keep jobs at HALF the cores. --jobs=HOST_CPUS was tried and is worse:
-        # envoy's heavy C++ units (quiche/v8/protobuf) are RAM-hungry, so full
-        # parallelism OOM-killed the ARM64 runner at ~52min (a truncated log with
-        # NO clang error — the tell-tale of a SIGKILL) and thrashed x64 into the
-        # 6h cap anyway. *0.5 is the RAM-safe sweet spot; the speed win comes from
-        # -g0 above (which shrinks the serial final link, the tail that overran),
-        # not from more concurrency.
-        BAZEL_OPTS="$BAZEL_OPTS --jobs=HOST_CPUS*0.5"
+        # Jobs calibration (the build is right at the 6h runner cap): *0.5 was
+        # RAM-safe but timed out at 6h even with -g0; *1.0 OOM-killed the ARM64
+        # runner (heavy quiche/v8/protobuf units). *0.66 splits the difference —
+        # 2/3 the concurrent heavy compiles (below the ARM64 OOM point, which
+        # only appeared at full parallelism) for ~33% more compile throughput
+        # than *0.5, aiming to clear the action tail + serial link inside 6h.
+        BAZEL_OPTS="$BAZEL_OPTS --jobs=HOST_CPUS*0.66"
         BAZEL_OPTS="$BAZEL_OPTS --local_ram_resources=HOST_RAM*0.7"
         # Tarball install has no .git, so envoy's workspace_status.sh
         # fails at `git rev-parse`. Stub workspace status with `true`
