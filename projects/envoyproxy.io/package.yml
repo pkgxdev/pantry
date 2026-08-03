@@ -1,0 +1,76 @@
+# Envoy — verified-vendor bottle (alternative to the ~18h from-source build).
+#
+# The from-source Envoy build is ~18h x 2 arches per release (see #13046).
+# Upstream ships official standalone Linux binaries AND a GPG-signed
+# checksums file, so this recipe packages the official binary after
+# verifying a full chain of trust — no rebuild, but not a blind vendor:
+#
+#   Envoy maintainers' GPG key (pinned fingerprint + embedded = trust anchor)
+#     |- signs -> checksums.txt.asc          (SHA256 of every release asset)
+#         |- matches -> the downloaded envoy binary (byte-for-byte)
+#
+# The bottle is provably the official release binary, and the recipe is
+# *exercised* every build (it re-verifies the chain) rather than blindly
+# trusting a URL. SBOM/provenance over this records buildType
+# "verified-vendor" + the exact upstream artifact and hash.
+
+versions:
+  github: envoyproxy/envoy
+
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+
+# The standalone binary is dynamically linked against libc; ship the pkgx
+# glibc so the bottle also runs on a `FROM scratch` closure.
+dependencies:
+  gnu.org/glibc: '*'
+
+build:
+  dependencies:
+    gnupg.org: '*'          # gpg — verify the signed checksums
+    curl.se: '*'            # fetch the release assets
+    gnu.org/coreutils: '*'  # sha256sum, install
+  script: |
+    set -eu
+    ver="{{version}}"
+    base="https://github.com/envoyproxy/envoy/releases/download/v${ver}"
+
+    # pkgx arch -> Envoy's release-asset arch name
+    case "$(uname -m)" in
+      x86_64)        earch=x86_64 ;;
+      aarch64|arm64) earch=aarch_64 ;;
+      *) echo "unsupported arch: $(uname -m)" >&2; exit 1 ;;
+    esac
+    asset="envoy-${ver}-linux-${earch}"
+
+    # 1. Fetch the GPG-signed checksums and the release binary.
+    curl -fsSL -o checksums.txt.asc "${base}/checksums.txt.asc"
+    curl -fsSL -o "${asset}" "${base}/${asset}"
+
+    # 2. Trust anchor: import ONLY the pinned Envoy maintainers key (embedded
+    #    below as base64 — no keyserver dependency), assert its fingerprint,
+    #    then verify the clearsigned checksums. Any failure aborts the build.
+    export GNUPGHOME="${PWD}/.gnupg"; mkdir -p "${GNUPGHOME}"; chmod 700 "${GNUPGHOME}"
+    FPR=0AFCE836BA4D1D35763C8523D8CDC3750181F31F
+    echo 'LS0tLS1CRUdJTiBQR1AgUFVCTElDIEtFWSBCTE9DSy0tLS0tCgptUUlOQkdOaWRqc0JFQURKZU5MSGcxSmo2cis5ODhqNklHcGc1NUdidzFRbE50MGlEckpHSFl1RE9OdHRpNzBFCkYzdEpabWRyZXV1ZTg5alFaZ0RjOWNCTWRBaXhIcHhlbnVCd2Z1S0NUOTl0eFlvY1FHd1pLVkN1OVUzc2JSQTYKZURhRDRhZGorbzA1cHpuQ3pkZStFdno0ZzBUL0JJcXVqL0VXdWs2REg1QmJPd0k4MFh5T1BhdW1lZjdoQnF5VQpnb1VQQklNa2JoL0pzblZBUHRGc1BEYkhac05PL2xIRHQ1ZDdiYmZXZHR2NThMSW9HUC95TnZ1ZlY3K3Z3eW1yCnJXeXVUQkhRemFud0Rad0dHaEpkYXo2dWJhaUo2ZXVwaGVMUzBkM3hYSnI0cjJaQjNuR2VDelcwZzI1N1JkMVoKM0ZIaEZtTU5HUk90U2ZqYTdNazVaMlIvZHArZExiTUh6RmxvK0dGa09VR05qWEkzSmJVQ1lsbSs2KzRucndVNgpvNDVMSnY5VHVzTUhpNm5jZkN6aVYwV0NEVUdsTDdkek5xalQ1RnV4L1AvSW5qdm5IL0l6N2UvYXdkVW5pbTFQCm5Kc09yVDRwd2ZQSldZQnRrZjJhUm11K05JQ3M1c3F5NkhJWmdzMDl5T1RPVnliNWVLeTJTVjBBUHJHV3EwT0gKTWtXZDJXSXdXdUJlb3dCeXpHVXltc3JxN0cyYVF3cXlKZTRKWXhxcThLRmJqUmlzcWhacVoreEh4R3VJdndBSQpjeHMvRW1RTEtzay9iMDZqNXVvanVjdjZTUEtXU0dHZjdjTzdQRGZEcVp4a1FUTm1jcWtZSGtHSkE1RCtoTHNXCmt0MVJLSVJSRmluZVJVQU5JdndhRlA1Q2UwNkNYM3Vydk9pOFpZME9MMGpPeDZkcDJsZFZvWU9kU3dBUkFRQUIKdERaRmJuWnZlU0J0WVdsdWRHRnBibVZ5Y3lBOFpXNTJiM2t0YldGcGJuUmhhVzVsY25OQVoyOXZaMnhsWjNKdgpkWEJ6TG1OdmJUNkpBazRFRXdFS0FEZ1dJUVFLL09nMnVrMGROWFk4aFNQWXpjTjFBWUh6SHdVQ1kySjJPd0liCkF3VUxDUWdIQWdZVkNna0lDd0lFRmdJREFRSWVBUUlYZ0FBS0NSRFl6Y04xQVlIekh3RHNEL2tCTHUrNUJEeDkKMkNyMGNIbjZkRU5CVlMzd0w1M1JDS1NHMFV6bGgrU1k5MEJON1dUSTVLeUFDdDNTWllaSGJiWmJBWXZ2WGJyNQo5b29oMFUrZUdpM0hzSXFyUDdHZHJEQys4Z3RKQitQdWQ5K2x0TUNnVTkySVcvWUFVU0kvSWdDYkNPcnU2Y3pjCkgyTGFoOFMyNzJZT3Bkcy93dWFpUlNpTUNVOFRST2NGWE1mcmlHdmNtTkt3ckpzUmhKVkFSRFpDM0RCNm0vdmUKaldIQUlYMmVZN1doWHlTNkRKaHMyaVZyd3o2ZkR4QWlqaTV6ckVabys0Q0VVSWZCb2piK0tlYUM3UHB1c0h1MQpTbGVxK0NrNnpla0FvRFgxTW1iUE9lQlQ4cUNvVE5RMXczMGpqNkNGVzhUNW5jVm90dFBSSXpRR2UwUzM1MEhSCm84SkxXZEVBQWRzNFFJSHN2bmFCQUtmUkhQUlBvNFV3NW40L3hrbExKSVh6YmFmaE4vZ29MQS9BQzl0em5RenEKQTk1U29NbjdmTVhNZC9zTFZPczRWMVhIUXNDYVh0OWdSK1F3ZDF0cUJOQy9tWkJyQ1BrSmlTdG5SclR1ZmhSYgpSOTd6MWxDeW5KTUpoZHFlUlg3Vm53bmNOUzYyVTMwcGZWMG10WXBTM1VSS3FjNjJKbTMrZkphbG5NUGFlWGZNCnhnamxlcnhWTmtZWEZOYis1TkVNUVNLdUdJNFVxK2tMVG1hamswYVM0Y0pHTStKdmpSeDlVdFcycmJmejlTdmgKOGRTS1Y4OXdWUS9adTlSM2RBb250b29vOWVDNVdUSFlHb2lQRGpGcUJHc2FMZVBReUp6TXdXSi9YWUc4Q2xGMQp6UW5BSkwzMlZZMUVDRzdHYlh3NHRXdFlkSUVyQm5JY2tya0NEUVJqWW5ZN0FSQUF0bzNEU0xsY0ZrektMQlo4CjlobWpnb25TWmxIeU1NQVA4WXMranM4aktpYzJhRHA3SVBvcnJRU0Q4YXV0b2FoYm5QQmUvVE1sa0dmK3BEN3oKaXFzSUltQ2xOQUpycUFyUmlmTkV3SE85NnVNQUZzYTdVaXl5VXorUDBuN3pSM296bmFzWm83cjY0b0NFNWY2MAoreGJhb3J1eUdpZmZpQm5KOHVWcXhFS3ZpamlsajJ2Q2RjN09OK0tPdjZFNi9paUJlUVRFdlR1U1RzNUdtOElGCmhSRzJJYTRTSE9DamRwZ2xQVTFtZ29URjlQekZCYnNBSUxMSnhHaE04TGxkSWVFTEVMcm9mdTc2MEl2UmFwQysKNGJhU1c5ZXU0V3VIcmFpRDI2WnBFWktBUWd0TzhZRlBReWx0QlNiTEIyQ1U3aTZrQmxYVFVMMzRoOEJPZnp3TQpsRmR3ejdhVFFsWTNaeEx0amg0RlhkTGxNMFlxb2xtSmpTaElPeWQ4NjVtbHgyQnFGbnFRaWdOSFhaZHFRaUVjCjA2K1lONkN4aWNoVGlMQ0NOOStVd1RqTzd3L1FUWU95YjR2QnM1dWJNQjU0S0UrcGVVb3I1Nmk5L1VkcFl4bVQKZWF1Z1hYOU03NG1ORHBXY2RmQndKWkpIQ2pUWWJYK05abnhOeXN5ZjVRV3Izcm9TQlBMSEZNekwvZmJCc2JXZQprWjU5cDRMY0JOTEQ2d0lHdHFiclg3ZkY1bUgyOEI1WkZHVjhxOHlJM21wdDEzYWRJc3V1dytTOGRMZlFyUXdQCmlwaXRZSHNCUTBGNkp0R0ZzOER6RDdmMktvTGxWYlhnUDQwYWRvRzFkUHMzTm1pR0xWWmtqbXFEYUh6TDZGd2sKRzQxWWNCREh5cVNPcFFNVlM2cEppV0pJdnNNQUVRRUFBWWtDTmdRWUFRb0FJQlloQkFyODZEYTZUUjAxZGp5RgpJOWpOdzNVQmdmTWZCUUpqWW5ZN0Foc01BQW9KRU5qTnczVUJnZk1mZld3UUFMaFNwMmZlZHQvb1JJRVA4cmROCnlGZXg2RlNYbFpRT011R3llbzZQZURvYjIzTytXY1RJY1M1UE9NN1Vja0VSZW4rMzBaUEhzT0VUM2pJUEg0aDUKd0lGdWhVZS9hcDJKVDYrQ21zVysya1B6N25IR0ZRd0NkalJTY0ZPbVJwRWl1OCs3WDJsNUxxVWFPMFBpQzg4bQpuNGZDV0gxbUlEcWRHTHhqZDJFb05CdDh2bFFVdDU4d1FiUlBUczdQNzkyMDlvNDR6WXowNFRUTkw4aVh6cjNCCm5nSzEzWjhRd2FSMUg1NkJhM0RkeVUyeEcwMTZXMXBONEI0QzdEZ1ROV1p3elJKa2Qzdmc1QU16VjZablA1K0QKVTM4b1FFbGZwR0J5NllRQ3RDL1pWUERGTkwwSmFldnJhSUcxTGRGQnFwVUN1MmJ6NEZVUmQxS29VSVRGZHhlWQo2c3FMMDE4cTh3dFRiN25SS01xUFhpR2VsQWxMdlNhTUw4Y3E4Q2VmVUFsaGppaGhwSnMxNEIxTStLT3VDT3Q5CnIwVkhkSDFacDVGT1R1dEErUWdUd1ZEbmdOV2Fjb3hqTVkvemFaeExQckI5U3BwUHBSNFVOVUR2Y1hDQkp6Z3IKMzR0blVkRHZjYjdmdXlzZXhWVWlVQ2ZzOWRNdXY4VHhDWW1hVmpZMkhxN29CRU44cE0xbzA1RmZMcUNYd2RyQgpsa0NSb3JINjhXeUxKdi9GS1pUeWZWeUhuMzJXT2pyNURLR0kwclQvbndrUlJhSTBTUWJLRWVqdlV4bHExV2RLCmNuN29RRU0yc1pkSDN2ODVHUVUwZkEvMFY0VVYxMnBoYTFiMXAxcmJSaGRKaDRoL2lZK3JVZFJ6L1l5T01sejUKeG43M1NsdmFReTd0dGtDOHZ1UGlWSTZnCj1ZdGpCCi0tLS0tRU5EIFBHUCBQVUJMSUMgS0VZIEJMT0NLLS0tLS0K' | base64 -d | gpg --batch --import
+    gpg --batch --with-colons --fingerprint | grep -q "${FPR}"
+    gpg --batch --verify checksums.txt.asc
+
+    # 3. Verify the binary against the now-trusted checksum. The signed file
+    #    lists "<sha256>  <path-ending-in-asset>"; match on the asset name.
+    want=$(grep -E "  .*/${asset}\$" checksums.txt.asc | awk '{print $1}')
+    test -n "${want}"
+    echo "${want}  ${asset}" | sha256sum -c -
+
+    install -Dm755 "${asset}" "{{prefix}}/bin/envoy"
+
+test:
+  script:
+    - run: |
+        out=$(envoy --version 2>&1 | head -1)
+        echo "envoy --version: ${out}"
+        case "${out}" in *"/{{version}}/"*) echo PASS ;; *) echo "FAIL: ${out}"; exit 1 ;; esac
+
+provides:
+  - bin/envoy
