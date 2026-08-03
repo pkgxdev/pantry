@@ -24,7 +24,7 @@ platforms:
 # in the build) with an rpath into the libcxx.llvm.org bottle, so it needs
 # that bottle present at runtime.
 dependencies:
-  libcxx.llvm.org: '*'
+  libcxx.llvm.org: '~22'   # libc++ runtime, matched to the clang 22 built against
   # The binary is linked against the pkgx glibc bottle (clang.cfg in the
   # build), including its ld-linux as PT_INTERP — so it runs without a system
   # libc (the `FROM scratch` goal). Ship that glibc alongside envoy.
@@ -34,8 +34,8 @@ build:
   dependencies:
     github.com/bazelbuild/bazelisk: '*'   # bazel wrapper / version manager
     github.com/mikefarah/yq: '*'          # envoy's @yq external repo replacement
-    llvm.org: '*'                         # local clang for BAZEL_LLVM_PATH
-    libcxx.llvm.org: '*'                  # libc++ (llvm.org ships clang only)
+    llvm.org: '~22'                       # clang for BAZEL_LLVM_PATH, pinned to Envoy CI's compiler (clang 22)
+    libcxx.llvm.org: '~22'                # libc++ (llvm.org ships clang only), matched to clang 22
     gnu.org/coreutils: '*'                # install(1)
     gnu.org/make: '*'                     # rules_foreign_cc make toolchain (else it builds make from source)
     ninja-build.org: '*'                  # rules_foreign_cc ninja toolchain
@@ -205,9 +205,13 @@ build:
         # libstdc++ — that comes from gcc). Without an override, clang
         # fails with "'string' file not found" on the first C++ source.
         #
-        # Nix's nixpkgs envoy build sidesteps this by using gcc with
-        # its hermetic cc-wrapper, but envoy dropped gcc support in
-        # 1.21+. So we force libc++ explicitly via envoy's --config:
+        # Envoy supports both toolchains (clang >=18 with libc++, or gcc >=13
+        # with libstdc++), but clang+libc++ is what upstream recommends and what
+        # Envoy CI actually builds with (clang 22 — the version pinned in this
+        # recipe's deps). So we take Envoy's supported clang path: BAZEL_LLVM_PATH
+        # (above) selects the pkgx clang, and --config=libc++ makes it use libc++
+        # rather than the toolchain's default libstdc++ (which the llvm bottle
+        # doesn't ship — clang would fail "'string' file not found" otherwise).
         BAZEL_OPTS="--config=libc++"
         # This is a huge, layered build; surface the failing compile
         # command on error instead of just the target label.
