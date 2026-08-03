@@ -31,11 +31,12 @@ build:
     github.com/skystrife/cpptoml: "*"
     # these need version locking, but we don't support that yet
     # facebook.com/fbthrift: '{{version}}'
-    # facebook.com/mvfst: '{{version}}h
+    # facebook.com/mvfst: '{{version}}'
     facebook.com/fbthrift: "*"
     facebook.com/mvfst: "*"
     google.com/googletest: "*"
     rust-lang.org: "*"
+    curl.se: "*"
     linux:
       gnu.org/gcc: 14
   script:
@@ -65,6 +66,14 @@ build:
           #include <fmt/format.h>' "$f"
         - done
       if: ">=2026.6.8"
+
+    # missing export
+    - run:
+        - if test ! -f GlobPath.h; then
+        - curl -LO https://github.com/facebook/sapling/raw/refs/heads/main/eden/fs/utils/GlobPath.h
+        - fi
+      if: ">=2026.8.3"
+      working-directory: eden/fs/utils
 
     - cmake -S . -B build $CMAKE_ARGS -DCMAKE_C_FLAGS="$CFLAGS" -DCMAKE_CXX_FLAGS="$CXXFLAGS"
     - cmake --build build
