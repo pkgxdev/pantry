@@ -24,7 +24,6 @@ companions:
 
 build:
   dependencies:
-    freedesktop.org/pkg-config: ~0.29
     gnu.org/patch: "*"
     gnu.org/coreutils: "*"
     cmake.org: 3 # as of 1.7.3
@@ -75,7 +74,22 @@ build:
   env:
     linux:
       CMAKE_ARGS:
+        # -lstdc++fs is load-bearing on linux/x86-64: without it ld.lld fails
+        # with undefined std::filesystem references from libggml.so. It is NOT
+        # needed on linux/aarch64, where those symbols resolve from
+        # libstdc++.so.6 directly. Removing it globally breaks the x64 build.
         - -DCMAKE_EXE_LINKER_FLAGS=-Wl,-lstdc++fs,-lpthread
+
+        # Clang autodetects a GCC installation for its libstdc++ headers, and
+        # on the buster runner that is /usr/include/c++/8 (libstdc++-8-dev is
+        # installed in the runner image). ggml therefore compiled <filesystem>
+        # against GCC 8 while linking libstdcxx 14 -- and path::_Cmpt has a
+        # different layout in each, so 1.9.2 segfaulted in
+        # _Destroy<path::_Cmpt> inside ggml_backend_load_all. Point clang at
+        # the libstdcxx we actually link against. Trixie-based images never
+        # showed this because their system headers are already GCC 14.
+        - -DCMAKE_CXX_FLAGS=--gcc-toolchain={{ deps.gnu.org/gcc/libstdcxx.prefix }}
+        - -DCMAKE_C_FLAGS=--gcc-toolchain={{ deps.gnu.org/gcc/libstdcxx.prefix }}
 
 test:
   env:
@@ -83,5 +97,6 @@ test:
   script:
     - hf download ggerganov/whisper.cpp ggml-base.en.bin
     - model="$(find "$cache" -name "ggml-base.en.bin")"
-    - curl https://github.com/ggml-org/whisper.cpp/raw/refs/heads/master/samples/jfk.wav | whisper-cli --model "$model" -
-  cache: $HOME/.cache/huggingface
+    - curl -fLO https://github.com/ggml-org/whisper.cpp/raw/refs/heads/master/samples/jfk.wav
+    - whisper-cli --model "$model" jfk.wav | tee out
+    - grep -i "ask not what your country can do for you" out
