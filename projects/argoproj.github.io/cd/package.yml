@@ -12,12 +12,18 @@ build:
     go.dev: "*"
     nodejs.org: "<23"
     classic.yarnpkg.com: "*"
+    pnpm.io: "*" # as of 3.5.0
     linux:
       git-scm.org: "*"
   script:
     - run: NODE_ENV=development make --jobs {{hw.concurrency}} dep-ui-local
     - run:
         - yarn build
+      if: <3.5
+      working-directory: ui
+    - run:
+        - pnpm build
+      if: ">=3.5"
       working-directory: ui
     - make --jobs {{hw.concurrency}} cli-local
     - mkdir -p {{prefix}}/bin
