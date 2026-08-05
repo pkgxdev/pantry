@@ -1,31 +1,42 @@
 distributable:
-  url: https://github.com/CircleCI-Public/circleci-cli/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/CircleCI-Public/circleci-cli/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
   github: CircleCI-Public/circleci-cli/tags
-  strip: /^v/
 
 build:
   dependencies:
     go.dev: '*'
-  script: |
-    go build -ldflags="$LDFLAGS" -o {{prefix}}/bin/circleci
+  script:
+    # 1.0.46955 was a complete rewrite: package main moved from the repo root
+    # to ./cmd/circleci, and the version package was deleted in favour of a
+    # plain `var version` in main, so neither of the old -X paths resolves any
+    # more. This mirrors upstream's Taskfile, which now builds with
+    # `-ldflags="-X main.version=..." ./cmd/circleci`.
+    - run: go build -ldflags="$GO_LDFLAGS" -o $BIN ./cmd/circleci
+      if: '>=1.0.46955'
+    - run: go build -ldflags="$GO_LDFLAGS" -o $BIN
+      if: '<1.0.46955'
   env:
-    LDFLAGS:
+    BIN: "{{prefix}}/bin/circleci"
+    GO_LDFLAGS:
       - -s
       - -w
       - -X github.com/CircleCI-Public/circleci-cli/version.packageManager=tea
       - -X github.com/CircleCI-Public/circleci-cli/version.Version={{version}}
+      # changes in 1.0.46955
+      - -X main.version={{version}}
     linux:
-      LDFLAGS:
+      GO_LDFLAGS:
         - -buildmode=pie
 
 provides:
   - bin/circleci
 
 test:
-  script: |
-    circleci version
-    echo "{version: 2.1}" > .circleci.yml
-    circleci config pack .circleci.yml
+  - circleci version
+  - run: circleci config pack $FIXTURE
+    fixture:
+      extname: yml
+      content: '{version: 2.1}'
