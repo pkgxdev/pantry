@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/getzola/zola/archive/refs/tags/v{{ version }}.tar.gz
+  url: https://github.com/getzola/zola/archive/refs/tags/{{ version.tag }}.tar.gz
   strip-components: 1
 
 provides:
@@ -7,14 +7,16 @@ provides:
 
 versions:
   github: getzola/zola
-  strip: /v/
 
 build:
   dependencies:
     rust-lang.org: '>=1.65'
     rust-lang.org/cargo: '*'
+    crates.io/edikt: "*"
   script:
-    cargo install --path . --root {{prefix}}
+    # missing version bump
+    - edikt -i '.workspace.package.version = "{{version}}"' Cargo.toml
+    - cargo install --path . --root {{prefix}}
 
 test:
   script:
