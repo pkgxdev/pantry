@@ -27,4 +27,10 @@ build:
 provides:
   - bin/vault-unseal
 
-test: test "$(vault-unseal --version| head -n1 | cut -d ' ' -f 3)" = {{version}}
+# clix v2.0.1 (pulled in by 1.0.1) reflowed the --version banner: the version
+# moved off line 1 onto line 3, behind the description and a blank line, so the
+# old `head -n1 | cut -f3` extracted "Hashicorp". Match the value itself rather
+# than a line/field position.
+test:
+  - vault-unseal --version | tee out
+  - 'grep -F "version: {{version}}" out'
