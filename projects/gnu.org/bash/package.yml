@@ -19,7 +19,20 @@ interprets:
 
 build:
   script:
-    - ./configure --prefix={{ prefix }}
+    # bash <5 has `u32toutf16 (c, ws)` in lib/sh/unicode.c passing a wchar_t[]
+    # to an `unsigned short *`. The call sits behind `sizeof (wchar_t) == 2` so
+    # it is dead code wherever wchar_t is 4 bytes, but it is still type-checked,
+    # and clang 15+ / gcc 14+ promote -Wincompatible-pointer-types from a
+    # warning to an error. Same treatment as the implicit-declaration flag.
+    - run: CFLAGS="$CFLAGS -Wno-incompatible-pointer-types -Wno-implicit-int"
+      if: <5
+
+    # $LEGACY_ARGS is darwin-only (see env below) and empty elsewhere, so this
+    # is a no-op on linux, where bash <5 configures cleanly.
+    - run: ARGS="$ARGS $LEGACY_ARGS"
+      if: <5
+
+    - ./configure --prefix={{ prefix }} $ARGS
     - make --jobs {{ hw.concurrency }} install
   env:
     CFLAGS:
@@ -29,6 +42,17 @@ build:
       - -Wno-implicit-function-declaration
     darwin:
       LDFLAGS: $LDFLAGS -Wl,-headerpad_max_install_names
+      LEGACY_ARGS:
+        # vsnprintf/snprintf are fortify macros on darwin, expanding to
+        # __builtin___v?snprintf_chk. bash <5 ships K&R replacements in
+        # lib/sh/snprintf.c and the macro rewrites their definitions into
+        # nonsense ("conflicting types for __builtin___vsnprintf_chk").
+        # Telling configure the libc functions exist skips the replacements.
+        - ac_cv_func_snprintf=yes
+        - ac_cv_func_vsnprintf=yes
+        # bash <5 unconditionally includes <libintl.h> when NLS is on; darwin
+        # has no gettext in the SDK, whereas linux gets it from glibc.
+        - --disable-nls
 
 test:
   - bash --version | tee out
