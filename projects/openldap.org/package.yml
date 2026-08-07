@@ -15,16 +15,13 @@ dependencies:
     github.com/util-linux/util-linux: '*'
 
 build:
-  dependencies:
-    gnu.org/sed: '*' # darwin sed doesn't support \b
-  script: |
-    ./configure $ARGS
+  script:
+    - ./configure $ARGS
 
     # Avoid needing groff to build the docs
-    sed -i.bak -e 's/SUBDIRS=\(.*\)\bdoc\b\(.*\)/SUBDIRS=\1\2/' Makefile
-    rm Makefile.bak
+    - sed -i -e 's/SUBDIRS=\(.*\)\bdoc\b\(.*\)/SUBDIRS=\1\2/' Makefile
 
-    make --jobs {{ hw.concurrency }} install
+    - make --jobs {{ hw.concurrency }} install
   env:
     ARGS:
       - --prefix="{{prefix}}"
@@ -48,6 +45,12 @@ build:
     linux:
       # undefined symbol errors in newer llvms prevent building shared libs
       CFLAGS: $CFLAGS -Wl,--undefined-version
+      # 2.7.0's mdb backend calls dlopen/dlsym/dlclose/dlerror from
+      # mdbmodule.c, but configure does not add -ldl to slapd's link. glibc
+      # merged libdl into libc in 2.34; the buster builder is 2.28, where the
+      # only linkable copy is still in libdl.so.2. Harmless on newer glibc,
+      # where libdl is an empty compat stub.
+      LDFLAGS: $LDFLAGS -ldl
 
 provides:
   - bin/ldapcompare
@@ -61,4 +64,6 @@ provides:
   - bin/ldapvc
   - bin/ldapwhoami
 
-test: ldapcompare -VV 2>&1 | grep {{version}}
+test:
+  - ldapcompare -VV 2>&1 | tee out
+  - grep {{version}} out
