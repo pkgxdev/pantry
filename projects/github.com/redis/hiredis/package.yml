@@ -8,8 +8,22 @@ versions:
   github: redis/hiredis
 
 build:
-  script: |
-    make install $ARGS
+  script:
+    # hiredis.h is the single source of truth: the Makefile greps MAJOR/MINOR/
+    # PATCH out of it, and the generated hiredis.pc takes its `Version:` from
+    # those, so a stale header poisons pkg-config too. Upstream keeps tagging
+    # releases without bumping it -- v1.3.1 and v1.4.1 both still declare the
+    # .0 patch -- so pin the header to the tag we are actually building. A
+    # no-op on releases that got it right. HIREDIS_SONAME is deliberately left
+    # alone: it is the ABI soname and names the shared library.
+    # sed -i.bak (not bare -i) so this works with BSD sed on darwin too.
+    - run: sed -i -f $PROP hiredis.h
+      prop: |
+        s/^#define HIREDIS_MAJOR .*/#define HIREDIS_MAJOR {{version.major}}/
+        s/^#define HIREDIS_MINOR .*/#define HIREDIS_MINOR {{version.minor}}/
+        s/^#define HIREDIS_PATCH .*/#define HIREDIS_PATCH {{version.patch}}/
+
+    - make install $ARGS
   env:
     ARGS:
       - PREFIX="{{prefix}}"
@@ -20,4 +34,6 @@ build:
 test:
   dependencies:
     freedesktop.org/pkg-config: '*'
-  script: pkg-config --modversion hiredis | grep {{version}}
+  script:
+    - pkg-config --modversion hiredis | tee out
+    - grep {{version}} out
