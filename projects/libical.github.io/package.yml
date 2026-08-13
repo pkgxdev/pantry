@@ -1,0 +1,46 @@
+distributable:
+  url: https://github.com/libical/libical/releases/download/v{{version}}/libical-{{version}}.tar.gz
+  strip-components: 1
+
+display-name: libical
+
+dependencies:
+  gnome.org/glib: '>=2.32'
+  gnome.org/libxml2: '>=2.7.3'
+  oracle.com/berkeley-db: '*'
+  unicode.org: '*'
+versions:
+  github: libical/libical
+
+build:
+  dependencies:
+    cmake.org: '>=3.5'
+    doxygen.nl: '*'
+  script: |
+    cmake . $ARGS
+    cmake --build . --parallel {{ hw.concurrency }}
+    cmake --install .
+  env:
+    ARGS:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DLIBICAL_BUILD_TESTING=OFF
+      - -DLIBICAL_BUILD_EXAMPLES=OFF
+      - -DBerkeleyDB_ROOT_DIR={{deps.oracle.com/berkeley-db.prefix}}
+      - -DICU_ROOT={{deps.unicode.org.prefix}}
+      - -DENABLE_GTK_DOC=OFF
+
+test:
+  - run: cc $FIXTURE -lical
+    fixture:
+      extname: c
+      content: |
+        #include <libical/ical.h>
+        #include <stdio.h>
+
+        int main() {
+          struct icaltimetype date = icaltime_today();
+          printf("%d-%02d-%02d", date.year, date.month, date.day);
+          return 0;
+        }
+  - test $(./a.out) = $(date -I)
