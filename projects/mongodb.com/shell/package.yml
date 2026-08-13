@@ -18,13 +18,24 @@ build:
     - npm i $ARGS
     - run: ln -s ../libexec/bin/mongosh mongosh
       working-directory: "{{prefix}}/bin"
+    # 2.10.0: unpublished getAiAgent (container TypeError) + no telemetry ids
+    - run: sed -i -f $PROP cli-repl.js
+      working-directory: ${{prefix}}/libexec/lib/node_modules/@mongosh/cli-repl/lib
+      if: ">=2.10.0"
+      prop: |
+        s/!(0, logging_2.getAiAgent)()/!(typeof logging_2.getAiAgent === "function" \&\& logging_2.getAiAgent())/
+        /completed telemetry setup/a\\
+                {\\
+                    const id = this.config.userId || this.config.telemetryAnonymousId || new bson_1.ObjectId().toHexString();\\
+                    this.config.userId ||= id;\\
+                    this.config.telemetryAnonymousId ||= id;\\
+                    this.bus.emit('mongosh:new-user', { userId: this.config.userId, anonymousId: this.config.telemetryAnonymousId });\\
+                }
   env:
     ARGS:
-      - -ddd
+      - --ddd
       - --global
-      - --build-from-source
       - --prefix={{prefix}}/libexec
-      - --unsafe-perm
       - cli-repl-{{version}}.tgz
 
 provides:
