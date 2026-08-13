@@ -75,6 +75,54 @@ build:
     - run: sed -i -e"s/-isystem', /-isystem' + /g" meson.build
       if: ">=8.1.4"
 
+    # 11.1 uses MADV_COLD/PAGEOUT/POPULATE_READ/POPULATE_WRITE bare in
+    # linux-user/mmap.c (it #ifdef-guards only MADV_COLLAPSE), assuming a
+    # glibc new enough to define them. The linux builder's glibc (2.28,
+    # buster) predates all four. Values are asm-generic and identical on
+    # x86-64 and aarch64 (verified 20/21/22/23 on both); #ifndef keeps this a
+    # no-op wherever glibc already defines them. Darwin never compiles
+    # linux-user, so no gate needed beyond the version.
+    - run: sed -i -e "/#include \"qemu\/osdep.h\"/r $PROP" linux-user/mmap.c
+      prop: |
+        #ifndef MADV_COLD
+        #define MADV_COLD 20
+        #endif
+        #ifndef MADV_PAGEOUT
+        #define MADV_PAGEOUT 21
+        #endif
+        #ifndef MADV_POPULATE_READ
+        #define MADV_POPULATE_READ 22
+        #endif
+        #ifndef MADV_POPULATE_WRITE
+        #define MADV_POPULATE_WRITE 23
+        #endif
+      if: ">=11.1"
+
+    # Same builder-vintage problem, one layer deeper: syscall.c's fsconfig
+    # block is guarded on __NR_fsopen, which qemu's BUNDLED linux-headers
+    # define -- but the FSCONFIG_* values come from the HOST's <sys/mount.h>,
+    # where glibc only added them in 2.36 (the builder is 2.28). They are enum
+    # values on modern glibc, not macros, so the fallback is keyed on
+    # FSOPEN_CLOEXEC (a macro from the same header: absent = pre-fsconfig
+    # glibc) and MUST land after the sys/mount.h include -- defining them
+    # before an enum that declares them would break modern builds instead.
+    # Values verified 0..7 on glibc 2.41. On the 4.19 builder kernel the
+    # syscall just returns ENOSYS at runtime, which is qemu's normal story
+    # for too-new syscalls.
+    - run: sed -i -e "/#include <sys\/mount.h>/r $PROP" linux-user/syscall.c
+      prop: |
+        #ifndef FSOPEN_CLOEXEC
+        #define FSCONFIG_SET_FLAG 0
+        #define FSCONFIG_SET_STRING 1
+        #define FSCONFIG_SET_BINARY 2
+        #define FSCONFIG_SET_PATH 3
+        #define FSCONFIG_SET_PATH_EMPTY 4
+        #define FSCONFIG_SET_FD 5
+        #define FSCONFIG_CMD_CREATE 6
+        #define FSCONFIG_CMD_RECONFIGURE 7
+        #endif
+      if: ">=11.1"
+
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
 
