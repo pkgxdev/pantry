@@ -31,6 +31,12 @@ build:
       - --prefix={{ prefix }}
       - --disable-nls
       - --disable-pidwait
+    # 4.0.7's top calls pthread_sigmask without linking -lpthread, assuming
+    # glibc >=2.34 where libpthread is merged into libc. The linux builder is
+    # glibc 2.28 (buster), where it still lives in libpthread.so. Harmless on
+    # newer glibc, where libpthread is an empty compat stub. Same pattern as
+    # openldap's -ldl.
+    LDFLAGS: $LDFLAGS -lpthread
 
 provides:
   - bin/free
