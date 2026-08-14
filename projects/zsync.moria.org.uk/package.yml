@@ -14,6 +14,12 @@ versions:
     - /zsync-/
     - /\.tar\.bz2$/
 
+# Runtime, not build-only: 0.6.6 uses libcrypto for the protocol's own
+# checksums (MD4 block strong checksum, SHA-1 whole-file), so the installed
+# binaries link libcrypto.so dynamically. configure hard-errors without it.
+dependencies:
+  openssl.org: ^1.1
+
 build:
   script:
     # Upstream ships config.guess/config.sub from 2009; that copy doesn't know
