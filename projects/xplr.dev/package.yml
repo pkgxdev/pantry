@@ -12,12 +12,16 @@ build:
   dependencies:
     rust-lang.org: '>=1.56'
     rust-lang.org/cargo: '*'
+    linux/aarch64:
+      crates.io/edikt: '*'
   script:
-    # linux/aarch64 wants aarch64-linux-gnu-gcc
-    - run: |
-        mkdir .bin
-        ln -s "$(command -v clang)" .bin/aarch64-linux-gnu-gcc
-        export PATH="$PWD/.bin:$PATH"
+    # .cargo/config.toml pins a cross-compiler linker for this target
+    # (-C linker=aarch64-linux-gnu-gcc), which does not exist here; we used to
+    # fake it with a clang symlink on PATH. Drop the pin and let cargo use the
+    # default linker instead. Only the linker flag goes: -rdynamic is the
+    # reason the file exists (upstream issue #309) and is preserved.
+    - run: edikt -i '.target."aarch64-unknown-linux-gnu".rustflags = ["-C", "link-args=-rdynamic"]' config.toml
+      working-directory: .cargo
       if: linux/aarch64
     - cargo install --path . --root {{prefix}}
 
