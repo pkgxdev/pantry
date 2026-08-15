@@ -5,14 +5,29 @@ distributable:
 versions:
   github: Parchive/par2cmdline
 
+dependencies:
+  linux:
+    gnu.org/gcc/libstdcxx: 14
+
 build:
-  - ./configure --prefix="{{prefix}}"
-  - make --jobs {{hw.concurrency}} install
-  - run:
-      - ln -sf par2 par2create
-      - ln -sf par2 par2verify
-      - ln -sf par2 par2repair
-    working-directory: '{{prefix}}/bin'
+  script:
+    - ./configure --prefix="{{prefix}}"
+    - make --jobs {{hw.concurrency}} install
+    - run:
+        - ln -sf par2 par2create
+        - ln -sf par2 par2verify
+        - ln -sf par2 par2repair
+      working-directory: '{{prefix}}/bin'
+  env:
+    linux:
+      # 1.3.0 added `(std::ostringstream() << ... ).str()` (twice in
+      # par2repairer.cpp; the idiom appears zero times in 1.2.0). That relies
+      # on LWG 1203, where the rvalue operator<< returns the derived stream so
+      # .str() is reachable -- libstdc++ implements it from GCC 9. The linux
+      # builder installs libstdc++-8-dev, and clang autodetects
+      # /usr/include/c++/8, whose operator<< returns the base basic_ostream&:
+      # "no member named 'str'". Point clang at the libstdcxx we depend on.
+      CXXFLAGS: $CXXFLAGS --gcc-toolchain={{ deps.gnu.org/gcc/libstdcxx.prefix }}
 
 provides:
   - bin/par2
