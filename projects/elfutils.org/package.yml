@@ -3,9 +3,11 @@ distributable:
   strip-components: 1
 
 versions:
-  url: https://sourceware.org/git/?p=elfutils.git;a=tags
-  match: /elfutils-\d+\.\d+/
-  strip: /^elfutils-/
+  url: https://sourceware.org/elfutils/ftp/
+  match: />\d+\.\d+\//
+  strip:
+    - />/
+    - /\//
 
 platforms:
   - linux
@@ -22,6 +24,20 @@ build:
   dependencies:
     gnu.org/m4: '*'
   script:
+    # Both files include <linux/uio.h> solely for struct iovec (iov_base /
+    # iov_len for PTRACE_GETREGSET -- no UIO_* constants), but the kernel's
+    # installed uapi header defines struct iovec unconditionally, guarded only
+    # by its own __LINUX_UIO_H with no __iovec_defined coordination with
+    # glibc. On aarch64 that collides with the definition system.h already
+    # pulled in from glibc. (Same in kernel v6.6 and v7.1, so not a
+    # linux-headers regression -- pinning them would not help.) glibc's
+    # <sys/uio.h> provides exactly what these two need. aarch64-only because
+    # both guards key on __aarch64__: arm_initreg.c builds the 32-bit ARM
+    # backend on aarch64 hosts, so it is caught too.
+    - run: sed -i -e 's|# *include <linux/uio.h>|# include <sys/uio.h>|' aarch64_initreg.c arm_initreg.c
+      working-directory: backends
+      if: ">=0.196"
+
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }}
     - make --jobs {{ hw.concurrency }} install
