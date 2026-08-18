@@ -13,7 +13,8 @@ dependencies:
 
 build:
   dependencies:
-    rust-lang.org: ">=1.60"
+    # 1.96+ LLVM emits vpdpwssd.512 for diskann-vector on baseline x86-64
+    rust-lang.org: "~1.95"
     rust-lang.org/cargo: "*"
     gnu.org/patch: "*" # rquickjs-sys:build.rs:L132
   script:
@@ -23,6 +24,14 @@ build:
       prop: |
         1i #![recursion_limit = "256"]
       working-directory: surrealdb/server/src
+    # rustc 1.96+ / newer llvm: LoopVectorizer lowers i16 dots to
+    # llvm.x86.avx512.vpdpwssd.512 (signature mismatch / cannot select)
+    - run: cat $PROP >>config.toml
+      prop: |
+        [profile.release.package.diskann-vector]
+        opt-level = 1
+      working-directory: .cargo
+      if: linux/x86-64
     - cargo install --path . --locked --root {{prefix}}
   env:
     SURREAL_BUILD_METADATA: "pkgx"
