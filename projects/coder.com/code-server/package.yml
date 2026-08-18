@@ -7,7 +7,8 @@ versions:
 
 dependencies:
   # nodejs.org: 20 # requires ^20, before .6 there were napi issues, and .14 also manifests
-  nodejs.org: 22 # since 4.101.0
+  # nodejs.org: 22 # since 4.101.0
+  nodejs.org: 24 # since 4.133.0
   linux:
     gnome.org/libsecret: ^0.21
     x.org/x11: ^1.8
@@ -16,20 +17,21 @@ dependencies:
 
 build:
   dependencies:
-    npmjs.com: "*"
+    npmjs.com: 10 # still needs unsafe-perm
     python.org: ">=3.11"
   script:
     - npm i $ARGS .
-    - npm i -ddd --unsafe-perm $PKGS
+    - npm i $ARGS $PKGS
     - run: cp -a $SRCROOT/* .
       working-directory: "{{prefix}}/libexec"
     - run: ln -s ../libexec/out/node/entry.js code-server
       working-directory: "{{prefix}}/bin"
+  skip: fix-machos
   env:
     ARGS:
-      - -ddd
-      - --unsafe-perm
+      - --ddd
       - --legacy-peer-deps
+      - --unsafe-perm
       - --omit=dev
     PKGS:
       - "@microsoft/1ds-core-js"
