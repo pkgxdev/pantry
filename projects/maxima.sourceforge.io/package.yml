@@ -20,6 +20,11 @@ build:
     - make --jobs {{ hw.concurrency }}
     - make install
   env:
+    # clisp defaults to CHARSET:ASCII on Linux when LANG is unset; 5.50.0
+    # lisp sources contain UTF-8 NBSPs (e.g. src/opr-util.lisp)
+    linux:
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
     ARGS:
       - --prefix={{prefix}}
       - --disable-dependency-tracking
