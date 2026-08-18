@@ -8,17 +8,25 @@ versions:
 dependencies:
   libevent.org: ^2.0
   invisible-island.net/ncurses: '*'
+  darwin:
+    jemalloc.net: '*'
 
 build:
   dependencies:
     gnu.org/bison: '*'
-    freedesktop.org/pkg-config: '*'
-  script: |
-    ./configure --prefix={{prefix}} --disable-utf8proc
-    make
-    make install
-test:
-  script: tmux -V
+  script:
+    - ./configure $ARGS
+    - make
+    - make install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --disable-utf8proc
+    darwin:
+      ARGS:
+        - --enable-jemalloc
+
+test: tmux -V
 
 provides:
   - bin/tmux
