@@ -21,6 +21,23 @@ build:
       gnu.org/gcc: "*"
   working-directory: 2.0/build_dynamic
   script:
+    # a.6.x NOLAPACK omits BLAS_SET_NUM_THREADS (call sites still use it);
+    # a.7.x already defines it as a no-op
+    - run: |
+        f=../plink2_matrix.h
+        if ! grep -A6 '^#ifdef NOLAPACK$' "$f" | grep -q BLAS_SET_NUM_THREADS; then
+          awk '
+            !done && /^#ifdef NOLAPACK$/ {
+              print
+              print "#ifndef BLAS_SET_NUM_THREADS"
+              print "#define BLAS_SET_NUM_THREADS(num)"
+              print "#endif"
+              done=1
+              next
+            }
+            { print }
+          ' "$f" > "$f.new" && mv "$f.new" "$f"
+        fi
     - run:
         - if ! grep -q cmath plink2_base.h; then
         - sed -i -f $PROP plink2_base.h
@@ -29,9 +46,22 @@ build:
       working-directory: ../include
       prop: |
         /<algorithm>/a #include <cmath>
-    - make CC=cc CXX=c++ NO_LAPACK=1 --jobs {{hw.concurrency}}
-    - install -Dm0755 plink2 {{prefix}}/bin/plink2
-    - install -Dm0755 pgen_compress {{prefix}}/bin/pgen_compress
+    - make $ARGS
+    - mkdir -p {{prefix}}/bin
+    - install -m0755 plink2 {{prefix}}/bin/plink2
+    - install -m0755 pgen_compress {{prefix}}/bin/pgen_compress
+  env:
+    ARGS:
+      - NO_LAPACK=1
+      - --jobs {{hw.concurrency}}
+    darwin:
+      ARGS:
+        - CC=cc
+        - CXX=c++
+    linux:
+      ARGS:
+        - CC=gcc
+        - CXX=g++
 
 test:
   dependencies:
