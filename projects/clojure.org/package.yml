@@ -1,0 +1,44 @@
+distributable: ~
+
+warnings:
+  - vendored
+
+versions:
+  github: clojure/brew-install/releases/tags
+
+provides:
+  - bin/clj
+  - bin/clojure
+
+build:
+  dependencies:
+    curl.se: "*"
+  working-directory: ${{prefix}}
+  script: |
+    curl -LsSO https://github.com/clojure/brew-install/releases/download/{{version}}/clojure-tools-{{version}}.tar.gz
+    tar xzf clojure-tools-{{version}}.tar.gz
+
+    mkdir -p {{prefix}}/bin \
+             {{prefix}}/lib/clojure/libexec \
+             {{prefix}}/share/man/man1
+
+    cp clojure-tools/deps.edn                      {{prefix}}/lib/clojure/
+    cp clojure-tools/example-deps.edn              {{prefix}}/lib/clojure/
+    cp clojure-tools/tools.edn                     {{prefix}}/lib/clojure/
+    cp clojure-tools/exec.jar                      {{prefix}}/lib/clojure/libexec/
+    cp clojure-tools/clojure-tools-{{version}}.jar {{prefix}}/lib/clojure/libexec/
+
+    # Strip +brewing to get the final installed path
+    brewing_prefix="{{prefix}}"
+    final_prefix="${brewing_prefix%+brewing}"
+
+    sed -e "s@PREFIX@${final_prefix}/lib/clojure@g" clojure-tools/clojure > {{prefix}}/bin/clojure
+    sed -e "s@BINDIR@${final_prefix}/bin@g"         clojure-tools/clj     > {{prefix}}/bin/clj
+    chmod 755 {{prefix}}/bin/clojure {{prefix}}/bin/clj
+
+    cp clojure-tools/clojure.1 {{prefix}}/share/man/man1/
+    cp clojure-tools/clj.1     {{prefix}}/share/man/man1/
+
+    rm -rf clojure-tools clojure-tools-{{version}}.tar.gz
+
+test: clojure --version
