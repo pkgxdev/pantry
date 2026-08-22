@@ -37,6 +37,11 @@ build:
       kernel.org/linux-headers: "*" # hwcap.h
   env:
     VIRTUAL_ENV: ${{prefix}}/venv
+    linux/x86-64:
+      CMAKE_ARGS:
+        - -DGGML_NATIVE=OFF
+        - -DGGML_BACKEND_DL=ON
+        - -DGGML_CPU_ALL_VARIANTS=ON
   script:
     # segfaults on some GHA runners
     - run: sed -i -e's/\(MK_.* -march=native -mtune=native\)/#\1/g' Makefile
@@ -139,6 +144,15 @@ build:
         - sed -i "1s|^.*$|#!$SHEBANG|" convert.py
       working-directory: ${{prefix}}/venv/bin
 
+    # GGML_BACKEND_DL splits the CPU code into dlopened libggml-cpu-*.so variants,
+    # installed to lib/. The loader searches GGML_BACKEND_DIR (a compile-time
+    # literal, so not relocatable for us) and then the executable's own directory,
+    # resolved at runtime via readlink("/proc/self/exe"). Link the variants beside
+    # the binary: discovery stays purely runtime-relative and survives any prefix.
+    - run: ln -s ../lib/libggml-cpu-*.so .
+      working-directory: ${{prefix}}/bin
+      if: linux/x86-64
+
 test:
   # broke in v2453
   - run: llama.cpp --help
@@ -149,5 +163,6 @@ test:
   - run: llama-cli --version
     if: ">=3368"
   # ^^ testing more than this requires downloading the models 😬
+  - llama-cli --list-devices
 
 entrypoint: ./entrypoint.sh
