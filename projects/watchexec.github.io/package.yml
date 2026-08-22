@@ -29,9 +29,17 @@ test:
   - (killall watchexec; sleep 11) || true
   - run: watchexec -w bar touch foo &
     if: <2.3
+  # -w takes an ABSOLUTE path deliberately. 2.6.0 landed "actually use
+  # discovered project origin" (watchexec/watchexec#1074), so watchexec now
+  # resolves a relative -w against the discovered project origin rather than
+  # the cwd. The testbed sits inside the pantry checkout, so the origin is the
+  # repo root and `-w bar` looks for <repo-root>/bar: "No such file or
+  # directory (os error 2)" at startup, and nothing is ever watched. Verified
+  # against upstream's own release binary, so this is upstream behaviour and
+  # not our build; reproduces in any git subdirectory and vanishes outside one.
   - run:
       - touch bar
-      - (watchexec -p -w bar --poll 1s touch foo 2>&1 | tee out.log ) &
+      - (watchexec -p -w "$PWD/bar" --poll 1s touch foo 2>&1 | tee out.log ) &
     if: '>=2.3'
   - PID=$!
   - sleep 3
