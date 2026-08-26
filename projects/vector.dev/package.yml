@@ -43,6 +43,16 @@ build:
       # coverage-only symbol); lld rejects undefined version symbols by default
       # and broke the arm64 link. Allow them.
       LDFLAGS: -Wl,--undefined-version
+    linux/aarch64:
+      # vector's [profile.release] is `lto = "fat"` + `codegen-units = 1`, so the
+      # entire binary is merged and optimised inside one rustc process. on our
+      # aarch64 builder that peaks past the memory limit and the kernel SIGKILLs
+      # it ~23min in (`process didn't exit successfully: rustc ... (signal: 9,
+      # SIGKILL: kill)`), every attempt, while the other three platforms finish.
+      # thin LTO keeps nearly all of the optimisation at a fraction of the peak
+      # RSS; scoped to aarch64 so everyone else builds upstream's exact profile.
+      CARGO_PROFILE_RELEASE_LTO: thin
+      CARGO_PROFILE_RELEASE_CODEGEN_UNITS: "16"
 
 test:
   - vector --version | tee out
