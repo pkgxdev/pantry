@@ -28,6 +28,22 @@ build:
         - ln -sf $HOME/.rustup/toolchains/*/bin/* .
       working-directory: $HOME/.cargo/bin
 
+    # rust 1.98.0 switched darwin's rust-lld/rust-objcopy from a statically linked
+    # LLVM to `@rpath/libLLVM.dylib`, but their only rpath is `@loader_path/../lib`
+    # -- ie lib/rustlib/<target>/lib -- and no component ships the dylib there; it
+    # lives at <toolchain>/lib/libLLVM.dylib. so every wasm32 link, which is what
+    # rust-lld is *for*, dies with `Library not loaded: @rpath/libLLVM.dylib`.
+    # linux is unaffected: there RUNPATH is `$ORIGIN/../../../:$ORIGIN/../lib`,
+    # ie it keeps the entry darwin lost. cf. rust-lang/rust#53813 and #76921.
+    - run: |
+        for bin in $HOME/.rustup/toolchains/*/lib/rustlib/*/bin; do
+          test -f "$bin/rust-lld" || continue
+          test -f "$bin/../../../libLLVM.dylib" || continue
+          mkdir -p "$bin/../lib"
+          ln -sf ../../../libLLVM.dylib "$bin/../lib/libLLVM.dylib"
+        done
+      if: darwin
+
     - cargo install --locked --path . --root {{prefix}}
   env:
     PATH: $HOME/.cargo/bin:$PATH
@@ -56,6 +72,22 @@ test:
         - rustup target add wasm32-wasip1 wasm32-wasip2 wasm32-unknown-unknown
         - ln -sf $HOME/.rustup/toolchains/*/bin/* .
       working-directory: $HOME/.cargo/bin
+
+    # rust 1.98.0 switched darwin's rust-lld/rust-objcopy from a statically linked
+    # LLVM to `@rpath/libLLVM.dylib`, but their only rpath is `@loader_path/../lib`
+    # -- ie lib/rustlib/<target>/lib -- and no component ships the dylib there; it
+    # lives at <toolchain>/lib/libLLVM.dylib. so every wasm32 link, which is what
+    # rust-lld is *for*, dies with `Library not loaded: @rpath/libLLVM.dylib`.
+    # linux is unaffected: there RUNPATH is `$ORIGIN/../../../:$ORIGIN/../lib`,
+    # ie it keeps the entry darwin lost. cf. rust-lang/rust#53813 and #76921.
+    - run: |
+        for bin in $HOME/.rustup/toolchains/*/lib/rustlib/*/bin; do
+          test -f "$bin/rust-lld" || continue
+          test -f "$bin/../../../libLLVM.dylib" || continue
+          mkdir -p "$bin/../lib"
+          ln -sf ../../../libLLVM.dylib "$bin/../lib/libLLVM.dylib"
+        done
+      if: darwin
 
     - run: spin build
       working-directory: hello-rust
