@@ -3,10 +3,7 @@ distributable:
   strip-components: 1
 
 versions:
-  github: ggerganov/llama.cpp/tags
-  strip: /^b/
-  # ignore 9/10ths of their tags (~100/2 weeks). we don't need updates that frequently.
-  ignore: /[1-9]$/
+  github: ggerganov/llama.cpp
 
 display-name: LLaMA.cpp
 
@@ -113,8 +110,15 @@ build:
         install -D ggml/src/ggml-metal.metal {{prefix}}/bin/ggml-metal.metal
       elif test -f ggml/src/ggml-metal/ggml-metal.metal; then
         install -D ggml/src/ggml-metal/ggml-metal.metal {{prefix}}/bin/ggml-metal.metal
+      elif test -d ggml/src/ggml-metal/kernels; then
+        # since 10630 the monolithic shader is split into
+        # ggml/src/ggml-metal/kernels/*.metal and compiled into the binary --
+        # GGML_METAL_EMBED_LIBRARY defaults to GGML_METAL (ON for darwin), and
+        # the build logs "Generate embedded Metal library for <kernel>". There
+        # is no longer a shader file to ship alongside llama-cli.
+        echo "metal shaders are embedded in the binary; nothing to install"
       else
-        echo "No ggml-metal.metal found"
+        echo "No metal shaders found in any known layout"
         exit 1
       fi
 
