@@ -24,6 +24,24 @@ build:
     linux:
       gnu.org/gcc: "*"
   script:
+    # 1.8.x's amd64 assembly uses ELF `.align <bytes>`, but the Mach-O
+    # assembler reads `.align` as a power of two. `.align 32` therefore means
+    # 2^32 and is rejected outright ("invalid alignment value"); 3/5/8/16 all
+    # assemble, so only the 32s are fatal. Three files carry them, all AVX2:
+    # camellia-aesni-avx2, sha256-avx2-bmi2, sha512-avx2-bmi2. Configure flags
+    # cannot dodge this -- the two sha files are gated on `x86_64-*-*` alone,
+    # not on avx2support -- so rewrite the directive to its Mach-O spelling
+    # (2^5 = the 32 bytes upstream meant). 1.11+ builds here unpatched.
+    # darwin/x86-64 ONLY: on ELF `.align 5` would mean 5 bytes, not 32, so
+    # this must never run on linux. A no-op on 1.11+, which no longer emits
+    # `.align 32`; the grep then fails loudly if upstream renames the files.
+    - run:
+        - sed -i -e 's/^\([[:space:]]*\)\.align 32$/\1.align 5/'
+          camellia-aesni-avx2-amd64.S sha256-avx2-bmi2-amd64.S sha512-avx2-bmi2-amd64.S
+        - '! grep -qE "^[[:space:]]*\.align 32$" *.S'
+      working-directory: cipher
+      if: darwin/x86-64
+
     - ./configure $ARGS
     - CFLAGS="$CFLAGS -O0" make -C random rndjent.o rndjent.lo
     - make
