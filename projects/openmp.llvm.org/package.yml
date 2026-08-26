@@ -15,10 +15,21 @@ build:
       python.org: ~3.11
       perl.org: "*"
   script:
-    - cmake -S openmp -B build/shared $ARGS
+    # llvm 23 deleted openmp's legacy standalone cmake mode: configuring the
+    # `openmp` directory directly is now a hard FATAL_ERROR telling you to go
+    # through the runtimes driver instead (openmp/CMakeLists.txt:23). the
+    # runtimes build only marks compiler-rt as STANDALONE, so openmp's guard
+    # stays quiet there. every -D we pass is a plain cache entry, so it reaches
+    # the openmp subproject unchanged either way.
+    - run: SRC="-S openmp"
+      if: <23
+    - run: SRC="-S runtimes -DLLVM_ENABLE_RUNTIMES=openmp"
+      if: ">=23"
+
+    - cmake $SRC -B build/shared $ARGS
     - cmake --build build/shared
     - cmake --install build/shared
-    - cmake -S openmp -B build/static -DLIBOMP_ENABLE_SHARED=OFF $ARGS
+    - cmake $SRC -B build/static -DLIBOMP_ENABLE_SHARED=OFF $ARGS
     - cmake --build build/static
     - cmake --install build/static
   env:
