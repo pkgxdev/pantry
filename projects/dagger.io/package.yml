@@ -1,31 +1,35 @@
 distributable:
-  url: https://github.com/dagger/dagger/archive/refs/tags/v{{ version }}.tar.gz
+  url: https://github.com/dagger/dagger/archive/refs/tags/{{ version.tag }}.tar.gz
   strip-components: 1
 
 versions:
   github: dagger/dagger
-  strip: /v/
 
 provides:
   - bin/dagger
 
 build:
-  script: |
-    go build -v -ldflags="$LDFLAGS" ./cmd/dagger
-    mkdir -p "{{ prefix }}"/bin
-    mv dagger "{{ prefix }}"/bin
+  script:
+    - go build -v -ldflags="$GO_LDFLAGS" ./cmd/dagger
+    - mkdir -p "{{ prefix }}"/bin
+    - mv dagger "{{ prefix }}"/bin
   dependencies:
-    go.dev: ^1.18
+    # dagger's go.mod declares `go 1.26.1`. under go1.27 x/net's http2 package
+    # swaps to a thin wrapper over net/http -- server.go is gated
+    # `//go:build !(go1.27 && !http2legacy)` -- and x/net <0.55 defined
+    # `TrailerPrefix` there, so grpc's internal/transport stops compiling.
+    # 0.21.9 pins x/net v0.54.0; drop this ceiling once dagger is on >=0.55.
+    go.dev: ~1.26
   env:
     CGO_ENABLED: 0
-    LDFLAGS:
+    GO_LDFLAGS:
       - -s
       - -w
       - -X github.com/dagger/dagger/engine.Version={{ version }}
     linux:
       # or segmentation fault
       # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
-      LDFLAGS:
+      GO_LDFLAGS:
         - -buildmode=pie
 
 test: dagger version | grep '{{version}}'
