@@ -82,9 +82,16 @@ build:
     # the include path explicitly — the same fix pantry's mingw-w64.org uses.
     # Headers live in the shared generic-w64-mingw32/include ($PREFIX is set by
     # the script at runtime).
-    - run: sed -i -f $PROP build-mingw-w64-libraries.sh
+    # Matched on `CXXFLAGS="$USE_CFLAGS"` until 20260826, when upstream added
+    # $FLAGS to that line -- the sed then silently matched nothing, RCFLAGS was
+    # never injected, and winpthreads failed on `winver.h not found`. Match any
+    # CXXFLAGS="..." and append, so a future flag addition cannot break it
+    # again, and assert the injection landed rather than trusting it.
+    - run:
+        - sed -i -f $PROP build-mingw-w64-libraries.sh
+        - grep -q RCFLAGS build-mingw-w64-libraries.sh
       prop: |
-        s#CXXFLAGS="$USE_CFLAGS"#CXXFLAGS="$USE_CFLAGS" RCFLAGS="-I$PREFIX/generic-w64-mingw32/include"#
+        s#CXXFLAGS="[^"]*"#& RCFLAGS="-I$PREFIX/generic-w64-mingw32/include"#
 
     # Same winres problem, openmp's libomp.rc (#include "winresrc.h"). build-
     # openmp.sh is CMake, not autotools, so it needs CMAKE_RC_FLAGS rather than
