@@ -24,6 +24,13 @@ build:
     - run: yq -i '.version = "{{version}}"' package.json
       working-directory: packages/eas-cli
 
+    # bufferutil / utf-8-validate are optional native addons of `ws` (pure-JS
+    # fallback otherwise). They have no aarch64 prebuild, so yarn compiles them,
+    # and pkgx's bare gcc has no libc headers in node-gyp's subprocess:
+    # "fatal error: assert.h: No such file or directory". Suppress the build --
+    # root manifest, which is the only place yarn honours dependenciesMeta.built.
+    - yq -i '.dependenciesMeta."bufferutil".built = false | .dependenciesMeta."utf-8-validate".built = false' package.json
+
     - yarn install
 
     # `build-ci` not present in v6
