@@ -59,6 +59,14 @@ build:
       CGO_LDFLAGS:
         - -lstdc++fs
       LDFLAGS: $LDFLAGS -lstdc++fs
+      # llama.cpp b10630's tools/server/server-context.cpp uses std::setw
+      # without including <iomanip>, relying on a transitive include that the
+      # linux stdlib does not supply (darwin builds it fine). ollama pulls that
+      # source in via ExternalProject_Add, whose explicit CMAKE_ARGS list does
+      # NOT forward CMAKE_CXX_FLAGS -- but the sub-cmake inherits the
+      # environment, and CMake seeds CMAKE_CXX_FLAGS from CXXFLAGS. Force the
+      # header in rather than patching a fetched dependency.
+      CXXFLAGS: $CXXFLAGS -include iomanip
 
 provides:
   - bin/ollama
