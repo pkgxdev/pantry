@@ -121,7 +121,13 @@ build:
         #define FSCONFIG_CMD_CREATE 6
         #define FSCONFIG_CMD_RECONFIGURE 7
         #endif
-      if: ">=11.1"
+      # NOT gated >=11.1 like the MADV block above: the fsconfig passthrough
+      # was BACKPORTED into the stable branches, so v10.0.0 has no FSCONFIG_*
+      # but v10.0.13 does (same for 11.0.4) -- a version boundary cannot
+      # express that. Harmless where unneeded: the block is keyed on
+      # FSOPEN_CLOEXEC so a glibc >=2.36 host skips it entirely, and on a qemu
+      # without fsconfig it just defines macros nothing references.
+      if: ">=10"
 
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
