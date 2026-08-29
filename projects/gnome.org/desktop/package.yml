@@ -1,0 +1,53 @@
+distributable:
+  url: https://download.gnome.org/sources/gnome-desktop/{{version.major}}/gnome-desktop-{{version.marketing}}.tar.xz
+  strip-components: 1
+
+display-name: gnome-desktop
+
+versions:
+  gitlab: gitlab.gnome.org:GNOME/gnome-desktop
+
+dependencies:
+  debian.org/iso-codes: '*'
+  freedesktop.org/fontconfig: '*'
+  freedesktop.org/XKeyboardConfig: '*'
+  gnome.org/gdk-pixbuf: '>=2.36.5'
+  gnome.org/glib: '>=2.53'
+  gnome.org/gsettings-desktop-schemas: '>=3.27'
+  gtk.org/gtk3: '>=3.3.6'
+  gtk.org/gtk4: '>=4.4'
+  systemd.io: '*'
+  xkbcommon.org: '*'
+  linux:
+    github.com/seccomp/libseccomp: '*'
+
+build:
+  dependencies:
+    gnome.org/gobject-introspection: '*'
+    itstool.org: '*'
+    mesonbuild.com: '>=0.56.2'
+    ninja-build.org: '>=1.8.2'
+  script: |
+    meson setup build $ARGS
+    meson compile -C build --jobs {{ hw.concurrency }}
+    meson install -C build
+  env:
+    ARGS:
+      --buildtype=release
+      --prefix={{prefix}}
+      --libdir=lib
+      -Ddebug_tools=false
+
+test:
+  - run: cc $FIXTURE -lgnome-desktop-4
+    fixture:
+      extname: c
+      contents: |
+        #include <gnome-desktop-4.0/libgnome-desktop/gnome-desktop-version.h>
+        #include <stdio.h>
+        
+        int main() {
+          printf("%d", gnome_get_platform_version());
+          return 0;
+        }
+  - test $(./a.out) = {{version.major}}
