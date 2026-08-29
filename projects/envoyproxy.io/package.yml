@@ -1,0 +1,450 @@
+# Envoy — high-performance edge/middle/service proxy.
+#
+# Built from source via Bazel. WARNING: this is a heavy build —
+# expect 1-3 hours on CI hardware and ~8 GB peak RAM. If pantry's
+# CI runners can't sustain it, we'll need to tune the build (drop
+# extensions, reduce parallelism, split into stages, etc.); pantry
+# policy is from-source over vendored binaries.
+
+distributable:
+  url: https://github.com/envoyproxy/envoy/archive/refs/tags/v{{ version }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: envoyproxy/envoy
+
+# Upstream officially ships standalone binaries only for Linux.
+# darwin builds via Bazel are possible but require a darwin-host
+# Bazel setup that's beyond Phase 1 of this recipe.
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+
+# The shipped envoy binary is linked against libc++ (see --config=libc++
+# in the build) with an rpath into the libcxx.llvm.org bottle, so it needs
+# that bottle present at runtime.
+dependencies:
+  libcxx.llvm.org: '~22'   # libc++ runtime, matched to the clang 22 built against
+  # The binary is linked against the pkgx glibc bottle (clang.cfg in the
+  # build), including its ld-linux as PT_INTERP — so it runs without a system
+  # libc (the `FROM scratch` goal). Ship that glibc alongside envoy.
+  gnu.org/glibc: '*'
+
+build:
+  dependencies:
+    github.com/bazelbuild/bazelisk: '*'   # bazel wrapper / version manager
+    github.com/mikefarah/yq: '*'          # envoy's @yq external repo replacement
+    llvm.org: '~22'                       # clang for BAZEL_LLVM_PATH, pinned to Envoy CI's compiler (clang 22)
+    libcxx.llvm.org: '~22'                # libc++ (llvm.org ships clang only), matched to clang 22
+    gnu.org/coreutils: '*'                # install(1)
+    gnu.org/make: '*'                     # rules_foreign_cc make toolchain (else it builds make from source)
+    ninja-build.org: '*'                  # rules_foreign_cc ninja toolchain
+    gnu.org/glibc: '*'                    # run foreign_cc host tools against a modern glibc (see below)
+    # Once clang.cfg redirects host tools onto the pkgx glibc bottle, the
+    # pkgx ld-linux is their PT_INTERP — and it does NOT fall back to the
+    # system /lib. So the whole libc closure must come from pkgx too, else a
+    # freshly-built host tool (e.g. rules_rust's process_wrapper) dies with
+    # "libgcc_s.so.1: cannot open shared object file". These bottles put
+    # libgcc_s.so.1 + libatomic.so.1 in lib/, which pkgx adds to the build
+    # LD_LIBRARY_PATH that we forward into the bazel actions.
+    gnu.org/gcc/libstdcxx: '*'            # libgcc_s.so.1 (host-tool unwinding)
+    gnu.org/gcc: '*'                      # libatomic.so.1 (pulled by libc++)
+    # Envoy's WORKSPACE pins rust 1.88.0 and rules_rust auto-DOWNLOADS it; but
+    # that toolchain's libstd lives under bazel-out, unreachable from the
+    # LD_LIBRARY_PATH we must forward (for process_wrapper's libgcc_s), so
+    # rustc can't load proc-macro dylibs (E0463). Use the pkgx rust 1.88.0
+    # bottle as the toolchain instead: its libstd is a bottle we CAN put on
+    # LD_LIBRARY_PATH, so proc-macros AND process_wrapper resolve from one path.
+    rust-lang.org: '~1.88'                # == 1.88.0, matches envoy's pin exactly
+    cmake.org: '*'                        # some bazel rules use cmake
+    python.org: '~3.11'                   # bazel build rules use python
+    gnu.org/m4: '*'
+    gnu.org/automake: '*'
+    gnu.org/autoconf: '*'
+    gnu.org/libtool: '*'
+    gnu.org/patch: '*'
+    freedesktop.org/pkg-config: '*'
+    curl.se: '*'
+
+  script:
+    # Envoy's `bazel/repo.bzl:_envoy_repo_impl` calls `@yq` to parse
+    # `.github/config.yml`. It declares @yq via http_archive on the
+    # mikefarah/yq release page — but that release ships a single
+    # binary `yq_linux_amd64`, not a tarball, so bazel ends up with
+    # `external/yq/yq_linux_amd64` while repo.bzl expects `external/yq/yq`.
+    # Result: "execvp(.../external/yq/yq): No such file or directory".
+    #
+    # Patch repo.bzl to use the yq from PATH (pkgx-installed via the
+    # build dep above) instead of the http_archive. Only needed on envoy
+    # releases whose repo.bzl still resolves @yq this way (<=1.38.x);
+    # 1.39+ refactored it out, so guard on the pattern's presence.
+    - run: |
+        if grep -q 'repository_ctx.attr.yq' bazel/repo.bzl; then
+          sed -i 's|repository_ctx.path(repository_ctx.attr.yq)|repository_ctx.which("yq")|' \
+            bazel/repo.bzl
+          grep -A1 'which("yq")' bazel/repo.bzl | head -5
+        fi
+
+    # envoy's `dynamic_modules.bzl:envoy_dynamic_module_prefix_symbols`
+    # hardcodes `@llvm_toolchain_llvm//:objcopy` in the genrule that
+    # renames dynamic-module symbols. When BAZEL_LLVM_PATH is set,
+    # envoy doesn't register the @llvm_toolchain_llvm http_archive,
+    # so the genrule fails analysis:
+    #
+    #   no such package '@@llvm_toolchain_llvm//': not defined and
+    #   referenced by 'source/extensions/dynamic_modules/builtin_extensions:_hickory_dns_static_renamed'
+    #
+    # Patch the .bzl to use the llvm-objcopy from pkgx's llvm.org
+    # (full path so bazel's action sandbox can find it without PATH
+    # access).
+    - run: |
+        sed -i \
+          -e 's|$(location @llvm_toolchain_llvm//:objcopy)|{{deps.llvm.org.prefix}}/bin/llvm-objcopy|g' \
+          -e 's|tools = \["@llvm_toolchain_llvm//:objcopy"\],|tools = [],|g' \
+          source/extensions/dynamic_modules/dynamic_modules.bzl
+        grep -A 3 "llvm-objcopy" source/extensions/dynamic_modules/dynamic_modules.bzl | head -6 || true
+
+    # Use the release config: -c opt + stripped + minimal symbols.
+    # `bazelisk` here is the canonical entry point — it reads
+    # `.bazelversion` from the source tree and downloads the right
+    # bazel for us.
+    #
+    # Bazel's user output goes under $HOME by default; redirect to
+    # our build dir so the cellar stays clean.
+    - run: |
+        export USER=$(id -un)
+        export TEST_TMPDIR=$PWD/.bazel-cache
+        mkdir -p $TEST_TMPDIR
+
+        # Envoy's repo.bzl checks BAZEL_LLVM_PATH and uses a local
+        # LLVM install when set. Without this, it falls back to the
+        # @llvm_toolchain http_archive which fails in our sandbox
+        # (Exit 127 when invoking external/llvm_toolchain/bin/clang).
+        #
+        # The pkgx llvm.org bottle ships clang but NOT libc++ (no
+        # include/c++/v1, no libc++.a) — that lives in the dedicated
+        # libcxx.llvm.org bottle. envoy builds with --config=libc++, i.e.
+        # `-stdlib=libc++` + a static `-l%:libc++.a` link, which makes clang
+        # look for libc++ RELATIVE to its LLVM install (BAZEL_LLVM_PATH).
+        # So present a UNIFIED prefix: symlink the llvm.org tree and overlay
+        # libcxx.llvm.org's headers (include/c++/v1) + static archives
+        # (libc++.a / libc++abi.a / libunwind.a) into it. The toolchain
+        # (toolchains_llvm, driven by BAZEL_LLVM_PATH) then discovers libc++
+        # as a BUILTIN include/lib dir — so bazel accepts it (an explicit
+        # `-isystem /opt/...` copt instead trips "the include path references
+        # a path outside of the execution root" on the exec-config
+        # v8/torque/simdutf "[for tool]" compiles) and clang resolves
+        # <string>/<vector>/<iostream> with no extra flags.
+        LLVM="{{deps.llvm.org.prefix}}"
+        LIBCXX="{{deps.libcxx.llvm.org.prefix}}"
+        COMBINED="$PWD/.llvm-libcxx"
+        rm -rf "$COMBINED"; mkdir -p "$COMBINED/include/c++" "$COMBINED/lib" "$COMBINED/bin"
+        for d in "$LLVM"/*; do
+          b=$(basename "$d")
+          case "$b" in bin|include|lib) ;; *) ln -sf "$d" "$COMBINED/$b" ;; esac
+        done
+        for d in "$LLVM"/include/*; do ln -sf "$d" "$COMBINED/include/$(basename "$d")"; done
+        ln -sf "$LIBCXX/include/c++/v1" "$COMBINED/include/c++/v1"
+        for d in "$LLVM"/lib/*; do ln -sf "$d" "$COMBINED/lib/$(basename "$d")"; done
+        for d in "$LIBCXX"/lib/libc++* "$LIBCXX"/lib/libunwind*; do ln -sf "$d" "$COMBINED/lib/$(basename "$d")"; done
+        # bin: symlink the tools, BUT clang locates its libc++/resource dirs
+        # relative to its own binary via /proc/self/exe — a symlink resolves
+        # back to the llvm.org bottle (which has no libc++), so `<algorithm>`
+        # isn't found. COPY the real clang driver into the combined bin so
+        # its self-location is the unified prefix; it still finds libLLVM/
+        # libclang-cpp via its $ORIGIN/../lib rpath (our symlinked lib/).
+        for f in "$LLVM"/bin/*; do ln -sf "$f" "$COMBINED/bin/$(basename "$f")"; done
+        realclang=$(readlink -f "$LLVM/bin/clang")
+        rc=$(basename "$realclang")
+        rm -f "$COMBINED/bin/$rc"           # drop the symlink we just made (else cp = same file)
+        cp "$realclang" "$COMBINED/bin/$rc"
+        for a in clang clang++ clang-cpp; do ln -sf "$rc" "$COMBINED/bin/$a"; done
+        # DON'T depend on the system libc. The modern pkgx clang emits binaries
+        # needing a newer glibc than an old CI base (or a `FROM scratch` image)
+        # provides — e.g. foreign_cc's luajit host tool: "minilua: libm.so.6:
+        # version GLIBC_2.29 not found". Make clang ALWAYS target the
+        # relocatable pkgx glibc bottle (its own crt + libc + ld-linux, the
+        # gnu.org/glibc/README.md pattern) via a clang config file that clang
+        # auto-loads from its own bin dir. This reaches EVERY clang invocation —
+        # bazel target/exec compiles AND foreign_cc deps' own HOST_CC (luajit)
+        # that plain --host_linkopt never touched — with no wrapper script (so
+        # clang's /proc/self/exe self-location for libc++ still works).
+        GLIBCLIB=$(dirname "$(ls "{{deps.gnu.org/glibc.prefix}}"/lib/glibc-*/libc.so.6 2>/dev/null | head -1)")
+        GLIBCLD=$(ls "$GLIBCLIB"/ld-linux*.so.* 2>/dev/null | head -1)
+        # libgcc_s.so.1 (unwinding) lives in the gcc/libstdcxx bottle. Bake an
+        # rpath to it into every clang-linked binary so rules_rust's own host
+        # tools (process_wrapper, cargo_toml_variable_extractor, …) — which are
+        # NOT run through our rustc wrapper and so don't inherit its
+        # --library-path — still resolve libgcc_s at load time regardless of the
+        # (env-cleared) action environment.
+        GCCLIB=$(dirname "$(ls "{{deps.gnu.org/gcc/libstdcxx.prefix}}"/lib*/libgcc_s.so.1 2>/dev/null | head -1)")
+        cat > "$COMBINED/bin/clang.cfg" <<CFG
+        -B$GLIBCLIB
+        -L$GLIBCLIB
+        -Wl,--dynamic-linker=$GLIBCLD
+        -Wl,-rpath,$GLIBCLIB
+        -Wl,-rpath,$GCCLIB
+        -Wl,--disable-new-dtags
+        CFG
+        for a in clang++ clang-cpp "$rc"; do ln -sf clang.cfg "$COMBINED/bin/$a.cfg"; done
+        # --disable-new-dtags makes clang.cfg's -rpath emit DT_RPATH instead of
+        # DT_RUNPATH. DT_RUNPATH is NOT searched for the deps of a dlopen'd
+        # library, but DT_RPATH IS — so a clang-linked binary that dlopens a
+        # shared lib (e.g. envoy's dynamic_modules rust build script runs bindgen,
+        # which dlopens libclang.so) resolves that lib's own NEEDED (libdl.so.2 —
+        # merged into libc since glibc 2.34 but still shipped as a stub in
+        # $GLIBCLIB, and libgcc_s) from the build binary's RPATH. This keeps the
+        # pkgx glibc OFF any general LD_LIBRARY_PATH (which would break bazel's
+        # system-loader process-wrapper) and out of clang's own $ORIGIN lib dir
+        # (which would break the system-loader clang binary itself).
+        export BAZEL_LLVM_PATH="$COMBINED"
+        echo "BAZEL_LLVM_PATH=$BAZEL_LLVM_PATH"
+
+        # The bazel-rules-cc llvm toolchain uses libstdc++ by default
+        # on Linux, but the pkgx llvm bottle ships only libc++ (no
+        # libstdc++ — that comes from gcc). Without an override, clang
+        # fails with "'string' file not found" on the first C++ source.
+        #
+        # Envoy supports both toolchains (clang >=18 with libc++, or gcc >=13
+        # with libstdc++), but clang+libc++ is what upstream recommends and what
+        # Envoy CI actually builds with (clang 22 — the version pinned in this
+        # recipe's deps). So we take Envoy's supported clang path: BAZEL_LLVM_PATH
+        # (above) selects the pkgx clang, and --config=libc++ makes it use libc++
+        # rather than the toolchain's default libstdc++ (which the llvm bottle
+        # doesn't ship — clang would fail "'string' file not found" otherwise).
+        BAZEL_OPTS="--config=libc++"
+        # This is a huge, layered build; surface the failing compile
+        # command on error instead of just the target label.
+        BAZEL_OPTS="$BAZEL_OPTS --verbose_failures"
+        # pkgx ships a much newer clang (22) than envoy 1.39 targets, so its
+        # stricter warnings trip envoy's (and its deps') `-Werror` and abort
+        # compiles that are otherwise fine. Two demotion tactics were tried and
+        # found insufficient on their own:
+        #   1. `--copt=-Wno-error` — bazel places --copt BEFORE a target's own
+        #      copts, so the target `-Werror` is applied LAST and wins.
+        #   2. `--copt=-Wno-<category>` — order-robust for categories NOT in
+        #      -Wall (eg. -Wnullability-completeness, which cleared cel-cpp),
+        #      but a warning that -Wall re-enables (eg. -Wunused-private-field
+        #      in envoy's own udp_gso_batch_writer.h) is turned back on because
+        #      the target's `-Wall` follows our --copt, then `-Werror` bites.
+        # The robust, category-agnostic fix is `--per_file_copt`, which bazel
+        # appends AFTER every target copt (last-wins): a trailing `-Wno-error`
+        # then demotes ALL warnings-as-errors regardless of category or -Wall.
+        # Warnings still print; none is promoted to an error; codegen is
+        # unchanged. `.*` matches every compiled source, external deps included.
+        #
+        # `-g0` (no debug info) rides along the same last-wins per_file_copt: a
+        # bottle ships stripped, so debug info is pure waste — dropping it cuts
+        # both compile time and the (serial, single massive) final link, the
+        # tail that pushed the full build past the 6h GitHub-runner cap.
+        BAZEL_OPTS="$BAZEL_OPTS --per_file_copt=.*@-Wno-error,-g0"
+        # Run actions locally (unsandboxed) so the compiler can reach the
+        # clang/libc++ toolchain under /opt (via the unified prefix above).
+        # NB: do NOT force `--strategy=Genrule=sandboxed` — v8's genrules
+        # (generated_inspector_files, embedded.S) can't run sandboxed and
+        # bazel aborts with "Genrule spawn cannot be executed with any of
+        # the available strategies". Let genrules follow --spawn_strategy=local.
+        BAZEL_OPTS="$BAZEL_OPTS --spawn_strategy=local"
+
+        # Memory-constrain bazel to fit on standard CI runners.
+        # `--local_resources` units: cpu=count, ram=MB.
+        BAZEL_OPTS="$BAZEL_OPTS -c opt"
+        # envoy's opt config enables Fission (per-object split DWARF), so bazel
+        # DECLARES a `.dwo` output for every compile — which `-g0` then never
+        # produces ("output '…/platform.dwo' was not created"). Turn Fission off
+        # so no `.dwo` is expected; with -g0 there is no debug info to split
+        # anyway, and a non-split, no-debug link is faster still.
+        BAZEL_OPTS="$BAZEL_OPTS --fission=no"
+        # Jobs calibration (the build is right at the 6h runner cap): *0.5 was
+        # RAM-safe but timed out at 6h even with -g0; *1.0 OOM-killed the ARM64
+        # runner (heavy quiche/v8/protobuf units). *0.66 splits the difference —
+        # 2/3 the concurrent heavy compiles (below the ARM64 OOM point, which
+        # only appeared at full parallelism) for ~33% more compile throughput
+        # than *0.5, aiming to clear the action tail + serial link inside 6h.
+        BAZEL_OPTS="$BAZEL_OPTS --jobs=HOST_CPUS*0.66"
+        BAZEL_OPTS="$BAZEL_OPTS --local_ram_resources=HOST_RAM*0.7"
+        # Tarball install has no .git, so envoy's workspace_status.sh
+        # fails at `git rev-parse`. Stub workspace status with `true`
+        # — we don't need stamping for a from-source release build.
+        BAZEL_OPTS="$BAZEL_OPTS --workspace_status_command=true"
+        # Build all Go codegen tools (protoc-gen-validate, protoc plugins…)
+        # as pure Go — CGO off. With cgo, Go's net resolver references the
+        # unversioned `__res_search`, but pkgx glibc 2.44 demoted it to a
+        # non-default compat symbol (the default is now `res_search@@GLIBC_2.34`),
+        # so lld fails: "undefined symbol: __res_search / did you mean
+        # __res_search@GLIBC_2.17". These tools need no cgo; pure Go drops the
+        # glibc resolver dependency entirely. (Starlark build setting → applies
+        # to exec-config tool builds too.)
+        BAZEL_OPTS="$BAZEL_OPTS --@io_bazel_rules_go//go/config:pure"
+        # rules_foreign_cc otherwise builds its OWN build tools (make,
+        # pkgconfig, cmake, ninja) from source, and each ./configure link
+        # test fails under envoy's --config=libc++ (static -l%:libc++.a
+        # linklibs forced onto a plain-C configure: "C compiler cannot
+        # create executables"). Register the preinstalled toolchains so
+        # foreign_cc uses the pkgx tools on PATH instead of compiling them.
+        for tc in make pkgconfig cmake ninja; do
+          BAZEL_OPTS="$BAZEL_OPTS --extra_toolchains=@rules_foreign_cc//toolchains:preinstalled_${tc}_toolchain"
+        done
+        # envoy's --config=libc++ links the static `-l:libc++.a`/`libc++abi.a`/
+        # `libunwind.a`, but nothing tells the linker WHERE they are — they're
+        # in our unified prefix's lib/. Add the -L (target AND exec/host
+        # configs). This is a library search path, not an -isystem include, so
+        # it does NOT trip bazel's "outside the execution root" check.
+        BAZEL_OPTS="$BAZEL_OPTS --linkopt=-L$COMBINED/lib --host_linkopt=-L$COMBINED/lib"
+        # foreign_cc build scripts (nghttp2/maxmind/…) invoke the
+        # preinstalled cmake/ninja/pkg-config by bare name, but bazel
+        # actions don't inherit the shell PATH — only the runner's system
+        # PATH (has `make`, not the pkgx cmake/ninja) → "cmake: command not
+        # found". And the pkgx cmake itself dlopens libcurl.so.4 etc., so it
+        # needs LD_LIBRARY_PATH too (else "cmake: error while loading shared
+        # libraries: libcurl.so.4"). Forward both into target + exec/host.
+        BAZEL_OPTS="$BAZEL_OPTS --action_env=PATH=$PATH --host_action_env=PATH=$PATH"
+        # Forward LD_LIBRARY_PATH for the pkgx tool libs (cmake→libcurl,
+        # process_wrapper→libgcc_s), but DROP the pkgx glibc dir from it: rustc
+        # loads Rust proc-macro dylibs (thiserror_impl.so, …) whose NEEDED
+        # libc.so.6 would otherwise resolve to the pkgx glibc 2.44 instead of
+        # the libc the rust toolchain was built against, mismatching and failing
+        # with E0463 "can't find crate". The pkgx loader still finds libc next
+        # to itself by default, so host tools are unaffected.
+        LD_FWD=$(printf '%s' "$LD_LIBRARY_PATH" | tr ':' '\n' | grep -v '/gnu\.org/glibc/' | paste -sd: -)
+        # Explicitly add the pkgx rust bottle's two lib dirs so bazel's
+        # env-cleared (`env -`) actions can resolve rustc's own libraries:
+        #   lib/                -> librustc_driver-*.so (rustc NEEDED, no RUNPATH)
+        #   lib/rustlib/<t>/lib -> libstd-*.so (loaded by rustc AND by the
+        #                          proc-macro dylibs it dlopens at compile time)
+        # Forwarding both is what clears the E0463 "can't find crate for
+        # proc_macro" wall while still giving process_wrapper its libgcc_s.
+        # Don't rely on the dep implicitly seeding rust/lib onto
+        # $LD_LIBRARY_PATH — add it outright. Validated on real x86_64 HW
+        # (cfarm): a proc_macro crate + consumer compiles and runs under this
+        # exact toolchain + LD config with rules_rust.
+        RUST_LIB="{{deps.rust-lang.org.prefix}}/lib"
+        RUST_STD_DIR=$(dirname "$(ls "{{deps.rust-lang.org.prefix}}"/lib/rustlib/*/lib/libstd-*.so 2>/dev/null | head -1)")
+        LD_FWD="$LD_FWD:$RUST_LIB${RUST_STD_DIR:+:$RUST_STD_DIR}"
+        # NB: do NOT add the pkgx glibc dir to LD_FWD — bazel's own
+        # process-wrapper (a system-loader binary) would then load pkgx
+        # libc.so.6 2.44 and fail "GLIBC_2.35 not found" against the old CI-base
+        # loader. libclang's missing libdl.so.2 is handled scoped, next to
+        # libclang in $COMBINED/lib (see the stub symlinks above), so only
+        # libclang's $ORIGIN RUNPATH sees it.
+        BAZEL_OPTS="$BAZEL_OPTS --action_env=LD_LIBRARY_PATH=$LD_FWD --host_action_env=LD_LIBRARY_PATH=$LD_FWD"
+        # pkgx ships cmake 4.x, which dropped compatibility with projects whose
+        # `cmake_minimum_required` is < 3.5. Envoy vendors libevent, whose
+        # bundled CMakeLists still declares an ancient minimum → "Compatibility
+        # with CMake < 3.5 has been removed". CMAKE_POLICY_VERSION_MINIMUM=3.5
+        # tells cmake to run those projects under 3.5 policies instead of
+        # erroring. Forward into the foreign_cc (exec-config) actions.
+        BAZEL_OPTS="$BAZEL_OPTS --action_env=CMAKE_POLICY_VERSION_MINIMUM=3.5 --host_action_env=CMAKE_POLICY_VERSION_MINIMUM=3.5"
+        # Use the pkgx rust 1.88.0 bottle as the rust toolchain (matching envoy's
+        # pin) instead of the one rules_rust downloads. Its libstd is the bottle
+        # dir added to LD_FWD above, so proc-macros load fine; envoy builds
+        # WORKSPACE-style (--noenable_bzlmod), so register a rust_toolchain over
+        # the pkgx bottle and prefer it via --extra_toolchains.
+        case "$(uname -m)" in
+          aarch64|arm64) RTRIPLE=aarch64-unknown-linux-gnu; RCPU=aarch64 ;;
+          x86_64)        RTRIPLE=x86_64-unknown-linux-gnu;  RCPU=x86_64 ;;
+        esac
+        # ROOT FIX for the proc-macro E0463 wall: clang.cfg (above) links every
+        # exec-config output — including the proc-macro dylibs rustc dlopens at
+        # compile time — against the pkgx glibc 2.44 bottle. But the pkgx rustc,
+        # left alone, runs on its standard PT_INTERP = the OLD CI-base glibc, so
+        # when it dlopens a proc-macro that references GLIBC_2.29+ symbols the
+        # already-loaded old libc can't satisfy them → dlopen fails → E0463
+        # "can't find crate for <proc-macro>". Run rustc THROUGH the same pkgx
+        # glibc 2.44 loader (glibc is backward-compatible, so rustc — which needs
+        # only old symbols — runs fine on it), so rustc and the proc-macros it
+        # loads share one modern libc and the dlopen succeeds. Proven on real HW
+        # (cfarm13): rules_rust happily drives a wrapper `rustc` that re-execs the
+        # real rustc via `ld-linux --library-path …`, and a proc_macro crate +
+        # consumer then compile and run. GLIBCLIB/GLIBCLD were computed above for
+        # clang.cfg; reuse them. LD_FWD carries librustc_driver/libstd/libgcc_s.
+        # Keep this OUTSIDE the bazel workspace — new_local_repository rejects a
+        # path that overlaps the main repo.
+        RUSTWRAP="${TMPDIR:-/tmp}/pkgxrust-envoy"
+        mkdir -p "$RUSTWRAP"
+        cat > "$RUSTWRAP/rustc.sh" <<WRAP
+        #!/bin/sh
+        exec "$GLIBCLD" --library-path "$GLIBCLIB:$LD_FWD" "{{deps.rust-lang.org.prefix}}/bin/rustc" "\$@"
+        WRAP
+        chmod +x "$RUSTWRAP/rustc.sh"
+        cat >> WORKSPACE <<PKGXRUST
+        load("@bazel_tools//tools/build_defs/repo:local.bzl", "new_local_repository")
+        new_local_repository(
+            name = "pkgx_rust",
+            path = "{{deps.rust-lang.org.prefix}}",
+            build_file_content = """
+        load("@rules_rust//rust:toolchain.bzl", "rust_toolchain", "rust_stdlib_filegroup")
+        filegroup(name = "rustdoc", srcs = ["bin/rustdoc"], visibility = ["//visibility:public"])
+        filegroup(name = "rustc_lib", srcs = glob(["lib/*.so*"]), visibility = ["//visibility:public"])
+        rust_stdlib_filegroup(name = "rust_std", srcs = glob(["lib/rustlib/$RTRIPLE/lib/*"]), visibility = ["//visibility:public"])
+        rust_toolchain(
+            name = "pkgx_rust_impl",
+            rustc = "@rustwrap//:rustc",
+            rust_doc = ":rustdoc",
+            rustc_lib = ":rustc_lib",
+            rust_std = ":rust_std",
+            binary_ext = "",
+            staticlib_ext = ".a",
+            dylib_ext = ".so",
+            stdlib_linkflags = ["-lpthread", "-ldl", "-lm"],
+            default_edition = "2021",
+            exec_triple = "$RTRIPLE",
+            target_triple = "$RTRIPLE",
+            visibility = ["//visibility:public"],
+        )
+        toolchain(
+            name = "pkgx_rust_toolchain",
+            toolchain = ":pkgx_rust_impl",
+            toolchain_type = "@rules_rust//rust:toolchain_type",
+            exec_compatible_with = ["@platforms//cpu:$RCPU", "@platforms//os:linux"],
+            target_compatible_with = ["@platforms//cpu:$RCPU", "@platforms//os:linux"],
+            visibility = ["//visibility:public"],
+        )
+        """,
+        )
+        # rustc comes from a tiny second repo holding the glibc-2.44 loader
+        # wrapper written above (keeping pkgx_rust read-only over the bottle).
+        # The filegroup is named differently from its source file (rustc.sh) —
+        # a filegroup whose name equals a src label self-references (cycle).
+        new_local_repository(
+            name = "rustwrap",
+            path = "$RUSTWRAP",
+            build_file_content = """
+        filegroup(name = "rustc", srcs = ["rustc.sh"], visibility = ["//visibility:public"])
+        """,
+        )
+        PKGXRUST
+        BAZEL_OPTS="$BAZEL_OPTS --extra_toolchains=@pkgx_rust//:pkgx_rust_toolchain"
+        # (glibc targeting is handled by the clang.cfg written into the unified
+        # prefix above — it reaches every clang invocation, including
+        # foreign_cc's luajit HOST_CC that bazel --host_linkopt can't touch.)
+
+        # NOTE: no explicit -isystem/-L for libc++ — the unified
+        # BAZEL_LLVM_PATH prefix built above lets the toolchain find it as a
+        # builtin. envoy's --config=libc++ links libc++/libc++abi STATICALLY
+        # (BAZEL_LINKLIBS=-l%:libc++.a), so the binary needs no libc++.so at
+        # runtime either.
+
+        # `envoy-static.stripped` is upstream's stripped release target.
+        bazelisk build $BAZEL_OPTS //source/exe:envoy-static.stripped
+
+    - install -Dm755 bazel-bin/source/exe/envoy-static.stripped "{{prefix}}/bin/envoy"
+
+    # Bazel leaves a multi-GB output_base under .bazel-cache that we
+    # don't want in the bottle.
+    - run: rm -rf .bazel-cache
+
+test:
+  # `envoy --version` returns "envoy  version: <commit>/<ver>/<type>/<status>/<...>".
+  # We pin against the marketing version to confirm the binary loads.
+  script:
+    - run: |
+        out=$(envoy --version 2>&1 | head -1)
+        echo "envoy --version: $out"
+        case "$out" in
+          *"version: "*"/{{version}}/"*) echo PASS ;;
+          *) echo "FAIL: expected version {{version}} in output, got: $out"; exit 1 ;;
+        esac
+
+provides:
+  - bin/envoy
