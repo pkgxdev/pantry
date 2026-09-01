@@ -12,6 +12,27 @@ build:
   script:
     - cmake .. $ARGS
     - make --jobs {{ hw.concurrency }} install
+
+    # 3.0 added the C++ ABI library and gave it a second `Name:` stanza inside
+    # the *same* libcerf.pc. a .pc file describes exactly one package, so
+    # freedesktop pkg-config refuses the whole file -- "Name field occurs twice"
+    # -- and neither ABI is discoverable. both libraries do get installed, so
+    # split the stanzas into the two files they should always have been.
+    - run: |
+        awk '
+          /^Name:/ { n++ }
+          n == 0   { hdr = hdr $0 "\n"; next }
+          n == 1   { c   = c   $0 "\n"; next }
+                   { cpp = cpp $0 "\n" }
+          END {
+            printf "%s%s", hdr, c   > "libcerf.pc.new"
+            printf "%s%s", hdr, cpp > "libcerfcpp.pc"
+          }
+        ' libcerf.pc
+        mv libcerf.pc.new libcerf.pc
+      # quoted: an unquoted scalar opening with `{` is a YAML flow mapping
+      working-directory: '{{prefix}}/lib/pkgconfig'
+      if: '>=3'
   env:
     ARGS:
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
@@ -27,3 +48,5 @@ test:
     - cc test.c -lcerf -o test
     - ./test
     - pkg-config --modversion libcerf | grep {{version.marketing}}
+    - run: pkg-config --modversion libcerfcpp | grep {{version.marketing}}
+      if: '>=3'
