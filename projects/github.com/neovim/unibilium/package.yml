@@ -26,6 +26,14 @@ build:
       - -DCMAKE_BUILD_TYPE=Release
       - -DCMAKE_INSTALL_PREFIX={{prefix}}
       - -DBUILD_SHARED_LIBS=ON
+      # 2.1.4 added doc/CMakeLists.txt, which hard-errors out of *configure*
+      # without pod2man and gzip; our linux builders have neither, which is why
+      # darwin shipped 2.1.4 off its system perl and linux never did. upstream's
+      # message points at CMAKE_SKIP_INSTALL_RULES, but that is stock cmake's
+      # global switch and would take the library and the .pc file out along with
+      # the man pages. this option is theirs and is scoped to doc/; <2.1.4
+      # shipped no doc/ at all, so there it is merely unused.
+      - -DBUILD_MAN_PAGES=OFF
 
 test:
   dependencies:
