@@ -1,7 +1,7 @@
 # https://kpt.dev/
 
 distributable:
-  url: https://github.com/kptdev/kpt/archive/refs/tags/v{{version}}.tar.gz
+  url: https://github.com/kptdev/kpt/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
@@ -13,19 +13,27 @@ dependencies:
 build:
   dependencies:
     go.dev: ^1.14
-  script: go build -v -trimpath -ldflags="$LDFLAGS" -o "{{prefix}}/bin/kpt" .
+  script:
+
+    - go build -v -trimpath -ldflags="$GO_LDFLAGS" -o "{{prefix}}/bin/kpt" .
   env:
-    LDFLAGS:
+    GO_LDFLAGS:
       - -s
       - -w
       - -X github.com/GoogleContainerTools/kpt/run.version={{version}}
+      - -X github.com/kptdev/kpt/run.version={{version}}
     linux:
       # or segmentation fault
       # fix found here https://github.com/docker-library/golang/issues/402#issuecomment-982204575
-      LDFLAGS:
+      GO_LDFLAGS:
         - -buildmode=pie
 
 provides:
   - bin/kpt
 
-test: test "$(kpt version)" = {{version}}
+test:
+  - run: test "$(kpt version)" = {{version}}
+    if: <1
+  # 1.0.0 prints `Version: <v>` and a `Git commit:` line; --short is the bare one
+  - run: test "$(kpt version --short)" = {{version}}
+    if: '>=1'
