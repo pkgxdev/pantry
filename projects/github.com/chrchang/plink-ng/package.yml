@@ -4,6 +4,13 @@ distributable:
 
 versions:
   github: chrchang/plink-ng/tags
+  # The repo tags two different programs: plink2 as v2.0.0-a.* and plink 1.9 as
+  # v1.9.0-b.*. This package builds the 2.0/ subtree, so a 1.9 tag compiles
+  # whatever plink2 source happened to sit in the tree at that point and then
+  # reports its own 2.0.0-a.* version, failing the version test (#14262).
+  # NOTE: `ignore` is matched against the POST-`strip` name, so this targets
+  # 1.9.0.7.12, not the raw tag v1.9.0-b.7.12.
+  ignore: /^v?1\./
   strip: /-[ab]/
 
 # plink2 (the 2.0/ subtree) is C++ with bundled zstd/libdeflate/mini-gmp.
