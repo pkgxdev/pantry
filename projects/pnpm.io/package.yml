@@ -6,23 +6,82 @@ versions:
   github: pnpm/pnpm
   ignore: /-\d+$/ # ignore pre-releases
 
+# >=12 is a rust binary we take prebuilt rather than build ourselves
+warnings:
+  - vendored
+
 provides:
   - bin/pnpm
   - bin/pnpx
 
 dependencies:
+  # <12 *is* javascript; >=12 is native, but still shells out to node to run
+  # package scripts
   nodejs.org: "*"
 
 build:
+  dependencies:
+    curl.se: '*'
   script:
     - mkdir -p "{{prefix}}"
-    - ln -s pnpm.cjs bin/pnpm
-    - ln -s pnpx.cjs bin/pnpx
+
+    - run:
+        - ln -s pnpm.cjs pnpm
+        - ln -s pnpx.cjs pnpx
+      working-directory: bin
+      if: <12
+
+    # pnpm 12 is the rust rewrite, and the npm `pnpm` package no longer carries
+    # an implementation at all (`dist/pnpm.mjs` is gone). its bins are
+    # placeholders that the `preinstall` overwrites with the host's binary out
+    # of the `@pnpm/exe.<platform>` optional dependency, and the only other
+    # entry point, `bin/pnpm.mjs`, exists for corepack and *downloads* that
+    # binary from the registry on first run into its own directory. bottling
+    # either would ship something that phones home and then tries to write 35MB
+    # into a read-only prefix, so fetch the platform package at build time.
+    - run:
+        - curl -Lfo $SRCROOT/exe.tgz https://registry.npmjs.org/@pnpm/exe.$PLATFORM/-/exe.$PLATFORM-{{version}}.tgz
+        - tar xzf $SRCROOT/exe.tgz --strip-components=1 -C bin package/pnpm
+        # `pnpx` is a committed `#!/bin/sh` shim (`exec pnpm dlx "$@"`); upstream
+        # relinks only `pnpm` itself on unix, so this is the supported route
+        - cp pnpx bin/pnpx
+        # and these two are the corepack downloader, whose imports we just
+        # stranded anyway
+        - rm bin/pnpm.mjs bin/pnpx.mjs
+      if: '>=12'
+
     - chmod +x bin/*
-    - cp props/pnpmrc dist
-    - cp -r bin dist package.json {{prefix}}
+
+    # the binary resolves node-gyp relative to *itself*, at
+    # `<exe dir>/dist/node-gyp-bin` -- upstream's own release tarballs are a bare
+    # `pnpm` beside a `dist/` -- so dist has to follow it into bin/
+    - run: mv dist bin/dist
+      if: '>=12'
+
+    # the builtin rc file. `pnpm config` in the rust rewrite doesn't read it (no
+    # such string in the binary) and no longer needs to: 12 defaults its global
+    # bin dir to the platform data dir rather than to the install prefix
+    - run: cp props/pnpmrc dist
+      if: <12
+
+    - run: cp -r bin dist package.json {{prefix}}
+      if: <12
+    - run: cp -r bin {{prefix}}
+      if: '>=12'
+
+  # adhoc-signed on darwin, and rewriting either one breaks the binary
+  skip:
+    - fix-machos
+    - fix-patchelf
+
+  env:
+    darwin/aarch64: { PLATFORM: darwin-arm64 }
+    darwin/x86-64: { PLATFORM: darwin-x64 }
+    linux/aarch64: { PLATFORM: linux-arm64 }
+    linux/x86-64: { PLATFORM: linux-x64 }
 
 test:
   - run: pnpm doctor
     if: <11
+  - test "$(pnpm --version)" = "{{version}}"
   - pnpm add express
