@@ -4,7 +4,10 @@ distributable:
 
 versions:
   url: https://www.tcl-lang.org/software/tcltk/download.html
-  match: /tcl\d+\.\d+\.\d+-src\.tar\.gz/
+  # Serve both the current 9.x line and the legacy 8.6 line (so
+  # `tcl-lang.org^8` / `pkgx tclsh^8` resolve to 8.6.x). 8.4/8.5 are too
+  # old to build against the bundled critcl/tcllib/itk versions below.
+  match: /tcl(?:8\.6\.\d+|9\.\d+\.\d+)-src\.tar\.gz/
   strip:
     - /^tcl/
     - /-src\.tar\.gz/
@@ -186,7 +189,9 @@ build:
 
 provides:
   - bin/tclsh
+  - bin/tclsh{{version.marketing}}   # tclsh8.6 / tclsh9.0
   - bin/wish
+  - bin/wish{{version.marketing}}    # wish8.6 / wish9.0
   - bin/critcl
 
 test:
