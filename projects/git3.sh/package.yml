@@ -1,0 +1,49 @@
+distributable:
+   url: https://github.com/git3protocol/git3-cli/archive/refs/tags/v{{version}}.tar.gz
+   strip-components: 1
+
+versions:
+  github: git3protocol/git3-cli
+  strip: /v/
+
+dependencies:
+  nodejs.org: ^18
+
+build:
+  dependencies:
+    classic.yarnpkg.com: '*'
+    stedolan.github.io/jq: '*'
+  script: |
+    mkdir -p {{prefix}}/bin
+
+    # patch git3.pkg.json to add:
+    # - node18-macos-arm64
+    # - node18-linux-arm64
+    jq \
+      '.pkg.targets[3] |= . + "node18-macos-arm64" | .pkg.targets[4] |= . + "node18-linux-arm64"' \
+      git3.pkg.json > git3.pkg.json.tmp
+    mv git3.pkg.json.tmp git3.pkg.json
+    ARCH=$(uname -m | sed -e 's/x86_64/x64/' -e 's/aarch64/arm64/')
+    sed -i.bak \
+        -e 's|/usr/local/bin|{{prefix}}/bin|g' \
+        -e 's|wait|sleep 10|g' \
+        -e "s_bin/git3-macos _bin/git3-macos-${ARCH} _g" \
+        -e "s_bin/git3-linux _bin/git3-linux-${ARCH} _g" \
+        package.json
+    rm package.json.bak
+
+    yarn
+    yarn $INSTALL
+  env:
+    linux:
+      INSTALL: install-linux
+    darwin:
+      INSTALL: install-mac
+
+provides:
+  - bin/git-remote-git3
+  - bin/git3
+
+test: |
+  git3 --help
+  git3 wallet list
