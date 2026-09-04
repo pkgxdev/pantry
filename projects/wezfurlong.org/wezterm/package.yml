@@ -12,19 +12,29 @@ dependencies:
     freetype.org: '*'
     freedesktop.org/fontconfig: '*'
     openssl.org: ^1.1
+    x.org/x11: '*'
+    x.org/xcb: '*'
+    x.org/xcb-util: '*'
 
 build:
   dependencies:
     rust-lang.org: '>=1.71<1.78'
     rust-lang.org/cargo: '*'
-  script: cargo install $ARGS
+  script:
+    # - cargo install $ARGS --path=wezterm
+    - cargo install $ARGS --path=wezterm-gui --features vendored-fonts --no-default-features
+    # - ./get-deps
+    # - cargo install --locked --root {{prefix}}
+    # - cargo build --release --no-default-features --features vendored-fonts --locked 
   env:
     ARGS:
       - --locked
-      - --path=wezterm
       - --root {{prefix}}
 
 provides:
   - bin/wezterm
+  - bin/wezterm-gui
+  - bin/strip-ansi-escapes
+  - bin/wezterm-mux-server
 
 test: test "$(wezterm --version)" = "wezterm {{version.tag}}"
