@@ -1,0 +1,30 @@
+distributable:
+  url: https://github.com/PromptExecution/pm2-mcp/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: PromptExecution/pm2-mcp/tags
+
+description: PM2 with Model Context Protocol (MCP) server support for process management
+homepage: https://github.com/PromptExecution/pm2-mcp
+license: AGPL-3.0
+
+dependencies:
+  nodejs.org: '>=22'
+
+build:
+  script:
+    - npm install . --omit=dev --legacy-peer-deps --global --prefix="{{prefix}}"
+
+provides:
+  - bin/pm2
+  - bin/pm2-dev
+  - bin/pm2-docker
+  - bin/pm2-runtime
+  - bin/pm2-mcp
+
+test:
+  script:
+    - pm2-mcp --help
+    - pm2 --version
+    - test "$(pm2 --version)" = "{{version.marketing}}"
