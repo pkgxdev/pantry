@@ -24,7 +24,7 @@ build:
     - ./configure
       --build={{ hw.target }}
       --prefix="{{ prefix }}"
-    - make -j {{ hw.concurrency }} install
+    - make -j {{ hw.concurrency }} install PERL=$PERL
 
     # fix hardcoded paths
     - run:
@@ -39,6 +39,7 @@ build:
 
   env:
     PERL5LIB: '{{prefix}}/share/automake-{{version.marketing}}'
+    PERL: '{{deps.perl.org.prefix}}/bin/perl'
 
 # TODO to prove automake doesn't require autoconf we should
 # use “depend” on the autoconf test to generate our `configure` separately
