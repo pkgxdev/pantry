@@ -22,8 +22,14 @@ dependencies:
 
 build:
   dependencies:
-    rust-lang.org: "~1.94.0" # since 0.135.0
+    rust-lang.org: "~1.95.0" # since 0.135.0
   script:
+    # async state machines can exceed the default recursion limit (128)
+    - run: sed -i -f $PROP exec/src/main.rs cli/src/main.rs tui/src/main.rs
+      if: ^0.154
+      prop: |
+        1i #![recursion_limit = "256"]
+      working-directory: codex-rs
     - cargo install --locked --path codex-rs/exec --root {{prefix}}
     - cargo install --locked --path codex-rs/cli --root {{prefix}}
     - cargo install --locked --path codex-rs/tui --root {{prefix}}
