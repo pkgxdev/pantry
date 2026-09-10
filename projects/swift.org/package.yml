@@ -135,4 +135,13 @@ provides:
     - bin/swift-test
     - bin/swiftc
 
-test: swift --version
+test:
+  script: |
+    swift --version
+
+    cat > hello.swift <<SWIFT
+    print("Hello from Swift")
+    SWIFT
+
+    swiftc hello.swift -o hello
+    test "$(./hello)" = "Hello from Swift"
