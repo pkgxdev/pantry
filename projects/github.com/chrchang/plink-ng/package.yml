@@ -53,6 +53,16 @@ build:
       working-directory: ../include
       prop: |
         /<algorithm>/a #include <cmath>
+    # gcc 16 dropped the evex512 target attribute; a.6.x vendors a libdeflate
+    # that still emits it (fixed upstream in ebiggers/libdeflate@2a3762cf)
+    - run:
+        - if grep -q 'GCC_PREREQ(14, 0) ||' cpu_features.h; then
+        - sed -i -f $PROP cpu_features.h
+        - fi
+      if: linux/x86-64
+      working-directory: ../libdeflate/lib/x86
+      prop: |
+        s/GCC_PREREQ(14, 0)/(GCC_PREREQ(14, 0) \&\& !GCC_PREREQ(16, 0))/
     - make $ARGS
     - mkdir -p {{prefix}}/bin
     - install -m0755 plink2 {{prefix}}/bin/plink2
