@@ -105,6 +105,10 @@ build:
       CC: clang
       CXX: clang++
       LD: clang
+      # 13.1 uses std::filesystem in wsrep_sst.cc; upstream adds stdc++fs only
+      # for GNU < 9, but clang here builds against the image's gcc 8 libstdc++.
+      CMAKE_ARGS:
+        - -DCMAKE_CXX_STANDARD_LIBRARIES=-lstdc++fs
 
 provides:
   - bin/aria_chk
