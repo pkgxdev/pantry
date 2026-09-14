@@ -45,14 +45,17 @@ build:
             { print }
           ' "$f" > "$f.new" && mv "$f.new" "$f"
         fi
+    # NOLAPACK uses fabs without <cmath>. Anchor on <string.h>: a.6.x has no
+    # <algorithm> include, so that anchor silently matched nothing there.
     - run:
         - if ! grep -q cmath plink2_base.h; then
         - sed -i -f $PROP plink2_base.h
+        - grep -q '^#include <cmath>' plink2_base.h
         - fi
       if: linux/x86-64
       working-directory: ../include
       prop: |
-        /<algorithm>/a #include <cmath>
+        /^#include <string.h>/a #include <cmath>
     # gcc 16 dropped the evex512 target attribute; a.6.x vendors a libdeflate
     # that still emits it (fixed upstream in ebiggers/libdeflate@2a3762cf)
     - run:
