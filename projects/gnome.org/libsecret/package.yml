@@ -23,7 +23,11 @@ build:
     ninja-build.org: '*'
     freedesktop.org/pkg-config: '*'
     gnome.org/vala: '*'
-    gnome.org/libxslt: '*'
+    # gettext (and glib, vala) hold libxml2 at ~2.13 here, but libxslt 1.1.45
+    # links libxml2.so.16 (2.14+) while declaring libxml2 '*', so xsltproc
+    # can't load (linux) or segfaults (darwin) building the man page.
+    # 1.1.43 links the 2.13 soname; same pin as gnome.org/vala.
+    gnome.org/libxslt: =1.1.43
     freedesktop.org/dbus: '*' # dbus-run-session needed as of v0.21.5
     linux:
       llvm.org: '*'
