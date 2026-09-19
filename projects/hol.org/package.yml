@@ -1,0 +1,40 @@
+distributable:
+  url: https://files.pythonhosted.org/packages/source/h/hol-guard/hol_guard-{{version}}.tar.gz
+  strip-components: 1
+
+display-name: HOL Guard
+
+versions:
+  url: https://pypi.org/simple/hol-guard/
+  match: /hol_guard-\d+\.\d+\.\d+\.tar\.gz/
+  strip:
+    - /hol_guard-/
+    - /\.tar\.gz/
+
+platforms:
+  - linux
+  - darwin/aarch64
+
+dependencies:
+  pkgx.sh: ">=1"
+  python.org: "~3.12"
+
+runtime:
+  env:
+    PYTHONPATH: ${{prefix}}/venv/lib/python{{deps.python.org.version.marketing}}/site-packages
+
+build:
+  dependencies:
+    python.org: "~3.12"
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    - "{{prefix}}/venv/bin/pip install ."
+    - bkpyvenv seal {{prefix}} hol-guard
+
+provides:
+  - bin/hol-guard
+
+test:
+  - hol-guard --version 2>&1 | tee out
+  - grep {{version}} out
+  - hol-guard --help
