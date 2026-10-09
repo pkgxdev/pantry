@@ -1,0 +1,20 @@
+distributable:
+  url: https://github.com/M-Igashi/mp3rgain/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+display-name: mp3rgain
+
+provides:
+  - bin/mp3rgain
+
+versions:
+  github: M-Igashi/mp3rgain
+
+build:
+  dependencies:
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path . --root {{prefix}}
+
+test:
+  - mp3rgain -v | tee out
+  - grep {{version}} out
