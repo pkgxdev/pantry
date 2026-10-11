@@ -10,20 +10,25 @@ provides:
 
 build:
   dependencies:
-    go.dev: =1.25.7
+    go.dev: =1.27.2
     pnpm.io: <11.13.0
     openssl.org: "*"
     # uses these tools directly since v10
     protobuf.dev: "*"
     abseil.io: 20250127
     grpc.io/grpc-go: "*"
+    bun.sh: '*'
   script:
     - run: make -j {{hw.concurrency}} tools
       if: <10
     - run: cp ~/go/bin/* .
       if: <10
       working-directory: ${{prefix}}/bin
-    - pnpm install
+    # frontend switched from pnpm to bun in 11.1.1
+    - run: pnpm install
+      if: <11.1.1
+    - run: bun install --frozen-lockfile
+      if: '>=11.1.1'
     # otherwise:
     # Error: EMFILE: too many open files, watch
     #   at FSWatcher._handle.onchange (node:internal/fs/watchers:214:21)
