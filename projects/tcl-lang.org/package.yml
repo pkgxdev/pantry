@@ -38,7 +38,7 @@ build:
     - run:
         - make --jobs {{hw.concurrency}} binaries
         - mkdir -p {{prefix}}/lib
-        - cp libtcl9.0.* {{prefix}}/lib/
+        - cp libtcl{{version.marketing}}.* {{prefix}}/lib/
         - export LD_LIBRARY_PATH="{{prefix}}/lib:$LD_LIBRARY_PATH"
       working-directory: unix
       if: ">=9.0.4"
@@ -58,10 +58,18 @@ build:
       working-directory: tk
       if: <8.6.14
 
+    # tk >= 9.1 flips --enable-xft's default to a literal `yes` (9.0 probed
+    # xft-config and only set HAVE_XFT when Xft was actually found) and adds
+    # bidi support defaulting on, which hard-requires harfbuzz. We build Tk
+    # --without-x with no font stack, so disable both to restore the 9.0.x
+    # effective configuration (plain tkUnixFont.o). Hits darwin too: aqua
+    # also defaults to `no` there, so the X11 code path is compiled.
+    - run: export TK_EXTRA_CONFIGURE="--disable-bidi --disable-xft"
+      if: ">=9.1"
     - run:
         - curl -L "$res_tk" | tar -xz --strip-components=1
         - cd unix
-        - ./configure $ARGS --without-x --with-tcl={{prefix}}/lib
+        - ./configure $ARGS --without-x --with-tcl={{prefix}}/lib ${TK_EXTRA_CONFIGURE:-}
         - make --jobs {{hw.concurrency}}
         - make --jobs {{hw.concurrency}} install
         - make --jobs {{hw.concurrency}} install-private-headers
