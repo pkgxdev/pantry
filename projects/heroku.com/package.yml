@@ -31,5 +31,8 @@ provides:
 test:
   - heroku --version | grep {{version}}
   - heroku --help
-  - heroku authorizations:create -d "getting started token" 2>out.log <<< q || true
-  - cat out.log | grep "Press any key to open up the browser to login"
+  - (heroku authorizations:create -d "getting started token" 2>&1 <<< q || true) | tee out.log
+  - run: grep "Press any key to open up the browser to login" out.log
+    if: <11.11
+  - run: grep "Cannot prompt for login in a non-interactive terminal" out.log
+    if: ">=11.11"
