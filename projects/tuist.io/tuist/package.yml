@@ -5,11 +5,15 @@
 # (registry.tuist.dev), so the SPM resolve step needs network egress
 # (anonymous reads are public).
 #
-# Upstream sed-patches `cli/Sources/TuistConstants/Constants.swift`
-# at release-time to bake the version into the binary — the source
-# tarball still carries an older string (the previous release). We
-# replicate that sed in the build step so `tuist --version` prints
-# the recipe's `{{version}}` rather than the stale TaskLocal default.
+# Upstream stamps the release version into the source at release-time —
+# the tarball carries the local-build sentinel ("x.y.z"), not the
+# released string. Before 4.210 the stamp site was
+# `cli/Sources/TuistConstants/Constants.swift` (`@TaskLocal ... version`);
+# from 4.210 it is `cli/Sources/tuist/ReleaseVersion.swift` — TuistCLI
+# now binds `Constants.$version.withValue(releaseVersion)` at startup,
+# overriding the Constants.swift default ("x.y.z" stays as sentinel
+# everywhere else). We replicate upstream's sed for both eras so
+# `tuist version` prints the recipe's `{{version}}`.
 #
 # At runtime tuist locates `libProjectDescription.dylib` and the
 # `Templates` directory relative to the binary; the Homebrew layout
@@ -24,7 +28,7 @@
 # musl static SDK, which is orthogonal to pkgx's approach anyway.
 
 distributable:
-  url: https://github.com/tuist/tuist/archive/refs/tags/{{version}}.tar.gz
+  url: https://github.com/tuist/tuist/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
@@ -38,13 +42,25 @@ build:
     # Package.swift declares swift-tools-version: 6.1.
     swift.org: ">=6.1"
   script:
-    # Bake the recipe version into Constants.swift (upstream does the
-    # same sed in its release workflow; the tarball string is stale).
+    # Bake the recipe version into Constants.swift (upstream's release
+    # workflow did this sed before 4.210; the tarball string is stale).
     # Wrapped in `run: |` because the sed pattern contains `: ` which
     # YAML otherwise mis-parses as a mapping key/value separator.
     - run: sed -i -E -f $PROP Constants.swift
       prop: 's/(@TaskLocal public static var version: String! = ")[^"]+(")/\1{{version}}\2/'
       working-directory: cli/Sources/TuistConstants
+      if: '<4.210'
+
+    # 4.210+: upstream's release workflow seds
+    # cli/Sources/tuist/ReleaseVersion.swift (cli-build-publish.yml,
+    # "Stamp the release version" step). Replicate its exact pattern;
+    # the grep -qxF verification is also upstream's, and makes any
+    # future reshaping of that line fail the build loudly instead of
+    # shipping an "x.y.z" binary.
+    - run: sed -i -E -f $PROP ReleaseVersion.swift
+      prop: 's/^let releaseVersion = ".*"/let releaseVersion = "{{version}}"/'
+      working-directory: cli/Sources/tuist
+      if: '>=4.210'
 
     # Resolve & build. `--replace-scm-with-registry` honours the
     # registry-pinned Package.resolved (every pin is `kind: registry`,
