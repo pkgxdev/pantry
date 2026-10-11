@@ -16,9 +16,12 @@ dependencies:
 
 build:
   dependencies:
+    gnu.org/autoconf: '*'
+    gnu.org/automake: '*'
     linux:
       gnu.org/gcc: 14
   script:
+    - test -f configure || ./autogen.sh
     - ./configure --prefix="{{prefix}}"
     - make --jobs {{ hw.concurrency }}
     - make install
