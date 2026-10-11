@@ -4,6 +4,8 @@ distributable:
 
 provides:
   - bin/mprocs
+  # renamed
+  - bin/dekit
 
 versions:
   github: pvolok/mprocs/tags
@@ -18,8 +20,12 @@ build:
       gnu.org/binutils: '*'
       gnu.org/make: '*'
   script:
-    cargo install --locked --path ./src --root {{prefix}}
+    - cargo install --locked --path ./src --root {{prefix}}
+    - run:
+      - test -f mprocs || ln -s dekit mprocs
+      - test -f dekit || ln -s mprocs dekit
+      working-directory: ${{prefix}}/bin
 
 test:
-  script: |
-    mprocs --version
+  - mprocs --version
+  - dekit --version
