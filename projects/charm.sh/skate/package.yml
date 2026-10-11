@@ -10,9 +10,11 @@ dependencies:
 
 build:
   dependencies:
-    go.dev: ^1.21
+    go.dev: ~1.26.7
   script:
-    go build $ARGS -ldflags="$LDFLAGS" .
+    - run:  sed -i 's|fang.Execute(context.Background(), rootCmd)|fang.Execute(context.Background(), rootCmd, fang.WithVersion("{{version}}"))|' main.go
+      if: '>=1.1.0'
+    - go build $ARGS -ldflags="$LDFLAGS" .
   env:
     ARGS:
       - -trimpath
