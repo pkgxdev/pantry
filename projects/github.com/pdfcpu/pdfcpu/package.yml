@@ -1,0 +1,36 @@
+distributable:
+  url: https://github.com/pdfcpu/pdfcpu/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+display-name: pdfcpu
+
+versions:
+  github: pdfcpu/pdfcpu
+  ignore:
+    - /^v?0\.[0-6](\.|$)/
+    - /-/ # pre-releases (v0.14.0-rc.1, v0.16.0-rc.1, v1.0.0-test)
+
+build:
+  dependencies:
+    go.dev: ^1.26
+  env:
+    CGO_ENABLED: 0
+    GO111MODULE: on
+    GOPROXY: https://proxy.golang.org,direct
+    GOSUMDB: sum.golang.org
+    LDFLAGS:
+      - -s
+      - -w
+    linux:
+      LDFLAGS:
+        - -s
+        - -w
+        - -buildmode=pie
+  script: go build -trimpath -ldflags="${LDFLAGS}" -o "{{prefix}}/bin/pdfcpu" ./cmd/pdfcpu
+
+provides:
+  - bin/pdfcpu
+
+test:
+  - pdfcpu version | tee out
+  - grep {{version}} out
