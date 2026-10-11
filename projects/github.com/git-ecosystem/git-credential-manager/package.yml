@@ -24,26 +24,45 @@ build:
     linux:
       gnu.org/gcc: ">=12"
   script:
-    - dotnet build ${CSPROJ}
-      -p:InstallFromSource=true
-      -p:installPrefix={{prefix}}
-      --no-self-contained
-      --configuration=${CONFIGURATION}
-      --runtime=${RUNTIME}
+    # 3.0 moved packaging out of src/; build via upstream's publish.sh
+    # (trimmed, self-contained, non-AOT) instead
+    - run:
+        - build/${OS}/publish.sh
+          --configuration Release
+          --runtime ${RUNTIME}
+          --no-aot
+          --output {{prefix}}/libexec
+        - mkdir -p {{prefix}}/bin
+        - ln -sf ../libexec/git-credential-manager {{prefix}}/bin/git-credential-manager
+      if: '>=3'
+
+    - run: >
+        dotnet build ${CSPROJ}
+        -p:InstallFromSource=true
+        -p:installPrefix={{prefix}}
+        --no-self-contained
+        --configuration=${CONFIGURATION}
+        --runtime=${RUNTIME}
+      if: <3
 
     # installPrefix only seems to work for linux/x86-64
     # on darwin, it installs nothing
     # on linux/aarch64, it installs linux/x86-64 binaries
     # for some reason.
-    - run:
-        - rm -rf {{prefix}}
-        - mkdir -p {{prefix}}/bin
-        - cp -aR * {{prefix}}/bin
-      if: darwin || linux/aarch64
+    # (`if:` takes a platform or a version range, not both, so the
+    # platform check is in the shell)
+    - run: |
+        if [ "$(uname -s)" = Darwin ] || [ "$(uname -m)" = aarch64 ]; then
+          rm -rf {{prefix}}
+          mkdir -p {{prefix}}/bin
+          cp -aR * {{prefix}}/bin
+        fi
+      if: <3
       working-directory: out/shared/Git-Credential-Manager/bin/${CONFIGURATION}/net{{deps.dotnet.microsoft.com.version.marketing}}/${RUNTIME}
   env:
     DOTNET_CLI_TELEMETRY_OPTOUT: 1
     linux:
+      OS: linux
       CSPROJ: src/linux/Packaging.Linux/*.csproj
       CONFIGURATION: LinuxRelease
     linux/x86-64:
@@ -51,6 +70,7 @@ build:
     linux/aarch64:
       RUNTIME: linux-arm64
     darwin:
+      OS: macos
       CSPROJ: src/osx/Installer.Mac/*.csproj
       CONFIGURATION: MacRelease
     darwin/x86-64:
