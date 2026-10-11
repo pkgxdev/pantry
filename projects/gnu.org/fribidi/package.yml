@@ -7,15 +7,15 @@ versions:
   strip: /^FriBidi Version /
 
 build:
-  script: |
-    ./configure --prefix={{prefix}} --disable-debug
-    make --jobs={{ hw.concurrency }} install
+  - ./configure --prefix={{prefix}} --disable-debug
+  # the man page is regenerated with help2man; we don't ship man pages, so
+  # take it out of the build instead of depending on help2man
+  - make --jobs={{ hw.concurrency }} dist_man_MANS= install
 
 test:
-  fixture: a _lsimple _RteST_o th_oat
-  script: |
-    out="$(fribidi --charset=CapRTL --clean --nobreak $FIXTURE)"
-    test "$out" = "a simple TSet that"
+  - run: out="$(fribidi --charset=CapRTL --clean --nobreak $FIXTURE)"
+    fixture: a _lsimple _RteST_o th_oat
+  - test "$out" = "a simple TSet that"
 
 provides:
   - bin/fribidi
