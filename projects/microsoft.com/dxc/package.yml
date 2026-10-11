@@ -14,14 +14,14 @@ build:
     git-scm.org: ^2
     ninja-build.org: ^1
     python.org: ">=3.7<3.12"
-  script: |
-    git submodule update --init
-    cmake -B $BUILD_DIR $CMAKE_ARGS
-    ninja -C $BUILD_DIR
+  script:
+    - git submodule update --init
+    - cmake -B $BUILD_DIR $CMAKE_ARGS
+    - ninja -C $BUILD_DIR
 
-    mkdir -p {{prefix}}
-    cp -r $BUILD_DIR/bin {{prefix}}/
-    cp -r $BUILD_DIR/lib {{prefix}}/
+    - mkdir -p {{prefix}}
+    - cp -r $BUILD_DIR/bin {{prefix}}/
+    - cp -r $BUILD_DIR/lib {{prefix}}/
   env:
     BUILD_DIR: $(mktemp -d)
     CMAKE_ARGS:
@@ -29,6 +29,10 @@ build:
       - -C./cmake/caches/PredefinedParams.cmake
       - -DSPIRV_BUILD_TESTS=ON
       - -DCMAKE_BUILD_TYPE=Release
+      # skip the in-tree round-trip regeneration check on committed
+      # sources; it requires an unpinned system clang-format to produce
+      # byte-identical output to the committed headers
+      - -DHLSL_DISABLE_SOURCE_GENERATION=ON
     linux:
       # since 1.9.2602
       LDFLAGS: $LDFLAGS -Wl,-lstdc++fs
