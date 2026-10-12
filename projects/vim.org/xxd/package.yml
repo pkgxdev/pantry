@@ -1,0 +1,33 @@
+# xxd - hex dump and reverse hex dump shipped with Vim.
+distributable:
+  url: https://github.com/vim/vim/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  # Vim publishes many tags per day. Keep the same 1-in-10 cut as vim.org,
+  # and stay on the 9.x line where src/xxd/Makefile is stable.
+  github: vim/vim/tags
+  ignore:
+    - /[1-9]$/
+    - '<9'
+
+build:
+  working-directory: src/xxd
+  dependencies:
+    gnu.org/make: '*'
+    linux:
+      gnu.org/gcc: '*'
+  script:
+    # Makefile has no install target; -DUNIX is already in the rule.
+    - make CC=cc
+    - install -Dm0755 xxd "{{prefix}}/bin/xxd"
+
+provides:
+  - bin/xxd
+
+test:
+  # Banner goes to stderr and is a date, not {{version}}.
+  - xxd -v 2>&1 | grep '^xxd '
+  - printf 'pkgx' > in.bin
+  - xxd in.bin | xxd -r > out.bin
+  - cmp in.bin out.bin
