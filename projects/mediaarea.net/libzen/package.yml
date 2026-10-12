@@ -1,0 +1,30 @@
+distributable:
+  url: https://github.com/MediaArea/ZenLib/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: MediaArea/ZenLib/tags
+  strip: /^tag\/v/
+
+build:
+  dependencies:
+    cmake.org: ^3
+  script:
+    - cmake -S Project/CMake -B build $ARGS
+    - cmake --build build
+    - cmake --install build
+  env:
+    # 0.4.41 declares cmake_minimum_required(VERSION 3.1.0), which CMake 4 rejects
+    CMAKE_POLICY_VERSION_MINIMUM: "3.5"
+    ARGS:
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_INSTALL_LIBDIR=lib
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_VERBOSE_MAKEFILE=ON
+      - -Wno-dev
+      - -DBUILD_SHARED_LIBS=ON
+
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script: pkg-config --modversion libzen | grep {{version.raw}}
