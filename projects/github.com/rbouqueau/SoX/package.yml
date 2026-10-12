@@ -1,0 +1,57 @@
+distributable:
+  # rbouqueau/SoX has no tags; pin master @ f3094754 (2024-05-30), AC_INIT 14.4.3git
+  url: https://github.com/rbouqueau/SoX/archive/f3094754a7c2a7e55c35621d20fa9945736e72df.tar.gz
+  strip-components: 1
+
+versions:
+  - 14.4.3
+
+display-name: SoX
+
+provides:
+  - bin/sox
+  - bin/soxi
+  - bin/play
+  - bin/rec
+
+dependencies:
+  darwinsys.com/file: '*'
+  github.com/libsndfile/libsndfile: '*'
+  libpng.org: '*'
+  wavpack.com: '*'
+  # libsndfile 1.2.2 is built against libFLAC.so.12 (FLAC 1.4).
+  xiph.org/flac: ~1.4
+  xiph.org/ogg: '*'
+  xiph.org/vorbis: '*'
+  zlib.net: '*'
+  linux:
+    alsa-project.org/alsa-lib: '*'
+
+build:
+  dependencies:
+    gnu.org/autoconf: '*'
+    gnu.org/autoconf-archive: '*'
+    gnu.org/automake: '*'
+    gnu.org/libtool: '*'
+    freedesktop.org/pkg-config: '*'
+  script:
+    - autoreconf -i
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --without-libltdl
+      - --with-distro=pkgx
+
+test:
+  script: |
+    # sox.h still reports 14.4.2 via SOX_LIB_VERSION_CODE; AC_INIT is 14.4.3git.
+    sox --version | grep 'SoX v14.4.2'
+    sox -n -r 8000 -c 1 -b 16 out.wav synth 0.1 sine 440
+    soxi out.wav | grep 8000
+    sox out.wav out.flac
+    soxi out.flac | grep FLAC
