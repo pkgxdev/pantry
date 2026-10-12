@@ -14,8 +14,6 @@ dependencies:
     github.com/util-linux/util-linux: ^2.39
 
 build:
-  dependencies:
-    freedesktop.org/pkg-config: '*'
   script:
     - ./configure $ARGS
     - make --jobs {{hw.concurrency}}
@@ -40,8 +38,15 @@ provides:
   - bin/fidentify
 
 test:
-  - testdisk /version | grep {{version.raw}}
-  - photorec /version | grep {{version.raw}}
+  - testdisk /version | tee out
+  - grep {{version.raw}} out
+  - photorec /version | tee out
+  - grep {{version.raw}} out
   # PhotoRec's text signature ignores a one-line file.
-  - awk 'BEGIN{for(i=0;i<20;i++) print "Hello world. This is a plain text document for recovery."}' > sample.txt
-  - "fidentify sample.txt | grep 'sample.txt: txt'"
+  - run: fidentify $FIXTURE | tee out
+    fixture:
+      extname: txt
+      content: |
+        Hello world. This is a plain text document for recovery.
+        Hello world. This is a plain text document for recovery.
+  - grep ' txt$' out
