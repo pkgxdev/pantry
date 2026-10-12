@@ -1,0 +1,42 @@
+distributable:
+  # Release tarballs ship a generated configure. Tags before 2.15 have no assets.
+  url: https://github.com/axel-download-accelerator/axel/releases/download/v{{version.marketing}}/axel-{{version.marketing}}.tar.gz
+  strip-components: 1
+
+display-name: axel
+
+versions:
+  github: axel-download-accelerator/axel/releases/tags
+  ignore: ['<2.15']
+
+dependencies:
+  openssl.org: ^1.1
+  darwin:
+    gnu.org/gettext: '*'
+
+build:
+  dependencies:
+    freedesktop.org/pkg-config: ^0.29
+    gnu.org/gettext: '*'
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
+  env:
+    darwin:
+      # tcp.c defines _POSIX_C_SOURCE before including axel.h -> netinet/ip.h;
+      # on the darwin SDK that hides the BSD typedefs (u_int, u_char, u_short)
+      # and struct ifreq that those headers use. Re-expose them.
+      CPPFLAGS: $CPPFLAGS -D_DARWIN_C_SOURCE
+    # 2.17.14+ reads this; older releases ignore it and still find OpenSSL via pkg-config.
+    SSL_PREFIX: '{{deps.openssl.org.prefix}}'
+    ARGS:
+      - --prefix={{prefix}}
+      - --disable-dependency-tracking
+
+provides:
+  - bin/axel
+
+test:
+  - axel --version | tee out
+  - grep {{version.marketing}} out
