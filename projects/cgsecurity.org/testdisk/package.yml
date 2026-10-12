@@ -1,0 +1,52 @@
+distributable:
+  url: https://www.cgsecurity.org/testdisk-{{version.raw}}.tar.bz2
+  strip-components: 1
+
+versions:
+  github: cgsecurity/testdisk/tags
+
+dependencies:
+  invisible-island.net/ncurses: 6
+  sourceforge.net/e2fsprogs: ^1.47
+  libjpeg-turbo.org: ^2
+  zlib.net: ^1
+  linux:
+    github.com/util-linux/util-linux: ^2.39
+
+build:
+  script:
+    - ./configure $ARGS
+    - make --jobs {{hw.concurrency}}
+    - make install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --disable-qt
+      - --disable-dependency-tracking
+      - --without-ntfs
+      - --without-ntfs3g
+      - --without-ewf
+      - --without-reiserfs
+    # configure.ac calls AC_CHECK_LIB(uuid_generate, uuid), which looks for
+    # -luuid_generate. uuid_generate is in libuuid; put -luuid on the link line.
+    linux:
+      LIBS: -luuid
+
+provides:
+  - bin/testdisk
+  - bin/photorec
+  - bin/fidentify
+
+test:
+  - testdisk /version | tee out
+  - grep {{version.raw}} out
+  - photorec /version | tee out
+  - grep {{version.raw}} out
+  # PhotoRec's text signature ignores a one-line file.
+  - run: fidentify $FIXTURE | tee out
+    fixture:
+      extname: txt
+      content: |
+        Hello world. This is a plain text document for recovery.
+        Hello world. This is a plain text document for recovery.
+  - grep ' txt$' out
