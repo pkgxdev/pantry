@@ -1,0 +1,32 @@
+distributable:
+  url: https://ftp.gnu.org/gnu/cpio/cpio-{{ version.raw }}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://ftp.gnu.org/gnu/cpio/
+  match: /cpio-(\d+\.\d+(\.\d+)?)\.tar\.gz/
+  strip:
+    - /cpio-/
+    - /.tar.gz/
+
+provides:
+  - bin/cpio
+
+build:
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --disable-nls
+      - --disable-silent-rules
+
+test:
+  script:
+    - cpio --version | grep {{version.raw}}
+    - echo hello > file.txt
+    - echo file.txt | cpio -o > archive.cpio
+    - rm file.txt
+    - cpio -id < archive.cpio
+    - test "$(cat file.txt)" = hello
