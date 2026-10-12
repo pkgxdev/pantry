@@ -1,0 +1,33 @@
+distributable:
+  url: https://github.com/MediaArea/MediaInfo/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: MediaArea/MediaInfo/tags
+  strip: /^tag\/v/
+
+dependencies:
+  mediaarea.net/libmediainfo: ^26
+  mediaarea.net/libzen: ^0.4
+  zlib.net: ^1
+
+build:
+  dependencies:
+    gnu.org/autoconf: '*'
+    gnu.org/automake: '*'
+    gnu.org/libtool: '*'
+  working-directory: Project/GNU/CLI
+  script:
+    - autoreconf --force --install --verbose
+    - ./configure --prefix="{{prefix}}"
+    - make --jobs {{hw.concurrency}} install
+
+provides:
+  - bin/mediainfo
+
+test:
+  - mediainfo --Version | grep {{version.raw}}
+  # 44-byte PCM WAV header, zero samples
+  - printf 'RIFF$\x00\x00\x00WAVEfmt \x10\x00\x00\x00\x01\x00\x01\x00\x44\xac\x00\x00\x44\xac\x00\x00\x01\x00\x08\x00data\x00\x00\x00\x00' > t.wav
+  - mediainfo t.wav | tee out
+  - grep -i wave out
