@@ -1,0 +1,40 @@
+distributable:
+  url: https://rdfind.pauldreik.se/rdfind-{{version.raw}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://rdfind.pauldreik.se/
+  match: /rdfind-\d+(\.\d+)+\.tar\.gz/
+  strip:
+    - /^rdfind-/
+    - /\.tar\.gz$/
+  ignore: /-alpha/
+
+dependencies:
+  gnu.org/nettle: '>=3'
+  github.com/Cyan4973/xxHash: ^0.8
+
+build:
+  script:
+    - ./configure $ARGS
+    - make --jobs {{hw.concurrency}} install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+    CXXFLAGS: $CXXFLAGS -std=c++17
+
+provides:
+  - bin/rdfind
+
+test:
+  script:
+    - rdfind --version | grep {{version}}
+    - mkdir folder
+    - echo foo > folder/file1
+    - echo bar > folder/file2
+    - echo foo > folder/file3
+    - rdfind -checksum xxh128 -outputname xxh-results.txt folder
+    - grep DUPTYPE xxh-results.txt
+    - rdfind -deleteduplicates true folder
+    - test -f folder/file2
+    - test "$(find folder -type f | wc -l | tr -d ' ')" = 2
