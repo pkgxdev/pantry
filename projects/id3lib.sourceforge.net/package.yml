@@ -1,0 +1,78 @@
+distributable:
+  url: https://downloads.sourceforge.net/project/id3lib/id3lib/{{version}}/id3lib-{{version}}.tar.gz
+  strip-components: 1
+
+# Last release; the project is no longer developed.
+versions:
+  - 3.8.3
+
+dependencies:
+  zlib.net: ^1
+  darwin:
+    gnu.org/libiconv: '*'
+  linux:
+    gnu.org/gcc/libstdcxx: ^14
+
+build:
+  dependencies:
+    gnu.org/autoconf: '*'
+    gnu.org/automake: '*'
+    gnu.org/libtool: '*'
+    gnu.org/patch: '*'
+    linux:
+      gnu.org/gcc: ^14
+  script:
+    # Homebrew's patches so 3.8.3 builds with current compilers.
+    # https://github.com/Homebrew/homebrew-core/tree/master/Patches/id3lib
+    - patch -p1 < props/id3lib-main.patch
+    - patch -p1 < props/id3lib-vbr-overflow.patch
+    - patch -p1 < props/no-iomanip.h.patch
+    - patch -p1 < props/automake.patch
+    - patch -p1 < props/boolcheck.patch
+    - patch -p1 < props/patch_id3lib_3.8.3_UTF16_writing_bug.diff
+    - patch -p1 < props/cstring.patch
+    - autoreconf --force --install --verbose
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --disable-dependency-tracking
+
+provides:
+  - bin/id3info
+  - bin/id3convert
+  - bin/id3tag
+  - bin/id3cp
+
+test:
+  script:
+    - run: c++ $FIXTURE -lid3 -lz -o test
+      fixture:
+        extname: cpp
+        content: |
+          #include <id3/tag.h>
+          #include <id3/misc_support.h>
+          #include <cstdio>
+
+          int main() {
+            {
+              ID3_Tag tag;
+              tag.Link("test.mp3");
+              ID3_AddTitle(&tag, "Pantry Song", true);
+              ID3_AddArtist(&tag, "Pantry Artist", true);
+              tag.Update(ID3TT_ID3V2);
+            }
+            ID3_Tag tag("test.mp3");
+            char* title = ID3_GetTitle(&tag);
+            char* artist = ID3_GetArtist(&tag);
+            std::printf("%s by %s\n", title, artist);
+            ID3_FreeString(title);
+            ID3_FreeString(artist);
+            return 0;
+          }
+    - printf 'dummy audio data' > test.mp3
+    - test "$(./test)" = "Pantry Song by Pantry Artist"
+  dependencies:
+    linux:
+      gnu.org/gcc: ^14
