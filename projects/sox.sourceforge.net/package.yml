@@ -1,0 +1,99 @@
+distributable:
+  url: https://downloads.sourceforge.net/project/sox/sox/{{version}}/sox-{{version}}.tar.gz
+  strip-components: 1
+
+# SourceForge still lists 12.x beside 14.x; only 14.x uses this tarball layout.
+versions:
+  url: https://sourceforge.net/projects/sox/files/sox/
+  match: _/projects/sox/files/sox/14\.\d+\.\d+/_
+  strip:
+    - _^/projects/sox/files/sox/_
+    - _/$_
+
+dependencies:
+  # 1.2.2's bottle is linked to libFLAC.so.12. FLAC 1.5 is libFLAC.so.14,
+  # and sox fails to start if both end up in the same process.
+  xiph.org/flac: ~1.4
+  lame.sourceforge.io: '*'
+  xiph.org/ogg: '*'
+  xiph.org/vorbis: '*'
+  github.com/libsndfile/libsndfile: '*'
+  libpng.org: '*'
+  wavpack.com: '*'
+  opencore-amr.sourceforge.io: '*'
+  zlib.net: '*' # configure links libpng with -lz
+  linux:
+    alsa-project.org/alsa-lib: '*'
+
+build:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script:
+    # GCC 14 and Clang reject the implicit pow() in the sample-size checks.
+    # https://github.com/void-linux/void-packages/pull/55241
+    # libc without a pipe-rewind hack hits an #error in formats.c. Removing
+    # it skips file-type detection on pipes instead of failing the build.
+    # prop files keep the '#' characters; brewkit treats '#' in script
+    # lines as comments.
+    - run: sed -i -f $PROP src/sox_sample_test.h
+      prop: |
+        /#include <assert.h>/a #include <math.h>
+    - run: sed -i -f $PROP src/formats.c
+      prop: |
+        /#error FIX NEEDED HERE/d
+    # clang on aarch64 drops the sprintf that fills versionstr once
+    # sox_version() is inlined into sox_version_info(), so `sox --version`
+    # prints "SoX v". Seed the buffer; the sprintf rewrites the same value.
+    - run: sed -i -f $PROP src/libsox.c
+      prop: |
+        s/static char versionstr\[20\];/static char versionstr[20] = "{{version}}";/
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --disable-debug
+      - --disable-dependency-tracking
+      - --disable-openmp
+      - --without-libltdl
+      - --with-flac
+      - --with-lame
+      - --with-oggvorbis
+      - --with-sndfile
+      - --with-png
+      - --with-wavpack
+      - --with-amrnb
+      - --with-amrwb
+      - --without-mad
+      - --without-id3tag
+      - --without-opus
+      - --without-twolame
+      - --without-ao
+      - --without-pulseaudio
+      - --without-magic
+      - --without-ladspa
+      - --without-oss
+      - --without-sndio
+    linux:
+      ARGS:
+        - --with-alsa
+    darwin:
+      CFLAGS: $CFLAGS -Wno-incompatible-function-pointer-types
+
+provides:
+  - bin/sox
+  - bin/soxi
+  - bin/play
+  - bin/rec
+
+test:
+  script:
+    - sox --version | tee out
+    - grep {{version}} out
+    - sox --null out.wav synth 0.1 sine 440
+    - soxi -D out.wav | tee out
+    - grep 0.100000 out
+    - sox out.wav out2.wav trim 0 0.05
+    - soxi -D out2.wav | tee out
+    - grep 0.050000 out
