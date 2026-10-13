@@ -36,5 +36,10 @@ provides:
   - bin/dotnet
 
 test:
-  - dotnet --version | grep {{version}}
-  - dotnet new console -o test
+  env:
+    # runtime 10.0.13+ creates NuGet's first-run named mutex under $TMPDIR and
+    # dies with lstat("") when it's unset (macOS runners export none).
+    TMPDIR: /tmp
+  script:
+    - dotnet --version | grep {{version}}
+    - dotnet new console -o test
