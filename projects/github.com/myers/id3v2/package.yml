@@ -1,0 +1,35 @@
+distributable:
+  # upstream publishes no tags; pin the commit that fixed the build
+  url: https://github.com/myers/id3v2/archive/996eb9c0708bf9f6b9cd852500f161ea558b02c8.tar.gz
+  strip-components: 1
+
+display-name: id3v2
+
+versions:
+  # upstream publishes no tags; Makefile VERSION is 0.1.11
+  - 0.1.11
+
+dependencies:
+  id3lib.sourceforge.net: 3.8.3
+  zlib.net: ^1
+  linux:
+    gnu.org/gcc/libstdcxx: ^14
+
+provides:
+  - bin/id3v2
+
+build:
+  script:
+    - make PREFIX={{prefix}}
+    - mkdir -p "{{prefix}}/bin" "{{prefix}}/share/man/man1"
+    - cp id3v2 "{{prefix}}/bin/"
+    - cp id3v2.1 "{{prefix}}/share/man/man1/"
+  dependencies:
+    linux:
+      gnu.org/gcc: ^14
+
+test:
+  - id3v2 --version | grep {{version}}
+  - printf 'dummy' > song.mp3
+  - id3v2 -t 'Pantry Song' -a Pantry song.mp3
+  - id3v2 -l song.mp3 | grep 'Pantry Song'
