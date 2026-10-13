@@ -72,6 +72,8 @@ build:
     linux:
       ARGS:
         - --with-alsa
+    darwin:
+      CFLAGS: $CFLAGS -Wno-incompatible-function-pointer-types
 
 provides:
   - bin/sox
@@ -81,8 +83,11 @@ provides:
 
 test:
   script:
-    - sox --version | grep {{version}}
+    - sox --version | tee out
+    - grep {{version}} out
     - sox --null out.wav synth 0.1 sine 440
-    - soxi -D out.wav | grep 0.100000
+    - soxi -D out.wav | tee out
+    - grep 0.100000 out
     - sox out.wav out2.wav trim 0 0.05
-    - soxi -D out2.wav | grep 0.050000
+    - soxi -D out2.wav | tee out
+    - grep 0.050000 out
