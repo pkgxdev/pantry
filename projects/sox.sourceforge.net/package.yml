@@ -41,6 +41,12 @@ build:
     - run: sed -i -f $PROP src/formats.c
       prop: |
         /#error FIX NEEDED HERE/d
+    # clang on aarch64 drops the sprintf that fills versionstr once
+    # sox_version() is inlined into sox_version_info(), so `sox --version`
+    # prints "SoX v". Seed the buffer; the sprintf rewrites the same value.
+    - run: sed -i -f $PROP src/libsox.c
+      prop: |
+        s/static char versionstr\[20\];/static char versionstr[20] = "{{version}}";/
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }}
     - make install
