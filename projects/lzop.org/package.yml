@@ -1,0 +1,40 @@
+distributable:
+  url: https://www.lzop.org/download/lzop-{{version.raw}}.tar.gz
+  strip-components: 1
+
+versions:
+  url: https://www.lzop.org/download/
+  match: /lzop-\d+\.\d+\.tar\.gz/
+  strip:
+    - /^lzop-/
+    - /\.tar\.gz$/
+  # 1.04 is the current release. Older tarballs in the same index predate
+  # modern toolchains; skip release candidates and prebuilt binaries via match.
+  ignore: ['<1.04']
+
+dependencies:
+  oberhumer.com/lzo: ^2
+
+build:
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --disable-dependency-tracking
+
+provides:
+  - bin/lzop
+
+test:
+  env:
+    INPUT: tea.xyz.test-string
+  script:
+    - lzop --version | grep {{version.raw}}
+    - printf '%s' "$INPUT" > in
+    - lzop in
+    - rm in
+    - lzop -d in.lzo
+    - test "$(cat in)" = "$INPUT"
+    - test "$(printf '%s' "$INPUT" | lzop -c | lzop -dc)" = "$INPUT"
