@@ -7,6 +7,7 @@ versions:
 
 dependencies:
   go.dev: '*'
+  github.com/WebAssembly/binaryen: ^133
 
 companions:
   llvm.org: '*'
@@ -31,19 +32,23 @@ build:
     linux:
       CC: clang
       CXX: clang++
+    # Use our binaryen (tinygo's default on darwin). Its vendored copy fails
+    # on linux: llvm.org's headers on CPATH shadow its vendored LLVM, and the
+    # builder's libstdc++-8 lacks the C++20 library it needs. tinygo finds
+    # wasm-opt on PATH; the submodule pins version 133.
+    USE_SYSTEM_BINARYEN: 1
 
 provides:
   - bin/tinygo
 
 test:
-  script:
-    - mv $FIXTURE test.go
-    - test "$(tinygo run test.go)" = "Hello World"
-    - tinygo build -o my-artifact test.go
-    - test "$(./my-artifact)" = "Hello World"
-  fixture: |
-    package main
-    import "fmt"
-    func main() {
-      fmt.Println("Hello World")
-    }
+  - run: mv $FIXTURE test.go
+    fixture: |
+      package main
+      import "fmt"
+      func main() {
+        fmt.Println("Hello World")
+      }
+  - test "$(tinygo run test.go)" = "Hello World"
+  - tinygo build -o my-artifact test.go
+  - test "$(./my-artifact)" = "Hello World"
