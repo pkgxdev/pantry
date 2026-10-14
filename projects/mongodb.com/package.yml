@@ -23,9 +23,9 @@ build:
     darwin/x86-64:
       DIST: https://fastdl.mongodb.org/osx/mongodb-macos-x86_64-{{version}}.tgz
     linux/aarch64:
-      DIST: https://fastdl.mongodb.org/linux/mongodb-linux-aarch64-ubuntu2004-{{version}}.tgz
+      DIST: https://fastdl.mongodb.org/linux/mongodb-linux-aarch64-ubuntu2204-{{version}}.tgz
     linux/x86-64:
-      DIST: https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2004-{{version}}.tgz
+      DIST: https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2204-{{version}}.tgz
 
 provides:
   - bin/install_compass
@@ -60,7 +60,12 @@ test:
     - run:
         - mongod --dbpath data/db --logpath data/log/mongodb/mongo.log --port $PORT &
         - PID=$!
-        - sleep 5
+        # wait for it to come up (the x64 runner is slow); show why if not
+        - for i in $(seq 1 30); do
+        - if mongosh --port $PORT --eval 'db.version()'; then break; fi
+        - sleep 2
+        - done
+        - kill -0 $PID || { cat data/log/mongodb/mongo.log; false; }
       if: darwin
     - mongosh --port $PORT --eval 'db.version()'
     - "mongosh --port $PORT --eval 'db.adminCommand({ shutdown: 1 })' || true"
