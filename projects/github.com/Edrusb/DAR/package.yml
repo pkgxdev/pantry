@@ -1,0 +1,80 @@
+distributable:
+  # Git tags ship configure.ac only (misc/init bootstraps autotools). Release
+  # tarballs on SourceForge include the generated configure script.
+  url: https://downloads.sourceforge.net/project/dar/dar/{{version.raw}}/dar-{{version.raw}}.tar.gz
+  strip-components: 1
+
+display-name: dar
+
+versions:
+  # Tags only: the repo publishes no GitHub Releases, so releases/tags
+  # resolves to an empty set and every platform fails before fetch.
+  github: Edrusb/DAR/tags
+  # Skip release candidates (v2.8.6.RC1) and pre-releases (v2.8.0-pre3).
+  # Before 2.7 the configure flags and SourceForge layout differ.
+  # Ignore entries without slashes are literal strings, not semver ranges.
+  ignore:
+    - /RC/
+    - /-pre/
+    - /^v?2\.[0-6]\./
+    - /^v?[01]\./
+
+dependencies:
+  zlib.net: ^1
+  sourceware.org/bzip2: ^1
+  oberhumer.com/lzo: ^2
+  tukaani.org/xz: ^5
+  facebook.com/zstd: ^1
+  lz4.org: ^1
+  gnupg.org/libgcrypt: ^1
+  gnupg.org/libgpg-error: ^1 # libgcrypt needs it on the link line
+  github.com/P-H-C/phc-winner-argon2: '*'
+  linux:
+    gnu.org/gcc/libstdcxx: 14
+  darwin:
+    gnu.org/gettext: '*'
+
+build:
+  dependencies:
+    linux:
+      gnu.org/gcc: 14
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --disable-dependency-tracking
+      - --disable-build-html
+      - --disable-dar-static
+      - --enable-mode=64
+      # Keep the bottle off host libs we do not ship.
+      - --disable-upx
+      - --disable-python-binding
+      - --disable-threadar
+      - --disable-librsync-linking
+      - --disable-libcurl-linking
+      - --disable-libssh-linking
+      - --disable-gpgme-linking
+      - --disable-librhash-linking
+
+provides:
+  - bin/dar
+  - bin/dar_cp
+  - bin/dar_manager
+  - bin/dar_slave
+  - bin/dar_split
+  - bin/dar_xform
+
+test:
+  script:
+    - dar -V | tee out
+    - grep {{version.raw}} out
+    - mkdir src
+    - printf '%s\n' tea.xyz > src/file
+    - dar -c archive -R src
+    - rm -rf src
+    - mkdir outdir
+    - dar -x archive -R outdir
+    - test "$(cat outdir/file)" = tea.xyz
