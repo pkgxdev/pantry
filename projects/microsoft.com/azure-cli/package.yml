@@ -14,13 +14,18 @@ dependencies:
 
 build:
   dependencies:
+    pkgx.sh: '>=1'
     rust-lang.org: '*'
     linux:
       freedesktop.org/pkg-config: '*'
   env:
     CC: clang
     LD: clang
+    # cryptography refuses to build against OpenSSL < 3; the runtime dep stays at 1.1
+    OPENSSL_STATIC: 1
+    OPENSSL_DIR: "{{pkgx.prefix}}/openssl.org/v3"
   script: |
+    pkgx +openssl.org^3
     _SRCROOT="$SRCROOT"
     for venv in azure-cli{-telemetry,-core,}; do
       SRCROOT="$_SRCROOT"/src/"$venv" python-venv.sh "{{prefix}}"/bin/az
