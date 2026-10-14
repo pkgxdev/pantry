@@ -94,6 +94,10 @@ build:
       # because pkgx paths aren't in its auto-detection; point it at gcc's install dir
       CMAKE_ARGS:
         - -DARROW_GANDIVA_PC_CXX_FLAGS=--gcc-install-dir=$(g++ -print-libgcc-file-name | xargs dirname)
+        # the bundled uriparser detects reallocarray by linking, but the
+        # builder's older glibc doesn't declare it, and gcc 14 makes the
+        # implicit declaration an error; use uriparser's realloc fallback
+        - -DHAVE_REALLOCARRAY=OFF
     x86-64:
       CMAKE_ARGS:
         - -DARROW_MIMALLOC=ON
