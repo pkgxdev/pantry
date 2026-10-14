@@ -1,0 +1,26 @@
+distributable:
+  url: https://github.com/fragglet/lhasa/releases/download/{{version.tag}}/lhasa-{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: fragglet/lhasa
+
+display-name: lhasa
+
+build:
+  script:
+    - ./configure --prefix="{{prefix}}" --disable-dependency-tracking
+    - make --jobs {{ hw.concurrency }} install
+
+provides:
+  - bin/lha
+
+test:
+  # lha has no --version; with no args it prints "Lhasa vX.Y.Z" and exits non-zero.
+  # The archive is the Homebrew fixture: an -lh0- member named foo containing "foo\n".
+  script:
+    - (lha || true) | grep "Lhasa v{{version}}"
+    - printf '\x31\x00\x2d\x6c\x68\x30\x2d\x04\x00\x00\x00\x04\x00\x00\x00\xf5\x94\x13\x53\x20\x02\x83\x62\x55\x05\x00\x00\x86\x5a\x06\x00\x01\x66\x6f\x6f\x05\x00\x50\xa4\x81\x07\x00\x51\x14\x00\xf5\x01\x00\x00\x66\x6f\x6f\x0a\x00' > archive.lzh
+    - lha x - < archive.lzh
+    - printf 'foo\n' > expected
+    - cmp foo expected
