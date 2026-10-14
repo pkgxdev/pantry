@@ -30,7 +30,7 @@ build:
   dependencies:
     mesonbuild.com: ^1.2
     ninja-build.org: 1
-    python.org: ">=3.5<3.12"
+    python.org: ">=3.5"
     gnome.org/gobject-introspection: "*"
     gnome.org/libxml2: ~2.13 # since 2.84.1, 2.14 changed the API version
   script:
@@ -41,6 +41,28 @@ build:
         - python -m pip install packaging
         - deactivate
         - PYTHONPATH="$(pwd)/venv/lib/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH"
+
+    # g-ir-scanner's shebang is `env python3.11`, and meson runs it with
+    # LD_LIBRARY_PATH replaced by just the build dirs, so python can't find
+    # libpython or libexpat. This shim restores the build's LD_LIBRARY_PATH.
+    - run:
+        - mkdir -p $SRCROOT/shim
+        - install -m755 $PROP $SRCROOT/shim/python3.11
+        - echo "$LD_LIBRARY_PATH" > $SRCROOT/shim/ldlp
+        - export PATH="$SRCROOT/shim:$PATH"
+      if: linux
+      prop: |
+        #!/bin/sh
+        self=$(cd "$(dirname "$0")" && pwd)
+        export LD_LIBRARY_PATH="$(cat "$self/ldlp"):$LD_LIBRARY_PATH"
+        IFS=:
+        for d in $PATH; do
+          [ "$d" = "$self" ] && continue
+          if [ -x "$d/python3.11" ]; then
+            exec "$d/python3.11" "$@"
+          fi
+        done
+        exit 127
 
     - meson out $ARGS
     - cd out
