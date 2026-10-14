@@ -1,0 +1,45 @@
+# cabextract — extract Microsoft cabinet (.cab) files.
+# Built from the cabextract/ tree in kyz/libmspack. Tags matching /alpha/
+# are libmspack library releases, not cabextract.
+
+distributable:
+  url: https://github.com/kyz/libmspack/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: kyz/libmspack/tags
+  ignore: /alpha/
+
+display-name: cabextract
+
+build:
+  working-directory: cabextract
+  dependencies:
+    gnu.org/autoconf: '*'
+    gnu.org/automake: '*'
+    gnu.org/gettext: '*'
+    # configure.ac calls PKG_CHECK_MODULES; pkg.m4 must be present at autoreconf time
+    freedesktop.org/pkg-config: '*'
+  script:
+    # git checkouts ship configure.ac only; cabextract/mspack/* symlinks
+    # point at the sibling libmspack/ tree in the same archive.
+    # autoconf 2.73 builds with -std=gnu23, where the bundled getopt.h's K&R
+    # `extern int getopt ();` means (void) and clashes with the macOS SDK's
+    # unistd.h. Give it the real prototype.
+    - run: sed -i -f $PROP getopt.h
+      prop: |
+        s/^extern int getopt ();/extern int getopt (int, char *const *, const char *);/
+    - autoreconf -fi
+    - ./configure --prefix="{{prefix}}"
+    - make --jobs {{ hw.concurrency }}
+    - make install
+
+provides:
+  - bin/cabextract
+
+test:
+  # smallest valid cabinet (one empty file named "a"), from the Homebrew formula
+  - printf '%s' 'TVNDRgAAAABGAAAAAAAAACwAAAAAAAAAAwEBAAEAAADSBAAAPgAAAAEAAAAAAAAAAAAAAAAAMkaJnSAAYQAAAAAAAAAAAA==' | base64 -d > test.cab
+  - cabextract --version | grep {{version.raw}}
+  - cabextract test.cab
+  - test -f a
