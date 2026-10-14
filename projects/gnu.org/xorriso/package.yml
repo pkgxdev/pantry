@@ -1,0 +1,50 @@
+distributable:
+  # pkgx semver rejects the ".pl02" patchlevel. 1.5.8.pl02 is the bugfix
+  # tarball; plain X.Y.Z is the fallback when upstream has not published one.
+  - url: https://ftp.gnu.org/gnu/xorriso/xorriso-{{version.raw}}.pl02.tar.gz
+    strip-components: 1
+  - url: https://ftp.gnu.org/gnu/xorriso/xorriso-{{version.raw}}.tar.gz
+    strip-components: 1
+
+versions:
+  url: https://ftp.gnu.org/gnu/xorriso/
+  match: /xorriso-\d+\.\d+\.\d+\.tar\.gz/
+  strip:
+    - /^xorriso-/
+    - /\.tar\.gz$/
+
+dependencies:
+  zlib.net: ^1
+  linux:
+    savannah.nongnu.org/acl: ^2
+
+build:
+  script:
+    - ./configure $ARGS
+    # install is serial: parallel install races on mkdir of bin/
+    - make --jobs {{ hw.concurrency }}
+    - make install
+  env:
+    ARGS:
+      - --prefix="{{prefix}}"
+      - --disable-dependency-tracking
+      - --disable-silent-rules
+      - --disable-libreadline
+
+provides:
+  - bin/osirrox
+  - bin/xorrecord
+  - bin/xorriso
+  - bin/xorriso-tcltk
+  - bin/xorrisofs
+
+test:
+  script:
+    - xorriso -version | grep {{version.raw}}
+    - run: xorriso -version | grep 1.5.8.pl02
+      if: =1.5.8
+    - mkdir payload
+    - printf '%s' hello > payload/hello.txt
+    - xorriso -as mkisofs -o test.iso payload/hello.txt
+    - xorriso -osirrox on -indev test.iso -extract /hello.txt out.txt
+    - test "$(cat out.txt)" = hello
