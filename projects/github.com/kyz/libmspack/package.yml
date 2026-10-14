@@ -8,7 +8,6 @@ distributable:
 
 versions:
   github: kyz/libmspack/tags
-  strip: /^v/
   ignore: /alpha/
 
 display-name: cabextract
@@ -24,6 +23,12 @@ build:
   script:
     # git checkouts ship configure.ac only; cabextract/mspack/* symlinks
     # point at the sibling libmspack/ tree in the same archive.
+    # autoconf 2.73 builds with -std=gnu23, where the bundled getopt.h's K&R
+    # `extern int getopt ();` means (void) and clashes with the macOS SDK's
+    # unistd.h. Give it the real prototype.
+    - run: sed -i -f $PROP getopt.h
+      prop: |
+        s/^extern int getopt ();/extern int getopt (int, char *const *, const char *);/
     - autoreconf -fi
     - ./configure --prefix="{{prefix}}"
     - make --jobs {{ hw.concurrency }}
