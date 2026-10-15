@@ -28,6 +28,10 @@ build:
 
     fix-shebangs.ts {{prefix}}/bin/*
 
+    sh_tea_prefix='$(tea --prefix)'
+    sed -i.bak -e "s|$TEA_PREFIX/|$sh_tea_prefix/|g" {{prefix}}/bin/curl-config
+    #FIXME: once this pkg builds properly, add `rm mamba.sh` to reduce artifact size?
+
     #FIXME: add caveats
     # Please run the following to setup your shell:
     # mamba init "$(basename "${SHELL}")"   # updates your .zshrc or .bashrc to make mamba & conda usable
@@ -45,9 +49,24 @@ build:
       - -u                 # update if already installed 
       - -p {{prefix}}      # prefix - where to install
 
-test: |
-  mamba --version
-  conda --version
+test:
+  script: |
+    mamba --version # check that mamba is present
+    mamba init      # init and source at test env
+    source .bashrc  # ^
+
+    # check that we run mamba-provided python
+    which python | grep '{{prefix}}/bin/python'
+
+    # now install a small package and try running it
+    mamba install isodate --yes
+    python -c "import isodate"
+
+
+    # should return nothing
+    # test that relocatable paths from build env were all fixed
+    export out="$(grep -r '/opt/github.com/mamba-org/mamba' {{prefix}})"
+    test "$out" = '' 
 
 provides:
   - condabin/conda
