@@ -1,0 +1,29 @@
+distributable:
+  url: https://github.com/0xabu/pdfannots/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: 0xabu/pdfannots
+
+dependencies:
+  pkgx.sh: ">=1"
+
+build:
+  dependencies:
+    python.org: ">=3.9"
+  script:
+    - pkgx +openssl.org^3
+    - bkpyvenv stage {{prefix}} {{version}}
+    - ${{prefix}}/venv/bin/pip install .
+    - bkpyvenv seal {{prefix}} pdfannots
+  env:
+    OPENSSL_STATIC: 1
+    OPENSSL_DIR: "{{pkgx.prefix}}/openssl.org/v3"
+
+
+provides:
+  - bin/pdfannots
+
+test:
+  - pdfannots --version | tee out
+  - grep "pdfannots {{version.raw}}" out
