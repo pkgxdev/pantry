@@ -1,0 +1,50 @@
+distributable:
+  url: https://download.gnome.org/sources/libgudev/{{version.major}}/libgudev-{{version.major}}.tar.xz
+  strip-components: 1
+
+display-name: libgudev
+
+dependencies:
+  gnome.org/glib: '>=2.38'
+  systemd.io: '>=251'
+
+versions:
+  gitlab: gitlab.gnome.org:GNOME/libgudev/tags
+
+build:
+  dependencies:
+    gnome.org/gobject-introspection: '*'
+    gnome.org/vala: '*'
+    mesonbuild.com: '>=0.53'
+    ninja-build.org: '>=1.8.2'
+  script: |
+    sed -i '/-export-dynamic/d' gudev/meson.build
+    meson setup build $ARGS
+    meson compile -C build --jobs {{ hw.concurrency }}
+    meson install -C build
+  env:
+    ARGS:
+      - --buildtype=release
+      - --prefix={{prefix}}
+      - --libdir=lib
+
+test:
+  - run: cc $FIXTURE $(pkg-config --cflags --libs gudev-1.0)
+    fixture:
+      extname: c
+      contents: |
+        #include <gudev/gudev.h>
+        #include <stdio.h>
+
+        int main() {
+          GUdevClient *client = g_udev_client_new(NULL);
+          GList *devices = g_udev_client_query_by_subsystem(client, NULL);
+          printf("Device name: %s\n", g_udev_device_get_name(devices->data));
+          printf("Device number: %s\n", g_udev_device_get_number(devices->data));
+          printf("Device path: %s\n", g_udev_device_get_sysfs_path(devices->data));
+          printf("Device subsystem: %s\n", g_udev_device_get_subsystem(devices->data));
+          g_list_free(devices);
+          g_object_unref(client);
+          return 0;
+        }
+  - ./a.out
