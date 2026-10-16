@@ -13,6 +13,16 @@ dependencies:
 
 build:
   script:
+    # 2.4.20 uses data.num_local/local_dests outside HAVE_DNSSD, but only
+    # declares them in the DNS-SD struct; declare them in _cups_getdata_s too
+    - run: sed -i -f $PROP cups/dest.c
+      if: '>=2.4.20'
+      prop: |
+        /^typedef struct _cups_getdata_s/,/^} _cups_getdata_t;/{
+        /def_instance;/a\
+          int num_local;\
+          cups_dest_t *local_dests;
+        }
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }} install
   env:

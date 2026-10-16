@@ -16,6 +16,7 @@ dependencies:
   pkgx.sh: ">=1"
   linux:
     webmproject.org/libvpx: <1.15.1 # since 3.3, .9 lib api
+    dri.freedesktop.org: '*' # libdrm, since 5.0
   darwin:
     sourceware.org/bzip2: "*"
     zlib.net: "*"
@@ -58,7 +59,8 @@ build:
       - --prefix="{{prefix}}"
       - --buildtype=release
       - --wrap-mode=nofallback
-      - -Dprebuilt_server="build/scrcpy-server"
+      # absolute: newer meson resolves a relative path against the build dir
+      - -Dprebuilt_server="$SRCROOT/build/scrcpy-server"
       - --strip
       - -Db_lto=true
 

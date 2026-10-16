@@ -1,0 +1,38 @@
+distributable:
+  url: https://github.com/zpaq/zpaq/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+# Journaling archiver. Tags before 7.15 either have no install target or use
+# GNU-only `install -t`, so only 7.15+ is buildable as-is.
+versions:
+  github: zpaq/zpaq
+  ignore: ['<7.15']
+
+dependencies:
+  linux:
+    gnu.org/gcc/libstdcxx: 14
+
+build:
+  dependencies:
+    perl.org: ^5 # pod2man (zpaq.1)
+    linux:
+      gnu.org/gcc: 14
+  script:
+    # JIT emits x86; the Makefile comment is missing -D.
+    - run: sed -i.bak 's/# CPPFLAGS+=NOJIT/CPPFLAGS += -DNOJIT/' Makefile && rm -f Makefile.bak
+      if: aarch64
+    # CXX=c++: g++ is not on PATH. Command-line CXXFLAGS drops -march=native.
+    - make --jobs {{ hw.concurrency }} CXX=c++ CXXFLAGS="-O3"
+    - make install PREFIX="{{prefix}}"
+
+provides:
+  - bin/zpaq
+
+test:
+  fixture: hello zpaq
+  script: |
+    cp "$FIXTURE" hello.txt
+    zpaq add archive.zpaq hello.txt
+    rm hello.txt
+    zpaq extract archive.zpaq
+    test "$(cat hello.txt)" = "hello zpaq"

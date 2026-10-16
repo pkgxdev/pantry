@@ -1,0 +1,44 @@
+distributable:
+  url: https://github.com/korczis/foremost/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  # no GitHub releases; the only publish is the v1.5.7 tag
+  github: korczis/foremost/tags
+
+provides:
+  - bin/foremost
+
+build:
+  script:
+    # Makefile hardcodes RAW_CC=gcc and install paths under /usr/local.
+    # RAW_CC keeps the -D__LINUX / -D__MACOSX flags that CC= would clobber.
+    # -fcommon merges the tentative globals defined in main.h; clang defaults
+    # to -fno-common and the link fails with duplicate symbols.
+    # config.c falls back to /usr/local/etc/foremost.conf when the cwd has none.
+    # {{prefix}} is the +brewing staging dir; the bottle lives without that suffix.
+    - run: |
+        prefix=$(printf '%s\n' "{{prefix}}" | sed 's/+brewing$//')
+        sed -i "s|\"/usr/local/etc/foremost.conf\"|\"${prefix}/etc/foremost.conf\"|" config.c
+    - make --jobs {{hw.concurrency}} RAW_CC="cc -fcommon"
+    - install -Dm0755 foremost "{{prefix}}/bin/foremost"
+    - install -Dm0644 foremost.conf "{{prefix}}/etc/foremost.conf"
+    - install -Dm0644 foremost.8.gz "{{prefix}}/share/man/man8/foremost.8.gz"
+
+test:
+  # -V prints the Makefile VERSION and exits before loading foremost.conf
+  - test "$(foremost -V | head -n1)" = "{{version}}"
+  - run: |
+      printf 'xxxxPKGXTESThelloPKGXENDyyyy' > image.bin
+      foremost -Q -c "$FIXTURE" -i image.bin -o carved
+      grep hello carved/txt/*.txt
+    fixture: |
+      txt y 100 PKGXTEST PKGXEND
+  # cwd has no foremost.conf, so this uses the installed fallback
+  - run: |
+      mkdir -p noconf
+      cd noconf
+      printf 'x' > image.bin
+      foremost -Q -w -i image.bin -o carved 2>err
+      ! grep -F 'No such file' err
+      test -s carved/audit.txt

@@ -49,8 +49,9 @@ build:
         fi
       if: ">=2024.07<2024.07.15"
     # remove -use library targets that cause duplicate symbols on linux/aarch64
+    # (2026.10.12.0 dropped external/aor/CMakeLists.txt along with the targets)
     - run: |
-        if test "{{hw.platform}}/{{hw.arch}}" = "linux/aarch64"; then
+        if test "{{hw.platform}}/{{hw.arch}}" = "linux/aarch64" && test -f folly/external/aor/CMakeLists.txt; then
           sed -i '/NAME memcpy_aarch64-use/,/^)/d; /NAME memset_aarch64-use/,/^)/d' folly/external/aor/CMakeLists.txt
           sed -i '/^folly_add_library($/{ N; /\n$/d; }' folly/external/aor/CMakeLists.txt
         fi

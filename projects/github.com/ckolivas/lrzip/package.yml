@@ -1,0 +1,45 @@
+distributable:
+  # Release tarballs ship a generated configure. Tags before 0.7.0 have no
+  # assets. 0.651 sorts above 0.7 in semver, so a "<0.7" ignore would keep them.
+  url: https://github.com/ckolivas/lrzip/releases/download/v{{version}}/lrzip-{{version}}.tar.xz
+  strip-components: 1
+
+versions:
+  github: ckolivas/lrzip/releases/tags
+  ignore: /^v?0\.[0-6]/
+
+dependencies:
+  zlib.net: ^1
+  sourceware.org/bzip2: ^1
+  oberhumer.com/lzo: ^2
+  lz4.org: ^1
+
+build:
+  dependencies:
+    perl.org: '*' # configure fails without pod2man
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} SHELL=bash
+    - make install SHELL=bash
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --disable-dependency-tracking
+
+provides:
+  - bin/lrzip
+  - bin/lrunzip
+  - bin/lrzcat
+  - bin/lrztar
+  - bin/lrzuntar
+  - bin/lrz
+
+test:
+  env:
+    INPUT: tea.xyz.test-string
+  script:
+    - lrzip --version | grep {{version}}
+    - printf '%s' "$INPUT" > in.txt
+    - lrzip -q in.txt
+    - lrzcat in.txt.lrz > out.txt
+    - test "$(cat out.txt)" = "$INPUT"

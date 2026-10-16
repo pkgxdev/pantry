@@ -1,0 +1,41 @@
+distributable:
+  url: https://codeberg.org/tenacityteam/libmad/releases/download/{{version}}/libmad-{{version}}.tar.gz
+  strip-components: 1
+
+# Official assets only. 0.16.1–0.16.3 have no release tarball, and 0.16.4
+# needs a CMake 4 backport that 0.16.5 already includes.
+versions:
+  url: https://codeberg.org/api/v1/repos/tenacityteam/libmad/releases
+  match: /libmad-\d+\.\d+\.\d+\.tar\.gz/
+  strip:
+    - /libmad-/
+    - /.tar\.gz/
+
+dependencies:
+  linux:
+    gnu.org/gcc/libstdcxx: ^14
+
+build:
+  dependencies:
+    cmake.org: ^3
+    linux:
+      gnu.org/gcc: ^14
+  script:
+    - cmake -S . -B build $ARGS
+    - cmake --build build --parallel {{ hw.concurrency }}
+    - cmake --install build
+  env:
+    ARGS:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_INSTALL_LIBDIR=lib
+      - -DBUILD_SHARED_LIBS=ON
+      - -DEXAMPLE=OFF
+
+test:
+  dependencies:
+    freedesktop.org/pkg-config: '*'
+  script: |
+    pkg-config --modversion mad | grep {{version}}
+    cc test.c -lmad -o test
+    ./test

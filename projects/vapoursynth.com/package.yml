@@ -55,6 +55,15 @@ build:
         s/\+brewing//g
       if: <74
 
+    # vsscript matches the dladdr path of libvsscript.so against the config
+    # `vapoursynth config` writes, keyed by the real file in the venv. On linux
+    # the loader finds it through lib/ (a symlink; LD_LIBRARY_PATH beats
+    # RUNPATH), the keys never match and VSScript can't initialise.
+    - run: sed -i -f $PROP src/vsscript/vsscript.cpp
+      prop: |
+        s|return std::filesystem::path(fname).lexically_normal();|std::error_code ec; const auto real = std::filesystem::weakly_canonical(fname, ec); return (ec ? std::filesystem::path(fname) : real).lexically_normal();|
+      if: ">=81"
+
     - run:
         - bkpyvenv stage {{prefix}} {{version}}
         - ${{prefix}}/venv/bin/python -m pip install .

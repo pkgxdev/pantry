@@ -39,6 +39,10 @@ build:
         - -DGGML_NATIVE=OFF
         - -DGGML_BACKEND_DL=ON
         - -DGGML_CPU_ALL_VARIANTS=ON
+        - -DCMAKE_EXE_LINKER_FLAGS=-lpthread # test-backend-ops: DSO missing from command line
+    linux/aarch64:
+      CMAKE_ARGS:
+        - -DCMAKE_EXE_LINKER_FLAGS=-lpthread
   script:
     # segfaults on some GHA runners
     - run: sed -i -e's/\(MK_.* -march=native -mtune=native\)/#\1/g' Makefile

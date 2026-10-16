@@ -1,13 +1,13 @@
 distributable:
-  # upstream publishes no tags; pin the commit that fixed the build
-  url: https://github.com/myers/id3v2/archive/996eb9c0708bf9f6b9cd852500f161ea558b02c8.tar.gz
-  strip-components: 1
+  # brewkit clones with `git clone --branch`, which rejects a raw commit.
+  # Upstream publishes no tags, so clone master and detach at the 0.1.12 commit.
+  url: git+https://git.code.sf.net/p/id3v2/git
+  ref: master
 
 display-name: id3v2
 
 versions:
-  # upstream publishes no tags; Makefile VERSION is 0.1.11
-  - 0.1.11
+  - 0.1.12
 
 dependencies:
   id3lib.sourceforge.net: 3.8.3
@@ -20,11 +20,16 @@ provides:
 
 build:
   script:
+    - git fetch --depth=1 origin 770323dbde6ed466b632534de33ea9e2f71972f8
+    - git checkout --detach 770323dbde6ed466b632534de33ea9e2f71972f8
+    # GNU ld --as-needed drops -lz when it appears before -lid3.
+    - sed -i 's/-lz -lid3/-lid3 -lz/' Makefile
     - make PREFIX={{prefix}}
     - mkdir -p "{{prefix}}/bin" "{{prefix}}/share/man/man1"
     - cp id3v2 "{{prefix}}/bin/"
     - cp id3v2.1 "{{prefix}}/share/man/man1/"
   dependencies:
+    git-scm.org: ^2
     linux:
       gnu.org/gcc: ^14
 
