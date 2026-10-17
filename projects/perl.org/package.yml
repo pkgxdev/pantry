@@ -7,6 +7,10 @@ versions:
   ignore: /^v\d+\.\d*[13579]\.\d+$/
   # ^^ perl considers odd minor versions “dev” releases
 
+dependencies:
+  linux:
+    github.com/besser82/libxcrypt: ^4
+
 build:
   dependencies:
     linux:
@@ -29,6 +33,21 @@ build:
 
     rm -f *.bak
 
+    if test "{{hw.platform}}" = "linux"; then
+      if objdump -T "{{prefix}}/bin/perl" | grep -q 'crypt_r.*GLIBC'; then
+        echo "perl linked crypt_r against the host libcrypt" >&2
+        exit 1
+      fi
+      resolved=$(ldd "{{prefix}}/bin/perl" | awk '/libcrypt\.so\.1/ {print $3}')
+      case "$resolved" in
+      *libxcrypt*) ;;
+      *)
+        echo "libcrypt.so.1 resolved outside libxcrypt: ${resolved:-not found}" >&2
+        exit 1
+        ;;
+      esac
+    fi
+
   # relocatable fixes from: https://github.com/skaji/relocatable-perl
 
   env:
@@ -44,6 +63,8 @@ build:
     linux:
       ARGS:
         - -Accflags=-fPIC
+        # Configure probes host libcrypt before the pkgx prefix.
+        - -Aldflags=-L{{deps.github.com/besser82/libxcrypt.prefix}}/lib
 
 test:
   script: |
