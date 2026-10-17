@@ -1,0 +1,37 @@
+distributable: ~
+
+display-name: tesseract-ocr-slv
+
+versions:
+  github: tesseract-ocr/tessdata
+  ignore: ['<4.1.0']
+
+dependencies:
+  tesseract-ocr.github.io: '*'
+
+build:
+  dependencies:
+    gnu.org/wget: '*'
+  script:
+    - mkdir -p "{{prefix}}/share/tessdata"
+    - run:
+        - wget https://github.com/tesseract-ocr/tessdata/blob/{{version.tag}}/slv.traineddata?raw=true -O slv.traineddata
+      working-directory: '{{prefix}}/share/tessdata/'
+
+    - run:
+        - tess_prefix=$(CDPATH= cd -- "$(dirname "$(readlink -f "$(command -v tesseract)")")/.." && pwd)
+        - tessdata="$tess_prefix/share/tessdata"
+        - for link in "$tessdata"/*.traineddata; do
+        - '[ -L "$link" ] || continue'
+        - '[ -e "$link" ] || rm -f "$link"'
+        - done
+        - dest="$tessdata/slv.traineddata"
+        - if [ ! -e "$dest" ] || [ -L "$dest" ]; then
+        - target="{{prefix}}/share/tessdata/slv.traineddata"
+        - 'case "$target" in *+brewing/*) target=${target/+brewing/} ;; esac'
+        - ln -sfn "$target" "$dest"
+        - fi
+
+test:
+  script: |
+    tesseract --list-langs | grep -qx slv
