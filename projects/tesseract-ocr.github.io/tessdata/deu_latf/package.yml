@@ -1,0 +1,38 @@
+distributable: ~
+
+display-name: tesseract-ocr-deu_latf
+
+versions:
+  github: tesseract-ocr/tessdata
+  ignore: ['<4.1.0']
+
+dependencies:
+  tesseract-ocr.github.io: '*'
+
+build:
+  dependencies:
+    gnu.org/wget: '*'
+  script:
+    - mkdir -p "{{prefix}}/share/tessdata"
+    # frk.traineddata was renamed to deu_latf after the 4.1.0 tag
+    - run:
+        - wget https://github.com/tesseract-ocr/tessdata/blob/ced78752cc61322fb554c280d13360b35b8684e4/deu_latf.traineddata?raw=true -O deu_latf.traineddata
+      working-directory: '{{prefix}}/share/tessdata/'
+
+    - run:
+        - tess_prefix=$(CDPATH= cd -- "$(dirname "$(readlink -f "$(command -v tesseract)")")/.." && pwd)
+        - tessdata="$tess_prefix/share/tessdata"
+        - for link in "$tessdata"/*.traineddata; do
+        - '[ -L "$link" ] || continue'
+        - '[ -e "$link" ] || rm -f "$link"'
+        - done
+        - dest="$tessdata/deu_latf.traineddata"
+        - if [ ! -e "$dest" ] || [ -L "$dest" ]; then
+        - target="{{prefix}}/share/tessdata/deu_latf.traineddata"
+        - 'case "$target" in *+brewing/*) target=${target/+brewing/} ;; esac'
+        - ln -sfn "$target" "$dest"
+        - fi
+
+test:
+  script: |
+    tesseract --list-langs | grep -qx deu_latf
