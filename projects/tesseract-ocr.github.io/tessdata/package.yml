@@ -1,0 +1,31 @@
+distributable:
+  url: https://github.com/tesseract-ocr/tessdata_fast/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+display-name: tesseract-ocr tessdata
+
+versions:
+  github: tesseract-ocr/tessdata_fast
+  ignore: ['<4.1.0']
+
+# tesseract reads a single TESSDATA_PREFIX directory, so this package carries
+# every language (including eng and osd) and the tesseract shim defers to it.
+dependencies:
+  tesseract-ocr.github.io: '*'
+
+runtime:
+  env:
+    TESSDATA_PREFIX: '{{prefix}}/share/tessdata'
+
+build:
+  script:
+    # script/ (the per-script models) is ~340MB and rarely wanted
+    - mkdir -p "{{prefix}}/share/tessdata"
+    - cp -r *.traineddata configs tessconfigs pdf.ttf "{{prefix}}/share/tessdata/"
+
+test:
+  script: |
+    tesseract --list-langs > langs
+    for lang in eng osd deu jpn; do
+      grep -qx $lang langs
+    done
