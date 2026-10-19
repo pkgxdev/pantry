@@ -1,0 +1,82 @@
+# git-gui + gitk — Tcl/Tk GUIs for git.
+#
+# Companion to git-scm.org which builds the main git binaries with
+# `NO_TCLTK=1`. This recipe re-uses the same git source but builds
+# only the git-gui/ and gitk-git/ subdirs against Tk.
+#
+# Provides bin/git-gui (commit/history GUI) and bin/gitk (history
+# visualizer). Both invoked via `git gui` and `gitk` once on PATH.
+#
+# Closes part of pkgxdev/pantry#99 (Top 300 holdout #371).
+
+distributable:
+  url: https://mirrors.edge.kernel.org/pub/software/scm/git/git-{{version}}.tar.xz
+  strip-components: 1
+
+versions:
+  github: git/git/tags
+
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+  - darwin/x86-64
+  - darwin/aarch64
+
+dependencies:
+  git-scm.org: '*'
+  tcl-lang.org: '*'
+  tcl-lang.org/tk: '*'
+
+build:
+  dependencies:
+    gnu.org/make: '*'
+    gnu.org/coreutils: '*'
+    gnu.org/gettext: '*'
+
+  script:
+    # Build just the git-gui and gitk subdirs — the main `git` binary
+    # comes from git-scm.org which is a runtime dep.
+    #
+    # git-gui's Makefile installs into $(gitexecdir) (the wrapper) and
+    # $(sharedir)/git-gui/lib (Tcl sources). gitk-git installs the
+    # `gitk` wrapper into $(bindir) directly.
+    #
+    # TCLTK_PATH (path to wish) is baked into the generated wrapper
+    # scripts at `make` time — must be set for both subdirs.
+    - run: |
+        cd git-gui
+        make --jobs {{ hw.concurrency }} \
+          TCLTK_PATH={{deps.tcl-lang.org/tk.prefix}}/bin/wish
+        make install \
+          gitexecdir={{prefix}}/libexec/git-core \
+          sharedir={{prefix}}/share \
+          prefix={{prefix}} \
+          TCLTK_PATH={{deps.tcl-lang.org/tk.prefix}}/bin/wish
+
+    - run: |
+        cd gitk-git
+        make --jobs {{ hw.concurrency }} \
+          TCLTK_PATH={{deps.tcl-lang.org/tk.prefix}}/bin/wish \
+          TCL_PATH={{deps.tcl-lang.org.prefix}}/bin/tclsh
+        make install \
+          bindir={{prefix}}/bin \
+          sharedir={{prefix}}/share \
+          prefix={{prefix}} \
+          TCLTK_PATH={{deps.tcl-lang.org/tk.prefix}}/bin/wish \
+          TCL_PATH={{deps.tcl-lang.org.prefix}}/bin/tclsh
+
+    - run: |
+        # git-gui installs as libexec/git-core/git-gui (so `git gui`
+        # dispatches to it); add a bin/ symlink so it's directly on
+        # PATH as well — matches debian's layout.
+        mkdir -p {{prefix}}/bin
+        ln -sf ../libexec/git-core/git-gui {{prefix}}/bin/git-gui
+
+test:
+  - test -x "{{prefix}}/libexec/git-core/git-gui"
+  - test -x "{{prefix}}/bin/git-gui"
+  - test -x "{{prefix}}/bin/gitk"
+
+provides:
+  - bin/git-gui
+  - bin/gitk
