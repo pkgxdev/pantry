@@ -12,10 +12,6 @@ dependencies:
   libarchive.org: '*'
   gnome.org/pango: 1
 
-runtime:
-  env:
-    TESSDATA_PREFIX: '{{prefix}}/share/tessdata/'
-
 build:
   dependencies:
     gnu.org/autoconf: '*'
@@ -33,6 +29,19 @@ build:
         - wget https://github.com/tesseract-ocr/tessdata/blob/main/eng.traineddata?raw=true -O eng.traineddata
         - wget https://github.com/tesseract-ocr/tessdata/blob/main/osd.traineddata?raw=true -O osd.traineddata
       working-directory: '{{prefix}}/share/tessdata/'
+
+    # the data path is baked in at configure time, so a relocatable shim sets
+    # TESSDATA_PREFIX unless a tessdata package (or the user) already has
+    - run: |
+        mkdir -p "{{prefix}}/libexec"
+        mv "{{prefix}}/bin/tesseract" "{{prefix}}/libexec/tesseract"
+        install -m755 $PROP "{{prefix}}/bin/tesseract"
+      prop: |
+        #!/bin/sh
+        d="$(cd "$(dirname "$0")/.." && pwd)"
+        : "${TESSDATA_PREFIX:=$d/share/tessdata}"
+        export TESSDATA_PREFIX
+        exec "$d/libexec/tesseract" "$@"
   env:
     ARGS:
       - --prefix="{{prefix}}"
