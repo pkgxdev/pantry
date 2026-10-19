@@ -4,10 +4,16 @@ distributable:
 display-name: libcerf
 versions:
   gitlab: jugit.fz-juelich.de:mlz/libcerf
+dependencies:
+  linux:
+    gnu.org/gcc/libstdcxx: 14 # 3.9 needs C++20 <bit>, absent from the builders' libstdc++ 8
+
 build:
   dependencies:
     cmake.org: '*'
     perl.org: ^5 # pod2man/pod2html
+    linux:
+      gnu.org/gcc: 14 # clang can't find libstdc++ 14's <bit> (CERF_IEEE754 uses it)
   working-directory: build
   script:
     - cmake .. $ARGS
