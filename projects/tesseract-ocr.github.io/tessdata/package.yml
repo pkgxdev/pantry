@@ -21,7 +21,10 @@ build:
   script:
     # script/ (the per-script models) is ~340MB and rarely wanted
     - mkdir -p "{{prefix}}/share/tessdata"
-    - cp -r *.traineddata configs tessconfigs pdf.ttf "{{prefix}}/share/tessdata/"
+    - cp *.traineddata "{{prefix}}/share/tessdata/"
+    # tessdata_fast's configs/, tessconfigs/ and pdf.ttf are dangling links;
+    # the real files (hocr, pdf, txt...) ship with tesseract itself
+    - cp -r "{{deps.tesseract-ocr.github.io.prefix}}/share/tessdata/"{configs,tessconfigs,pdf.ttf} "{{prefix}}/share/tessdata/"
 
 test:
   script: |
@@ -29,3 +32,5 @@ test:
     for lang in eng osd deu jpn; do
       grep -qx $lang langs
     done
+    # the hocr config lives in the tessdata dir; OCRmyPDF needs it (#14768)
+    test -f "$TESSDATA_PREFIX/configs/hocr"
