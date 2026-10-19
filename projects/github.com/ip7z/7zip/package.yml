@@ -19,9 +19,10 @@ build:
           make -C "CPP/7zip/$bundle" -f ../../cmpl_gcc.mak --jobs {{ hw.concurrency }}
         done
       if: linux
+    # 7z.so needs headerpad room for fix-machos to rewrite its load commands
     - run: |
         for bundle in Bundles/Alone2 Bundles/Alone Bundles/Alone7z Bundles/Format7zF UI/Console; do
-          make -C "CPP/7zip/$bundle" -f ../../cmpl_clang.mak --jobs {{ hw.concurrency }}
+          make -C "CPP/7zip/$bundle" -f ../../cmpl_clang.mak LDFLAGS_STATIC_3=-Wl,-headerpad_max_install_names --jobs {{ hw.concurrency }}
         done
       if: darwin
 
