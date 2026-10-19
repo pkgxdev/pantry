@@ -5,10 +5,8 @@
 # recipe vendors prebuilt zig binaries as a chicken-and-egg exception;
 # downstream Zig tooling like zls is built from source.)
 #
-# Version pin: zls master tracks unreleased zig master. We ignore the
-# 0.16.x line because zls 0.16 requires zig 0.16, which upstream has
-# not released yet (pantry's ziglang.org bottle is 0.15.2). Re-evaluate
-# when zig 0.16 ships.
+# Each zls release needs the zig named by its minimum_zig_version, so the
+# build pulls exactly that zig in with pkgx rather than pinning one here.
 
 distributable:
   url: https://github.com/zigtools/zls/archive/refs/tags/{{version}}.tar.gz
@@ -16,12 +14,10 @@ distributable:
 
 versions:
   github: zigtools/zls
-  ignore:
-    - /^0\.16/ # requires unreleased zig 0.16
 
 build:
   dependencies:
-    ziglang.org: "~0.15.1" # zls 0.15.x minimum_zig_version
+    pkgx.sh: '>=1'
   # zig produces statically-linked binaries; skip the patchelf step
   # (same rationale as the ziglang.org parent recipe).
   skip: fix-patchelf
@@ -29,13 +25,17 @@ build:
   # and we don't touch $HOME. zig's package manager will fetch
   # zls's declared dependencies (known-folders, diffz, lsp-kit)
   # over the network during `zig build`.
-  script: zig build install $BUILD_OPTS
+  script:
+    - ZIG=$(grep -oE 'minimum_zig_version = "[^"]+"' build.zig.zon | cut -d'"' -f2)
+    - eval "$(pkgx +ziglang.org=$ZIG)"
+    - zig build install $BUILD_OPTS
   env:
     BUILD_OPTS:
       - --prefix "{{prefix}}"
       - -Doptimize=ReleaseSafe
-      - --global-cache-dir "$PWD/.zig-global-cache"
-      - --cache-dir "$PWD/.zig-build-cache"
+    # env vars, not --global-cache-dir/--cache-dir: zig 0.17 dropped the flags
+    ZIG_GLOBAL_CACHE_DIR: $PWD/.zig-global-cache
+    ZIG_LOCAL_CACHE_DIR: $PWD/.zig-build-cache
 
 provides:
   - bin/zls
