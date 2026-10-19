@@ -24,7 +24,9 @@ build:
     GOBIN: "$PWD/.gobin"
   script:
     - mkdir -p "$GOBIN"
-    - go install -trimpath -ldflags='-s -w' go.opentelemetry.io/collector/cmd/builder@{{ version.tag }}
+    # releases-repo respins (eg. 0.163.1) have no matching cmd/builder tag, so
+    # take the builder version from the manifest's own collector modules
+    - go install -trimpath -ldflags='-s -w' go.opentelemetry.io/collector/cmd/builder@$(sed -n 's|.*collector/receiver/otlpreceiver ||p' distributions/otelcol/manifest.yaml)
     - run: $GOBIN/builder --config manifest.yaml
       working-directory: distributions/otelcol
     - install -Dm755 distributions/otelcol/_build/otelcol "{{prefix}}/bin/otelcol"
