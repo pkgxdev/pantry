@@ -83,6 +83,12 @@ build:
       working-directory: eden/fs/utils
 
     - cmake -S . -B build $CMAKE_ARGS -DCMAKE_C_FLAGS="$CFLAGS" -DCMAKE_CXX_FLAGS="$CXXFLAGS"
+    # fb303's libfb303_thrift_cpp already carries fbthrift's runtime, but exports
+    # some of it weak; the strong copy in fbthrift's static libthriftprotocol.a
+    # then overrides it and gets linked in a second time, so gflags aborts with
+    # "linked both statically and dynamically" (thrift_cpp2_protocol_reader_string_limit)
+    - run: sed -i.bak -E 's# [^ ]*/libthriftprotocol\.a##g' build/CMakeFiles/watchman.dir/link.txt
+      if: darwin
     - cmake --build build
     - cmake --install build
     - mkdir -p {{prefix}}/var/run/watchman
