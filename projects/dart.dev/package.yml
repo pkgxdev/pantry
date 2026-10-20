@@ -36,21 +36,21 @@ build:
       if: '>=3.13'
       working-directory: sdk/runtime/bin
       prop: |
-        s|#include <openssl/x509.h>|&\\
-        #include <stdlib.h>|
-        s|^  if (bypass_trusting_system_roots()) {|  const char* env_cert_file = getenv("SSL_CERT_FILE");\\
-          if (env_cert_file != nullptr \&\& File::Exists(nullptr, env_cert_file)) {\\
+        /#include <openssl\/x509.h>/a\\
+        #include <stdlib.h>
+        /^  if (bypass_trusting_system_roots()) {/i\\
+          const char* env_cert_file = getenv("SSL_CERT_FILE");\\
+          if (env_cert_file != nullptr && File::Exists(nullptr, env_cert_file)) {\\
             LoadRootCertFile(env_cert_file);\\
             return;\\
           }\\
           const char* env_cert_dir = getenv("SSL_CERT_DIR");\\
-          if (env_cert_dir != nullptr \&\&\\
+          if (env_cert_dir != nullptr &&\\
               Directory::Exists(nullptr, env_cert_dir) == Directory::EXISTS) {\\
             LoadRootCertCache(env_cert_dir);\\
             return;\\
           }\\
-        \\
-        &|
+        
     - run: ./tools/build.py $ARGS create_sdk
       working-directory: sdk
     - mkdir -p {{prefix}}/libexec
