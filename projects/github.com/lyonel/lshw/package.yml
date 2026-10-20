@@ -1,0 +1,40 @@
+distributable:
+  url: https://github.com/lyonel/lshw/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+display-name: lshw
+
+versions:
+  # tags, not releases: upstream publishes B.02.xx as git tags only
+  github: lyonel/lshw/tags
+  strip: /^B\./
+  ignore: /^[AT]\./
+
+platforms:
+  - linux
+
+dependencies:
+  gnu.org/gcc/libstdcxx: 14
+
+build:
+  dependencies:
+    gnu.org/gcc: 14
+    gnu.org/make: '*'
+    gnu.org/gettext: '*'
+  script:
+    - run: |
+        prefix=$(printf '%s\n' "{{prefix}}" | sed 's/+brewing$//')
+        make -C src --jobs {{hw.concurrency}} PREFIX="$prefix" VERSION={{version.tag}} NO_VERSION_CHECK=1
+        make -C src install PREFIX={{prefix}} VERSION={{version.tag}} NO_VERSION_CHECK=1
+        ln -sfn lshw/pci.ids "{{prefix}}/share/pci.ids"
+        ln -sfn lshw/usb.ids "{{prefix}}/share/usb.ids"
+        ln -sfn lshw/pnp.ids "{{prefix}}/share/pnp.ids"
+        ln -sfn lshw/pnpid.txt "{{prefix}}/share/pnpid.txt"
+
+provides:
+  - sbin/lshw
+
+test:
+  script: |
+    test "$(lshw -version)" = {{version.tag}}
+    lshw -quiet -short | grep -q system
