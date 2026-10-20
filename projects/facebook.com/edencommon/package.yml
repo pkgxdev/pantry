@@ -24,6 +24,11 @@ build:
     linux:
       gnu.org/gcc: 14
   script:
+    # the facebook libs release in lockstep; a sibling resolved at another
+    # version (a weekly build racing its deps) must fail, not link mixed ABIs
+    - test "{{deps.facebook.com/folly.version}}" = "{{version}}"
+    - test "{{deps.facebook.com/fb303.version}}" = "{{version}}"
+    - test "{{deps.facebook.com/mvfst.version}}" = "{{version}}"
     # omit building py library
     - sed -i 's/COMPONENTS cpp2 py)/COMPONENTS cpp2)/' CMakeLists.txt
     # fix timeouts

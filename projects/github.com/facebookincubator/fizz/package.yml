@@ -33,6 +33,9 @@ build:
     linux:
       gnu.org/gcc: 14
   script:
+    # the facebook libs release in lockstep; a sibling resolved at another
+    # version (a weekly build racing its deps) must fail, not link mixed ABIs
+    - test "{{deps.facebook.com/folly.version}}" = "{{version}}"
     # compilation errors in 2023.12.18.0 and beyond
     - run: sed -i -f $PROP FizzServerCommand.cpp
       prop: |

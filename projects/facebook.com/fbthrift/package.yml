@@ -36,6 +36,12 @@ build:
       gnu.org/gcc: 14
       gnu.org/binutils: "*"
   script:
+    # the facebook libs release in lockstep; a sibling resolved at another
+    # version (a weekly build racing its deps) must fail, not link mixed ABIs
+    - test "{{deps.github.com/facebookincubator/fizz.version}}" = "{{version}}"
+    - test "{{deps.facebook.com/folly.version}}" = "{{version}}"
+    - test "{{deps.facebook.com/wangle.version}}" = "{{version}}"
+    - test "{{deps.facebook.com/mvfst.version}}" = "{{version}}"
     # arm differences preventing compilation
     - run: sed -i 's/^static_assert(is_supported_integral_type<char>);/\/\/&/' object.h
       working-directory: thrift/compiler/whisker

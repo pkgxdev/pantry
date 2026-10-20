@@ -33,6 +33,10 @@ build:
       gnu.org/gcc: 14
   working-directory: wangle
   script:
+    # the facebook libs release in lockstep; a sibling resolved at another
+    # version (a weekly build racing its deps) must fail, not link mixed ABIs
+    - test "{{deps.github.com/facebookincubator/fizz.version}}" = "{{version}}"
+    - test "{{deps.facebook.com/folly.version}}" = "{{version}}"
     - cmake . -DBUILD_SHARED_LIBS=ON $ARGS
     - make install
     - make clean
