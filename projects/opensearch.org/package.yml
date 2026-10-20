@@ -23,6 +23,11 @@ build:
       netlib.org/lapack: "*"
 
   script:
+    # a new release is on GitHub before Maven Central and k-NN catch up, and
+    # k-NN's gradle build fails on the missing build-tools only after the
+    # (long) core build; fail up front instead
+    - wget --spider https://repo.maven.apache.org/maven2/org/opensearch/gradle/build-tools/{{version}}/build-tools-{{version}}.pom
+    - git ls-remote --exit-code --tags https://github.com/opensearch-project/k-NN refs/tags/{{version}}.0
     # there seems to be a loader bug with trying to dlopen libc on macos 12 and earlier.
     # remove this step when macos 12 and under are no longer supported.
     - run:
