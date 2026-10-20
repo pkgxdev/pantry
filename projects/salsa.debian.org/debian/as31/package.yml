@@ -1,0 +1,34 @@
+distributable:
+  url: https://salsa.debian.org/debian/as31/-/archive/debian%2F2.3.1-12/as31-debian-2.3.1-12.tar.gz
+  strip-components: 1
+
+# Upstream is frozen at 2.3.1; the Debian tag carries the 64-bit fixes.
+versions:
+  - 2.3.1
+
+build:
+  dependencies:
+    linux:
+      gnu.org/gcc: '*'
+  script:
+    - ./configure $ARGS
+    # Shipped parser.c is the Bison 2.5 output that fixes 64-bit overlaps.
+    - touch as31/parser.c
+    - make --jobs {{hw.concurrency}}
+    - make install
+  env:
+    ARGS:
+      - --prefix={{prefix}}
+      - --mandir={{prefix}}/share/man
+
+provides:
+  - bin/as31
+
+test:
+  script:
+    # as31 -v prints the version to stderr and exits 1.
+    - as31 -v > version.txt 2>&1 || true
+    - grep '{{version.raw}}' version.txt
+    - printf '%s\n' '.org 0' 'nop' > nop.asm
+    - as31 -Fhex nop.asm
+    - grep ':0100000000FF' nop.hex
