@@ -25,26 +25,19 @@ build:
     # 3.13 dropped the compiled-in root certs and the VM never reads
     # SSL_CERT_FILE/SSL_CERT_DIR, so a box without a system store (where
     # curl.se/ca-certs is the only trust source) cannot reach pub.dev.
-    # Honor them ahead of the system locations, like OpenSSL-based tools do.
-    - run: |
-        f=runtime/bin/security_context_linux.cc
-        sed -i '/^#include <openssl\/x509.h>$/a\
-        #include <stdlib.h>' $f
-        sed -i '/^void SSLCertContext::TrustBuiltinRoots() {$/a\
-          const char* env_cert_file = getenv("SSL_CERT_FILE");\
-          if (env_cert_file != nullptr \&\& File::Exists(nullptr, env_cert_file)) {\
-            LoadRootCertFile(env_cert_file);\
-            return;\
-          }\
-          const char* env_cert_dir = getenv("SSL_CERT_DIR");\
-          if (env_cert_dir != nullptr \&\& Directory::Exists(nullptr, env_cert_dir) == Directory::EXISTS) {\
-            LoadRootCertCache(env_cert_dir);\
-            return;\
-          }' $f
-        grep -q 'getenv("SSL_CERT_FILE")' $f
-        grep -q 'include <stdlib.h>' $f
-      working-directory: sdk
-      if: linux
+    # Honor them after the --root-certs-* flags and ahead of the system
+    # locations, like OpenSSL-based tools do.
+    - run:
+        - if test "{{hw.platform}}" = "linux"; then
+        - sed -i -f $PROP security_context_linux.cc
+        - grep -q 'getenv("SSL_CERT_FILE")' security_context_linux.cc
+        - grep -q 'include <stdlib.h>' security_context_linux.cc
+        - fi
+      if: '>=3.13'
+      working-directory: sdk/runtime/bin
+      prop: |
+        s|#include <openssl/x509.h>|&\n#include <stdlib.h>|
+        s|^  if (bypass_trusting_system_roots()) {|  const char* env_cert_file = getenv("SSL_CERT_FILE");\n  if (env_cert_file != nullptr \&\& File::Exists(nullptr, env_cert_file)) {\n    LoadRootCertFile(env_cert_file);\n    return;\n  }\n  const char* env_cert_dir = getenv("SSL_CERT_DIR");\n  if (env_cert_dir != nullptr \&\&\n      Directory::Exists(nullptr, env_cert_dir) == Directory::EXISTS) {\n    LoadRootCertCache(env_cert_dir);\n    return;\n  }\n\n&|
     - run: ./tools/build.py $ARGS create_sdk
       working-directory: sdk
     - mkdir -p {{prefix}}/libexec
