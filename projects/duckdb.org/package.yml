@@ -5,11 +5,19 @@ distributable:
 versions:
   github: duckdb/duckdb/releases/tags
 
+dependencies:
+  linux:
+    gnu.org/gcc/libstdcxx: 14
+
 build:
   dependencies:
     cmake.org: ^3
     git-scm.org: '*'
     python.org: ^3
+    linux:
+      # 2.0 does not compile with the images' system gcc 8 (reference_wrapper<T>
+      # -> reference_wrapper<const T> keys in unordered_map::operator[])
+      gnu.org/gcc: 14
   working-directory: build
   script:
     # duckdb uses git to get its version
