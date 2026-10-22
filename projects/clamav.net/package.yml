@@ -1,0 +1,73 @@
+distributable:
+  url: https://github.com/Cisco-Talos/clamav/releases/download/{{version.tag}}/{{version.tag}}.tar.gz
+  strip-components: 1
+
+display-name: ClamAV
+
+versions:
+  github: Cisco-Talos/clamav/tags
+  strip: /^clamav-/
+
+dependencies:
+  curl.se: "*"
+  github.com/json-c/json-c: "*"
+  gnome.org/libxml2: "*"
+  invisible-island.net/ncurses: "*"
+  openssl.org: ^1.1 # curl.se pins 1.1
+  pcre.org/v2: "*"
+  sourceware.org/bzip2: "*"
+  zlib.net: "*"
+  linux:
+    gnu.org/libiconv: ^1
+
+# the certs dir is baked in with the +brewing prefix, which no longer exists
+# once brewkit renames the install dir
+runtime:
+  env:
+    CVD_CERTS_DIR: ${{prefix}}/etc/certs
+
+build:
+  dependencies:
+    cmake.org: ^3
+    gnu.org/bison: "*"
+    github.com/westes/flex: "*"
+    rust-lang.org: ^1
+    rust-lang.org/cargo: "*"
+  working-directory: build
+  script:
+    - cmake .. $ARGS
+    - make --jobs {{ hw.concurrency }} install
+  env:
+    ARGS:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
+      - -DENABLE_TESTS=OFF
+      - -DENABLE_MAN_PAGES=OFF
+      - -DENABLE_EXAMPLES=OFF
+      - -DENABLE_MILTER=OFF
+      - -DENABLE_SYSTEMD=OFF
+      - -DENABLE_JSON_SHARED=ON
+
+provides:
+  - bin/clamscan
+  - bin/clamsubmit
+  - bin/clamdscan
+  - bin/clamconf
+  - bin/clamdtop
+  - bin/clambc
+  - bin/freshclam
+  - bin/sigtool
+  - sbin/clamd
+
+test:
+  env:
+    CVD_CERTS_DIR: ${{prefix}}/etc/certs
+  script:
+    # clamscan refuses to run without a database, so make a one-signature
+    # database for a file we write ourselves
+    - echo "pantry clamav test payload" > payload.txt
+    - sigtool --md5 payload.txt > test.hdb
+    # exit status 1 means "virus found"
+    - clamscan --database=test.hdb payload.txt > out.txt || test $? -eq 1
+    - grep -F 'payload.txt.UNOFFICIAL FOUND' out.txt
+    - clamscan --version | grep {{version}}
