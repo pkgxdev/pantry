@@ -23,12 +23,10 @@ runtime:
 
 build:
   dependencies:
-    sphinx-doc.org: "*"
     gnu.org/autoconf: "*"
     gnu.org/automake: "*"
     gnu.org/libtool: "*"
   script:
-    - sed -i '/sphinx_rtd_theme/s/^/#/' Documentation/conf.py
     - ./autogen.sh
     - ./configure $ARGS
     - make --jobs {{hw.concurrency}} install V=1 udevdir={{prefix}}/lib/udev
@@ -36,6 +34,7 @@ build:
   env:
     ARGS:
       - --disable-debug
+      - --disable-documentation
       - --disable-dependency-tracking
       - --prefix={{prefix}}
       - --libdir={{prefix}}/lib
