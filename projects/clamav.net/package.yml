@@ -37,6 +37,42 @@ build:
   script:
     - cmake .. $ARGS
     - make --jobs {{ hw.concurrency }} install
+
+    # ClamAV bakes its config and database paths in at build time, with the
+    # +brewing prefix and a build-machine pkgx dir; wrap the tools that use
+    # them so they find the real install at runtime
+    - run:
+        - mkdir -p libexec
+        - for x in clamscan freshclam clamdscan clamdtop clamconf; do
+        - mv bin/$x libexec/$x
+        - cp $PROP bin/$x
+        - chmod +x bin/$x
+        - done
+        - mv sbin/clamd libexec/clamd
+        - cp $PROP sbin/clamd
+        - chmod +x sbin/clamd
+        - echo "DatabaseMirror database.clamav.net" > etc/freshclam.conf
+        - echo "TCPSocket 3310" > etc/clamd.conf
+        - echo "TCPAddr 127.0.0.1" >> etc/clamd.conf
+      working-directory: ${{prefix}}
+      prop: |
+        #!/bin/sh
+        d=$(cd "$(dirname "$0")/.." && pwd)
+        n=$(basename "$0")
+        b="$d/libexec/$n"
+        db="$d/share/clamav"
+        # the user's own flags come first, so they win
+        case $n in
+          clamscan)
+            for a; do
+              case $a in -d|--database|--database=*) exec "$b" "$@";; esac
+            done
+            exec "$b" --database="$db" "$@";;
+          freshclam) exec "$b" "$@" --config-file="$d/etc/freshclam.conf" --datadir="$db";;
+          clamd) exec "$b" "$@" --config-file="$d/etc/clamd.conf" --datadir="$db";;
+          clamdscan|clamdtop) exec "$b" "$@" --config-file="$d/etc/clamd.conf";;
+          clamconf) exec "$b" "$@" --config-dir="$d/etc";;
+        esac
   env:
     ARGS:
       - -DCMAKE_BUILD_TYPE=Release
@@ -71,3 +107,18 @@ test:
     - clamscan --database=test.hdb payload.txt > out.txt || test $? -eq 1
     - grep -F 'payload.txt.UNOFFICIAL FOUND' out.txt
     - clamscan --version | grep {{version}}
+    # the wrappers must point at the real install, not the +brewing build path
+    - clamscan payload.txt > err.txt 2>&1 || test $? -eq 2
+    - grep -F '{{prefix}}/share/clamav' err.txt
+    - freshclam --version | grep {{version}}
+    - clamconf | grep -F '{{prefix}}/etc'
+    - clamdtop --version | grep {{version}}
+    - clambc --version | grep {{version}}
+    - clamsubmit -h 2>&1 | grep {{version}}
+    # the daemon and its client, on the default config (localhost TCP)
+    - mkdir db
+    - cp test.hdb db/
+    - clamd --datadir=db --pid=$PWD/clamd.pid
+    - clamdscan --wait payload.txt > dout.txt || test $? -eq 1
+    - kill $(cat clamd.pid)
+    - grep -F 'payload.txt.UNOFFICIAL FOUND' dout.txt
