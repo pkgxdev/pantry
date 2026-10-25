@@ -5,6 +5,9 @@ inputs:
   pkg:
     description: project to complain about
     required: true
+  platform:
+    description: platform that failed, noted in the log comment
+    required: false
   token:
     description: github token
     required: true
@@ -19,37 +22,10 @@ runs:
       shell: bash
       run: sleep $(( RANDOM % 120 ))
 
-    - name: Find or Create Issue
-      id: issue
+    - name: Find, Reopen or Create Issue
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.token }}
-        TITLE: '❌ build issues: ${{ inputs.pkg }}'
-      run: |
-        issue_number=$(gh api --method GET search/issues \
-          -f q="repo:${GITHUB_REPOSITORY} is:issue is:open label:build-failure in:title ${TITLE}" \
-          -f per_page=1 \
-          --jq '.items[0].number // empty')
-
-        if test -z "$issue_number"; then
-          issue_number=$(gh api "repos/${GITHUB_REPOSITORY}/issues" \
-            -f title="$TITLE" \
-            -f body='Running log of build failure for ${{ inputs.pkg }}' \
-            -f labels[]=build-failure \
-            -f assignees[]=jhheider \
-            --jq '.number')
-        fi
-
-        echo "number=$issue_number" >> "$GITHUB_OUTPUT"
-
-    - name: Log Comment
-      shell: bash
-      env:
-        GH_TOKEN: ${{ inputs.token }}
-        ISSUE_NUMBER: ${{ steps.issue.outputs.number }}
-      run: |
-        gh api "repos/${GITHUB_REPOSITORY}/issues/${ISSUE_NUMBER}/comments" \
-          -f body="# Build failure
-        ## ${{ inputs.pkg }}
-
-        logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        PKG: ${{ inputs.pkg }}
+        PLATFORM: ${{ inputs.platform }}
+      run: ${{ github.action_path }}/complain.sh
