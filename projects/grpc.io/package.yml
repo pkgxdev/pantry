@@ -25,20 +25,19 @@ provides:
     - bin/grpc_php_plugin
 
 dependencies:
-  # Upstream pins abseil-cpp 20250512.1 as of grpc 1.74; 1.83 assigns
-  # absl::FunctionRef (copy-assign), which is deleted in 20250127.
-  # Pin the 20250512 LTS line (^ not >=) so we don't float to 20260526 while
-  # package protobuf is built against 20250512.
-  abseil.io: ^20250512
+  # Upstream pins abseil-cpp 20260526 as of grpc 1.85 (Mutex::lock,
+  # MutexLock(Mutex&)). Pin the LTS line (^ not >=); re2 and package
+  # protobuf must be built against the same line.
+  abseil.io: ^20260526
   c-ares.org: "*"
   openssl.org: ^1.1
   github.com/google/re2: "*"
   zlib.net: "*"
   linux:
     gnu.org/gcc/libstdcxx: 14
-    # Must share abseil LTS with grpc. protobuf ≥32 uses abseil 20250512.1;
-    # 30.x was built against 20250127 and mangles Printer::* differently.
-    protobuf.dev: 35.1.0
+    # Must share abseil LTS with grpc. 36.2.0 is built against 20260526;
+    # earlier bottles use 20250512 or 20250127 and mangle differently.
+    protobuf.dev: 36.2.0
 
 build:
   dependencies:
