@@ -4,7 +4,6 @@ distributable:
 
 versions:
   github: wailsapp/wails
-  ignore: /^v?3\./ # v3 is a separate CLI (wails3, built from v3/)
 
 platforms: [darwin]
 
@@ -14,24 +13,31 @@ dependencies:
   linux:
     gnu.org/gcc: '*'
     gtk.org/gtk3: '*'
-    freedesktop.org/pkg-config: '*'
     # we are missing dependencies for:
     #   - libgtk-3
     #   - libwebkit
 
 build:
-  working-directory: v2
+  working-directory: v{{version.major}}
   script:
     # 2.13.0 added a root go.work that lists only ./v3; ignore it so `go build`
     # resolves against the v2 module instead of erroring that v2/cmd/wails isn't
     # a workspace module.
     - run: export GOWORK=off
-      if: '>=2.13'
-    - go build -v -ldflags="$LDFLAGS" -o wails ./cmd/wails
-    - install -D wails {{prefix}}/bin/wails
+      if: '>=2.13<3'
+    - run:
+        - go build -v -ldflags="$GO_LDFLAGS" -o wails ./cmd/wails
+        - install -D wails {{prefix}}/bin/wails
+      if: <3
+    # v3's CLI is wails3; keep `wails` working for the default (latest) version
+    - run:
+        - go build -v -ldflags="$GO_LDFLAGS" -o wails3 ./cmd/wails3
+        - install -D wails3 {{prefix}}/bin/wails3
+        - ln -s wails3 {{prefix}}/bin/wails
+      if: '>=3'
   env:
     CGO_ENABLED: 0
-    LDFLAGS:
+    GO_LDFLAGS:
       - -extldflags=-static
       - -w
       - -s
@@ -44,12 +50,21 @@ test:
     gnu.org/coreutils: '*'
     gnu.org/grep: '*'
   script:
-    - wails version
-    - wails version | grep "{{version.tag}}"
-    - wails doctor -nocolour | tee doctor.txt
-    - test "$(cat doctor.txt | grep "Your system has missing dependencies!" | wc -l)" != "1"
-    # ^^ only works as soon as all dependencies are fulfilled
+    # v3 prints its version on stderr
+    - wails version 2>&1 | grep "{{version.tag}}"
+    - run:
+        - wails doctor -nocolour | tee doctor.txt
+        - test "$(cat doctor.txt | grep "Your system has missing dependencies!" | wc -l)" != "1"
+        # ^^ only works as soon as all dependencies are fulfilled
+      if: <3
+    - run:
+        - wails3 version 2>&1 | grep "{{version.tag}}"
+        - wails3 doctor | tee doctor.txt
+        - grep 'Your system is ready for Wails development!' doctor.txt
+      if: '>=3'
     - wails init -n example -t vanilla
     - cd example
     - wails build
     # ^^ only works as soon as all dependencies are fulfilled
+    - run: test -x bin/example
+      if: '>=3'
