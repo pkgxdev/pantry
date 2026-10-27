@@ -1,0 +1,25 @@
+distributable:
+  url: https://github.com/kishaningithub/zen-backup-restore/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: kishaningithub/zen-backup-restore
+
+provides:
+  - bin/zen-backup-restore
+
+build:
+  dependencies:
+    go.dev: "*"
+  script:
+    - go build -v -ldflags="$LDFLAGS" -o "{{prefix}}"/bin/zen-backup-restore
+  env:
+    CGO_ENABLED: 0
+    LDFLAGS:
+      - -s
+      - -w
+      - -X main.Version={{version}}
+
+test:
+  - zen-backup-restore --version
+  - zen-backup-restore --version 2>&1 | grep -F "{{version}}"
