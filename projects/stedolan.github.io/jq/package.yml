@@ -8,10 +8,15 @@ versions:
 
 dependencies:
   github.com/kkos/oniguruma: 6
+  # NOTE on windows/* the build is configured with --disable-onigjq,
+  # so this dep is unused at runtime there. Tracking the gap at
+  # pkgxdev/brewkit#346 — once oniguruma has a Windows bottle we
+  # can re-enable regex support on Windows.
 
 build:
   dependencies:
     git-scm.org: 2
+    llvm.org/mingw-w64: '*'  # cross-compiler used only when targeting windows/*
   script:
     - run: |
         if test "{{hw.platform}}" = "darwin"; then
@@ -19,12 +24,64 @@ build:
           git apply props/lgamma_r.diff
         fi
       if: <1.7
-    - ./configure --disable-maintainer-mode --prefix={{prefix}}
+
+    # Configure step: cross-compile on windows/*, native otherwise.
+    # Pilot for the cross-compile-from-Linux story sketched in
+    # pkgxdev/brewkit#346. The Windows path:
+    #   - --host=<triple> → autoconf knows we cross-compile
+    #   - CC overridden to the mingw clang driver
+    #   - --disable-onigjq because no Windows oniguruma bottle yet
+    #   - --disable-shared (we want a single self-contained .exe)
+    - run: |
+        if [ "{{hw.platform}}" = "windows" ]; then
+          case "{{hw.arch}}" in
+            x86-64)  TRIPLE=x86_64-w64-mingw32  ;;
+            aarch64) TRIPLE=aarch64-w64-mingw32 ;;
+          esac
+          ./configure \
+            --host=$TRIPLE \
+            --disable-maintainer-mode \
+            --disable-onigjq \
+            --disable-shared \
+            --prefix={{prefix}} \
+            CC=$TRIPLE-clang
+        else
+          ./configure --disable-maintainer-mode --prefix={{prefix}}
+        fi
     - make -j {{hw.concurrency}}
     - make install
 
 test:
-  script: test $(jq .devs[1].github < test.json) = '"jhheider"'
+  # On windows/* we need wine to actually run the cross-compiled
+  # jq.exe — same pattern as pkgxdev/pantry#12984's test step.
+  # On other platforms the dep is harmless (just unused).
+  dependencies:
+    winehq.org: '*'
+  script:
+    - run: |
+        if [ "{{hw.platform}}" = "windows" ]; then
+          # Cross-compiled jq.exe — run through wine if available.
+          if command -v wine64 >/dev/null 2>&1; then
+            export WINEDEBUG=-all
+            export WINEDLLOVERRIDES="mscoree=;mshtml="
+            export WINEPREFIX=$PWD/.wine
+            out=$(wine64 {{prefix}}/bin/jq.exe .devs[1].github < test.json 2>&1)
+          else
+            # Fallback: verify PE magic on the produced binary only.
+            echo "wine not available; verifying PE magic only"
+            magic=$(head -c 2 {{prefix}}/bin/jq.exe | od -An -c | tr -s ' ')
+            case "$magic" in
+              *"M   Z"*) echo "jq.exe: PE/COFF DOS header OK"; exit 0 ;;
+              *) echo "jq.exe: NOT a PE binary"; exit 1 ;;
+            esac
+          fi
+        else
+          out=$(jq .devs[1].github < test.json)
+        fi
+        test "$out" = '"jhheider"'
 
+# linux/darwin keep bin/jq; on windows/* the binary is bin/jq.exe.
+# Pantry's audit should accept either filename for the same logical
+# tool — if it doesn't yet, that's a brewkit hook we'd need.
 provides:
   - bin/jq
