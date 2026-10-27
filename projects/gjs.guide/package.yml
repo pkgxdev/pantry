@@ -1,0 +1,49 @@
+distributable:
+  url: https://download.gnome.org/sources/gjs/{{version.marketing}}/gjs-{{version}}.tar.xz
+  strip-components: 1
+
+display-name: gjs
+
+versions:
+  gitlab: gitlab.gnome.org:GNOME/gjs
+
+dependencies:
+  cairographics.org: '*'
+  gnome.org/glib: '>=2.86.0'
+  gnu.org/readline: '*'
+  sourceware.org/libffi: '*'
+  spidermonkey.dev: 140
+
+build:
+  dependencies:
+    gnome.org/gobject-introspection: '*'
+    mesonbuild.com: '>=1.4'
+    ninja-build.org: '>=1.8.2'
+  script: |
+    meson setup build $ARGS
+    meson compile -C build --jobs {{ hw.concurrency }}
+    meson install -C build
+  env:
+    ARGS:
+      --buildtype=release
+      --prefix={{prefix}}
+      --libdir=lib
+      -Dinstalled_tests=false
+      -Dskip_dbus_tests=true
+      -Dskip_gtk_tests=true
+      -Dprofiler=disabled
+
+provides:
+  - bin/gjs
+  - bin/gjs-console
+
+test:
+  script:
+    - run: gjs-console $FIXTURE
+      fixture:
+        extname: js
+        content: |
+          const GLib = imports.gi.GLib;
+          print(new GLib.String("Hello, world!").str);
+  env:
+    GI_TYPELIB_PATH: ${{deps.gnome.org/glib.prefix}}/lib/girepository-1.0
