@@ -1,0 +1,435 @@
+Description: Fix charset issues with id3v2 tags.
+ id3v2 doesn't do charset conversion according to the current locale, so trying
+ to use UTF-8 in tag fields causes the resulting tag to contain UTF-8 but
+ without the proper encoding type. This causes other programs to display tag
+ contents as gibberish. This patch fixes the program so that proper conversion
+ is made, and anything outside of iso-8859-1 will be encoded as UTF-16,
+ properly marked.
+Author: Martin Stjernholm <mast@lysator.liu.se>
+Bug-Debian: http://bugs.debian.org/559998
+Forwarded: https://sourceforge.net/p/id3v2/bugs/53/
+Reviewed-by: Hwei Sheng Teoh <hsteoh@debian.org>
+Last-Update: 2013-02-05
+
+--- id3v2-0.1.12.orig/Makefile
++++ id3v2-0.1.12/Makefile
+@@ -6,7 +6,7 @@ PREFIX=	${DESTDIR}/usr
+ CXXFLAGS+=	-Wall -I${PREFIX}/include/ -DVERSION="\"${VERSION}\"" #-DSORT_RUNTIME
+ LDFLAGS+=	-L${PREFIX}/lib/ 
+ 
+-id3v2:	convert.o list.o id3v2.o genre.o
++id3v2:	convert.o list.o id3v2.o genre.o charset.o
+ 	${CXX} ${LDFLAGS} -pedantic -Wall -g -o $@ $^ -lz -lid3
+ 
+ create_map: create_map.o
+--- /dev/null
++++ id3v2-0.1.12/charset.h
+@@ -0,0 +1,10 @@
++#ifndef __CHARSET_H__
++#define __CHARSET_H__
++
++#include <id3/tag.h>
++
++char *GetID3EncText (const ID3_Frame *frame, ID3_FieldID fldName);
++char *GetID3EncText (const ID3_Frame *frame, ID3_FieldID fldName, size_t idx);
++void SetID3EncText (ID3_Frame *frame, ID3_FieldID fldName, char *text);
++
++#endif
+--- /dev/null
++++ id3v2-0.1.12/charset.cpp
+@@ -0,0 +1,129 @@
++#include "charset.h"
++
++#include <errno.h>
++#include <iconv.h>
++#include <langinfo.h>
++#include <locale.h>
++#include <stdlib.h>
++#include <id3/misc_support.h>
++#include <id3/utils.h>
++
++char *GetID3EncText (const ID3_Frame *frame, ID3_FieldID fldName)
++{
++  return GetID3EncText (frame, fldName, (size_t) -1);
++}
++
++char *GetID3EncText (const ID3_Frame *frame, ID3_FieldID fldName, size_t idx)
++{
++  ID3_Field *fld = frame->GetField (fldName);
++  ID3_TextEnc enc = fld->GetEncoding();
++  size_t len = fld->Size(), inl;
++  char *enc_text;
++  const char *iconv_enc;
++
++  if (ID3TE_IS_DOUBLE_BYTE_ENC (enc)) {
++    enc_text = new char [(len + 1) * sizeof (unicode_t)];
++    if (idx == (size_t) -1)
++      len = fld->Get ((unicode_t *) enc_text, len);
++    else
++      len = fld->Get ((unicode_t *) enc_text, len, idx);
++    iconv_enc = "UTF-16BE";
++    // Seems that fld->Size() returns number of bytes afterall,
++    // contrary to docs. Can't find any way to avoid it, so we have to
++    // count on that it remains bug compatible. :(
++    len >>= 1;
++    inl = len * sizeof (unicode_t);
++  }
++  else {
++    enc_text = new char [len + 1];
++    if (idx == (size_t) -1)
++      len = fld->Get (enc_text, len);
++    else
++      len = fld->Get (enc_text, len, idx);
++    iconv_enc = "ISO-8859-1";
++    inl = len;
++  }
++
++  iconv_t cd = iconv_open (nl_langinfo (CODESET), iconv_enc);
++  if (cd != (iconv_t) -1) {
++    size_t outl = (len + 1) * MB_CUR_MAX;
++    char *mbs_text = new char [outl];
++    char *inp = enc_text, *outp = mbs_text;
++    while (1) {
++      if (iconv (cd, &inp, &inl, &outp, &outl) != (size_t) -1) {
++	*outp++ = 0;
++	if (outl > len) {
++	  char *realloced = new char [outp - mbs_text];
++	  memcpy ((void *) realloced, (void *) mbs_text, outp - mbs_text);
++	  delete[] mbs_text;
++	  mbs_text = realloced;
++	}
++	iconv_close (cd);
++	delete[] enc_text;
++	return mbs_text;
++      }
++      if (errno == EILSEQ) {
++	inp++;
++	if (ID3TE_IS_DOUBLE_BYTE_ENC (enc)) inp++;
++	inl--;
++	*outp++ = '?';
++	outl--;
++      }
++      else break;
++    }
++    iconv_close (cd);
++  }
++
++  delete[] enc_text;
++
++  // Lame fallback but no worse than earlier versions.
++  return ID3_GetString (frame, fldName);
++}
++
++void SetID3EncText (ID3_Frame *frame, ID3_FieldID fldName, char *text)
++{
++  // Try iso-8859-1 first.
++  iconv_t cd = iconv_open ("ISO-8859-1", nl_langinfo (CODESET));
++  if (cd != (iconv_t) -1) {
++    size_t inl = strlen (text);
++    size_t latin1_len = inl + 1;
++    char *latin1_text = new char [latin1_len];
++    char *inp = text, *outp = latin1_text;
++    if (iconv (cd, &inp, &inl, &outp, &latin1_len) != (size_t) -1) {
++      *outp = 0;
++      frame->Field (ID3FN_TEXTENC) = ID3TE_ASCII;
++      frame->Field (fldName) = latin1_text;
++      delete[] latin1_text;
++      iconv_close (cd);
++      return;
++    }
++    delete[] latin1_text;
++    iconv_close (cd);
++  }
++
++  // Then utf-16.
++  cd = iconv_open ("UTF-16BE", nl_langinfo (CODESET));
++  if (cd != (iconv_t) -1) {
++    size_t inl = strlen (text);
++    size_t utf16_len = inl + 1;
++    unicode_t *utf16_text = new unicode_t [utf16_len];
++    char *inp = text, *outp = (char *) utf16_text;
++    utf16_len *= sizeof (unicode_t);
++    if (iconv (cd, &inp, &inl, &outp, &utf16_len) != (size_t) -1) {
++      *outp = 0;
++      *(outp + 1) = 0;
++      frame->Field (ID3FN_TEXTENC) = ID3TE_UTF16;
++      frame->Field (fldName).SetEncoding (ID3TE_UTF16);
++      frame->Field (fldName) = utf16_text;
++      delete[] utf16_text;
++      iconv_close (cd);
++      return;
++    }
++    delete[] utf16_text;
++    iconv_close (cd);
++  }
++
++  // Lame fallback but no worse than earlier versions.
++  frame->Field (ID3FN_TEXTENC) = ID3TE_ASCII;
++  frame->Field (ID3FN_TEXT) = text;
++}
+--- id3v2-0.1.12.orig/id3v2.cpp
++++ id3v2-0.1.12/id3v2.cpp
+@@ -17,6 +17,7 @@
+ #include <sys/stat.h>
+ 
+ #include "genre.h"
++#include "charset.h"
+ 
+ #define MAXNOFRAMES 1000
+ 
+@@ -99,6 +100,8 @@ int main( int argc, char *argv[])
+   
+   int frameCounter = 0;
+   
++  setlocale (LC_ALL, "");
++
+   while (true)
+   {
+     int option_index = 0;
+@@ -419,7 +422,7 @@ int main( int argc, char *argv[])
+             delete todel;
+           }
+           if (strlen(frameList[ii].data) > 0) {
+-            myFrame->Field(ID3FN_TEXT) = frameList[ii].data;
++            SetID3EncText(myFrame, ID3FN_TEXT, frameList[ii].data);
+             myTag.AttachFrame(myFrame);
+           }
+           break;
+@@ -432,17 +435,16 @@ int main( int argc, char *argv[])
+             delete todel;
+           }
+           if (strlen(frameList[ii].data) > 0) {
+-            myFrame->Field(ID3FN_TEXTENC) = ID3TE_ASCII;
+             char *text;
+             text = strchr(frameList[ii].data, ':');
+             if (text == NULL) 
+             {
+-              myFrame->Field(ID3FN_TEXT) = frameList[ii].data;
++              SetID3EncText(myFrame, ID3FN_TEXT, frameList[ii].data);
+             } else {
+               *text = '\0';
+               text++;
+-              myFrame->Field(ID3FN_LANGUAGE) = frameList[ii].data;
+-              myFrame->Field(ID3FN_TEXT) = text;
++              SetID3EncText(myFrame, ID3FN_LANGUAGE, frameList[ii].data);
++              SetID3EncText(myFrame, ID3FN_TEXT, text);
+             }
+             char * test = ID3_GetString(myFrame, ID3FN_TEXT);
+             if (strlen(test) > 0) {
+@@ -461,7 +463,7 @@ int main( int argc, char *argv[])
+ 
+           if (pFrame != NULL) 
+           {
+-            currentTrackNum = ID3_GetString(pFrame, ID3FN_TEXT);
++            currentTrackNum = GetID3EncText(pFrame, ID3FN_TEXT);
+             if (*currentTrackNum == '/') 
+             {
+               newTrackNum = (char *)malloc(strlen(currentTrackNum) 
+@@ -476,7 +478,7 @@ int main( int argc, char *argv[])
+             }
+           }
+           
+-          myFrame->Field(ID3FN_TEXT) = frameList[ii].data;
++          SetID3EncText(myFrame, ID3FN_TEXT, frameList[ii].data);
+           myTag.AttachFrame(myFrame);
+ 
+           free(newTrackNum);
+@@ -496,12 +498,12 @@ int main( int argc, char *argv[])
+           text = strchr(frameList[ii].data, ':');
+           if (text == NULL) 
+           {
+-            myFrame->Field(ID3FN_TEXT) = frameList[ii].data;
++            SetID3EncText(myFrame, ID3FN_TEXT, frameList[ii].data);
+           } else {
+             *text = '\0';
+             text++;
+-            myFrame->Field(ID3FN_DESCRIPTION) = frameList[ii].data;
+-            myFrame->Field(ID3FN_TEXT) = text;
++            SetID3EncText(myFrame, ID3FN_DESCRIPTION, frameList[ii].data);
++            SetID3EncText(myFrame, ID3FN_TEXT, text);
+           }
+           if (strlen(ID3_GetString(myFrame, ID3FN_TEXT)) > 0) {
+             myTag.AttachFrame(myFrame);
+@@ -518,7 +520,7 @@ int main( int argc, char *argv[])
+           text = strchr(frameList[ii].data, ':');
+           if (text == NULL) 
+           {
+-            myFrame->Field(ID3FN_TEXT) = frameList[ii].data;
++            SetID3EncText(myFrame, ID3FN_TEXT, frameList[ii].data);
+           } else {
+          	*text = '\0';
+           	text++;
+@@ -526,13 +528,13 @@ int main( int argc, char *argv[])
+           	lang = strchr(text, ':');
+           	if (lang == NULL) 
+           	{
+-          	  myFrame->Field(ID3FN_DESCRIPTION) = frameList[ii].data;
+-          	  myFrame->Field(ID3FN_TEXT) = text;
++                  SetID3EncText(myFrame, ID3FN_DESCRIPTION, frameList[ii].data);
++                  SetID3EncText(myFrame, ID3FN_TEXT, text);
+           	} else {
+           	  *lang = '\0';
+           	  lang++;
+-          	  myFrame->Field(ID3FN_DESCRIPTION) = frameList[ii].data;
+-              myFrame->Field(ID3FN_TEXT) = text;
++                  SetID3EncText(myFrame, ID3FN_DESCRIPTION, frameList[ii].data);
++		  SetID3EncText(myFrame, ID3FN_TEXT, text);
+               myFrame->Field(ID3FN_LANGUAGE) = lang;
+             }
+           }
+@@ -555,10 +557,10 @@ int main( int argc, char *argv[])
+               pFirstFrame = pFrame;
+             }
+ 
+-            char *tmp_desc = ID3_GetString(pFrame, ID3FN_DESCRIPTION);
+-            char *tmp_my_desc = ID3_GetString(myFrame, ID3FN_DESCRIPTION);
+-            char *tmp_lang = ID3_GetString(pFrame, ID3FN_LANGUAGE);
+-            char *tmp_my_lang = ID3_GetString(myFrame, ID3FN_LANGUAGE);
++            char *tmp_desc = GetID3EncText(pFrame, ID3FN_DESCRIPTION);
++            char *tmp_my_desc = GetID3EncText(myFrame, ID3FN_DESCRIPTION);
++            char *tmp_lang = GetID3EncText(pFrame, ID3FN_LANGUAGE);
++            char *tmp_my_lang = GetID3EncText(myFrame, ID3FN_LANGUAGE);
+             if ((strcmp(tmp_desc, tmp_my_desc) == 0) &&
+                 (strcmp(tmp_lang, tmp_my_lang) == 0)) 
+             {
+@@ -615,7 +617,7 @@ int main( int argc, char *argv[])
+         {
+           char 
+             *sURL = ID3_GetString(myFrame, ID3FN_URL),
+-            *sDesc = ID3_GetString(myFrame, ID3FN_DESCRIPTION);
++            *sDesc = GetID3EncText(myFrame, ID3FN_DESCRIPTION);
+           std::cout << "(" << sDesc << "): " << sURL << std::endl;
+           delete [] sURL;
+           delete [] sDesc;
+@@ -627,7 +629,7 @@ int main( int argc, char *argv[])
+           size_t nItems = myFrame->Field(ID3FN_TEXT).GetNumTextItems();
+           for (size_t nIndex = 1; nIndex <= nItems; nIndex++)
+           {
+-            char *sPeople = ID3_GetString(myFrame, ID3FN_TEXT, nIndex);
++            char *sPeople = GetID3EncText(myFrame, ID3FN_TEXT, nIndex);
+             std::cout << sPeople;
+             delete [] sPeople;
+             if (nIndex < nItems)
+@@ -642,7 +644,7 @@ int main( int argc, char *argv[])
+         {
+           char
+             *sMimeType = ID3_GetString(myFrame, ID3FN_MIMETYPE),
+-            *sDesc     = ID3_GetString(myFrame, ID3FN_DESCRIPTION),
++            *sDesc     = GetID3EncText(myFrame, ID3FN_DESCRIPTION),
+             *sFormat   = ID3_GetString(myFrame, ID3FN_IMAGEFORMAT);
+           size_t
+             nPicType   = myFrame->Field(ID3FN_PICTURETYPE).Get(),
+@@ -658,9 +660,9 @@ int main( int argc, char *argv[])
+         case ID3FID_GENERALOBJECT:
+         {
+           char 
+-            *sMimeType = ID3_GetString(myFrame, ID3FN_TEXT), 
+-            *sDesc = ID3_GetString(myFrame, ID3FN_DESCRIPTION), 
+-            *sFileName = ID3_GetString(myFrame, ID3FN_FILENAME);
++            *sMimeType = ID3_GetString(myFrame, ID3FN_TEXT),
++            *sDesc = GetID3EncText(myFrame, ID3FN_DESCRIPTION), 
++            *sFileName = GetID3EncText(myFrame, ID3FN_FILENAME);
+           size_t 
+           nDataSize = myFrame->Field(ID3FN_DATA).Size();
+           std::cout << "(" << sDesc << ")[" 
+--- id3v2-0.1.12.orig/list.cpp
++++ id3v2-0.1.12/list.cpp
+@@ -25,6 +25,7 @@
+ #include <id3/misc_support.h>
+ #include "frametable.h"
+ #include "genre.h"
++#include "charset.h"
+ 
+ const char *GetDescription(const ID3_FrameID eFrameID)
+ {
+@@ -119,7 +120,7 @@ int PrintInformation(char *sFileName, co
+         case ID3FID_ENCODERSETTINGS:
+         case ID3FID_YEAR:
+         {
+-          char *sText = ID3_GetString(myFrame, ID3FN_TEXT);
++          char *sText = GetID3EncText(myFrame, ID3FN_TEXT);
+           std::cout << sText << std::endl;
+           delete [] sText;
+           break;
+@@ -128,7 +129,7 @@ int PrintInformation(char *sFileName, co
+         {
+           const char* genre_str;
+           int genre_id = 255;
+-          char *sText = ID3_GetString(myFrame, ID3FN_TEXT);
++          char *sText = GetID3EncText(myFrame, ID3FN_TEXT);
+           sscanf(sText, "(%d)", &genre_id);
+           if (genre_id == 255) {
+             genre_str = sText;
+@@ -143,8 +144,8 @@ int PrintInformation(char *sFileName, co
+         case ID3FID_USERTEXT:
+         {
+           char 
+-            *sText = ID3_GetString(myFrame, ID3FN_TEXT), 
+-            *sDesc = ID3_GetString(myFrame, ID3FN_DESCRIPTION);
++            *sText = GetID3EncText(myFrame, ID3FN_TEXT), 
++            *sDesc = GetID3EncText(myFrame, ID3FN_DESCRIPTION);
+           std::cout << "(" << sDesc << "): " << sText << std::endl;
+           delete [] sText;
+           delete [] sDesc;
+@@ -153,8 +154,8 @@ int PrintInformation(char *sFileName, co
+         case ID3FID_TERMSOFUSE:
+         {
+           char 
+-            *sText = ID3_GetString(myFrame, ID3FN_TEXT), 
+-            *sLang = ID3_GetString(myFrame, ID3FN_LANGUAGE);
++            *sText = GetID3EncText(myFrame, ID3FN_TEXT), 
++            *sLang = GetID3EncText(myFrame, ID3FN_LANGUAGE);
+           std::cout << "[" << sLang << "]: "
+                << sText << std::endl;
+           delete [] sText;
+@@ -165,9 +166,9 @@ int PrintInformation(char *sFileName, co
+         case ID3FID_UNSYNCEDLYRICS:
+         {
+           char 
+-            *sText = ID3_GetString(myFrame, ID3FN_TEXT), 
+-            *sDesc = ID3_GetString(myFrame, ID3FN_DESCRIPTION), 
+-            *sLang = ID3_GetString(myFrame, ID3FN_LANGUAGE);
++            *sText = GetID3EncText(myFrame, ID3FN_TEXT), 
++            *sDesc = GetID3EncText(myFrame, ID3FN_DESCRIPTION), 
++            *sLang = GetID3EncText(myFrame, ID3FN_LANGUAGE);
+           std::cout << "(" << sDesc << ")[" << sLang << "]: "
+                << sText << std::endl;
+           delete [] sText;
+@@ -193,7 +194,7 @@ int PrintInformation(char *sFileName, co
+         {
+           char 
+             *sURL = ID3_GetString(myFrame, ID3FN_URL),
+-            *sDesc = ID3_GetString(myFrame, ID3FN_DESCRIPTION);
++            *sDesc = GetID3EncText(myFrame, ID3FN_DESCRIPTION);
+           std::cout << "(" << sDesc << "): " << sURL << std::endl;
+           delete [] sURL;
+           delete [] sDesc;
+@@ -205,7 +206,7 @@ int PrintInformation(char *sFileName, co
+           size_t nItems = myFrame->Field(ID3FN_TEXT).GetNumTextItems();
+           for (size_t nIndex = 1; nIndex <= nItems; nIndex++)
+           {
+-            char *sPeople = ID3_GetString(myFrame, ID3FN_TEXT, nIndex);
++            char *sPeople = GetID3EncText(myFrame, ID3FN_TEXT, nIndex);
+             std::cout << sPeople;
+             delete [] sPeople;
+             if (nIndex < nItems)
+@@ -220,7 +221,7 @@ int PrintInformation(char *sFileName, co
+         {
+           char
+             *sMimeType = ID3_GetString(myFrame, ID3FN_MIMETYPE),
+-            *sDesc     = ID3_GetString(myFrame, ID3FN_DESCRIPTION),
++            *sDesc     = GetID3EncText(myFrame, ID3FN_DESCRIPTION),
+             *sFormat   = ID3_GetString(myFrame, ID3FN_IMAGEFORMAT);
+           size_t
+             nPicType   = myFrame->Field(ID3FN_PICTURETYPE).Get(),
+@@ -237,8 +238,8 @@ int PrintInformation(char *sFileName, co
+         {
+           char 
+           *sMimeType = ID3_GetString(myFrame, ID3FN_MIMETYPE), 
+-          *sDesc = ID3_GetString(myFrame, ID3FN_DESCRIPTION), 
+-          *sFileName = ID3_GetString(myFrame, ID3FN_FILENAME);
++          *sDesc = GetID3EncText(myFrame, ID3FN_DESCRIPTION),
++          *sFileName = GetID3EncText(myFrame, ID3FN_FILENAME);
+           size_t nDataSize = myFrame->GetField(ID3FN_DATA)->Size();
+           std::cout << "(" << sDesc << ")[" 
+                << sFileName << "]: " << sMimeType << ", " << nDataSize

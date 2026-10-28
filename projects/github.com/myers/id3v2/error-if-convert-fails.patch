@@ -1,0 +1,22 @@
+This patch causes id3v2 to output an error message if it fails to convert tags
+
+Closes Debian bug #538165
+diff -Naur id3v2-0.1.11.orig/convert.cpp id3v2-0.1.11/convert.cpp
+--- id3v2-0.1.11.orig/convert.cpp	2004-05-04 19:40:19.000000000 +0200
++++ id3v2-0.1.11/convert.cpp	2009-07-24 03:35:21.787900331 +0200
+@@ -153,6 +153,15 @@
+       luint nTags;
+ 
+       nTags = myTag.Update(ID3TT_ID3V2);
++
++      if (nTags == ID3TT_NONE)
++      {
++	      std::cout << std::endl;
++	      perror("id3v2");
++	      std::cerr << "Tags could not be converted" << std::endl;
++	      continue;
++      }
++
+       std::cout << " converted ";
+       std::cout << std::endl;
+     }

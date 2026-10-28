@@ -1,0 +1,24 @@
+This patch changes id3v2 to complain about missing tags even when called
+with multiple files as arguments (eg. id3v2 -l *mp3).
+
+Written by Stefan Ott
+
+Closes Debian bug #356473
+diff -Naur id3v2-0.1.12.orig//list.cpp id3v2-0.1.12//list.cpp
+--- id3v2-0.1.12.orig//list.cpp	2010-03-27 00:26:46.000000000 +0100
++++ id3v2-0.1.12//list.cpp	2010-05-04 05:03:37.430722515 +0200
+@@ -379,12 +379,12 @@
+ 
+ void ListTag(int argc, char *argv[], int optind)
+ {
+-  bool id3v1_tag = false;
+-  bool id3v2_tag = false;
+   int ret = 0;
+ 
+   for (int nIndex = optind; nIndex < argc; nIndex++)
+   {
++    bool id3v1_tag = false;
++    bool id3v2_tag = false;
+     ID3_Tag myTag;
+ 
+     ret = PrintID3v1Tag(argv[nIndex]);
