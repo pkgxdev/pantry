@@ -1,0 +1,127 @@
+This patch implements the -R option (to some extent), mostly by just not
+showing id3v1 data (the rest is already rfc822 compliant).
+
+It was written by Stefan Ott to close #198406
+diff -Naur id3v2-0.1.12.orig//list.cpp id3v2-0.1.12//list.cpp
+--- id3v2-0.1.12.orig//list.cpp	2010-05-04 05:18:04.767780069 +0200
++++ id3v2-0.1.12//list.cpp	2010-05-04 05:18:33.301530389 +0200
+@@ -52,7 +52,7 @@
+     printf("%3d: %s\n", ii, GetGenreFromNum(ii));
+ }
+ 
+-int PrintInformation(char *sFileName, const ID3_Tag &myTag)
++int PrintInformation(char *sFileName, const ID3_Tag &myTag, int rfc822)
+ {
+   bool firstLine = true;
+   const ID3_Frame * myFrame;
+@@ -62,7 +62,10 @@
+     myFrame = Iter->GetNext();
+ 
+     if(firstLine) {
+-      std::cout << "id3v2 tag info for " << sFileName << ":" << std::endl;
++      if (rfc822)
++	std::cout << "\nFilename: " << sFileName << std::endl;
++      else
++        std::cout << "id3v2 tag info for " << sFileName << ":" << std::endl;
+       firstLine = false;
+     }
+ 
+@@ -70,7 +73,10 @@
+     { 
+       const char* desc = myFrame->GetDescription();
+       if (!desc) desc = "";
+-      std::cout << myFrame->GetTextID() << " (" << desc << "): ";
++      if (rfc822)
++        std::cout << myFrame->GetTextID() << ": ";
++      else
++        std::cout << myFrame->GetTextID() << " (" << desc << "): ";
+       ID3_FrameID eFrameID = myFrame->GetID();
+ 
+       switch (eFrameID)
+@@ -377,7 +383,7 @@
+   return 0;
+ }
+ 
+-void ListTag(int argc, char *argv[], int optind)
++void ListTag(int argc, char *argv[], int optind, int rfc822)
+ {
+   int ret = 0;
+ 
+@@ -387,17 +393,20 @@
+     bool id3v2_tag = false;
+     ID3_Tag myTag;
+ 
+-    ret = PrintID3v1Tag(argv[nIndex]);
+-    if (ret == -1)
++    if (!rfc822)
+     {
+-      continue;
+-    } 
+-    else if(ret == 0)
+-    {
+-      id3v1_tag = true;
++      ret = PrintID3v1Tag(argv[nIndex]);
++      if (ret == -1)
++      {
++        continue;
++      }
++      else if(ret == 0)
++      {
++        id3v1_tag = true;
++      }
+     }
+     myTag.Link(argv[nIndex], ID3TT_ID3V2);
+-    if(!PrintInformation(argv[nIndex],myTag))
++    if(!PrintInformation(argv[nIndex],myTag,rfc822))
+       id3v2_tag = true;
+     if(!id3v1_tag && !id3v2_tag)
+       std::cout << argv[nIndex] << ": No ID3 tag" << std::endl;
+diff -Naur id3v2-0.1.12.orig/id3v2.cpp id3v2-0.1.12/id3v2.cpp
+--- id3v2-0.1.12.orig/id3v2.cpp	2010-03-27 00:26:46.000000000 +0100
++++ id3v2-0.1.12/id3v2.cpp	2010-05-04 05:57:25.422540143 +0200
+@@ -36,6 +36,7 @@
+   std::cout << "  -L,  --list-genres        Lists all id3v1 genres" << std::endl;
+   std::cout << "  -v,  --version            Display version information and exit" << std::endl;
+   std::cout << "  -l,  --list               Lists the tag(s) on the file(s)" << std::endl;
++  std::cout << "  -R,  --list-rfc822        Lists using an rfc822-style format for output" << std::endl;
+   std::cout << "  -d,  --delete-v2          Deletes id3v2 tags" << std::endl;
+   std::cout << "  -s,  --delete-v1          Deletes id3v1 tags" << std::endl;
+   std::cout << "  -D,  --delete-all         Deletes both id3v1 and id3v2 tags" << std::endl;
+@@ -71,7 +72,7 @@
+ }
+ 
+ 
+-extern void ListTag(int argc, char *argv[], int optind);
++extern void ListTag(int argc, char *argv[], int optind, int rfc822);
+ extern void PrintFrameHelp(char *sName);
+ extern void PrintGenreList();
+ 
+@@ -115,6 +116,8 @@
+ 
+     // list / remove / convert
+       { "list",   no_argument,        &iLongOpt, 'l' },
++      { "list-rfc822",
++                   no_argument,       &iLongOpt, 'R' },
+       { "delete-v2",  no_argument,    &iLongOpt, 'd' },
+       { "delete-v1",  
+                    no_argument,       &iLongOpt, 's' },
+@@ -209,7 +212,7 @@
+       { "WXXX",    required_argument, &optFrameID, ID3FID_WWWUSER },
+       { 0, 0, 0, 0 }
+     };
+-    iOpt = getopt_long (argc, argv, "12hfLvldsDCr:a:A:t:c:g:y:T:",
++    iOpt = getopt_long (argc, argv, "12hfLvlRdsDCr:a:A:t:c:g:y:T:",
+                         long_options, &option_index);
+ 
+     if (iOpt == -1  && argCounter == 0)
+@@ -243,7 +246,9 @@
+       case 'v': PrintVersion(argv[0]);  exit (0);
+ 
+     // listing / remove / convert -- see list.cpp and convert.cpp
+-      case 'l': ListTag(argc, argv, optind);    
++      case 'l': ListTag(argc, argv, optind, 0);    
++                                        exit (0);
++      case 'R': ListTag(argc, argv, optind, 1);    
+                                         exit (0);
+       case 'd': DeleteTag(argc, argv, optind, 2);    
+                                         exit (0);

@@ -1,0 +1,26 @@
+Description: this patch modifies the makefile to:
+               - Install the binary in /usr instead of /opt/local.
+               - Not strip the binary.
+Author: Martin Stjernholm <mast@lysator.liu.se>
+Last-Update: 2011-05-01
+diff -Naur id3v2-0.1.12.orig//Makefile id3v2-0.1.12/Makefile
+--- id3v2-0.1.12.orig//Makefile	2010-03-27 00:28:34.000000000 +0100
++++ id3v2-0.1.12/Makefile	2010-05-04 04:52:56.093529794 +0200
+@@ -2,7 +2,7 @@
+ 
+ VERSION=0.1.12
+ 
+-PREFIX=	/opt/local
++PREFIX=	${DESTDIR}/usr
+ CXXFLAGS+=	-Wall -I${PREFIX}/include/ -DVERSION="\"${VERSION}\"" #-DSORT_RUNTIME
+ LDFLAGS+=	-L${PREFIX}/lib/ 
+ 
+@@ -13,7 +13,7 @@
+ 	${CXX} -Wall -g -o $@ $^
+ 
+ install: all
+-	install -c -s id3v2 ${PREFIX}/bin/id3v2
++	install id3v2 ${PREFIX}/bin/id3v2
+ 	nroff -man id3v2.1 > ${PREFIX}/share/man/man1/id3v2.1
+ 
+ clean:
