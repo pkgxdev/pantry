@@ -35,6 +35,8 @@ build:
       if: ">=5.2"
 
     - run:
+        # makeconf.sh stopped copying config.rpath on darwin (5.5.0) and AM_ICONV alone doesn't make autoreconf run autopoint
+        - cp {{deps.gnu.org/gettext.prefix}}/share/gettext/config.rpath .
         - ./makeconf.sh
         - ./configure $ARGS
         - make -j {{ hw.concurrency }}
