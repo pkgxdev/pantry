@@ -42,6 +42,10 @@ build:
       RUSTFLAGS:
         # Needed to build `generic-array` for some odd reason
         - -C linker=cc
+    linux/aarch64:
+      # fat LTO + codegen-units=1 gets rustc SIGKILLed (OOM) on the aarch64 builder; see vector.dev
+      CARGO_PROFILE_RELEASE_LTO: thin
+      CARGO_PROFILE_RELEASE_CODEGEN_UNITS: "16"
 
 # FIXME: a better test needs to spin up the db server...
 test: surreal version
