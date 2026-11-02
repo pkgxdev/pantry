@@ -27,6 +27,8 @@ build:
         - bun scripts/build-binary.ts
         - install -D dist/supabase "{{ prefix }}"/bin/supabase
       if: ">=3"
+  # patchelf breaks bun-compiled binaries (segfault); cf. bun.sh, tailwindcss.com
+  skip: fix-patchelf
   env:
     GO111MODULE: on
     GO_LDFLAGS: [-s, -w, "-X=main.Version={{version}}"]
