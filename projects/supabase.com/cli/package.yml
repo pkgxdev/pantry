@@ -8,13 +8,25 @@ versions:
 build:
   dependencies:
     go.dev: ^1.18
+    bun.sh: ~1.4
+    pnpm.io: '*'
   script:
     - run: cd apps/cli-go
-      if: ">=2.99"
-    - go mod download
-    - go build -v -ldflags="$GO_LDFLAGS"
-    - mkdir -p "{{ prefix }}"/bin
-    - mv cli "{{ prefix }}"/bin/supabase
+      if: ">=2.99<3"
+    - run:
+        - go mod download
+        - go build -v -ldflags="$GO_LDFLAGS"
+        - mkdir -p "{{ prefix }}"/bin
+        - mv cli "{{ prefix }}"/bin/supabase
+      if: "<3"
+    # v3 rewrote the CLI in TypeScript; upstream ships a bun-compiled binary
+    - run:
+        - pnpm install --frozen-lockfile
+        - cd apps/cli
+        - pnpm pkg set version={{version}}
+        - bun scripts/build-binary.ts
+        - install -D dist/supabase "{{ prefix }}"/bin/supabase
+      if: ">=3"
   env:
     GO111MODULE: on
     GO_LDFLAGS: [-s, -w, "-X=main.Version={{version}}"]
@@ -27,4 +39,6 @@ build:
 provides:
   - bin/supabase
 
-test: supabase --help
+test:
+  - supabase --help
+  - test "$(supabase --version)" = "{{version}}"
