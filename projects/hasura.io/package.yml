@@ -28,7 +28,14 @@ build:
         - npm update pkg  # see https://github.com/hasura/graphql-engine/issues/9440
         - npm install --global --build-from-source --prefix={{prefix}}
         - npm run prebuild
-        - node_modules/.bin/pkg ./build/command.js --output ./bin/cli-ext-hasura -t host
+
+    - run: node_modules/.bin/pkg ./build/command.js --output ./bin/cli-ext-hasura -t host
+      working-directory: cli-ext
+      if: ">=2.50"
+    # <2.50 (the 2.45 backports) still use vercel's pkg 5.8, which tops out at node18
+    - run: node_modules/.bin/pkg ./build/command.js --output ./bin/cli-ext-hasura -t node18
+      working-directory: cli-ext
+      if: "<2.50"
 
     - working-directory: cli
       run:
