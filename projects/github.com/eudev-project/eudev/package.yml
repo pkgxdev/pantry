@@ -18,6 +18,10 @@ build:
   dependencies:
     gnu.org/gperf: '*'
   script:
+    # 3.3's blockdev-util.c uses BLKSSZGET but only gets <linux/fs.h> by way of
+    # <linux/btrfs.h>, which older kernel headers (our builders') don't do
+    - run: sed -i 's|#include <linux/blkpg.h>|&\n#include <linux/fs.h>|' src/udev/blockdev-util.c
+      if: ">=3.3"
     - ./configure $ARGS
     - make --jobs {{ hw.concurrency }}
     - make install
