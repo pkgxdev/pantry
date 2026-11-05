@@ -1,9 +1,13 @@
 distributable:
   url: git+https://github.com/aquasecurity/trivy.git
-  ref: ${{version.tag}}
+  ref: v{{version}}
 
 versions:
-  github: aquasecurity/trivy
+  # trivy's GitHub releases (~5MB of notes per page) and tags (GraphQL) both
+  # fail in CI; the Go module proxy lists the same vX.Y.Z tags in plain text
+  url: https://proxy.golang.org/github.com/aquasecurity/trivy/@v/list
+  match: /v\d+\.\d+\.\d+/
+  strip: /^v/
 
 dependencies:
   curl.se/ca-certs: '*'
@@ -11,10 +15,6 @@ dependencies:
 build:
   dependencies:
     go.dev: =1.25 # as of 0.67.0
-    linux:
-      # running gcc failed: exit status 1
-      gnu.org/gcc: '*'
-      gnu.org/binutils: ~2.44 # ld.gold
   script:
     - run: export GOEXPERIMENT=jsonv2
       if: '>=0.67.0'
@@ -28,6 +28,9 @@ build:
       - -w
       - -X github.com/aquasecurity/trivy/pkg/version.ver={{version}}
       - -X github.com/aquasecurity/trivy/pkg/version/app.ver={{version}}
+    # as upstream's goreleaser does; cgo dragged in gcc, and gcc 16's
+    # aarch64 build attributes are beyond binutils 2.44's assembler
+    CGO_ENABLED: 0
     linux:
       GO_LDFLAGS:
         - -buildmode=pie
