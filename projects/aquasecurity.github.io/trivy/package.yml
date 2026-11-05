@@ -6,7 +6,9 @@ versions:
   # trivy's GitHub releases (~5MB of notes per page) and tags (GraphQL) both
   # fail in CI; the Go module proxy lists the same vX.Y.Z tags in plain text
   url: https://proxy.golang.org/github.com/aquasecurity/trivy/@v/list
-  match: /v\d+\.\d+\.\d+/
+  # the proxy still lists tags upstream deleted (0.69.4 was GHSA-69fq-xp46-6x23);
+  # url versions don't read `ignore:`, so match skips them
+  match: /v(?!0\.50\.3\b|0\.51\.3\b|0\.69\.4\b)\d+\.\d+\.\d+/
   strip: /^v/
 
 dependencies:
