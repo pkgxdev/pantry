@@ -66,6 +66,10 @@ build:
       if: linux
       working-directory: pkl-cli/build/executable
 
+    - run: cp jpkl pkl-macos-amd64
+      if: darwin/x86-64
+      working-directory: pkl-cli/build/executable
+
     - run:
         - install -D jpkl {{prefix}}/bin/jpkl
         - install -D pkl-${SYS_NAME}-${ARCH_NAME} {{prefix}}/bin/pkl
@@ -92,8 +96,7 @@ build:
     darwin/x86-64:
       SYS_NAME: macos
       ARCH_NAME: amd64
-      TARGETS:
-        - :pkl-cli:macExecutableAmd64
+      # as of 0.33 upstream has no Intel macOS native image; Intel gets jpkl as pkl
 
 provides:
   - bin/jpkl
