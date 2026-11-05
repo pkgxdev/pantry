@@ -1,11 +1,13 @@
 distributable:
   url: git+https://github.com/aquasecurity/trivy.git
-  ref: ${{version.tag}}
+  ref: v{{version}}
 
 versions:
-  # releases?per_page=100 is ~5MB of notes and fails in CI's plan; we build
-  # from the git tag, so tags are enough
-  github: aquasecurity/trivy/tags
+  # trivy's GitHub releases (~5MB of notes per page) and tags (GraphQL) both
+  # fail in CI; the Go module proxy lists the same vX.Y.Z tags in plain text
+  url: https://proxy.golang.org/github.com/aquasecurity/trivy/@v/list
+  match: /v\d+\.\d+\.\d+/
+  strip: /^v/
 
 dependencies:
   curl.se/ca-certs: '*'
