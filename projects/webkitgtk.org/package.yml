@@ -1,0 +1,105 @@
+distributable:
+  url: https://webkitgtk.org/releases/webkitgtk-{{version}}.tar.xz
+  strip-components: 1
+
+provides:
+
+versions:
+  url: https://webkitgtk.org/releases
+  match: /webkitgtk-\d+(.\d+)+\.tar\.xz/
+  strip:
+    - /webkitgtk-/
+    - /.tar.xz/
+
+# darwin uses JavaScriptCore.Framework
+platforms: [linux]
+
+dependencies:
+  # depends_on "enchant"
+  # depends_on "gstreamer"
+  # depends_on "libnotify"
+  # depends_on "sysprof"
+  cairographics.org: '*'
+  dri.freedesktop.org: '*'
+  freedesktop.org/at-spi2-atk: '*'
+  freedesktop.org/fontconfig: '*'
+  freetype.org: '*'
+  github.com/anholt/libepoxy: '*'
+  github.com/AOMediaCodec/libavif: '*'
+  gnome.org/gdk-pixbuf: '*'
+  gnome.org/glib: '*'
+  gnome.org/libsecret: '*'
+  gnome.org/libxml2: '*'
+  gnome.org/libxslt: '*'
+  gnome.org/pango: '*'
+  gnu.org/libtasn1: '*'
+  gnupg.org/libgcrypt: '*'
+  google.com/webp: '*'
+  google.com/woff2: '*'
+  gtk.org/gtk3: '*'
+  harfbuzz.org: '*'
+  # jpeg.org/jpegxl: '*'
+  libjpeg-turbo.org: '*'
+  libpng.org: '*'
+  libsoup.org: '*'
+  littlecms.com: '*'
+  mesa3d.org: '*'
+  openjpeg.org: '*'
+  sqlite.org: '*'
+  systemd.io: '*'
+  unicode.org: 71
+  wayland.freedesktop.org: '*'
+  wpewebkit.org/libwpe: '*'
+  wpewebkit.org/wpebackend-fdo: '*'
+  x.org/x11: '*'
+  x.org/xcomposite: '*'
+  x.org/xt: '*'
+  zlib.net: '*'
+
+build:
+  dependencies:
+    cmake.org: 3
+    gnome.org/gobject-introspection: '*'
+    gnu.org/binutils: '*'
+    gnu.org/gcc: 14
+    gnu.org/gettext: '*'
+    gnu.org/gperf: '*'
+    ninja-build.org: '*'
+    perl.org: '*'
+    python.org: '*'
+    ruby-lang.org: '*'
+    # depends_on "unifdef" => :build
+  working-directory: build
+  script:
+    - cmake -S .. $CMAKE_ARGS
+    - cmake --build .
+    - cmake --install .
+  env:
+    CMAKE_ARGS:
+      - -DCMAKE_INSTALL_PREFIX="{{prefix}}"
+      - -DCMAKE_BUILD_TYPE=Release
+      - -GNinja
+      - -DPORT=GTK
+      - -DENABLE_BUBBLEWRAP_SANDBOX=OFF
+      - -DENABLE_DOCUMENTATION=OFF
+      - -DENABLE_GAMEPAD=OFF
+      - -DENABLE_MINIBROWSER=ON
+      - -DENABLE_SPEECH_SYNTHESIS=OFF # Flite
+      - -DENABLE_SPELLCHECK=OFF # enchant
+      - -DUSE_AVIF=ON
+      - -DUSE_GTK4=OFF
+      - -DUSE_JPEGXL=OFF
+      - -DUSE_LIBBACKTRACE=OFF
+      - -DUSE_LIBHYPHEN=OFF
+      - -DENABLE_VIDEO=OFF # gstreamer
+      - -DENABLE_WEB_AUDIO=OFF # gstreamer
+      - -DENABLE_WEB_CODECS=OFF # gstreamer
+      - -DUSE_SYSTEM_UNIFDEF=OFF # unifdef
+      - -DUSE_SYSTEM_SYSPROF_CAPTURE=NO # sysprof
+    CC: gcc
+    CXX: g++
+    LD: ld
+    CFLAGS:
+      - -Wno-int-conversion
+
+test: 'true'
