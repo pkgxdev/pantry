@@ -1,0 +1,28 @@
+distributable:
+  url: https://github.com/linnea-bakshi/gha-doctor/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: linnea-bakshi/gha-doctor/tags
+
+provides:
+  - bin/gha-doctor
+
+build:
+  dependencies:
+    go.dev: '*'
+  script: go build -trimpath -ldflags="$GO_LDFLAGS" -o {{prefix}}/bin/gha-doctor ./cmd/gha-doctor
+  env:
+    CGO_ENABLED: 0
+    GO_LDFLAGS:
+      - -s
+      - -w
+      - -X main.version={{version}}
+    linux:
+      GO_LDFLAGS:
+        - -buildmode=pie
+
+test:
+  - gha-doctor --version | tee out
+  - test "$(cat out)" = "gha-doctor {{version}}"
+  - gha-doctor --explain D001
