@@ -22,9 +22,6 @@ build:
     - meson setup build $ARGS
     - meson compile -C build
     - meson install -C build
-    # inetutils also provides ping
-    - run: mv ping ping-iputils
-      working-directory: '{{prefix}}/bin'
   env:
     # meson's vcs_tag finds the pantry checkout and stamps its hash as the version
     GIT_DIR: /dev/null
@@ -37,11 +34,11 @@ build:
 provides:
   - bin/arping
   - bin/clockdiff
-  - bin/ping-iputils
+  - bin/ping
   - bin/tracepath
 
 test:
-  - ping-iputils -V | grep {{version.tag}}
+  - ping -V | grep {{version.tag}}
   - tracepath -V | grep {{version.tag}}
   # UDP probes, so no raw-socket capability needed
   - tracepath -n -m 1 127.0.0.1 | grep pmtu
