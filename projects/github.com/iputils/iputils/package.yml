@@ -4,85 +4,44 @@ distributable:
 
 versions:
   github: iputils/iputils
-  # tags are YYYYMMDD; pantry versions are semver. legacy sYYYYMMDD and
-  # "start" predate the current meson build and are dropped.
-  transform: 'v => { const m = v.match(/^(\d{4})(\d{2})(\d{2})$/); return m ? `${m[1]}.${m[2]}.${m[3]}` : undefined }'
+  # tags are YYYYMMDD; the older s-prefixed tags predate the meson build
+  transform: 'v => v.match(/^(\d{4})(\d{2})(\d{2})$/)?.slice(1).join(".")'
 
-# Linux networking tools (raw ICMP/ARP); no macOS.
 platforms:
   - linux
 
 dependencies:
-  kernel.org/libcap: "*"
-  gnu.org/libidn2: "*"
+  kernel.org/libcap: '*'
+  gnu.org/libidn2: '*'
 
 build:
   dependencies:
-    mesonbuild.com: "*"
-    ninja-build.org: "*"
-    freedesktop.org/pkg-config: "*"
+    mesonbuild.com: '*'
+    ninja-build.org: '*'
   script:
-    # brewkit's default llvm/lld needs the host crt (Scrt1.o, libgcc).
-    # When those are missing, link with the pkgx gcc + glibc bottles but
-    # keep the system dynamic loader, so the binaries NEEDED only libc.so.6.
-    - run: |
-        if ! echo 'int main(void){return 0;}' | cc -x c -o "$HOME/cc-sanity" - >/dev/null 2>&1; then
-          root="${PKGX_DIR:-$HOME/.pkgx}"
-          scr=$(printf '%s\n' "$root"/gnu.org/glibc/v*/lib/glibc-*/Scrt1.o 2>/dev/null | head -1)
-          if [ ! -f "$scr" ]; then
-            pkgx +gnu.org/gcc +gnu.org/binutils +gnu.org/glibc +kernel.org/linux-headers -- true
-          fi
-          libdir=$(printf '%s\n' "$root"/gnu.org/glibc/v*/lib/glibc-*/Scrt1.o | sort -V | tail -1)
-          libdir=${libdir%/Scrt1.o}
-          glibc_prefix=${libdir%/lib/glibc-*}
-          gcc_bin=$(printf '%s\n' "$root"/gnu.org/gcc/v*/bin/gcc | sort -V | tail -1)
-          gcc_prefix=${gcc_bin%/bin/gcc}
-          gcclib=$(printf '%s\n' "$gcc_prefix"/lib/gcc/*-linux-gnu/*/crtbeginS.o | sort -V | tail -1)
-          gcclib=${gcclib%/crtbeginS.o}
-          binutils_prefix=$(printf '%s\n' "$root"/gnu.org/binutils/v*/bin/as | sort -V | tail -1)
-          binutils_prefix=${binutils_prefix%/bin/as}
-          kh=$(printf '%s\n' "$root"/kernel.org/linux-headers/v*/include/linux/errqueue.h | sort -V | tail -1)
-          kh=${kh%/linux/errqueue.h}
-          case "$(uname -m)" in
-            aarch64|arm64) ldso=/lib/ld-linux-aarch64.so.1 ;;
-            *) ldso=/lib64/ld-linux-x86-64.so.2 ;;
-          esac
-          export PATH="$binutils_prefix/bin:$gcc_prefix/bin:$PATH"
-          export CC="$gcc_bin"
-          export CXX="${gcc_prefix}/bin/g++"
-          export CFLAGS="-B$libdir -B$gcclib -isystem $glibc_prefix/include -isystem $kh -isystem $gcclib/include ${CFLAGS:-}"
-          export LDFLAGS="-B$libdir -L$libdir -L$gcclib -Wl,--dynamic-linker=$ldso ${LDFLAGS:-}"
-        fi
-        rm -f "$HOME/cc-sanity"
-    # meson vcs_tag walks parent directories and would stamp the pantry
-    # checkout hash. Keep PACKAGE_VERSION at the upstream tag (20250605).
-    - rm -rf .git
-    - export GIT_CEILING_DIRECTORIES="$(dirname "$SRCROOT")"
     - meson setup build $ARGS
-    - meson compile -C build --jobs {{hw.concurrency}}
+    - meson compile -C build
     - meson install -C build
+    # inetutils also provides ping
+    - run: mv ping ping-iputils
+      working-directory: '{{prefix}}/bin'
   env:
+    # meson's vcs_tag finds the pantry checkout and stamps its hash as the version
+    GIT_DIR: /dev/null
     ARGS:
       - --prefix={{prefix}}
       - --buildtype=release
-      - -DBUILD_MANS=false # man pages need xsltproc + docbook XSL
-      - -DBUILD_HTML_MANS=false
+      - -DBUILD_MANS=false # needs xsltproc and the docbook stylesheets
       - -DUSE_GETTEXT=false
-      - -DNO_SETCAP_OR_SUID=true # install must not call setcap or chmod u+s
-      - -DSKIP_TESTS=true
 
 provides:
   - bin/arping
   - bin/clockdiff
-  - bin/ping
+  - bin/ping-iputils
   - bin/tracepath
 
-# ping, arping, and clockdiff need CAP_NET_RAW or root to send packets.
-# -V parses args and exits before any socket setup.
-# version string is the upstream tag (ping from iputils 20250605).
 test:
-  - ping -V | tee out
-  - grep {{version.tag}} out
-  - arping -V | grep {{version.tag}}
-  - clockdiff -V | grep {{version.tag}}
+  - ping-iputils -V | grep {{version.tag}}
   - tracepath -V | grep {{version.tag}}
+  # UDP probes, so no raw-socket capability needed
+  - tracepath -n -m 1 127.0.0.1 | grep pmtu
