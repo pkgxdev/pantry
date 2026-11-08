@@ -22,9 +22,6 @@ build:
     - meson setup build $ARGS
     - meson compile -C build
     - meson install -C build
-    # inetutils also provides ping
-    - run: mv ping ping-iputils
-      working-directory: '{{prefix}}/bin'
   env:
     # meson's vcs_tag finds the pantry checkout and stamps its hash as the version
     GIT_DIR: /dev/null
@@ -35,13 +32,17 @@ build:
       - -DUSE_GETTEXT=false
 
 provides:
-  - bin/arping
-  - bin/clockdiff
-  - bin/ping-iputils
-  - bin/tracepath
+  # keyed so darwin, where the package is unavailable, keeps inetutils as its ping
+  # (libpkgx rejects a map without the host's key, hence the empty list)
+  darwin: []
+  linux:
+    - bin/arping
+    - bin/clockdiff
+    - bin/ping
+    - bin/tracepath
 
 test:
-  - ping-iputils -V | grep {{version.tag}}
+  - ping -V | grep {{version.tag}}
   - tracepath -V | grep {{version.tag}}
   # UDP probes, so no raw-socket capability needed
   - tracepath -n -m 1 127.0.0.1 | grep pmtu
