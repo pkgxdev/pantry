@@ -1,0 +1,58 @@
+distributable:
+  url: https://github.com/NousResearch/hermes-agent/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+display-name: hermes-agent
+
+versions:
+  github: NousResearch/hermes-agent
+
+dependencies:
+  python.org: ~3.14 # every dependency is gated on 3.14
+  nodejs.org: '>=22' # runs the tui
+  crates.io/ripgrep: '*'
+  ffmpeg.org: '*'
+  git-scm.org: '*'
+
+build:
+  dependencies:
+    npmjs.com: '*'
+    astral.sh/uv: '*'
+  script:
+    - bkpyvenv stage {{prefix}} {{version}}
+    # pyproject pins conflict; uv.lock applies upstream's overrides, so install exactly that
+    - uv export --frozen --no-hashes --no-emit-project -o requirements.txt
+    - ${{prefix}}/venv/bin/pip install --no-deps -r requirements.txt
+    - ${{prefix}}/venv/bin/pip install --no-deps .
+    # the code finds these beside its packages, as in a source checkout
+    - run: cp -R $SRCROOT/locales $SRCROOT/skills $SRCROOT/optional-skills $SRCROOT/optional-mcps .
+      working-directory: ${{prefix}}/venv/lib/python{{deps.python.org.version.marketing}}/site-packages
+    - npm ci --workspace ui-tui
+    - npm run build --workspace ui-tui
+    - run: cp -R $SRCROOT/ui-tui/dist tui_dist
+      working-directory: ${{prefix}}/venv/lib/python{{deps.python.org.version.marketing}}/site-packages/hermes_cli
+    # --version reads this, and `external` marks the install as not self-updating.
+    # a stamp without a real commit is ignored, and the tarball has no .git
+    - COMMIT=$(git ls-remote $REPO "refs/tags/v{{version}}^{}" "refs/tags/v{{version}}" | tail -1 | cut -f1)
+    - ${{prefix}}/venv/bin/python scripts/write_install_stamp.py
+      --output {{prefix}}/venv/lib/python{{deps.python.org.version.marketing}}/site-packages/install-stamp.json
+      --commit $COMMIT --base-version {{version}} --source build --update-mechanism external
+    - bkpyvenv seal {{prefix}} hermes hermes-agent hermes-acp
+  env:
+    # setup.py refuses wheel builds outside upstream's nix packaging
+    HERMES_NIX_BUILD: 1
+    REPO: https://github.com/NousResearch/hermes-agent
+
+provides:
+  - bin/hermes
+  - bin/hermes-agent
+  - bin/hermes-acp
+
+test:
+  env:
+    HERMES_HOME: $PWD/hermes-home
+  script:
+    # from the install stamp
+    - hermes --version | grep "v{{version}}"
+    # resolved from the skills bundled beside the packages
+    - hermes skills inspect codebase-inspection | grep 'Codebase Inspection'
