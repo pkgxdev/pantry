@@ -18,10 +18,10 @@ build:
   script:
     - go build $GO_ARGS -ldflags="$GO_LDFLAGS" ./main
     - run:
-        - curl -fL "$RES_GEOSITE" -o geosite.dat
-        - curl -fL "$RES_GEOIP" -o geoip.dat
+        - curl -fL --retry 5 "$RES_GEOSITE" -o geosite.dat
+        - curl -fL --retry 5 "$RES_GEOIP" -o geoip.dat
       working-directory: ${{prefix}}/share/xray
-    - run: curl -fL "$RES_CONFIG" -o config.json
+    - run: curl -fL --retry 5 "$RES_CONFIG" -o config.json
       working-directory: ${{prefix}}/etc/xray
   env:
     GO_LDFLAGS:
