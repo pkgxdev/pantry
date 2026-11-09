@@ -1,25 +1,25 @@
 distributable:
-  url: https://registry.npmjs.org/@mariozechner/pi-coding-agent/-/pi-coding-agent-{{version}}.tgz
+  url: https://registry.npmjs.org/@earendil-works/pi-coding-agent/-/pi-coding-agent-{{version}}.tgz
   strip-components: 1
 
 display-name: pi.dev
 
 versions:
-  npm: "@mariozechner/pi-coding-agent"
+  npm: "@earendil-works/pi-coding-agent"
 
 provides:
   - bin/pi
   - bin/pi-init
 
 dependencies:
-  nodejs.org: ^20
+  nodejs.org: ">=22.19"
   github.com/mikefarah/yq: "*"
   stedolan.github.io/jq: "*"
   gnu.org/sed: "*"
 
 build:
   dependencies:
-    nodejs.org: ^20
+    nodejs.org: ">=22.19"
     npmjs.com: "*"
   script:
     - npm i $ARGS .
@@ -29,11 +29,12 @@ build:
       - --global
       - --prefix={{prefix}}
       - --install-links
-      - --unsafe-perm
 
 test:
   - pi --version 2>&1 | tee out
   - grep "{{version}}" out
+  # reads the bundled model catalog; PI_OFFLINE skips startup update checks
+  - PI_OFFLINE=1 ANTHROPIC_API_KEY=test-key pi --list-models anthropic | grep '^anthropic '
   - pi-init --help 2>&1 | tee out
   - grep "pi-init" out
   - run:
