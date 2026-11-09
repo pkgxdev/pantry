@@ -15,10 +15,14 @@ build:
   dependencies:
     gnu.org/bison: 3
   working-directory: src
-  script: |
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }}
-    make install
+  script:
+    - ./configure $ARGS
+    # darwin lacks secure_getenv, so libgssrpc calls k5_secure_getenv from libkrb5support,
+    # which its link line omits (glibc has the symbol, so only darwin fails to link)
+    - run: sed -i 's/^SHLIB_EXPLIBS=.*/& -lkrb5support/' lib/rpc/Makefile
+      if: darwin
+    - make --jobs {{ hw.concurrency }}
+    - make install
   env:
     ARGS:
       - --prefix="{{prefix}}"
