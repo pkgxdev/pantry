@@ -104,6 +104,10 @@ build:
         - export PYTHONPATH=$SRCROOT/venv/lib/python{{deps.python.org.version.marketing}}/site-packages:$PYTHONPATH
       if: ">=24.2"
 
+    # 26.3 dropped the xlib glx choice; dri is its replacement
+    - run: MESON_ARGS="${MESON_ARGS//-Dglx=xlib/-Dglx=dri}"
+      if: ">=26.3"
+
     - meson setup build $MESON_ARGS
     - meson compile -C build --verbose
     - meson install -C build --no-rebuild
