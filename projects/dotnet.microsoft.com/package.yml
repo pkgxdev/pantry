@@ -40,6 +40,9 @@ test:
     # runtime 10.0.13+ creates NuGet's first-run named mutex under $TMPDIR and
     # dies with lstat("") when it's unset (macOS runners export none).
     TMPDIR: /tmp
+    # /tmp is a symlink on macOS, and NuGet opens $TMPDIR with O_NOFOLLOW (ENOTDIR)
+    darwin:
+      TMPDIR: /private/tmp
   script:
     - dotnet --version | grep {{version}}
     - dotnet new console -o test
