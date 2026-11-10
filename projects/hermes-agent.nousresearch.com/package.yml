@@ -23,6 +23,8 @@ build:
   dependencies:
     npmjs.com: '*'
     astral.sh/uv: '*'
+    # 0.23.1 moved the TUI to a pnpm workspace; must match pm/lock.json packages.pnpm.version
+    pnpm.io: =12.15.0
   script:
     - bkpyvenv stage {{prefix}} {{version}}
     # pyproject pins conflict; uv.lock applies upstream's overrides, so install exactly that
@@ -32,8 +34,15 @@ build:
     # the code finds these beside its packages, as in a source checkout
     - run: cp -R $SRCROOT/locales $SRCROOT/skills $SRCROOT/optional-skills $SRCROOT/optional-mcps .
       working-directory: ${{prefix}}/venv/lib/python{{deps.python.org.version.marketing}}/site-packages
-    - npm ci --workspace ui-tui
-    - npm run build --workspace ui-tui
+    # npm refuses the pnpm workspace from 0.23.1; install and build as upstream's Dockerfile does
+    - run:
+        - node scripts/build/node-deps.mjs --source $SRCROOT --workspace ui-tui
+        - node scripts/build/tui.mjs
+      if: ">=0.23.1"
+    - run:
+        - npm ci --workspace ui-tui
+        - npm run build --workspace ui-tui
+      if: <0.23.1
     - run: cp -R $SRCROOT/ui-tui/dist tui_dist
       working-directory: ${{prefix}}/venv/lib/python{{deps.python.org.version.marketing}}/site-packages/hermes_cli
     # --version reads this, and `external` marks the install as not self-updating.
