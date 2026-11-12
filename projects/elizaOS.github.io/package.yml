@@ -33,6 +33,9 @@ build:
     gnu.org/patch: "*"
     gnu.org/sed: "*" # otherwise, weird path issues
     git-scm.org: "*" # as of 1.0.9 for git submodules
+    linux:
+      # biome 2.6.6 from source: its npm binary needs glibc 2.29, newer than the build image has
+      biomejs.dev: =2.6.6
   script:
     - run: curl 'https://github.com/adimverse/eliza/commit/d577fda887820e188b0e017f9869185be9fb3bc7.patch' | patch -p1
       if: ">=0.1.8<0.1.9"
@@ -55,6 +58,12 @@ build:
         # v2 includes a stale duplicate workspace on some tags
         - rm -rf packages/browser-bridge
         - bun install
+      if: ">=2"
+    # the npm biome binary needs glibc 2.29, so run the source-built biome in its place
+    # empty on darwin and on older versions, where there is no linux npm biome to replace
+    - run:
+        - FOUND=$(find node_modules -path '*/@biomejs/cli-linux-x64/biome')
+        - for f in $FOUND; do ln -sf "$(command -v biome)" "$f"; done
       if: ">=2"
     - run: sed -i '/bunx --bun @biomejs\/biome format --write/,/});/d' packages/elizaos/build.ts
       if: ">=2"
