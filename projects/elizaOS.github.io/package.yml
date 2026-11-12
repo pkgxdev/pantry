@@ -33,9 +33,8 @@ build:
     gnu.org/patch: "*"
     gnu.org/sed: "*" # otherwise, weird path issues
     git-scm.org: "*" # as of 1.0.9 for git submodules
-    linux:
-      # biome 2.6.6 from source: its npm binary needs glibc 2.29, newer than the build image has
-      biomejs.dev: =2.6.6
+    # biome 2.6.6 from source: the build calls it from PATH, not the npm binary (needs glibc 2.29)
+    biomejs.dev: =2.6.6
   script:
     - run: curl 'https://github.com/adimverse/eliza/commit/d577fda887820e188b0e017f9869185be9fb3bc7.patch' | patch -p1
       if: ">=0.1.8<0.1.9"
@@ -54,19 +53,27 @@ build:
         - mkdir -p plugin-specification
         - bun install
       if: ">=1.0.5<2"
+    # the build calls biome from PATH; the npm biome binary needs glibc 2.29, newer than the build image has
+    - run: |
+        sed -i -e '/import.meta.resolve("@biomejs\/biome\/bin\/biome")/d' -e 's/^  process\.execPath,$/  "biome",/' plugins/plugin-native-browser-surface/scripts/build-control-channel.mjs
+        sed -i "s#spawnSync(process.execPath,\[createRequire(import.meta.url).resolve('@biomejs/biome/bin/biome'),#spawnSync('biome',[#" plugins/plugin-workflow/scripts/build-windows-lease-resource.ts
+        sed -i -e "s#^  process.execPath,#  'biome',#" -e "s#require.resolve('@biomejs/biome/bin/biome'), ##" plugins/plugin-workflow/scripts/build-worker-lease-prelude.ts
+        sed -i 's#execFileSync(bunx, \["@biomejs/biome", #execFileSync("biome", [#' packages/ui/scripts/bake-view-icons.ts
+        grep -q '"biome",' plugins/plugin-native-browser-surface/scripts/build-control-channel.mjs
+        grep -q "spawnSync('biome'" plugins/plugin-workflow/scripts/build-windows-lease-resource.ts
+        grep -q "^  'biome'," plugins/plugin-workflow/scripts/build-worker-lease-prelude.ts
+        grep -q 'execFileSync("biome"' packages/ui/scripts/bake-view-icons.ts
+        ! grep -rq 'biomejs/biome/bin' plugins/plugin-native-browser-surface/scripts plugins/plugin-workflow/scripts
+      if: ">=2"
     - run:
         # v2 includes a stale duplicate workspace on some tags
         - rm -rf packages/browser-bridge
         - bun install
       if: ">=2"
-    # the npm biome binary needs glibc 2.29, so run the source-built biome in its place
-    # empty on darwin and on older versions, where there is no linux npm biome to replace
-    - run:
-        - FOUND=$(find node_modules -path '*/@biomejs/cli-linux-x64/biome')
-        - for f in $FOUND; do ln -sf "$(command -v biome)" "$f"; done
-      if: ">=2"
+    - run: bun run build
+      if: ">=2.0.5"
     - run: sed -i '/bunx --bun @biomejs\/biome format --write/,/});/d' packages/elizaos/build.ts
-      if: ">=2"
+      if: ">=2<2.0.5"
 
     # needs to find the module in the pnpm cache
     - run: ln -s {{deps.pnpm.io.prefix}} {{deps.pnpm.io.version}}
@@ -82,7 +89,7 @@ build:
         # the biome format plugin is a dev dependency that adds a postbuild step to format the code, but it needs newer glibc on linux and it's not necessary since we're not including the source files
         - sed -i '/bunx --bun @biomejs\/biome format --write/,/});/d' build.ts
       working-directory: packages/elizaos
-      if: ">=2"
+      if: ">=2<2.0.5"
 
     # adapted from their Dockerfile
     - run:
@@ -101,7 +108,11 @@ build:
         - cp -R $SRCROOT/node_modules .
         - cp -R $SRCROOT/packages/elizaos packages/
       working-directory: ${{prefix}}/libexec
-      if: ">=2"
+      if: ">=2<2.0.5"
+    - run:
+        - cp -R $SRCROOT/node_modules $SRCROOT/packages $SRCROOT/plugins $SRCROOT/package.json .
+      working-directory: ${{prefix}}/libexec
+      if: ">=2.0.5"
 
     - run: install -Dm755 $PROP eliza
       working-directory: ${{prefix}}/bin
@@ -161,7 +172,7 @@ build:
         - install -Dm755 $PROP eliza
         - ln -s eliza elizaos
       working-directory: ${{prefix}}/bin
-      if: ">=2"
+      if: ">=2<2.0.5"
       prop: |
         #!/bin/sh
 
@@ -178,6 +189,28 @@ build:
         fi
 
         exec node "$BINDIR/../libexec/packages/elizaos/dist/cli.js" "$@"
+
+    - run:
+        - install -Dm755 $PROP eliza
+        - ln -s eliza elizaos
+      working-directory: ${{prefix}}/bin
+      if: ">=2.0.5"
+      prop: |
+        #!/bin/sh
+
+        SELF="$0"
+        case "$SELF" in
+          */*) ;;
+          *) SELF="$(command -v "$0")" ;;
+        esac
+        BINDIR="$(cd "$(dirname "$SELF")" && pwd)"
+
+        if [ "$1" = "--version" ]; then
+          echo "elizaOS {{version}}"
+          exit 0
+        fi
+
+        exec bun "$BINDIR/../libexec/packages/agent/dist/bin.js" "$@"
   skip:
     # takes 4+ hours
     - fix-patchelf
