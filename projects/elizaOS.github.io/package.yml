@@ -53,16 +53,17 @@ build:
         - mkdir -p plugin-specification
         - bun install
       if: ">=1.0.5<2"
-    # the build calls biome from PATH; the npm biome binary needs glibc 2.29, newer than the build image has
+    # the build calls the source-built biome by full path: bun run puts node_modules/.bin first, and its npm binary needs glibc 2.29
     - run: |
-        sed -i -e '/import.meta.resolve("@biomejs\/biome\/bin\/biome")/d' -e 's/^  process\.execPath,$/  "biome",/' plugins/plugin-native-browser-surface/scripts/build-control-channel.mjs
-        sed -i "s#spawnSync(process.execPath,\[createRequire(import.meta.url).resolve('@biomejs/biome/bin/biome'),#spawnSync('biome',[#" plugins/plugin-workflow/scripts/build-windows-lease-resource.ts
-        sed -i -e "s#^  process.execPath,#  'biome',#" -e "s#require.resolve('@biomejs/biome/bin/biome'), ##" plugins/plugin-workflow/scripts/build-worker-lease-prelude.ts
-        sed -i 's#execFileSync(bunx, \["@biomejs/biome", #execFileSync("biome", [#' packages/ui/scripts/bake-view-icons.ts
-        grep -q '"biome",' plugins/plugin-native-browser-surface/scripts/build-control-channel.mjs
-        grep -q "spawnSync('biome'" plugins/plugin-workflow/scripts/build-windows-lease-resource.ts
-        grep -q "^  'biome'," plugins/plugin-workflow/scripts/build-worker-lease-prelude.ts
-        grep -q 'execFileSync("biome"' packages/ui/scripts/bake-view-icons.ts
+        BIOME={{deps.biomejs.dev.prefix}}/bin/biome
+        sed -i -e '/import.meta.resolve("@biomejs\/biome\/bin\/biome")/d' -e "s#^  process\.execPath,\$#  \"$BIOME\",#" plugins/plugin-native-browser-surface/scripts/build-control-channel.mjs
+        sed -i "s#spawnSync(process.execPath,\[createRequire(import.meta.url).resolve('@biomejs/biome/bin/biome'),#spawnSync('$BIOME',[#" plugins/plugin-workflow/scripts/build-windows-lease-resource.ts
+        sed -i -e "s#^  process.execPath,#  '$BIOME',#" -e "s#require.resolve('@biomejs/biome/bin/biome'), ##" plugins/plugin-workflow/scripts/build-worker-lease-prelude.ts
+        sed -i "s#execFileSync(bunx, \[\"@biomejs/biome\", #execFileSync(\"$BIOME\", [#" packages/ui/scripts/bake-view-icons.ts
+        grep -q "\"$BIOME\"," plugins/plugin-native-browser-surface/scripts/build-control-channel.mjs
+        grep -q "spawnSync('$BIOME'" plugins/plugin-workflow/scripts/build-windows-lease-resource.ts
+        grep -q "^  '$BIOME'," plugins/plugin-workflow/scripts/build-worker-lease-prelude.ts
+        grep -q "execFileSync(\"$BIOME\"" packages/ui/scripts/bake-view-icons.ts
         ! grep -rq 'biomejs/biome/bin' plugins/plugin-native-browser-surface/scripts plugins/plugin-workflow/scripts
       if: ">=2"
     - run:
@@ -70,7 +71,7 @@ build:
         - rm -rf packages/browser-bridge
         - bun install
       if: ">=2"
-    - run: bun run build
+    - run: bun packages/scripts/run-turbo.ts run build --filter=@elizaos/agent... --concurrency=4 --output-logs=errors-only
       if: ">=2.0.5"
     - run: sed -i '/bunx --bun @biomejs\/biome format --write/,/});/d' packages/elizaos/build.ts
       if: ">=2<2.0.5"
