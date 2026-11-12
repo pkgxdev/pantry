@@ -206,7 +206,7 @@ build:
     # not file(1) — not on the test-sandbox PATH.
     - run:
         - PREFIX_FINAL=$(echo "{{prefix}}" | sed 's/+brewing$//')
-        - for f in $(find . -maxdepth 2 -type f -name '*.so'); do
+        - for f in $(find . -maxdepth 2 -type f \( -name '*.so' -o -name '*.a' \)); do
         - if head -c 16 "$f" | grep -q "GNU ld script"; then
         - sed -i -e 's|{{prefix}}/lib/glibc-{{version.marketing}}/||g' -e "s|$PREFIX_FINAL/lib/glibc-{{version.marketing}}/||g" "$f"
         - echo "relocated linker script $f"
@@ -248,6 +248,15 @@ build:
         libdir="$prefix/lib/glibc-{{version.marketing}}"
 
         exec "$libdir/@LDSO@" --library-path "$libdir" "$prefix/libexec/glibc-@DIR@/$(basename "$0")" "$@"
+
+    # Expose startup objects and key libraries at the top level lib/ directory.
+    - run:
+        - GLIBC_LIBDIR="glibc-{{version.marketing}}"
+        - cd "{{prefix}}/lib"
+        - 'for file in "$GLIBC_LIBDIR"/*.o "$GLIBC_LIBDIR"/*.a; do'
+        - '  test -f "$file" && ln -sf "$file" "$(basename "$file")" || true'
+        - 'done'
+        - 'test -f "$GLIBC_LIBDIR/libc.so" && ln -sf "$GLIBC_LIBDIR/libc.so" libc.so || true'
 
   env:
     x86-64:
