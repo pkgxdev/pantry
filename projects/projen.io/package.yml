@@ -58,7 +58,9 @@ test:
       - testfiles="pom.xml"
       - for file in $testfiles; do test -f $file; done
     working-directory: java
+  # pkgx puts glib's pip 24.0 on PYTHONPATH; it shadows the venv's pip 26.3, whose entry point needs pip._internal.cli.main.cli
   - run:
+      - unset PYTHONPATH
       - projen new python --name test-project-python
       - testfiles="requirements.txt .projenrc.py"
       - for file in $testfiles; do test -f $file; done
