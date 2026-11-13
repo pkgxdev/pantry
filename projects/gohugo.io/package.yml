@@ -30,4 +30,8 @@ build:
 
 test:
   - hugo version | grep 'hugo v{{version}}'
-  - hugo version | grep '+extended+withdeploy'
+  # v0.170 dropped the extended edition: the version string no longer says +extended
+  - run: hugo version | grep '+extended+withdeploy'
+    if: <0.170
+  - run: hugo version | grep '+withdeploy'
+    if: ">=0.170"
