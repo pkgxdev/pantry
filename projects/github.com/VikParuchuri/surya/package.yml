@@ -65,20 +65,27 @@ build:
     - run: ${{prefix}}/venv/bin/pip install requests
       if: ">=0.21"
 
+    # surya_detect was removed in 0.24.0; surya_layout exists in every version
     - run: bkpyvenv seal --engine=poetry {{prefix}} surya_detect
       if: <0.20
     - run: bkpyvenv seal {{prefix}} surya_detect
+      if: ">=0.20<0.24"
+    - run: bkpyvenv seal --engine=poetry {{prefix}} surya_layout
+      if: <0.20
+    - run: bkpyvenv seal {{prefix}} surya_layout
       if: ">=0.20"
 
 provides:
-  - bin/surya_detect
+  - bin/surya_layout
 
 test:
   dependencies:
     curl.se: "*"
   script:
-    - curl -L "https://raw.githubusercontent.com/VikParuchuri/surya/{{version.tag}}/static/images/excerpt.png" -o test.png
-    - surya_detect ./test.png --images
+    - run: surya_detect ./test.png --images
+      if: <0.24
+    - run: surya_layout ./test.png --images
+      if: ">=0.24"
     - |
       grep -F '"bboxes": [{' results/surya/test/results.json
     - |
