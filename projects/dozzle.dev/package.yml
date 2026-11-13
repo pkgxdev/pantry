@@ -18,6 +18,7 @@ build:
     abseil.io: 20250127
     grpc.io/grpc-go: "*"
     bun.sh: '*'
+    just.systems: "*" # the Makefile became a justfile in 11.4.3
   script:
     - run: make -j {{hw.concurrency}} tools
       if: <10
@@ -35,7 +36,10 @@ build:
     - run: sudo launchctl limit maxfiles 16384 16384
       if: darwin/aarch64
     # -j {{hw.concurrency}} can get too many open files.
-    - make dist generate
+    - run: make dist generate
+      if: <11.4.3
+    - run: just dist generate
+      if: ">=11.4.3"
     - go build -ldflags "$GO_LDFLAGS" -o {{prefix}}/bin/dozzle .
   env:
     CGO_ENABLED: 0
