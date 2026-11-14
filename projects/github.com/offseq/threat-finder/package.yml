@@ -1,0 +1,19 @@
+distributable:
+  url: https://github.com/offseq/threat-finder/archive/refs/tags/{{ version.tag }}.tar.gz
+  strip-components: 1
+
+versions:
+  github: offseq/threat-finder
+
+provides:
+  - bin/threat-finder
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.89'
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path . --root {{prefix}}
+
+test:
+  - test "$(threat-finder --version)" = "threat-finder {{version}}"
+  - threat-finder --help | grep -- --sbom
