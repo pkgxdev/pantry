@@ -1,0 +1,25 @@
+distributable:
+  url: https://github.com/Mattbusel/Every-Other-Token/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+display-name: every-other-token
+
+versions:
+  github: Mattbusel/Every-Other-Token
+
+provides:
+  - bin/every-other-token
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.89'
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path . --root {{prefix}}
+
+test:
+  - every-other-token --version | tee out
+  - grep {{version}} out
+  # the mock provider streams a reply offline, no API key needed; the
+  # uppercase transform rewrites every other token
+  - every-other-token "Why is the sky blue?" uppercase --provider mock --json-stream | tee stream.jsonl
+  - grep -F '"text":" SKY"' stream.jsonl
