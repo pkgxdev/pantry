@@ -66,6 +66,11 @@ build:
       working-directory: font-data
 
     - run: |
+        for command in pdfattach pdfdetach pdffonts pdfimages pdfinfo pdfseparate pdfsig pdftocairo pdftohtml pdftoppm pdftops pdftotext pdfunite; do
+          mv "{{prefix}}/bin/$command" "{{prefix}}/bin/$command-qt5"
+        done
+
+    - run: |
         if test -e "${ORIG_AS}.bak"; then
           mv ${ORIG_AS}{.bak,}
         fi
@@ -98,20 +103,20 @@ build:
       LD: ld.gold
 
 provides:
-  - bin/pdfattach
-  - bin/pdfdetach
-  - bin/pdffonts
-  - bin/pdfimages
-  - bin/pdfinfo
-  - bin/pdfseparate
-  - bin/pdfsig
-  - bin/pdftocairo
-  - bin/pdftohtml
-  - bin/pdftoppm
-  - bin/pdftops
-  - bin/pdftotext
-  - bin/pdfunite
+  - bin/pdfattach-qt5
+  - bin/pdfdetach-qt5
+  - bin/pdffonts-qt5
+  - bin/pdfimages-qt5
+  - bin/pdfinfo-qt5
+  - bin/pdfseparate-qt5
+  - bin/pdfsig-qt5
+  - bin/pdftocairo-qt5
+  - bin/pdftohtml-qt5
+  - bin/pdftoppm-qt5
+  - bin/pdftops-qt5
+  - bin/pdftotext-qt5
+  - bin/pdfunite-qt5
 
 test:
-  - pdfinfo lorem.pdf | grep "Lorem Ipsum"
+  - pdfinfo-qt5 lorem.pdf | grep "Lorem Ipsum"
   - pkg-config --modversion poppler-qt5 | grep "{{version.raw}}"
