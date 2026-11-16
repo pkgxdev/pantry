@@ -1,5 +1,6 @@
 distributable:
-  url: https://miniupnp.tuxfamily.org/files/download.php?file=miniupnpc-{{version}}.tar.gz
+  # the tuxfamily 2.3.4 tarball ships a zero-byte include/miniupnpc.h; the git tag is fine
+  url: https://github.com/miniupnp/miniupnp/archive/refs/tags/miniupnpc_{{version.major}}_{{version.minor}}_{{version.patch}}.tar.gz
   strip-components: 1
 
 versions:
@@ -10,7 +11,8 @@ versions:
     - /\.tar\.gz$/
 
 build:
-  - make INSTALLPREFIX={{prefix}} install
+  - run: make INSTALLPREFIX={{prefix}} install
+    working-directory: miniupnpc
 
 provides:
   - bin/external-ip
