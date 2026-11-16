@@ -1,0 +1,29 @@
+distributable:
+  url: https://github.com/Mattbusel/llm-cost-dashboard/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+display-name: llm-dash
+
+versions:
+  github: Mattbusel/llm-cost-dashboard
+
+provides:
+  - bin/llm-dash
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.82'
+    rust-lang.org/cargo: '*'
+  script: cargo install --locked --path . --bin llm-dash --root {{prefix}}
+
+test:
+  - llm-dash --version | tee out
+  - grep {{version}} out
+  # one-shot report from a request log, no TUI and no network
+  - run: cp $FIXTURE requests.ndjson
+    fixture: |
+      {"model":"gpt-4o-mini","input_tokens":512,"output_tokens":256,"latency_ms":340}
+      {"model":"claude-sonnet-4-6","input_tokens":1000,"output_tokens":500,"latency_ms":800}
+  - llm-dash --log-file requests.ndjson --export-csv costs.csv
+  - grep gpt-4o-mini costs.csv
+  - grep claude-sonnet-4-6 costs.csv
