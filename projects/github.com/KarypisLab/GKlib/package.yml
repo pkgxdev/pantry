@@ -1,5 +1,5 @@
 distributable:
-  url: https://github.com/KarypisLab/GKlib/archive/refs/tags/METIS-v{{version}}-DistDGL-0.5.tar.gz
+  url: https://github.com/KarypisLab/GKlib/archive/refs/tags/{{version.tag}}.tar.gz
   strip-components: 1
 
 versions:
@@ -16,6 +16,9 @@ build:
     - make config $ARGS
     - make -j {{hw.concurrency}}
     - make install
+    # v0.0.1 builds these apps but its install rules only install csrcnv
+    - run: cp build/*/apps/{cmpnbrs,fis,gkgraph,gkrw,m2mnbrs} {{prefix}}/bin/
+      if: <1
   env:
     ARGS:
       - prefix="{{prefix}}"
