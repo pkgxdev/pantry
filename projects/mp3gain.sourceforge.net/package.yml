@@ -1,0 +1,24 @@
+distributable:
+  url: https://downloads.sourceforge.net/project/mp3gain/mp3gain/{{version}}/mp3gain-{{version.major}}_{{version.minor}}_{{version.patch}}-src.zip
+
+versions:
+  url: https://sourceforge.net/projects/mp3gain/files/mp3gain/
+  match: _/projects/mp3gain/files/mp3gain/\d+\.\d+\.\d+/_
+  strip:
+    - _^/projects/mp3gain/files/mp3gain/_
+    - _/$_
+
+dependencies:
+  mpg123.de: '*'
+
+build:
+  script:
+    - make --jobs {{ hw.concurrency }} mp3gain
+    - mkdir -p {{prefix}}/bin
+    - make install INSTALL_PATH={{prefix}}/bin
+
+provides:
+  - bin/mp3gain
+
+test:
+  - mp3gain -v 2>&1 | grep "mp3gain version"
