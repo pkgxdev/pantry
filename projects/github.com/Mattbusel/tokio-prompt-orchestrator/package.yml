@@ -1,0 +1,41 @@
+distributable:
+  url: https://github.com/Mattbusel/tokio-prompt-orchestrator/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+display-name: orchestrator
+
+versions:
+  github: Mattbusel/tokio-prompt-orchestrator
+
+provides:
+  - bin/orchestrator
+
+build:
+  dependencies:
+    rust-lang.org: '>=1.88'
+    rust-lang.org/cargo: '*'
+  # same feature set as the upstream release binaries; the extra `cli`
+  # tools (coordinator, replay, validate) have generic names, so only
+  # the proxy itself is installed
+  script: cargo install --locked --path . --bin orchestrator --features web-api --root {{prefix}}
+
+test:
+  dependencies:
+    curl.se: '*'
+  script:
+    - orchestrator --version | tee out
+    - grep {{version}} out
+    # run the proxy with the offline `echo` provider and send it one
+    # OpenAI-style request
+    - run: |
+        orchestrator --provider echo --port 18080 </dev/null >server.log 2>&1 &
+        PID=$!
+        for i in $(seq 1 30); do curl -sf http://127.0.0.1:18080/health && break; sleep 1; done
+        curl -sf -H 'content-type: application/json' -d @$FIXTURE \
+          http://127.0.0.1:18080/v1/chat/completions | tee reply.json
+        kill $PID
+      fixture:
+        extname: json
+        content: |
+          {"model":"echo","messages":[{"role":"user","content":"hello pkgx"}]}
+    - grep 'hello pkgx' reply.json
