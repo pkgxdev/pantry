@@ -10,7 +10,9 @@ dependencies:
   openjdk.org: '>=8'
 build:
   script:
-    - rm bin/*.cmd
+    # Windows launchers are .bat before 3.3.0 and .cmd from 3.3.0 on
+    - run: rm bin/*.cmd
+      if: ">=3.3"
     - mkdir -p {{prefix}}
     - mv ./* {{prefix}}/
 provides:
