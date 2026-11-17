@@ -8,12 +8,16 @@ versions:
 platforms:
   - linux
 
+dependencies:
+  linux:
+    # the binary links libstdc++ dynamically; at runtime it must find this one, not the system's
+    gnu.org/gcc/libstdcxx: 14
+
 build:
   dependencies:
     cmake.org: '*'
     linux:
       gnu.org/gcc: 14
-      gnu.org/gcc/libstdcxx: 14
   script:
     # on Linux, std_throws.cpp clashes with the static libstdc++.a members; link libstdc++ dynamically
     - run: sed -i '/-static-libstdc++>/d' CMakeLists.txt
