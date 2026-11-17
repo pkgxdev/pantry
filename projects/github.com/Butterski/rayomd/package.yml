@@ -12,9 +12,12 @@ build:
   dependencies:
     cmake.org: '*'
     linux:
-      # gcc and the libstdcxx it links must be the same major (14.4 link clashes with gcc 16)
       gnu.org/gcc: 14
+      gnu.org/gcc/libstdcxx: 14
   script:
+    # on Linux, std_throws.cpp clashes with the static libstdc++.a members; link libstdc++ dynamically
+    - run: sed -i '/-static-libstdc++>/d' CMakeLists.txt
+      if: linux
     - cmake -S . -B build $CMAKE_ARGS
     - cmake --build build
     - install -Dm755 build/rayomd {{prefix}}/bin/rayomd
