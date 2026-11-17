@@ -1,0 +1,39 @@
+distributable:
+  url: https://github.com/Butterski/rayomd/archive/refs/tags/{{version.tag}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: Butterski/rayomd
+
+platforms:
+  - linux
+
+build:
+  dependencies:
+    cmake.org: '*'
+    linux:
+      gnu.org/gcc: '*'
+  script:
+    - cmake -S . -B build $CMAKE_ARGS
+    - cmake --build build
+    - install -Dm755 build/rayomd {{prefix}}/bin/rayomd
+  env:
+    CMAKE_ARGS:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DBUILD_TESTING=OFF
+      - -Wno-dev
+
+provides:
+  - bin/rayomd
+
+test:
+  - rayomd --version | tee out
+  - grep "rayomd {{version}}" out
+  - run: rayomd --export $FIXTURE out.pdf
+    fixture:
+      extname: md
+      content: |
+        # Test
+        - item
+  - test -s out.pdf
+  - head -c 4 out.pdf | grep -q "%PDF"
