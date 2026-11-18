@@ -35,8 +35,8 @@ build:
         - sed -i 's|JNAKernel32Library.getInstance();|//JNAKernel32Library.getInstance();|' server/src/main/java/org/opensearch/bootstrap/Bootstrap.java
         - fi
       if: ^2
-    - ./gradlew -Dbuild.snapshot=false ":distribution:archives:no-jdk-{{hw.platform}}-tar:assemble"
-    - run: tar --strip-components=1 -xf $SRCROOT/distribution/archives/no-jdk-{{hw.platform}}-tar/build/distributions/opensearch-*.tar.gz
+    - ./gradlew -Dbuild.snapshot=false ":distribution:archives:$NO_JDK_ARCHIVE:assemble"
+    - run: tar --strip-components=1 -xf $SRCROOT/distribution/archives/$NO_JDK_ARCHIVE/build/distributions/opensearch-*.tar.gz
       working-directory: ${{prefix}}
     # yq preserves the yaml comments in this user-facing config; the stock
     # `# cluster.name: my-application` comment stays, the real key is appended
@@ -133,6 +133,8 @@ build:
       working-directory: ${{prefix}}/bin
       if: linux
   env:
+    # the no-jdk archive gradle task; 3.10.0 names the arm64 mac one darwin-arm64
+    NO_JDK_ARCHIVE: no-jdk-{{hw.platform}}-tar
     # nmslib SIMD target — override the default -march=native (non-portable) per
     # arch; consumed by the k-NN cmake step above (as NMSLIB_SIMD_FLAGS / sed).
     NMSLIB_SIMD: -march=native
@@ -140,6 +142,7 @@ build:
       NMSLIB_SIMD: -march=x86-64
     darwin/aarch64:
       NMSLIB_SIMD: -mcpu=apple-m1
+      NO_JDK_ARCHIVE: no-jdk-darwin-arm64-tar
     linux/x86-64:
       # /opt/gnu.org/binutils/v2.43.1/bin/ld: release/libopensearchknn_faiss_avx2.so: undefined reference to `_gfortran_concat_string'
       LDFLAGS: $LDFLAGS -Wl,-lgfortran
