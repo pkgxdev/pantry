@@ -1,0 +1,189 @@
+# android-tools — standalone adb, fastboot, mkbootimg, et al.
+#
+# Upstream's adb/fastboot/mkbootimg are built as part of the full AOSP
+# tree (Soong/Blueprint). This repo by @nmeum extracts the relevant
+# AOSP source pieces and provides a standalone CMake-based build —
+# the same setup used by Debian, Fedora, Alpine and Arch to package
+# `android-tools-adb`.
+#
+# Provides adb (Android Debug Bridge), fastboot, mkbootimg/repack/unpack,
+# simg2img/img2simg/ext2simg, avbtool. Closes the lookup gap when
+# users `pkgx adb` (referenced by scrcpy in pkgxdev/pantry#7071).
+
+distributable:
+  # The release tarball bundles all the AOSP subdirectories that
+  # the CMake build needs — much easier than fetching them ourselves.
+  url: https://github.com/nmeum/android-tools/releases/download/{{ version.raw }}/android-tools-{{ version.raw }}.tar.xz
+  strip-components: 1
+
+versions:
+  github: nmeum/android-tools
+  # 35.0.x has an internal API mismatch: ZipWriter::FileEntry struct
+  # missing last_mod_time / last_mod_date / crc32 / compressed_size /
+  # uncompressed_size fields that zip_writer.cc references. Pin to
+  # the 34.x line until upstream resolves it.
+  ignore:
+    - /^35\./
+
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+  - darwin/x86-64
+  - darwin/aarch64
+
+dependencies:
+  libusb.info: '*'
+  pcre.org/v2: '*'
+  google.com/googletest: '*'    # provides gtest_prod.h required by libziparchive
+  # protobuf 35.0.0 and 25.x bottles were both built against
+  # abseil 20250127 (visible in unresolved symbol prefixes
+  # `absl::lts_20250127::*`).  Pantry's abseil now resolves to
+  # 20260107 by default — ABI-incompatible LTS bump.  Pin abseil to
+  # match what the protobuf bottle expects, so the final link
+  # resolves.  Drop once pantry rebuilds protobuf against the
+  # current abseil.
+  # Try exact patch version. `^20250127` resolves to .2.0 — but the
+  # protobuf bottle may have been built against an earlier abseil
+  # 20250127 patch where template instantiations of
+  # `LogMessage::operator<<` differ. Pin to .0.0 to test.
+  abseil.io: =20250127.0.0
+  protobuf.dev: '*'
+  github.com/google/brotli: '*'
+  facebook.com/zstd: '*'
+  lz4.org: '*'
+  python.org: ^3.9         # runtime — mkbootimg/unpack_bootimg/etc.
+                           # are wrapper scripts that exec python3
+                           # against share/android-tools/*.py
+
+build:
+  dependencies:
+    cmake.org: ^3
+    gnu.org/make: '*'
+    go.dev: '*'
+    perl.org: '*'
+    freedesktop.org/pkg-config: '*'
+    linux:
+      gnu.org/gcc: '>=10'
+
+  working-directory: build
+  script:
+    # Patch vendored libjsonpb for protobuf 27+/28+ API drift before
+    # cmake configures (it's compiled by the in-tree CMakeLists in
+    # vendor/extras/libjsonpb/, so an in-place sed is enough).
+    #   - protobuf 27+: Descriptor::full_name() now returns
+    #     absl::string_view, breaking `std::string + full_name()`.
+    #     Wrap in std::string(...) to force conversion.
+    #   - protobuf 28+: removed google::protobuf::util::JsonOptions;
+    #     it was renamed to JsonPrintOptions years ago.
+    - run: |
+        JSONPB="../vendor/extras/libjsonpb/parse/jsonpb.cpp"
+        if [ -f "$JSONPB" ]; then
+          sed -i.bak \
+            -e 's|+ message\.GetDescriptor()->full_name()|+ std::string(message.GetDescriptor()->full_name())|' \
+            -e 's|util::JsonOptions|util::JsonPrintOptions|g' \
+            "$JSONPB"
+          rm -f "$JSONPB.bak"
+          echo "patched $JSONPB for protobuf 27+ compat"
+        fi
+    - cmake .. $ARGS
+    - make --jobs {{ hw.concurrency }}
+    - make install
+
+    # Upstream's CMakeLists installs `bin/mkbootimg`,
+    # `bin/unpack_bootimg`, `bin/repack_bootimg`, `bin/mkdtboimg`,
+    # `bin/avbtool` as symlinks (via a `*_symlink` CMake target)
+    # pointing at the corresponding `share/android-tools/<name>/<name>.py`.
+    # The symlink target uses the absolute `+brewing` build prefix,
+    # so after brewkit relocates the install to its final path,
+    # the symlinks dangle and brewkit's audit reports the binaries
+    # as missing. Replace each symlink with a small shell wrapper
+    # that resolves $0 → script at runtime (so it works post-relocation).
+    - run: |
+        BIN="{{prefix}}/bin"
+        for tool in mkbootimg unpack_bootimg repack_bootimg mkdtboimg avbtool; do
+          [ -e "$BIN/$tool" ] || continue
+          # Real .py lives at:
+          #   $prefix/share/android-tools/$tool/$tool.py     (typical)
+          # or
+          #   $prefix/share/android-tools/$tool.py           (occasional)
+          # so probe both shapes from the wrapper.
+          rm -f "$BIN/$tool"
+          cat > "$BIN/$tool" <<'WRAPEOF'
+        #!/bin/sh
+        bindir=$(CDPATH= cd -- "${0%/*}" && pwd)
+        prefix=$(CDPATH= cd -- "$bindir/.." && pwd)
+        name=$(basename "$0")
+        for candidate in \
+          "$prefix/share/android-tools/$name/$name.py" \
+          "$prefix/share/android-tools/$name.py"; do
+          if [ -f "$candidate" ]; then
+            exec python3 "$candidate" "$@"
+          fi
+        done
+        echo "$0: companion python script not found under $prefix/share/android-tools/" >&2
+        exit 127
+        WRAPEOF
+          chmod 755 "$BIN/$tool"
+        done
+  env:
+    # The vendored AOSP libbase / libziparchive headers reference
+    # uint8_t / uint32_t / etc. without including <cstdint>. Pre-C++17
+    # libstdc++ headers brought it in transitively; modern GCC/libc++
+    # no longer do, so compilation dies with "template argument 1 is
+    # invalid" on `std::vector<uint8_t>`. Force-include <cstdint>
+    # before every translation unit.
+    #
+    # AOSP's libbase/posix_strerror_r.cpp assumes the POSIX-XSI
+    # strerror_r (returns int). glibc's default _GNU_SOURCE feature
+    # set selects the GNU variant (returns char*), causing
+    # "invalid conversion from 'char*' to 'int'".
+    #
+    # We can't just `-U_GNU_SOURCE` — too much downstream AOSP code
+    # (adb, logger, uio, pipe2, IOV_MAX, pthread_setname_np,
+    # program_invocation_short_name, …) depends on it. Use
+    # -fpermissive to demote the strerror_r mismatch to a warning;
+    # the resulting CLI tools (adb, fastboot) only care that the
+    # call returns "success-ish", not its precise return contract.
+    CXXFLAGS: -include cstdint -fpermissive
+    linux:
+      # libprotobuf.so in pantry is built with `--allow-shlib-undefined`
+      # itself (see projects/protobuf.dev/package.yml — the FIXME about
+      # abseil drift) — its dynamic symbols still reference whichever
+      # abseil it was originally built against, regardless of which
+      # abseil pkg-config currently advertises. Consumer links that pull
+      # libprotobuf.so transitively will see those refs surface as
+      # "undefined reference to absl::lts_X::log_internal::LogMessage::
+      # operator<<<…>" template instantiations. Same workaround applies:
+      # tell ld to allow undefined refs in linked shared libs.
+      #
+      # Linux-only: this flag is GNU ld / lld syntax. Darwin's ld64
+      # rejects it with `ld: unknown options: --allow-shlib-undefined`,
+      # which is fine — darwin builds against the system libprotobuf
+      # via Xcode toolchain and doesn't hit the abseil-drift issue.
+      LDFLAGS: $LDFLAGS -Wl,--allow-shlib-undefined
+    ARGS:
+      - -DCMAKE_INSTALL_PREFIX={{prefix}}
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DANDROID_TOOLS_USE_BUNDLED_FMT=ON  # libfmt vendored — keep it
+      - -DBUILD_TESTING=OFF
+
+provides:
+  - bin/adb            # Android Debug Bridge — the headline binary
+  - bin/fastboot       # bootloader interface
+  - bin/mkbootimg      # build boot.img from kernel + ramdisk
+  - bin/unpack_bootimg
+  - bin/repack_bootimg
+  - bin/simg2img       # sparse image → ext4 image
+  - bin/img2simg       # ext4 image → sparse image
+  - bin/ext2simg
+  - bin/avbtool        # Android Verified Boot signing
+  - bin/lpdump
+  - bin/lpmake
+  - bin/lpunpack
+
+test:
+  # adb's version banner is "Android Debug Bridge version 1.0.41" — the
+  # first line has no "adb" substring, so the old `head -1 | grep adb`
+  # always failed. Match the actual banner instead.
+  - adb --version 2>&1 | grep -iq "android debug bridge"
+  - fastboot --version 2>&1 | grep -iq "fastboot"
