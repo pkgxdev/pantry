@@ -1,0 +1,119 @@
+# CockroachDB - distributed SQL database (BSL 1.1, open-source core).
+#
+# Source-built via `make buildoss` (legacy Makefile path, equivalent to
+# arch's AUR cockroachdb recipe). The modern `./dev build` route requires
+# bazel + docker, which is too heavy for pantry, so we cap at v23.1.x —
+# the last cockroach branch that still ships a usable top-level Makefile
+# with a `buildoss` target. Newer branches (v23.2+, v24.x, v25.x, v26.x)
+# replaced GNUmakefile contents with a single `./dev` shim that always
+# requires bazel.
+#
+# Storage engine is Pebble (pure-Go RocksDB-alike) — no rust-rocksdb /
+# bundled-C++ pain. The cgo surface is small: jemalloc allocator,
+# libgeos for geospatial, libproj for projections, libedit for repl line
+# editing — all vendored as git submodules under c-deps/ and built
+# in-tree via cmake. We use `git+https` to fetch the work tree because
+# (a) the GitHub archive tarball omits submodules and (b) the Makefile
+# also checks for a real `.git` directory to derive build metadata.
+#
+# Build is heavy (~6 GB RAM, ~10 min wall clock on darwin/aarch64).
+
+distributable:
+  url: git+https://github.com/cockroachdb/cockroach
+  ref: v{{version}}
+
+versions:
+  # Cockroach publishes tags but NOT GitHub Releases; force the API to
+  # walk /tags. The default `releases/tags` returns empty for this repo.
+  github: cockroachdb/cockroach/tags
+  # Only stable v23.1.x releases — newer branches (v23.2+) dropped the
+  # legacy Makefile in favour of a bazel-only build, and older branches
+  # (≤ v22.x) need a separate `vendor` git submodule that is too big to
+  # clone fresh for every bottle build.
+  ignore:
+    - /-alpha/
+    - /-beta/
+    - /-rc/
+    # filter to the v23.1.x branch only
+    - /^v(1\d|20|21|22)\./       # legacy v1x..v22 (vendor submodule era)
+    - /^v23\.[02-9]\./           # other v23 minors (v23.0, v23.2, ...)
+    - /^v(2[4-9]|[3-9]\d)\./     # v24+ (bazel-only)
+    - /^v[0-9]+\.[0-9]+\.[0-9]+-/  # any pre-release suffix (alpha/beta/rc)
+
+platforms:
+  - linux/x86-64
+  - linux/aarch64
+  - darwin/aarch64
+  # darwin/x86-64 not validated; cockroach Labs stopped publishing
+  # binaries for it around v23.
+
+provides:
+  - bin/cockroach
+  - lib/libgeos.so
+  - lib/libgeos_c.so
+
+build:
+  dependencies:
+    go.dev: '>=1.19<1.22'
+    cmake.org: ^3
+    gnu.org/make: '*'
+    gnu.org/autoconf: '*'
+    gnu.org/automake: '*'
+    gnu.org/libtool: '*'
+    freedesktop.org/pkg-config: '*'
+    git-scm.org: '*'
+    linux:
+      gnu.org/gcc: '*'
+  # NOTE: cockroach's Makefile uses its own LINKFLAGS (with hardcoded -s
+  # -w and -X build-tag/rev/typ) — passing GO_LDFLAGS in env is ignored.
+  # We also can't enable -buildmode=pie from here because the cgo C link
+  # step relies on the default mode.
+  script:
+    # Do the whole build in one shell so we can preserve cwd through
+    # the GOPATH symlink dance.
+    #
+    # 1) Init cgo submodules (jemalloc, krb5, geos, proj, libedit).
+    #    git+https leaves submodule pointers in .gitmodules but doesn't
+    #    fetch them.
+    # 2) Seed .buildinfo for the link step. The Makefile's recipe runs
+    #    `git describe --tags --dirty --match=v[0-9]*`, which fails on
+    #    a shallow git+https checkout. Pre-populate the files instead.
+    # 3) Build cockroach inside a fake GOPATH whose src/ symlinks back
+    #    to the worktree at the canonical import path. The Makefile
+    #    enforces $(filter $(GOPATH)%, $(CURDIR)) on lines 247-249.
+    # 4) `make vendor_rebuild` regenerates vendor/ from go.mod (cockroach
+    #    v23.1 stopped shipping vendor as a submodule).
+    # 5) `make buildoss` compiles the C deps under c-deps/ via cmake,
+    #    then links them via cgo into the Go binary. Output is
+    #    ./cockroachoss; rename it to `cockroach` on install.
+    # 6) Install the GEOS shared libs — they're dlopened at runtime for
+    #    geospatial queries.
+    - run: |
+        set -eux
+
+        git submodule update --init --recursive
+
+        mkdir -p .buildinfo
+        printf 'v%s' "{{version}}" > .buildinfo/tag
+        git rev-parse HEAD > .buildinfo/rev 2>/dev/null || printf 'unknown' > .buildinfo/rev
+
+        export GOPATH="$PWD/.gopath"
+        mkdir -p "$GOPATH/src/github.com/cockroachdb"
+        ln -sfn "$PWD" "$GOPATH/src/github.com/cockroachdb/cockroach"
+        cd "$GOPATH/src/github.com/cockroachdb/cockroach"
+
+        make vendor_rebuild
+        make buildoss --jobs {{ hw.concurrency }}
+
+        mkdir -p "{{prefix}}/bin" "{{prefix}}/lib"
+        install -m 755 cockroachoss "{{prefix}}/bin/cockroach"
+        for lib in lib/libgeos*.so lib/libgeos*.dylib lib/libgeos*.so.* ; do
+          if [ -f "$lib" ]; then
+            install -m 755 "$lib" "{{prefix}}/lib/"
+          fi
+        done
+
+test:
+  # `cockroach version` prints multi-line output. Grep loosely for the
+  # build-tag line — e.g. `Build Tag: v23.1.30`.
+  - run: '"{{prefix}}/bin/cockroach" version 2>&1 | grep -E "Build Tag:[[:space:]]+v{{version}}"'
