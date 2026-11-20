@@ -1,0 +1,70 @@
+distributable:
+  url: https://download.gnome.org/sources/gcr/{{version.marketing}}/gcr-{{version}}.tar.xz
+  strip-components: 1
+
+display-name: gcr
+
+versions:
+  gitlab: gitlab.gnome.org:GNOME/gcr
+
+dependencies:
+  freedesktop.org/p11-kit: '>=0.19'
+  gnome.org/glib: '>=2.74'
+  gnome.org/libsecret: '>=0.20'
+  gnupg.org/libgcrypt: '>=1.2.2'
+  gtk.org/gtk4: '*'
+  systemd.io: '*'
+
+build:
+  dependencies:
+    gnome.org/gi-docgen: '*'
+    gnome.org/gobject-introspection: '*'
+    gnome.org/vala: '*'
+    gnupg.org: '*'
+    mesonbuild.com: '>=0.59'
+    ninja-build.org: '>=1.8.2'
+    openssh.com: '*'
+  script: |
+    meson setup build $ARGS
+    meson compile -C build --jobs {{ hw.concurrency }}
+    meson install -C build
+  env:
+    ARGS:
+      - --buildtype=release
+      - --prefix={{prefix}}
+      - --libdir=lib
+
+provides:
+  - bin/gcr-viewer-gtk4
+
+test:
+  - wget https://github.com/Pkcs11Interop/pkcs11-mock/releases/download/v2.0.0/pkcs11-mock-2.0.0.zip
+  - unzip pkcs11-mock-2.0.0.zip
+  - run: cc $FIXTURE $(pkg-config --cflags --libs gcr-4)
+    fixture:
+      extname: c
+      content: |
+        #define GCR_API_SUBJECT_TO_CHANGE
+        
+        #include <limits.h>
+        #include <unistd.h>
+        #include <stdio.h>
+        #include <gcr/gcr.h>
+        
+        int main() {
+          char cwd[PATH_MAX], module_path[PATH_MAX];
+          getcwd(cwd, sizeof(cwd));
+          sprintf(module_path, "%s/%s", cwd, "pkcs11-mock-2.0.0/bin/linux/pkcs11-mock-x64.so");
+          printf("Module path: %s\n", module_path);
+          gcr_pkcs11_add_module_from_file(module_path, NULL, NULL);
+          gcr_pkcs11_initialize(NULL, NULL);
+          GList *modules = gcr_pkcs11_get_modules();
+          GckModuleInfo *module_info = gck_module_get_info(modules->data);
+          printf("Module version: %d.%d\n", module_info->pkcs11_version_major, module_info->pkcs11_version_minor);
+          printf("Module manufacturer: %s\n", module_info->manufacturer_id);
+          printf("Module description: %s\n", module_info->library_description);
+          gck_module_info_free(module_info);
+          g_list_free(modules);
+          return 0;
+        }
+  - ./a.out
