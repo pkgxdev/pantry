@@ -1,0 +1,35 @@
+distributable:
+  url: https://github.com/buchgr/bazel-remote/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+versions:
+  github: buchgr/bazel-remote/releases
+
+provides:
+  - bin/bazel-remote
+
+build:
+  script: |
+    go build -v -ldflags="$LDFLAGS" -o bazel-remote .
+    mkdir -p "{{prefix}}"/bin
+    mv bazel-remote "{{prefix}}"/bin
+
+    # gocache/gopath are not needed in the bottle
+    chmod -R u+w "$GOPATH" "$GOCACHE"
+    rm -rf "$GOPATH" "$GOCACHE"
+  dependencies:
+    go.dev: ^1.24
+  env:
+    GOPATH: ${{prefix}}/gopath
+    GOCACHE: ${{prefix}}/gocache
+    GOFLAGS: -mod=mod
+    LDFLAGS:
+      - -s -w
+    linux:
+      # -buildmode=pie: match distro Go binaries, avoid a segfault seen with
+      # some glibc/loader combos (docker-library/golang#402)
+      LDFLAGS:
+        - -buildmode=pie
+
+test:
+  bazel-remote --help 2>&1 | grep -q 'remote build cache'
