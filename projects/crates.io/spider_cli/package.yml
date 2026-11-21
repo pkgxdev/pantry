@@ -27,6 +27,14 @@ build:
     - run: yq -i '.features.default -= ["io_uring"]' Cargo.toml
       working-directory: spider
       if: linux/x86-64
+    # 2.53+ x86-64 builds SIGILL in CI; pin the aws-lc rustls stack back to the
+    # versions of the last x86-64 build (2.52.2)
+    - run: |
+        cargo update -p rustls --precise 0.23.40
+        cargo update -p rustls-webpki --precise 0.103.13
+        cargo update -p aws-lc-rs --precise 1.17.0
+        cargo update -p aws-lc-sys --precise 0.41.0
+      if: linux/x86-64
     # _requires_ spider/serde to build since 2.37.120
     - cargo install --path spider_cli --root {{prefix}} --features smart,spider/serde
   skip: fix-patchelf # dumps on x86-64
