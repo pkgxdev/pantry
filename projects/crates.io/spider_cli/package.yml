@@ -27,13 +27,26 @@ build:
     - run: yq -i '.features.default -= ["io_uring"]' Cargo.toml
       working-directory: spider
       if: linux/x86-64
-    # 2.53+ x86-64 builds SIGILL in CI; pin the aws-lc rustls stack back to the
-    # versions of the last x86-64 build (2.52.2)
+    # 2.54.2 x86-64 builds SIGILL on the ubuntu CI runner inside aws-lc's rustls
+    # provider (an Arc refcount abort). Use ring instead: reqwest without a provider,
+    # ring installed in main(), and crates.io spider 2.53.9 (pulled in by
+    # spider_transformations) patched to the same feature set.
+    - run: curl -fsSL https://static.crates.io/crates/spider/spider-2.53.9.crate | tar xz && mv spider-2.53.9 spider2539
+      if: linux/x86-64
+    - run: |
+        perl -0pi -e 's/= \["reqwest\/rustls"\]/= ["reqwest\/rustls-no-provider", "dep:rustls"]/g; s/(reqwest = \{ version = "0\.13", )features = \[/$1default-features = false, features = [\n    "rustls-no-provider",/' spider/Cargo.toml
+        printf '\n[dependencies.rustls]\nversion = "0.23"\noptional = true\ndefault-features = false\nfeatures = ["ring", "std", "tls12", "logging"]\n' >> spider/Cargo.toml
+        perl -0pi -e 's/= \["reqwest\/rustls"\]/= ["reqwest\/rustls-no-provider", "dep:rustls"]/g; s/(\[target\.\x27cfg\(not\(target_arch = "wasm32"\)\)\x27\.dependencies\.reqwest\]\nversion = "0\.13"\n)/$1default-features = false\n/; s/(\[target\.\x27cfg\(not\(target_arch = "wasm32"\)\)\x27\.dependencies\.reqwest\]\n.*?features = \[\n)/$1    "rustls-no-provider",\n/s' spider2539/Cargo.toml
+        printf '\n[dependencies.rustls]\nversion = "0.23"\noptional = true\ndefault-features = false\nfeatures = ["ring", "std", "tls12", "logging"]\n' >> spider2539/Cargo.toml
+        perl -0pi -e 's/reqwest = \{ version = "0\.13", features = \["json"\] \}/reqwest = { version = "0.13", default-features = false, features = ["json", "rustls-no-provider"] }\nrustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12", "logging"] }/' spider_cli/Cargo.toml
+        perl -0pi -e 's/(async fn main\(\) \{\n)/$1    let _ = rustls::crypto::ring::default_provider().install_default();\n/' spider_cli/src/main.rs
+        printf '\n[patch.crates-io]\nspider = { path = "spider2539" }\n' >> Cargo.toml
+        grep -q 'install_default' spider_cli/src/main.rs && grep -q 'spider2539' Cargo.toml && grep -q 'rustls-no-provider' spider/Cargo.toml
+      if: linux/x86-64
+    # newer rustls-webpki depends on aws-lc-rs even with ring; keep the last versions without it
     - run: |
         cargo update -p rustls --precise 0.23.40
         cargo update -p rustls-webpki --precise 0.103.13
-        cargo update -p aws-lc-rs --precise 1.17.0
-        cargo update -p aws-lc-sys --precise 0.41.0
       if: linux/x86-64
     # _requires_ spider/serde to build since 2.37.120
     - cargo install --path spider_cli --root {{prefix}} --features smart,spider/serde
