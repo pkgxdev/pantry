@@ -87,11 +87,14 @@ test:
             nm -n $BIN | awk -v o=0x7b2ca7 'BEGIN{t=strtonum(o)} /^[0-9a-f]+ [tT]/{if(strtonum("0x"$1)>t){print prev; exit}; prev=$0}' || true
           fi
       if: linux/x86-64
-    # diagnostic (branch only): gdb disables ASLR, so the faulting pc maps to a symbol
+    # diagnostic (branch only): read the faulting pc from the core file (its load map resolves the PIE base)
     - run: |
         if command -v apt-get >/dev/null; then
           apt-get update -qq && apt-get install -y -qq gdb >/dev/null
-          gdb -batch -ex run -ex 'info registers rip' -ex 'info symbol $pc' -ex 'x/12i $pc-24' -ex 'bt 20' --args spider -v --url https://choosealicense.com crawl
+          cat /proc/sys/kernel/core_pattern
+          (ulimit -c unlimited; spider -v --url https://choosealicense.com crawl) || true
+          ls -la core* 2>/dev/null
+          gdb -batch -ex 'info registers rip' -ex 'info symbol $pc' -ex 'x/12i $pc-24' -ex 'bt 20' "$(command -v spider)" core*
         fi
       if: linux/x86-64
     - spider -v --url https://choosealicense.com crawl
