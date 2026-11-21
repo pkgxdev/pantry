@@ -87,14 +87,24 @@ test:
             nm -n $BIN | awk -v o=0x7b2ca7 'BEGIN{t=strtonum(o)} /^[0-9a-f]+ [tT]/{if(strtonum("0x"$1)>t){print prev; exit}; prev=$0}' || true
           fi
       if: linux/x86-64
-    # diagnostic (branch only): read the faulting pc from the core file (its load map resolves the PIE base)
+    # diagnostic (branch only): map strace's si_addr back to an ELF vaddr via the
+    # executable mmap of the binary (core_pattern goes to systemd on the host, so no core)
     - run: |
-        if command -v apt-get >/dev/null; then
-          apt-get update -qq && apt-get install -y -qq gdb >/dev/null
-          cat /proc/sys/kernel/core_pattern
-          (ulimit -c unlimited; spider -v --url https://choosealicense.com crawl) || true
-          ls -la core* 2>/dev/null
-          gdb -batch -ex 'info registers rip' -ex 'info symbol $pc' -ex 'x/12i $pc-24' -ex 'bt 20' "$(command -v spider)" core*
-        fi
+        BIN=$(command -v spider)
+        strace -f -e trace=mmap -o /tmp/map.strace spider -v --url https://choosealicense.com crawl || true
+        ADDR=$(grep -oP 'si_addr=\K0x[0-9a-f]+' /tmp/map.strace | head -1)
+        echo "si_addr=$ADDR"
+        grep -oP 'mmap\(0x[0-9a-f]+, [0-9]+, PROT_READ\|PROT_EXEC.*' /tmp/map.strace | head -40
+        while IFS= read -r l; do
+          b=$(echo "$l" | grep -oP 'mmap\(\K0x[0-9a-f]+')
+          n=$(echo "$l" | grep -oP 'mmap\(0x[0-9a-f]+, \K[0-9]+')
+          o=$(echo "$l" | grep -oP ', \K0x[0-9a-f]+(?=\) = )')
+          if (( ADDR >= b && ADDR < b + n )); then
+            v=$(( ADDR - b + o ))
+            printf 'covering mapping: %s  vaddr=0x%x\n' "$l" "$v"
+            objdump -d --start-address=$((v - 40)) --stop-address=$((v + 8)) "$BIN"
+            addr2line -e "$BIN" -f -p "$(printf '0x%x' $v)"
+          fi
+        done < <(grep -E 'PROT_READ\|PROT_EXEC' /tmp/map.strace)
       if: linux/x86-64
     - spider -v --url https://choosealicense.com crawl
