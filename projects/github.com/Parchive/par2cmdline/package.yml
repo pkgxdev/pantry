@@ -10,9 +10,20 @@ dependencies:
     gnu.org/gcc/libstdcxx: 14
 
 build:
+  dependencies:
+    cmake.org: ^3
   script:
-    - ./configure --prefix="{{prefix}}"
-    - make --jobs {{hw.concurrency}} install
+    # 2.0.0 dropped autotools for CMake (no ./configure in the tarball).
+    - run: ./configure --prefix="{{prefix}}"
+      if: '<2'
+    - run: make --jobs {{hw.concurrency}} install
+      if: '<2'
+    - run: cmake -S . -B build -DCMAKE_INSTALL_PREFIX="{{prefix}}"
+      if: '>=2'
+    - run: cmake --build build --parallel {{hw.concurrency}}
+      if: '>=2'
+    - run: cmake --install build
+      if: '>=2'
     - run:
         - ln -sf par2 par2create
         - ln -sf par2 par2verify
