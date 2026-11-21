@@ -40,6 +40,11 @@ build:
   skip: fix-patchelf # dumps on x86-64
 
 test:
+  env:
+    linux/x86-64:
+      # experiment: clear aws-lc's AVX-512 gate bits (cpuid words 2-3) at runtime;
+      # the ubuntu runner has VAES/VPCLMULQDQ but no AVX-512F/BW/VL/DQ and SIGILLs
+      OPENSSL_ia32cap: ":~0x00200000c0030000"
   dependencies:
     linux/x86-64:
       gnu.org/binutils: "*"
