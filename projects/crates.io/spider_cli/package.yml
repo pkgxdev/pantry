@@ -91,7 +91,12 @@ test:
     # executable mmap of the binary (core_pattern goes to systemd on the host, so no core)
     - run: |
         BIN=$(command -v spider)
-        strace -f -o /tmp/map.strace spider -v --url https://choosealicense.com crawl || true
+        # the crash is intermittent: retry the traced crawl until one run records SIGILL
+        for i in 1 2 3 4 5 6 7 8; do
+          strace -f -o /tmp/map.strace spider -v --url https://choosealicense.com crawl || true
+          grep -q SIGILL /tmp/map.strace && break
+        done
+        grep -E 'openat\(.*spider' /tmp/map.strace | head -2
         ADDR=$(grep -oP 'si_addr=\K0x[0-9a-f]+' /tmp/map.strace | head -1 || true)
         echo "si_addr=$ADDR"
         grep -oP 'mmap\(0x[0-9a-f]+, [0-9]+, PROT_READ\|PROT_EXEC.*' /tmp/map.strace | head -40
