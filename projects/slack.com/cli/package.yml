@@ -1,0 +1,44 @@
+distributable: ~
+
+# Slack only ships prebuilt binaries for the CLI.
+warnings:
+  - vendored
+
+display-name: Slack CLI
+
+provides:
+  - bin/slack
+
+versions:
+  url: https://docs.slack.dev/tools/metadata.json
+  match: /"slack-cli"[\s\S]*?"version":\s*"\d+\.\d+\.\d+"/
+  strip:
+    - /"slack-cli"[\s\S]*?"version":\s*"/
+    - /"/
+
+dependencies:
+  git-scm.org: ^2
+
+build:
+  dependencies:
+    curl.se: "*"
+  skip: fix-patchelf
+  env:
+    BASE_URL: https://downloads.slack-edge.com/slack-cli
+    darwin:
+      PLATFORM: macOS
+    linux:
+      PLATFORM: linux
+    x86-64:
+      ARCH: amd64
+    aarch64:
+      ARCH: arm64
+  script:
+    - curl -fsSL "$BASE_URL/slack_cli_{{version}}_${PLATFORM}_${ARCH}.tar.gz" | tar zxf -
+    - install -Dm755 bin/slack {{prefix}}/bin/slack
+
+test:
+  script:
+    - slack version | grep {{version}}
+    - test "$(slack _fingerprint)" = "d41d8cd98f00b204e9800998ecf8427e"
+    - slack --help | grep "create, run, and deploy Slack apps"
