@@ -37,6 +37,11 @@ build:
 
 test:
   - redis-server --daemonize yes
+  - |
+    # --daemonize returns before the server listens (debian buster CI hit
+    # "Connection refused" on the next command); wait until it answers
+    for i in $(seq 50); do redis-cli --raw ping >/dev/null 2>&1 && break; sleep 0.2; done
+    redis-cli --raw ping
   - redis-cli --raw SET key123 value123
 
   - test "$(redis-cli --raw GET key123)" = "value123"
