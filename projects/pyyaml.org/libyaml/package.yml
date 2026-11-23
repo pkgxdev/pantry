@@ -9,12 +9,23 @@ build:
   dependencies:
     gnu.org/libtool: '*'
     gnu.org/autoconf: '*'
-  script: |
-    ./configure $ARGS
-    make --jobs {{ hw.concurrency }} install
+  script:
+    - ./configure $ARGS
+    - make --jobs {{ hw.concurrency }} install
+    # 0.2.6 raised the libtool AGE without raising CURRENT, which on linux turns the
+    # soname from libyaml-0.so.2 into libyaml-0.so.1 and breaks every binary linked
+    # against 0.2.5 (shards: "libyaml-0.so.2: cannot open shared object file").
+    # the ABI is compatible, so keep the old name resolvable
+    - run: ln -sf libyaml-0.so.1 libyaml-0.so.2
+      working-directory: ${{prefix}}/lib
+      if: ">=0.2.6 linux"
   env:
     ARGS:
       - --prefix="{{prefix}}"
 
 test:
-  script: cc fixture.c -lyaml -o test
+  script:
+    - cc fixture.c -lyaml -o test
+    - ./test
+    - run: test -e {{prefix}}/lib/libyaml-0.so.2
+      if: ">=0.2.6 linux"
