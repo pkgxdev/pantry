@@ -74,7 +74,7 @@ build:
   script:
     # EDK II pulls a pinned OpenSSL via submodule (CryptoPkg) and a
     # handful of others (BrotliCustomDecompressLib, MipiSysTLib, …).
-    # We need them for SecureBoot-capable OVMF builds.
+    # We need them for the TPM2 and HTTP/TLS boot OVMF builds.
     - git submodule update --init --recursive --depth 1
 
     # BaseTools — the C helpers (GenFv, GenFw, …) used by the build.
@@ -95,9 +95,14 @@ build:
 
     # ── X64 (amd64) → edk2-x86_64-code.fd / edk2-i386-vars.fd ──
     - if test "{{hw.platform}}+{{hw.arch}}" != "linux+aarch64"; then
+    # No SECURE_BOOT_ENABLE: since 202611 the QEMU flash driver asserts "This VM
+    # configuration is not secure" for secure boot with pflash variables unless
+    # SMM is required, and in a RELEASE build that assert is a silent hang (no
+    # serial output, display never initialized). A SMM_REQUIRE build would need
+    # `-machine q35,smm=on` and secure pflash from every consumer, so this plain
+    # blob matches qemu's own non-secure edk2-x86_64-code.fd.
     - build -a X64 -t "$TC" -b RELEASE
       -p OvmfPkg/OvmfPkgX64.dsc
-      -D SECURE_BOOT_ENABLE=TRUE
       -D TPM2_ENABLE=TRUE
       -D NETWORK_IP6_ENABLE=TRUE
       -D NETWORK_HTTP_BOOT_ENABLE=TRUE
