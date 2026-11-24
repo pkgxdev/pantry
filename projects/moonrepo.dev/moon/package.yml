@@ -10,10 +10,17 @@ versions:
 
 build:
   dependencies:
-    rust-lang.org: "*"
+    rust-lang.org/rustup: "*"
     protobuf.dev: "*" # since 2.2.0
     freedesktop.org/pkg-config: "*"
   script:
+    # follow upstream's pinned channel; the newest rust breaks its locked deps
+    - run: ln -sf {{deps.rust-lang.org/rustup.prefix}}/bin/rustup rustup
+      working-directory: $HOME/.cargo/bin
+    - run: rustup default "$(sed -n 's/^channel = "\(.*\)".*/\1/p' $SRCROOT/rust-toolchain.toml)"
+    - run: ln -sf $HOME/.rustup/toolchains/*/bin/* .
+      working-directory: $HOME/.cargo/bin
+
     - if test -d crates/cli; then
     - cargo install --locked --path crates/cli --root {{prefix}}
     - elif test -d legacy/cli; then
@@ -21,6 +28,8 @@ build:
     - else
     - cargo install --locked --path . --root {{prefix}}
     - fi
+  env:
+    PATH: $HOME/.cargo/bin:$PATH
 
 test:
   - moon init --minimal --yes
