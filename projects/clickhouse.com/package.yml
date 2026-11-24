@@ -37,6 +37,8 @@ build:
     - run: curl -Lf "$URL" -o clickhouse
       if: darwin
     - install -Dm755 clickhouse {{prefix}}/bin/clickhouse
+  # 26.11's static-pie binary gained a .dynamic section; patchelf corrupts it (segfault)
+  skip: fix-patchelf
 
 test:
   - clickhouse --version 2>&1 | tee out
