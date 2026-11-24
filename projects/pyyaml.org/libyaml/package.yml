@@ -16,10 +16,10 @@ build:
     # soname from libyaml-0.so.2 into libyaml-0.so.1 and breaks every binary linked
     # against 0.2.5 (shards: "libyaml-0.so.2: cannot open shared object file").
     # the ABI is compatible, so keep the old name resolvable. 0.2.7 reverted the
-    # change and ships so.2 itself, so this must not touch it.
-    - run: ln -s libyaml-0.so.1 libyaml-0.so.2
+    # change and ships so.2 itself, so only add it when it is missing.
+    - run: if test -f libyaml-0.so.1 && ! test -e libyaml-0.so.2; then ln -s libyaml-0.so.1 libyaml-0.so.2; fi
       working-directory: ${{prefix}}/lib
-      if: ">=0.2.6<0.2.7 linux"
+      if: linux
   env:
     ARGS:
       - --prefix="{{prefix}}"
