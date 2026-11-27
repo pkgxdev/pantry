@@ -1,0 +1,199 @@
+distributable:
+  url: https://github.com/cockroachdb/cockroach/archive/refs/tags/v{{version}}.tar.gz
+  strip-components: 1
+
+display-name: CockroachDB
+
+versions:
+  # cockroach publishes git tags but no GitHub releases, so query tags directly
+  github: cockroachdb/cockroach/tags
+  ignore:
+    - /-alpha/
+    - /-beta/
+    - /-rc/
+
+# Linux/x86-64 only. CockroachDB is a Linux server product and its Bazel
+# build pins a rules_go go_sdk that has no darwin toolchain
+# (`unsupported platform darwin_amd64`); upstream ships dev darwin
+# binaries through a separate path that isn't reproducible here.
+# aarch64 is deferred: the CI ARM runner dies ~2.5 min into the build
+# (before x86-64's ~12 min build even links), with no uploaded logs —
+# an infra/runner limit on this heavy bazel build, not a recipe bug.
+# Ship x86-64 (the primary server target) now; revisit aarch64 when the
+# ARM build can be reproduced.
+platforms:
+  - linux/x86-64
+
+provides:
+  - bin/cockroach
+
+# cockroach embeds a lot of cgo C++ (Pebble/RocksDB, geos, etc.) compiled
+# with the pkgx gcc, so it needs that exact toolchain's libstdc++ at
+# runtime. Left to the default loader search, the binary picks up the
+# host's system libstdc++ instead — which on an older base (e.g. the CI
+# image) is an ABI-incompatible series and segfaults on startup. We fix
+# this deterministically by baking an -rpath to this gcc bottle's lib dir
+# into the binary at link time (see the build script), so it ALWAYS loads
+# the libstdc++ it was built against, on the CI test container AND on end-
+# user machines — no system libstdc++ involved. This runtime dep guarantees
+# that bottle is present. Verified end-to-end on x86-64 in a clean env
+# (`env -i cockroach version` -> exit 0, ldd shows the pkgx libstdc++).
+dependencies:
+  linux:
+    gnu.org/gcc: '*'
+
+build:
+  dependencies:
+    go.dev: ^1.25
+    cmake.org: ^3
+    gnu.org/make: '*'
+    gnu.org/autoconf: '*'
+    gnu.org/bison: '*'
+    gnu.org/patch: '*'
+    freedesktop.org/pkg-config: '*'
+    github.com/bazelbuild/bazelisk: '*'
+    git-scm.org: '*'
+    linux:
+      gnu.org/gcc: '*'
+      invisible-island.net/ncurses: '*'
+  env:
+    # cockroach embeds version info from git; without a .git dir the build
+    # falls back to "unknown". Inject a stable version through the linker.
+    STABLE_BUILD_TAG: v{{version}}
+    USE_BAZEL_VERSION: '7.6.0'
+  script:
+    # cockroach's .bazelrc enables --incompatible_strict_action_env, which
+    # wipes the environment from every spawned compiler action. pkgx's gcc
+    # is a wrapper script that execs "$HOME/toolchain/<tool>" and shells
+    # out to "$HOME/.pkgx/.../pkgx"; with HOME cleared it collapses to the
+    # absolute "/toolchain/gcc" and dies (`No such file or directory`).
+    # Rather than chase HOME through every one of bazel's action kinds
+    # (target C++, exec "[for tool]" codegen, rules_go's cgo stdlib build,
+    # each of which sanitises env differently), point the toolchain at the
+    # REAL gcc/g++ and feed the compiler the include/lib search paths and
+    # runtime loader path directly. This removes the HOME dependency
+    # entirely. Exporting CC/CXX before `bazel` makes bazel's C++ auto-
+    # configuration pick the real compiler; forwarding them (plus CPATH /
+    # LIBRARY_PATH / LD_LIBRARY_PATH) into target AND exec action envs
+    # covers the go cgo compiles too. LD_LIBRARY_PATH is also what keeps
+    # pkgx's binutils ld.gold off the ancient distro libstdc++
+    # (`GLIBCXX_3.4.32 not found`).
+    - export CC="{{deps.gnu.org/gcc.prefix}}/bin/gcc"
+    - export CXX="{{deps.gnu.org/gcc.prefix}}/bin/g++"
+    - PKGX_CC="$CC"
+    - PKGX_CXX="$CXX"
+    # Real gcc still shells out to `as`/`ld`; those are found on PATH, where
+    # brewkit's wrapper dir sits first and each wrapper re-execs
+    # "$HOME/toolchain/<tool>". rules_go's stdlib builder scrubs HOME from
+    # the env of the go/gcc/as subprocess, so the wrappers collapse to
+    # "/toolchain/as: No such file or directory". Strip the wrapper dir from
+    # the PATH we forward to bazel actions so the real binutils (already on
+    # PATH under /opt) is used directly — no wrapper, no HOME dependency.
+    - PKGX_PATH=$(echo "$PATH" | sed -E 's#[^:]*brewkit/v1/share/toolchain/bin[^:]*:?##g' | sed 's/:$//')
+    - PKGX_HOME="$HOME"
+    - PKGX_LDLP="$LD_LIBRARY_PATH"
+    - PKGX_CPATH="$CPATH"
+    - PKGX_LIBP="$LIBRARY_PATH"
+    # the github source tarball has no .git directory; cockroach's bazel
+    # rules rely on workspace_status.sh probing git, so stub it
+    - |
+      cat > build/bazelutil/stamp.sh <<'EOSTAMP'
+      #!/usr/bin/env bash
+      echo STABLE_BUILD_CHANNEL release
+      echo STABLE_BUILD_TAG v__VERSION__
+      echo STABLE_BUILD_TYPE release
+      echo STABLE_BUILD_TARGET_TRIPLE __TRIPLE__
+      echo STABLE_CRASH_REPORT_ENV v__VERSION__
+      echo STABLE_TELEMETRY_DISABLED true
+      EOSTAMP
+    - sed -i.bak "s/__VERSION__/{{version}}/g;s|__TRIPLE__|$(go env GOOS)-$(go env GOARCH)|g" build/bazelutil/stamp.sh
+    - rm -f build/bazelutil/stamp.sh.bak
+    - chmod +x build/bazelutil/stamp.sh
+    # libstdc++ is a two-front problem here — BUILD-time and RUNTIME — and
+    # each front needs its own fix:
+    #
+    # (1) BUILD-time: the linker ld.gold (pkgx binutils) is itself a C++
+    # program needing a newer GLIBCXX than an old base image's system
+    # libstdc++. rules_go's link builder scrubs LD_LIBRARY_PATH from the
+    # linker subprocess, so the --action_env below does NOT reach ld.gold;
+    # it falls back to the container's ancient libstdc++ and dies
+    # (`ld.gold: GLIBCXX_3.4.32 not found`). We can't switch to ld.bfd —
+    # bazel/protobuf pass gold/lld-only options like `--start-lib`. So we
+    # install pkgx's libstdc++ as the system one (backward-compatible, so
+    # pre-existing distro tools keep working), which ld.gold resolves via
+    # the default loader path regardless of the scrubbed env. This only
+    # touches the build machine.
+    #
+    # (2) RUNTIME: (1) alone is NOT enough — the shipped cockroach binary,
+    # left to the default loader search, would pick up whatever libstdc++
+    # is on the USER's (or the CI *test* container's) system, which is
+    # ABI-mismatched against the pkgx-gcc-built cgo and segfaults on
+    # startup (this was the CI failure: build green, `cockroach version`
+    # exit 139). So we ALSO bake an -rpath to this gcc bottle's lib dir
+    # into every bazel-linked output via --linkopt/--host_linkopt below,
+    # making the binary resolve libstdc++ from the (rpath-recorded,
+    # brewkit-rewritten) gcc bottle on any host. The gnu.org/gcc runtime
+    # dep guarantees that bottle is present. Verified on x86-64:
+    # `env -i cockroach version` -> exit 0, ldd shows the pkgx libstdc++.
+    - |
+      command -v sudo >/dev/null 2>&1 && SUDO=sudo || SUDO=
+      SYS_LIBDIR=$(dirname "$(ldconfig -p | awk '/libstdc\+\+\.so\.6/{print $NF; exit}')")
+      SRC=$(ls {{deps.gnu.org/gcc.prefix}}/lib64/libstdc++.so.6* 2>/dev/null || ls {{deps.gnu.org/gcc.prefix}}/lib/libstdc++.so.6*)
+      $SUDO cp -Pf $SRC "$SYS_LIBDIR/"
+      $SUDO ldconfig
+    # cockroach-short is the pure-binary target (no embedded JS web UI),
+    # which keeps the build tractable without docker / nodejs in CI.
+    # `--spawn_strategy=local` disables bazel's sandbox so the compiler can
+    # see the pkgx include/lib dirs handed to it via the action env.
+    # --action_env feeds target-config actions; --host_action_env feeds the
+    # exec-config ("[for tool]") codegen + rules_go cgo actions; set both.
+    # --spawn_strategy=local is needed so the compiler actions can reach the
+    # pkgx toolchain under /opt (a sandbox would hide it). But running every
+    # genrule unsandboxed in the shared exec root makes cockroach's goyacc
+    # codegen scripts race on their fixed-name scratch files
+    # (`sed: couldn't open file types_regex.tmp`). Re-sandbox just the
+    # genrules — their tools are declared bazel inputs, so they don't need
+    # /opt — which gives each its own tmp dir and removes the race.
+    - bazel build //pkg/cmd/cockroach-short:cockroach-short
+        --config=ci
+        --jobs={{ hw.concurrency }}
+        --spawn_strategy=local
+        --strategy=Genrule=sandboxed
+        --linkopt=-Wl,-rpath,{{deps.gnu.org/gcc.prefix}}/lib64
+        --linkopt=-Wl,-rpath,{{deps.gnu.org/gcc.prefix}}/lib
+        --host_linkopt=-Wl,-rpath,{{deps.gnu.org/gcc.prefix}}/lib64
+        --host_linkopt=-Wl,-rpath,{{deps.gnu.org/gcc.prefix}}/lib
+        --action_env=CC=$PKGX_CC
+        --action_env=CXX=$PKGX_CXX
+        --action_env=CPATH=$PKGX_CPATH
+        --action_env=LIBRARY_PATH=$PKGX_LIBP
+        --action_env=LD_LIBRARY_PATH=$PKGX_LDLP
+        --action_env=PATH=$PKGX_PATH
+        --action_env=HOME=$PKGX_HOME
+        --host_action_env=CC=$PKGX_CC
+        --host_action_env=CXX=$PKGX_CXX
+        --host_action_env=CPATH=$PKGX_CPATH
+        --host_action_env=LIBRARY_PATH=$PKGX_LIBP
+        --host_action_env=LD_LIBRARY_PATH=$PKGX_LDLP
+        --host_action_env=PATH=$PKGX_PATH
+        --host_action_env=HOME=$PKGX_HOME
+        --workspace_status_command=$(pwd)/build/bazelutil/stamp.sh
+    # `bazel build` completes; install the built binary. cockroach's
+    # .bazelrc sets --symlink_prefix=_bazel/, so the convenience symlinks
+    # are `_bazel/bin` (not the default `bazel-bin`), and rules_go nests the
+    # executable under `<name>_/<name>`. Search the known prefixes.
+    - |
+      for pfx in _bazel/bin bazel-bin; do
+        BIN=$(find -L "$pfx/pkg/cmd/cockroach-short" -type f -name cockroach-short 2>/dev/null | head -1)
+        [ -n "$BIN" ] && break
+      done
+      test -n "$BIN" || { echo "cockroach-short binary not found:"; ls -la _bazel bazel-bin 2>/dev/null; exit 1; }
+      install -D -m755 "$BIN" "{{prefix}}/bin/cockroach"
+    # do not leave the bazel cache behind
+    - bazel clean --expunge || true
+
+test:
+  - |
+    out=$(cockroach version 2>&1 || true)
+    printf '%s\n' "$out"
+    printf '%s' "$out" | grep -qiE '{{version}}|CockroachDB'
